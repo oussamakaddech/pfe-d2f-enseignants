@@ -6,9 +6,9 @@ import { RISK_LEVEL_COLORS, RISK_LEVEL_LABELS } from "../constants";
 import type { Recommendation, SkillGap, WhatIfResponse } from "../types";
 
 interface Props {
-  enseignantId: string;
-  gaps: SkillGap[];
-  recommendations: Recommendation[];
+  readonly enseignantId: string;
+  readonly gaps: SkillGap[];
+  readonly recommendations: Recommendation[];
 }
 
 const fmtPct = (v: number) => `${Math.round(v * 100)}%`;

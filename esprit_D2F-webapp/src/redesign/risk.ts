@@ -14,9 +14,9 @@
 // ce module. Aucun autre endroit ne recalcule un seuil.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { riskStyle, riskLevelFromScore, RISK_THRESHOLDS, decodeSignals } from "@/utils/risk";
+import { riskStyle, riskLevelFromScore } from "@/utils/risk";
 
-export { RISK_THRESHOLDS, decodeSignals };
+export { decodeSignals } from "@/utils/risk";
 
 /** Clé de niveau de risque canonique. */
 export type RiskLevelKey = "FAIBLE" | "MODERE" | "ELEVE" | "CRITIQUE";

@@ -23,7 +23,7 @@ interface PlanRow extends WhatIfAction {
   key: number;
 }
 
-export default function WhatIfSimulator({ enseignantId }: { enseignantId: string }) {
+export default function WhatIfSimulator({ enseignantId }: { readonly enseignantId: string }) {
   const [rows, setRows] = useState<PlanRow[]>([{ key: 1, competence_id: 1, niveau_vise: 4 }]);
   const [horizon, setHorizon] = useState<number>(6);
   const sim = useSimulateWhatIf(enseignantId);
@@ -137,7 +137,7 @@ export default function WhatIfSimulator({ enseignantId }: { enseignantId: string
             icon={<ThunderboltOutlined />}
             onClick={run}
             loading={sim.isPending}
-            disabled={!enseignantId || rows.every((r) => !(r.competence_id > 0))}
+            disabled={!enseignantId || rows.every((r) => r.competence_id <= 0)}
             style={{ background: "#b51200", borderColor: "#b51200" }}
           >
             Simuler l'impact

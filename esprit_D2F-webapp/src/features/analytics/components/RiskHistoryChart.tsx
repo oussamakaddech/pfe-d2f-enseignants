@@ -15,8 +15,8 @@ import { RISK_LEVEL_LABELS } from "../constants";
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
 interface RiskHistoryChartProps {
-  points: RiskHistoryPoint[];
-  loading?: boolean;
+  readonly points: RiskHistoryPoint[];
+  readonly loading?: boolean;
 }
 
 /** Courbe d'evolution du score de risque dans le temps (F3). */
@@ -28,12 +28,15 @@ export default function RiskHistoryChart({ points, loading }: RiskHistoryChartPr
   const data = points.map((p) => Math.round(p.score * 100));
 
   const first = points[0].score;
-  const last = points[points.length - 1].score;
+  const lastPoint = points.at(-1)!;
+  const last = lastPoint.score;
   const delta = Math.round((last - first) * 100);
   const tendance =
     delta <= -3 ? { label: "Régression", color: "red" }
-    : delta >= 3 ? { label: "Amélioration", color: "green" }
-    : { label: "Stagnation", color: "orange" };
+    : (() => {
+        if (delta >= 3) return { label: "Amélioration", color: "green" };
+        return { label: "Stagnation", color: "orange" };
+      })();
 
   return (
     <div>
@@ -43,7 +46,7 @@ export default function RiskHistoryChart({ points, loading }: RiskHistoryChartPr
           Variation sur la periode : {delta > 0 ? "+" : ""}{delta} pts
         </span>
         <span style={{ fontSize: 12, color: "#94a3b8" }}>
-          (dernier niveau : {RISK_LEVEL_LABELS[points[points.length - 1].niveau] ?? points[points.length - 1].niveau})
+          (dernier niveau : {RISK_LEVEL_LABELS[lastPoint.niveau] ?? lastPoint.niveau})
         </span>
       </div>
       <Line

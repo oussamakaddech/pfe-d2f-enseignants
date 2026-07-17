@@ -17,10 +17,9 @@ export default function StackedProgress({
   items,
   height = 28,
 }: {
-  items: StackedItem[];
-  height?: number;
+  readonly items: StackedItem[];
+  readonly height?: number;
 }) {
-  const [hoveredRow, setHoveredRow] = useState<number | null>(null);
   const [hoveredSeg, setHoveredSeg] = useState<string | null>(null);
 
   if (!items.length) {
@@ -37,8 +36,8 @@ export default function StackedProgress({
           <div
             key={`${item.label}-${idx}`}
             className="sp-row"
-            onMouseEnter={() => setHoveredRow(idx)}
-            onMouseLeave={() => { setHoveredRow(null); setHoveredSeg(null); }}
+            onMouseEnter={() => undefined}
+            onMouseLeave={() => { setHoveredSeg(null); }}
           >
             <div className="sp-head">
               <span className="sp-label">{item.label}</span>

@@ -23,6 +23,14 @@ interface BesoinReviewStepProps {
   onEditSection: (idx: number) => void;
 }
 
+function stripTrailingAngle(value: string): string {
+  const idx = value.lastIndexOf("<");
+  if (idx >= 0 && value.indexOf(">", idx) === value.length - 1) {
+    return value.slice(0, idx);
+  }
+  return value;
+}
+
 export default function BesoinReviewStep({ sections, onEditSection }: Readonly<BesoinReviewStepProps>) {
   return (
     <div className="bf-summary">
@@ -115,10 +123,9 @@ export function buildSummarySections(
       ? raw.map((v) => String(v).trim()).filter(Boolean)
       : String(raw || "").split(/\r?\n/).map((v) => v.trim()).filter(Boolean);
     if (list.length === 0) return "—";
-    const names = list.map((v) => v.replace(/\s*<[^>]*>\s*$/, "").trim());
+    const names = list.map((v) => stripTrailingAngle(v).trim());
     return `${list.length} — ${names.join(", ")}`;
   };
-
   return [
     {
       key: "contexte", title: "Contexte", icon: null,

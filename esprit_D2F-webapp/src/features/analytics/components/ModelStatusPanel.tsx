@@ -3,8 +3,8 @@ import { CheckCircleOutlined, WarningOutlined } from "@ant-design/icons";
 import type { ModelStatus } from "../types";
 
 interface ModelStatusPanelProps {
-  status: ModelStatus | undefined;
-  loading?: boolean;
+  readonly status: ModelStatus | undefined;
+  readonly loading?: boolean;
 }
 
 /** Panneau de statut du modèle (intégrité, drift, source). */
@@ -22,7 +22,7 @@ export default function ModelStatusPanel({ status, loading }: ModelStatusPanelPr
         <Col span={8}>
           <Statistic
             title="Accuracy"
-            value={status.accuracy !== null ? status.accuracy : "—"}
+            value={status.accuracy ?? "—"}
             precision={status.accuracy !== null ? 3 : undefined}
             valueStyle={{ fontSize: 18 }}
           />

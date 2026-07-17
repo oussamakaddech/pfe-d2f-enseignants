@@ -5,7 +5,7 @@ import { ChartSkeleton } from "../States";
 const W = 600, H = 232, padX = 38, padY = 22;
 const innerW = W - padX * 2, innerH = H - padY * 2;
 
-export default function AlertsTrendChart({ data, loading }: { data: AlertTrendPoint[]; loading: boolean }) {
+export default function AlertsTrendChart({ data, loading }: { readonly data: AlertTrendPoint[]; readonly loading: boolean }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hover, setHover] = useState<number | null>(null);
 
@@ -34,7 +34,7 @@ export default function AlertsTrendChart({ data, loading }: { data: AlertTrendPo
   }
 
   const fmtDate = (iso: string) => {
-    const [y, m, d] = iso.split("-");
+    const [, m, d] = iso.split("-");
     return `${d}/${m}`;
   };
   const fmtFull = (iso: string) => {
@@ -60,10 +60,10 @@ export default function AlertsTrendChart({ data, loading }: { data: AlertTrendPo
             <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
           </linearGradient>
         </defs>
-        {ticks.map((t, i) => {
+        {ticks.map((t) => {
           const y = yOf(t);
           return (
-            <g key={i}>
+            <g key={t}>
               <line x1={padX} y1={y} x2={W - padX} y2={y} stroke="var(--rd-border)" strokeWidth={1} />
               <text x={padX - 7} y={y + 3} textAnchor="end" className="rd-axis-label">{Math.round(t)}</text>
             </g>
@@ -73,7 +73,7 @@ export default function AlertsTrendChart({ data, loading }: { data: AlertTrendPo
         <path d={critPath} fill="none" stroke="#ef4444" strokeWidth={2.5} strokeLinejoin="round" />
         <path d={totalPath} fill="none" stroke="#3b82f6" strokeWidth={2.5} strokeLinejoin="round" />
         {data.map((d, i) => (
-          <circle key={i} cx={xOf(i)} cy={yOf(d.total)} r={hover === i ? 4.5 : 2.4} fill="#3b82f6" className="rd-dot-hi" />
+          <circle key={d.date} cx={xOf(i)} cy={yOf(d.total)} r={hover === i ? 4.5 : 2.4} fill="#3b82f6" className="rd-dot-hi" />
         ))}
         {hover != null && (
           <>
@@ -83,7 +83,7 @@ export default function AlertsTrendChart({ data, loading }: { data: AlertTrendPo
           </>
         )}
         {data.map((d, i) => (
-          <text key={`t${i}`} x={xOf(i)} y={H - 4} textAnchor="middle" fontSize="9" fill="var(--rd-text-3)"
+          <text key={`t${d.date}`} x={xOf(i)} y={H - 4} textAnchor="middle" fontSize="9" fill="var(--rd-text-3)"
             style={{ display: i % labelEvery === 0 || i === data.length - 1 ? undefined : "none" }}>
             {fmtDate(d.date)}
           </text>

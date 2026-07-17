@@ -19,7 +19,7 @@ function buildPath(values: number[], w: number, h: number, max: number, padX: nu
     .join(" ");
 }
 
-export default function TrendChart({ data, loading }: { data: RiskTrendPoint[]; loading: boolean }) {
+export default function TrendChart({ data, loading }: { readonly data: RiskTrendPoint[]; readonly loading: boolean }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hover, setHover] = useState<number | null>(null);
 
@@ -65,10 +65,10 @@ export default function TrendChart({ data, loading }: { data: RiskTrendPoint[]; 
             <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
           </linearGradient>
         </defs>
-        {ticks.map((t, i) => {
+        {ticks.map((t) => {
           const y = yOf(t);
           return (
-            <g key={i}>
+            <g key={t}>
               <line x1={padX} y1={y} x2={W - padX} y2={y} stroke="var(--rd-border)" strokeWidth={1} />
               <text x={padX - 7} y={y + 3} textAnchor="end" className="rd-axis-label">{Math.round(t)}</text>
             </g>
@@ -78,7 +78,7 @@ export default function TrendChart({ data, loading }: { data: RiskTrendPoint[]; 
         <path d={elevatedPath} fill="none" stroke="#f59e0b" strokeWidth={2.5} strokeLinejoin="round" />
         <path d={criticalPath} fill="none" stroke="#ef4444" strokeWidth={2.5} strokeLinejoin="round" />
         {data.map((d, i) => (
-          <Fragment key={i}>
+          <Fragment key={d.month}>
             <circle cx={xOf(i)} cy={yOf(d.critical)} r={hover === i ? 4.5 : 2.4} fill="#ef4444" className="rd-dot-hi" />
             <circle cx={xOf(i)} cy={yOf(d.elevated)} r={hover === i ? 4.5 : 2.4} fill="#f59e0b" className="rd-dot-hi" />
           </Fragment>
@@ -91,7 +91,7 @@ export default function TrendChart({ data, loading }: { data: RiskTrendPoint[]; 
           </>
         )}
         {data.map((d, i) => (
-          <text key={`t${i}`} x={xOf(i)} y={H - 5} textAnchor="middle" fontSize="10" fill="var(--rd-text-3)"
+          <text key={`t${d.month}`} x={xOf(i)} y={H - 5} textAnchor="middle" fontSize="10" fill="var(--rd-text-3)"
             style={{ display: i % labelEvery === 0 || i === data.length - 1 ? undefined : "none" }}>
             {d.month}
           </text>

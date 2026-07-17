@@ -65,7 +65,7 @@ const QUICK_LINKS: readonly QuickLink[] = [
 
 function SectionHeader({
   icon, title, subtitle, action, index,
-}: { icon: ReactNode; title: string; subtitle?: string; action?: ReactNode; index?: number }) {
+}: { readonly icon: ReactNode; readonly title: string; readonly subtitle?: string; readonly action?: ReactNode; readonly index?: number }) {
   return (
     <div className="dash-section-head" style={index != null ? { animationDelay: `${index * 60}ms` } as CSSProperties : undefined}>
       <span className="dash-section-head-icon">{icon}</span>

@@ -24,8 +24,8 @@ export default function AlertsPanel({
   alerts,
   loading,
 }: {
-  alerts: AlertSummary | null;
-  loading: boolean;
+  readonly alerts: AlertSummary | null;
+  readonly loading: boolean;
 }) {
   if (loading && !alerts) return <ListSkeleton rows={5} />;
   if (!alerts) return <EmptyState description="Aucune donnée d'alertes" />;
@@ -110,11 +110,11 @@ export default function AlertsPanel({
         <div className="rd-alerts-trend">
           <div className="rd-alerts-top-title">Tendance sur 30 jours</div>
           <div className="rd-alerts-trend-chart">
-            {alerts.trend_30j.map((p, i) => {
+            {alerts.trend_30j.map((p) => {
               const maxTrend = Math.max(1, ...alerts.trend_30j.map((t) => t.total));
               const h = (p.total / maxTrend) * 48;
               return (
-                <div key={i} className="rd-alerts-trend-bar" title={`${dayjs(p.date).format("DD MMM")} : ${p.total} total, ${p.critiques} critiques`}>
+                <div key={p.date} className="rd-alerts-trend-bar" title={`${dayjs(p.date).format("DD MMM")} : ${p.total} total, ${p.critiques} critiques`}>
                   <div className="rd-alerts-trend-crit" style={{ height: `${(p.critiques / maxTrend) * 48}px` }} />
                   <div className="rd-alerts-trend-total" style={{ height: `${h}px` }} />
                 </div>

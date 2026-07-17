@@ -5,7 +5,7 @@ import { ChartSkeleton } from "../States";
 const W = 600, H = 244, padX = 38, padY = 24;
 const innerW = W - padX * 2, innerH = H - padY * 2;
 
-export default function ForecastChart({ view, loading }: { view: ForecastView | null; loading: boolean }) {
+export default function ForecastChart({ view, loading }: { readonly view: ForecastView | null; readonly loading: boolean }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hover, setHover] = useState<number | null>(null);
 
@@ -27,7 +27,7 @@ export default function ForecastChart({ view, loading }: { view: ForecastView | 
       : "";
 
   const projStart = history.length - 1;
-  const projPts = [history[history.length - 1], ...projection].filter(Boolean);
+  const projPts = [history.at(-1), ...projection].filter((p): p is (typeof projection)[number] => p != null);
   const projPath = projPts.map((p, i) => `${i === 0 ? "M" : "L"} ${xOf(projStart + i)} ${yOf(p.value).toFixed(1)}`).join(" ");
 
   const bandTop = projection.map((p, i) => `${i === 0 ? "M" : "L"} ${xOf(history.length + i)} ${yOf(p.upper ?? p.value).toFixed(1)}`).join(" ");
@@ -73,10 +73,10 @@ export default function ForecastChart({ view, loading }: { view: ForecastView | 
             <stop offset="100%" stopColor="#b51200" stopOpacity="0" />
           </linearGradient>
         </defs>
-        {ticks.map((t, i) => {
+        {ticks.map((t) => {
           const y = yOf(t);
           return (
-            <g key={i}>
+            <g key={t}>
               <line x1={padX} y1={y} x2={W - padX} y2={y} stroke="var(--rd-border)" strokeWidth={1} />
               <text x={padX - 7} y={y + 3} textAnchor="end" className="rd-axis-label">{Math.round(t)}</text>
             </g>
@@ -88,7 +88,7 @@ export default function ForecastChart({ view, loading }: { view: ForecastView | 
         <path d={histPath} fill="none" stroke="#b51200" strokeWidth={2.5} strokeLinejoin="round" pathLength={1} className="rd-fc-line" />
         <path d={projPath} fill="none" stroke="#7c3aed" strokeWidth={2.5} strokeDasharray="6 5" strokeLinejoin="round" pathLength={1} className="rd-fc-line-proj" />
         {series.map((p, i) => (
-          <circle key={i} cx={xOf(i)} cy={yOf(p.value)} r={p.isProjection ? 3 : 3.5} fill={p.isProjection ? "#7c3aed" : "#b51200"} />
+          <circle key={p.period} cx={xOf(i)} cy={yOf(p.value)} r={p.isProjection ? 3 : 3.5} fill={p.isProjection ? "#7c3aed" : "#b51200"} />
         ))}
         {hover != null && (
           <>
@@ -97,7 +97,7 @@ export default function ForecastChart({ view, loading }: { view: ForecastView | 
           </>
         )}
         {series.map((p, i) => (
-          <text key={`t${i}`} x={xOf(i)} y={H - 4} textAnchor="middle" fontSize="9" fill="var(--rd-text-3)"
+          <text key={`t${p.period}`} x={xOf(i)} y={H - 4} textAnchor="middle" fontSize="9" fill="var(--rd-text-3)"
             style={{ display: i % labelEvery === 0 || i === series.length - 1 ? undefined : "none" }}>
             {p.period}
           </text>

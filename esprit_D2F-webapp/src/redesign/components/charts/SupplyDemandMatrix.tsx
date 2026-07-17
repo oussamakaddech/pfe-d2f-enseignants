@@ -17,7 +17,7 @@ const QUAD_LABELS: Record<SupplyDemandItem["quadrant"], string> = {
   SURPLUS: "Surplus",
 };
 
-export default function SupplyDemandMatrix({ items, loading }: { items: SupplyDemandItem[]; loading: boolean }) {
+export default function SupplyDemandMatrix({ items, loading }: { readonly items: SupplyDemandItem[]; readonly loading: boolean }) {
   if (loading && items.length === 0) return <ChartSkeleton height={220} />;
   if (items.length === 0) return <div className="rd-empty">Aucune pression compétence détectée</div>;
 

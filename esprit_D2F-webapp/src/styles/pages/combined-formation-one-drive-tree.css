@@ -484,7 +484,7 @@
 .doc-file-name {
   font-size: 15px;
   color: #0f172a;
-  word-break: break-word;
+  overflow-wrap: break-word;
   font-weight: 600;
 }
 

@@ -165,7 +165,6 @@
 .ap-tname { color: var(--ap-ink); font-weight: 600; }
 .ap-tdim { color: var(--ap-ink2); }
 .ap-risk-pill { padding: 3px 9px; border-radius: 20px; font-weight: 700; font-size: 11px; }
-.ap-up { color: #34d399; } .ap-down { color: #ff6b81; }
 .ap-signals { color: var(--ap-ink3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ap-action { color: var(--ap-brand); font-weight: 600; }
 

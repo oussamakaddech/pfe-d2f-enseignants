@@ -123,6 +123,6 @@ export default function ForecastPage() {
   );
 }
 
-function TypographyParagraph({ children }: { children: React.ReactNode }) {
+function TypographyParagraph({ children }: { readonly children: React.ReactNode }) {
   return <p style={{ marginTop: 8, fontSize: 13, color: "#64748b" }}>{children}</p>;
 }

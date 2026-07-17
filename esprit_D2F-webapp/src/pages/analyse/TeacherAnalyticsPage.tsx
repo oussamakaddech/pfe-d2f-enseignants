@@ -166,6 +166,12 @@ export default function TeacherAnalyticsPage() {
     },
   ];
 
+  const notFoundContent = (() => {
+    if (searchLoading) return "Chargement…";
+    if (searchTerm.length >= 2) return "Aucun enseignant trouvé";
+    return "Tapez au moins 2 caractères";
+  })();
+
   return (
     <div>
       <AppPageHeader
@@ -188,7 +194,7 @@ export default function TeacherAnalyticsPage() {
               options={autoCompleteOptions}
               allowClear
               style={{ borderRadius: 8 }}
-              notFoundContent={searchLoading ? "Chargement…" : searchTerm.length >= 2 ? "Aucun enseignant trouvé" : "Tapez au moins 2 caractères"}
+              notFoundContent={notFoundContent}
             >
               <Input prefix={<UserOutlined style={{ color: brand[500] }} />} />
             </AutoComplete>
@@ -266,7 +272,7 @@ export default function TeacherAnalyticsPage() {
         footer={null}
         width={680}
         maskClosable={false}
-        destroyOnClose={false}
+        destroyOnHidden={false}
         title={
           <Space>
             <RiseOutlined style={{ color: brand[500] }} />

@@ -39,7 +39,7 @@ describe('RiskTable', () => {
   it('does NOT render the Action column when onAnalyze is not provided', () => {
     const { container } = render(<RiskTable data={sample} threshold={0.7} />);
     // No "thunderbolt" action button without callback
-    expect(container.querySelectorAll('button.ant-btn-icon-only').length).toBe(0);
+    expect(container.querySelectorAll('button.ant-btn-icon-only')).toHaveLength(0);
   });
 
   it('renders Action column and calls onAnalyze with teacher_id when provided', () => {
@@ -52,7 +52,7 @@ describe('RiskTable', () => {
     const actionButtons = Array.from(buttons).filter(
       (b) => b.getAttribute('class')?.includes('ant-btn-icon-only')
     );
-    expect(actionButtons.length).toBe(2);
+    expect(actionButtons).toHaveLength(2);
     fireEvent.click(actionButtons[0]);
     expect(onAnalyze).toHaveBeenCalledTimes(1);
     // The clicked teacher must be one of our two seeds

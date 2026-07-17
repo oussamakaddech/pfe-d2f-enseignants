@@ -48,6 +48,15 @@ function storageKeyFor(userId: string | number | undefined): string {
   return `${STORAGE_PREFIX}${userId ?? "anonymous"}`;
 }
 
+function mergeBackendNotifications(draft: AppNotification[], real: AppNotification[]): void {
+  const existing = new Set(draft.map((n) => n.id));
+  real.forEach((n) => {
+    if (!existing.has(n.id)) draft.unshift(n);
+  });
+  draft.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  if (draft.length > MAX_NOTIFICATIONS) draft.length = MAX_NOTIFICATIONS;
+}
+
 function loadPersisted(userId: string | number | undefined): AppNotification[] {
   try {
     const raw = sessionStorage.getItem(storageKeyFor(userId));
@@ -72,6 +81,17 @@ function toNotification(msg: NotificationSocketMessage): AppNotification {
     actor: msg.actor,
     meta: msg.meta,
   };
+}
+
+function applyIncomingNotification(draft: AppNotification[], msg: NotificationSocketMessage): void {
+  const notification = toNotification(msg);
+  const idx = draft.findIndex((n) => n.id === notification.id);
+  if (idx !== -1) {
+    draft[idx] = { ...draft[idx], ...notification };
+    return;
+  }
+  draft.unshift(notification);
+  if (draft.length > MAX_NOTIFICATIONS) draft.length = MAX_NOTIFICATIONS;
 }
 
 const NotificationProvider = memo(function NotificationProvider({ children }: NotificationProviderProps) {
@@ -103,15 +123,7 @@ const NotificationProvider = memo(function NotificationProvider({ children }: No
     notificationService.list({ size: MAX_NOTIFICATIONS })
       .then((real) => {
         if (cancelled) return;
-        setNotifications((draft) => {
-          const existing = new Set(draft.map((n) => n.id));
-          real.forEach((n) => {
-            if (!existing.has(n.id)) draft.unshift(n);
-          });
-          // Tri par date décroissante (createdAt).
-          draft.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          if (draft.length > MAX_NOTIFICATIONS) draft.length = MAX_NOTIFICATIONS;
-        });
+        setNotifications((draft) => { mergeBackendNotifications(draft, real); });
         if (!config.NOTIFICATIONS_WS_URL) setStatus("open");
       })
       .catch(() => {
@@ -127,15 +139,7 @@ const NotificationProvider = memo(function NotificationProvider({ children }: No
     const transport = createNotificationTransport(config.NOTIFICATIONS_WS_URL, {
       onMessage: (msg) => {
         setNotifications((draft) => {
-          const notification = toNotification(msg);
-          const idx = draft.findIndex((n) => n.id === notification.id);
-          if (idx !== -1) {
-            // Mise à jour (ex. passage à « lu ») sans duppliquer.
-            draft[idx] = { ...draft[idx], ...notification };
-            return;
-          }
-          draft.unshift(notification);
-          if (draft.length > MAX_NOTIFICATIONS) draft.length = MAX_NOTIFICATIONS;
+          applyIncomingNotification(draft, msg);
         });
       },
       onStatus: (s) => setStatus(s),

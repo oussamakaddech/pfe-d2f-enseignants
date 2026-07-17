@@ -1,14 +1,14 @@
-import { Card, Statistic, Typography } from "antd";
+import { Card, Statistic } from "antd";
 import type { ReactNode } from "react";
 
 interface KpiCardProps {
-  title: string;
-  value: number | string;
-  suffix?: string;
-  precision?: number;
-  icon?: ReactNode;
-  color?: string;
-  loading?: boolean;
+  readonly title: string;
+  readonly value: number | string;
+  readonly suffix?: string;
+  readonly precision?: number;
+  readonly icon?: ReactNode;
+  readonly color?: string;
+  readonly loading?: boolean;
 }
 
 /** Carte KPI réutilisable pour les tableaux de bord. */

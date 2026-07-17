@@ -26,9 +26,7 @@ export default function GlassKpi({
   hint,
 }: GlassKpiProps) {
   let deltaEl: ReactNode = null;
-  if (delta === undefined) {
-    deltaEl = null;
-  } else if (delta == null) {
+  if (delta == null) {
     deltaEl = (
       <span className="glass-kpi-delta flat"><MinusOutlined /> stable</span>
     );

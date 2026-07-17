@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Card, Section } from "@/redesign/components/Section";
-import { KpiSkeleton, ErrorState } from "@/redesign/components/States";
+import { ErrorState } from "@/redesign/components/States";
 import {
   useDetectAnomalies, useDetectAnomaliesDepartment,
 } from "@/hooks/analyse/useNewFeatures";

@@ -5,9 +5,9 @@ import { gapSeverityColor } from "../utils/format";
 import type { SkillGap } from "../types";
 
 interface GapsTableProps {
-  gaps: SkillGap[];
-  loading?: boolean;
-  onRowClick?: (gap: SkillGap) => void;
+  readonly gaps: SkillGap[];
+  readonly loading?: boolean;
+  readonly onRowClick?: (gap: SkillGap) => void;
 }
 
 /** Table des gaps de compétence avec filtres, tri et badges de sévérité. */

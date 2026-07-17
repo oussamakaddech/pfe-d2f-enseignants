@@ -1,6 +1,6 @@
 import { riskLevel, RISK_LABELS, RISK_COLORS } from "@/redesign/risk";
 
-export function RiskBadge({ score, size = "md" }: { score: number | null; size?: "sm" | "md" }) {
+export function RiskBadge({ score, size = "md" }: { readonly score: number | null; readonly size?: "sm" | "md" }) {
   if (score == null || Number.isNaN(score)) {
     return (
       <span className={`rd-risk ${size === "sm" ? "sm" : ""}`} style={{ color: "var(--rd-text-3)", background: "var(--rd-surface-3)" }}>
@@ -18,7 +18,7 @@ export function RiskBadge({ score, size = "md" }: { score: number | null; size?:
   );
 }
 
-export function RiskDot({ score }: { score: number | null }) {
+export function RiskDot({ score }: { readonly score: number | null }) {
   const color = score == null ? "var(--rd-text-3)" : RISK_COLORS[riskLevel(score)];
   return <span className="rd-risk-dot" style={{ background: color, width: 9, height: 9 }} />;
 }

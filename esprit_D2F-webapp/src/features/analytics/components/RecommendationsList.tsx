@@ -3,10 +3,10 @@ import { CheckCircleOutlined, CloseCircleOutlined, ArrowRightOutlined } from "@a
 import type { Recommendation } from "../types";
 
 interface RecommendationsListProps {
-  recommendations: Recommendation[];
-  loading?: boolean;
-  onAccept?: (id: number) => void;
-  onReject?: (id: number) => void;
+  readonly recommendations: Recommendation[];
+  readonly loading?: boolean;
+  readonly onAccept?: (id: number) => void;
+  readonly onReject?: (id: number) => void;
 }
 
 /** Liste des recommandations de formation classées par pertinence. */
@@ -72,8 +72,8 @@ export default function RecommendationsList({
             )}
             {onAccept && onReject && r.statut === "PROPOSEE" && (
               <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
-                <a onClick={() => onAccept(r.id)}>Accepter</a>
-                <a onClick={() => onReject(r.id)}>Ignorer</a>
+                <button type="button" onClick={() => onAccept(r.id)}>Accepter</button>
+                <button type="button" onClick={() => onReject(r.id)}>Ignorer</button>
               </div>
             )}
           </Card>

@@ -11,6 +11,20 @@ function formatValue(value: number | null, unit: Unit, customText?: string): str
   return `${Math.round(value)} %`;
 }
 
+function trendArrow(direction: Trend["direction"]): string {
+  if (direction === "up") return "▲";
+  if (direction === "down") return "▼";
+  return "–";
+}
+
+function renderTrend(trend: Trend, trendLabel?: string): ReactNode {
+  const arrow = trendArrow(trend.direction);
+  const hasValue = trend.value != null && trend.value !== 0;
+  const labelSuffix = trendLabel ? ` ${trendLabel}` : "";
+  const valueText = hasValue ? ` ${trend.value}${labelSuffix}` : "";
+  return <>{arrow}{valueText}</>;
+}
+
 /** Variante compacte du KpiCard — privilégie la densité (Analyse Prédictive). */
 export default function CompactKpi({
   label,
@@ -25,17 +39,17 @@ export default function CompactKpi({
   helper,
   loading = false,
 }: {
-  label: string;
-  value: number | null | undefined;
-  unit?: Unit;
-  customText?: string;
-  icon: ReactNode;
-  accent?: string;
-  accentBg?: string;
-  trend?: Trend | null;
-  trendLabel?: string;
-  helper?: string;
-  loading?: boolean;
+  readonly label: string;
+  readonly value: number | null | undefined;
+  readonly unit?: Unit;
+  readonly customText?: string;
+  readonly icon: ReactNode;
+  readonly accent?: string;
+  readonly accentBg?: string;
+  readonly trend?: Trend | null;
+  readonly trendLabel?: string;
+  readonly helper?: string;
+  readonly loading?: boolean;
 }) {
   const shown = value == null || Number.isNaN(value) ? NA_CALC : formatValue(value, unit, customText);
   const styleVars = { "--kpi-accent": accent, "--kpi-accent-bg": accentBg } as CSSProperties;
@@ -52,8 +66,7 @@ export default function CompactKpi({
       </div>
       {trend ? (
         <span className={`rd-trend ${trend.direction} ${trend.good ? "good" : "bad"}`}>
-          {trend.direction === "up" ? "▲" : trend.direction === "down" ? "▼" : "–"}
-          {trend.value != null && trend.value !== 0 ? ` ${trend.value}${trendLabel ? ` ${trendLabel}` : ""}` : ""}
+          {renderTrend(trend, trendLabel)}
         </span>
       ) : null}
     </div>

@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import type { RefObject } from "react";
-import type { RiceDomaine } from "@/models/competence";
+import type { RiceDomaine, RiceCompetence, RiceSavoir } from "@/models/competence";
 import type { AnalysisResult, EnseignantRef, ExtractedEnseignant } from "@/pages/competence/rice/riceTypes";
 import type { RiceAnalyzeResponse } from "@/models/analyse";
 import { cloneDeep } from "@/pages/competence/rice/constants";
@@ -38,7 +38,8 @@ function isLikelyValidExtractedName(value: unknown): boolean {
   if (name.length < 5 || name.includes(":")) return false;
   if (/^(module|code|unite|unit[eé]|responsable|pr[ée]requis|niveaux|objectif)\b/i.test(name)) return false;
   if (name.toLowerCase().includes("module") && name.toLowerCase().includes("unite")) return false;
-  return /[a-zà-ÿ]{2,}[^\S\n]+[a-zà-ÿ]{2,}/i.test(name);
+  const words = name.split(/\s+/).filter((w) => /[a-zà-ÿ]{2}/i.test(w));
+  return words.length >= 2;
 }
 
 /** Checks if text is a metadata line from PDF fiche (Code:, HE:, HNE:, etc.) */
@@ -49,29 +50,33 @@ function isMetadataLine(text: string): boolean {
   const colons = (t.match(/:/g) ?? []).length;
   if (colons >= 3) return true;
   if (colons >= 2) {
-    const kwHits = (t.match(/\b(?:Code|HE|HNE|ECTS|Responsable|Module|Enseignants?|Intervenants?|Unité\s*pédagogique|Coefficient|Volume[ _]horaire|Objectifs?|Prérequis|Niveau|Langue|Crédit)\b/gi) ?? []).length;
+    const kwHits = (t.match(/\b(?:Code|HE|HNE|ECTS|Responsable|Module|Enseignants?|Intervenants?|Unité|Coefficient|Volume|Objectifs?|Prérequis)\b/gi) ?? []).length;
     if (kwHits >= 3) return true;
   }
   return false;
 }
 
+function cleanSavoirs(savoirs: RiceSavoir[] | undefined): RiceSavoir[] {
+  return (savoirs ?? []).filter((s) => {
+    s.aiSuggestedIds = (s.enseignantsSuggeres ?? []).map(String);
+    s.enseignantsSuggeres = [];
+    return !isMetadataLine(s.nom);
+  });
+}
+
+function cleanCompetence(c: RiceCompetence): void {
+  c.savoirs = cleanSavoirs(c.savoirs);
+  (c.sousCompetences ?? []).forEach((sc) => {
+    sc.savoirs = cleanSavoirs(sc.savoirs);
+  });
+  c.sousCompetences = (c.sousCompetences ?? []).filter((sc) => (sc.savoirs ?? []).length > 0);
+}
+
 function cleanTreePropositions(propositions: RiceDomaine[]): RiceDomaine[] {
   const cleaned = cloneDeep(propositions);
-  for (const d of cleaned)
-    for (const c of d.competences ?? []) {
-      c.savoirs = (c.savoirs ?? []).filter((s) => {
-        s.aiSuggestedIds = (s.enseignantsSuggeres ?? []).map(String);
-        s.enseignantsSuggeres = [];
-        return !isMetadataLine(s.nom);
-      });
-      for (const sc of c.sousCompetences ?? [])
-        sc.savoirs = (sc.savoirs ?? []).filter((s) => {
-          s.aiSuggestedIds = (s.enseignantsSuggeres ?? []).map(String);
-          s.enseignantsSuggeres = [];
-          return !isMetadataLine(s.nom);
-        });
-      c.sousCompetences = (c.sousCompetences ?? []).filter((sc) => (sc.savoirs ?? []).length > 0);
-    }
+  cleaned.forEach((d) => {
+    (d.competences ?? []).forEach(cleanCompetence);
+  });
   return cleaned;
 }
 
@@ -164,14 +169,14 @@ export function useRiceAnalysis({
     const allowed = new Set(["pdf", "docx", "doc", "txt"]);
     const maxSize = 20 * 1024 * 1024;
     const accepted: File[] = [];
-    for (const f of fileList) {
+    fileList.forEach((f) => {
       const raw = f.originFileObj;
-      if (!raw) continue;
+      if (!raw) return;
       const ext = (raw.name.split(".").pop() || "").toLowerCase();
-      if (!allowed.has(ext)) { msgApi.warning(`'${raw.name}' n'est pas supporté — seuls PDF, DOCX et TXT sont acceptés`); continue; }
-      if (raw.size > maxSize) { msgApi.warning(`'${raw.name}' dépasse 20 Mo`); continue; }
+      if (!allowed.has(ext)) { msgApi.warning(`'${raw.name}' n'est pas supporté — seuls PDF, DOCX et TXT sont acceptés`); return; }
+      if (raw.size > maxSize) { msgApi.warning(`'${raw.name}' dépasse 20 Mo`); return; }
       accepted.push(raw);
-    }
+    });
     return accepted;
   }, [msgApi]);
 

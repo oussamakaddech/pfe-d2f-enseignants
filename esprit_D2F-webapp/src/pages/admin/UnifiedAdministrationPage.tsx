@@ -10,7 +10,6 @@ import {
   StopOutlined, SolutionOutlined, ReloadOutlined, LockOutlined,
   UnlockOutlined, SortAscendingOutlined, IdcardOutlined, BankOutlined,
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
 import { useAllAccounts } from "@/hooks/formation/useFormations";
 import { useBanAccount, useEnableAccount, useDeleteAccount, usePermanentDeleteAccount, useUpdateAccount } from "@/hooks/auth/useAuthService";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -104,7 +103,6 @@ function matchesSearchTerm(row: UnifiedRow, term: string): boolean {
 }
 
 export default function UnifiedAdministrationPage() {
-  const navigate = useNavigate();
   const { message: msgApi, modal } = useAppNotification();
   const queryClient = useQueryClient();
 

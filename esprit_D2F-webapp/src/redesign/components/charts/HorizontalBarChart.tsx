@@ -15,12 +15,12 @@ export default function HorizontalBarChart({
   showValues = true,
   animated = true,
 }: {
-  items: BarItem[];
-  maxValue?: number;
-  color?: string;
-  height?: number;
-  showValues?: boolean;
-  animated?: boolean;
+  readonly items: BarItem[];
+  readonly maxValue?: number;
+  readonly color?: string;
+  readonly height?: number;
+  readonly showValues?: boolean;
+  readonly animated?: boolean;
 }) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
@@ -60,7 +60,7 @@ export default function HorizontalBarChart({
                   background: `linear-gradient(90deg, ${barColor}, ${barColor}cc)`,
                   height,
                   boxShadow: isHovered ? `0 0 12px ${barColor}40` : "none",
-                  transform: animated ? undefined : undefined,
+                  transform: undefined,
                 }}
               />
               {showValues && (

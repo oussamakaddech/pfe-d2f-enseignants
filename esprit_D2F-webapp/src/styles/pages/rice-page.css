@@ -1016,7 +1016,7 @@
   font-weight: 600;
   color: var(--rice-text-2);
   min-width: 0;
-  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .rice-savoir-controls {

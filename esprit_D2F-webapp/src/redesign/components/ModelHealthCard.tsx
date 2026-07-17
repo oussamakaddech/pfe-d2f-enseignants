@@ -8,6 +8,32 @@ dayjs.locale("fr");
 
 const NA = "—";
 
+type HealthLevel = "healthy" | "attention" | "critical";
+
+function getHealthLevel(score: number): HealthLevel {
+  if (score >= 70) return "healthy";
+  if (score >= 40) return "attention";
+  return "critical";
+}
+
+function getHealthColor(score: number): string {
+  if (score >= 70) return "var(--rd-success)";
+  if (score >= 40) return "var(--rd-warning)";
+  return "var(--rd-error)";
+}
+
+const HEALTH_COLORS: Record<HealthLevel, string> = {
+  healthy: "var(--rd-success)",
+  attention: "var(--rd-warning)",
+  critical: "var(--rd-error)",
+};
+
+const HEALTH_LABELS: Record<HealthLevel, string> = {
+  healthy: "Bon état",
+  attention: "Attention",
+  critical: "Critique",
+};
+
 function computeModelHealth(perf: ModelPerformance | null, drift: DriftReport | null): {
   score: number;
   level: "healthy" | "attention" | "critical";
@@ -18,7 +44,7 @@ function computeModelHealth(perf: ModelPerformance | null, drift: DriftReport | 
   const driftPenalty = drift?.drift_detected ? 25 : 0;
   const trainedPenalty = perf?.last_retrained ? 0 : 40;
   const score = Math.max(0, Math.min(100, accuracyScore - driftPenalty - trainedPenalty));
-  const level = score >= 70 ? "healthy" : score >= 40 ? "attention" : "critical";
+  const level = getHealthLevel(score);
   return {
     score,
     level,
@@ -35,21 +61,15 @@ export default function ModelHealthCard({
   drift,
   loading,
 }: {
-  modelPerf: ModelPerformance | null;
-  drift: DriftReport | null;
-  loading: boolean;
+  readonly modelPerf: ModelPerformance | null;
+  readonly drift: DriftReport | null;
+  readonly loading: boolean;
 }) {
   if (loading && !modelPerf) return <ChartSkeleton height={200} />;
 
   const health = computeModelHealth(modelPerf ?? null, drift);
-  const healthColor =
-    health.level === "healthy" ? "var(--rd-success)" :
-    health.level === "attention" ? "var(--rd-warning)" :
-    "var(--rd-error)";
-  const healthLabel =
-    health.level === "healthy" ? "Bon état" :
-    health.level === "attention" ? "Attention" :
-    "Critique";
+  const healthColor = HEALTH_COLORS[health.level];
+  const healthLabel = HEALTH_LABELS[health.level];
   const accuracy = modelPerf?.gap_model_accuracy;
   const accuracyPct = accuracy != null ? Math.round(accuracy * 100) : null;
   const lastTrained = modelPerf?.last_retrained;
@@ -126,7 +146,7 @@ export default function ModelHealthCard({
               <span
                 style={{
                   width: `${f.score}%`,
-                  background: f.score >= 70 ? "var(--rd-success)" : f.score >= 40 ? "var(--rd-warning)" : "var(--rd-error)",
+                  background: getHealthColor(f.score),
                 }}
               />
             </div>

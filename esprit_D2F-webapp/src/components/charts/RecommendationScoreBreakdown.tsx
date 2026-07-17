@@ -46,7 +46,7 @@ function rowsFor(r: Recommendation): BarRow[] {
   ];
 }
 
-export default function RecommendationScoreBreakdown({ recommendation }: { recommendation: Recommendation }) {
+export default function RecommendationScoreBreakdown({ recommendation }: { readonly recommendation: Recommendation }) {
   const rows = rowsFor(recommendation);
   const confiance = recommendation.facteurs_score?.["confiance" as keyof RecoScoreFactors];
 

@@ -26,6 +26,34 @@ export type LookupNode = { id?: unknown; libelle?: string; nom?: string };
 export type NullableId = string | number | null;
 export type BesoinLinkRaw = { _id?: string; domaineId?: number | null; competenceId?: number | null; competenceNom?: string; savoirId?: number | null; savoirNom?: string; sousCompetenceId?: number | null };
 
+function extractAngleContents(input: string): string[] {
+  const results: string[] = [];
+  let start = input.indexOf("<");
+  while (start >= 0) {
+    const end = input.indexOf(">", start);
+    if (end < 0) break;
+    results.push(input.slice(start + 1, end).trim().toLowerCase());
+    start = input.indexOf("<", end);
+  }
+  return results;
+}
+
+function stripAngleBrackets(input: string): string {
+  let result = "";
+  let i = 0;
+  while (i < input.length) {
+    if (input[i] === "<") {
+      const end = input.indexOf(">", i);
+      if (end < 0) break;
+      i = end + 1;
+    } else {
+      result += input[i];
+      i += 1;
+    }
+  }
+  return result;
+}
+
 export type BesoinInfoShape = { titre?: string; objectifFormation?: string; dateDebut?: string; dateFin?: string; dureeFormation?: number; estOuverte?: boolean; periodCode?: string; customPeriodLabel?: string; periodeFormation?: string; publicCible?: string; propositionAnimateur?: string; objectifsPedagogiques?: string; methodesEvaluationAcquis?: string; theme?: string; up?: unknown; departement?: unknown; idBesoinFormation?: number | string; typeBesoin?: string; priorite?: string };
 
 export function mapBesoinLink(l: BesoinLinkRaw) {
@@ -147,7 +175,11 @@ function checkSeancePairConflicts(
 function buildConflictMessages({ localSeances, participantIds, animateurIds, existingFormations }: { localSeances: SeanceItem[]; participantIds: unknown[]; animateurIds: unknown[]; existingFormations: FormationRaw[] }) {
   const msgs: string[] = [];
   localSeances.forEach((s, idx) => { const start = toMinutes(s.heureDebut); const end = toMinutes(s.heureFin); if (start !== null && end !== null && start >= end) msgs.push(`Séance #${idx + 1}: heure de fin doit être après l&apos;heure de début.`); });
-  for (let i = 0; i < localSeances.length; i += 1) for (let j = i + 1; j < localSeances.length; j += 1) checkSeancePairConflicts(localSeances[i], localSeances[j], i, j, participantIds, animateurIds, msgs);
+  localSeances.forEach((seanceI, i) => {
+    localSeances.forEach((seanceJ, j) => {
+      if (j > i) checkSeancePairConflicts(seanceI, seanceJ, i, j, participantIds, animateurIds, msgs);
+    });
+  });
   localSeances.forEach((localSeance, idx) => checkExistingFormationConflicts(localSeance, idx, existingFormations, msgs, participantIds, animateurIds));
   return [...new Set(msgs)];
 }
@@ -371,7 +403,7 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
 
   useEffect(() => {
     if (besoinInfo?.publicCible && enseignantsList.length > 0 && partSel.length === 0) {
-      const emails = (besoinInfo.publicCible.match(/<([^>]+)>/g) || []).map(m => m.slice(1, -1).trim().toLowerCase());
+      const emails = extractAngleContents(besoinInfo.publicCible);
       if (emails.length > 0) {
         const matched = enseignantsList.filter(e => e.mail && emails.includes(e.mail.toLowerCase()));
         if (matched.length > 0) setPartSel(matched);
@@ -382,14 +414,15 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
   useEffect(() => {
     if (!besoinInfo?.propositionAnimateur || formateursList.length === 0 || animSel.length > 0) return;
     const text = besoinInfo.propositionAnimateur.trim();
-    const emailMatch = /<([^>]+)>/.exec(text);
+    const angleContents = extractAngleContents(text);
+    const emailMatch = angleContents[0] ?? null;
     let matched: PersonItem | undefined = undefined;
     if (emailMatch) {
-      const email = emailMatch[1].trim().toLowerCase();
+      const email = emailMatch.trim().toLowerCase();
       matched = formateursList.find(f => f.mail?.toLowerCase() === email);
     }
     if (!matched) {
-      const norm = text.toLowerCase().replaceAll(/<[^>]*>/g, "").trim();
+      const norm = stripAngleBrackets(text).toLowerCase().trim();
       matched = formateursList.find(f => {
         const full = `${f.nom} ${f.prenom}`.toLowerCase();
         const fullR = `${f.prenom} ${f.nom}`.toLowerCase();
@@ -685,12 +718,13 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
     exportPersonsToExcel(partSel, optionsPart, "Participants", "Liste des Participants — Esprit", "participants");
 
   const validateSeancesForSubmit = () => {
-    for (let i = 0; i < seances.length; i += 1) {
-      if (!seances[i].dateSeance || seances[i].dateSeance.trim() === "") { message.warning(`Séance #${i + 1}: veuillez remplir la date.`); return false; }
-      if (!seances[i].heureDebut || seances[i].heureDebut.trim() === "") { message.warning(`Séance #${i + 1}: veuillez remplir l'heure de début.`); return false; }
-      if (!seances[i].heureFin || seances[i].heureFin.trim() === "") { message.warning(`Séance #${i + 1}: veuillez remplir l'heure de fin.`); return false; }
-    }
-    return true;
+    const valid = seances.every((seance, i) => {
+      if (!seance.dateSeance || seance.dateSeance.trim() === "") { message.warning(`Séance #${i + 1}: veuillez remplir la date.`); return false; }
+      if (!seance.heureDebut || seance.heureDebut.trim() === "") { message.warning(`Séance #${i + 1}: veuillez remplir l'heure de début.`); return false; }
+      if (!seance.heureFin || seance.heureFin.trim() === "") { message.warning(`Séance #${i + 1}: veuillez remplir l'heure de fin.`); return false; }
+      return true;
+    });
+    return valid;
   };
 
   function buildPayload(finalAnimIds: unknown[], resolvedAnimIdMap?: Map<PersonItem, unknown>) {

@@ -37,8 +37,8 @@ const ETAT_META: Record<Etat, { color: string; bg: string; label: string; icon: 
   REJECTED: { color: "#b91c1c", bg: "#fee2e2", label: "Rejetée", icon: <CloseCircleOutlined /> },
 };
 
-const fmt = (d?: string) => { if (!d) return "—"; const date = dayjs(d); return date.isValid() ? date.format("DD/MM/YYYY") : "—"; };
-const fmtDT = (d?: string) => { if (!d) return "—"; const date = dayjs(d); return date.isValid() ? date.format("DD/MM/YYYY HH:mm") : "—"; };
+const fmt = (d?: string) => { if (!d) { return "—"; } const date = dayjs(d); return date.isValid() ? date.format("DD/MM/YYYY") : "—"; };
+const fmtDT = (d?: string) => { if (!d) { return "—"; } const date = dayjs(d); return date.isValid() ? date.format("DD/MM/YYYY HH:mm") : "—"; };
 const MAX_COMP = 4;
 const LAST_VISIT_KEY = "mesInscriptions.lastVisit";
 
@@ -172,20 +172,13 @@ export default function MesInscriptionsTab() {
             return (
               <div key={String(r.formationId)} className="mis-row" style={{ borderLeftColor: meta.color }}>
                 <div className="mis-row-body">
-                  <div
+                  <button
+                    type="button"
                     className="mis-row-title"
-                    role="button"
-                    tabIndex={0}
                     onClick={() => navigate(`/home/ListeFormation/${r.formationId}`)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        navigate(`/home/ListeFormation/${r.formationId}`);
-                      }
-                    }}
                   >
                     {r.titreFormation || `Formation #${r.formationId}`}
-                  </div>
+                  </button>
                   <div className="mis-row-meta">
                     <span><CalendarOutlined /> {fmt(r.dateDebut)} → {fmt(r.dateFin)}</span>
                     {r.chargeHoraire && r.chargeHoraire !== "null" && <span><FieldTimeOutlined /> {r.chargeHoraire} h</span>}

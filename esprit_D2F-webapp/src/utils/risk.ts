@@ -3,8 +3,6 @@
 // Les pages Analyse Prédictive et Tableau de bord DOIVENT utiliser ces helpers
 // pour éviter d'afficher deux scores de risque contradictoires.
 
-import { semantic } from "@/styles/themes/tokens";
-
 export type RiskLevelKey = "FAIBLE" | "MODERE" | "ELEVE" | "CRITIQUE";
 
 export interface RiskLevelStyle {

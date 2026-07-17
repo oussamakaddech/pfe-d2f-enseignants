@@ -17,7 +17,7 @@ const SEV_COLOR: Record<string, string> = { INFO: "blue", WARNING: "warning", CR
  * Synthèse compacte du tableau de bord de pilotage (nouvelles analyses backend).
  * Réutilisable sur la page « Tableau de bord » et « Analyse Prédictive ».
  */
-export default function PilotageSummary({ horizon = 6 }: { horizon?: number }) {
+export default function PilotageSummary({ horizon = 6 }: { readonly horizon?: number }) {
   const { data, isLoading, isError, refetch } = usePilotageDashboard(horizon);
   const navigate = useNavigate();
 
@@ -98,11 +98,15 @@ export default function PilotageSummary({ horizon = 6 }: { horizon?: number }) {
                     },
                     {
                       title: "Écart", dataIndex: "ecart_vs_cohorte", key: "ecart_vs_cohorte",
-                      render: (v: number) => (
-                        <Tag color={v >= 0 ? "success" : "error"}>
-                          {v >= 0 ? "+" : ""}{v.toFixed(2)}
-                        </Tag>
-                      ),
+                      render: (v: number) => {
+                        const color = v >= 0 ? "success" : "error";
+                        const sign = v >= 0 ? "+" : "";
+                        return (
+                          <Tag color={color}>
+                            {sign}{v.toFixed(2)}
+                          </Tag>
+                        );
+                      },
                     },
                     {
                       title: "Position", dataIndex: "position", key: "position",

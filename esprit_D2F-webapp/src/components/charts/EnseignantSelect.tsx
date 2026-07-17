@@ -31,6 +31,27 @@ function TeacherOption({ data }: Readonly<{ data: OptionData }>) {
   );
 }
 
+function renderTeacherOption(
+  option: { label?: string; value?: string; data?: { teacher?: TeacherRiskIndicator; label?: string; value?: string } },
+) {
+  const t = option?.data?.teacher;
+  if (!t) return <Text>{option.label}</Text>;
+  return (
+    <Space size={8}>
+      <Avatar size={20} icon={<UserOutlined />} style={{ backgroundColor: scoreColor(t.attrition_risk_score) }} />
+      <Text>{t.teacher_name || t.teacher_id}</Text>
+      <Text type="secondary" style={{ fontSize: 11 }}>{t.teacher_id}</Text>
+      {t.departement && (
+        <>
+          <Divider type="vertical" style={{ margin: "0 2px" }} />
+          <BankOutlined style={{ fontSize: 10, color: "#999" }} />
+          <Text type="secondary" style={{ fontSize: 11 }}>{t.departement}</Text>
+        </>
+      )}
+    </Space>
+  );
+}
+
 const EnseignantSelect = memo(function EnseignantSelect({
   value,
   onChange,
@@ -38,7 +59,7 @@ const EnseignantSelect = memo(function EnseignantSelect({
   loading = false,
   size = "large",
 }: Readonly<Props>) {
-  const { grouped, flat } = useMemo(() => {
+  const { grouped } = useMemo(() => {
     const sorted = [...teachers].sort((a, b) =>
       (a.departement || "Autres").localeCompare(b.departement || "Autres") ||
       a.teacher_name.localeCompare(b.teacher_name)
@@ -65,14 +86,7 @@ const EnseignantSelect = memo(function EnseignantSelect({
     }
     if (currentGroup.length > 0) grouped.push({ label: currentDept, options: currentGroup });
 
-    const flat: OptionData[] = sorted.map((t) => ({
-      value: t.teacher_id,
-      label: t.teacher_name || t.teacher_id,
-      risk: t.attrition_risk_score,
-      teacher: t,
-    }));
-
-    return { grouped, flat };
+    return { grouped };
   }, [teachers]);
 
   return (
@@ -104,25 +118,9 @@ const EnseignantSelect = memo(function EnseignantSelect({
           teacher: o.teacher,
         })),
       }))}
-      optionRender={(option) => {
-        const o = option as unknown as { data?: { teacher?: TeacherRiskIndicator; label?: string; value?: string } };
-        const t = o?.data?.teacher;
-        if (!t) return <Text>{(option as unknown as { label?: string }).label}</Text>;
-        return (
-          <Space size={8}>
-            <Avatar size={20} icon={<UserOutlined />} style={{ backgroundColor: scoreColor(t.attrition_risk_score) }} />
-            <Text>{t.teacher_name || t.teacher_id}</Text>
-            <Text type="secondary" style={{ fontSize: 11 }}>{t.teacher_id}</Text>
-            {t.departement && (
-              <>
-                <Divider type="vertical" style={{ margin: "0 2px" }} />
-                <BankOutlined style={{ fontSize: 10, color: "#999" }} />
-                <Text type="secondary" style={{ fontSize: 11 }}>{t.departement}</Text>
-              </>
-            )}
-          </Space>
-        );
-      }}
+      optionRender={(option) =>
+        renderTeacherOption(option as unknown as Parameters<typeof renderTeacherOption>[0])
+      }
     />
   );
 });

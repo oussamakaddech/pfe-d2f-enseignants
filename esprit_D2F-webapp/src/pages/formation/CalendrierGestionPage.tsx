@@ -196,7 +196,7 @@ export default function CalendrierGestionPage() {
 
       {/* Stats Row */}
       <div className="cal-stats-row">
-        <Card className="cal-stat-card cal-stat-card--formations" bordered={false}>
+        <Card className="cal-stat-card cal-stat-card--formations" variant="borderless">
           <Statistic
             title={<span className="cal-stat-label">Total Formations</span>}
             value={totalFormations}
@@ -204,7 +204,7 @@ export default function CalendrierGestionPage() {
             valueStyle={{ color: "#1677ff" }}
           />
         </Card>
-        <Card className="cal-stat-card cal-stat-card--sessions" bordered={false}>
+        <Card className="cal-stat-card cal-stat-card--sessions" variant="borderless">
           <Statistic
             title={<span className="cal-stat-label">Séances Importées</span>}
             value={report?.sessionsCreated ?? "—"}
@@ -212,7 +212,7 @@ export default function CalendrierGestionPage() {
             valueStyle={{ color: "#52c41a" }}
           />
         </Card>
-        <Card className="cal-stat-card cal-stat-card--participants" bordered={false}>
+        <Card className="cal-stat-card cal-stat-card--participants" variant="borderless">
           <Statistic
             title={<span className="cal-stat-label">Participants</span>}
             value={report?.participantsImported ?? "—"}
@@ -220,7 +220,7 @@ export default function CalendrierGestionPage() {
             valueStyle={{ color: "#722ed1" }}
           />
         </Card>
-        <Card className="cal-stat-card cal-stat-card--status" bordered={false}>
+        <Card className="cal-stat-card cal-stat-card--status" variant="borderless">
           {(() => {
             let statusIcon: React.ReactNode;
             if (report?.status === "SUCCESS") {
@@ -265,7 +265,7 @@ export default function CalendrierGestionPage() {
 
       {/* Main Content */}
       <div className="cal-content">
-        <Card className="cal-tabs-card" bordered={false}>
+        <Card className="cal-tabs-card" variant="borderless">
           <Tabs
             activeKey={activeTab}
             onChange={setActiveTab}
@@ -329,7 +329,7 @@ export default function CalendrierGestionPage() {
                         </thead>
                         <tbody>
                           {preview.sessions.slice(0, 10).map((s: import("@/models/calendar").ParsedSession, i: number) => (
-                            <tr key={i}>
+                            <tr key={`${s.formationName}-${s.date}-${s.room}`}>
                               <td>{s.formationName}</td>
                               <td>
                                 {s.date

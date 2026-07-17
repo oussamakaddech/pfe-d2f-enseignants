@@ -8,10 +8,10 @@ import { InputNumber, Switch, Tag, Empty, Progress, Statistic } from "antd";
 import { TeamOutlined } from "@ant-design/icons";
 
 function MetricRow({ label, metric, suffix = "", higherIsBetter = true }: {
-  label: string;
-  metric: { self: number; pairs_moyen: number; percentile: number };
-  suffix?: string;
-  higherIsBetter?: boolean;
+  readonly label: string;
+  readonly metric: { readonly self: number; readonly pairs_moyen: number; readonly percentile: number };
+  readonly suffix?: string;
+  readonly higherIsBetter?: boolean;
 }) {
   const pct = metric.percentile;
   const good = higherIsBetter ? pct >= 50 : pct <= 50;

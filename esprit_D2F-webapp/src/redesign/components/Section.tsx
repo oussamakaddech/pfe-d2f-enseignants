@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Empty } from "antd";
 
 export function Section({
   title,
@@ -8,11 +7,11 @@ export function Section({
   extra,
   id,
 }: {
-  title: string;
-  subtitle?: string;
-  children: ReactNode;
-  extra?: ReactNode;
-  id?: string;
+  readonly title: string;
+  readonly subtitle?: string;
+  readonly children: ReactNode;
+  readonly extra?: ReactNode;
+  readonly id?: string;
 }) {
   return (
     <section className="rd-section" id={id}>
@@ -41,24 +40,45 @@ export function Card({
   onClick,
   loading = false,
 }: {
-  title?: string;
-  subtitle?: string;
-  icon?: ReactNode;
-  iconColor?: string;
-  iconBg?: string;
-  extra?: ReactNode;
-  children: ReactNode;
-  className?: string;
-  interactive?: boolean;
-  onClick?: () => void;
-  loading?: boolean;
+  readonly title?: string;
+  readonly subtitle?: string;
+  readonly icon?: ReactNode;
+  readonly iconColor?: string;
+  readonly iconBg?: string;
+  readonly extra?: ReactNode;
+  readonly children: ReactNode;
+  readonly className?: string;
+  readonly interactive?: boolean;
+  readonly onClick?: () => void;
+  readonly loading?: boolean;
 }) {
+  if (interactive) {
+    return (
+      <button className={`rd-card interactive ${className}`} onClick={onClick} tabIndex={0} style={{ textAlign: "left", width: "100%", cursor: "pointer" }}>
+        {(title || extra) && (
+          <div className="rd-card-head">
+            <div>
+              {title && (
+                <div className="rd-card-title">
+                  {icon && (
+                    <span className="rd-card-ic" style={{ color: iconColor, background: iconBg }}>
+                      {icon}
+                    </span>
+                  )}
+                  {title}
+                </div>
+              )}
+              {subtitle && <div className="rd-card-sub">{subtitle}</div>}
+            </div>
+            {extra}
+          </div>
+        )}
+        {loading ? <div className="cd-skel" style={{ height: 220, marginTop: 4 }} /> : children}
+      </button>
+    );
+  }
   return (
-    <div
-      className={`rd-card ${interactive ? "interactive" : ""} ${className}`}
-      onClick={onClick}
-      role={interactive ? "button" : undefined}
-    >
+    <div className={`rd-card ${className}`}>
       {(title || extra) && (
         <div className="rd-card-head">
           <div>
@@ -81,5 +101,3 @@ export function Card({
     </div>
   );
 }
-
-export { Empty };

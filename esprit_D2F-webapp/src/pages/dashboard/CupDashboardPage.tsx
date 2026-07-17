@@ -95,8 +95,19 @@ export default function CupDashboardPage() {
     { id: "couv", label: "Taux de couverture des compétences", value: pct(kpis.couverture), suffix: "%", delta: "+3,1 %", up: true, tone: "blue" as const, icon: <SafetyCertificateOutlined />, detail: { label: "Voir le référentiel", onClick: () => scrollTo("cd-couverture") }, spark: [70, 72, 71, 74, 76, 78, 80, 82] },
   ];
 
+  const prioColor = (v: string) => {
+    if (v === "CRITIQUE") return "red";
+    if (v === "HAUTE") return "orange";
+    if (v === "MOYENNE") return "gold";
+    return "blue";
+  };
+  const statutColor = (v: string) => {
+    if (v === "Planifiée") return "blue";
+    if (v === "Réservée") return "purple";
+    return "default";
+  };
   const besoinCols = [
-    { title: "Priorité", dataIndex: "priorite", key: "priorite", width: 110, render: (v: string) => <Tag color={v === "CRITIQUE" ? "red" : v === "HAUTE" ? "orange" : v === "MOYENNE" ? "gold" : "blue"}>{v}</Tag> },
+    { title: "Priorité", dataIndex: "priorite", key: "priorite", width: 110, render: (v: string) => <Tag color={prioColor(v)}>{v}</Tag> },
     { title: "Thème / Besoin", dataIndex: "label", key: "label", ellipsis: true },
     { title: "Groupe / UP", dataIndex: "departement", key: "departement", render: (v: string) => v ?? "—" },
     { title: "Approbation", key: "app", width: 140, render: (_: unknown, r: typeof besoinsPriorises[number]) => <Tag color={r.urgency >= 4 ? "volcano" : "default"}>{r.urgency >= 4 ? "Urgent" : "À planifier"}</Tag> },
@@ -108,7 +119,7 @@ export default function CupDashboardPage() {
     { title: "Formation", dataIndex: "title", key: "title", ellipsis: true },
     { title: "Inscrits", key: "insc", width: 86, render: (_: unknown, r: typeof MOCK_FORMATIONS_A_VENIR[number]) => `${r.inscrits}/${r.capacite}` },
     { title: "Remplissage", key: "fill", width: 160, render: (_: unknown, r: typeof MOCK_FORMATIONS_A_VENIR[number]) => <Progress percent={Math.round((r.inscrits / r.capacite) * 100)} size="small" /> },
-    { title: "Statut", dataIndex: "statut", key: "statut", width: 110, render: (v: string) => <Tag color={v === "Planifiée" ? "blue" : v === "Réservée" ? "purple" : "default"}>{v}</Tag> },
+    { title: "Statut", dataIndex: "statut", key: "statut", width: 110, render: (v: string) => <Tag color={statutColor(v)}>{v}</Tag> },
   ] as any[];
 
   return (
@@ -280,7 +291,7 @@ export default function CupDashboardPage() {
         >
           <ol className="cd-coverage-list">
             {top5.map((c, i) => (
-              <li key={c.name} className="cd-coverage-item">
+              <li key={`${c.name}-${i}`} className="cd-coverage-item">
                 <span className="cd-coverage-rank">{i + 1}</span>
                 <div className="cd-coverage-main">
                   <div className="cd-coverage-name">{c.name}</div>
@@ -321,12 +332,12 @@ export default function CupDashboardPage() {
 function Section({
   id, index, title, subtitle, extra, children,
 }: {
-  id?: string;
-  index?: number;
-  title: string;
-  subtitle?: string;
-  extra?: ReactNode;
-  children: ReactNode;
+  readonly id?: string;
+  readonly index?: number;
+  readonly title: string;
+  readonly subtitle?: string;
+  readonly extra?: ReactNode;
+  readonly children: ReactNode;
 }) {
   return (
     <section className="rd-section" id={id}>
@@ -349,17 +360,21 @@ function Section({
 function KpiTile({
   label, value, suffix, delta, up, tone, icon, detail, spark,
 }: {
-  label: string;
-  value: number;
-  suffix: string;
-  delta: string;
-  up: boolean;
-  tone: "navy" | "orange" | "green" | "blue";
-  icon: ReactNode;
-  detail: { label: string; onClick: () => void };
-  spark: number[];
+  readonly label: string;
+  readonly value: number;
+  readonly suffix: string;
+  readonly delta: string;
+  readonly up: boolean;
+  readonly tone: "navy" | "orange" | "green" | "blue";
+  readonly icon: ReactNode;
+  readonly detail: { readonly label: string; readonly onClick: () => void };
+  readonly spark: number[];
 }) {
-  const color = tone === "green" ? "#16a34a" : tone === "orange" ? "#ea580c" : tone === "blue" ? "#2563eb" : "#102a43";
+  let color: string;
+  if (tone === "green") color = "#16a34a";
+  else if (tone === "orange") color = "#ea580c";
+  else if (tone === "blue") color = "#2563eb";
+  else color = "#102a43";
   return (
     <div className={`cup-kpi cup-kpi--${tone}`}>
       <div className="cup-kpi-top">
@@ -376,18 +391,28 @@ function KpiTile({
         <span className="cup-delta-note">vs préc.</span>
         <Sparkline data={spark} tone={tone} />
       </div>
-      <a className="cup-kpi-link" onClick={detail.onClick}>{detail.label} <RightOutlined /></a>
+      <button
+        type="button"
+        className="cup-kpi-link"
+        onClick={detail.onClick}
+      >
+        {detail.label} <RightOutlined />
+      </button>
     </div>
   );
 }
 
 /* ── Sparkline (mini courbe SVG) ─────────────────────────────── */
-function Sparkline({ data, tone }: { data: number[]; tone: string }) {
+function Sparkline({ data, tone }: { readonly data: number[]; readonly tone: string }) {
   const w = 76, h = 26;
   const max = Math.max(...data, 1), min = Math.min(...data, 0);
   const span = max - min || 1;
   const pts = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - 2 - ((v - min) / span) * (h - 4)}`).join(" ");
-  const color = tone === "green" ? "#16a34a" : tone === "orange" ? "#ea580c" : tone === "blue" ? "#2563eb" : "#102a43";
+  let color: string;
+  if (tone === "green") color = "#16a34a";
+  else if (tone === "orange") color = "#ea580c";
+  else if (tone === "blue") color = "#2563eb";
+  else color = "#102a43";
   return (
     <svg className="cup-spark" width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden>
       <polyline points={pts} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
@@ -396,7 +421,7 @@ function Sparkline({ data, tone }: { data: number[]; tone: string }) {
 }
 
 /* ── SegBars (rounded gradient + %) ──────────────────────────── */
-function SegBars({ items }: { items: Array<{ label: string; value: number; color: string }> }) {
+function SegBars({ items }: { readonly items: Array<{ readonly label: string; readonly value: number; readonly color: string }> }) {
   const sum = items.reduce((s, t) => s + t.value, 0);
   if (sum === 0) return <div className="cup-empty">Aucune donnée de typage</div>;
   const max = Math.max(1, ...items.map((t) => t.value));
@@ -447,7 +472,7 @@ function buildSmoothPath(pts: ReadonlyArray<readonly [number, number]>) {
   return d;
 }
 
-function AreaLineChart({ data, color = ACCENT }: { data: Array<{ label: string; value: number }>; color?: string }) {
+function AreaLineChart({ data, color = ACCENT }: { readonly data: Array<{ readonly label: string; readonly value: number }>; readonly color?: string }) {
   const [hover, setHover] = useState<number | null>(null);
   if (!data.length) return <div className="cup-empty">Aucune donnée</div>;
 
@@ -495,7 +520,7 @@ function AreaLineChart({ data, color = ACCENT }: { data: Array<{ label: string; 
           const gy = PT + (innerH * i) / 4;
           const vy = Math.round(niceMax * (1 - i / 4));
           return (
-            <g key={i}>
+            <g key={`grid-${i}`}>
               <line x1={PL} y1={gy} x2={W - PR} y2={gy} stroke="var(--cd-border)" strokeWidth={1} />
               <text x={PL - 8} y={gy + 3} textAnchor="end" fontSize="9" fontWeight={600} fill="var(--cd-ink-3)">{vy}</text>
             </g>
@@ -508,7 +533,7 @@ function AreaLineChart({ data, color = ACCENT }: { data: Array<{ label: string; 
         <path d={line} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" pathLength={1} className="cd-line-draw" />
 
         {data.map((d, i) => (
-          <circle key={i} cx={x(i)} cy={y(d.value)} r={hover === i ? 5 : 3} fill="#fff" stroke={color} strokeWidth={2} style={{ transition: "r .15s ease" }} />
+          <circle key={d.label} cx={x(i)} cy={y(d.value)} r={hover === i ? 5 : 3} fill="#fff" stroke={color} strokeWidth={2} style={{ transition: "r .15s ease" }} />
         ))}
 
         {hover != null && hoverPt && (() => {
@@ -526,7 +551,7 @@ function AreaLineChart({ data, color = ACCENT }: { data: Array<{ label: string; 
         })()}
 
         {data.map((d, i) => (i % step === 0 || i === n - 1) ? (
-          <text key={i} x={x(i)} y={H - 12} textAnchor="middle" fontSize="9" fontWeight={600} fill="var(--cd-ink-3)">{fmtX(d.label)}</text>
+          <text key={`x-${d.label}`} x={x(i)} y={H - 12} textAnchor="middle" fontSize="9" fontWeight={600} fill="var(--cd-ink-3)">{fmtX(d.label)}</text>
         ) : null)}
       </svg>
       <div className="cd-line-legend"><span className="cd-line-dot" style={{ background: color }} /> Formations créées par mois</div>

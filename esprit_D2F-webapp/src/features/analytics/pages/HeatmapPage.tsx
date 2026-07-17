@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, Select, Space } from "antd";
 import { HeatMapOutlined } from "@ant-design/icons";
-import { useHeatmap, useDashboard } from "../hooks/useAnalyticsQueries";
+import { useHeatmap } from "../hooks/useAnalyticsQueries";
 import { Heatmap } from "../components";
 import { AppPageHeader } from "@/components/common";
 
@@ -9,7 +9,6 @@ import { AppPageHeader } from "@/components/common";
 export default function HeatmapPage() {
   const [dept, setDept] = useState("");
   const heatmap = useHeatmap(dept ? { departement_id: dept } : undefined);
-  const dashboard = useDashboard();
 
   return (
     <div style={{ padding: 24 }}>

@@ -4,9 +4,9 @@ import type { ColumnsType } from "antd/es/table";
 import type { HeatmapCell } from "../types";
 
 interface HeatmapProps {
-  cells: HeatmapCell[];
-  loading?: boolean;
-  onCellClick?: (departement: string, competenceId: number, competenceNom: string) => void;
+  readonly cells: HeatmapCell[];
+  readonly loading?: boolean;
+  readonly onCellClick?: (departement: string, competenceId: number, competenceNom: string) => void;
 }
 
 export function gapColor(avg: number): string {
@@ -48,7 +48,7 @@ export default function Heatmap({ cells, loading, onCellClick }: HeatmapProps) {
   const competences = Array.from(compAgg.keys()).sort(
     (a, b) => (compAgg.get(b)!.max) - (compAgg.get(a)!.max),
   );
-  const departements = Array.from(new Set(cells.map((c) => c.departement))).sort();
+  const departements = Array.from(new Set(cells.map((c) => c.departement))).sort((a, b) => a.localeCompare(b));
 
   const map = new Map<string, HeatmapCell>();
   cells.forEach((c) => map.set(`${c.departement}|${c.competence_nom}`, c));

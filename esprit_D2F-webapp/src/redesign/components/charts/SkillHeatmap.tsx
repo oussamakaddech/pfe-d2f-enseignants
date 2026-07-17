@@ -15,16 +15,16 @@ export default function SkillHeatmap({
   selected,
   onCellClick,
 }: {
-  cells: HeatmapCell[];
-  loading: boolean;
-  selected: { department: string; competenceId: number } | null;
-  onCellClick: (dept: string, compId: number, compName: string) => void;
+  readonly cells: HeatmapCell[];
+  readonly loading: boolean;
+  readonly selected: { readonly department: string; readonly competenceId: number } | null;
+  readonly onCellClick: (dept: string, compId: number, compName: string) => void;
 }) {
   if (loading && cells.length === 0) return <ChartSkeleton height={240} />;
   if (cells.length === 0) return <div className="rd-empty">Aucun écart de compétence calculé</div>;
 
-  const depts = Array.from(new Set(cells.map((c) => c.department))).sort();
-  const comps = Array.from(new Set(cells.map((c) => c.competenceName))).sort();
+  const depts = Array.from(new Set(cells.map((c) => c.department))).sort((a, b) => a.localeCompare(b));
+  const comps = Array.from(new Set(cells.map((c) => c.competenceName))).sort((a, b) => a.localeCompare(b));
   const get = (d: string, c: string) => cells.find((x) => x.department === d && x.competenceName === c);
 
   return (
@@ -53,11 +53,11 @@ function Row({
   selected,
   onCellClick,
 }: {
-  dept: string;
-  comps: string[];
-  get: (d: string, c: string) => HeatmapCell | undefined;
-  selected: { department: string; competenceId: number } | null;
-  onCellClick: (dept: string, compId: number, compName: string) => void;
+  readonly dept: string;
+  readonly comps: string[];
+  readonly get: (d: string, c: string) => HeatmapCell | undefined;
+  readonly selected: { readonly department: string; readonly competenceId: number } | null;
+  readonly onCellClick: (dept: string, compId: number, compName: string) => void;
 }) {
   return (
     <>
@@ -67,7 +67,8 @@ function Row({
         if (!cell) return <div key={c} className="rd-heat-cell" style={{ background: "var(--rd-surface-3)", color: "transparent" }}>·</div>;
         const isSel = selected?.department === dept && selected?.competenceId === cell.competenceId;
         return (
-          <div
+          <button
+            type="button"
             key={c}
             className={`rd-heat-cell ${isSel ? "selected" : ""}`}
             style={{ background: gapColor(cell.avgGap), opacity: cell.teachersCount === 0 ? 0.35 : 1 }}
@@ -75,7 +76,7 @@ function Row({
             onClick={() => onCellClick(dept, cell.competenceId, cell.competenceName)}
           >
             {cell.teachersCount}
-          </div>
+          </button>
         );
       })}
     </>

@@ -20,8 +20,8 @@ export default function GapSeverity({
   cells,
   loading,
 }: {
-  cells: GapHeatmapCell[];
-  loading: boolean;
+  readonly cells: GapHeatmapCell[];
+  readonly loading: boolean;
 }) {
   const counts = useMemo(() => {
     const c: Record<string, number> = { critique: 0, eleve: 0, modere: 0, faible: 0 };

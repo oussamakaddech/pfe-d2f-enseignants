@@ -80,7 +80,7 @@ export function initialsFromName(fullName?: string | null, fallback = "?"): stri
   if (!clean) return fallback.slice(0, 2).toUpperCase();
   const parts = clean.split(/\s+/);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return (parts[0][0] + parts.at(-1)![0]).toUpperCase();
 }
 
 /** Découpe "Prénom Nom" pour l'avatar UserAvatar. */

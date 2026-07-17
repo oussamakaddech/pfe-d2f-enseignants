@@ -37,6 +37,37 @@ interface DrilldownComp {
   nom: string;
 }
 
+function triggerCellClick(
+  value: number,
+  departement: string,
+  compId: number,
+  compNom: string,
+  onClick: (dept: string, compId: number, compNom: string) => void,
+): void {
+  if (value > 0) onClick(departement, compId, compNom);
+}
+
+function buildCompOnCell(
+  compId: number,
+  compNom: string,
+  maxGap: number,
+  handleCellClick: (dept: string, compId: number, compNom: string) => void,
+) {
+  return (record: PivotRow) => {
+    const v = Number(record[`c${compId}`] ?? 0);
+    return {
+      style: {
+        background: gapColor(v, maxGap),
+        padding: 6,
+        cursor: v > 0 ? "pointer" : "default",
+      },
+      onClick: () => {
+        triggerCellClick(v, record.departement, compId, compNom, handleCellClick);
+      },
+    };
+  };
+}
+
 /**
  * Heatmap Département × Compétence du gap moyen avec drilldown au clic sur cellule.
  * Révèle les angles morts collectifs de compétence par département et permet
@@ -47,14 +78,14 @@ const GapHeatmap = memo(function GapHeatmap({ data, maxGap = 5, onAnalyzeTeacher
     const compMap = new Map<number, string>();
     const deptMap = new Map<string, PivotRow>();
 
-    for (const cell of data) {
+    data.forEach((cell) => {
       compMap.set(cell.competence_id, cell.competence_nom);
       const row =
         deptMap.get(cell.departement) ??
         ({ key: cell.departement, departement: cell.departement } as PivotRow);
       row[`c${cell.competence_id}`] = cell.avg_gap;
       deptMap.set(cell.departement, row);
-    }
+    });
 
     const comps = [...compMap.entries()].map(([id, nom]) => ({ id, nom }));
     return { rows: [...deptMap.values()], competences: comps };
@@ -92,19 +123,7 @@ const GapHeatmap = memo(function GapHeatmap({ data, maxGap = 5, onAnalyzeTeacher
       key: `c${c.id}`,
       align: "center" as const,
       width: 56,
-      onCell: (record: PivotRow) => {
-        const v = Number(record[`c${c.id}`] ?? 0);
-        return {
-          style: {
-            background: gapColor(v, maxGap),
-            padding: 6,
-            cursor: v > 0 ? "pointer" : "default",
-          },
-          onClick: () => {
-            if (v > 0) handleCellClick(record.departement, c.id, c.nom);
-          },
-        };
-      },
+      onCell: buildCompOnCell(c.id, c.nom, maxGap, handleCellClick),
       render: (v?: number) =>
         v == null ? "" : (
           <Tooltip title={`${Number(v).toFixed(2)} — cliquer pour le détail`}>

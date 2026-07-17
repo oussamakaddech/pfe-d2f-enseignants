@@ -3,8 +3,8 @@ import { InfoCircleOutlined } from "@ant-design/icons";
 import type { RiskFactor } from "../types";
 
 interface FactorsExplanationPanelProps {
-  facteurs: RiskFactor[] | undefined;
-  loading?: boolean;
+  readonly facteurs: RiskFactor[] | undefined;
+  readonly loading?: boolean;
 }
 
 /** Panneau explicatif des facteurs ayant contribué au score de risque. */

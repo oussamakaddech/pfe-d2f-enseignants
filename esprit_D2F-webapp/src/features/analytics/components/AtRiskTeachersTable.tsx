@@ -4,9 +4,9 @@ import { riskColor, riskLabel, formatDepartment, formatUP, teacherStatus, STATUT
 import type { AtRiskTeacher } from "../types";
 
 interface AtRiskTeachersTableProps {
-  teachers: AtRiskTeacher[];
-  loading?: boolean;
-  onSelect?: (id: string) => void;
+  readonly teachers: AtRiskTeacher[];
+  readonly loading?: boolean;
+  readonly onSelect?: (id: string) => void;
 }
 
 /** Table des enseignants à risque (dashboard décisionnel). */
@@ -16,7 +16,7 @@ export default function AtRiskTeachersTable({
   onSelect,
 }: AtRiskTeachersTableProps) {
   const columns: ColumnsType<AtRiskTeacher> = [
-    { title: "Enseignant", dataIndex: "nom", render: (v) => <a>{v}</a> },
+    { title: "Enseignant", dataIndex: "nom", render: (v) => <button type="button" className="ar-teacher-link">{v}</button> },
     { title: "Département", dataIndex: "departement", render: (v) => formatDepartment(v) || "Non affecté" },
     { title: "UP", dataIndex: "up", render: (v) => formatUP(v) || "Non affecté" },
     {

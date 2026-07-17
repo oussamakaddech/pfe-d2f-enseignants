@@ -554,7 +554,7 @@
   font-size: var(--bf-text-md);
   color: var(--bf-text-body);
   line-height: 1.4;
-  word-break: break-word;
+  overflow-wrap: break-word;
 }
 .bf-summary-card__row dd.is-strong {
   font-weight: var(--bf-fw-bold);

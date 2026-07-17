@@ -14,8 +14,8 @@ export default function PriorityAlerts({
   summary,
   loading,
 }: {
-  summary: AlertSummary | null;
-  loading: boolean;
+  readonly summary: AlertSummary | null;
+  readonly loading: boolean;
 }) {
   if (loading && !summary) return <ChartSkeleton height={160} />;
   if (!summary) return <div className="rd-empty">Aucune alerte</div>;

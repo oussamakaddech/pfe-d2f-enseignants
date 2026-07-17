@@ -3,8 +3,8 @@ import { riskColor, riskLabel } from "../utils/format";
 import type { RiskScore } from "../types";
 
 interface RiskScoreCardProps {
-  risk: RiskScore | undefined;
-  loading?: boolean;
+  readonly risk: RiskScore | undefined;
+  readonly loading?: boolean;
 }
 
 /** Carte affichant le score de risque multi-facteurs et sa catégorie. */

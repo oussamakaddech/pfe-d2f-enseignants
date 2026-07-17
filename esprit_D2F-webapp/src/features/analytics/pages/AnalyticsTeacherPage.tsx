@@ -22,7 +22,6 @@ import {
   ImpactPanel,
   AlertCenter,
 } from "../components";
-import { URGENCE_COLORS } from "../constants";
 import { AppPageHeader } from "@/components/common";
 
 /**
@@ -100,17 +99,10 @@ export default function AnalyticsTeacherPage() {
                       </Button>
                     ))}
                   </Space>
-                  {gaps.isLoading ? (
-                    <Spin />
-                  ) : gaps.data?.gaps.length ? (
-                    <GapsTable
-                      gaps={gaps.data.gaps}
-                      loading={gaps.isLoading}
-                      onRowClick={(g) => setCompetenceId(g.competence_id)}
-                    />
-                  ) : (
-                    <Empty description="Aucun gap — lancez une analyse" />
-                  )}
+                  <GapsTab
+                    gaps={gaps}
+                    onSelectCompetence={(g) => setCompetenceId(g.competence_id)}
+                  />
                 </div>
               ),
             },
@@ -157,7 +149,7 @@ export default function AnalyticsTeacherPage() {
 }
 
 /** Onglet Alertes de l'enseignant (F2) : cycle de vie + action contextuelle. */
-function TeacherAlerts({ enseignantId }: { enseignantId: string }) {
+function TeacherAlerts({ enseignantId }: { readonly enseignantId: string }) {
   const { data, isLoading } = useAlerts({ enseignant_id: enseignantId });
   const update = useUpdateAlert();
   return (
@@ -167,4 +159,25 @@ function TeacherAlerts({ enseignantId }: { enseignantId: string }) {
       onUpdate={(id, payload) => update.mutate({ id, payload })}
     />
   );
+}
+
+/** Contenu de l'onglet Gaps : spinner, tableau ou état vide. */
+function GapsTab({
+  gaps,
+  onSelectCompetence,
+}: {
+  readonly gaps: ReturnType<typeof useTeacherGaps>;
+  readonly onSelectCompetence: (g: { competence_id: number }) => void;
+}) {
+  if (gaps.isLoading) return <Spin />;
+  if (gaps.data?.gaps.length) {
+    return (
+      <GapsTable
+        gaps={gaps.data.gaps}
+        loading={gaps.isLoading}
+        onRowClick={(g) => onSelectCompetence(g)}
+      />
+    );
+  }
+  return <Empty description="Aucun gap — lancez une analyse" />;
 }

@@ -2,7 +2,7 @@ import { RISK_ORDER, RISK_LABELS, RISK_COLORS } from "@/redesign/risk";
 import type { RiskDistribution } from "@/redesign/contract";
 import { ChartSkeleton } from "../States";
 
-export default function RiskCompass({ data, loading }: { data: RiskDistribution | null; loading: boolean }) {
+export default function RiskCompass({ data, loading }: { readonly data: RiskDistribution | null; readonly loading: boolean }) {
   if (loading && !data) return <ChartSkeleton height={220} />;
   if (!data || data.total === 0) return <div className="rd-empty">Aucun enseignant classé</div>;
 

@@ -4,7 +4,7 @@ import AnalyticsService from "@/services/analyse/AnalyticsService";
 import KPIService from "@/services/analyse/KPIService";
 import BesoinFormationService from "@/services/besoin/BesoinFormationService";
 import dayjs from "dayjs";
-import type { BesoinFormation, Priorite } from "@/models/besoin";
+import type { Priorite } from "@/models/besoin";
 import type { DashboardScope } from "@/models/dashboard";
 
 const START = dayjs().subtract(12, "month").startOf("month").format("YYYY-MM-DD");
@@ -186,7 +186,7 @@ export function useCupDashboard() {
     return besoins
       .filter((b) => !b.approuveAdmin)
       .map((b) => ({
-        id: b.idBesoinFormation ?? Math.random(),
+        id: b.idBesoinFormation ?? crypto.randomUUID(),
         label: b.titre ?? b.theme ?? "Sans titre",
         urgency: urgencyFromPriorite(b.priorite),
         impact: impactFromStrategique(b.impactStrategique),

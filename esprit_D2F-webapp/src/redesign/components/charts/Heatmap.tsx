@@ -25,10 +25,10 @@ export default function Heatmap({
   highlightDept,
   onSelectDept,
 }: {
-  cells: GapHeatmapCell[];
-  loading: boolean;
-  highlightDept?: string | null;
-  onSelectDept?: (dept: string | null) => void;
+  readonly cells: GapHeatmapCell[];
+  readonly loading: boolean;
+  readonly highlightDept?: string | null;
+  readonly onSelectDept?: (dept: string | null) => void;
 }) {
   const { depts, comps, matrix } = useMemo(() => {
     const compMap = new Map<number, string>();
@@ -90,12 +90,12 @@ function FragmentRow({
   dimmed,
   onSelectDept,
 }: {
-  dept: string;
-  comps: Array<[number, string]>;
-  matrix: Map<string, GapHeatmapCell>;
-  maxGap: number;
-  dimmed: boolean;
-  onSelectDept?: (dept: string | null) => void;
+  readonly dept: string;
+  readonly comps: Array<[number, string]>;
+  readonly matrix: Map<string, GapHeatmapCell>;
+  readonly maxGap: number;
+  readonly dimmed: boolean;
+  readonly onSelectDept?: (dept: string | null) => void;
 }) {
   return (
     <>

@@ -42,7 +42,7 @@ export const STATUT_META: Record<StatutKey, { label: string; color: string; dot:
 
 export function teacherStatus(
   tendance?: string | null,
-  niveauRisque?: NiveauRisque | string | null,
+  niveauRisque?: NiveauRisque | (string & {}) | null,
 ): StatutKey {
   const t = (tendance ?? "").toUpperCase();
   const n = (niveauRisque ?? "").toUpperCase();
@@ -93,7 +93,7 @@ export function formatUP(code: string | null | undefined): string {
 export function toCsv(rows: Record<string, unknown>[], columns: string[]): string {
   const escape = (v: unknown) => {
     const s = v === null || v === undefined ? "" : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    return /[",\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
   };
   const header = columns.map(escape).join(",");
   const body = rows

@@ -57,11 +57,12 @@ export default function FormationsParPeriodePage() {
   const { exporting, exportPdf } = useAnalyticsExport();
 
   const pdfExportSupported = granularite === "MOIS" || granularite === "ANNEE";
-  const exportDisabledTooltip = !pdfExportSupported
-    ? granularite === "SEMAINE"
-      ? "L'export PDF hebdomadaire n'est pas encore disponible."
-      : "L'export PDF trimestriel n'est pas encore disponible."
-    : undefined;
+  const resolveExportTooltip = (): string | undefined => {
+    if (pdfExportSupported) return undefined;
+    if (granularite === "SEMAINE") return "L'export PDF hebdomadaire n'est pas encore disponible.";
+    return "L'export PDF trimestriel n'est pas encore disponible.";
+  };
+  const exportDisabledTooltip = resolveExportTooltip();
 
   function handleExportPdf() {
     const type = granularite === "ANNEE" ? "RAPPORT_ANNUEL" : "RAPPORT_MENSUEL";

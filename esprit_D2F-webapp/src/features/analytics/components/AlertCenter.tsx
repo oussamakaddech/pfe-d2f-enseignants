@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { List, Tag, Typography, Empty, Badge, Collapse, Button, Space, Tooltip, Select } from "antd";
+import { List, Tag, Typography, Empty, Badge, Collapse, Button, Tooltip, Select } from "antd";
 import { CheckOutlined, StopOutlined, ArrowRightOutlined } from "@ant-design/icons";
 import { SEVERITE_COLORS, STATUT_ALERTE_COLORS, ALERT_STATUTS_OUVERTS, STATUT_ALERTE_LABELS } from "../constants";
 import type { AlertEvent, AlertUpdatePayload, StatutAlerte, TypeAlerte } from "../types";
@@ -10,10 +10,10 @@ const STATUT_OPTIONS = (Object.keys(STATUT_ALERTE_LABELS) as StatutAlerte[]).map
 }));
 
 interface AlertCenterProps {
-  alerts: AlertEvent[];
-  loading?: boolean;
-  onUpdate?: (id: number, payload: AlertUpdatePayload) => void;
-  onSelectEnseignant?: (enseignantId: string) => void;
+  readonly alerts: AlertEvent[];
+  readonly loading?: boolean;
+  readonly onUpdate?: (id: number, payload: AlertUpdatePayload) => void;
+  readonly onSelectEnseignant?: (enseignantId: string) => void;
 }
 
 /** Métadonnées métier par type d'alerte : priorité + action recommandée (F6). */
@@ -83,6 +83,26 @@ export default function AlertCenter({ alerts, loading, onUpdate, onSelectEnseign
             dataSource={list}
             renderItem={(a) => {
               const isOpen = ALERT_STATUTS_OUVERTS.includes(a.statut);
+              const openActions: ReactNode[] = isOpen && onUpdate ? [
+                <Tooltip key="act" title={meta.action}>
+                  <Button
+                    size="small"
+                    type="primary"
+                    icon={<CheckOutlined />}
+                    onClick={() => onUpdate(a.id, { statut: "TRAITEE" })}
+                  >
+                    {verb}
+                  </Button>
+                </Tooltip>,
+                <Button
+                  key="ign"
+                  size="small"
+                  icon={<StopOutlined />}
+                  onClick={() => onUpdate(a.id, { statut: "IGNOREE" })}
+                >
+                  Ignorer
+                </Button>,
+              ] : [];
               const actions: ReactNode[] = [
                 <Select
                   key="statut"
@@ -92,31 +112,8 @@ export default function AlertCenter({ alerts, loading, onUpdate, onSelectEnseign
                   options={STATUT_OPTIONS}
                   onChange={(s: StatutAlerte) => onUpdate?.(a.id, { statut: s })}
                 />,
+                ...openActions,
               ];
-              if (isOpen && onUpdate) {
-                actions.push(
-                  <Tooltip key="act" title={meta.action}>
-                    <Button
-                      size="small"
-                      type="primary"
-                      icon={<CheckOutlined />}
-                      onClick={() => onUpdate(a.id, { statut: "TRAITEE" })}
-                    >
-                      {verb}
-                    </Button>
-                  </Tooltip>,
-                );
-                actions.push(
-                  <Button
-                    key="ign"
-                    size="small"
-                    icon={<StopOutlined />}
-                    onClick={() => onUpdate(a.id, { statut: "IGNOREE" })}
-                  >
-                    Ignorer
-                  </Button>,
-                );
-              }
               return (
                 <List.Item actions={actions}>
                   <List.Item.Meta
@@ -127,9 +124,13 @@ export default function AlertCenter({ alerts, loading, onUpdate, onSelectEnseign
                           {STATUT_ALERTE_LABELS[a.statut] ?? a.statut}
                         </Tag>
                         {a.enseignant_id && onSelectEnseignant ? (
-                          <a onClick={() => onSelectEnseignant(a.enseignant_id!)}>
+                          <button
+                            type="button"
+                            className="cup-kpi-link-btn"
+                            onClick={() => onSelectEnseignant(a.enseignant_id!)}
+                          >
                             {a.titre} <ArrowRightOutlined />
-                          </a>
+                          </button>
                         ) : (
                           a.titre
                         )}

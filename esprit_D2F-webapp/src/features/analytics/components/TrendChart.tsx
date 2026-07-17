@@ -13,8 +13,8 @@ import type { TrendPoint } from "../types";
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
 interface TrendChartProps {
-  trends: TrendPoint[];
-  loading?: boolean;
+  readonly trends: TrendPoint[];
+  readonly loading?: boolean;
 }
 
 /** Courbe de tendance (gaps critiques, score moyen, alertes). */

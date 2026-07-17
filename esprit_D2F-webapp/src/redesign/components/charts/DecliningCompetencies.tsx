@@ -10,8 +10,8 @@ export default function DecliningCompetencies({
   items,
   loading,
 }: {
-  items: DecliningCompetency[];
-  loading: boolean;
+  readonly items: DecliningCompetency[];
+  readonly loading: boolean;
 }) {
   if (loading && items.length === 0) return <ChartSkeleton height={200} />;
   if (items.length === 0) return <div className="rd-empty">Aucune compétence en déclin détectée</div>;

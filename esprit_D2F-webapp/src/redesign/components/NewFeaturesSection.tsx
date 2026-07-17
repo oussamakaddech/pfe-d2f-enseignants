@@ -26,7 +26,7 @@ const QUADRANT_COLOR: Record<string, string> = {
  *  - Matrice Offre vs Demande (quadrants de pression compétence)
  *  - Scan d'anomalies en direct (moteur d'anomalie, déclenchable)
  */
-export default function NewFeaturesSection({ departementId }: { departementId?: string | null }) {
+export default function NewFeaturesSection({ departementId }: { readonly departementId?: string | null }) {
   const impact = useTrainingImpact();
   const impactFormations = useTrainingImpactFormations(0, 6);
   const supply = useSupplyDemand();
@@ -100,11 +100,10 @@ export default function NewFeaturesSection({ departementId }: { departementId?: 
 
             <div style={{ marginTop: 16 }}>
               <Card title="Top formations par impact mesuré" icon={<RiseOutlined />}>
-                {impactFormations.isLoading ? (
-                  <Empty description="Chargement…" />
-                ) : impactFormations.data?.formations.length === 0 ? (
-                  <Empty description="Aucune formation suivie à évaluer" />
-                ) : (
+                {(() => {
+                  if (impactFormations.isLoading) return <Empty description="Chargement…" />;
+                  if (impactFormations.data?.formations.length === 0) return <Empty description="Aucune formation suivie à évaluer" />;
+                  return (
                   <Table
                     rowKey="formation_id"
                     size="small"
@@ -127,7 +126,8 @@ export default function NewFeaturesSection({ departementId }: { departementId?: 
                       },
                     ]}
                   />
-                )}
+                  );
+                })()}
               </Card>
             </div>
           </>

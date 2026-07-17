@@ -30,13 +30,13 @@ export default function TopGapCompetencies({
   cells,
   loading,
 }: {
-  cells: HeatmapCell[];
-  loading: boolean;
+  readonly cells: HeatmapCell[];
+  readonly loading: boolean;
 }) {
   const [dept, setDept] = useState<string>("all");
 
   const depts = useMemo(
-    () => Array.from(new Set(cells.map((c) => c.department))).sort(),
+    () => Array.from(new Set(cells.map((c) => c.department))).sort((a, b) => a.localeCompare(b)),
     [cells],
   );
 

@@ -27,7 +27,7 @@ function getQuadrant(urgency: number, impact: number): string {
   return "low-low";
 }
 
-export default function PriorityMatrix({ items }: { items: MatrixItem[] }) {
+export default function PriorityMatrix({ items }: { readonly items: MatrixItem[] }) {
   const [hoveredId, setHoveredId] = useState<string | number | null>(null);
 
   if (!items.length) {

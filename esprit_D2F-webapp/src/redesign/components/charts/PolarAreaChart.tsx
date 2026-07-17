@@ -12,9 +12,9 @@ export default function PolarAreaChart({
   size = 220,
   innerRadius = 50,
 }: {
-  items: PolarItem[];
-  size?: number;
-  innerRadius?: number;
+  readonly items: PolarItem[];
+  readonly size?: number;
+  readonly innerRadius?: number;
 }) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
@@ -63,7 +63,7 @@ export default function PolarAreaChart({
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         {segments.map((seg, idx) => (
           <path
-            key={idx}
+            key={seg.label}
             d={seg.d}
             fill={seg.color}
             opacity={hoveredIdx != null && hoveredIdx !== idx ? 0.45 : 0.85}
@@ -98,8 +98,8 @@ export default function PolarAreaChart({
       <div className="polar-legend">
         {segments.map((seg, idx) => (
           <div
-            key={idx}
-            className={`polar-legend-item ${hoveredIdx === idx ? "active" : ""}`}
+            key={seg.label}
+            className={`polar-legend-item ${hoveredIdx != null && segments[hoveredIdx].label === seg.label ? "active" : ""}`}
             onMouseEnter={() => setHoveredIdx(idx)}
             onMouseLeave={() => setHoveredIdx(null)}
           >

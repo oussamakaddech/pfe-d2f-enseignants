@@ -15,11 +15,18 @@ const HORIZONS = [
 const LEVELS = [1, 2, 3, 4, 5];
 const U = "#6c8cff", U2 = "#9b6cff", RED = "#ff6b81", GREEN = "#34d399", AMBER = "#f5b942", CYAN = "#36e0d0", LINE = "#2a3654", BG = "#0b1020";
 
+const RISK_THRESHOLD_HIGH = 80;
+const RISK_THRESHOLD_MEDIUM = 60;
+const RISK_THRESHOLD_LOW = 40;
+
 function riskColor(score: number) {
-  return score >= 80 ? RED : score >= 60 ? AMBER : score >= 40 ? CYAN : GREEN;
+  if (score >= RISK_THRESHOLD_HIGH) return RED;
+  if (score >= RISK_THRESHOLD_MEDIUM) return AMBER;
+  if (score >= RISK_THRESHOLD_LOW) return CYAN;
+  return GREEN;
 }
 
-function MiniGauge({ value, color }: { value: number; color: string }) {
+function MiniGauge({ value, color }: { readonly value: number; readonly color: string }) {
   const r = 46, cx = 60, cy = 60, circ = Math.PI * r;
   const v = Math.max(0, Math.min(100, value));
   return (
@@ -37,9 +44,9 @@ function MiniGauge({ value, color }: { value: number; color: string }) {
 export default function WhatIfSimulator({
   teachers, competences, defaultTeacherId,
 }: {
-  teachers: WiTeacher[];
-  competences: WiCompetence[];
-  defaultTeacherId?: string | null;
+  readonly teachers: WiTeacher[];
+  readonly competences: WiCompetence[];
+  readonly defaultTeacherId?: string | null;
 }) {
   const [teacherId, setTeacherId] = useState<string | null>(defaultTeacherId ?? teachers[0]?.teacher_id ?? null);
   const [horizon, setHorizon] = useState(6);
@@ -74,8 +81,9 @@ export default function WhatIfSimulator({
     <div className="wi-root">
       <div className="wi-builder">
         <div className="wi-field">
-          <label>Enseignant</label>
+          <label htmlFor="wi-teacher">Enseignant</label>
           <Select
+            id="wi-teacher"
             showSearch optionFilterProp="label" value={teacherId ?? undefined}
             onChange={(v) => setTeacherId(v)} className="wi-select"
             options={teachers.map((t) => ({ value: t.teacher_id, label: `${t.teacher_name}${t.departement ? " · " + t.departement : ""}` }))}
@@ -83,8 +91,8 @@ export default function WhatIfSimulator({
         </div>
 
         <div className="wi-field">
-          <label>Horizon de projection</label>
-          <div className="wi-seg">
+          <label htmlFor="wi-horizon">Horizon de projection</label>
+          <div className="wi-seg" id="wi-horizon">
             {HORIZONS.map((h) => (
               <button key={h.value} className={horizon === h.value ? "is-on" : ""} onClick={() => setHorizon(h.value)}>{h.label}</button>
             ))}
@@ -92,8 +100,8 @@ export default function WhatIfSimulator({
         </div>
 
         <div className="wi-field wi-grow">
-          <label>Plan de formation ciblé</label>
-          <div className="wi-plan">
+          <label htmlFor="wi-plan">Plan de formation ciblé</label>
+          <div className="wi-plan" id="wi-plan">
             {plan.length === 0 && <span className="wi-empty">Ajoutez des compétences à cibler ↓</span>}
             {plan.map((p, i) => {
               const c = competences.find((x) => x.competence_id === p.competence_id);

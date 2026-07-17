@@ -189,7 +189,7 @@ function mapDrift(raw: any): DriftReport {
   return {
     drift_detected: false,
     metric: "risk_evolution",
-    valeur_actuelle: points.length ? points[points.length - 1].critical ?? 0 : 0,
+    valeur_actuelle: points.length ? points.at(-1).critical ?? 0 : 0,
     seuil: 0,
     jours_depuis_entrainement: 0,
     message: "Évolution du risque (backend /dashboard/risk-evolution).",

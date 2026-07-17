@@ -56,8 +56,6 @@ export default function PriorityAlertsPanel({ data, loading, onBulkUpdate }: Pri
   // Primary rows: by severity (most important)
   const severiteRows = data?.by_severite || [];
   severiteRows.forEach((sev) => {
-    // Cross-reference with by_statut to find count of NOUVELLE
-    const nouvCount = (data?.by_statut || []).find((s) => s.key === "NOUVELLE")?.count || 0;
     const statutLabel = (data?.by_statut || []).map((s) => `${s.key}: ${s.count}`).join(", ");
 
     alertRows.push({
@@ -72,7 +70,7 @@ export default function PriorityAlertsPanel({ data, loading, onBulkUpdate }: Pri
 
   // Supplementary: by type
   (data?.by_type || []).forEach((t) => {
-    if (!alertRows.find((r) => r.severite === t.key)) {
+    if (!alertRows.some((r) => r.severite === t.key)) {
       alertRows.push({
         key: keyCounter++,
         id: keyCounter,

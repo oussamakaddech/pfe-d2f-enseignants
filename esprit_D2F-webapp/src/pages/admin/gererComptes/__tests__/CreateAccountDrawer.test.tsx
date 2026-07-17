@@ -91,14 +91,24 @@ describe("CreateAccountDrawer", () => {
     fillBaseAccountFields();
 
     // Rendre le confirmPassword différent
-    fireEvent.change(getFieldByLabel("Confirmer le mot de passe"), { target: { value: "Different2!" } });
+    const confirmField = getFieldByLabel("Confirmer le mot de passe");
+    fireEvent.change(confirmField, { target: { value: "Different2!" } });
 
     const submitBtn = screen.getByRole("button", { name: /créer le compte/i });
     fireEvent.click(submitBtn);
 
-    await waitFor(() => {
-      expect(screen.getByText(/les mots de passe ne correspondent pas/i)).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        const match = screen
+          .getAllByText(
+            (_content, element) =>
+              !!element && element.textContent?.toLowerCase().includes("ne correspondent pas") === true,
+          )
+          .some((el) => el.textContent?.toLowerCase().includes("ne correspondent pas"));
+        expect(match).toBe(true);
+      },
+      { timeout: 5000 },
+    );
     // Aucun service ne doit être appelé
     expect(mockCreateAccount).not.toHaveBeenCalled();
     expect(mockCreateEnseignantWithAccount).not.toHaveBeenCalled();

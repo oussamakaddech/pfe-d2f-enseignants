@@ -27,7 +27,7 @@ interface InscriptionRow {
 interface FormationRow { idFormation?: Id; titreFormation?: string; inscriptionsOuvertes?: boolean }
 interface Demande { id: Id; etat: Etat; dateDemande: string; enseignant: { nom?: string; prenom?: string; mail?: string; deptLibelle?: string; upLibelle?: string } }
 
-const fmt = (d?: string) => { if (!d) return "—"; const dt = new Date(d); return Number.isNaN(dt.getTime()) ? "—" : dt.toLocaleDateString("fr-FR"); };
+const fmt = (d?: string) => { if (!d) { return "—"; } const dt = new Date(d); return Number.isNaN(dt.getTime()) ? "—" : dt.toLocaleDateString("fr-FR"); };
 
 export default function SuiviTab() {
   const { message: msgApi, modal } = useAppNotification();

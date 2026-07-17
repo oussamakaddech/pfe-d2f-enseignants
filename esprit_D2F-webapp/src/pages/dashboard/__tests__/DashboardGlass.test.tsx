@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import DashboardGlass from '../DashboardGlass';
 
 vi.mock('@/hooks/analyse/useDashboard', () => ({
@@ -32,9 +33,16 @@ vi.mock('react-router-dom', () => ({
 import { useDashboard } from '@/hooks/analyse/useDashboard';
 
 describe('DashboardGlass at-risk KPI', () => {
+  let queryClient: QueryClient;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   });
+
+  function renderWithClient(ui: React.ReactElement) {
+    return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+  }
 
   it('shows full count from enseignants_a_risque, not capped at 6', () => {
     const manyAtRisk = Array.from({ length: 10 }, (_, i) => ({
@@ -59,7 +67,7 @@ describe('DashboardGlass at-risk KPI', () => {
       refetch: vi.fn(),
     });
 
-    const { container } = render(<DashboardGlass />);
+    const { container } = renderWithClient(<DashboardGlass />);
     // The first glass-kpi-value should contain 10, not 6
     const kpiValues = container.querySelectorAll('.glass-kpi-value');
     expect(kpiValues[0].textContent).toBe('10');
@@ -81,7 +89,7 @@ describe('DashboardGlass at-risk KPI', () => {
       refetch: vi.fn(),
     });
 
-    const { container } = render(<DashboardGlass />);
+    const { container } = renderWithClient(<DashboardGlass />);
     const kpiValues = container.querySelectorAll('.glass-kpi-value');
     // First KPI should be 0 (at-risk count)
     expect(kpiValues[0].textContent).toBe('0');

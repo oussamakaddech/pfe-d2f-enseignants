@@ -37,15 +37,15 @@ export default function GlassTrend({ data, height = 220 }: GlassTrendProps) {
     <div style={{ overflowX: "auto" }}>
       <svg width={view.width} height={height} role="img" aria-label="Évolution du risque">
         {view.yTicks.map((t, i) => (
-          <g key={i}>
+          <g key={t.v}>
             <line x1={view.padX} y1={t.y} x2={view.width - view.padX} y2={t.y} stroke="rgba(15,23,42,0.06)" />
             <text x={view.padX - 8} y={t.y + 3} fontSize={10} fill={neutral[400]} textAnchor="end">{Math.round(t.v)}</text>
           </g>
         ))}
         <path d={view.path("critical")} fill="none" stroke={COLORS.critical} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
         <path d={view.path("high")} fill="none" stroke={COLORS.high} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
-        {view.ptsCritical.map((p, i) => <circle key={`c${i}`} cx={p.x} cy={p.y} r={3} fill={COLORS.critical} />)}
-        {view.ptsHigh.map((p, i) => <circle key={`h${i}`} cx={p.x} cy={p.y} r={3} fill={COLORS.high} />)}
+        {view.ptsCritical.map((p) => <circle key={`c-${p.x}-${p.y}`} cx={p.x} cy={p.y} r={3} fill={COLORS.critical} />)}
+        {view.ptsHigh.map((p) => <circle key={`h-${p.x}-${p.y}`} cx={p.x} cy={p.y} r={3} fill={COLORS.high} />)}
         {view.labels.map((l, i) => l.show && (
           <text key={`${l.label}-${i}`} x={l.x} y={height - 6} fontSize={10} fill={neutral[500]} textAnchor="middle">{l.label}</text>
         ))}

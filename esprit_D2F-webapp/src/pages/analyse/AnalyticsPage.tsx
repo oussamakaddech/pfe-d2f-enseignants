@@ -60,12 +60,16 @@ function fmtPct(v: number | null | undefined, digits = 0) {
 }
 function fmtDelta(v: number | null | undefined) {
   if (v == null) return { txt: "", tone: "neutral" as const };
-  const tone = v > 0 ? "up" : v < 0 ? "down" : "neutral";
+  const tone: "up" | "down" | "neutral" = (() => {
+    if (v > 0) return "up";
+    if (v < 0) return "down";
+    return "neutral";
+  })();
   return { txt: `${v > 0 ? "+" : ""}${v.toFixed(1)}`, tone };
 }
 
 /* ── mini sparkline (SVG path) ─────────────────────────────────────────── */
-function Sparkline({ data, color = C.brand }: { data: number[]; color?: string }) {
+function Sparkline({ data, color = C.brand }: { readonly data: number[]; readonly color?: string }) {
   if (!data.length) return null;
   const w = 120, h = 36, pad = 3;
   const min = Math.min(...data), max = Math.max(...data);
@@ -76,7 +80,7 @@ function Sparkline({ data, color = C.brand }: { data: number[]; color?: string }
     return [x, y] as const;
   });
   const line = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
-  const area = `${line} L${pts[pts.length - 1][0].toFixed(1)} ${h} L${pts[0][0].toFixed(1)} ${h} Z`;
+  const area = `${line} L${pts.at(-1)![0].toFixed(1)} ${h} L${pts[0][0].toFixed(1)} ${h} Z`;
   return (
     <svg className="ap-spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
       <defs>
@@ -93,8 +97,8 @@ function Sparkline({ data, color = C.brand }: { data: number[]; color?: string }
 
 /* ── donut chart (répartition des risques) ─────────────────────────────── */
 function Donut({ segments, size = 180, thickness = 26 }: {
-  segments: { label: string; value: number; color: string }[];
-  size?: number; thickness?: number;
+  readonly segments: { readonly label: string; readonly value: number; readonly color: string }[];
+  readonly size?: number; readonly thickness?: number;
 }) {
   const total = segments.reduce((s, x) => s + x.value, 0) || 1;
   const r = (size - thickness) / 2, cx = size / 2, cy = size / 2;
@@ -111,8 +115,8 @@ function Donut({ segments, size = 180, thickness = 26 }: {
   return (
     <svg className="ap-donut" viewBox={`0 0 ${size} ${size}`}>
       <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.line} strokeWidth={thickness} />
-      {arcs.map((a, i) => (
-        <path key={i} d={a.d} fill="none" stroke={a.color} strokeWidth={thickness} strokeLinecap="butt">
+      {arcs.map((a) => (
+        <path key={a.label} d={a.d} fill="none" stroke={a.color} strokeWidth={thickness} strokeLinecap="butt">
           <title>{`${a.label}: ${a.value}`}</title>
         </path>
       ))}
@@ -124,8 +128,8 @@ function Donut({ segments, size = 180, thickness = 26 }: {
 
 /* ── line + confidence band forecast chart ─────────────────────────────── */
 function ForecastChart({ points, height = 220 }: {
-  points: { month: string; value: number; lower?: number; upper?: number; isProjection?: boolean }[];
-  height?: number;
+  readonly points: { readonly month: string; readonly value: number; readonly lower?: number; readonly upper?: number; readonly isProjection?: boolean }[];
+  readonly height?: number;
 }) {
   const w = 720, h = height, padL = 40, padR = 16, padT = 16, padB = 30;
   const all = points.flatMap((p) => [p.value, p.lower ?? p.value, p.upper ?? p.value]);
@@ -153,15 +157,15 @@ function ForecastChart({ points, height = 220 }: {
           <stop offset="100%" stopColor={C.brand} stopOpacity="0.02" />
         </linearGradient>
       </defs>
-      {[0.25, 0.5, 0.75].map((g, i) => (
-        <line key={i} x1={padL} x2={w - padR} y1={padT + g * (h - padT - padB)} y2={padT + g * (h - padT - padB)} stroke={C.line} strokeDasharray="3 5" />
+      {[0.25, 0.5, 0.75].map((g) => (
+        <line key={g} x1={padL} x2={w - padR} y1={padT + g * (h - padT - padB)} y2={padT + g * (h - padT - padB)} stroke={C.line} strokeDasharray="3 5" />
       ))}
       {points.some((p) => p.lower != null) && <path d={band} fill="url(#bandGrad)" stroke="none" />}
       <path d={histLine} fill="none" stroke={C.cyan} strokeWidth="2.5" strokeLinejoin="round" />
       {projLine && <path d={projLine} fill="none" stroke={C.brand} strokeWidth="2.5" strokeDasharray="6 5" strokeLinejoin="round" />}
       {firstProj > 0 && <line x1={x(firstProj)} x2={x(firstProj)} y1={padT} y2={h - padB} stroke={C.brand2} strokeDasharray="2 4" strokeOpacity="0.6" />}
       {points.map((p, i) => (
-        <circle key={i} cx={x(i)} cy={y(p.value)} r={i >= firstProj && firstProj > 0 ? 3 : 2.5} fill={i >= firstProj && firstProj > 0 ? C.brand : C.cyan} />
+        <circle key={p.month} cx={x(i)} cy={y(p.value)} r={i >= firstProj && firstProj > 0 ? 3 : 2.5} fill={i >= firstProj && firstProj > 0 ? C.brand : C.cyan} />
       ))}
       {ticks.map((i) => (
         <text key={i} x={x(i)} y={h - 10} textAnchor="middle" className="ap-axis">{points[i].month}</text>
@@ -172,8 +176,8 @@ function ForecastChart({ points, height = 220 }: {
 
 /* ── area chart (évolution du risque) ──────────────────────────────────── */
 function AreaChart({ series, height = 200 }: {
-  series: { month: string; critical: number; high: number }[];
-  height?: number;
+  readonly series: { readonly month: string; readonly critical: number; readonly high: number }[];
+  readonly height?: number;
 }) {
   const w = 720, h = height, padL = 40, padR = 16, padT = 16, padB = 28;
   const total = series.map((s) => s.critical + s.high);
@@ -198,8 +202,8 @@ function AreaChart({ series, height = 200 }: {
       </defs>
       <path d={mk("critical")} fill="url(#critGrad)" stroke={C.red} strokeWidth="2" />
       <path d={mk("high")} fill="url(#highGrad)" stroke={C.amber} strokeWidth="2" />
-      {series.map((_, i) => i > 0 && i < series.length && (
-        <line key={i} x1={x(i)} x2={x(i)} y1={padT} y2={h - padB} stroke={C.line} strokeOpacity="0.5" />
+      {series.map((s, i) => i > 0 && i < series.length && (
+        <line key={s.month} x1={x(i)} x2={x(i)} y1={padT} y2={h - padB} stroke={C.line} strokeOpacity="0.5" />
       ))}
       {ticks.map((i) => (
         <text key={i} x={x(i)} y={h - 9} textAnchor="middle" className="ap-axis">{series[i].month}</text>
@@ -209,10 +213,14 @@ function AreaChart({ series, height = 200 }: {
 }
 
 /* ── gauge (performance du modèle) ────────────────────────────────────── */
-function Gauge({ value, label }: { value: number | null; label: string }) {
+function Gauge({ value, label }: { readonly value: number | null; readonly label: string }) {
   const r = 70, cx = 90, cy = 90, circ = Math.PI * r;
   const v = value == null ? 0 : Math.max(0, Math.min(1, value));
-  const col = v >= 0.75 ? C.green : v >= 0.5 ? C.amber : C.red;
+  const col: string = (() => {
+    if (v >= 0.75) return C.green;
+    if (v >= 0.5) return C.amber;
+    return C.red;
+  })();
   return (
     <svg className="ap-gauge" viewBox="0 0 180 110">
       <path d={`M${cx - r} ${cy} A${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke={C.line} strokeWidth="12" strokeLinecap="round" />
@@ -225,12 +233,12 @@ function Gauge({ value, label }: { value: number | null; label: string }) {
 }
 
 /* ── horizontal bars (compétences en déclin) ───────────────────────────── */
-function HBar({ rows, color = C.red }: { rows: { label: string; value: number }[]; color?: string }) {
+function HBar({ rows, color = C.red }: { readonly rows: { readonly label: string; readonly value: number }[]; readonly color?: string }) {
   const max = Math.max(...rows.map((r) => r.value), 1);
   return (
     <div className="ap-hbars">
-      {rows.map((r, i) => (
-        <div className="ap-hbar" key={i}>
+      {rows.map((r) => (
+        <div className="ap-hbar" key={r.label}>
           <span className="ap-hbar-label" title={r.label}>{r.label}</span>
           <div className="ap-hbar-track"><div className="ap-hbar-fill" style={{ width: `${(r.value / max) * 100}%`, background: color }} /></div>
           <span className="ap-hbar-val">{r.value}</span>
@@ -243,6 +251,349 @@ function HBar({ rows, color = C.red }: { rows: { label: string; value: number }[
 /* ════════════════════════════════════════════════════════════════════════
    PAGE
    ════════════════════════════════════════════════════════════════════════ */
+function gapColor(g: number): string {
+  if (g >= 2) return C.red;
+  if (g >= 1) return C.amber;
+  if (g >= 0.4) return C.cyan;
+  return C.green;
+}
+
+function buildHeatRows(cells: { competence_nom: string; departement: string; avg_gap: number; enseignants_count: number }[], deptFilter: string | null) {
+  const comps = Array.from(new Set(cells.map((c) => c.competence_nom)));
+  const ds = deptFilter ? cells.filter((c) => c.departement === deptFilter) : cells;
+  const byComp = new Map<string, { dept: string; avg: number; count: number }[]>();
+  ds.forEach((c) => {
+    const arr = byComp.get(c.competence_nom) ?? [];
+    arr.push({ dept: c.departement, avg: c.avg_gap, count: c.enseignants_count });
+    byComp.set(c.competence_nom, arr);
+  });
+  return { comps: comps.slice(0, 12), rows: byComp };
+}
+
+function AnalyticsHero({
+  drift, ov, horizon, deptFilter, depts, setDeptFilter, setHorizon, isAdmin, train, refreshing, refresh,
+}: {
+  readonly drift: ReturnType<typeof useDriftStatus>["data"];
+  readonly ov: { precision_modele?: number | null } | undefined;
+  readonly horizon: number;
+  readonly deptFilter: string | null;
+  readonly depts: string[];
+  readonly setDeptFilter: (v: string | null) => void;
+  readonly setHorizon: (v: number) => void;
+  readonly isAdmin: boolean;
+  readonly train: ReturnType<typeof useTrainModel>;
+  readonly refreshing: boolean;
+  readonly refresh: () => void;
+}) {
+  const { message } = useAppNotification();
+  return (
+    <header className="ap-hero">
+      <div className="ap-hero-glow" />
+      <div className="ap-hero-main">
+        <div className="ap-hero-title">
+          <span className="ap-hero-kicker"><ExperimentOutlined /> Analyse Prédictive · D2F</span>
+          <h1>Intelligence des compétences &amp; anticipation des risques</h1>
+          <p className="ap-hero-sub">
+            Modèles ML temps-réel · {dayjs().format("dddd D MMMM YYYY")} · Horizon de projection <b>{horizon} mois</b>
+          </p>
+        </div>
+        <div className="ap-hero-actions">
+          <Tooltip title="Ré-entraîner le modèle (ADMIN)">
+            <button className="ap-btn ap-btn-ghost" onClick={() => train.mutate(undefined, { onSuccess: () => { message.success("Ré-entraînement du modèle lancé"); refresh(); }, onError: () => message.error("Échec du ré-entraînement") })} disabled={!isAdmin || train.isPending}>
+              <ThunderboltOutlined /> {train.isPending ? "Entraînement…" : "Ré-entraîner"}
+            </button>
+          </Tooltip>
+          <Tooltip title="Actualiser les données">
+            <button className="ap-btn ap-btn-primary" onClick={refresh} disabled={refreshing}>
+              <ReloadOutlined className={refreshing ? "ap-spin" : ""} /> {refreshing ? "Sync…" : "Actualiser"}
+            </button>
+          </Tooltip>
+        </div>
+      </div>
+      <div className="ap-hero-meta">
+        <div className={`ap-model-badge ${drift?.drift_detected ? "is-warn" : "is-ok"}`}>
+          {drift?.drift_detected ? <CloseCircleOutlined /> : <CheckCircleOutlined />}
+          <div><b>Modèle</b><span>{drift?.drift_detected ? "Dérive détectée" : "Stable"} · {ov?.precision_modele != null ? `précision ${Math.round(ov.precision_modele * 100)}%` : "—"}</span></div>
+        </div>
+        <div className="ap-hero-filters">
+          <span className="ap-filter-ico"><FilterOutlined /></span>
+          <Select
+            allowClear placeholder="Tous départements" value={deptFilter ?? undefined}
+            onChange={(v) => setDeptFilter(v ?? null)} className="ap-select"
+            options={depts.map((d) => ({ value: d, label: d }))} classNames={{ popup: { root: "ap-pop" } }} />
+          <Segmented options={SEG.map((s) => ({ label: s.label, value: s.value }))} value={horizon}
+            onChange={(v) => setHorizon(v as number)} className="ap-seg" />
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function AnalyticsKpis({ kpis }: { readonly kpis: { icon: React.ReactNode; label: string; value: number | null; suffix?: string; delta: number | null | undefined; spark: number[]; color: string }[] }) {
+  return (
+    <section className="ap-kpis">
+      {kpis.map((k) => {
+        const d = fmtDelta(k.delta);
+        return (
+          <div className="ap-kpi" key={k.label} style={{ ["--accent" as string]: k.color }}>
+            <div className="ap-kpi-top">
+              <span className="ap-kpi-ico">{k.icon}</span>
+              <span className={`ap-kpi-delta ap-${d.tone}`}>{d.txt || "—"}</span>
+            </div>
+            <div className="ap-kpi-value">{k.value == null ? <Skeleton.Input active size="small" /> : `${k.value}${k.suffix ?? ""}`}</div>
+            <div className="ap-kpi-label">{k.label}</div>
+            <Sparkline data={k.spark} color={k.color} />
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+function RiskDonutSection({ donutSegments, riskDist, riskEvo, horizon }: { readonly donutSegments: { label: string; value: number; color: string }[]; readonly riskDist: ReturnType<typeof useRiskDistribution>; readonly riskEvo: ReturnType<typeof useRiskEvolution>; readonly horizon: number }) {
+  return (
+    <section className="ap-grid ap-grid-2">
+      <div className="ap-card">
+        <div className="ap-card-head">
+          <h3><AimOutlined /> Répartition du risque enseignant</h3>
+          <Tag color={donutSegments[0].value ? "red" : "green"}>{riskDist.data?.total ?? 0} évalués</Tag>
+        </div>
+        <div className="ap-card-body ap-donut-wrap">
+          <Donut segments={donutSegments} />
+          <div className="ap-legend">
+            {donutSegments.map((s) => (
+              <div className="ap-legend-row" key={s.label}>
+                <span className="ap-dot" style={{ background: s.color }} />
+                <span className="ap-legend-label">{s.label}</span>
+                <span className="ap-legend-val">{s.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="ap-card">
+        <div className="ap-card-head">
+          <h3><RiseOutlined /> Évolution du risque · {horizon} mois</h3>
+          <span className="ap-chip">Critique vs Élevé</span>
+        </div>
+        <div className="ap-card-body">
+          {riskEvo.data?.length ? (
+            <AreaChart series={riskEvo.data} />
+          ) : <Empty description="Pas de données" />}
+          <div className="ap-legend ap-legend-inline">
+            <span><span className="ap-dot" style={{ background: C.red }} /> Critique</span>
+            <span><span className="ap-dot" style={{ background: C.amber }} /> Élevé</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ForecastSection({ demand, forecastPoints }: { readonly demand: ReturnType<typeof useDemandForecast>; readonly forecastPoints: { month: string; value: number; lower?: number; upper?: number; isProjection?: boolean }[] }) {
+  return (
+    <section className="ap-card">
+      <div className="ap-card-head">
+        <h3><LineChartOutlined /> Prévision de la demande de compétences</h3>
+        <span className="ap-chip">{demand.data?.method ?? "modèle"} · zone = intervalle de confiance</span>
+      </div>
+      <div className="ap-card-body">
+        {forecastPoints.length ? (
+          <ForecastChart points={forecastPoints} />
+        ) : <Empty description="Pas de prévision" />}
+        <div className="ap-legend ap-legend-inline">
+          <span><span className="ap-line" style={{ background: C.cyan }} /> Historique</span>
+          <span><span className="ap-line ap-dashed" style={{ background: C.brand }} /> Projection</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function WhatIfSection({ simTeachers, simCompetences, filteredAtRisk }: { readonly simTeachers: { teacher_id: string; teacher_name: string; departement?: string }[]; readonly simCompetences: { competence_id: number; competence_nom: string }[]; readonly filteredAtRisk: { teacher_id: string }[] }) {
+  return (
+    <section className="ap-card">
+      <div className="ap-card-head">
+        <h3><ExperimentOutlined /> Simulateur d'impact · projection &amp; scénarios</h3>
+        <span className="ap-chip">risque avant / après plan de formation</span>
+      </div>
+      <div className="ap-card-body">
+        <WhatIfSimulator
+          teachers={simTeachers}
+          competences={simCompetences}
+          defaultTeacherId={filteredAtRisk[0]?.teacher_id ?? null}
+        />
+      </div>
+    </section>
+  );
+}
+
+function HeatmapSection({ heatRows, depts, selectedCell, setSelectedCell }: { readonly heatRows: { comps: string[]; rows: Map<string, { dept: string; avg: number; count: number }[]> }; readonly depts: string[]; readonly selectedCell: { dept: string; comp: string } | null; readonly setSelectedCell: (v: { dept: string; comp: string } | null) => void }) {
+  return (
+    <section className="ap-card">
+      <div className="ap-card-head">
+        <h3><DashboardOutlined /> Cartographie des écarts (Gap Heatmap)</h3>
+        {selectedCell && (
+          <button className="ap-btn ap-btn-ghost ap-btn-sm" onClick={() => setSelectedCell(null)}>Réinitialiser · {selectedCell.dept} / {selectedCell.comp}</button>
+        )}
+      </div>
+      <div className="ap-card-body">
+        {heatRows.comps.length ? (
+          <div className="ap-heat">
+            <div className="ap-heat-row ap-heat-head">
+              <span className="ap-heat-corner">Compétence \ Dépt.</span>
+              {depts.slice(0, 10).map((d) => (
+                <span className="ap-heat-col" key={d} title={d}>{d.slice(0, 6)}</span>
+              ))}
+            </div>
+            {heatRows.comps.map((comp) => (
+              <div className="ap-heat-row" key={comp}>
+                <span className="ap-heat-rowlabel" title={comp}>{comp}</span>
+                {depts.slice(0, 10).map((d) => {
+                  const cell = (heatRows.rows.get(comp) ?? []).find((r) => r.dept === d);
+                  const g = cell?.avg ?? 0;
+                  const active = selectedCell?.dept === d && selectedCell?.comp === comp;
+                  return (
+                    <button key={d}
+                      className={`ap-heat-cell ${active ? "is-active" : ""} ${cell ? "" : "is-empty"}`}
+                      style={{ background: cell ? gapColor(g) : "transparent", opacity: cell ? 0.35 + (g / 2.5) * 0.6 : 1 }}
+                      disabled={!cell}
+                      onClick={() => cell && setSelectedCell({ dept: d, comp })}
+                      title={cell ? `${comp} · ${d} · écart ${g.toFixed(1)} · ${cell.count} ens.` : "—"}>
+                      {cell ? g.toFixed(1) : ""}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        ) : <Empty description="Pas de heatmap" />}
+        <div className="ap-legend ap-legend-inline">
+          <span>Faible</span><span className="ap-heat-scale" />
+          <span>Critique</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DeclineDemandSection({ declining, inDemand }: { readonly declining: ReturnType<typeof useDecliningCompetencies>; readonly inDemand: ReturnType<typeof useInDemandCompetencies> }) {
+  return (
+    <section className="ap-grid ap-grid-2">
+      <div className="ap-card">
+        <div className="ap-card-head">
+          <h3><FallOutlined /> Compétences en déclin</h3>
+          <span className="ap-chip ap-bad">à surveiller</span>
+        </div>
+        <div className="ap-card-body">
+          {declining.data?.length ? (
+            <HBar rows={(declining.data).slice(0, 8).map((c) => ({ label: c.competency_name, value: c.demand_12m ?? c.demand_3m ?? 0 }))} color={C.red} />
+          ) : <Empty description="Aucune" />}
+        </div>
+      </div>
+      <div className="ap-card">
+        <div className="ap-card-head">
+          <h3><RocketOutlined /> Compétences en forte demande</h3>
+          <span className="ap-chip ap-good">priorité</span>
+        </div>
+        <div className="ap-card-body">
+          {inDemand.data?.length ? (
+            <HBar rows={(inDemand.data).slice(0, 8).map((c) => ({ label: c.competency_name, value: c.demand_12m ?? c.demand_3m ?? 0 }))} color={C.green} />
+          ) : <Empty description="Aucune" />}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ModelPerfSection({ model, drift, alerts, donutSegments, horizon, navigate, inDemand }: { readonly model: ReturnType<typeof useModelPerformance>; readonly drift: ReturnType<typeof useDriftStatus>; readonly alerts: ReturnType<typeof useAlertsSummary>; readonly donutSegments: { label: string; value: number; color: string }[]; readonly horizon: number; readonly navigate: (path: string) => void; readonly inDemand: ReturnType<typeof useInDemandCompetencies> }) {
+  return (
+    <section className="ap-grid ap-grid-3">
+      <div className="ap-card ap-center">
+        <div className="ap-card-head"><h3><ExperimentOutlined /> Précision du modèle</h3></div>
+        <Gauge value={model.data?.gap_model_accuracy ?? null} label="gap accuracy" />
+        <div className="ap-model-meta">
+          <span>Dernier entraînement</span>
+          <b>{model.data?.last_retrained ? dayjs(model.data.last_retrained).format("DD/MM/YY HH:mm") : "—"}</b>
+        </div>
+        <div className={`ap-drift ${drift.data?.drift_detected ? "is-warn" : "is-ok"}`}>
+          {drift.data?.drift_detected ? <WarningOutlined /> : <CheckCircleOutlined />}
+          {drift.data?.message ?? (drift.data?.drift_detected ? "Dérive détectée" : "Aucune dérive")}
+        </div>
+      </div>
+
+      <div className="ap-card">
+        <div className="ap-card-head"><h3><BellOutlined /> Alertes par sévérité</h3></div>
+        <div className="ap-card-body">
+          {alerts.data ? (
+            <div className="ap-alert-stats">
+              <div className="ap-alert-stat ap-crit"><b>{alerts.data.critiques_ouvertes}</b><span>critiques</span></div>
+              <div className="ap-alert-stat ap-new"><b>{alerts.data.nouvelles}</b><span>nouvelles</span></div>
+              <div className="ap-alert-stat ap-tot"><b>{alerts.data.total}</b><span>total</span></div>
+            </div>
+          ) : <Empty />}
+          <div className="ap-chips">
+            {(alerts.data?.by_type ?? []).slice(0, 4).map((t) => (
+              <Tag key={t.key} className="ap-tag">{t.key.replaceAll("_", " ")} · {t.count}</Tag>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="ap-card">
+        <div className="ap-card-head"><h3><BulbOutlined /> Recommandation IA</h3></div>
+        <div className="ap-card-body ap-reco">
+          <p>Le modèle anticipe <b>{donutSegments[0].value + donutSegments[1].value}</b> enseignants à risque élevé/critique sur <b>{horizon} mois</b>.</p>
+          <p>Priorisez les formations sur les <b>{inDemand.data?.length ?? 0}</b> compétences en forte demande avant la prochaine rentrée.</p>
+          <button className="ap-btn ap-btn-primary ap-btn-sm" onClick={() => navigate("/home/analytics/teacher")}>
+            <ApartmentOutlined /> Pilotage par enseignant
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RiskTableSection({ filteredAtRisk, deptFilter }: { readonly filteredAtRisk: { teacher_id: string; teacher_name: string; departement?: string | null; attrition_risk_score: number; competency_stagnation_rate: number; disengagement_signals?: string[]; recommendation: string }[]; readonly deptFilter: string | null }) {
+  return (
+    <section className="ap-card">
+      <div className="ap-card-head">
+        <h3><TeamOutlined /> Enseignants à risque {deptFilter ? `· ${deptFilter}` : ""}</h3>
+        <span className="ap-chip">{filteredAtRisk.length} détectés</span>
+      </div>
+      <div className="ap-card-body">
+        <div className="ap-table">
+          <div className="ap-trow ap-thead">
+            <span>Enseignant</span><span>Département</span><span>Score risque</span><span>Tendance</span><span>Signaux</span><span>Action</span>
+          </div>
+          {filteredAtRisk.slice(0, 12).map((t) => {
+            const lvl: string = (() => {
+              if (t.attrition_risk_score >= 0.75) return "CRITIQUE";
+              if (t.attrition_risk_score >= 0.5) return "ELEVE";
+              if (t.attrition_risk_score >= 0.25) return "MODERE";
+              return "FAIBLE";
+            })();
+            return (
+              <div className="ap-trow" key={t.teacher_id}>
+                <span className="ap-tname">{t.teacher_name}</span>
+                <span className="ap-tdim">{t.departement ?? "—"}</span>
+                <span><span className="ap-risk-pill" style={{ background: RISK_COLORS[lvl], color: "#0b1020" }}>{Math.round(t.attrition_risk_score * 100)}%</span></span>
+                <span className={t.competency_stagnation_rate > 0.5 ? "ap-down" : "ap-up"}>
+                  {t.competency_stagnation_rate > 0.5 ? <FallOutlined /> : <RiseOutlined />} {t.competency_stagnation_rate > 0.5 ? "Stagnation" : "Actif"}
+                </span>
+                <span className="ap-signals">{(t.disengagement_signals ?? []).slice(0, 2).join(", ") || "—"}</span>
+                <span className="ap-action">{t.recommendation}</span>
+              </div>
+            );
+          })}
+          {!filteredAtRisk.length && <Empty description="Aucun enseignant à risque" />}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function AnalyticsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -250,7 +601,6 @@ export default function AnalyticsPage() {
   const qc = useQueryClient();
   const roleKey = normalizeRole(user?.role);
   const isAdmin = roleKey === "admin";
-  const todayLabel = dayjs().format("dddd D MMMM YYYY");
 
   const [refreshing, setRefreshing] = useState(false);
   const [horizon, setHorizon] = useState(6);
@@ -274,7 +624,7 @@ export default function AnalyticsPage() {
     const set = new Set<string>();
     (heatmap.data ?? []).forEach((c) => set.add(c.departement));
     (atRisk.data ?? []).forEach((t) => t.departement && set.add(t.departement));
-    return Array.from(set).sort();
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [heatmap.data, atRisk.data]);
 
   const filteredAtRisk = useMemo(
@@ -301,20 +651,10 @@ export default function AnalyticsPage() {
     ];
   }, [demand.data]);
 
-  const heatRows = useMemo(() => {
-    const cells = heatmap.data ?? [];
-    const comps = Array.from(new Set(cells.map((c) => c.competence_nom)));
-    const ds = deptFilter ? cells.filter((c) => c.departement === deptFilter) : cells;
-    const byComp = new Map<string, { dept: string; avg: number; count: number }[]>();
-    ds.forEach((c) => {
-      const arr = byComp.get(c.competence_nom) ?? [];
-      arr.push({ dept: c.departement, avg: c.avg_gap, count: c.enseignants_count });
-      byComp.set(c.competence_nom, arr);
-    });
-    return { comps: comps.slice(0, 12), rows: byComp };
-  }, [heatmap.data, deptFilter]);
-
-  const gapColor = (g: number) => g >= 2 ? C.red : g >= 1 ? C.amber : g >= 0.4 ? C.cyan : C.green;
+  const heatRows = useMemo(
+    () => buildHeatRows(heatmap.data ?? [], deptFilter),
+    [heatmap.data, deptFilter],
+  );
 
   const simTeachers = useMemo(
     () => (atRisk.data ?? []).map((t) => ({ teacher_id: t.teacher_id, teacher_name: t.teacher_name, departement: t.departement })),
@@ -333,13 +673,6 @@ export default function AnalyticsPage() {
     message.success("Données prédictives actualisées");
   }, [qc, message]);
 
-  const onTrain = () => {
-    train.mutate(undefined, {
-      onSuccess: () => { message.success("Ré-entraînement du modèle lancé"); refresh(); },
-      onError: () => message.error("Échec du ré-entraînement"),
-    });
-  };
-
   const ov = overview.data;
   const kpis = [
     { icon: <TeamOutlined />, label: "Enseignants suivis", value: ov?.nb_enseignants_suivis ?? null, delta: ov?.deltas.nb_enseignants_suivis, spark: [10, 12, 11, 14, 16, 18, ov?.nb_enseignants_suivis ?? 0], color: C.brand },
@@ -353,286 +686,39 @@ export default function AnalyticsPage() {
 
   return (
     <div className="ap-root">
-      {/* ── HERO ── */}
-      <header className="ap-hero">
-        <div className="ap-hero-glow" />
-        <div className="ap-hero-main">
-          <div className="ap-hero-title">
-            <span className="ap-hero-kicker"><ExperimentOutlined /> Analyse Prédictive · D2F</span>
-            <h1>Intelligence des compétences &amp; anticipation des risques</h1>
-            <p className="ap-hero-sub">
-              Modèles ML temps-réel · {todayLabel} · Horizon de projection <b>{horizon} mois</b>
-            </p>
-          </div>
-          <div className="ap-hero-actions">
-            <Tooltip title="Ré-entraîner le modèle (ADMIN)">
-              <button className="ap-btn ap-btn-ghost" onClick={onTrain} disabled={!isAdmin || train.isPending}>
-                <ThunderboltOutlined /> {train.isPending ? "Entraînement…" : "Ré-entraîner"}
-              </button>
-            </Tooltip>
-            <Tooltip title="Actualiser les données">
-              <button className="ap-btn ap-btn-primary" onClick={refresh} disabled={refreshing}>
-                <ReloadOutlined className={refreshing ? "ap-spin" : ""} /> {refreshing ? "Sync…" : "Actualiser"}
-              </button>
-            </Tooltip>
-          </div>
-        </div>
-        <div className="ap-hero-meta">
-          <div className={`ap-model-badge ${drift.data?.drift_detected ? "is-warn" : "is-ok"}`}>
-            {drift.data?.drift_detected ? <CloseCircleOutlined /> : <CheckCircleOutlined />}
-            <div><b>Modèle</b><span>{drift.data?.drift_detected ? "Dérive détectée" : "Stable"} · {ov?.precision_modele != null ? `précision ${Math.round(ov.precision_modele * 100)}%` : "—"}</span></div>
-          </div>
-          <div className="ap-hero-filters">
-            <span className="ap-filter-ico"><FilterOutlined /></span>
-            <Select
-              allowClear placeholder="Tous départements" value={deptFilter ?? undefined}
-              onChange={(v) => setDeptFilter(v ?? null)} className="ap-select"
-              options={depts.map((d) => ({ value: d, label: d }))} popupClassName="ap-pop" />
-            <Segmented options={SEG.map((s) => ({ label: s.label, value: s.value }))} value={horizon}
-              onChange={(v) => setHorizon(v as number)} className="ap-seg" />
-          </div>
-        </div>
-      </header>
+      <AnalyticsHero
+        drift={drift.data}
+        ov={ov}
+        horizon={horizon}
+        deptFilter={deptFilter}
+        depts={depts}
+        setDeptFilter={setDeptFilter}
+        setHorizon={setHorizon}
+        isAdmin={isAdmin}
+        train={train}
+        refreshing={refreshing}
+        refresh={refresh}
+      />
 
-      {/* ── KPIs ── */}
-      <section className="ap-kpis">
-        {kpis.map((k, i) => {
-          const d = fmtDelta(k.delta);
-          return (
-            <div className="ap-kpi" key={i} style={{ ["--accent" as string]: k.color }}>
-              <div className="ap-kpi-top">
-                <span className="ap-kpi-ico">{k.icon}</span>
-                <span className={`ap-kpi-delta ap-${d.tone}`}>{d.txt || "—"}</span>
-              </div>
-              <div className="ap-kpi-value">{k.value == null ? <Skeleton.Input active size="small" /> : `${k.value}${k.suffix ?? ""}`}</div>
-              <div className="ap-kpi-label">{k.label}</div>
-              <Sparkline data={k.spark} color={k.color} />
-            </div>
-          );
-        })}
-      </section>
+      <AnalyticsKpis kpis={kpis} />
 
       {loading ? (
         <div className="ap-loading"><Skeleton active paragraph={{ rows: 10 }} /></div>
       ) : (
         <>
-          {/* ── CARTOGRAPHIE DES RISQUES ── */}
-          <section className="ap-grid ap-grid-2">
-            <div className="ap-card">
-              <div className="ap-card-head">
-                <h3><AimOutlined /> Répartition du risque enseignant</h3>
-                <Tag color={donutSegments[0].value ? "red" : "green"}>{riskDist.data?.total ?? 0} évalués</Tag>
-              </div>
-              <div className="ap-card-body ap-donut-wrap">
-                <Donut segments={donutSegments} />
-                <div className="ap-legend">
-                  {donutSegments.map((s) => (
-                    <div className="ap-legend-row" key={s.label}>
-                      <span className="ap-dot" style={{ background: s.color }} />
-                      <span className="ap-legend-label">{s.label}</span>
-                      <span className="ap-legend-val">{s.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+          <RiskDonutSection donutSegments={donutSegments} riskDist={riskDist} riskEvo={riskEvo} horizon={horizon} />
 
-            <div className="ap-card">
-              <div className="ap-card-head">
-                <h3><RiseOutlined /> Évolution du risque · {horizon} mois</h3>
-                <span className="ap-chip">Critique vs Élevé</span>
-              </div>
-              <div className="ap-card-body">
-                {riskEvo.data?.length ? (
-                  <AreaChart series={riskEvo.data} />
-                ) : <Empty description="Pas de données" />}
-                <div className="ap-legend ap-legend-inline">
-                  <span><span className="ap-dot" style={{ background: C.red }} /> Critique</span>
-                  <span><span className="ap-dot" style={{ background: C.amber }} /> Élevé</span>
-                </div>
-              </div>
-            </div>
-          </section>
+          <ForecastSection demand={demand} forecastPoints={forecastPoints} />
 
-          {/* ── PRÉVISION / FORECAST ── */}
-          <section className="ap-card">
-            <div className="ap-card-head">
-              <h3><LineChartOutlined /> Prévision de la demande de compétences</h3>
-              <span className="ap-chip">{demand.data?.method ?? "modèle"} · zone = intervalle de confiance</span>
-            </div>
-            <div className="ap-card-body">
-              {forecastPoints.length ? (
-                <ForecastChart points={forecastPoints} />
-              ) : <Empty description="Pas de prévision" />}
-              <div className="ap-legend ap-legend-inline">
-                <span><span className="ap-line" style={{ background: C.cyan }} /> Historique</span>
-                <span><span className="ap-line ap-dashed" style={{ background: C.brand }} /> Projection</span>
-              </div>
-            </div>
-          </section>
+          <WhatIfSection simTeachers={simTeachers} simCompetences={simCompetences} filteredAtRisk={filteredAtRisk} />
 
-          {/* ── SIMULATION WHAT-IF ── */}
-          <section className="ap-card">
-            <div className="ap-card-head">
-              <h3><ExperimentOutlined /> Simulateur d'impact · projection &amp; scénarios</h3>
-              <span className="ap-chip">risque avant / après plan de formation</span>
-            </div>
-            <div className="ap-card-body">
-              <WhatIfSimulator
-                teachers={simTeachers}
-                competences={simCompetences}
-                defaultTeacherId={filteredAtRisk[0]?.teacher_id ?? null}
-              />
-            </div>
-          </section>
+          <HeatmapSection heatRows={heatRows} depts={depts} selectedCell={selectedCell} setSelectedCell={setSelectedCell} />
 
-          {/* ── HEATMAP ── */}
-          <section className="ap-card">
-            <div className="ap-card-head">
-              <h3><DashboardOutlined /> Cartographie des écarts (Gap Heatmap)</h3>
-              {selectedCell && (
-                <button className="ap-btn ap-btn-ghost ap-btn-sm" onClick={() => setSelectedCell(null)}>Réinitialiser · {selectedCell.dept} / {selectedCell.comp}</button>
-              )}
-            </div>
-            <div className="ap-card-body">
-              {heatRows.comps.length ? (
-                <div className="ap-heat">
-                  <div className="ap-heat-row ap-heat-head">
-                    <span className="ap-heat-corner">Compétence \ Dépt.</span>
-                    {depts.slice(0, 10).map((d) => (
-                      <span className="ap-heat-col" key={d} title={d}>{d.slice(0, 6)}</span>
-                    ))}
-                  </div>
-                  {heatRows.comps.map((comp) => (
-                    <div className="ap-heat-row" key={comp}>
-                      <span className="ap-heat-rowlabel" title={comp}>{comp}</span>
-                      {depts.slice(0, 10).map((d) => {
-                        const cell = (heatRows.rows.get(comp) ?? []).find((r) => r.dept === d);
-                        const g = cell?.avg ?? 0;
-                        const active = selectedCell?.dept === d && selectedCell?.comp === comp;
-                        return (
-                          <button key={d}
-                            className={`ap-heat-cell ${active ? "is-active" : ""} ${cell ? "" : "is-empty"}`}
-                            style={{ background: cell ? gapColor(g) : "transparent", opacity: cell ? 0.35 + (g / 2.5) * 0.6 : 1 }}
-                            disabled={!cell}
-                            onClick={() => cell && setSelectedCell({ dept: d, comp })}
-                            title={cell ? `${comp} · ${d} · écart ${g.toFixed(1)} · ${cell.count} ens.` : "—"}>
-                            {cell ? g.toFixed(1) : ""}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-              ) : <Empty description="Pas de heatmap" />}
-              <div className="ap-legend ap-legend-inline">
-                <span>Faible</span><span className="ap-heat-scale" />
-                <span>Critique</span>
-              </div>
-            </div>
-          </section>
+          <DeclineDemandSection declining={declining} inDemand={inDemand} />
 
-          {/* ── DÉCLIN vs DEMANDE ── */}
-          <section className="ap-grid ap-grid-2">
-            <div className="ap-card">
-              <div className="ap-card-head">
-                <h3><FallOutlined /> Compétences en déclin</h3>
-                <span className="ap-chip ap-bad">à surveiller</span>
-              </div>
-              <div className="ap-card-body">
-                {declining.data?.length ? (
-                  <HBar rows={(declining.data).slice(0, 8).map((c) => ({ label: c.competency_name, value: c.demand_12m ?? c.demand_3m ?? 0 }))} color={C.red} />
-                ) : <Empty description="Aucune" />}
-              </div>
-            </div>
-            <div className="ap-card">
-              <div className="ap-card-head">
-                <h3><RocketOutlined /> Compétences en forte demande</h3>
-                <span className="ap-chip ap-good">priorité</span>
-              </div>
-              <div className="ap-card-body">
-                {inDemand.data?.length ? (
-                  <HBar rows={(inDemand.data).slice(0, 8).map((c) => ({ label: c.competency_name, value: c.demand_12m ?? c.demand_3m ?? 0 }))} color={C.green} />
-                ) : <Empty description="Aucune" />}
-              </div>
-            </div>
-          </section>
+          <ModelPerfSection model={model} drift={drift} alerts={alerts} donutSegments={donutSegments} horizon={horizon} navigate={navigate} inDemand={inDemand} />
 
-          {/* ── PERF MODÈLE ── */}
-          <section className="ap-grid ap-grid-3">
-            <div className="ap-card ap-center">
-              <div className="ap-card-head"><h3><ExperimentOutlined /> Précision du modèle</h3></div>
-              <Gauge value={model.data?.gap_model_accuracy ?? null} label="gap accuracy" />
-              <div className="ap-model-meta">
-                <span>Dernier entraînement</span>
-                <b>{model.data?.last_retrained ? dayjs(model.data.last_retrained).format("DD/MM/YY HH:mm") : "—"}</b>
-              </div>
-              <div className={`ap-drift ${drift.data?.drift_detected ? "is-warn" : "is-ok"}`}>
-                {drift.data?.drift_detected ? <WarningOutlined /> : <CheckCircleOutlined />}
-                {drift.data?.message ?? (drift.data?.drift_detected ? "Dérive détectée" : "Aucune dérive")}
-              </div>
-            </div>
-
-            <div className="ap-card">
-              <div className="ap-card-head"><h3><BellOutlined /> Alertes par sévérité</h3></div>
-              <div className="ap-card-body">
-                {alerts.data ? (
-                  <div className="ap-alert-stats">
-                    <div className="ap-alert-stat ap-crit"><b>{alerts.data.critiques_ouvertes}</b><span>critiques</span></div>
-                    <div className="ap-alert-stat ap-new"><b>{alerts.data.nouvelles}</b><span>nouvelles</span></div>
-                    <div className="ap-alert-stat ap-tot"><b>{alerts.data.total}</b><span>total</span></div>
-                  </div>
-                ) : <Empty />}
-                <div className="ap-chips">
-                  {(alerts.data?.by_type ?? []).slice(0, 4).map((t) => (
-                    <Tag key={t.key} className="ap-tag">{t.key.replaceAll("_", " ")} · {t.count}</Tag>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="ap-card">
-              <div className="ap-card-head"><h3><BulbOutlined /> Recommandation IA</h3></div>
-              <div className="ap-card-body ap-reco">
-                <p>Le modèle anticipe <b>{donutSegments[0].value + donutSegments[1].value}</b> enseignants à risque élevé/critique sur <b>{horizon} mois</b>.</p>
-                <p>Priorisez les formations sur les <b>{inDemand.data?.length ?? 0}</b> compétences en forte demande avant la prochaine rentrée.</p>
-                <button className="ap-btn ap-btn-primary ap-btn-sm" onClick={() => navigate("/home/analytics/teacher")}>
-                  <ApartmentOutlined /> Pilotage par enseignant
-                </button>
-              </div>
-            </div>
-          </section>
-
-          {/* ── ENSEIGNANTS À RISQUE ── */}
-          <section className="ap-card">
-            <div className="ap-card-head">
-              <h3><TeamOutlined /> Enseignants à risque {deptFilter ? `· ${deptFilter}` : ""}</h3>
-              <span className="ap-chip">{filteredAtRisk.length} détectés</span>
-            </div>
-            <div className="ap-card-body">
-              <div className="ap-table">
-                <div className="ap-trow ap-thead">
-                  <span>Enseignant</span><span>Département</span><span>Score risque</span><span>Tendance</span><span>Signaux</span><span>Action</span>
-                </div>
-                {filteredAtRisk.slice(0, 12).map((t) => {
-                  const lvl = t.attrition_risk_score >= 0.75 ? "CRITIQUE" : t.attrition_risk_score >= 0.5 ? "ELEVE" : t.attrition_risk_score >= 0.25 ? "MODERE" : "FAIBLE";
-                  return (
-                    <div className="ap-trow" key={t.teacher_id}>
-                      <span className="ap-tname">{t.teacher_name}</span>
-                      <span className="ap-tdim">{t.departement ?? "—"}</span>
-                      <span><span className="ap-risk-pill" style={{ background: RISK_COLORS[lvl], color: "#0b1020" }}>{Math.round(t.attrition_risk_score * 100)}%</span></span>
-                      <span className={t.competency_stagnation_rate > 0.5 ? "ap-down" : "ap-up"}>
-                        {t.competency_stagnation_rate > 0.5 ? <FallOutlined /> : <RiseOutlined />} {t.competency_stagnation_rate > 0.5 ? "Stagnation" : "Actif"}
-                      </span>
-                      <span className="ap-signals">{(t.disengagement_signals ?? []).slice(0, 2).join(", ") || "—"}</span>
-                      <span className="ap-action">{t.recommendation}</span>
-                    </div>
-                  );
-                })}
-                {!filteredAtRisk.length && <Empty description="Aucun enseignant à risque" />}
-              </div>
-            </div>
-          </section>
+          <RiskTableSection filteredAtRisk={filteredAtRisk} deptFilter={deptFilter} />
         </>
       )}
     </div>

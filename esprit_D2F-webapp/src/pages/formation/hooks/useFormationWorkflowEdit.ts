@@ -334,8 +334,8 @@ export function useFormationWorkflowEdit(formation: EditFormation, onFormationUp
     setCoutRepas(num(f.coutRepas, 0));
     // L'API renvoie `up`/`departement` (le DTO) ; `up1`/`departement1` n'existent
     // pas dans la réponse → fallback conservé par sécurité.
-    setSelectedUp((f.up != null ? f.up : f.up1) as EditLookup | null);
-    setSelectedDept((f.departement != null ? f.departement : f.departement1) as EditLookup | null);
+    setSelectedUp((f.up ?? f.up1) as EditLookup | null);
+    setSelectedDept((f.departement ?? f.departement1) as EditLookup | null);
     setPeriodCode(str(f.periodCode, "OTHER"));
     setCustomPeriodLabel(str(f.customPeriodLabel || f.periodeFormation));
     setSeances(((Array.isArray(f.seances) ? f.seances : []) as SeanceView[]).map((s) => ({
@@ -355,12 +355,12 @@ export function useFormationWorkflowEdit(formation: EditFormation, onFormationUp
     const amap: Record<string, EditPerson> = {};
     const pmap: Record<string, EditPerson> = {};
     const animList = (Array.isArray(f.animateurs) ? f.animateurs : []) as EditPerson[];
-    animList.forEach((a) => { if (a && a.id != null) amap[String(a.id)] = a; });
+    animList.forEach((a) => { if (a?.id != null) amap[String(a.id)] = a; });
     ((Array.isArray(f.seances) ? f.seances : []) as SeanceView[]).forEach((s) => {
       const sa = (Array.isArray((s as SeanceView).animateurs) ? (s as SeanceView).animateurs : []) as EditPerson[];
       const sp = (Array.isArray((s as SeanceView).participants) ? (s as SeanceView).participants : []) as EditPerson[];
-      sa.forEach((a) => { if (a && a.id != null) amap[String(a.id)] = a; });
-      sp.forEach((p) => { if (p && p.id != null) pmap[String(p.id)] = p; });
+      sa.forEach((a) => { if (a?.id != null) amap[String(a.id)] = a; });
+      sp.forEach((p) => { if (p?.id != null) pmap[String(p.id)] = p; });
     });
     setAnimSel(Object.values(amap));
     setPartSel(Object.values(pmap));

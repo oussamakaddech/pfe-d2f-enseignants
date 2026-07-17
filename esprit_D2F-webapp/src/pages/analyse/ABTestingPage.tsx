@@ -190,18 +190,18 @@ export default function ABTestingPage() {
       </Row>
 
       <Card title="Resultats par variante">
-        {results.isLoading ? (
-          <div style={{ textAlign: "center", padding: 40 }}><Spin /></div>
-        ) : (results.data?.length ?? 0) > 0 ? (
-          <Table<ABVariantResult>
-            rowKey="variant"
-            columns={columns}
-            dataSource={results.data ?? []}
-            pagination={false}
-          />
-        ) : (
-          <Empty description="Aucune donnee pour cette experience" />
-        )}
+        {(() => {
+          if (results.isLoading) return <div style={{ textAlign: "center", padding: 40 }}><Spin /></div>;
+          if ((results.data?.length ?? 0) > 0) return (
+            <Table<ABVariantResult>
+              rowKey="variant"
+              columns={columns}
+              dataSource={results.data ?? []}
+              pagination={false}
+            />
+          );
+          return <Empty description="Aucune donnee pour cette experience" />;
+        })()}
       </Card>
     </div>
   );

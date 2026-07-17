@@ -22,7 +22,7 @@ function scoreColor(score: number): string {
   return "#10b981";
 }
 
-export default function GroupedRecommendations({ enseignantId }: { enseignantId: string }) {
+export default function GroupedRecommendations({ enseignantId }: { readonly enseignantId: string }) {
   const [groupBy, setGroupBy] = useState<RecoGroupBy>("competence");
   const { data, isLoading, isError } = useGroupedRecommendations(enseignantId, groupBy);
 
@@ -38,15 +38,16 @@ export default function GroupedRecommendations({ enseignantId }: { enseignantId:
       extra={<Segmented options={GROUP_OPTIONS} value={groupBy} onChange={(v) => setGroupBy(v as RecoGroupBy)} />}
     >
       <Spin spinning={isLoading}>
-        {isError ? (
-          <Alert type="error" showIcon message="Impossible de charger le regroupement." />
-        ) : !data || data.total === 0 ? (
-          <Empty
-            description={enseignantId ? "Aucune recommandation à regrouper" : "Entrez un identifiant enseignant"}
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          />
-        ) : (
-          <Collapse
+        {(() => {
+          if (isError) return <Alert type="error" showIcon message="Impossible de charger le regroupement." />;
+          if (!data || data.total === 0) return (
+            <Empty
+              description={enseignantId ? "Aucune recommandation à regrouper" : "Entrez un identifiant enseignant"}
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          );
+          return (
+            <Collapse
             defaultActiveKey={data.groups.slice(0, 3).map((g) => g.group_key)}
             items={data.groups.map((g) => ({
               key: g.group_key,
@@ -86,7 +87,8 @@ export default function GroupedRecommendations({ enseignantId }: { enseignantId:
               ),
             }))}
           />
-        )}
+          );
+        })()}
       </Spin>
     </Card>
   );

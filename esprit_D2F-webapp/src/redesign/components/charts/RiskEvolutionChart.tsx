@@ -9,8 +9,8 @@ export default function RiskEvolutionChart({
   points,
   loading,
 }: {
-  points: RiskEvolutionPoint[];
-  loading: boolean;
+  readonly points: RiskEvolutionPoint[];
+  readonly loading: boolean;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hover, setHover] = useState<number | null>(null);
@@ -62,10 +62,10 @@ export default function RiskEvolutionChart({
             <stop offset="100%" stopColor="#f97316" stopOpacity="0" />
           </linearGradient>
         </defs>
-        {ticks.map((t, i) => {
+        {ticks.map((t) => {
           const y = yOf(t);
           return (
-            <g key={i}>
+            <g key={t}>
               <line x1={padX} y1={y} x2={W - padX} y2={y} stroke="var(--rd-border)" strokeWidth={1} />
               <text x={padX - 7} y={y + 3} textAnchor="end" className="rd-axis-label">{Math.round(t)}</text>
             </g>
@@ -76,7 +76,7 @@ export default function RiskEvolutionChart({
         <path d={seriesPath("critical")} fill="none" stroke="#ef4444" strokeWidth={2.5} strokeLinejoin="round" />
         <path d={seriesPath("high")} fill="none" stroke="#f97316" strokeWidth={2.5} strokeLinejoin="round" />
         {points.map((p, i) => (
-          <g key={i}>
+          <g key={p.month}>
             <circle cx={xOf(i)} cy={yOf(p.critical)} r={3} fill="#ef4444" />
             <circle cx={xOf(i)} cy={yOf(p.high)} r={3} fill="#f97316" />
           </g>
@@ -89,7 +89,7 @@ export default function RiskEvolutionChart({
           </>
         )}
         {points.map((p, i) => (
-          <text key={`t${i}`} x={xOf(i)} y={H - 4} textAnchor="middle" fontSize="9" fill="var(--rd-text-3)"
+          <text key={`t${p.month}`} x={xOf(i)} y={H - 4} textAnchor="middle" fontSize="9" fill="var(--rd-text-3)"
             style={{ display: i % labelEvery === 0 || i === points.length - 1 ? undefined : "none" }}>
             {p.month}
           </text>

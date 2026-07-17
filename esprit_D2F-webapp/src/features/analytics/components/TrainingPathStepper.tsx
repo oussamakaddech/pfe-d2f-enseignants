@@ -2,8 +2,8 @@ import { Steps, Tag, Typography, Empty, Progress } from "antd";
 import type { TrainingPath } from "../types";
 
 interface TrainingPathStepperProps {
-  path: TrainingPath | undefined;
-  loading?: boolean;
+  readonly path: TrainingPath | undefined;
+  readonly loading?: boolean;
 }
 
 /** Parcours de formation ordonné (timeline/stepper). */

@@ -169,10 +169,16 @@ describe('KPIService', () => {
     await expect(KPIService.getCountByTrainerTypeWithIds({ deptId: 1 })).resolves.toEqual([{ type: 'interne', count: 5 }]);
 
     httpMocks.mockGet.mockResolvedValueOnce({ data: null });
-    await expect(KPIService.getCountByTrainerTypeWithIds()).resolves.toEqual([]);
+    await expect(KPIService.getCountByTrainerTypeWithIds()).resolves.toEqual({
+      externeOnlyCount: 0, interneOnlyCount: 0, mixteCount: 0,
+      externeOnlyIds: [], interneOnlyIds: [], mixteIds: [],
+    });
 
     httpMocks.mockGet.mockRejectedValueOnce({ isAxiosError: true, response: { status: 404 } });
-    await expect(KPIService.getCountByTrainerTypeWithIds()).resolves.toEqual([]);
+    await expect(KPIService.getCountByTrainerTypeWithIds()).resolves.toEqual({
+      externeOnlyCount: 0, interneOnlyCount: 0, mixteCount: 0,
+      externeOnlyIds: [], interneOnlyIds: [], mixteIds: [],
+    });
 
     httpMocks.mockGet.mockRejectedValueOnce(new Error('fail'));
     await expect(KPIService.getCountByTrainerTypeWithIds()).rejects.toThrow();

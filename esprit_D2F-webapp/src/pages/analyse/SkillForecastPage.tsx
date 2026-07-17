@@ -4,13 +4,13 @@ import { KpiSkeleton, ErrorState } from "@/redesign/components/States";
 import { useForecast } from "@/hooks/analyse/useNewFeatures";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { normalizeRole } from "@/utils/constants/roles";
-import { InputNumber, Slider, Tag, Empty, Table, Progress } from "antd";
+import { InputNumber, Slider, Tag, Empty, Table } from "antd";
 import { LineChartOutlined } from "@ant-design/icons";
 
 const W = 640, H = 260, padX = 40, padY = 24;
 const innerW = W - padX * 2, innerH = H - padY * 2;
 
-function ForecastSvg({ data }: { data: ReturnType<typeof useForecast>["data"] }) {
+function ForecastSvg({ data }: { readonly data: ReturnType<typeof useForecast>["data"] }) {
   if (!data) return null;
   const series = data.global as { mois: number; niveau_prevu: number; borne_basse: number; borne_haute: number }[];
   if (series.length === 0) return <Empty description="Aucune prévision" />;
@@ -44,7 +44,7 @@ function ForecastSvg({ data }: { data: ReturnType<typeof useForecast>["data"] })
       <path d={band} fill="url(#fc-band)" />
       <path d={line} fill="none" stroke="#1677ff" strokeWidth={2.5} />
       {series.map((p, i) => (
-        <circle key={i} cx={xOf(i)} cy={yOf(p.niveau_prevu)} r={2.5} fill="#1677ff" />
+        <circle key={p.mois} cx={xOf(i)} cy={yOf(p.niveau_prevu)} r={2.5} fill="#1677ff" />
       ))}
     </svg>
   );

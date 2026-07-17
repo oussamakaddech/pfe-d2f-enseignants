@@ -12,8 +12,8 @@ import type { DecliningSkill } from "../types";
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 interface DecliningSkillsChartProps {
-  skills: DecliningSkill[];
-  loading?: boolean;
+  readonly skills: DecliningSkill[];
+  readonly loading?: boolean;
 }
 
 /** Graphique des compétences en déclin (variation moyenne de niveau). */

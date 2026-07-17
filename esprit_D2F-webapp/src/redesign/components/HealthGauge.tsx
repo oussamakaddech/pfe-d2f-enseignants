@@ -1,4 +1,4 @@
-export default function HealthGauge({ score, color = "#10b981" }: { score: number; color?: string }) {
+export default function HealthGauge({ score, color = "#10b981" }: { readonly score: number; readonly color?: string }) {
   const size = 132;
   const stroke = 12;
   const r = (size - stroke) / 2;
@@ -10,7 +10,8 @@ export default function HealthGauge({ score, color = "#10b981" }: { score: numbe
   const rotate = -90;
 
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={`Score de santé ${score}`}>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <title>Score de santé {score}</title>
       <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--rd-surface-3)" strokeWidth={stroke} />
       <circle
         cx={cx}

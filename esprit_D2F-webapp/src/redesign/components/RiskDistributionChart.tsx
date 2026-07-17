@@ -1,4 +1,4 @@
-import { useMemo, useState, type MouseEvent } from "react";
+import { useMemo, useState } from "react";
 import type { RiskDistribution } from "@/redesign/contract";
 import { RISK_COLORS, RISK_LABELS, type RiskLevelKey } from "@/redesign/risk";
 import { ChartSkeleton, EmptyState } from "./States";
@@ -18,8 +18,8 @@ export default function RiskDistributionChart({
   distribution,
   loading,
 }: {
-  distribution: RiskDistribution | null;
-  loading: boolean;
+  readonly distribution: RiskDistribution | null;
+  readonly loading: boolean;
 }) {
   const [hoveredLevel, setHoveredLevel] = useState<RiskLevelKey | null>(null);
 
@@ -93,10 +93,10 @@ function DonutSVG({
   total,
   hoveredLevel,
 }: {
-  levels: RiskLevelKey[];
-  byLevel: Record<RiskLevelKey, number>;
-  total: number;
-  hoveredLevel: RiskLevelKey | null;
+  readonly levels: RiskLevelKey[];
+  readonly byLevel: Record<RiskLevelKey, number>;
+  readonly total: number;
+  readonly hoveredLevel: RiskLevelKey | null;
 }) {
   const cx = DONUT_SIZE / 2;
   const cy = DONUT_SIZE / 2;

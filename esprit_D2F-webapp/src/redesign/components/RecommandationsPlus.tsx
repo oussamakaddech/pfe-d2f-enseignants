@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Section, Card } from "@/redesign/components/Section";
+import { Card } from "@/redesign/components/Section";
 import { ChartSkeleton } from "@/redesign/components/States";
 import { useGroupedRecommendations, useSimulateWhatIf } from "@/hooks/analyse/useAnalytics";
 import type {
@@ -9,8 +9,12 @@ import type {
 const RISK: Record<string, string> = {
   CRITIQUE: "#ef4444", ELEVE: "#f97316", MODERE: "#3b82f6", FAIBLE: "#10b981",
 };
-const scoreColor = (s: number) =>
-  s >= 0.75 ? RISK.CRITIQUE : s >= 0.5 ? RISK.ELEVE : s >= 0.25 ? RISK.MODERE : RISK.FAIBLE;
+const scoreColor = (s: number) => {
+  if (s >= 0.75) return RISK.CRITIQUE;
+  if (s >= 0.5) return RISK.ELEVE;
+  if (s >= 0.25) return RISK.MODERE;
+  return RISK.FAIBLE;
+};
 const niveauColor = (n: string) => RISK[n] ?? RISK.MODERE;
 
 const inputStyle: React.CSSProperties = {
@@ -31,7 +35,7 @@ const GROUP_OPTIONS: { label: string; value: RecoGroupBy }[] = [
 
 /* ── Regroupement ─────────────────────────────────────────── */
 
-function GroupRecoCard({ r }: { r: Recommendation }) {
+function GroupRecoCard({ r }: { readonly r: Recommendation }) {
   const bars = [
     { label: "Pertinence", value: r.score_pertinence, color: "#3b82f6" },
     { label: "Réussite", value: r.score_reussite, color: "#10b981" },
@@ -70,7 +74,7 @@ function GroupRecoCard({ r }: { r: Recommendation }) {
   );
 }
 
-function Regroupement({ enseignantId }: { enseignantId: string }) {
+function Regroupement({ enseignantId }: { readonly enseignantId: string }) {
   const [groupBy, setGroupBy] = useState<RecoGroupBy>("competence");
   const { data, isLoading, isError } = useGroupedRecommendations(enseignantId, groupBy);
 
@@ -93,13 +97,12 @@ function Regroupement({ enseignantId }: { enseignantId: string }) {
         </div>
       }
     >
-      {isError ? (
-        <div className="rd-empty">Impossible de charger le regroupement.</div>
-      ) : isLoading ? (
-        <ChartSkeleton height={200} />
-      ) : !data || data.total === 0 ? (
-        <div className="rd-empty">Aucune recommandation à regrouper pour cet enseignant.</div>
-      ) : (
+      {(() => {
+        if (isError) return <div className="rd-empty">Impossible de charger le regroupement.</div>;
+        if (isLoading) return <ChartSkeleton height={200} />;
+        if (!data || data.total === 0)
+          return <div className="rd-empty">Aucune recommandation à regrouper pour cet enseignant.</div>;
+        return (
         <>
           <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
             {data.groups.map((g: RecommendationGroup) => (
@@ -133,14 +136,15 @@ function Regroupement({ enseignantId }: { enseignantId: string }) {
             ))}
           </div>
         </>
-      )}
+        );
+      })()}
     </Card>
   );
 }
 
 /* ── Simulation what-if (chart SVG) ───────────────────────── */
 
-function CompareBars({ risque, gaps }: { risque: WhatIfResponse["risk_before"]; gaps: WhatIfResponse }) {
+function CompareBars({ risque, gaps }: { readonly risque: WhatIfResponse["risk_before"]; readonly gaps: WhatIfResponse }) {
   const W = 560, H = 210, padX = 30, base = H - 34, top = 16;
   const groups = [
     { label: "Risque", unit: "%", max: 100, before: risque.score * 100, after: gaps.risk_after.score * 100,
@@ -185,7 +189,7 @@ function CompareBars({ risque, gaps }: { risque: WhatIfResponse["risk_before"]; 
 
 interface PlanRow { key: number; competence_id: number; niveau_vise: number; }
 
-function WhatIf({ enseignantId }: { enseignantId: string }) {
+function WhatIf({ enseignantId }: { readonly enseignantId: string }) {
   const [rows, setRows] = useState<PlanRow[]>([{ key: 1, competence_id: 1, niveau_vise: 4 }]);
   const [horizon, setHorizon] = useState<number>(6);
   const sim = useSimulateWhatIf(enseignantId);
@@ -300,7 +304,7 @@ function WhatIf({ enseignantId }: { enseignantId: string }) {
 
 /* ── Section agrégée ──────────────────────────────────────── */
 
-export default function RecommandationsPlus({ enseignantId }: { enseignantId: string | null }) {
+export default function RecommandationsPlus({ enseignantId }: { readonly enseignantId: string | null }) {
   if (!enseignantId) {
     return <div className="rd-empty">Sélectionnez un enseignant pour explorer ses recommandations.</div>;
   }

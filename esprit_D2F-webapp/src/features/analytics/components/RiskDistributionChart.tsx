@@ -11,8 +11,8 @@ import type { RiskDistributionBucket } from "../types";
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 interface RiskDistributionChartProps {
-  distribution: RiskDistributionBucket[];
-  loading?: boolean;
+  readonly distribution: RiskDistributionBucket[];
+  readonly loading?: boolean;
 }
 
 /** Répartition des risques (donut). */

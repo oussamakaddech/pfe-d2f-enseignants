@@ -4,7 +4,7 @@ import { Button, Space, Alert } from "antd";
 import { ArrowLeftOutlined, ReloadOutlined } from "@ant-design/icons";
 import { useAlertsSummary, useBulkUpdateAlerts } from "@/hooks/analyse/useAnalysePredictive";
 import PriorityAlertsPanel from "@/components/charts/PriorityAlertsPanel";
-import { AppPageHeader, brand, shadow } from "@/components/common";
+import { AppPageHeader, shadow } from "@/components/common";
 
 const cardStyle = {
   background: "#fff",

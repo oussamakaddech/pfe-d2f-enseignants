@@ -62,11 +62,11 @@ export default function GlassHeatmap({ data, maxGap, onCellClick }: GlassHeatmap
 function Row({
   r, competences, colorFor, max, onCellClick,
 }: {
-  r: { departement: string; map: Map<number, GapHeatmapCell> };
-  competences: { id: number; nom: string }[];
-  colorFor: (v: number) => string;
-  max: number;
-  onCellClick?: (departement: string, competenceId: number) => void;
+  readonly r: { readonly departement: string; readonly map: Map<number, GapHeatmapCell> };
+  readonly competences: { readonly id: number; readonly nom: string }[];
+  readonly colorFor: (v: number) => string;
+  readonly max: number;
+  readonly onCellClick?: (departement: string, competenceId: number) => void;
 }) {
   return (
     <>
@@ -78,24 +78,37 @@ function Row({
         if (!cell) {
           return <div key={c.id} style={{ height: 38, borderRadius: 10, background: "rgba(15,23,42,0.04)" }} />;
         }
+        if (!onCellClick) {
+          return (
+            <div
+              key={c.id}
+              title={`${c.nom} · ${r.departement} — gap ${cell.avg_gap.toFixed(2)} (${cell.enseignants_count} enseignants)`}
+              style={{
+                height: 38, borderRadius: 10, background: colorFor(cell.avg_gap),
+                display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 12,
+                boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.25)",
+              }}
+            >
+              {cell.avg_gap.toFixed(2)}
+            </div>
+          );
+        }
         return (
-          <div
+          <button
+            type="button"
             key={c.id}
             title={`${c.nom} · ${r.departement} — gap ${cell.avg_gap.toFixed(2)} (${cell.enseignants_count} enseignants)`}
-            role={onCellClick ? "button" : undefined}
-            tabIndex={onCellClick ? 0 : undefined}
-            onClick={onCellClick ? () => onCellClick(r.departement, c.id) : undefined}
-            onKeyDown={onCellClick ? (e) => { if (e.key === "Enter" || e.key === " ") onCellClick(r.departement, c.id); } : undefined}
+            onClick={() => onCellClick(r.departement, c.id)}
             style={{
               height: 38, borderRadius: 10, background: colorFor(cell.avg_gap),
               display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 12,
               boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.25)",
-              cursor: onCellClick ? "pointer" : undefined,
-              transition: onCellClick ? "transform 0.15s, box-shadow 0.15s" : undefined,
+              cursor: "pointer",
+              transition: "transform 0.15s, box-shadow 0.15s",
             }}
           >
             {cell.avg_gap.toFixed(2)}
-          </div>
+          </button>
         );
       })}
     </>

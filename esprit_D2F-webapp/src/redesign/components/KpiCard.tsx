@@ -11,6 +11,18 @@ function formatValue(value: number | null, unit: Unit, customText?: string): str
   return `${Math.round(value)} %`;
 }
 
+function trendArrow(direction: Trend["direction"]): string {
+  if (direction === "up") return "▲";
+  if (direction === "down") return "▼";
+  return "–";
+}
+
+function buildTrendValueText(trend: Trend, trendLabel?: string): string {
+  const hasValue = trend.value != null && trend.value !== 0;
+  const labelSuffix = trendLabel ? ` ${trendLabel}` : "";
+  return hasValue ? ` ${trend.value}${labelSuffix}` : "";
+}
+
 export default function KpiCard({
   label,
   value,
@@ -25,32 +37,28 @@ export default function KpiCard({
   loading = false,
   nullIsNonCalculable = false,
 }: {
-  label: string;
-  value: number | null | undefined;
-  unit?: Unit;
-  customText?: string;
-  icon: ReactNode;
-  accent?: string;
-  accentBg?: string;
-  helper?: string;
-  trend?: Trend | null;
-  trendLabel?: string;
-  loading?: boolean;
-  nullIsNonCalculable?: boolean;
+  readonly label: string;
+  readonly value: number | null | undefined;
+  readonly unit?: Unit;
+  readonly customText?: string;
+  readonly icon: ReactNode;
+  readonly accent?: string;
+  readonly accentBg?: string;
+  readonly helper?: string;
+  readonly trend?: Trend | null;
+  readonly trendLabel?: string;
+  readonly loading?: boolean;
+  readonly nullIsNonCalculable?: boolean;
 }) {
   const isNA = value == null;
-  const shown = isNA
-    ? nullIsNonCalculable
-      ? NA_CALC
-      : NA_CALC
-    : formatValue(value, unit, customText);
+  const shown = isNA ? NA_CALC : formatValue(value, unit, customText);
 
   const styleVars = { "--kpi-accent": accent, "--kpi-accent-bg": accentBg } as CSSProperties;
 
   const trendNode = trend ? (
     <span className={`rd-trend ${trend.direction} ${trend.good ? "good" : "bad"}`}>
-      {trend.direction === "up" ? "▲" : trend.direction === "down" ? "▼" : "–"}
-      {trend.value != null && trend.value !== 0 ? ` ${trend.value}${trendLabel ? ` ${trendLabel}` : ""}` : ""}
+      {trendArrow(trend.direction)}
+      {buildTrendValueText(trend, trendLabel)}
     </span>
   ) : null;
 

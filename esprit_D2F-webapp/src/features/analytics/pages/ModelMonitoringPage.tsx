@@ -67,29 +67,29 @@ export default function ModelMonitoringPage() {
         </Col>
         <Col xs={24} lg={12}>
           <Card title="Rapport de dérive" style={{ borderRadius: 12 }}>
-            {drift.isLoading ? (
-              <div>Chargement…</div>
-            ) : drift.data ? (
-              <Descriptions column={1} size="small" bordered>
-                <Descriptions.Item label="Métrique">{drift.data.metric}</Descriptions.Item>
-                <Descriptions.Item label="Valeur actuelle">
-                  {drift.data.valeur_actuelle.toFixed(4)}
-                </Descriptions.Item>
-                <Descriptions.Item label="Seuil">{drift.data.seuil.toFixed(4)}</Descriptions.Item>
-                <Descriptions.Item label="Jours depuis entraînement">
-                  {drift.data.jours_depuis_entrainement}
-                </Descriptions.Item>
-                <Descriptions.Item label="Statut">
-                  {drift.data.drift_detected ? (
-                    <Tag color="red">DRIFT</Tag>
-                  ) : (
-                    <Tag color="green">Stable</Tag>
-                  )}
-                </Descriptions.Item>
-              </Descriptions>
-            ) : (
-              <Alert type="error" message="Rapport de dérive indisponible" />
-            )}
+            {(() => {
+              if (drift.isLoading) return <div>Chargement…</div>;
+              if (drift.data) return (
+                <Descriptions column={1} size="small" bordered>
+                  <Descriptions.Item label="Métrique">{drift.data.metric}</Descriptions.Item>
+                  <Descriptions.Item label="Valeur actuelle">
+                    {drift.data.valeur_actuelle.toFixed(4)}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Seuil">{drift.data.seuil.toFixed(4)}</Descriptions.Item>
+                  <Descriptions.Item label="Jours depuis entraînement">
+                    {drift.data.jours_depuis_entrainement}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Statut">
+                    {drift.data.drift_detected ? (
+                      <Tag color="red">DRIFT</Tag>
+                    ) : (
+                      <Tag color="green">Stable</Tag>
+                    )}
+                  </Descriptions.Item>
+                </Descriptions>
+              );
+              return <Alert type="error" message="Rapport de dérive indisponible" />;
+            })()}
           </Card>
         </Col>
       </Row>

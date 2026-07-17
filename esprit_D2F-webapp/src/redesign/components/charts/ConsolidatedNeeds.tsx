@@ -6,8 +6,8 @@ export default function ConsolidatedNeeds({
   cells,
   loading,
 }: {
-  cells: GapHeatmapCell[];
-  loading: boolean;
+  readonly cells: GapHeatmapCell[];
+  readonly loading: boolean;
 }) {
   const rows = useMemo(() => {
     const map = new Map<string, { gapSum: number; cells: number; teachers: number; worst: number }>();
@@ -33,8 +33,14 @@ export default function ConsolidatedNeeds({
     <div className="rd-needs">
       {rows.map((r) => {
         const pct = (r.avg / maxAvg) * 100;
-        const color = r.worst >= 2 ? "var(--rd-error)" : r.worst >= 1 ? "var(--rd-warning)" : "var(--rd-info)";
-        const action = r.worst >= 2 ? "Plan de formation prioritaire" : r.worst >= 1 ? "Renfort ciblé" : "Surveillance";
+        let color: string;
+        if (r.worst >= 2) color = "var(--rd-error)";
+        else if (r.worst >= 1) color = "var(--rd-warning)";
+        else color = "var(--rd-info)";
+        let action: string;
+        if (r.worst >= 2) action = "Plan de formation prioritaire";
+        else if (r.worst >= 1) action = "Renfort ciblé";
+        else action = "Surveillance";
         return (
           <div key={r.dept} className="rd-needs-row">
             <div className="rd-needs-top">

@@ -118,7 +118,11 @@ export function useUnifiedSupplyDemand(): {
       criticalCount: s.nb_critiques,
       urgency: (s.quadrant === "INVESTIR" || s.nb_critiques > 3)
         ? "CRITIQUE"
-        : s.nb_critiques > 1 ? "ELEVE" : s.nb_critiques > 0 ? "MODERE" : "FAIBLE",
+        : (() => {
+            if (s.nb_critiques > 1) return "ELEVE" as const;
+            if (s.nb_critiques > 0) return "MODERE" as const;
+            return "FAIBLE" as const;
+          })(),
       suggestedTraining: s.competence_nom,
       quadrant: (s.quadrant ?? "SURVEILLER") as SupplyDemandItem["quadrant"],
     })),
@@ -217,12 +221,6 @@ export function useUnifiedAlerts(): {
   loading: boolean;
 } {
   const { data, isLoading } = useAlertsSummary();
-  const alerts = useMemo<UnifiedAlert[]>(
-    () => (data?.by_type ?? []).flatMap(() => []),
-    [data],
-  );
-  // Les alertes détaillées viennent du DashboardData (alertes_recentes).
-  void alerts;
   const total = data?.total ?? 0;
   return {
     alerts: [],

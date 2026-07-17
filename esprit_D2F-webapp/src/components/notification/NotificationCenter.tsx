@@ -25,6 +25,9 @@ const NotificationCenter = memo(function NotificationCenter() {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<NotificationFilter>("all");
 
+  const unreadSuffix = unreadCount ? ` (${unreadCount})` : "";
+  const unreadLabel = `Non lues${unreadSuffix}`;
+
   const visible = useMemo(
     () => (filter === "unread" ? notifications.filter((n) => !n.read) : notifications),
     [notifications, filter],
@@ -35,7 +38,7 @@ const NotificationCenter = memo(function NotificationCenter() {
 
   const handleItemClick = (n: { link?: string }) => {
     setOpen(false);
-    if (n.link) navigate(n.link);
+    if (n.link) { navigate(n.link); }
   };
 
   const content = (
@@ -74,7 +77,7 @@ const NotificationCenter = memo(function NotificationCenter() {
         onChange={setFilter}
         options={[
           { label: "Toutes", value: "all" },
-          { label: `Non lues${unreadCount ? ` (${unreadCount})` : ""}`, value: "unread" },
+          { label: unreadLabel, value: "unread" },
         ]}
       />
 
@@ -111,7 +114,7 @@ const NotificationCenter = memo(function NotificationCenter() {
       placement="bottomRight"
       arrow={false}
       title={null}
-      overlayClassName="notif-popover"
+      classNames={{ root: "notif-popover" }}
       rootClassName="notif-popover-root"
     >
       <Tooltip title="Notifications">

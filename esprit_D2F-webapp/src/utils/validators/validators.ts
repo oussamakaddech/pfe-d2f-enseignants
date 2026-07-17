@@ -30,8 +30,16 @@ export const isRequired = (value: unknown): boolean => {
 /**
  * Vérifie le format d'une adresse email.
  */
-export const isValidEmail = (email: string): boolean =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email ?? "");
+export const isValidEmail = (email = ""): boolean => {
+  const atIndex = email.indexOf("@");
+  const dotIndex = email.lastIndexOf(".");
+  return (
+    atIndex > 0 &&
+    dotIndex > atIndex + 1 &&
+    dotIndex < email.length - 1 &&
+    !/\s/.test(email)
+  );
+};
 
 /**
  * Vérifie la force d'un mot de passe (min 8 caractères, majuscule, minuscule, chiffre, caractère spécial).

@@ -5,8 +5,8 @@ export default function FormationRecoList({
   recos,
   loading,
 }: {
-  recos: FormationReco[];
-  loading: boolean;
+  readonly recos: FormationReco[];
+  readonly loading: boolean;
 }) {
   if (loading && recos.length === 0) return <ListSkeleton rows={4} />;
   if (recos.length === 0) return <EmptyState description="Aucune recommandation de formation" />;
@@ -19,7 +19,10 @@ export default function FormationRecoList({
       {sorted.map((r, i) => {
         const successPct = Math.round(r.successProb * 100);
         const barWidth = (r.recommendationCount / maxReco) * 100;
-        const ringColor = successPct >= 70 ? "var(--rd-success)" : successPct >= 40 ? "var(--rd-warning)" : "var(--rd-error)";
+        let ringColor: string;
+        if (successPct >= 70) ringColor = "var(--rd-success)";
+        else if (successPct >= 40) ringColor = "var(--rd-warning)";
+        else ringColor = "var(--rd-error)";
         const CR = 16;
         const CIRC = 2 * Math.PI * CR;
         return (
@@ -38,7 +41,8 @@ export default function FormationRecoList({
               </div>
             </div>
             <div className="rd-reco-success-ring">
-              <svg width="44" height="44" viewBox="0 0 44 44" role="img" aria-label={`Réussite ${successPct} %`}>
+              <svg width="44" height="44" viewBox="0 0 44 44">
+                <title>Réussite {successPct} %</title>
                 <circle cx="22" cy="22" r={CR} fill="none" stroke="var(--rd-surface-3)" strokeWidth="5" />
                 <circle
                   cx="22" cy="22" r={CR} fill="none" stroke={ringColor} strokeWidth="5" strokeLinecap="round"

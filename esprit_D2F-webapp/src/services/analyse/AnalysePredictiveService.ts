@@ -115,22 +115,26 @@ const AnalysePredictiveService = {
     }> }>(`${PREDICTIVE_API}/detect/at-risk-teachers`, {
       params: { threshold },
     });
-    return (res.data.teachers || []).map((t) => ({
-      teacher_id: t.teacher_id,
-      teacher_name: t.teacher_name,
-      attrition_risk_score: t.risk_score,
-      disengagement_signals: t.risk_factors,
-      competency_stagnation_rate: 1.0 - t.engagement_score,
-      training_velocity: 0,
-      // Aligné sur le moteur (app/routers/all.py::_risk_recommendation) :
-      // >=0.75 -> Planifier entretien, >=0.50 -> Proposer formation, sinon OK.
-      recommendation: t.risk_score >= 0.75
-        ? "Planifier entretien"
-        : t.risk_score >= 0.5
-          ? "Proposer formation"
-          : "OK",
-      departement: t.department,
-    }));
+    const riskRecommendation = (score: number): string => {
+      if (score >= 0.75) return "Planifier entretien";
+      if (score >= 0.5) return "Proposer formation";
+      return "OK";
+    };
+    return (res.data.teachers || []).map((t) => {
+      const recommendation = riskRecommendation(t.risk_score);
+      return {
+        teacher_id: t.teacher_id,
+        teacher_name: t.teacher_name,
+        attrition_risk_score: t.risk_score,
+        disengagement_signals: t.risk_factors,
+        competency_stagnation_rate: 1.0 - t.engagement_score,
+        training_velocity: 0,
+        // Aligné sur le moteur (app/routers/all.py::_risk_recommendation) :
+        // >=0.75 -> Planifier entretien, >=0.50 -> Proposer formation, sinon OK.
+        recommendation,
+        departement: t.department,
+      };
+    });
   },
 
   // ── Dashboard ──────────────────────────────────

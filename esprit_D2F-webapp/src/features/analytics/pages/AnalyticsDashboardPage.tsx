@@ -2,9 +2,8 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Row, Col, Select, Alert, Empty, Tag, Button, Spin, Tooltip, Modal,
-  Segmented, message,
+  Segmented, message, DatePicker,
 } from "antd";
-import { DatePicker } from "antd";
 import {
   TeamOutlined, AlertOutlined, LineChartOutlined, WarningOutlined,
   DashboardOutlined, ReloadOutlined, ClockCircleOutlined, HeatMapOutlined,
@@ -48,23 +47,42 @@ const KPI_DEFS: Record<string, string> = {
 function RichKpi({
   title, value, icon, tone, hint, loading, tooltip, onClick,
 }: {
-  title: string;
-  value: ReactNode;
-  icon: ReactNode;
-  tone: "primary" | "warning" | "danger" | "info" | "success";
-  hint?: string;
-  loading?: boolean;
-  tooltip?: string;
-  onClick?: () => void;
+  readonly title: string;
+  readonly value: ReactNode;
+  readonly icon: ReactNode;
+  readonly tone: "primary" | "warning" | "danger" | "info" | "success";
+  readonly hint?: string;
+  readonly loading?: boolean;
+  readonly tooltip?: string;
+  readonly onClick?: () => void;
 }) {
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        className={`ad-kpi ad-kpi--${tone} ad-kpi--clickable`}
+        onClick={onClick}
+      >
+        <div className="ad-kpi__icon">{icon}</div>
+        <div className="ad-kpi__body">
+          <div className="ad-kpi__title">
+            {title}
+            {tooltip && (
+              <Tooltip title={tooltip}>
+                <InfoCircleOutlined style={{ marginLeft: 6, fontSize: 12, opacity: 0.8 }} />
+              </Tooltip>
+            )}
+          </div>
+          {loading
+            ? <div className="ad-kpi__value" style={{ opacity: 0.5 }}>···</div>
+            : <div className="ad-kpi__value">{value}</div>}
+          {hint && <div className="ad-kpi__hint">{hint}</div>}
+        </div>
+      </button>
+    );
+  }
   return (
-    <div
-      className={`ad-kpi ad-kpi--${tone}${onClick ? " ad-kpi--clickable" : ""}`}
-      onClick={onClick}
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") onClick(); } : undefined}
-    >
+    <div className={`ad-kpi ad-kpi--${tone}`}>
       <div className="ad-kpi__icon">{icon}</div>
       <div className="ad-kpi__body">
         <div className="ad-kpi__title">
@@ -88,12 +106,12 @@ function RichKpi({
 function Section({
   title, icon, extra, children, loading, id,
 }: {
-  title: string;
-  icon?: ReactNode;
-  extra?: ReactNode;
-  children: ReactNode;
-  loading?: boolean;
-  id?: string;
+  readonly title: string;
+  readonly icon?: ReactNode;
+  readonly extra?: ReactNode;
+  readonly children: ReactNode;
+  readonly loading?: boolean;
+  readonly id?: string;
 }) {
   return (
     <div className="ad-card" id={id}>
@@ -162,13 +180,13 @@ export default function AnalyticsDashboardPage() {
     };
     (data?.heatmap ?? []).forEach((h) => add(h.departement));
     (atRisk.data ?? []).forEach((t) => add(t.departement));
-    return Array.from(seen).sort().map((v) => ({ value: v, label: formatDepartment(v) }));
+    return Array.from(seen).sort((a, b) => a.localeCompare(b)).map((v) => ({ value: v, label: formatDepartment(v) }));
   }, [data?.heatmap, atRisk.data]);
 
   const upOptions = useMemo(() => {
     const seen = new Set<string>();
     (atRisk.data ?? []).forEach((t) => { if (t.up && t.up !== "non_affecte") seen.add(t.up); });
-    return Array.from(seen).sort().map((v) => ({ value: v, label: formatUP(v) }));
+    return Array.from(seen).sort((a, b) => a.localeCompare(b)).map((v) => ({ value: v, label: formatUP(v) }));
   }, [atRisk.data]);
 
   const filteredAtRisk = useMemo<AtRiskTeacher[]>(() => {
@@ -493,7 +511,7 @@ export default function AnalyticsDashboardPage() {
             </tbody>
           </table>
         )}
-        {drillQuery.data && drillQuery.data.length === 0 && <Empty description="Aucun enseignant sur cette cellule" />}
+        {drillQuery.data?.length === 0 && <Empty description="Aucun enseignant sur cette cellule" />}
       </Modal>
     </div>
   );
@@ -503,9 +521,9 @@ export default function AnalyticsDashboardPage() {
 function PriorityActions({
   kpis, atRisk, onFilter,
 }: {
-  kpis: any;
-  atRisk: AtRiskTeacher[];
-  onFilter: (f: DashboardFilters) => void;
+  readonly kpis: any;
+  readonly atRisk: AtRiskTeacher[];
+  readonly onFilter: (f: DashboardFilters) => void;
 }) {
   const actions: { label: string; count: number; tone: string; filter?: DashboardFilters }[] = [
     { label: "Traiter les alertes critiques ouvertes", count: kpis?.alertes_critiques_ouvertes ?? 0, tone: "red" },
@@ -517,7 +535,7 @@ function PriorityActions({
   return (
     <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
       {actions.map((a, i) => (
-        <li key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #f0f0f0" }}>
+        <li key={a.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #f0f0f0" }}>
           <span style={{ fontSize: 13 }}>
             <Tag color={a.tone}>{a.count}</Tag> {a.label}
           </span>
@@ -529,7 +547,7 @@ function PriorityActions({
 }
 
 /* ── Tableau « Top formations » enrichi ─────────────────── */
-function TopFormationsTable({ formations }: { formations: TopFormation[] }) {
+function TopFormationsTable({ formations }: { readonly formations: TopFormation[] }) {
   return (
     <div style={{ overflowX: "auto" }}>
       <table className="ad-tbl">
@@ -554,11 +572,11 @@ function TopFormationsTable({ formations }: { formations: TopFormation[] }) {
               <td className="ad-tbl-td"><Tag>{f.enseignants_cibles ?? 0}</Tag></td>
               <td className="ad-tbl-td"><span style={{ fontWeight: 700, color: "#c8102e" }}>{Math.round((Number(f.score_moyen ?? 0)) * 100)}%</span></td>
               <td className="ad-tbl-td">
-                {f.impact_estime > 0.5
-                  ? <Tag color="red">Baisse risque élevée</Tag>
-                  : f.impact_estime > 0.25
-                    ? <Tag color="orange">Baisse risque moyenne</Tag>
-                    : <Tag color="default">À évaluer</Tag>}
+                {(() => {
+                  if (f.impact_estime > 0.5) return <Tag color="red">Baisse risque élevée</Tag>;
+                  if (f.impact_estime > 0.25) return <Tag color="orange">Baisse risque moyenne</Tag>;
+                  return <Tag color="default">À évaluer</Tag>;
+                })()}
                 <div style={{ fontSize: 11, color: "#94a3b8" }}>écart {Math.round((Number(f.impact_estime ?? 0)) * 100)}%</div>
               </td>
             </tr>
