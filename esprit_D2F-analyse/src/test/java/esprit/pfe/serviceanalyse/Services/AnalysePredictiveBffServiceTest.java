@@ -11,6 +11,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Map;
 
+import esprit.pfe.serviceanalyse.dto.analytics.PageDto;
+import org.springframework.data.domain.PageRequest;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -76,9 +79,9 @@ class AnalysePredictiveBffServiceTest {
         when(engine.getPriorityActions(eq(15), eq("D1"), any()))
                 .thenReturn(List.of(Map.of("enseignant_id", "t9")));
 
-        List<Map<String, Object>> result = service.priorityActions(15, "D1", "Bearer t");
+        PageDto<Map<String, Object>> result = service.priorityActions(PageRequest.of(0, 15), "D1", "Bearer t");
 
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0)).containsEntry("enseignant_id", "t9");
+        assertThat(result.items()).hasSize(1);
+        assertThat(result.items().get(0)).containsEntry("enseignant_id", "t9");
     }
 }

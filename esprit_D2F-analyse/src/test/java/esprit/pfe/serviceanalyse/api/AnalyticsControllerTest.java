@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -22,6 +23,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AnalyticsController.class)
+@EnableMethodSecurity
 class AnalyticsControllerTest {
 
     @Autowired
@@ -73,7 +75,7 @@ class AnalyticsControllerTest {
                 OffsetDateTime.now(), null, "/api/v2/analytics/jobs/J1");
         when(bffService.analyzeTeacher(eq("T1"), any())).thenReturn(job);
         mockMvc.perform(post("/api/v2/analytics/teachers/T1/analyze")
-                        .with(jwt().authorities(new SimpleGrantedAuthority("ADMIN"))))
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .andExpect(status().isAccepted());
     }
 }

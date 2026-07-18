@@ -65,7 +65,7 @@ public class AnalyticsAuthorizationService {
             if (hasRole(jwt, ROLE_TEACHER)) {
                 throw new AccessDeniedException("Filtre département requis pour votre rôle.");
             }
-            return;
+            throw new AccessDeniedException("Accès non autorisé.");
         }
         if (hasRole(jwt, ROLE_TEACHER)) {
             throw new AccessDeniedException("Accès limité à votre propre profil.");
@@ -82,7 +82,9 @@ public class AnalyticsAuthorizationService {
             if (perimeter == null || !perimeter.contains(departmentId)) {
                 throw new AccessDeniedException("Département hors de votre périmètre CUP.");
             }
+            return;
         }
+        throw new AccessDeniedException("Accès non autorisé.");
     }
 
     private boolean hasRole(Jwt jwt, String role) {

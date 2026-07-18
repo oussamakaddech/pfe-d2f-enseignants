@@ -15,13 +15,13 @@ class AnalyticsAuthorizationServiceTest {
     private final AnalyticsAuthorizationService service = new AnalyticsAuthorizationService();
 
     private JwtAuthenticationToken token(List<String> scope, String subject, String departmentId, List<String> perimeter) {
-        Jwt.JwtBuilder b = Jwt.withTokenValue("t")
+        var builder = Jwt.withTokenValue("t")
                 .header("alg", "HS512")
                 .subject(subject)
                 .claim("scope", scope);
-        if (departmentId != null) b.claim("department_id", departmentId);
-        if (perimeter != null) b.claim("cup_perimeter", perimeter);
-        Jwt jwt = b.build();
+        if (departmentId != null) builder.claim("department_id", departmentId);
+        if (perimeter != null) builder.claim("cup_perimeter", perimeter);
+        Jwt jwt = builder.build();
         return new JwtAuthenticationToken(jwt, scope.stream().map(SimpleGrantedAuthority::new).toList());
     }
 

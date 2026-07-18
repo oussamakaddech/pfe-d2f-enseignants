@@ -1,5 +1,6 @@
 package esprit.pfe.serviceanalyse.controllers;
 
+import esprit.pfe.serviceanalyse.dto.analytics.PageDto;
 import esprit.pfe.serviceanalyse.services.AnalysePredictiveBffService;
 import esprit.pfe.serviceanalyse.services.AnalysePredictiveService;
 import org.junit.jupiter.api.Test;
@@ -8,6 +9,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -180,12 +182,12 @@ class AnalysePredictiveControllerTest {
 
     @Test
     void testPriorityActions() throws Exception {
-        when(bffService.priorityActions(anyInt(), any(), any()))
-                .thenReturn(List.of(Map.of("enseignant_id", "t1", "score_action", 0.8)));
+        when(bffService.priorityActions(any(Pageable.class), any(), any()))
+                .thenReturn(new PageDto<>(List.of(Map.of("enseignant_id", "t1", "score_action", 0.8)), 1, 0, 20, 1));
 
         mockMvc.perform(get("/api/v1/analyse-predictive/actions/priority")
-                .param("limit", "10"))
+                .param("page", "0").param("size", "10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].enseignant_id").value("t1"));
+                .andExpect(jsonPath("$.items[0].enseignant_id").value("t1"));
     }
 }

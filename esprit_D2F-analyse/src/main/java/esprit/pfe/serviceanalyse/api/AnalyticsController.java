@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v2/analytics")
 @RequiredArgsConstructor
-@PreAuthorize(AuthorizationMatrix.DASHBOARD_ADMIN_LIMITED)
 public class AnalyticsController {
 
     private final AnalyticsBffService bffService;
