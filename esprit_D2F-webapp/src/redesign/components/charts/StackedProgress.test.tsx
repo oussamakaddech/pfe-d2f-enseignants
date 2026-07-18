@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import StackedProgress from "@/redesign/components/charts/StackedProgress";
 
 describe("StackedProgress", () => {
@@ -29,5 +29,60 @@ describe("StackedProgress", () => {
       <StackedProgress items={[{ label: "Vide", segments: [{ label: "A", value: 0, color: "#000" }] }]} />,
     );
     expect(container.querySelectorAll(".sp-row")).toHaveLength(0);
+  });
+
+  it("utilise le total explicite fourni", () => {
+    render(
+      <StackedProgress
+        items={[{
+          label: "T", total: 100,
+          segments: [{ label: "A", value: 25, color: "#000" }, { label: "B", value: 25, color: "#111" }],
+        }]}
+      />,
+    );
+    expect(screen.getByText("100")).toBeInTheDocument();
+    expect(screen.getByText(/A 25%/)).toBeInTheDocument();
+    expect(screen.getByText(/B 25%/)).toBeInTheDocument();
+  });
+
+  it("rend plusieurs items et segments multiples", () => {
+    render(
+      <StackedProgress
+        items={[
+          { label: "Un", segments: [{ label: "P", value: 1, color: "#aaa" }, { label: "Q", value: 1, color: "#bbb" }] },
+          { label: "Deux", segments: [{ label: "R", value: 3, color: "#ccc" }, { label: "S", value: 1, color: "#ddd" }] },
+        ]}
+      />,
+    );
+    expect(screen.getByText("Un")).toBeInTheDocument();
+    expect(screen.getByText("Deux")).toBeInTheDocument();
+    expect(screen.getByText(/P 50%/)).toBeInTheDocument();
+    expect(screen.getByText(/S 25%/)).toBeInTheDocument();
+  });
+
+  it("applique la hauteur personnalisée", () => {
+    const { container } = render(
+      <StackedProgress height={42} items={[{ label: "H", segments: [{ label: "A", value: 1, color: "#000" }] }]} />,
+    );
+    expect(container.querySelector(".sp-track")?.getAttribute("style")).toContain("height: 42px");
+  });
+
+  it("met en surbrillance un segment au survol et retire au départ", () => {
+    render(
+      <StackedProgress items={[{ label: "H", segments: [{ label: "A", value: 1, color: "#000" }, { label: "B", value: 1, color: "#111" }] }]} />,
+    );
+    const segA = screen.getByTitle("A: 1 (50%)");
+    fireEvent.mouseEnter(segA);
+    expect(segA.getAttribute("style")).toContain("brightness(1.1)");
+    fireEvent.mouseLeave(segA);
+    expect(screen.getByTitle("A: 1 (50%)").getAttribute("style")).not.toContain("brightness(1.1)");
+  });
+
+  it("affiche le titre de segment avec pourcentage arrondi", () => {
+    render(
+      <StackedProgress items={[{ label: "H", segments: [{ label: "A", value: 1, color: "#000" }, { label: "B", value: 2, color: "#111" }] }]} />,
+    );
+    expect(screen.getByTitle("B: 2 (67%)")).toBeInTheDocument();
+    expect(screen.getByTitle("A: 1 (33%)")).toBeInTheDocument();
   });
 });
