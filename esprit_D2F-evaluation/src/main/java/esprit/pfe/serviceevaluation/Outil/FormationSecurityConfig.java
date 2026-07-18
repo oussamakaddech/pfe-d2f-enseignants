@@ -33,6 +33,7 @@ public class FormationSecurityConfig {
     private String allowedOriginsRaw;
 
     @Bean
+    @SuppressWarnings("java:S4502") // API REST sans état (Bearer JWT, pas de cookie) : CSRF non applicable (DSI §12)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(Customizer.withDefaults())
