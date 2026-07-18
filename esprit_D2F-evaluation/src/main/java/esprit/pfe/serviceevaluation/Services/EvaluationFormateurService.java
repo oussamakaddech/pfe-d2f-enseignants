@@ -146,6 +146,16 @@ public class EvaluationFormateurService {
         return results;
     }
 
+    public Page<EvaluationEnseignantDTO> listEvaluationsEnrichedByFormation(Long formationId, Pageable pageable) {
+        List<EvaluationEnseignantDTO> all = listEvaluationsEnrichedByFormation(formationId);
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        List<EvaluationEnseignantDTO> content = start >= all.size()
+                ? List.of()
+                : all.subList(start, end);
+        return new org.springframework.data.domain.PageImpl<>(content, pageable, all.size());
+    }
+
     @Transactional
     public void updateEvaluationsBulkByFormation(Long formationId, List<EvaluationFormateurDTO> dtos) {
         if (!dtos.isEmpty()) {

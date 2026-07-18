@@ -85,6 +85,62 @@ class SkillForecastEngine:
         return max(0.15, var ** 0.5)
 
     # ── Projection par compétence ───────────────────────────
+    def _build_competence_series(
+        self,
+        gap_by_comp: dict[int, SkillGap],
+        start_level: float,
+        start_date: date,
+        slope: float,
+        sigma: float,
+        horizon: int,
+    ) -> list[dict[str, Any]]:
+        """Construit la série projetée par compétence."""
+        series: list[dict[str, Any]] = []
+        for cid, gap in gap_by_comp.items():
+            cur = float(gap.niveau_actuel) if gap else start_level
+            req = float(gap.niveau_requis) if gap else cur
+            comp_name = gap.competence_nom if gap else f"Compétence {cid}"
+            # Projection : on part du niveau actuel et on applique la pente
+            # moyenne (bornée). Les gaps en régression freinent la progression.
+            regression_penalty = 0.5 if (gap and gap.en_regression) else 1.0
+            points = self._project_points(cur, slope * regression_penalty, start_date, sigma, horizon)
+            final = points[-1]["niveau_prevu"]
+            series.append({
+                "competence_id": cid,
+                "competence_nom": comp_name,
+                "niveau_actuel": cur,
+                "niveau_requis": req,
+                "niveau_prevu_final": final,
+                "ecart_restant": round(max(0.0, req - final), 3),
+                "comblera_objectif": bool(final >= req - 1e-6),
+                "en_regression": bool(gap and gap.en_regression),
+                "points": points,
+            })
+        return series
+
+    def _project_points(
+        self,
+        start_level: float,
+        monthly: float,
+        start_date: date,
+        sigma: float,
+        horizon: int,
+    ) -> list[dict[str, Any]]:
+        """Projette les points (mois, niveau, bornes) pour une pente mensuelle."""
+        points: list[dict[str, Any]] = []
+        for m in range(0, horizon + 1):
+            lvl = start_level + monthly * m
+            lvl = max(_FLOOR, min(_CEIL, lvl))
+            margin = 1.28 * sigma * (1 + m / 12.0) ** 0.5  # élargissement temporel
+            points.append({
+                "mois": m,
+                "date": (start_date + timedelta(days=30 * m)).isoformat(),
+                "niveau_prevu": round(lvl, 3),
+                "borne_basse": round(max(_FLOOR, lvl - margin), 3),
+                "borne_haute": round(min(_CEIL, lvl + margin), 3),
+            })
+        return points
+
     def forecast(
         self,
         enseignant_id: str,
@@ -117,52 +173,10 @@ class SkillForecastEngine:
         if competence_ids:
             gap_by_comp = {cid: gap_by_comp.get(cid) for cid in competence_ids if cid in gap_by_comp}
 
-        series: list[dict[str, Any]] = []
-        for cid, gap in gap_by_comp.items():
-            cur = float(gap.niveau_actuel) if gap else start_level
-            req = float(gap.niveau_requis) if gap else cur
-            comp_name = gap.competence_nom if gap else f"Compétence {cid}"
-            # Projection : on part du niveau actuel et on applique la pente
-            # moyenne (bornée). Les gaps en régression freinent la progression.
-            regression_penalty = 0.5 if (gap and gap.en_regression) else 1.0
-            monthly = slope * regression_penalty
-            points: list[dict[str, Any]] = []
-            for m in range(0, horizon + 1):
-                lvl = cur + monthly * m
-                lvl = max(_FLOOR, min(_CEIL, lvl))
-                margin = 1.28 * sigma * (1 + m / 12.0) ** 0.5  # élargissement temporel
-                points.append({
-                    "mois": m,
-                    "date": (start_date + timedelta(days=30 * m)).isoformat(),
-                    "niveau_prevu": round(lvl, 3),
-                    "borne_basse": round(max(_FLOOR, lvl - margin), 3),
-                    "borne_haute": round(min(_CEIL, lvl + margin), 3),
-                })
-            final = points[-1]["niveau_prevu"]
-            series.append({
-                "competence_id": cid,
-                "competence_nom": comp_name,
-                "niveau_actuel": cur,
-                "niveau_requis": req,
-                "niveau_prevu_final": final,
-                "ecart_restant": round(max(0.0, req - final), 3),
-                "comblera_objectif": bool(final >= req - 1e-6),
-                "en_regression": bool(gap and gap.en_regression),
-                "points": points,
-            })
-
-        # Série globale (niveau moyen) pour le graphique d'ensemble.
-        global_points: list[dict[str, Any]] = []
-        for m in range(0, horizon + 1):
-            lvl = max(_FLOOR, min(_CEIL, start_level + slope * m))
-            margin = 1.28 * sigma * (1 + m / 12.0) ** 0.5
-            global_points.append({
-                "mois": m,
-                "date": (start_date + timedelta(days=30 * m)).isoformat(),
-                "niveau_prevu": round(lvl, 3),
-                "borne_basse": round(max(_FLOOR, lvl - margin), 3),
-                "borne_haute": round(min(_CEIL, lvl + margin), 3),
-            })
+        series = self._build_competence_series(
+            gap_by_comp, start_level, start_date, slope, sigma, horizon
+        )
+        global_points = self._project_points(start_level, slope, start_date, sigma, horizon)
 
         return {
             "enseignant_id": enseignant_id,

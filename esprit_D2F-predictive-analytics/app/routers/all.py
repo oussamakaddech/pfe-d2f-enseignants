@@ -24,6 +24,12 @@ from app.services.data_service import DataService
 
 router = APIRouter()
 
+# Requête SQL réutilisée pour résoudre les enseignants d'un département
+# (filtrage côté serveur, injection impossible : paramètre lié `:dept`).
+_SQL_ENSEIGNANTS_BY_DEPT = (
+    "SELECT id FROM enseignants WHERE dept_id = :dept AND deleted_at IS NULL"
+)
+
 DBSession = Annotated[Session, Depends(get_db)]
 OptStrQuery = Annotated[Optional[str], Query(alias="deptId")]
 # Le ré-entraînement du modèle est une action sensible (rollback, artefacts) :
@@ -486,7 +492,7 @@ async def detect_at_risk_teachers(
     )
     if dept_id:
         dept_ids = db.execute(
-            text("SELECT id FROM enseignants WHERE dept_id = :dept AND deleted_at IS NULL"),
+            text(_SQL_ENSEIGNANTS_BY_DEPT),
             {"dept": dept_id},
         ).fetchall()
         dept_id_set = {str(r[0]) for r in dept_ids}
@@ -598,14 +604,13 @@ async def teacher_risk_indicators(
     `auth` est optionnel pour permettre l'appel en tant que helper interne
     (le endpoint impose ReadAuth via la dépendance).
     """
-    from sqlalchemy import func
-    from app.models.db_models import TeacherRiskProfile, AlertEvent
+    from app.models.db_models import TeacherRiskProfile
 
     q = db.query(TeacherRiskProfile).order_by(TeacherRiskProfile.score_risque.desc())
 
     if dept_id:
         dept_ids = db.execute(
-            text("SELECT id FROM enseignants WHERE dept_id = :dept AND deleted_at IS NULL"),
+            text(_SQL_ENSEIGNANTS_BY_DEPT),
             {"dept": dept_id},
         ).fetchall()
         dept_id_set = {str(r[0]) for r in dept_ids}
@@ -621,20 +626,10 @@ async def teacher_risk_indicators(
         teacher_info = _fetch_teacher_info(db, ids)
         teacher_names = {eid: info["teacher_name"] for eid, info in teacher_info.items()}
 
-    alert_counts: dict[str, int] = {}
-    if profiles:
-        alert_q = (
-            db.query(AlertEvent.enseignant_id, func.count(AlertEvent.id))
-            .filter(AlertEvent.statut.in_(["NOUVELLE", "LUE"]))
-            .group_by(AlertEvent.enseignant_id)
-        )
-        alert_counts = {str(r[0]): int(r[1]) for r in alert_q.all()}
-
     result: list[dict[str, Any]] = []
     for p in profiles:
         factors = p.facteurs_risque if isinstance(p.facteurs_risque, dict) else {}
         factor_details = factors.get("factors", {})
-        contributions = factors.get("contributions", {})
 
         signals = _build_signals_from_factors(
             factor_details.get("no_training", 0),

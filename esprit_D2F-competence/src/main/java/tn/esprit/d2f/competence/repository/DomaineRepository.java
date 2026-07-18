@@ -16,6 +16,7 @@ public interface DomaineRepository extends JpaRepository<Domaine, Long> {
     Optional<Domaine> findByCode(String code);
     Optional<Domaine> findByCodeIgnoreCase(String code);
     List<Domaine> findByActifTrue();
+    Page<Domaine> findByActifTrue(Pageable pageable);
     boolean existsByCode(String code);
 
     @Query("SELECT d FROM Domaine d WHERE LOWER(d.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(d.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(d.code) LIKE LOWER(CONCAT('%', :keyword, '%'))")
@@ -35,4 +36,7 @@ public interface DomaineRepository extends JpaRepository<Domaine, Long> {
 
     @Query("SELECT d FROM Domaine d WHERE d.actif = true AND (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)")
     List<Domaine> findActifsByUpIdAndDepartementId(@Param("upId") String upId, @Param("departementId") String departementId);
+
+    @Query("SELECT d FROM Domaine d WHERE d.actif = true AND (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)")
+    Page<Domaine> findActifsByUpIdAndDepartementId(@Param("upId") String upId, @Param("departementId") String departementId, Pageable pageable);
 }

@@ -146,8 +146,16 @@ def compute_risk_signal(
     return round(_clamp01(risk_score) * mult, 4)
 
 
+def _dominant_signal(alpha: float, beta: float, gamma: float) -> str:
+    """Renvoie le signal dominant (gap/peer/risk) selon les poids adaptatifs."""
+    if alpha >= beta and alpha >= gamma:
+        return "gap"
+    if beta >= gamma:
+        return "peer"
+    return "risk"
+
+
 def msas_score(
-    teacher_id: str,
     gap_data: dict[str, Any],
     peer_data: dict[str, Any],
     risk_data: dict[str, Any],
@@ -209,9 +217,7 @@ def msas_score(
     ) if (conf_gap + conf_peer + conf_risk) > 0 else 0.0
 
     # 5. Explication
-    dominant = "gap" if alpha >= beta and alpha >= gamma else (
-        "peer" if beta >= gamma else "risk"
-    )
+    dominant = _dominant_signal(alpha, beta, gamma)
     explanation = (
         f"MSAS = {alpha:.2f}×S₁(gap={s_gap:.2f}) + "
         f"{beta:.2f}×S₂(peer={s_peer:.2f}) + "
@@ -234,7 +240,7 @@ def msas_score(
 
 
 def msas_batch(
-    teacher_id: str,
+    _teacher_id: str,
     formations: list[dict[str, Any]],
     gap_data: dict[str, Any],
     peer_data: dict[str, Any],
@@ -249,7 +255,6 @@ def msas_batch(
     for f in formations:
         fid = f.get("formation_id") or f.get("id_formation")
         s = msas_score(
-            teacher_id,
             gap_data=gap_data,
             peer_data=peer_data,
             risk_data=risk_data,

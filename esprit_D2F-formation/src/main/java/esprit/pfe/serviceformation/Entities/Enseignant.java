@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDate;
@@ -20,6 +21,7 @@ import java.util.List;
 // Soft delete : les enseignants supprimés (deleted_at non null) sont exclus de
 // toutes les requêtes JPA. On évite ainsi la violation de contraintes FK
 // (séances/présences/inscriptions) tout en préservant l'historique.
+@SQLDelete(sql = "UPDATE enseignants SET deleted_at = NOW() WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
 public class Enseignant extends BaseAuditEntity {
 

@@ -643,42 +643,29 @@ class DashboardEngine:
     # ── KPIs réels dérivés des données disponibles ──────────
     # Calculés même quand teacher_risk_profiles est vide (avant toute analyse),
     # à partir de skill_gaps, alertes et teacher_competence_coverage.
-    def real_kpis(self) -> dict[str, Any]:
-        # Enseignants réellement suivis = ceux présents dans la couverture.
+    def _count_suivis(self) -> int:
+        """Enseignants réellement suivis (couverture), fallback sur gaps calculés."""
         nb_suivis = (
             self.db.query(
                 func.count(func.distinct(TeacherCompetenceCoverage.enseignant_id))
             ).scalar() or 0
         )
         if nb_suivis == 0:
-            # Fallback : enseignants ayant au moins un gap calculé.
             nb_suivis = (
                 self.db.query(func.count(func.distinct(SkillGap.enseignant_id)))
                 .filter(SkillGap.computed_at >= self._cutoff)
                 .scalar() or 0
             )
+        return int(nb_suivis)
 
-        # Gaps critiques (score >= 0.7) sur 30 jours.
-        nb_gaps_critiques = (
-            self.db.query(func.count(SkillGap.id))
-            .filter(
-                SkillGap.computed_at >= self._cutoff,
-                SkillGap.gap_score >= 0.7,
-            )
-            .scalar() or 0
-        )
-
-        # Score de risque moyen : priorité au score réel agrégé des profils de
-        # risque (calculés par le pipeline). Fallback proxy = gap moyen pondéré
-        # par les gaps critiques, quand aucun profil n'est encore disponible.
-        nb_profils = self.db.query(func.count(TeacherRiskProfile.id)).scalar() or 0
+    def _score_risque_et_distribution(self) -> tuple[int, float, list[dict[str, Any]]]:
+        """Score de risque moyen + distribution par niveau (profils si dispo)."""
+        nb_profils = int(self.db.query(func.count(TeacherRiskProfile.id)).scalar() or 0)
         if nb_profils:
             score_from_profiles = (
                 self.db.query(func.avg(TeacherRiskProfile.score_risque)).scalar()
             )
             score_risque_moyen = round(float(score_from_profiles or 0.0), 2)
-            # Distribution par niveau de risque sur l'ensemble des profils
-            # (pas seulement les profils au-dessus du seuil « à risque » 0,5).
             dist_rows = (
                 self.db.query(
                     TeacherRiskProfile.niveau_risque,
@@ -698,8 +685,9 @@ class DashboardEngine:
             )
             score_risque_moyen = round(float(avg_gap or 0.0), 2)
             distribution_risques = []
+        return nb_profils, score_risque_moyen, distribution_risques
 
-        # Taux de couverture global (couples enseignant×compétence au niveau requis).
+    def _taux_couverture_global(self) -> float:
         cov = (
             self.db.query(
                 func.count(TeacherCompetenceCoverage.id),
@@ -708,7 +696,25 @@ class DashboardEngine:
         )
         total_cov = int(cov[0] or 0)
         couverts = int(cov[1] or 0)
-        taux_couverture = round(couverts / total_cov * 100, 1) if total_cov else 0.0
+        return round(couverts / total_cov * 100, 1) if total_cov else 0.0
+
+    def real_kpis(self) -> dict[str, Any]:
+        nb_suivis = self._count_suivis()
+
+        # Gaps critiques (score >= 0.7) sur 30 jours.
+        nb_gaps_critiques = (
+            self.db.query(func.count(SkillGap.id))
+            .filter(
+                SkillGap.computed_at >= self._cutoff,
+                SkillGap.gap_score >= 0.7,
+            )
+            .scalar() or 0
+        )
+
+        # Score de risque moyen agrégé + distribution par niveau de risque.
+        nb_profils, score_risque_moyen, distribution_risques = self._score_risque_et_distribution()
+
+        taux_couverture = self._taux_couverture_global()
 
         # Alertes nouvelles (non traitées) sur la fenêtre.
         nb_alertes = (
@@ -755,7 +761,7 @@ class DashboardEngine:
         )
 
         return {
-            "nb_enseignants_suivis":              int(nb_suivis),
+            "nb_enseignants_suivis":              nb_suivis,
             "nb_profils_risque":                 int(nb_profils),
             "score_risque_moyen":                 score_risque_moyen,
             "distribution_risques":               distribution_risques,

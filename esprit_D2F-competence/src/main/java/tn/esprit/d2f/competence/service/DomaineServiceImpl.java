@@ -51,6 +51,13 @@ public class DomaineServiceImpl implements IDomaineService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<DomaineDTO> getDomainesActifs(Pageable pageable) {
+        return domaineRepository.findByActifTrue(pageable)
+                .map(competenceMapper::toDTO);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public DomaineDTO getDomaineById(Long id) {
         Domaine domaine = domaineRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(DOMAINE_NOT_FOUND + id));
@@ -167,6 +174,13 @@ public class DomaineServiceImpl implements IDomaineService {
     public List<DomaineDTO> getDomainesActifsByFilter(String upId, String departementId) {
         return domaineRepository.findActifsByUpIdAndDepartementId(upId, departementId).stream()
                 .map(competenceMapper::toDTO).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<DomaineDTO> getDomainesActifsByFilter(String upId, String departementId, Pageable pageable) {
+        return domaineRepository.findActifsByUpIdAndDepartementId(upId, departementId, pageable)
+                .map(competenceMapper::toDTO);
     }
 
     @Override

@@ -127,8 +127,10 @@ def _dsi_error(status_code: int, code: str, message: str, path: str) -> dict:
     response_model=dict,
     status_code=status.HTTP_202_ACCEPTED,
     responses={
+        403: {"description": "Accès refusé : hors périmètre autorisé"},
         404: {"description": "Enseignant introuvable"},
         500: {"description": "Erreur lors de l'analyse"},
+        504: {"description": "Analyse en timeout"},
     },
 )
 async def analyze_enseignant(
@@ -242,27 +244,40 @@ def _reco_to_dict(r: "Recommendation", competence_nom: str | None = None, niveau
     }
 
 
+def _group_key_label(rec: dict, group_by: str) -> tuple[str, str]:
+    """Calcule (clé, libellé) de regroupement pour une recommandation."""
+    if group_by == "type":
+        return rec["formation_type"] or "AUTRE", rec["formation_type"] or "Autre"
+    if group_by == "urgence":
+        s = rec["score_global"]
+        if s >= 0.75:
+            return "CRITIQUE", "Critique (≥0.75)"
+        if s >= 0.50:
+            return "ELEVE", "Élevée (≥0.50)"
+        if s >= 0.25:
+            return "MODERE", "Modérée (≥0.25)"
+        return "FAIBLE", "Faible (<0.25)"
+    # competence (défaut)
+    cid = rec["competence_id"]
+    return str(cid), rec["competence_nom"] or f"Compétence {cid}"
+
+
+def _aggregate_group(g: dict[str, Any]) -> dict[str, Any]:
+    """Agrège une groupe de recommandations (scores + nb acceptées)."""
+    items = g["items"]
+    scores = [it["score_global"] for it in items]
+    g["nb"] = len(items)
+    g["score_moyen"] = round(sum(scores) / len(scores), 4) if scores else 0.0
+    g["score_max"] = round(max(scores), 4) if scores else 0.0
+    g["nb_acceptees"] = sum(1 for it in items if it["statut"] == "ACCEPTEE")
+    return g
+
+
 def _group_recommendations(recs: list[dict], group_by: str) -> list[dict]:
     """Regroupe les recommandations par compétence, type ou urgence (regroupement)."""
     groups: dict[str, dict[str, Any]] = {}
     for rec in recs:
-        if group_by == "type":
-            key = rec["formation_type"] or "AUTRE"
-            label = rec["formation_type"] or "Autre"
-        elif group_by == "urgence":
-            s = rec["score_global"]
-            if s >= 0.75:
-                key, label = "CRITIQUE", "Critique (≥0.75)"
-            elif s >= 0.50:
-                key, label = "ELEVE", "Élevée (≥0.50)"
-            elif s >= 0.25:
-                key, label = "MODERE", "Modérée (≥0.25)"
-            else:
-                key, label = "FAIBLE", "Faible (<0.25)"
-        else:  # competence (défaut)
-            key = str(rec["competence_id"])
-            label = rec["competence_nom"] or f"Compétence {rec['competence_id']}"
-
+        key, label = _group_key_label(rec, group_by)
         g = groups.setdefault(key, {
             "group_key": key,
             "group_label": label,
@@ -270,16 +285,7 @@ def _group_recommendations(recs: list[dict], group_by: str) -> list[dict]:
         })
         g["items"].append(rec)
 
-    result: list[dict] = []
-    for g in groups.values():
-        items = g["items"]
-        scores = [it["score_global"] for it in items]
-        g["nb"] = len(items)
-        g["score_moyen"] = round(sum(scores) / len(scores), 4) if scores else 0.0
-        g["score_max"] = round(max(scores), 4) if scores else 0.0
-        g["nb_acceptees"] = sum(1 for it in items if it["statut"] == "ACCEPTEE")
-        result.append(g)
-
+    result = [_aggregate_group(g) for g in groups.values()]
     result.sort(key=lambda x: x["score_max"], reverse=True)
     return result
 
@@ -506,7 +512,12 @@ async def get_risk(
     ]
 
     tendance = (profile.tendance or "STABLE").upper()
-    tendance_ui = "DEGRADATION" if tendance == "REGRESSION" else ("AMELIORATION" if tendance == "AMELIORATION" else "STABLE")
+    if tendance == "REGRESSION":
+        tendance_ui = "DEGRADATION"
+    elif tendance == "AMELIORATION":
+        tendance_ui = "AMELIORATION"
+    else:
+        tendance_ui = "STABLE"
 
     return {
         "enseignant_id":    enseignant_id,
@@ -605,6 +616,7 @@ async def get_recommendations(
 @router.get(
     "/recommendations/{enseignant_id}/grouped",
     summary="Recommandations regroupées (regroupement)",
+    responses={400: {"description": "group_by invalide"}},
 )
 async def get_recommendations_grouped(
     enseignant_id: str,
@@ -1008,7 +1020,6 @@ async def retraining_log(
 @router.get(
     "/dashboard/training-impact",
     summary="Impact réel des formations suivies (ADMIN/CUP)",
-    response_model=TrainingImpactResponse,
 )
 async def dashboard_training_impact(auth: ReadAuth, db: DbSession) -> TrainingImpactResponse:
     """Agrégats historiques : gain de niveau moyen et réduction du risque
@@ -1021,7 +1032,6 @@ async def dashboard_training_impact(auth: ReadAuth, db: DbSession) -> TrainingIm
 @router.get(
     "/dashboard/training-impact/formations",
     summary="Top formations par impact (ADMIN/CUP)",
-    response_model=TrainingImpactTopFormationsResponse,
 )
 async def dashboard_training_impact_formations(
     auth: ReadAuth,
@@ -1039,7 +1049,6 @@ async def dashboard_training_impact_formations(
 @router.post(
     "/simulate/what-if",
     summary="Simulation d'impact 'et si on formait X' (ADMIN/CUP)",
-    response_model=WhatIfResponse,
 )
 async def simulate_what_if(
     payload: WhatIfRequest,

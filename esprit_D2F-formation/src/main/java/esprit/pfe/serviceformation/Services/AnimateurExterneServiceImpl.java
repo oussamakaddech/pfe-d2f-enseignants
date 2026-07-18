@@ -1,11 +1,15 @@
 package esprit.pfe.serviceformation.services;
 
+import esprit.pfe.serviceformation.dto.AnimateurExterneDTO;
 import esprit.pfe.serviceformation.dto.AnimateurExterneRequest;
+import esprit.pfe.serviceformation.dto.ReferentialMapper;
 import esprit.pfe.serviceformation.entities.AnimateurExterne;
 import esprit.pfe.serviceformation.entities.Bureau;
 import esprit.pfe.serviceformation.repositories.AnimateurExterneRepository;
 import esprit.pfe.serviceformation.repositories.BureauRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +41,14 @@ public class AnimateurExterneServiceImpl implements AnimateurExterneService {
     public List<AnimateurExterne> getByBureau(Long bureauId) {
         requireBureau(bureauId);
         return animateurRepository.findByBureauIdOrderByNomAscPrenomAsc(bureauId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<AnimateurExterneDTO> getByBureau(Long bureauId, Pageable pageable) {
+        requireBureau(bureauId);
+        return animateurRepository.findByBureauIdOrderByNomAscPrenomAsc(bureauId, pageable)
+                .map(ReferentialMapper::toAnimateurExterneDTO);
     }
 
     @Override

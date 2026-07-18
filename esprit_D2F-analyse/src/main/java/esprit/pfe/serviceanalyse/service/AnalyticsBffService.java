@@ -44,9 +44,13 @@ public class AnalyticsBffService {
         return translate(() -> predictiveClient.getDashboardOverview(departmentId, bearerToken));
     }
 
-    public java.util.List<RiskDistributionItemDto> riskDistribution(String departmentId, String bearerToken) {
+    public PageDto<RiskDistributionItemDto> riskDistribution(String departmentId, String bearerToken, org.springframework.data.domain.Pageable pageable) {
         authorizationService.authorizeDepartment(auth(), departmentId);
-        return translate(() -> predictiveClient.getRiskDistribution(departmentId, bearerToken));
+        java.util.List<RiskDistributionItemDto> items = translate(() -> predictiveClient.getRiskDistribution(departmentId, bearerToken));
+        int page = pageable.getPageNumber();
+        int size = pageable.getPageSize();
+        int total = items.size();
+        return new PageDto<>(items, total, page, size, (int) Math.ceil((double) total / Math.max(size, 1)));
     }
 
     public GapHeatmapDto gapHeatmap(String departmentId, String bearerToken) {

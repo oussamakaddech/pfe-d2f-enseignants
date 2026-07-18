@@ -1,6 +1,7 @@
 package esprit.pfe.auth.security;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,17 +17,20 @@ public class DefaultCredentialsManager {
     private final String defaultAdminLastName;
     private final String defaultAdminPhone;
     private final String defaultAdminEmail;
+    private final Environment environment;
 
     /**
      * Constructeur avec injection des valeurs depuis la configuration
      */
     public DefaultCredentialsManager(
+            Environment environment,
             @Value("${app.security.default-admin.username:admin}") String defaultAdminUsername,
             @Value("${app.security.default-admin.password:CHANGE_ME_IN_PRODUCTION}") String defaultAdminPassword,
             @Value("${app.security.default-admin.first-name:System}") String defaultAdminFirstName,
             @Value("${app.security.default-admin.last-name:Admin}") String defaultAdminLastName,
             @Value("${app.security.default-admin.phone:00000000}") String defaultAdminPhone,
             @Value("${app.security.default-admin.email:admin@d2f.local}") String defaultAdminEmail) {
+        this.environment = environment;
 
         this.defaultAdminUsername = defaultAdminUsername;
         this.defaultAdminPassword = defaultAdminPassword;
@@ -73,8 +77,8 @@ public class DefaultCredentialsManager {
      * @return true si en production
      */
     private boolean isProductionEnvironment() {
-        String env = System.getProperty("spring.profiles.active");
-        return env != null && env.contains("prod");
+        return java.util.Arrays.stream(environment.getActiveProfiles())
+                .anyMatch(profile -> profile.equalsIgnoreCase("prod"));
     }
 
     // Getters

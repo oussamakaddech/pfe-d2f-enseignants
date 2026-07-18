@@ -75,8 +75,10 @@ public class EvaluationFormateurController {
 
     @GetMapping("/formation/{formationId}/enriched")
     @PreAuthorize(AuthorizationMatrix.EVALUATION_READ_ALL)
-    public List<EvaluationEnseignantDTO> listEvaluationsEnrichedByFormation(@PathVariable Long formationId) {
-        return evaluationService.listEvaluationsEnrichedByFormation(formationId);
+    public ResponseEntity<Page<EvaluationEnseignantDTO>> listEvaluationsEnrichedByFormation(
+            @PathVariable Long formationId,
+            @org.springframework.data.web.PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(evaluationService.listEvaluationsEnrichedByFormation(formationId, pageable));
     }
 
     @PostMapping("/formation/{formationId}/bulk/update")

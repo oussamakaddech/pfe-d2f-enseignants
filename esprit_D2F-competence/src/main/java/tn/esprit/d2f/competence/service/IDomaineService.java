@@ -10,6 +10,7 @@ import java.util.List;
 public interface IDomaineService {
     Page<DomaineDTO> getAllDomaines(Pageable pageable);
     List<DomaineDTO> getDomainesActifs();
+    Page<DomaineDTO> getDomainesActifs(Pageable pageable);
     DomaineDTO getDomaineById(Long id);
     DomaineDTO getDomaineByCode(String code);
     DomaineDTO createDomaine(DomaineRequest request);
@@ -25,4 +26,5 @@ public interface IDomaineService {
     List<DomaineDTO> getDomainesByFilter(String upId, String departementId);
     Page<DomaineDTO> getDomainesByFilter(String upId, String departementId, Pageable pageable);
     List<DomaineDTO> getDomainesActifsByFilter(String upId, String departementId);
+    Page<DomaineDTO> getDomainesActifsByFilter(String upId, String departementId, Pageable pageable);
 }

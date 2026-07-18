@@ -1,6 +1,7 @@
 """Tests for services/export_service.py — Export functionality."""
 
 import pytest
+from fastapi import HTTPException
 from unittest.mock import MagicMock, patch
 
 
@@ -26,7 +27,7 @@ class TestExportService:
     def test_build_excel_invalid_type(self):
         from app.services.export_service import build_excel
         mock_db = MagicMock()
-        with pytest.raises(Exception):
+        with pytest.raises(HTTPException):
             build_excel(mock_db, "INVALID", mois=6, annee=2025, departement=None, up=None)
 
     def test_build_excel_par_dept(self):

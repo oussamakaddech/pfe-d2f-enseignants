@@ -7,10 +7,10 @@ import java.util.regex.Pattern;
 
 public final class PiiSafeLogger {
 
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9\\-]+(?:\\.[a-zA-Z0-9\\-]+)*\\.[a-zA-Z]{2,}");
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}");
     private static final String EMAIL_REPLACEMENT = "***@***.***";
 
-    private static final Pattern PHONE_PATTERN = Pattern.compile("(\\+\\d{1,3}[\\s-]?)?\\d{8,15}");
+    private static final Pattern PHONE_PATTERN = Pattern.compile("(?:\\+\\d{1,3}[\\s-]?)?\\d{8,15}");
     private static final String PHONE_REPLACEMENT = "******XXX";
 
     private static final Pattern SSN_PATTERN = Pattern.compile("\\b\\d{8,15}\\b");

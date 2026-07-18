@@ -211,15 +211,16 @@ class ActionCenter:
         actions.sort(key=lambda a: a["score_action"], reverse=True)
         return actions
 
-    def _build_action(self, risk: TeacherRiskProfile, teacher_name: str | None = None) -> dict[str, Any]:
-        eid = risk.enseignant_id
-        top_gap = (
+    def _top_gap_for(self, eid: str) -> SkillGap | None:
+        return (
             self.db.query(SkillGap)
             .filter(SkillGap.enseignant_id == eid)
             .order_by(SkillGap.priorite_score.desc())
             .first()
         )
-        best_reco = (
+
+    def _best_reco_for(self, eid: str) -> Recommendation | None:
+        return (
             self.db.query(Recommendation)
             .filter(
                 Recommendation.enseignant_id == eid,
@@ -228,7 +229,17 @@ class ActionCenter:
             .order_by(Recommendation.score_global.desc())
             .first()
         )
-        nb_alertes = int(
+
+    def _last_reco_for(self, eid: str) -> Recommendation | None:
+        return (
+            self.db.query(Recommendation)
+            .filter(Recommendation.enseignant_id == eid)
+            .order_by(Recommendation.created_at.desc())
+            .first()
+        )
+
+    def _nb_alertes_ouvertes(self, eid: str) -> int:
+        return int(
             self.db.query(func.count(AlertEvent.id))
             .filter(
                 AlertEvent.enseignant_id == eid,
@@ -236,13 +247,7 @@ class ActionCenter:
             ).scalar() or 0
         )
 
-        score_risque = float(risk.score_risque or 0.0)
-        gap_priorite = float(top_gap.priorite_score) if top_gap else 0.0
-        pression_alertes = min(nb_alertes / 5.0, 1.0)
-        score_action = round(
-            0.6 * score_risque + 0.3 * gap_priorite + 0.1 * pression_alertes, 4
-        )
-
+    def _meilleure_formation(self, best_reco: Recommendation | None, top_gap: SkillGap | None):
         meilleure_formation = None
         impact_estime = None
         if best_reco:
@@ -254,30 +259,42 @@ class ActionCenter:
             }
             if best_reco.niveau_apres is not None and top_gap is not None:
                 impact_estime = max(0, int(best_reco.niveau_apres) - int(top_gap.niveau_actuel))
+        return meilleure_formation, impact_estime
 
-        # Dernière formation recommandée (la plus récente par date de création).
-        last_reco = (
-            self.db.query(Recommendation)
-            .filter(Recommendation.enseignant_id == eid)
-            .order_by(Recommendation.created_at.desc())
-            .first()
-        )
-        derniere_formation = None
-        if last_reco:
-            derniere_formation = {
-                "formation_titre": last_reco.formation_titre,
-                "date":            last_reco.created_at.isoformat() if last_reco.created_at else None,
-                "statut":          last_reco.statut,
-            }
+    def _derniere_formation(self, last_reco: Recommendation | None) -> dict[str, Any] | None:
+        if not last_reco:
+            return None
+        return {
+            "formation_titre": last_reco.formation_titre,
+            "date":            last_reco.created_at.isoformat() if last_reco.created_at else None,
+            "statut":          last_reco.statut,
+        }
 
-        # Historique de risque (évolution + complétion + stagnation).
-        historique = {
+    def _historique_risque(self, risk: TeacherRiskProfile) -> dict[str, Any]:
+        return {
             "score_precedent":  float(risk.precedent_score_risque) if risk.precedent_score_risque is not None else None,
             "taux_completion":  float(risk.taux_completion_formations or 0.0),
             "nb_mois_stagnation": risk.nb_mois_stagnation_max or 0,
             "tendance":         risk.tendance,
             "analyse_le":       risk.computed_at.isoformat() if risk.computed_at else None,
         }
+
+    def _build_action(self, risk: TeacherRiskProfile, teacher_name: str | None = None) -> dict[str, Any]:
+        eid = risk.enseignant_id
+        top_gap = self._top_gap_for(eid)
+        best_reco = self._best_reco_for(eid)
+        nb_alertes = self._nb_alertes_ouvertes(eid)
+
+        score_risque = float(risk.score_risque or 0.0)
+        gap_priorite = float(top_gap.priorite_score) if top_gap else 0.0
+        pression_alertes = min(nb_alertes / 5.0, 1.0)
+        score_action = round(
+            0.6 * score_risque + 0.3 * gap_priorite + 0.1 * pression_alertes, 4
+        )
+
+        meilleure_formation, impact_estime = self._meilleure_formation(best_reco, top_gap)
+        derniere_formation = self._derniere_formation(self._last_reco_for(eid))
+        historique = self._historique_risque(risk)
 
         return {
             "enseignant_id":       eid,

@@ -35,6 +35,7 @@ import tn.esprit.d2f.service.INotificationService;
 @RestController
 @RequestMapping("/api/v1/notifications")
 @RequiredArgsConstructor
+@PreAuthorize("isAuthenticated()")
 public class NotificationController {
 
     private final INotificationService notificationService;

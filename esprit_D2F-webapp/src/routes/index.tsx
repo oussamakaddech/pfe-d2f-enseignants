@@ -46,7 +46,7 @@ const AffectationEnseignantPage = lazy(() => import("@/pages/competence/Affectat
 const RicePage = lazy(() => import("@/pages/competence/RicePage"));
 const CompetenceMatchingPage = lazy(() => import("@/pages/competence/CompetenceMatchingPage"));
 const EvaluationGlobalePage = lazy(() => import("@/pages/evaluation/EvaluationGlobalePage"));
-const TeacherAnalyticsPage = lazy(() => import("@/features/analytics/pages/AnalyticsTeacherPage"));
+const TeacherAnalyticsPage = lazy(() => import("@/pages/analyse/AnalyticsTeacherPage"));
 const AnalysePredictivePage = lazy(() => import("@/pages/analyse/AnalyticsPage"));
 const EnseignantsInactifsPage = lazy(() => import("@/pages/analyse/EnseignantsInactifsPage"));
 const FormationsParPeriodePage = lazy(() => import("@/pages/analyse/FormationsParPeriodePage"));
@@ -58,10 +58,10 @@ const ABTestingPage = lazy(() => import("@/pages/analyse/ABTestingPage"));
 const SkillForecastPage = lazy(() => import("@/pages/analyse/SkillForecastPage"));
 const PeerBenchmarkPage = lazy(() => import("@/pages/analyse/PeerBenchmarkPage"));
 const AnomalyDetectionPage = lazy(() => import("@/pages/analyse/AnomalyDetectionPage"));
-const AnalyticsDashboardPage = lazy(() => import("@/features/analytics/pages/AnalyticsDashboardPage"));
-const HeatmapPage = lazy(() => import("@/features/analytics/pages/HeatmapPage"));
-const ModelMonitoringPage = lazy(() => import("@/features/analytics/pages/ModelMonitoringPage"));
-const ForecastPage = lazy(() => import("@/features/analytics/pages/ForecastPage"));
+const AnalyticsDashboardPage = lazy(() => import("@/pages/analyse/AnalyticsDashboardPage"));
+const HeatmapPage = lazy(() => import("@/pages/analyse/HeatmapPage"));
+const ModelMonitoringPage = lazy(() => import("@/pages/analyse/ModelMonitoringPage"));
+const ForecastPage = lazy(() => import("@/pages/analyse/ForecastPage"));
 
 function PageSkeleton() {
   return (
@@ -135,7 +135,7 @@ export default function AppRoutes() {
 
                 <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />}>
                   <Route path="/home/KPI" element={<Navigate to="/home" replace />} />
-                  {/* Module analytics feature-based (features/analytics) */}
+                  {/* Module analytics ( consolidated into src/pages|components|hooks|services|models ) */}
                   <Route path="/home/AnalysePredictive" element={<AnalyticsDashboardPage />} />
                   <Route path="/home/analytics/dashboard" element={<AnalyticsDashboardPage />} />
                   <Route path="/home/analytics/heatmap" element={<HeatmapPage />} />

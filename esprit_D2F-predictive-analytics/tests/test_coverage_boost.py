@@ -156,7 +156,7 @@ class TestAllRouterDetect:
         mock_db.execute.side_effect = [
             MagicMock(scalar=lambda: 2),
             MagicMock(fetchall=lambda: [("E001",)]),
-            MagicMock(fetchall=lambda: [("E001", "Nom", "Prenom", "mail@e.tn", "GC")]),
+            MagicMock(fetchall=lambda: [("E001", "Nom", "Prenom", "mail@e.tn", "GC", "UP1")]),
         ]
         # db.query(TeacherRiskProfile).filter(...).order_by(...).all()
         prof = MagicMock()

@@ -48,9 +48,6 @@ export interface LoginResponse {
   role?: string;
   email?: string;
   expiresIn?: number;
-  /** @deprecated Token is now in HttpOnly cookie. Kept for mobile backward compat. */
-  accessToken?: string;
-  [key: string]: unknown;
 }
 
 export interface SignupRequest {

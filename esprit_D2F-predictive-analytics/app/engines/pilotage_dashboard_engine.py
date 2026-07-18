@@ -107,13 +107,8 @@ class PilotageDashboardEngine:
     # ── Module 2 : Benchmark par département ─────────────────
     def benchmark_departements(self) -> list[dict[str, Any]]:
         """Classe les départements par écart moyen de niveau vs cohorte globale."""
-        # Niveau moyen global de référence (tous enseignants).
-        global_avg_row = (
-            self.db.query(func.avg(TeacherRiskProfile.score_risque))
-            .filter(TeacherRiskProfile.enseignant_id.isnot(None))
-            .scalar()
-        )
-        # On utilise le niveau moyen de compétence via FeatureSnapshot agrégé.
+        # Niveau moyen global de référence (tous enseignants) agrégé via
+        # FeatureSnapshot (niveau de compétence moyen).
         from app.models.db_models import FeatureSnapshot
         global_level = (
             self.db.query(func.avg(FeatureSnapshot.niveau_moyen_competences))

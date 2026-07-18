@@ -8,7 +8,7 @@ import logging
 from datetime import date, timedelta
 from typing import Annotated, Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.auth import require_roles
@@ -49,11 +49,11 @@ def _resolve_scope(
         scope = DataService(db).get_enseignant_scope(auth.get("user_id"))
         if not scope:
             raise HTTPException(
-                status_code=403,
+                status_code=status.HTTP_403_FORBIDDEN,
                 detail="Périmètre CUP introuvable pour l'utilisateur authentifié.",
             )
         return scope.get("departement_id"), scope.get("up_id")
-    raise HTTPException(status_code=403, detail="Rôle non autorisé.")
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Rôle non autorisé.")
 
 
 def _default_range(debut: str | None, fin: str | None) -> tuple[str, str]:
@@ -112,7 +112,11 @@ async def formations_par_periode(
 
 
 # ── Feature 3 — Analyse par UP ───────────────────────────────
-@router.get("/formations-par-up", summary="Analytique par Unité Pédagogique")
+@router.get(
+    "/formations-par-up",
+    summary="Analytique par Unité Pédagogique",
+    responses={403: {"description": "Périmètre CUP introuvable ou rôle non autorisé"}},
+)
 async def formations_par_up(
     auth: ReadAuth,
     db: DbSession,

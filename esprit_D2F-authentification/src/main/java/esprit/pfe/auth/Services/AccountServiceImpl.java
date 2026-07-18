@@ -65,6 +65,15 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Page<AccountSummaryDTO> getAccountSummaries(AccountSummaryQuery query, Pageable pageable) {
+        AccountSummaryQuery q = (query != null) ? query : new AccountSummaryQuery();
+        Page<User> users = userRepository.findAll(
+                UserSpecifications.build(q.getUserIds(), q.getRole(), q.getActive()), pageable);
+        return users.map(AccountSummaryDTO::from);
+    }
+
+    @Override
     @Transactional
     public User createAccount(SignupRequest request, String roleName) {
         // Conflits → 409 (sémantique REST)

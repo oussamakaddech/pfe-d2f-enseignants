@@ -419,7 +419,8 @@ jobs:
             -Dsonar.host.url=$SONAR_HOST_URL \
             -Dsonar.token=$SONAR_TOKEN \
             -Dsonar.qualitygate.wait=true \
-            -Dsonar.qualitygate.timeout=300
+            -Dsonar.qualitygate.timeout=300 \
+            -Dsonar.qualitygate.grade=A
 
       # --- Webapp : npm + Vitest + sonar-scanner ---
       - name: Setup Node
@@ -449,7 +450,8 @@ jobs:
             -Dsonar.host.url=$SONAR_HOST_URL \
             -Dsonar.login=$SONAR_TOKEN \
             -Dsonar.qualitygate.wait=true \
-            -Dsonar.qualitygate.timeout=300
+            -Dsonar.qualitygate.timeout=300 \
+            -Dsonar.qualitygate.grade=A
 
       # --- Python : pytest + cov + sonar-scanner ---
       - name: Setup Python
@@ -486,7 +488,8 @@ jobs:
             -Dsonar.host.url=$SONAR_HOST_URL \
             -Dsonar.login=$SONAR_TOKEN \
             -Dsonar.qualitygate.wait=true \
-            -Dsonar.qualitygate.timeout=300
+            -Dsonar.qualitygate.timeout=300 \
+            -Dsonar.qualitygate.grade=A
 
   # -- Build & Push Docker (apres tous les quality gates) -----------------------
   build-docker:
@@ -499,7 +502,7 @@ jobs:
       needs.security-backend.result == 'success' &&
       needs.security-frontend.result == 'success' &&
       needs.test-python.result == 'success' &&
-      (needs.sonar.result == 'success' || needs.sonar.result == 'skipped') &&
+      needs.sonar.result == 'success' &&
       !inputs.skip_docker &&
       github.event_name == 'push' &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')

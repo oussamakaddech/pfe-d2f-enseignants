@@ -63,7 +63,6 @@ class TestMSASScore:
     def test_msas_score_basic(self):
         from app.engines.msas import msas_score
         result = msas_score(
-            teacher_id="T1",
             gap_data={"avg_gap": 2.0, "nb_competences": 5, "nb_critiques": 2, "nb_competences_evaluees": 5},
             peer_data={"peer_success_rate": 0.7, "peer_adoption_count": 3, "total_peers": 10, "nb_similar_neighbors": 3},
             risk_data={"risk_score": 0.6, "niveau_risque": "ELEVE", "nb_risk_indicators": 3},
@@ -76,7 +75,6 @@ class TestMSASScore:
     def test_msas_score_dominant_signal(self):
         from app.engines.msas import msas_score
         result = msas_score(
-            teacher_id="T1",
             gap_data={"avg_gap": 3.0, "nb_competences": 10, "nb_critiques": 8, "nb_competences_evaluees": 10},
             peer_data={"peer_success_rate": 0.5, "peer_adoption_count": 0, "total_peers": 10, "nb_similar_neighbors": 0},
             risk_data={"risk_score": 0.3, "niveau_risque": "MODERE", "nb_risk_indicators": 0},
@@ -90,7 +88,7 @@ class TestMSASScore:
             {"formation_id": 2, "titre_formation": "F2"},
         ]
         result = msas_batch(
-            teacher_id="T1",
+            _teacher_id="T1",
             formations=formations,
             gap_data={"avg_gap": 2.0, "nb_competences": 5, "nb_critiques": 2, "nb_competences_evaluees": 5},
             peer_data={"peer_success_rate": 0.6, "peer_adoption_count": 2, "total_peers": 10, "nb_similar_neighbors": 3},

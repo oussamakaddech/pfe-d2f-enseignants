@@ -25,16 +25,26 @@ function normalizeListResponse<T>(payload: unknown): T[] {
   return [];
 }
 
+const PAGE_SIZE = 100;
+
 const BureauService = {
   async getAllBureaux(): Promise<Bureau[]> {
-    // L'endpoint backend est paginé (@PageableDefault size=20, sort=id). Sans
-    // paramètres on ne récupérait que les 20 plus ANCIENS bureaux → un bureau
-    // fraîchement créé (id le plus grand) n'apparaissait pas dans « Gestion des
-    // Bureaux » ni dans le sélecteur de formation. On demande une page large,
-    // triée par id décroissant (les plus récents d'abord). normalizeListResponse
-    // déballe l'enveloppe Page ({ content: [...] }).
-    const response = await axios.get(API_URL, { params: { page: 0, size: 1000, sort: "id,desc" } });
-    return normalizeListResponse<Bureau>(response.data);
+    // L'endpoint backend est paginé (@PageableDefault size=20, sort=id). On
+    // parcourt les pages (taille 100) jusqu'à épuisement pour récupérer TOUS les
+    // bureaux sans jamais charger 1000+ enregistrements en un seul appel
+    // (conformité DSI §2.2 : pagination obligatoire sur les listes volumineuses).
+    const first = await axios.get<{ content: Bureau[]; totalPages: number }>(API_URL, {
+      params: { page: 0, size: PAGE_SIZE, sort: "id,desc" },
+    });
+    const all: Bureau[] = [...normalizeListResponse<Bureau>(first.data)];
+    const totalPages = first.data?.totalPages ?? 1;
+    for (let page = 1; page < totalPages; page += 1) {
+      const next = await axios.get<{ content: Bureau[] }>(API_URL, {
+        params: { page, size: PAGE_SIZE, sort: "id,desc" },
+      });
+      all.push(...normalizeListResponse<Bureau>(next.data));
+    }
+    return all;
   },
 
   async getBureauById(id: number): Promise<Bureau> {

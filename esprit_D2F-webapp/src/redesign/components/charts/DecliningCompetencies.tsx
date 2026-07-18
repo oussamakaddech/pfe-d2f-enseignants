@@ -2,8 +2,9 @@ import type { DecliningCompetency } from "@/models/analyse";
 import { ChartSkeleton } from "../States";
 
 /** Lit un champ en tolérant les deux conventions (snake/camel) du backend. */
-function pick(c: DecliningCompetency, snake: string, camel: string): any {
-  return (c as any)[snake] ?? (c as any)[camel];
+function pick(c: DecliningCompetency, snake: string, camel: string): unknown {
+  const record = c as unknown as Record<string, unknown>;
+  return record[snake] ?? record[camel];
 }
 
 export default function DecliningCompetencies({

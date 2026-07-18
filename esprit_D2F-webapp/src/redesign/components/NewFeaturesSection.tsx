@@ -119,9 +119,8 @@ export default function NewFeaturesSection({ departementId }: { readonly departe
                       },
                       {
                         title: "Gain moyen", key: "gain_niveau_moyen", width: 120,
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        render: (_: unknown, f: any) => (
-                          <Tag color="success">+{f.gain_niveau_moyen.toFixed(2)}</Tag>
+                        render: (_: unknown, f: { niveau_moyen_avant: number; niveau_moyen_apres: number }) => (
+                          <Tag color="success">+{(f.niveau_moyen_apres - f.niveau_moyen_avant).toFixed(2)}</Tag>
                         ),
                       },
                     ]}

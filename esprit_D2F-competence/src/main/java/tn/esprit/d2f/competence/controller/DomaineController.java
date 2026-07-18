@@ -44,13 +44,14 @@ public class DomaineController {
     @Operation(summary = "Lister les domaines actifs, filtrables par upId et departementId")
     @GetMapping("/actifs")
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_READ)
-    public ResponseEntity<List<DomaineDTO>> getDomainesActifs(
+    public ResponseEntity<Page<DomaineDTO>> getDomainesActifs(
             @RequestParam(required = false) String upId,
-            @RequestParam(required = false) String departementId) {
+            @RequestParam(required = false) String departementId,
+            @PageableDefault(size = 20) Pageable pageable) {
         if (upId != null || departementId != null) {
-            return ResponseEntity.ok(domaineService.getDomainesActifsByFilter(upId, departementId));
+            return ResponseEntity.ok(domaineService.getDomainesActifsByFilter(upId, departementId, pageable));
         }
-        return ResponseEntity.ok(domaineService.getDomainesActifs());
+        return ResponseEntity.ok(domaineService.getDomainesActifs(pageable));
     }
 
     @Operation(summary = "Obtenir un domaine par ID")

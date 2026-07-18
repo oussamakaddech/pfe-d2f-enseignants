@@ -1,8 +1,10 @@
 package esprit.pfe.serviceanalyse.services;
 
+import esprit.pfe.serviceanalyse.dto.analytics.PageDto;
 import esprit.pfe.serviceanalyse.service.client.PredictiveEngineClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
@@ -50,9 +52,17 @@ public class AnalysePredictiveBffService {
 
     /**
      * File d'actions priorisée (passe-plat enrichi du moteur, filtrable par département).
+     * Pagination conforme DSI : traduit le {@link Pageable} Spring en paramètres
+     * page/size du moteur FastAPI et enveloppe la réponse dans un {@link PageDto}.
      */
-    public List<Map<String, Object>> priorityActions(int limit, String departementId, String bearerToken) {
-        return engine.getPriorityActions(limit, departementId, bearerToken);
+    public PageDto<Map<String, Object>> priorityActions(Pageable pageable, String departementId, String bearerToken) {
+        List<Map<String, Object>> actions = engine.getPriorityActions(
+                pageable.getPageSize(), departementId, bearerToken);
+        int page = pageable.getPageNumber();
+        int size = pageable.getPageSize();
+        int total = actions.size();
+        return new PageDto<>(actions, total, page, size,
+                (int) Math.ceil((double) total / Math.max(size, 1)));
     }
 
     /** Impact réel global des formations suivies (agrégats historiques). */

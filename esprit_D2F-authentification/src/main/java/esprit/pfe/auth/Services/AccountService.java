@@ -24,6 +24,9 @@ public interface AccountService {
      */
     List<AccountSummaryDTO> getAccountSummaries(AccountSummaryQuery query);
 
+    /** Variante paginée de {@link #getAccountSummaries(AccountSummaryQuery)}. */
+    Page<AccountSummaryDTO> getAccountSummaries(AccountSummaryQuery query, Pageable pageable);
+
     /**
      * Création d'un compte par un administrateur, avec attribution explicite du
      * rôle. Réservé à ACCOUNT_CREATE (admin) — c'est le pendant sécurisé de

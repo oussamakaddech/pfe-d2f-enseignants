@@ -7,6 +7,9 @@ import esprit.pfe.serviceformation.dto.ReferentialMapper;
 import esprit.pfe.serviceformation.services.AnimateurExterneService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,11 +26,10 @@ public class AnimateurExterneController {
 
     @GetMapping
     @PreAuthorize(AuthorizationMatrix.ANIMATEUR_EXTERNE_READ)
-    public ResponseEntity<List<AnimateurExterneDTO>> getByBureau(@PathVariable Long bureauId) {
-        return ResponseEntity.ok(
-                animateurService.getByBureau(bureauId).stream()
-                        .map(ReferentialMapper::toAnimateurExterneDTO)
-                        .toList());
+    public ResponseEntity<Page<AnimateurExterneDTO>> getByBureau(
+            @PathVariable Long bureauId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(animateurService.getByBureau(bureauId, pageable));
     }
 
     @GetMapping("/{id}")

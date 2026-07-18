@@ -110,7 +110,7 @@ class TestTeacherRiskIndicatorsFromDB:
             mock_text.execute = MagicMock(return_value=[])
             # Override text() call for name lookup
             db.execute.return_value = MagicMock(fetchall=MagicMock(
-                return_value=[("E00003", "Dupont", "Marie", "marie@esprit.tn", "GC")]))
+                return_value=[("E00003", "Dupont", "Marie", "marie@esprit.tn", "GC", "UP1")]))
 
             result = await teacher_risk_indicators(db=db, dept_id=None)
 
@@ -146,7 +146,7 @@ class TestDetectAtRiskFromDB:
         db.query.return_value = mock_q
         db.execute.side_effect = [
             MagicMock(scalar=MagicMock(return_value=100)),
-            MagicMock(fetchall=MagicMock(return_value=[("E00004", "Nom", "Prenom", "m@e.tn", "GC")])),
+            MagicMock(fetchall=MagicMock(return_value=[("E00004", "Nom", "Prenom", "m@e.tn", "GC", "UP1")])),
         ]
 
         result = await detect_at_risk_teachers(db=db, threshold=0.5, dept_id=None)
@@ -191,7 +191,7 @@ class TestDepartmentDashboardFromDB:
         db.execute.side_effect = [
             MagicMock(scalar=MagicMock(return_value=50)),
             MagicMock(fetchall=MagicMock(return_value=[("E00003",)])),
-            MagicMock(fetchall=MagicMock(return_value=[("E00003", "Dupont", "Marie", "m@e.tn", "GC")])),
+            MagicMock(fetchall=MagicMock(return_value=[("E00003", "Dupont", "Marie", "m@e.tn", "GC", "UP1")])),
         ]
 
         result = await department_dashboard(dept_id="GC", db=db)
@@ -232,7 +232,7 @@ class TestCrossEndpointConsistency:
         db.query.return_value = mock_q
         db.execute.side_effect = [
             # For teacher_risk_indicators name lookup
-            MagicMock(fetchall=MagicMock(return_value=[("E00003", "Dupont", "Marie", "marie@esprit.tn", "GC")])),
+            MagicMock(fetchall=MagicMock(return_value=[("E00003", "Dupont", "Marie", "marie@esprit.tn", "GC", "UP1")])),
             # For teacher_risk_indicators alert lookup
             MagicMock(fetchall=MagicMock(return_value=[])),
         ]

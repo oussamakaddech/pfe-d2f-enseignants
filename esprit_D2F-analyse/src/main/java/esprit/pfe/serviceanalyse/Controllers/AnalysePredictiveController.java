@@ -1,11 +1,13 @@
 package esprit.pfe.serviceanalyse.controllers;
 
 import esprit.d2f.common.security.AuthorizationMatrix;
+import esprit.pfe.serviceanalyse.dto.analytics.PageDto;
 import esprit.pfe.serviceanalyse.services.AnalysePredictiveBffService;
 import esprit.pfe.serviceanalyse.services.AnalysePredictiveService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -61,11 +63,11 @@ public class AnalysePredictiveController {
 
     /** File d'actions priorisée (filtrable par département). */
     @GetMapping("/actions/priority")
-    public ResponseEntity<List<Map<String, Object>>> priorityActions(
-            @RequestParam(defaultValue = "20") int limit,
+    public ResponseEntity<PageDto<Map<String, Object>>> priorityActions(
+            @PageableDefault(size = 20) Pageable pageable,
             @RequestParam(required = false) String departementId,
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String bearerToken) {
-        return ResponseEntity.ok(bffService.priorityActions(limit, departementId, bearerToken));
+        return ResponseEntity.ok(bffService.priorityActions(pageable, departementId, bearerToken));
     }
 
     /** Impact réel global des formations suivies (agrégats historiques). */

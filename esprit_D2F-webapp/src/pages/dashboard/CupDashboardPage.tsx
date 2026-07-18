@@ -4,6 +4,7 @@ import {
   Button, Tag, Alert, Input, Statistic, Table, Segmented, Progress,
   Tooltip, Breadcrumb, Avatar, Badge,
 } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import {
   ReloadOutlined, PlusOutlined, BellOutlined, SearchOutlined, BookOutlined,
   TeamOutlined, CheckCircleOutlined, SafetyCertificateOutlined, RiseOutlined,
@@ -27,7 +28,16 @@ const pct = (v: number | null) => Math.max(0, Math.min(100, Math.round(v ?? 0)))
 type PeriodKey = "30j" | "trimestre" | "semestre" | "annee";
 
 const MOCK_INSCRIPTIONS_ATTENTE = 14;
-const MOCK_FORMATIONS_A_VENIR = [
+interface FormationAVenir {
+  id: string;
+  date: string;
+  title: string;
+  inscrits: number;
+  capacite: number;
+  statut: string;
+}
+
+const MOCK_FORMATIONS_A_VENIR: FormationAVenir[] = [
   { id: "f1", date: "12 oct.", title: "Python pour la data scientifique", inscrits: 24, capacite: 30, statut: "Planifiée" },
   { id: "f2", date: "18 oct.", title: "Approche pédagogique active", inscrits: 18, capacite: 20, statut: "Planifiée" },
   { id: "f3", date: "23 oct.", title: "Sécurité numérique", inscrits: 11, capacite: 25, statut: "Réservée" },
@@ -112,15 +122,15 @@ export default function CupDashboardPage() {
     { title: "Groupe / UP", dataIndex: "departement", key: "departement", render: (v: string) => v ?? "—" },
     { title: "Approbation", key: "app", width: 140, render: (_: unknown, r: typeof besoinsPriorises[number]) => <Tag color={r.urgency >= 4 ? "volcano" : "default"}>{r.urgency >= 4 ? "Urgent" : "À planifier"}</Tag> },
     { title: "Action", key: "act", width: 110, render: () => <Button size="small" type="primary" ghost onClick={() => scrollTo("cd-suivi")}>Traiter</Button> },
-  ] as any[];
+  ] as ColumnsType<(typeof besoinsPriorises)[number]>;
 
   const formCols = [
     { title: "Date", dataIndex: "date", key: "date", width: 88 },
     { title: "Formation", dataIndex: "title", key: "title", ellipsis: true },
-    { title: "Inscrits", key: "insc", width: 86, render: (_: unknown, r: typeof MOCK_FORMATIONS_A_VENIR[number]) => `${r.inscrits}/${r.capacite}` },
-    { title: "Remplissage", key: "fill", width: 160, render: (_: unknown, r: typeof MOCK_FORMATIONS_A_VENIR[number]) => <Progress percent={Math.round((r.inscrits / r.capacite) * 100)} size="small" /> },
+    { title: "Inscrits", key: "insc", width: 86, render: (_: unknown, r: FormationAVenir) => `${r.inscrits}/${r.capacite}` },
+    { title: "Remplissage", key: "fill", width: 160, render: (_: unknown, r: FormationAVenir) => <Progress percent={Math.round((r.inscrits / r.capacite) * 100)} size="small" /> },
     { title: "Statut", dataIndex: "statut", key: "statut", width: 110, render: (v: string) => <Tag color={statutColor(v)}>{v}</Tag> },
-  ] as any[];
+  ] as ColumnsType<FormationAVenir>;
 
   return (
     <div className="cd">

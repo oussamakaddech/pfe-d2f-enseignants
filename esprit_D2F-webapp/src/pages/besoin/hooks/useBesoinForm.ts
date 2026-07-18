@@ -268,7 +268,6 @@ export function useBesoinForm() {
       setLastImportCount(0);
       setCurrentStep(0);
     } catch (err: unknown) {
-      console.error("Échec de l'ajout du besoin de formation :", err);
       msgApi.error(`Erreur lors de l'ajout du besoin — ${getErrorMessage(err)}`);
     } finally {
       setSubmitting(false);

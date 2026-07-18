@@ -1,5 +1,6 @@
 package esprit.pfe.serviceanalyse.api;
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceanalyse.dto.analytics.*;
 import esprit.pfe.serviceanalyse.service.AnalyticsBffService;
 import jakarta.validation.Valid;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v2/analytics")
 @RequiredArgsConstructor
+@PreAuthorize(AuthorizationMatrix.DASHBOARD_ADMIN_LIMITED)
 public class AnalyticsController {
 
     private final AnalyticsBffService bffService;
@@ -26,10 +28,11 @@ public class AnalyticsController {
     }
 
     @GetMapping("/dashboard/risk-distribution")
-    public ResponseEntity<java.util.List<RiskDistributionItemDto>> riskDistribution(
+    public ResponseEntity<PageDto<RiskDistributionItemDto>> riskDistribution(
             @RequestParam(required = false) String departmentId,
+            @org.springframework.data.web.PageableDefault(size = 20) org.springframework.data.domain.Pageable pageable,
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String bearerToken) {
-        return ResponseEntity.ok(bffService.riskDistribution(departmentId, bearerToken));
+        return ResponseEntity.ok(bffService.riskDistribution(departmentId, bearerToken, pageable));
     }
 
     @GetMapping("/dashboard/gap-heatmap")
@@ -119,7 +122,7 @@ public class AnalyticsController {
     // ── Model administration (ADMIN / CUP / DEPARTMENT_MANAGER) ─────────────
 
     @PostMapping("/teachers/{teacherId}/analyze")
-    @PreAuthorize("hasAnyAuthority('ADMIN','CUP','DEPARTMENT_MANAGER')")
+    @PreAuthorize(AuthorizationMatrix.DASHBOARD_ADMIN_LIMITED)
     public ResponseEntity<JobDto> analyzeTeacher(
             @PathVariable String teacherId,
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String bearerToken) {
@@ -134,7 +137,7 @@ public class AnalyticsController {
     }
 
     @PostMapping("/model/retrain")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize(AuthorizationMatrix.DASHBOARD_ADMIN_FULL)
     public ResponseEntity<ModelHealthDto> retrain(
             @Valid @RequestBody RetrainRequestDto body,
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String bearerToken) {

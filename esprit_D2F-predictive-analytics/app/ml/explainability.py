@@ -83,9 +83,14 @@ def _prepare_shap_instance(features: Any) -> np.ndarray | None:
 
 
 def _sample_background(x_background: np.ndarray | None, instance: np.ndarray) -> np.ndarray:
-    """Select a small background sample for SHAP efficiency."""
-    if x_background is not None and len(x_background) > 50:
-        return x_background[np.random.default_rng().choice(len(x_background), 50, replace=False)]
+    """Select a small background sample for SHAP efficiency (deterministic stride)."""
+    if x_background is not None and len(x_background) > 0:
+        n = min(len(x_background), 50)
+        if n >= len(x_background):
+            return x_background
+        step = len(x_background) / n
+        indices = [int(i * step) for i in range(n)]
+        return x_background[indices]
     return x_background if x_background is not None else instance
 
 

@@ -63,11 +63,19 @@ public class KPIController {
             @RequestParam(required = false) String upId,
             @RequestParam(required = false) String deptId,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate start,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end,
+            @PageableDefault(size = 20) Pageable pageable
     ) {
         try {
             List<EnseignantStatsDTO> stats = kpiService.getTopParticipants(upId, deptId, start, end);
-            return stats.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(stats);
+            if (stats.isEmpty()) {
+                return ResponseEntity.noContent().build();
+            }
+            int from = (int) pageable.getOffset();
+            int to = Math.min(from + pageable.getPageSize(), stats.size());
+            Page<EnseignantStatsDTO> page = new org.springframework.data.domain.PageImpl<>(
+                    from >= stats.size() ? List.of() : stats.subList(from, to), pageable, stats.size());
+            return ResponseEntity.ok(page);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, ex.getMessage()));
         } catch (EntityNotFoundException ex) {
@@ -82,11 +90,19 @@ public class KPIController {
             @RequestParam(required = false) String upId,
             @RequestParam(required = false) String deptId,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate start,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end,
+            @PageableDefault(size = 20) Pageable pageable
     ) {
         try {
             List<EnseignantStatsDTO> stats = kpiService.getTopAbsentees(upId, deptId, start, end);
-            return stats.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(stats);
+            if (stats.isEmpty()) {
+                return ResponseEntity.noContent().build();
+            }
+            int from = (int) pageable.getOffset();
+            int to = Math.min(from + pageable.getPageSize(), stats.size());
+            Page<EnseignantStatsDTO> page = new org.springframework.data.domain.PageImpl<>(
+                    from >= stats.size() ? List.of() : stats.subList(from, to), pageable, stats.size());
+            return ResponseEntity.ok(page);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, ex.getMessage()));
         } catch (EntityNotFoundException ex) {

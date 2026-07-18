@@ -146,10 +146,12 @@ public class FormationWorkflowController {
     @GetMapping
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     @Operation(summary = "Lister toutes les formations (legacy - utiliser /api/v1/formations)")
-    public ResponseEntity<Object> getAllFormations() {
+    public ResponseEntity<Object> getAllFormations(@PageableDefault(size = 20) Pageable pageable) {
         try {
             List<FormationResponseDTO> dtos = formationWorkflowService.getAllFormationWorkflows();
-            return ResponseEntity.ok(dtos);
+            int from = (int) pageable.getOffset();
+            int to = Math.min(from + pageable.getPageSize(), dtos.size());
+            return ResponseEntity.ok(new PageImpl<>(from >= dtos.size() ? List.of() : dtos.subList(from, to), pageable, dtos.size()));
         } catch (Exception e) {
             log.error("Erreur interne lors de la recuperation de toutes les formations : ", e);
             String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
@@ -254,11 +256,13 @@ public class FormationWorkflowController {
     @GetMapping("/mes-presences")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ_OWN)
     @Operation(summary = "Récupérer les présences de l'enseignant connecté")
-    public ResponseEntity<Object> getMesPresences(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Object> getMesPresences(@AuthenticationPrincipal Jwt jwt, @PageableDefault(size = 20) Pageable pageable) {
         try {
             String email = jwt.getClaim("email");
             List<MesPresenceDTO> presences = formationWorkflowService.getMesPresences(email);
-            return ResponseEntity.ok(presences);
+            int from = (int) pageable.getOffset();
+            int to = Math.min(from + pageable.getPageSize(), presences.size());
+            return ResponseEntity.ok(new PageImpl<>(from >= presences.size() ? List.of() : presences.subList(from, to), pageable, presences.size()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
@@ -270,10 +274,12 @@ public class FormationWorkflowController {
 
     @GetMapping("/achevees")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
-    public ResponseEntity<Object> getFormationsAchevees() {
+    public ResponseEntity<Object> getFormationsAchevees(@PageableDefault(size = 20) Pageable pageable) {
         try {
             List<FormationResponseDTO> achevees = formationWorkflowService.getFormationsAchevees();
-            return ResponseEntity.ok(achevees);
+            int from = (int) pageable.getOffset();
+            int to = Math.min(from + pageable.getPageSize(), achevees.size());
+            return ResponseEntity.ok(new PageImpl<>(from >= achevees.size() ? List.of() : achevees.subList(from, to), pageable, achevees.size()));
         } catch (Exception e) {
             log.error("Erreur lors de la recuperation des formations achevees : ", e);
             String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();

@@ -58,9 +58,10 @@ public class AccountController {
     @PostMapping("/summaries")
     @PreAuthorize(AuthorizationMatrix.ACCOUNT_SUMMARY_READ)
     @Operation(summary = "Résumés de comptes (userIds / rôle / actif) — sans données sensibles")
-    public List<AccountSummaryDTO> getAccountSummaries(
-            @RequestBody(required = false) AccountSummaryQuery query) {
-        return this.accountService.getAccountSummaries(query);
+    public ResponseEntity<Page<AccountSummaryDTO>> getAccountSummaries(
+            @RequestBody(required = false) AccountSummaryQuery query,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(this.accountService.getAccountSummaries(query, pageable));
     }
 
     /**

@@ -37,15 +37,17 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     // Each entry maps a path prefix + HTTP method pattern to the list of roles that are allowed.
     // The gateway checks these BEFORE forwarding to the downstream service.
 
-    // Role constants
-    private static final String ROLE_ADMIN = "ADMIN";
-    private static final String ROLE_CUP = "CUP";
-    private static final String ROLE_D2F = "D2F";
-    private static final String ROLE_ENSEIGNANT = "ENSEIGNANT";
-    private static final String ROLE_FORMATEUR = "FORMATEUR";
-    private static final String ROLE_ANIMATEUR = "ANIMATEUR";
-    private static final String ROLE_CHEF_DEPARTEMENT = "CHEF_DEPARTEMENT";
-    private static final String ROLE_RESPONSABLE_DOSSIER = "RESPONSABLE_DOSSIER";
+    // Role constants — MUST match the ROLE_-prefixed authorities emitted in the JWT
+    // "scope" claim (see esprit.d2f.common.security.AuthorizationMatrix) so that
+    // exact-match comparison is possible and substring false-positives are avoided.
+    private static final String ROLE_ADMIN = "ROLE_ADMIN";
+    private static final String ROLE_CUP = "ROLE_CUP";
+    private static final String ROLE_D2F = "ROLE_D2F";
+    private static final String ROLE_ENSEIGNANT = "ROLE_ENSEIGNANT";
+    private static final String ROLE_FORMATEUR = "ROLE_FORMATEUR";
+    private static final String ROLE_ANIMATEUR = "ROLE_ANIMATEUR";
+    private static final String ROLE_CHEF_DEPARTEMENT = "ROLE_CHEF_DEPARTEMENT";
+    private static final String ROLE_RESPONSABLE_DOSSIER = "ROLE_RESPONSABLE_DOSSIER";
 
     /** All authenticated users */
     private static final List<String> ALL_ROLES = List.of(
@@ -237,8 +239,9 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     }
 
     /**
-     * Check if userRole is in the allowed roles list.
-     * The scope claim may contain space-separated roles.
+     * Check if one of the user's roles (parsed from the space-separated JWT "scope"
+     * claim, e.g. "ROLE_ADMIN ROLE_CUP") exactly matches an allowed role.
+     * Exact matching prevents substring false-positives (e.g. "READMIN").
      */
     private boolean isRoleAllowed(String userRole, List<String> allowedRoles) {
         if (userRole == null || userRole.isBlank()) {
@@ -246,19 +249,24 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
             return false;
         }
 
+        java.util.Set<String> userRoles = java.util.Arrays.stream(userRole.split(" "))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(java.util.stream.Collectors.toSet());
+
         // Admin has access to everything (Superuser)
-        if (userRole.contains(ROLE_ADMIN)) {
-            log.debug("isRoleAllowed: userRole contains ROLE_ADMIN ({})", ROLE_ADMIN);
+        if (userRoles.contains(ROLE_ADMIN)) {
+            log.debug("isRoleAllowed: user is ROLE_ADMIN (superuser)");
             return true;
         }
 
         for (String allowed : allowedRoles) {
-            if (userRole.contains(allowed)) {
-                log.debug("isRoleAllowed: userRole contains allowed role ({})", allowed);
+            if (userRoles.contains(allowed)) {
+                log.debug("isRoleAllowed: role {} matches allowed role {}", allowed, allowed);
                 return true;
             }
         }
-        log.debug("isRoleAllowed: NO MATCH found for userRole={} in allowedRoles={}", userRole, allowedRoles);
+        log.debug("isRoleAllowed: NO MATCH found for userRoles={} in allowedRoles={}", userRoles, allowedRoles);
         return false;
     }
 
