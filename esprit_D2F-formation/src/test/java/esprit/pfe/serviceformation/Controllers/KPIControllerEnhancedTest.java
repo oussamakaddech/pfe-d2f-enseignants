@@ -123,8 +123,8 @@ class KPIControllerEnhancedTest {
                 .param("start", "2023-01-01")
                 .param("end", "2023-12-31"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(2));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2));
 
         verify(kpiService).getTopParticipants(any(), any(), any(), any());
     }
@@ -180,8 +180,8 @@ class KPIControllerEnhancedTest {
                 .param("start", "2023-01-01")
                 .param("end", "2023-12-31"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(1));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(1));
 
         verify(kpiService).getTopAbsentees(any(), any(), any(), any());
     }

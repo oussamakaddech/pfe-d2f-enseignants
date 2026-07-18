@@ -1,60 +1,51 @@
 package esprit.pfe.auth.security;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.env.MockEnvironment;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class DefaultCredentialsManagerTest {
 
-    @AfterEach
-    void tearDown() {
-        System.clearProperty("spring.profiles.active");
+    private static DefaultCredentialsManager managerWithProfiles(String... profiles) {
+        MockEnvironment env = new MockEnvironment();
+        env.setActiveProfiles(profiles);
+        return new DefaultCredentialsManager(
+                env,
+                "admin", "CHANGE_ME_IN_PRODUCTION", "System", "Admin", "0000", "admin@d2f.local"
+        );
     }
 
     @Test
     void constructor_InDev_ShouldNotThrowEvenWithDefaultPassword() {
-        // Arrange
-        System.setProperty("spring.profiles.active", "dev");
-
-        // Act & Assert
-        assertDoesNotThrow(() -> new DefaultCredentialsManager(
-            "admin", "CHANGE_ME_IN_PRODUCTION", "System", "Admin", "0000", "admin@d2f.local"
-        ));
+        assertDoesNotThrow(() -> managerWithProfiles("dev"));
     }
 
     @Test
     void constructor_InProd_WithDefaultPassword_ShouldThrowException() {
-        // Arrange
-        System.setProperty("spring.profiles.active", "prod");
-
-        // Act & Assert
-        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> 
-            new DefaultCredentialsManager(
-                "admin", "CHANGE_ME_IN_PRODUCTION", "System", "Admin", "0000", "admin@d2f.local"
-            )
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () ->
+                managerWithProfiles("prod")
         );
-        assertTrue(exception.getMessage().contains("trop faible ou non configuré"));
+        assertTrue(exception.getMessage().contains("trop faible ou non configur"));
     }
 
     @Test
     void constructor_InProd_WithCustomPassword_ShouldNotThrow() {
-        // Arrange
-        System.setProperty("spring.profiles.active", "prod");
-
-        // Act & Assert
+        MockEnvironment env = new MockEnvironment();
+        env.setActiveProfiles("prod");
         assertDoesNotThrow(() -> new DefaultCredentialsManager(
-            "admin", "MySuperSecretProdPassword", "System", "Admin", "0000", "admin@d2f.local"
+                env,
+                "admin", "MySuperSecretProdPassword", "System", "Admin", "0000", "admin@d2f.local"
         ));
     }
 
     @Test
     void getters_ShouldReturnCorrectValues() {
-        // Act
+        MockEnvironment env = new MockEnvironment();
         DefaultCredentialsManager manager = new DefaultCredentialsManager(
-            "u", "p", "f", "l", "0", "e"
+                env, "u", "p", "f", "l", "0", "e"
         );
 
-        // Assert
         assertEquals("u", manager.getDefaultAdminUsername());
         assertEquals("p", manager.getDefaultAdminPassword());
         assertEquals("f", manager.getDefaultAdminFirstName());

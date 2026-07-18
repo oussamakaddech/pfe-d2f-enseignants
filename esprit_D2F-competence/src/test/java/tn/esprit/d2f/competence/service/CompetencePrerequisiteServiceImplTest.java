@@ -21,6 +21,7 @@ import tn.esprit.d2f.competence.exception.BusinessException;
 import tn.esprit.d2f.competence.repository.CompetencePrerequisiteRepository;
 import tn.esprit.d2f.competence.repository.CompetenceRepository;
 import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
+import tn.esprit.d2f.competence.service.ICompetencePrerequisiteService;
 
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,9 @@ class CompetencePrerequisiteServiceImplTest {
 
     @Mock
     private EnseignantCompetenceRepository enseignantCompetenceRepository;
+
+    @Mock
+    private ICompetencePrerequisiteService self;
 
     @InjectMocks
     private CompetencePrerequisiteServiceImpl service;
@@ -166,7 +170,8 @@ class CompetencePrerequisiteServiceImplTest {
         
         when(competenceRepository.existsById(compId)).thenReturn(true);
         when(prerequisiteRepository.findByCompetenceId(compId)).thenReturn(List.of(cpDTO));
-        
+        when(self.getPrerequisitesByCompetence(compId)).thenReturn(List.of(cpDTO));
+
         EnseignantCompetence ec = mock(EnseignantCompetence.class);
         when(ec.getNiveau()).thenReturn(NiveauMaitrise.N2_ELEMENTAIRE); // Under minimum
         when(enseignantCompetenceRepository.findByEnseignantIdAndCompetenceId(ensId, 2L)).thenReturn(List.of(ec));
@@ -319,6 +324,7 @@ class CompetencePrerequisiteServiceImplTest {
                 .niveauMinimum(NiveauMaitrise.N1_DEBUTANT).build();
         when(competenceRepository.existsById(compId)).thenReturn(true);
         when(prerequisiteRepository.findByCompetenceId(compId)).thenReturn(List.of(cpDTO));
+        when(self.getPrerequisitesByCompetence(compId)).thenReturn(List.of(cpDTO));
 
         Page<CompetencePrerequisiteDTO> result = service.getPrerequisitesByCompetence(compId, pageable);
         
@@ -343,6 +349,7 @@ class CompetencePrerequisiteServiceImplTest {
         
         when(competenceRepository.existsById(compId)).thenReturn(true);
         when(prerequisiteRepository.findByCompetenceId(compId)).thenReturn(all);
+        when(self.getPrerequisitesByCompetence(compId)).thenReturn(all);
 
         Page<CompetencePrerequisiteDTO> result = service.getPrerequisitesByCompetence(compId, pageable);
         
@@ -362,7 +369,8 @@ class CompetencePrerequisiteServiceImplTest {
         
         when(competenceRepository.existsById(compId)).thenReturn(true);
         when(prerequisiteRepository.findByCompetenceId(compId)).thenReturn(List.of(cpDTO));
-        
+        when(self.getPrerequisitesByCompetence(compId)).thenReturn(List.of(cpDTO));
+
         EnseignantCompetence ec = mock(EnseignantCompetence.class);
         when(ec.getNiveau()).thenReturn(NiveauMaitrise.N4_AVANCE);
         when(enseignantCompetenceRepository.findByEnseignantIdAndCompetenceId(ensId, 2L)).thenReturn(List.of(ec));
@@ -386,6 +394,7 @@ class CompetencePrerequisiteServiceImplTest {
         
         when(competenceRepository.existsById(compId)).thenReturn(true);
         when(prerequisiteRepository.findByCompetenceId(compId)).thenReturn(List.of(cpDTO));
+        when(self.getPrerequisitesByCompetence(compId)).thenReturn(List.of(cpDTO));
         when(enseignantCompetenceRepository.findByEnseignantIdAndCompetenceId(ensId, 2L)).thenReturn(List.of());
 
         Map<String, Object> result = service.checkEnseignantEligibilityDetails(compId, ensId);
@@ -402,6 +411,7 @@ class CompetencePrerequisiteServiceImplTest {
         
         when(competenceRepository.existsById(compId)).thenReturn(true);
         when(prerequisiteRepository.findByCompetenceId(compId)).thenReturn(List.of());
+        when(self.getPrerequisitesByCompetence(compId)).thenReturn(List.of());
 
         assertThat(service.checkEnseignantMeetsPrerequisites(compId, ensId)).isTrue();
     }
@@ -417,6 +427,7 @@ class CompetencePrerequisiteServiceImplTest {
 
         when(competenceRepository.existsById(compId)).thenReturn(true);
         when(prerequisiteRepository.findByCompetenceId(compId)).thenReturn(List.of(cpDTO));
+        when(self.getPrerequisitesByCompetence(compId)).thenReturn(List.of(cpDTO));
 
         EnseignantCompetence ec = mock(EnseignantCompetence.class);
         when(ec.getNiveau()).thenReturn(NiveauMaitrise.N2_ELEMENTAIRE);

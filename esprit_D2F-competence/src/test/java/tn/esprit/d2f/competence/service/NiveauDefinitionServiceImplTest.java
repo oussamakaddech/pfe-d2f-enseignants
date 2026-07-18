@@ -23,6 +23,7 @@ import tn.esprit.d2f.competence.repository.CompetenceRepository;
 import tn.esprit.d2f.competence.repository.NiveauSavoirRequisRepository;
 import tn.esprit.d2f.competence.repository.SavoirRepository;
 import tn.esprit.d2f.competence.repository.SousCompetenceRepository;
+import tn.esprit.d2f.competence.service.INiveauDefinitionService;
 
 import java.util.List;
 import java.util.Optional;
@@ -45,6 +46,9 @@ class NiveauDefinitionServiceImplTest {
     @Mock
     private SavoirRepository savoirRepository;
 
+    @Mock
+    private INiveauDefinitionService self;
+
     @InjectMocks
     private NiveauDefinitionServiceImpl niveauService;
 
@@ -55,8 +59,7 @@ class NiveauDefinitionServiceImplTest {
     private NiveauSavoirRequis nsrSousCompetence;
 
     @BeforeEach
-    void setUp() {
-        competence = Competence.builder().id(1L).nom("Compétence 1").build();
+    void setUp() {        competence = Competence.builder().id(1L).nom("Compétence 1").build();
         sousCompetence = SousCompetence.builder().id(1L).nom("Sous-Compétence 1").build();
         savoir = Savoir.builder().id(1L).nom("Savoir 1").code("S1").build();
 
@@ -72,6 +75,18 @@ class NiveauDefinitionServiceImplTest {
                 .sousCompetence(sousCompetence)
                 .savoir(savoir)
                 .niveau(NiveauMaitrise.N2_ELEMENTAIRE)
+                .build();
+    }
+
+    private NiveauSavoirRequisDTO toDto(NiveauSavoirRequis nsr) {
+        return NiveauSavoirRequisDTO.builder()
+                .id(nsr.getId())
+                .competenceId(nsr.getCompetence() != null ? nsr.getCompetence().getId() : null)
+                .sousCompetenceId(nsr.getSousCompetence() != null ? nsr.getSousCompetence().getId() : null)
+                .niveau(nsr.getNiveau())
+                .savoirId(nsr.getSavoir() != null ? nsr.getSavoir().getId() : null)
+                .savoirNom(nsr.getSavoir() != null ? nsr.getSavoir().getNom() : null)
+                .savoirCode(nsr.getSavoir() != null ? nsr.getSavoir().getCode() : null)
                 .build();
     }
 
@@ -215,7 +230,7 @@ class NiveauDefinitionServiceImplTest {
     @DisplayName("getSavoirsRequisByCompetenceAndNiveau(paged): retourne une page")
     void testGetSavoirsRequisByCompetenceAndNiveauPaged() {
         Pageable pageable = PageRequest.of(0, 1);
-        when(niveauRepo.findByCompetenceIdAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT)).thenReturn(List.of(nsrCompetence));
+        when(self.getSavoirsRequisByCompetenceAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT)).thenReturn(List.of(toDto(nsrCompetence)));
 
         Page<NiveauSavoirRequisDTO> res = niveauService.getSavoirsRequisByCompetenceAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT, pageable);
 
@@ -227,7 +242,7 @@ class NiveauDefinitionServiceImplTest {
     @DisplayName("getSavoirsRequisByCompetenceAndNiveau(paged): retourne vide hors bornes")
     void testGetSavoirsRequisByCompetenceAndNiveauPagedOutsideRange() {
         Pageable pageable = PageRequest.of(2, 1);
-        when(niveauRepo.findByCompetenceIdAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT)).thenReturn(List.of(nsrCompetence));
+        when(self.getSavoirsRequisByCompetenceAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT)).thenReturn(List.of(toDto(nsrCompetence)));
 
         Page<NiveauSavoirRequisDTO> res = niveauService.getSavoirsRequisByCompetenceAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT, pageable);
 
@@ -239,7 +254,7 @@ class NiveauDefinitionServiceImplTest {
     @DisplayName("getSavoirsRequisBySousCompetenceAndNiveau(paged): retourne une page")
     void testGetSavoirsRequisBySousCompetenceAndNiveauPaged() {
         Pageable pageable = PageRequest.of(0, 1);
-        when(niveauRepo.findBySousCompetenceIdAndNiveau(1L, NiveauMaitrise.N2_ELEMENTAIRE)).thenReturn(List.of(nsrSousCompetence));
+        when(self.getSavoirsRequisBySousCompetenceAndNiveau(1L, NiveauMaitrise.N2_ELEMENTAIRE)).thenReturn(List.of(toDto(nsrSousCompetence)));
 
         Page<NiveauSavoirRequisDTO> res = niveauService.getSavoirsRequisBySousCompetenceAndNiveau(1L, NiveauMaitrise.N2_ELEMENTAIRE, pageable);
 

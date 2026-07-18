@@ -194,8 +194,8 @@ class FormationWorkflowControllerEnhancedTest {
 
         mockMvc.perform(get("/api/v1/formations-workflow"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(2));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2));
 
         verify(formationWorkflowService).getAllFormationWorkflows();
     }
@@ -264,8 +264,8 @@ class FormationWorkflowControllerEnhancedTest {
 
         mockMvc.perform(get("/api/v1/formations-workflow/achevees"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(1));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(1));
 
         verify(formationWorkflowService).getFormationsAchevees();
     }

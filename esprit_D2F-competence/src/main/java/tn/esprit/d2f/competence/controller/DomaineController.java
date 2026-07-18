@@ -18,8 +18,6 @@ import tn.esprit.d2f.competence.dto.DomaineDTO;
 import tn.esprit.d2f.competence.dto.DomaineRequest;
 import tn.esprit.d2f.competence.service.IDomaineService;
 
-import java.util.List;
-
 @Tag(name = "Domaines", description = "Gestion des domaines de compétences")
 @RestController
 @RequestMapping("/api/v1/domaines")

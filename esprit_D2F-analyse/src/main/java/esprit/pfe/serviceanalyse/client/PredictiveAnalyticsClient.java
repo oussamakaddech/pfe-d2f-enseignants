@@ -1,11 +1,9 @@
 package esprit.pfe.serviceanalyse.client;
 
 import esprit.pfe.serviceanalyse.dto.analytics.*;
-import esprit.pfe.serviceanalyse.service.client.RestClientHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;

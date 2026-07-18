@@ -1,6 +1,5 @@
 package esprit.pfe.serviceanalyse.api;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import esprit.pfe.serviceanalyse.dto.analytics.*;
 import esprit.pfe.serviceanalyse.service.AnalyticsBffService;
 import org.junit.jupiter.api.Test;

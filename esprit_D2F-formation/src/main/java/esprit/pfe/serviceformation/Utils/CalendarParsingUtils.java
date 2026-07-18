@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 public final class CalendarParsingUtils {
 
     private static final Pattern EMAIL_PATTERN =
-            Pattern.compile("^[a-zA-Z0-9._%+\\-]++@[a-zA-Z0-9\\-]++(?:\\.[a-zA-Z0-9\\-]++)*+\\.[a-zA-Z]{2,}$");
+            Pattern.compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
 
     // « Séance 1/3 », « Seance 1 / 3 », « S1/3 », ou simplement « 1/3 »
     private static final Pattern SESSION_PATTERN =

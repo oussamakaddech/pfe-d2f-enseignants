@@ -211,7 +211,9 @@ class AuthorizationFilterTest {
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
         
         when(tokenProvider.isValidToken("token")).thenReturn(true);
-        when(tokenProvider.getUserRole("token")).thenReturn(role);
+        // The JWT "scope" claim emits ROLE_-prefixed authorities; mirror that here.
+        String effectiveRole = (role == null || role.strip().isEmpty() || role.startsWith("ROLE_")) ? role : "ROLE_" + role;
+        when(tokenProvider.getUserRole("token")).thenReturn(effectiveRole);
         when(tokenProvider.getUserId("token")).thenReturn("user");
 
         GatewayFilter filter = authorizationFilter.apply(new AuthorizationFilter.Config() {});
@@ -235,7 +237,7 @@ class AuthorizationFilterTest {
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
         when(tokenProvider.isValidToken("token")).thenReturn(true);
-        when(tokenProvider.getUserRole("token")).thenReturn("ENSEIGNANT");
+        when(tokenProvider.getUserRole("token")).thenReturn("ROLE_ENSEIGNANT");
         when(tokenProvider.getUserId("token")).thenReturn("user-123");
         when(tokenProvider.getUserEmail("token")).thenReturn("user@test.com");
 
@@ -246,7 +248,7 @@ class AuthorizationFilterTest {
 
         verify(chain).filter(argThat(ex ->
             "user-123".equals(ex.getRequest().getHeaders().getFirst("X-User-Id")) &&
-            "ENSEIGNANT".equals(ex.getRequest().getHeaders().getFirst("X-User-Role")) &&
+            "ROLE_ENSEIGNANT".equals(ex.getRequest().getHeaders().getFirst("X-User-Role")) &&
             "user@test.com".equals(ex.getRequest().getHeaders().getFirst("X-User-Email")) &&
             "Bearer token".equals(ex.getRequest().getHeaders().getFirst("Authorization"))
         ));

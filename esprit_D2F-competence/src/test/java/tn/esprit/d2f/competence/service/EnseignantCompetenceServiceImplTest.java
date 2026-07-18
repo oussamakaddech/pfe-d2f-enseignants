@@ -24,6 +24,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
 import tn.esprit.d2f.competence.repository.SavoirRepository;
+import tn.esprit.d2f.competence.service.IEnseignantCompetenceService;
 
 import java.time.LocalDate;
 import java.time.Month;
@@ -42,6 +43,7 @@ class EnseignantCompetenceServiceImplTest {
     @Mock EnseignantCompetenceRepository enseignantCompetenceRepository;
     @Mock SavoirRepository savoirRepository;
     @Mock CompetenceMapper competenceMapper;
+    @Mock IEnseignantCompetenceService self;
     @InjectMocks EnseignantCompetenceServiceImpl ecService;
 
     static final String ENS_ID = "ens-uuid-001";
@@ -266,7 +268,8 @@ class EnseignantCompetenceServiceImplTest {
     @Test
     void getCompetencesByEnseignant_Page_ShouldReturnFirstSlice() {
         Pageable pageable = PageRequest.of(0, 1);
-        when(enseignantCompetenceRepository.findByEnseignantId(ENS_ID)).thenReturn(List.of(ec));
+        EnseignantCompetenceDTO dto = competenceMapper.toDTO(ec);
+        when(self.getCompetencesByEnseignant(ENS_ID)).thenReturn(List.of(dto));
 
         Page<EnseignantCompetenceDTO> result = ecService.getCompetencesByEnseignant(ENS_ID, pageable);
 
@@ -277,7 +280,8 @@ class EnseignantCompetenceServiceImplTest {
     @Test
     void getCompetencesByEnseignant_Page_ShouldReturnEmptyWhenOffsetPastEnd() {
         Pageable pageable = PageRequest.of(2, 1);
-        when(enseignantCompetenceRepository.findByEnseignantId(ENS_ID)).thenReturn(List.of(ec));
+        EnseignantCompetenceDTO dto = competenceMapper.toDTO(ec);
+        when(self.getCompetencesByEnseignant(ENS_ID)).thenReturn(List.of(dto));
 
         Page<EnseignantCompetenceDTO> result = ecService.getCompetencesByEnseignant(ENS_ID, pageable);
 
@@ -288,7 +292,8 @@ class EnseignantCompetenceServiceImplTest {
     @Test
     void getCompetencesByEnseignantAndDomaine_Page_ShouldReturnSlice() {
         Pageable pageable = PageRequest.of(0, 1);
-        when(enseignantCompetenceRepository.findByEnseignantIdAndDomaineId(ENS_ID, 1L)).thenReturn(List.of(ec));
+        EnseignantCompetenceDTO dto = competenceMapper.toDTO(ec);
+        when(self.getCompetencesByEnseignantAndDomaine(ENS_ID, 1L)).thenReturn(List.of(dto));
 
         Page<EnseignantCompetenceDTO> result = ecService.getCompetencesByEnseignantAndDomaine(ENS_ID, 1L, pageable);
 
@@ -298,7 +303,8 @@ class EnseignantCompetenceServiceImplTest {
     @Test
     void getCompetencesByEnseignantAndCompetence_Page_ShouldReturnSlice() {
         Pageable pageable = PageRequest.of(0, 1);
-        when(enseignantCompetenceRepository.findByEnseignantIdAndCompetenceId(ENS_ID, 1L)).thenReturn(List.of(ec));
+        EnseignantCompetenceDTO dto = competenceMapper.toDTO(ec);
+        when(self.getCompetencesByEnseignantAndCompetence(ENS_ID, 1L)).thenReturn(List.of(dto));
 
         Page<EnseignantCompetenceDTO> result = ecService.getCompetencesByEnseignantAndCompetence(ENS_ID, 1L, pageable);
 
@@ -308,7 +314,8 @@ class EnseignantCompetenceServiceImplTest {
     @Test
     void getCompetencesByEnseignantAndNiveau_Page_ShouldReturnSlice() {
         Pageable pageable = PageRequest.of(0, 1);
-        when(enseignantCompetenceRepository.findByEnseignantIdAndNiveau(ENS_ID, NiveauMaitrise.N2_ELEMENTAIRE)).thenReturn(List.of(ec));
+        EnseignantCompetenceDTO dto = competenceMapper.toDTO(ec);
+        when(self.getCompetencesByEnseignantAndNiveau(ENS_ID, NiveauMaitrise.N2_ELEMENTAIRE)).thenReturn(List.of(dto));
 
         Page<EnseignantCompetenceDTO> result = ecService.getCompetencesByEnseignantAndNiveau(ENS_ID, NiveauMaitrise.N2_ELEMENTAIRE, pageable);
 
@@ -318,7 +325,8 @@ class EnseignantCompetenceServiceImplTest {
     @Test
     void getByCompetenceId_Page_ShouldReturnSlice() {
         Pageable pageable = PageRequest.of(0, 1);
-        when(enseignantCompetenceRepository.findByCompetenceId(1L)).thenReturn(List.of(ec));
+        EnseignantCompetenceDTO dto = competenceMapper.toDTO(ec);
+        when(self.getByCompetenceId(1L)).thenReturn(List.of(dto));
 
         Page<EnseignantCompetenceDTO> result = ecService.getByCompetenceId(1L, pageable);
 

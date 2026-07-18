@@ -95,3 +95,10 @@ run_batch_analysis.py
 run_single_analysis.py
 train_model.py
 resume_classes_relations.md
+
+
+# Sonar/coverage generated artifacts
+**/.coverage
+**/.scannerwork/
+**/coverage.xml
+**/junit-results.xml
