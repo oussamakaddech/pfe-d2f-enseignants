@@ -12,7 +12,7 @@ const prioriteOptions = [
   { value: "BASSE",    label: "Basse",    description: "Peut attendre",        accent: "#10b981", accentBg: "#ecfdf5" },
   { value: "MOYENNE",  label: "Moyenne",  description: "À planifier",          accent: "#f59e0b", accentBg: "#fffbeb" },
   { value: "HAUTE",    label: "Haute",    description: "Important",            accent: "#ef4444", accentBg: "#fef2f2" },
-  { value: "CRITIQUE", label: "Critique", description: "Urgent — délai serré", accent: "#b91c1c", accentBg: "#fef2f2" },
+  { value: "CRITIQUE", label: "Critique", description: "Urgent — délai serré", accent: "#b51200", accentBg: "#fef2f2" },
 ];
 
 export default function BesoinFormationStep() {

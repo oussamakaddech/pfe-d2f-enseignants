@@ -97,7 +97,7 @@ const prioriteOptions = [
   { value: "BASSE",    label: "Basse",    accent: "#10b981" },
   { value: "MOYENNE",  label: "Moyenne",  accent: "#f59e0b" },
   { value: "HAUTE",    label: "Haute",    accent: "#ef4444" },
-  { value: "CRITIQUE", label: "Critique", accent: "#b91c1c" },
+  { value: "CRITIQUE", label: "Critique", accent: "#b51200" },
 ];
 
 interface LookupItem { id?: string | number; name?: string; libelle?: string }

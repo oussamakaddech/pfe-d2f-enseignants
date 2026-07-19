@@ -34,7 +34,7 @@ interface Row {
 const ETAT_META: Record<Etat, { color: string; bg: string; label: string; icon: React.ReactNode }> = {
   APPROVED: { color: "#15803d", bg: "#dcfce7", label: "Approuvée", icon: <CheckCircleOutlined /> },
   PENDING: { color: "#b45309", bg: "#fef3c7", label: "En attente", icon: <ClockCircleOutlined /> },
-  REJECTED: { color: "#b91c1c", bg: "#fee2e2", label: "Rejetée", icon: <CloseCircleOutlined /> },
+  REJECTED: { color: "#b51200", bg: "#fee2e2", label: "Rejetée", icon: <CloseCircleOutlined /> },
 };
 
 const fmt = (d?: string) => { if (!d) { return "—"; } const date = dayjs(d); return date.isValid() ? date.format("DD/MM/YYYY") : "—"; };
@@ -197,7 +197,7 @@ export default function MesInscriptionsTab() {
                     <div className="mis-timeline">
                       <Timeline items={[
                         { dot: <CalendarOutlined style={{ fontSize: 12, color: "#9ca3af" }} />, children: <span className="mis-timeline-text">Créée le <strong>{fmtDT(r.dateDemande)}</strong></span> },
-                        { dot: r.etat === "APPROVED" ? <CheckCircleOutlined style={{ fontSize: 12, color: "#15803d" }} /> : <CloseCircleOutlined style={{ fontSize: 12, color: "#b91c1c" }} />,
+                        { dot: r.etat === "APPROVED" ? <CheckCircleOutlined style={{ fontSize: 12, color: "#15803d" }} /> : <CloseCircleOutlined style={{ fontSize: 12, color: "#b51200" }} />,
                           children: <span className="mis-timeline-text">{r.etat === "APPROVED" ? "Approuvée" : "Rejetée"} le <strong>{fmtDT(r.dateTraitement)}</strong></span> },
                       ]} />
                     </div>
