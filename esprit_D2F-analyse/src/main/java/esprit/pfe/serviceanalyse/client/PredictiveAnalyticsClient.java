@@ -31,7 +31,7 @@ import java.util.List;
 @Component
 public class PredictiveAnalyticsClient {
 
-    private static final String V2_BASE = "/api/v2/analytics";
+    private static final String V2_BASE = "/api/v1/analytics";
 
     private final RestTemplate restTemplate;
     private final ResilientCaller resilientCaller;

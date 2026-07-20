@@ -436,6 +436,7 @@ async def get_gaps(
             {
                 "id":               g.id,
                 "competence_id":    g.competence_id,
+                "competence_code":  g.competence_code,
                 "competence_nom":   g.competence_nom,
                 "domaine_nom":      g.domaine_nom,
                 "niveau_actuel":    g.niveau_actuel,

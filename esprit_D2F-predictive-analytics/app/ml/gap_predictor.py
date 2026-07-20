@@ -500,7 +500,7 @@ class GapPredictor:
         df_teacher = build_teacher_features(teacher_profiles, competency_levels)
         df_gaps = build_gap_labels(competency_levels, required_levels)
 
-        empty_explanation = {"method": "ml_gradient_boosting", "model_trained": True}
+        empty_explanation = {"method": self.model_name or "ml_model", "model_trained": True}
         if df_teacher.empty or df_gaps.empty:
             return {"gaps": [], "avg_predicted_gap": 0.0, "explanation": empty_explanation}
 
@@ -556,7 +556,7 @@ class GapPredictor:
         overall_risk = float(df_pred["predicted_gap"].mean())
         explanation = explain_prediction(self.model, feature_names=FEATURE_COLS)
         explanation.update({
-            "method": "ml_gradient_boosting",
+            "method": self.model_name or "ml_model",
             "model_trained": True,
             "n_predictions": int(len(df_pred)),
             "base_confidence": round(base_conf, 3),

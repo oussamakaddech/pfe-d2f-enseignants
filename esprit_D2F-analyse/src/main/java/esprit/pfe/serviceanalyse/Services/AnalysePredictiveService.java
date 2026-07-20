@@ -5,8 +5,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
+import esprit.pfe.serviceanalyse.context.JwtForwardingInterceptor;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -15,8 +21,6 @@ import java.util.stream.Collectors;
 @Service
 public class AnalysePredictiveService {
 
-    private static final String NIVEAU_MAITRISE = "niveauMaitrise";
-    private static final String COMPETENCE = "competence";
     private static final String COMPETENCE_NOM = "competenceNom";
     private static final String COMPETENCE_ID = "competenceId";
     private static final String COMPETENCE_CODE = "competenceCode";
@@ -30,7 +34,6 @@ public class AnalysePredictiveService {
     private static final String EXPLICATION = "explication";
     private static final String PRIORITE_HAUTE = "haute";
     private static final String PRIORITE = "priorite";
-    private static final String EVALUATIONS_GLOBALES = "/evaluation/evaluations-globales";
     private static final String TOTAL_EVALUATIONS = "totalEvaluations";
     private static final String NOTE_MOYENNE = "noteMoyenne";
 
@@ -80,11 +83,24 @@ public class AnalysePredictiveService {
         List<Map<String, Object>> gaps = new ArrayList<>();
         try {
             String compUrl = competenceServiceUrl + "/api/v1/enseignant-competences/enseignant/" + enseignantId;
-            List<Map<String, Object>> affectations = restTemplate.getForObject(compUrl, List.class);
+            Map<String, Object> page = getForMap(compUrl);
+            List<Map<String, Object>> affectations = extractContent(page);
             if (affectations != null) {
+                Set<String> competencesPossedees = new HashSet<>();
+                Map<Long, String> domainesConcernes = new LinkedHashMap<>();
                 for (Map<String, Object> aff : affectations) {
                     processGapAffectation(aff, gaps);
+                    if (aff.get(COMPETENCE_NOM) != null) {
+                        competencesPossedees.add(String.valueOf(aff.get(COMPETENCE_NOM)));
+                    }
+                    if (aff.get("domaineId") != null) {
+                        Long domaineId = ((Number) aff.get("domaineId")).longValue();
+                        String domaineNom = aff.get("domaineNom") != null ? String.valueOf(aff.get("domaineNom")) : null;
+                        domainesConcernes.putIfAbsent(domaineId, domaineNom);
+                    }
                 }
+                // Les compétences manquantes par domaine sont aussi des gaps (niveauActuel = 0).
+                ajouterGapsCompetencesManquantes(domainesConcernes, competencesPossedees, gaps);
             }
         } catch (Exception e) {
             log.warn("Service compétence indisponible pour gaps : {}", e.getMessage());
@@ -98,19 +114,51 @@ public class AnalysePredictiveService {
         return gaps;
     }
 
+    /**
+     * Pour chaque domaine concerné par l'enseignant, liste les compétences du domaine
+     * et ajoute un gap pour chaque compétence non possédée (niveauActuel = 0).
+     */
+    @SuppressWarnings("unchecked")
+    private void ajouterGapsCompetencesManquantes(Map<Long, String> domaines, Set<String> competencesPossedees, List<Map<String, Object>> gaps) {
+        for (Map.Entry<Long, String> entry : domaines.entrySet()) {
+            Long domaineId = entry.getKey();
+            String domaineNom = entry.getValue();
+            try {
+                String url = competenceServiceUrl + "/api/v1/competences/domaine/" + domaineId;
+                Map<String, Object> page = getForMap(url);
+                List<Map<String, Object>> competences = extractContent(page);
+                if (competences == null) continue;
+                for (Map<String, Object> comp : competences) {
+                    String compNom = comp.get("nom") != null ? String.valueOf(comp.get("nom")) : null;
+                    if (compNom == null || competencesPossedees.contains(compNom)) continue;
+                    Long compId = comp.get("id") != null ? ((Number) comp.get("id")).longValue() : null;
+                    Map<String, Object> gap = new LinkedHashMap<>();
+                    gap.put(COMPETENCE_ID, compId);
+                    gap.put(COMPETENCE_CODE, comp.getOrDefault("code", "N/A"));
+                    gap.put("competenceLabel", compNom);
+                    gap.put("domaineId", domaineId);
+                    gap.put("domaineNom", domaineNom);
+                    gap.put("niveauActuel", 0);
+                    gap.put("niveauCible", niveauCibleParDefaut);
+                    double gapVal = niveauCibleParDefaut;
+                    gap.put("gap", gapVal);
+                    gap.put(GRAVITE, getGraviteValue(gapVal));
+                    gap.put(EXPLICATION, "Compétence manquante dans le domaine " + domaineNom + " — non acquise (niveau 0 / cible: " + niveauCibleParDefaut + ")");
+                    gaps.add(gap);
+                }
+            } catch (Exception e) {
+                log.warn("Impossible de récupérer les compétences du domaine {} : {}", domaineId, e.getMessage());
+            }
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private void processGapAffectation(Map<String, Object> aff, List<Map<String, Object>> gaps) {
-        int niveauActuel = parseNiveau(aff.get(NIVEAU_MAITRISE));
+        int niveauActuel = parseNiveau(aff.get("niveau"));
         int niveauCible = niveauCibleParDefaut;
-        
-        Object compObj = aff.get(COMPETENCE);
-        String compNom = "Inconnu";
-        Long compId = null;
-        if (compObj instanceof Map) {
-            Map<String, Object> compMap = (Map<String, Object>) compObj;
-            compNom = String.valueOf(compMap.getOrDefault("nom", "Inconnu"));
-            compId = compMap.get("id") != null ? ((Number) compMap.get("id")).longValue() : null;
-        }
+
+        String compNom = aff.get(COMPETENCE_NOM) != null ? String.valueOf(aff.get(COMPETENCE_NOM)) : "Inconnu";
+        Long compId = aff.get(COMPETENCE_ID) != null ? ((Number) aff.get(COMPETENCE_ID)).longValue() : null;
 
         double gapVal = (double) niveauCible - niveauActuel;
         if (gapVal > 0) {
@@ -118,6 +166,8 @@ public class AnalysePredictiveService {
             gap.put(COMPETENCE_ID, compId);
             gap.put(COMPETENCE_CODE, aff.getOrDefault(COMPETENCE_CODE, "N/A"));
             gap.put("competenceLabel", compNom);
+            gap.put("domaineId", aff.get("domaineId"));
+            gap.put("domaineNom", aff.get("domaineNom"));
             gap.put("niveauActuel", niveauActuel);
             gap.put("niveauCible", niveauCible);
             gap.put("gap", gapVal);
@@ -134,19 +184,20 @@ public class AnalysePredictiveService {
     }
 
     /**
-     * Fallback : identifier gaps via les évaluations.
+     * Fallback : identifier gaps via les évaluations (noteGlobale).
      */
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> identifierGapsViaEvaluations() {
         List<Map<String, Object>> gaps = new ArrayList<>();
         try {
-            String evalUrl = evaluationServiceUrl + EVALUATIONS_GLOBALES;
-            List<Map<String, Object>> evals = restTemplate.getForObject(evalUrl, List.class);
+            String evalUrl = evaluationServiceUrl + "/api/v1/evaluations-globales";
+            Map<String, Object> page = getForMap(evalUrl);
+            List<Map<String, Object>> evals = extractContent(page);
             if (evals != null) {
                 double avgNote = evals.stream()
-                    .filter(e -> e.get("note") != null)
-                    .mapToDouble(e -> ((Number) e.get("note")).doubleValue())
-                    .average().orElse(3.0);
+                        .filter(e -> e.get("noteGlobale") != null)
+                        .mapToDouble(e -> ((Number) e.get("noteGlobale")).doubleValue())
+                        .average().orElse(3.0);
                 double gapVal = Math.max(0, 3.0 - avgNote);
                 if (gapVal > 0) {
                     Map<String, Object> gap = new LinkedHashMap<>();
@@ -174,15 +225,17 @@ public class AnalysePredictiveService {
         List<Map<String, Object>> recommandations = new ArrayList<>();
         try {
             Set<Long> competenceIdsAvecGap = getCompetenceIdsWithGap(enseignantId, competenceCible);
-            String formUrl = formationServiceUrl + "/formations";
-            List<Map<String, Object>> formations = restTemplate.getForObject(formUrl, List.class);
+            String formUrl = formationServiceUrl + "/api/v1/formations";
+            Map<String, Object> page = getForMap(formUrl);
+            List<Map<String, Object>> formations = extractContent(page);
             if (formations != null) {
                 int ordre = 1;
                 for (Map<String, Object> formation : formations) {
                     processFormationRecommendation(formation, competenceIdsAvecGap, recommandations, ordre++);
                 }
             }
-            recommandations.sort((a, b) -> PRIORITE_HAUTE.equals(a.get(PRIORITE)) ? -1 : 1);
+            recommandations.sort(Comparator.comparingInt(
+                    r -> PRIORITE_HAUTE.equals(r.get(PRIORITE)) ? 0 : 1));
         } catch (Exception e) {
             log.warn("Service formation indisponible : {}", e.getMessage());
             recommandations.add(createFallbackRecommendation());
@@ -195,9 +248,9 @@ public class AnalysePredictiveService {
             return Collections.singleton(competenceCible);
         }
         return identifierGaps(enseignantId).stream()
-            .filter(g -> g.get(COMPETENCE_ID) != null)
-            .map(g -> ((Number) g.get(COMPETENCE_ID)).longValue())
-            .collect(Collectors.toSet());
+                .filter(g -> g.get(COMPETENCE_ID) != null)
+                .map(g -> ((Number) g.get(COMPETENCE_ID)).longValue())
+                .collect(Collectors.toSet());
     }
 
     @SuppressWarnings("unchecked")
@@ -225,10 +278,11 @@ public class AnalysePredictiveService {
     private boolean checkFormationCibleGaps(Long formationId, Set<Long> gaps, List<String> names) {
         if (formationId == null) return false;
         try {
-            String fcUrl = formationServiceUrl + "/formation-competences/formation/" + formationId;
-            List<Map<String, Object>> fcLinks = restTemplate.getForObject(fcUrl, List.class);
+            String fcUrl = formationServiceUrl + "/api/v1/formation-competences/formation/" + formationId;
+            Map<String, Object> page = getForMap(fcUrl);
+            List<Map<String, Object>> fcLinks = extractContent(page);
             if (fcLinks == null) return false;
-            
+
             boolean match = false;
             for (Map<String, Object> fc : fcLinks) {
                 Long compId = fc.get(COMPETENCE_ID) != null ? ((Number) fc.get(COMPETENCE_ID)).longValue() : null;
@@ -256,15 +310,16 @@ public class AnalysePredictiveService {
     private List<Map<String, Object>> detecterBesoins(String enseignantId) {
         List<Map<String, Object>> besoins = new ArrayList<>();
         try {
-            String besoinUrl = besoinFormationServiceUrl + "/besoinsFormations/retrieve-approved-BesoinFormations";
-            List<Map<String, Object>> besoinsApprouves = restTemplate.getForObject(besoinUrl, List.class);
+            String besoinUrl = besoinFormationServiceUrl + "/api/v1/besoins-formations/approved";
+            Map<String, Object> page = getForMap(besoinUrl);
+            List<Map<String, Object>> besoinsApprouves = extractContent(page);
             if (besoinsApprouves != null) {
                 Map<String, Long> countByComp = besoinsApprouves.stream()
-                    .filter(b -> b.get(COMPETENCE) != null || b.get(TITRE) != null)
-                    .collect(Collectors.groupingBy(
-                        b -> String.valueOf(b.getOrDefault(COMPETENCE, b.getOrDefault(TITRE, "inconnu"))),
-                        Collectors.counting()
-                    ));
+                        .filter(b -> b.get(COMPETENCE_NOM) != null || b.get(TITRE) != null)
+                        .collect(Collectors.groupingBy(
+                                b -> String.valueOf(b.getOrDefault(COMPETENCE_NOM, b.getOrDefault(TITRE, "inconnu"))),
+                                Collectors.counting()
+                        ));
                 countByComp.forEach((comp, count) -> {
                     Map<String, Object> besoin = new LinkedHashMap<>();
                     besoin.put("type", count > 1 ? "collectif" : "individuel");
@@ -315,11 +370,12 @@ public class AnalysePredictiveService {
         stats.put(TOTAL_EVALUATIONS, 0);
         stats.put(NOTE_MOYENNE, 0.0);
         try {
-            String evalUrl = evaluationServiceUrl + EVALUATIONS_GLOBALES;
-            List<Map<String, Object>> evals = restTemplate.getForObject(evalUrl, List.class);
+            String evalUrl = evaluationServiceUrl + "/api/v1/evaluations-globales";
+            Map<String, Object> page = getForMap(evalUrl);
+            List<Map<String, Object>> evals = extractContent(page);
             if (evals != null) {
                 stats.put(TOTAL_EVALUATIONS, evals.size());
-                stats.put(NOTE_MOYENNE, evals.stream().filter(e -> e.get("note") != null).mapToDouble(e -> ((Number) e.get("note")).doubleValue()).average().orElse(0.0));
+                stats.put(NOTE_MOYENNE, evals.stream().filter(e -> e.get("noteGlobale") != null).mapToDouble(e -> ((Number) e.get("noteGlobale")).doubleValue()).average().orElse(0.0));
             }
         } catch (Exception e) {
             log.warn("Service evaluation indisponible pour tendances");
@@ -334,20 +390,20 @@ public class AnalysePredictiveService {
     @SuppressWarnings("unchecked")
     private Map<String, Object> genererDashboard() {
         Map<String, Object> dashboard = new LinkedHashMap<>();
-        // Initialize defaults to avoid missing keys
         dashboard.put("competencesEnDeclin", Collections.emptyList());
         dashboard.put("competencesEnForteDemande", Collections.emptyList());
         dashboard.put("enseignantsARisque", Collections.emptyList());
         dashboard.put("tauxCouverture", 0.0);
-        
+
         try {
-            String evalUrl = evaluationServiceUrl + EVALUATIONS_GLOBALES;
-            List<Map<String, Object>> evals = restTemplate.getForObject(evalUrl, List.class);
+            String evalUrl = evaluationServiceUrl + "/api/v1/evaluations-globales";
+            Map<String, Object> page = getForMap(evalUrl);
+            List<Map<String, Object>> evals = extractContent(page);
             if (evals != null) {
-                List<String> aRisque = evals.stream()
-                    .filter(e -> e.get("note") != null && ((Number) e.get("note")).doubleValue() < 2)
-                    .map(e -> String.valueOf(e.get("evaluateurId"))).distinct().toList();
-                dashboard.put("enseignantsARisque", aRisque);
+                Set<String> aRisque = evals.stream()
+                        .filter(e -> e.get("noteGlobale") != null && ((Number) e.get("noteGlobale")).doubleValue() < 2)
+                        .map(e -> String.valueOf(e.get("enseignantId"))).distinct().collect(Collectors.toSet());
+                dashboard.put("enseignantsARisque", new ArrayList<>(aRisque));
             }
         } catch (Exception e) {
             log.warn("Dashboard metrics partial failure");
@@ -359,19 +415,48 @@ public class AnalysePredictiveService {
     public Page<Map<String, Object>> listerEnseignants(Pageable pageable) {
         try {
             String url = authServiceUrl + "/api/v1/account/list-accounts"
-                + "?page=" + pageable.getPageNumber()
-                + "&size=" + pageable.getPageSize();
-            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+                    + "?page=" + pageable.getPageNumber()
+                    + "&size=" + pageable.getPageSize();
+            Map<String, Object> response = getForMap(url);
             if (response != null && response.get("content") instanceof List) {
                 List<Map<String, Object>> items = (List<Map<String, Object>>) response.get("content");
                 long total = response.get("totalElements") instanceof Number number
-                    ? number.longValue() : items.size();
+                        ? number.longValue() : items.size();
                 return new PageImpl<>(items, pageable, total);
             }
         } catch (Exception e) {
             log.warn("Service auth indisponible pour lister enseignants : {}", e.getMessage());
         }
         return new PageImpl<>(Collections.emptyList(), pageable, 0);
+    }
+
+    // ------------------------------------------------------------------------
+    // Helpers : appel REST avec propagation du JWT et extraction du contenu paginé
+    // ------------------------------------------------------------------------
+
+    private Map<String, Object> getForMap(String url) {
+        HttpHeaders headers = new HttpHeaders();
+        String bearer = JwtForwardingInterceptor.getBearerToken();
+        if (bearer != null) {
+            headers.set(HttpHeaders.AUTHORIZATION, "Bearer " + bearer);
+        }
+        ResponseEntity<Map> response = restTemplate.exchange(
+                url, HttpMethod.GET, new HttpEntity<>(headers), Map.class);
+        return response.getBody();
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> extractContent(Map<String, Object> page) {
+        if (page == null) return null;
+        Object content = page.get("content");
+        if (content instanceof List) {
+            return (List<Map<String, Object>>) content;
+        }
+        // Réponse non paginée (List directe sérialisée en Map) : on tente une conversion.
+        if (page instanceof List) {
+            return (List<Map<String, Object>>) (List<?>) page;
+        }
+        return null;
     }
 
     private int parseNiveau(Object niveauObj) {
@@ -396,8 +481,6 @@ public class AnalysePredictiveService {
 
     private int getPrioriteOrder(Object priorite) {
         if (PRIORITE_HAUTE.equals(priorite) || GRAVITE_ELEVEE.equals(priorite)) return 3;
-        // MOYENNE et GRAVITE_MOYENNE valent toutes deux "moyenne" : un seul test suffit
-        // (le double test était redondant — signalé par SpotBugs RpC_REPEATED_CONDITIONAL_TEST).
         if (MOYENNE.equals(priorite)) return 2;
         return 1;
     }

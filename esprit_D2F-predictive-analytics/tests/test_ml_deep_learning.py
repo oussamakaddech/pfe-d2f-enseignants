@@ -21,17 +21,19 @@ class TestMLPPipeline:
         from app.ml.deep_learning import build_mlp
         rng = np.random.RandomState(42)
         X = rng.rand(100, 5)
-        y = (X[:, 0] > 0.5).astype(int)
+        y = X[:, 0] * 2.0 + X[:, 1]  # cible continue (régression)
         pipe = build_mlp(X, y, hidden_layer_sizes=(16,))
         preds = pipe.predict(X)
         assert len(preds) == 100
-        assert set(np.unique(preds)).issubset({0, 1})
+        # Régression : les prédictions sont continues (pas un sous-ensemble {0, 1}).
+        assert preds.dtype.kind in {"f", "i"}
+        assert np.isfinite(preds).all()
 
     def test_cross_validate_mlp(self):
         from app.ml.deep_learning import cross_validate_mlp
         rng = np.random.RandomState(42)
         X = rng.rand(80, 4)
-        y = (X[:, 1] > 0.5).astype(int)
+        y = X[:, 1] * 3.0  # cible continue
         result = cross_validate_mlp(X, y, cv=3, hidden_layer_sizes=(8,))
         assert "mean_score" in result
         assert "std_score" in result
@@ -43,7 +45,7 @@ class TestMLPPipeline:
         from app.ml.deep_learning import build_mlp, get_feature_importance
         rng = np.random.RandomState(42)
         X = rng.rand(60, 3)
-        y = (X[:, 0] > 0.5).astype(int)
+        y = X[:, 0] * 1.5
         pipe = build_mlp(X, y, hidden_layer_sizes=(8,))
         imp = get_feature_importance(pipe)
         assert imp is not None

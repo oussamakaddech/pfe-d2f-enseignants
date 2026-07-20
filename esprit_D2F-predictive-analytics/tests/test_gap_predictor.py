@@ -98,7 +98,7 @@ class TestGapPredictor:
         result = predictor.predict(teachers[:5], comp_levels[:5], req_levels, top_n=3)
 
         assert result is not None
-        assert result["explanation"]["method"] == "ml_gradient_boosting"
+        assert result["explanation"]["method"] == predictor.model_name
         assert result["explanation"]["model_trained"] is True
         assert isinstance(result["avg_predicted_gap"], float)
         assert isinstance(result["gaps"], list) and len(result["gaps"]) > 0
@@ -120,5 +120,5 @@ class TestGapPredictor:
         assert predictor.feature_ranges  # rechargées depuis training_metadata.json
 
         result = predictor.predict(teachers[:5], comp_levels[:5], req_levels, top_n=3)
-        assert result["explanation"]["method"] == "ml_gradient_boosting"
+        assert result["explanation"]["method"] == predictor.model_name
         assert len(result["gaps"]) > 0

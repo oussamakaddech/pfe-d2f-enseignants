@@ -20,13 +20,17 @@ export default function GapsTable({ gaps, loading, onRowClick }: GapsTableProps)
       render: (_, r) => (
         <Space direction="vertical" size={0}>
           <span style={{ fontWeight: 600 }}>{r.competence_nom}</span>
-          <span style={{ fontSize: 12, color: "#8c8c8c" }}>{r.competence_code}</span>
+          <Space size={4}>
+            <span style={{ fontSize: 12, color: "#8c8c8c" }}>{r.competence_code}</span>
+            {r.niveau_actuel === 0 && <Tag color="red">Manquante</Tag>}
+          </Space>
         </Space>
       ),
     },
     {
       title: "Domaine",
       dataIndex: "domaine_nom",
+      sorter: (a, b) => (a.domaine_nom ?? "").localeCompare(b.domaine_nom ?? ""),
       render: (v) => v ?? "—",
     },
     {

@@ -4,7 +4,7 @@
     1. GradientBoosting (sklearn)
     2. XGBoost
     3. LightGBM
-    4. MLP (sklearn.neural_network.MLPClassifier)
+    4. MLP (sklearn.neural_network.MLPRegressor)
 
 Le MLP est un réseau de neurones simple avec :
 - 2 couches cachées (128 → 64 unités)
@@ -28,7 +28,7 @@ from typing import Any
 
 import numpy as np
 from joblib import Memory
-from sklearn.neural_network import MLPClassifier
+from sklearn.neural_network import MLPRegressor
 from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
@@ -45,7 +45,7 @@ def build_mlp_pipeline(
     early_stopping: bool = True,
     random_state: int = 42,
 ) -> Pipeline:
-    """Construit un pipeline MLP avec scaling + classification.
+    """Construit un pipeline MLP avec scaling + régression.
 
     Args:
         hidden_layer_sizes: tuple des tailles de couches cachées
@@ -54,9 +54,9 @@ def build_mlp_pipeline(
         random_state: seed pour la reproductibilité
 
     Returns:
-        Pipeline sklearn avec StandardScaler + MLPClassifier
+        Pipeline sklearn avec StandardScaler + MLPRegressor
     """
-    mlp = MLPClassifier(
+    mlp = MLPRegressor(
         hidden_layer_sizes=hidden_layer_sizes,
         activation="relu",
         solver="adam",

@@ -45,6 +45,7 @@ import type {
   RawRiskDistribution,
   RawAlertEvent,
   RawHeatmapCell,
+  TypeAlerte,
 } from "@/models/analyse/analyticsFeature";
 
 // Le gateway route /api/analyse/** vers le service predictive-analytics avec
@@ -143,7 +144,7 @@ function mapDashboard(raw: RawDashboard): DashboardResponse {
   // teacher_risk_profiles peuplés) : alertes récentes, heatmap, top formations.
   const alertes_recentes: AlertEvent[] = (raw.alertes_recentes ?? []).map((a: RawAlertEvent) => ({
     id: Number(a.id ?? 0),
-    type_alerte: a.type_alerte ?? "",
+    type_alerte: (a.type_alerte ?? "BESOIN_NON_COUVERT") as TypeAlerte,
     cible_type: "INDIVIDUEL",
     enseignant_id: a.enseignant_id ?? null,
     departement_id: a.departement_id ?? null,
