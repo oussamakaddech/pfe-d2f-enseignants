@@ -1,4 +1,5 @@
 package esprit.pfe.serviceanalyse.services;
+import static esprit.pfe.serviceanalyse.services.RestTemplateMockHelper.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,6 +9,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
@@ -35,24 +39,19 @@ class AnalysePredictiveServiceFormationsTest {
         ReflectionTestUtils.setField(analysePredictiveService, "besoinFormationServiceUrl", "http://besoin");
     }
 
+    private void stubNullBody(String fragment) {
+        when(restTemplate.exchange(contains(fragment), eq(HttpMethod.GET), any(HttpEntity.class), eq(Map.class)))
+                .thenReturn(ResponseEntity.ok(null));
+    }
+
     @Test
     void testRecommanderFormations_WithNullFormations() {
-        // Test with null formations
-        Map<String, Object> comp = new HashMap<>();
-        comp.put("id", 1);
-        comp.put("nom", "Java");
-        Map<String, Object> aff = new HashMap<>();
-        aff.put("competence", comp);
-        aff.put("niveauMaitrise", 2);
-
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(null);
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+        stubNullBody(FORMATIONS);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS);
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
@@ -62,55 +61,31 @@ class AnalysePredictiveServiceFormationsTest {
 
     @Test
     void testRecommanderFormations_WithServiceFailure() {
-        // Test with service failure
-        Map<String, Object> comp = new HashMap<>();
-        comp.put("id", 1);
-        comp.put("nom", "Java");
-        Map<String, Object> aff = new HashMap<>();
-        aff.put("competence", comp);
-        aff.put("niveauMaitrise", 2);
-
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenThrow(new RuntimeException("Service de formation indisponible"));
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+        RestTemplateMockHelper.mockEndpointFailure(restTemplate, FORMATIONS, new RuntimeException("Service de formation indisponible"));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS);
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
         List<Map<String, Object>> recommandations = (List<Map<String, Object>>) result.get("recommandationsFormations");
         assertFalse(recommandations.isEmpty(), "Une recommandation de fallback doit être faite en cas d'erreur");
-        assertEquals("Service formation indisponible", recommandations.get(0).get("titre"), 
+        assertEquals("Service formation indisponible", recommandations.get(0).get("titre"),
             "Le titre de la recommandation de fallback doit être correct");
     }
 
     @Test
     void testRecommanderFormations_WithAnnuleeFormation() {
-        // Test with ANNULEE formation (should be skipped)
-        Map<String, Object> comp = new HashMap<>();
-        comp.put("id", 1);
-        comp.put("nom", "Java");
-        Map<String, Object> aff = new HashMap<>();
-        aff.put("competence", comp);
-        aff.put("niveauMaitrise", 2);
-
-        Map<String, Object> formation = new HashMap<>();
-        formation.put("formationId", 101);
-        formation.put("titreFormation", "Java Advanced");
-        formation.put("etatFormation", "ANNULEE");
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+        Map<String, Object> formation = RestTemplateMockHelper.formation(101L, "Java Advanced", "ANNULEE");
         formation.put("chargeHoraireGlobal", 20);
-
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(List.of(formation));
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS, formation);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS);
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
@@ -120,38 +95,18 @@ class AnalysePredictiveServiceFormationsTest {
 
     @Test
     void testRecommanderFormations_WithMultipleFormations() {
-        // Test with multiple formations
-        Map<String, Object> comp = new HashMap<>();
-        comp.put("id", 1);
-        comp.put("nom", "Java");
-        Map<String, Object> aff = new HashMap<>();
-        aff.put("competence", comp);
-        aff.put("niveauMaitrise", 2);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
 
-        Map<String, Object> formation1 = new HashMap<>();
-        formation1.put("idFormation", 101);
-        formation1.put("titreFormation", "Java Advanced");
-        formation1.put("etatFormation", "PLANIFIEE");
+        Map<String, Object> formation1 = RestTemplateMockHelper.formation(101L, "Java Advanced", "PLANIFIEE");
         formation1.put("chargeHoraireGlobal", 20);
-
-        Map<String, Object> formation2 = new HashMap<>();
-        formation2.put("idFormation", 102);
-        formation2.put("titreFormation", "Python Basics");
-        formation2.put("etatFormation", "PLANIFIEE");
+        Map<String, Object> formation2 = RestTemplateMockHelper.formation(102L, "Python Basics", "PLANIFIEE");
         formation2.put("chargeHoraireGlobal", 15);
-
-        Map<String, Object> fc = new HashMap<>();
-        fc.put("competenceId", 1L);
-        fc.put("competenceNom", "Java");
-
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(List.of(formation1, formation2));
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(List.of(fc));
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS, formation1, formation2);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES,
+                RestTemplateMockHelper.formationCompetence(1L, "Java"));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS);
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
@@ -163,112 +118,62 @@ class AnalysePredictiveServiceFormationsTest {
 
     @Test
     void testRecommanderFormations_WithCompetenceCible() {
-        // Test with competenceCible
-        Map<String, Object> comp = new HashMap<>();
-        comp.put("id", 1);
-        comp.put("nom", "Java");
-        Map<String, Object> aff = new HashMap<>();
-        aff.put("competence", comp);
-        aff.put("niveauMaitrise", 2);
-
-        Map<String, Object> formation = new HashMap<>();
-        formation.put("formationId", 101);
-        formation.put("titreFormation", "Java Advanced");
-        formation.put("etatFormation", "PLANIFIEE");
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+        Map<String, Object> formation = RestTemplateMockHelper.formation(101L, "Java Advanced", "PLANIFIEE");
         formation.put("chargeHoraireGlobal", 20);
-
-        Map<String, Object> fc = new HashMap<>();
-        fc.put("competenceId", 1L);
-        fc.put("competenceNom", "Java");
-
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(List.of(formation));
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(List.of(fc));
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS, formation);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES,
+                RestTemplateMockHelper.formationCompetence(1L, "Java"));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS);
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", 1L);
         assertNotNull(result);
         List<Map<String, Object>> recommandations = (List<Map<String, Object>>) result.get("recommandationsFormations");
         assertFalse(recommandations.isEmpty(), "Les recommandations doivent être détectées");
-        assertEquals(0.90, recommandations.get(0).get("probabiliteReussite"), 
+        assertEquals(0.90, recommandations.get(0).get("probabiliteReussite"),
             "La probabilité de réussite doit être 0.90 pour une formation ciblant la compétence cible");
     }
 
     @Test
     void testRecommanderFormations_WithNullChargeHoraire() {
-        // Test with null chargeHoraireGlobal
-        Map<String, Object> comp = new HashMap<>();
-        comp.put("id", 1);
-        comp.put("nom", "Java");
-        Map<String, Object> aff = new HashMap<>();
-        aff.put("competence", comp);
-        aff.put("niveauMaitrise", 2);
-
-        Map<String, Object> formation = new HashMap<>();
-        formation.put("idFormation", 101);
-        formation.put("titreFormation", "Java Advanced");
-        formation.put("etatFormation", "PLANIFIEE");
-        // No chargeHoraireGlobal
-
-        Map<String, Object> fc = new HashMap<>();
-        fc.put("competenceId", 1L);
-        fc.put("competenceNom", "Java");
-
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(List.of(formation));
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(List.of(fc));
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+        Map<String, Object> formation = RestTemplateMockHelper.formation(101L, "Java Advanced", "PLANIFIEE");
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS, formation);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES,
+                RestTemplateMockHelper.formationCompetence(1L, "Java"));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS);
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
         List<Map<String, Object>> recommandations = (List<Map<String, Object>>) result.get("recommandationsFormations");
         assertFalse(recommandations.isEmpty(), "Les recommandations doivent être détectées");
-        assertEquals("0h", recommandations.get(0).get("dureeEstimee"), 
+        assertEquals("0h", recommandations.get(0).get("dureeEstimee"),
             "La durée estimée doit être '0h' si chargeHoraireGlobal est null");
     }
 
     @Test
     void testRecommanderFormations_WithNullTitre() {
-        // Test with null titreFormation
-        Map<String, Object> comp = new HashMap<>();
-        comp.put("id", 1);
-        comp.put("nom", "Java");
-        Map<String, Object> aff = new HashMap<>();
-        aff.put("competence", comp);
-        aff.put("niveauMaitrise", 2);
-
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
         Map<String, Object> formation = new HashMap<>();
-        formation.put("idFormation", 101);
+        formation.put("formationId", 101L);
         formation.put("etatFormation", "PLANIFIEE");
         formation.put("chargeHoraireGlobal", 20);
-        // No titreFormation
-
-        Map<String, Object> fc = new HashMap<>();
-        fc.put("competenceId", 1L);
-        fc.put("competenceNom", "Java");
-
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(List.of(formation));
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(List.of(fc));
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS, formation);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES,
+                RestTemplateMockHelper.formationCompetence(1L, "Java"));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS);
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
         List<Map<String, Object>> recommandations = (List<Map<String, Object>>) result.get("recommandationsFormations");
         assertFalse(recommandations.isEmpty(), "Les recommandations doivent être détectées");
-        assertEquals("Sans titre", recommandations.get(0).get("titre"), 
+        assertEquals("Sans titre", recommandations.get(0).get("titre"),
             "Le titre doit être 'Sans titre' si titreFormation est null");
     }
 }

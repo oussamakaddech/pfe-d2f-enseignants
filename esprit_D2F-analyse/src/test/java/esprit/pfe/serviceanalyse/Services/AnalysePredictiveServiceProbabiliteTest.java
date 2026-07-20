@@ -1,4 +1,5 @@
 package esprit.pfe.serviceanalyse.services;
+import static esprit.pfe.serviceanalyse.services.RestTemplateMockHelper.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,34 +43,15 @@ class AnalysePredictiveServiceProbabiliteTest {
         @ParameterizedTest
         @MethodSource("provideProbabiliteScenarios")
         void testCalculateProbabilite(String etat, boolean expectHighProb, String description) {
-                // Arrange: create a competence with a gap
-                Map<String, Object> comp = new HashMap<>();
-                comp.put("id", 1);
-                comp.put("nom", "Java");
-                Map<String, Object> aff = new HashMap<>();
-                aff.put("competence", comp);
-                aff.put("niveauMaitrise", 2);
-
-                // Formation with the given state
-                Map<String, Object> formation = new HashMap<>();
-                formation.put("formationId", 100L);
-                formation.put("titreFormation", "Formation Test");
-                formation.put("etatFormation", etat);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                        RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+                Map<String, Object> formation = RestTemplateMockHelper.formation(100L, "Formation Test", etat);
                 formation.put("chargeHoraireGlobal", 20);
-
-                // Formation-competence link targeting the gap
-                Map<String, Object> fcLink = new HashMap<>();
-                fcLink.put("competenceId", 1L);
-                fcLink.put("competenceNom", "Java");
-
-                when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-                                .thenReturn(List.of(aff));
-                when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-                                .thenReturn(List.of(formation));
-                when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-                                .thenReturn(List.of(fcLink));
-                when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-                                .thenReturn(Collections.emptyList());
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS, formation);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES,
+                        RestTemplateMockHelper.formationCompetence(1L, "Java"));
+                RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS);
 
                 Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
                 assertNotNull(result, description);
@@ -95,33 +77,15 @@ class AnalysePredictiveServiceProbabiliteTest {
 
         @Test
         void testProbabiliteWithNoGapMatch() {
-                // Formation that does NOT target any competence gap
-                Map<String, Object> comp = new HashMap<>();
-                comp.put("id", 1);
-                comp.put("nom", "Java");
-                Map<String, Object> aff = new HashMap<>();
-                aff.put("competence", comp);
-                aff.put("niveauMaitrise", 2);
-
-                Map<String, Object> formation = new HashMap<>();
-                formation.put("formationId", 200L);
-                formation.put("titreFormation", "Formation Python");
-                formation.put("etatFormation", "EN_COURS");
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                        RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+                Map<String, Object> formation = RestTemplateMockHelper.formation(200L, "Formation Python", "EN_COURS");
                 formation.put("chargeHoraireGlobal", 30);
-
-                // fc link with a different competence (no match)
-                Map<String, Object> fcLink = new HashMap<>();
-                fcLink.put("competenceId", 999L);
-                fcLink.put("competenceNom", "Python");
-
-                when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-                                .thenReturn(List.of(aff));
-                when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-                                .thenReturn(List.of(formation));
-                when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-                                .thenReturn(List.of(fcLink));
-                when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-                                .thenReturn(Collections.emptyList());
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS, formation);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES,
+                        RestTemplateMockHelper.formationCompetence(999L, "Python"));
+                RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS);
 
                 Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
                 assertNotNull(result);
@@ -136,26 +100,13 @@ class AnalysePredictiveServiceProbabiliteTest {
 
         @Test
         void testProbabiliteWithCancelledFormation() {
-                // Cancelled formations should be skipped entirely
-                Map<String, Object> comp = new HashMap<>();
-                comp.put("id", 1);
-                comp.put("nom", "Java");
-                Map<String, Object> aff = new HashMap<>();
-                aff.put("competence", comp);
-                aff.put("niveauMaitrise", 2);
-
-                Map<String, Object> formation = new HashMap<>();
-                formation.put("formationId", 300L);
-                formation.put("titreFormation", "Formation Annulée");
-                formation.put("etatFormation", "ANNULEE");
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                        RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+                Map<String, Object> formation = RestTemplateMockHelper.formation(300L, "Formation Annulée", "ANNULEE");
                 formation.put("chargeHoraireGlobal", 10);
-
-                when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-                                .thenReturn(List.of(aff));
-                when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-                                .thenReturn(List.of(formation));
-                when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-                                .thenReturn(Collections.emptyList());
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS, formation);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS);
 
                 Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
                 assertNotNull(result);

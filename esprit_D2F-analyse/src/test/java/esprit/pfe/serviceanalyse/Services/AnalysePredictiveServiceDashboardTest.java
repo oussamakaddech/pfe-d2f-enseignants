@@ -1,4 +1,5 @@
 package esprit.pfe.serviceanalyse.services;
+import static esprit.pfe.serviceanalyse.services.RestTemplateMockHelper.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,24 +36,21 @@ class AnalysePredictiveServiceDashboardTest {
         ReflectionTestUtils.setField(analysePredictiveService, "besoinFormationServiceUrl", "http://besoin");
     }
 
+    private Map<String, Object> eval(Double note, String id) {
+        Map<String, Object> m = new HashMap<>();
+        m.put("noteGlobale", note);
+        m.put("enseignantId", id);
+        return m;
+    }
+
     @Test
     void testGenererDashboardEnseignant_WithEmptyGaps() {
-        // Test with empty gaps (scoreGlobal = 5.0, statut = "suivi")
-        Map<String, Object> comp = new HashMap<>();
-        comp.put("id", 1);
-        comp.put("nom", "Java");
-        Map<String, Object> aff = new HashMap<>();
-        aff.put("competence", comp);
-        aff.put("niveauMaitrise", 4); // No gap
-
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "AVANCE"));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS);
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
@@ -65,22 +63,12 @@ class AnalysePredictiveServiceDashboardTest {
 
     @Test
     void testGenererDashboardEnseignant_WithHighGraviteGaps() {
-        // Test with high gravite gaps (statut = "a_risque")
-        Map<String, Object> comp = new HashMap<>();
-        comp.put("id", 1);
-        comp.put("nom", "Java");
-        Map<String, Object> aff = new HashMap<>();
-        aff.put("competence", comp);
-        aff.put("niveauMaitrise", 1); // High gap
-
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "DEBUTANT"));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS);
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
@@ -91,9 +79,7 @@ class AnalysePredictiveServiceDashboardTest {
 
     @Test
     void testAnalyserTendancesGlobales_WithNullEvals() {
-        // Test with null evaluations
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
-            .thenReturn(null);
+        RestTemplateMockHelper.mockEndpointFailure(restTemplate, EVALUATIONS, new RuntimeException("Service down"));
 
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
         assertNotNull(result, "Le résultat ne doit pas être null");
@@ -107,9 +93,7 @@ class AnalysePredictiveServiceDashboardTest {
 
     @Test
     void testAnalyserTendancesGlobales_WithServiceFailure() {
-        // Test with service failure
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
-            .thenThrow(new RuntimeException("Service down"));
+        RestTemplateMockHelper.mockEndpointFailure(restTemplate, EVALUATIONS, new RuntimeException("Service down"));
 
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
         assertNotNull(result, "Le résultat ne doit pas être null");
@@ -123,17 +107,7 @@ class AnalysePredictiveServiceDashboardTest {
 
     @Test
     void testAnalyserTendancesGlobales_WithValidEvals() {
-        // Test with valid evaluations
-        Map<String, Object> eval1 = new HashMap<>();
-        eval1.put("note", 3.5);
-        eval1.put("evaluateurId", "ens1");
-
-        Map<String, Object> eval2 = new HashMap<>();
-        eval2.put("note", 2.5);
-        eval2.put("evaluateurId", "ens2");
-
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
-            .thenReturn(List.of(eval1, eval2));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, EVALUATIONS, eval(3.5, "ens1"), eval(2.5, "ens2"));
 
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
         assertNotNull(result, "Le résultat ne doit pas être null");
@@ -147,9 +121,7 @@ class AnalysePredictiveServiceDashboardTest {
 
     @Test
     void testGenererDashboard_WithNullEvals() {
-        // Test with null evaluations
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
-            .thenReturn(null);
+        RestTemplateMockHelper.mockEndpointFailure(restTemplate, EVALUATIONS, new RuntimeException("Service down"));
 
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
         assertNotNull(result, "Le résultat ne doit pas être null");
@@ -163,9 +135,7 @@ class AnalysePredictiveServiceDashboardTest {
 
     @Test
     void testGenererDashboard_WithServiceFailure() {
-        // Test with service failure
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
-            .thenThrow(new RuntimeException("Service down"));
+        RestTemplateMockHelper.mockEndpointFailure(restTemplate, EVALUATIONS, new RuntimeException("Service down"));
 
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
         assertNotNull(result, "Le résultat ne doit pas être null");
@@ -179,17 +149,7 @@ class AnalysePredictiveServiceDashboardTest {
 
     @Test
     void testGenererDashboard_WithEnseignantsARisque() {
-        // Test with enseignants à risque
-        Map<String, Object> eval1 = new HashMap<>();
-        eval1.put("note", 1.5);
-        eval1.put("evaluateurId", "ens1");
-
-        Map<String, Object> eval2 = new HashMap<>();
-        eval2.put("note", 2.5);
-        eval2.put("evaluateurId", "ens2");
-
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
-            .thenReturn(List.of(eval1, eval2));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, EVALUATIONS, eval(1.5, "ens1"), eval(2.5, "ens2"));
 
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
         assertNotNull(result, "Le résultat ne doit pas être null");
@@ -202,17 +162,7 @@ class AnalysePredictiveServiceDashboardTest {
 
     @Test
     void testGenererDashboard_WithNullNotes() {
-        // Test with null notes
-        Map<String, Object> eval1 = new HashMap<>();
-        eval1.put("note", null);
-        eval1.put("evaluateurId", "ens1");
-
-        Map<String, Object> eval2 = new HashMap<>();
-        eval2.put("note", null);
-        eval2.put("evaluateurId", "ens2");
-
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
-            .thenReturn(List.of(eval1, eval2));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, EVALUATIONS, eval(null, "ens1"), eval(null, "ens2"));
 
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
         assertNotNull(result, "Le résultat ne doit pas être null");

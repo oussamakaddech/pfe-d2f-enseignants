@@ -1,4 +1,5 @@
 package esprit.pfe.serviceanalyse.services;
+import static esprit.pfe.serviceanalyse.services.RestTemplateMockHelper.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,29 +36,27 @@ class AnalysePredictiveServicePrioriteTest {
                 ReflectionTestUtils.setField(analysePredictiveService, "besoinFormationServiceUrl", "http://besoin");
         }
 
+        private Map<String, Object> besoin(String nom) {
+                Map<String, Object> b = new HashMap<>();
+                b.put("competenceNom", nom);
+                b.put("titre", "Formation " + nom);
+                return b;
+        }
+
+        private List<Map<String, Object>> repete(Map<String, Object> b, int n) {
+                List<Map<String, Object>> l = new ArrayList<>();
+                for (int i = 0; i < n; i++) l.add(b);
+                return l;
+        }
+
         @Test
         void testGetPrioriteOrder_WithHighPriority() {
-                // Test with high priority
-                Map<String, Object> comp = new HashMap<>();
-                comp.put("id", 1);
-                comp.put("nom", "Java");
-                Map<String, Object> aff = new HashMap<>();
-                aff.put("competence", comp);
-                aff.put("niveauMaitrise", 2);
-
-                Map<String, Object> besoin = new HashMap<>();
-                besoin.put("competence", "Java");
-                besoin.put("titre", "Formation Java");
-
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(List.of(aff));
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(Collections.emptyList());
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(Collections.emptyList());
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(List.of(besoin, besoin, besoin, besoin, besoin)); // 5 besoins -> haute
-                                                                                              // priorité
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                        RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS, repete(besoin("Java"), 5).toArray());
 
                 Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
                 assertNotNull(result);
@@ -68,26 +67,12 @@ class AnalysePredictiveServicePrioriteTest {
 
         @Test
         void testGetPrioriteOrder_WithMediumPriority() {
-                // Test with medium priority
-                Map<String, Object> comp = new HashMap<>();
-                comp.put("id", 1);
-                comp.put("nom", "Java");
-                Map<String, Object> aff = new HashMap<>();
-                aff.put("competence", comp);
-                aff.put("niveauMaitrise", 2);
-
-                Map<String, Object> besoin = new HashMap<>();
-                besoin.put("competence", "Java");
-                besoin.put("titre", "Formation Java");
-
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(List.of(aff));
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(Collections.emptyList());
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(Collections.emptyList());
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(List.of(besoin, besoin)); // 2 besoins -> moyenne priorité
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                        RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS, repete(besoin("Java"), 2).toArray());
 
                 Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
                 assertNotNull(result);
@@ -99,26 +84,12 @@ class AnalysePredictiveServicePrioriteTest {
 
         @Test
         void testGetPrioriteOrder_WithLowPriority() {
-                // Test with low priority
-                Map<String, Object> comp = new HashMap<>();
-                comp.put("id", 1);
-                comp.put("nom", "Java");
-                Map<String, Object> aff = new HashMap<>();
-                aff.put("competence", comp);
-                aff.put("niveauMaitrise", 2);
-
-                Map<String, Object> besoin = new HashMap<>();
-                besoin.put("competence", "Java");
-                besoin.put("titre", "Formation Java");
-
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(List.of(aff));
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(Collections.emptyList());
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(Collections.emptyList());
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(List.of(besoin)); // 1 besoin -> faible priorité
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                        RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS, repete(besoin("Java"), 1).toArray());
 
                 Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
                 assertNotNull(result);
@@ -129,42 +100,17 @@ class AnalysePredictiveServicePrioriteTest {
 
         @Test
         void testGetPrioriteOrder_WithMultiplePriorities() {
-                // Test with multiple priorities (should be sorted by priority)
-                Map<String, Object> comp = new HashMap<>();
-                comp.put("id", 1);
-                comp.put("nom", "Java");
-                Map<String, Object> aff = new HashMap<>();
-                aff.put("competence", comp);
-                aff.put("niveauMaitrise", 2);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                        RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
 
-                Map<String, Object> besoin1 = new HashMap<>();
-                besoin1.put("competence", "Java");
-                besoin1.put("titre", "Formation Java");
-
-                Map<String, Object> besoin2 = new HashMap<>();
-                besoin2.put("competence", "Python");
-                besoin2.put("titre", "Formation Python");
-
-                Map<String, Object> besoin3 = new HashMap<>();
-                besoin3.put("competence", "JavaScript");
-                besoin3.put("titre", "Formation JavaScript");
-
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(List.of(aff));
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(Collections.emptyList());
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(Collections.emptyList());
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(List.of(besoin1, besoin1, besoin1, besoin1, besoin1, besoin2, besoin2,
-                                                besoin3)); // 5 Java
-                                                           // (haute),
-                                                           // 2
-                                                           // Python
-                                                           // (moyenne),
-                                                           // 1
-                                                           // JavaScript
-                                                           // (faible)
+                List<Map<String, Object>> liste = new ArrayList<>();
+                liste.addAll(repete(besoin("Java"), 5));
+                liste.addAll(repete(besoin("Python"), 2));
+                liste.add(besoin("JavaScript"));
+                RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS, liste.toArray());
 
                 Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
                 assertNotNull(result);
@@ -180,30 +126,18 @@ class AnalysePredictiveServicePrioriteTest {
 
         @Test
         void testGetPrioriteOrder_WithUnknownPriority() {
-                // Test with unknown priority
-                Map<String, Object> comp = new HashMap<>();
-                comp.put("id", 1);
-                comp.put("nom", "Java");
-                Map<String, Object> aff = new HashMap<>();
-                aff.put("competence", comp);
-                aff.put("niveauMaitrise", 1); // High gap
-
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(List.of(aff));
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(Collections.emptyList());
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(Collections.emptyList());
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenThrow(new RuntimeException("Service down"));
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(List.of(aff));
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                        RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS, repete(besoin("Java"), 1).toArray());
 
                 Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
                 assertNotNull(result);
                 List<Map<String, Object>> besoins = (List<Map<String, Object>>) result.get("besoinsDetectes");
-                assertFalse(besoins.isEmpty(), "Les besoins doivent être détectés via le fallback des gaps");
+                assertFalse(besoins.isEmpty(), "Les besoins doivent être détectés");
                 assertEquals("faible", besoins.get(0).get("priorite"),
-                                "La priorité doit correspondre au besoin détecté");
+                                "La priorité doit être faible pour un seul besoin");
         }
 }

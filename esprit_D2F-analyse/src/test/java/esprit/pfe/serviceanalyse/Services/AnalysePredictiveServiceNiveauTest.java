@@ -1,4 +1,5 @@
 package esprit.pfe.serviceanalyse.services;
+import static esprit.pfe.serviceanalyse.services.RestTemplateMockHelper.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,16 +42,16 @@ class AnalysePredictiveServiceNiveauTest {
         @ParameterizedTest
         @MethodSource("provideNiveauTestCases")
         void testParseNiveau(Object niveauObj, int expectedNiveau) {
-                // Test with different niveau values
-                Map<String, Object> comp = new HashMap<>();
-                comp.put("id", 1);
-                comp.put("nom", "Java");
                 Map<String, Object> aff = new HashMap<>();
-                aff.put("competence", comp);
-                aff.put("niveauMaitrise", niveauObj);
+                aff.put("competenceId", 1L);
+                aff.put("competenceNom", "Java");
+                aff.put("niveau", niveauObj);
 
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(List.of(aff), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT, aff);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS);
 
                 Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
                 assertNotNull(result);
@@ -102,25 +103,21 @@ class AnalysePredictiveServiceNiveauTest {
         @ParameterizedTest
         @MethodSource("providePrioriteOrderTestCases")
         void testGetPrioriteOrder(String priorite, int expectedOrder) {
-                // Test with different priority values
-                Map<String, Object> comp = new HashMap<>();
-                comp.put("id", 1);
-                comp.put("nom", "Java");
-                Map<String, Object> aff = new HashMap<>();
-                aff.put("competence", comp);
-                aff.put("niveauMaitrise", 2);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                        RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
 
                 Map<String, Object> besoin = new HashMap<>();
-                besoin.put("competence", "Java");
+                besoin.put("competenceNom", "Java");
                 besoin.put("titre", "Formation Java");
 
                 List<Map<String, Object>> besoinsList = new ArrayList<>();
                 for (int i = 0; i < expectedOrder; i++) {
                         besoinsList.add(besoin);
                 }
-
-                when(restTemplate.getForObject(anyString(), any(Class.class)))
-                                .thenReturn(List.of(aff), Collections.emptyList(), Collections.emptyList(), besoinsList, Collections.emptyList());
+                RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS, besoinsList.toArray());
 
                 Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
                 assertNotNull(result);

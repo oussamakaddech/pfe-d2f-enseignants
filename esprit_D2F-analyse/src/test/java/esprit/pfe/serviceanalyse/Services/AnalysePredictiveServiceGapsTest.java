@@ -1,4 +1,5 @@
 package esprit.pfe.serviceanalyse.services;
+import static esprit.pfe.serviceanalyse.services.RestTemplateMockHelper.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,22 +36,21 @@ class AnalysePredictiveServiceGapsTest {
         ReflectionTestUtils.setField(analysePredictiveService, "besoinFormationServiceUrl", "http://besoin");
     }
 
+    private void stubEnvAutour() {
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS);
+    }
+
     @Test
     void testIdentifierGapsViaEvaluations_WithNullNotes() {
-        // Test with null notes in evaluations
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenThrow(new RuntimeException("Comp service down"));
-
+        RestTemplateMockHelper.mockEndpointFailure(restTemplate, COMPETENCES_ENSEIGNANT, new RuntimeException("Comp service down"));
         Map<String, Object> eval = new HashMap<>();
-        eval.put("note", null);
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
-            .thenReturn(List.of(eval));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        eval.put("noteGlobale", null);
+        eval.put("enseignantId", "ens1");
+        RestTemplateMockHelper.mockEndpoint(restTemplate, EVALUATIONS, eval);
+        stubEnvAutour();
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
@@ -60,27 +60,22 @@ class AnalysePredictiveServiceGapsTest {
 
     @Test
     void testIdentifierGapsViaEvaluations_WithMixedNotes() {
-        // Test with mixed null and valid notes in evaluations
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenThrow(new RuntimeException("Comp service down"));
+        RestTemplateMockHelper.mockEndpointFailure(restTemplate, COMPETENCES_ENSEIGNANT, new RuntimeException("Comp service down"));
 
         Map<String, Object> eval1 = new HashMap<>();
-        eval1.put("note", 2.5);
+        eval1.put("noteGlobale", 2.5);
+        eval1.put("enseignantId", "ens1");
 
         Map<String, Object> eval2 = new HashMap<>();
-        eval2.put("note", null);
+        eval2.put("noteGlobale", null);
+        eval2.put("enseignantId", "ens2");
 
         Map<String, Object> eval3 = new HashMap<>();
-        eval3.put("note", 3.5);
+        eval3.put("noteGlobale", 3.5);
+        eval3.put("enseignantId", "ens3");
 
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
-            .thenReturn(List.of(eval1, eval2, eval3));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        RestTemplateMockHelper.mockEndpoint(restTemplate, EVALUATIONS, eval1, eval2, eval3);
+        stubEnvAutour();
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
@@ -90,20 +85,13 @@ class AnalysePredictiveServiceGapsTest {
 
     @Test
     void testIdentifierGapsViaEvaluations_WithHighGap() {
-        // Test with high gap (gapVal >= 2)
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenThrow(new RuntimeException("Comp service down"));
+        RestTemplateMockHelper.mockEndpointFailure(restTemplate, COMPETENCES_ENSEIGNANT, new RuntimeException("Comp service down"));
 
         Map<String, Object> eval = new HashMap<>();
-        eval.put("note", 1.0); // gapVal = 3.0 - 1.0 = 2.0 -> GRAVITE_ELEVEE
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
-            .thenReturn(List.of(eval));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        eval.put("noteGlobale", 1.0);
+        eval.put("enseignantId", "ens1");
+        RestTemplateMockHelper.mockEndpoint(restTemplate, EVALUATIONS, eval);
+        stubEnvAutour();
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
@@ -115,20 +103,13 @@ class AnalysePredictiveServiceGapsTest {
 
     @Test
     void testIdentifierGapsViaEvaluations_WithMediumGap() {
-        // Test with medium gap (0 < gapVal < 2)
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenThrow(new RuntimeException("Comp service down"));
+        RestTemplateMockHelper.mockEndpointFailure(restTemplate, COMPETENCES_ENSEIGNANT, new RuntimeException("Comp service down"));
 
         Map<String, Object> eval = new HashMap<>();
-        eval.put("note", 2.5); // gapVal = 3.0 - 2.5 = 0.5 -> GRAVITE_MOYENNE
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
-            .thenReturn(List.of(eval));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        eval.put("noteGlobale", 2.5);
+        eval.put("enseignantId", "ens1");
+        RestTemplateMockHelper.mockEndpoint(restTemplate, EVALUATIONS, eval);
+        stubEnvAutour();
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
@@ -140,20 +121,13 @@ class AnalysePredictiveServiceGapsTest {
 
     @Test
     void testIdentifierGapsViaEvaluations_WithNoGap() {
-        // Test with no gap (gapVal <= 0)
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenThrow(new RuntimeException("Comp service down"));
+        RestTemplateMockHelper.mockEndpointFailure(restTemplate, COMPETENCES_ENSEIGNANT, new RuntimeException("Comp service down"));
 
         Map<String, Object> eval = new HashMap<>();
-        eval.put("note", 4.0); // gapVal = 3.0 - 4.0 = -1.0 -> Math.max(0, -1.0) = 0.0
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
-            .thenReturn(List.of(eval));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        eval.put("noteGlobale", 4.0);
+        eval.put("enseignantId", "ens1");
+        RestTemplateMockHelper.mockEndpoint(restTemplate, EVALUATIONS, eval);
+        stubEnvAutour();
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
@@ -163,18 +137,9 @@ class AnalysePredictiveServiceGapsTest {
 
     @Test
     void testIdentifierGapsViaEvaluations_WithEmptyEvals() {
-        // Test with empty evaluations
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenThrow(new RuntimeException("Comp service down"));
-
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        RestTemplateMockHelper.mockEndpointFailure(restTemplate, COMPETENCES_ENSEIGNANT, new RuntimeException("Comp service down"));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, EVALUATIONS);
+        stubEnvAutour();
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
@@ -184,18 +149,9 @@ class AnalysePredictiveServiceGapsTest {
 
     @Test
     void testIdentifierGapsViaEvaluations_WithServiceFailure() {
-        // Test with service failure
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenThrow(new RuntimeException("Comp service down"));
-
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
-            .thenThrow(new RuntimeException("Eval service down"));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        RestTemplateMockHelper.mockEndpointFailure(restTemplate, COMPETENCES_ENSEIGNANT, new RuntimeException("Comp service down"));
+        RestTemplateMockHelper.mockEndpointFailure(restTemplate, EVALUATIONS, new RuntimeException("Eval service down"));
+        stubEnvAutour();
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
@@ -205,24 +161,18 @@ class AnalysePredictiveServiceGapsTest {
 
     @Test
     void testIdentifierGapsViaEvaluations_WithAllNullNotes() {
-        // Test with all null notes
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenThrow(new RuntimeException("Comp service down"));
+        RestTemplateMockHelper.mockEndpointFailure(restTemplate, COMPETENCES_ENSEIGNANT, new RuntimeException("Comp service down"));
 
         Map<String, Object> eval1 = new HashMap<>();
-        eval1.put("note", null);
+        eval1.put("noteGlobale", null);
+        eval1.put("enseignantId", "ens1");
 
         Map<String, Object> eval2 = new HashMap<>();
-        eval2.put("note", null);
+        eval2.put("noteGlobale", null);
+        eval2.put("enseignantId", "ens2");
 
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
-            .thenReturn(List.of(eval1, eval2));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        RestTemplateMockHelper.mockEndpoint(restTemplate, EVALUATIONS, eval1, eval2);
+        stubEnvAutour();
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);

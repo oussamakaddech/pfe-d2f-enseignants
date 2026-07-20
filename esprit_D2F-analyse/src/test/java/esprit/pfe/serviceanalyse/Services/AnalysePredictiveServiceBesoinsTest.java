@@ -1,4 +1,5 @@
 package esprit.pfe.serviceanalyse.services;
+import static esprit.pfe.serviceanalyse.services.RestTemplateMockHelper.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,31 +44,21 @@ class AnalysePredictiveServiceBesoinsTest {
         @ParameterizedTest
         @MethodSource("provideBesoinsTestCases")
         void testDetecterBesoins(int count, String expectedPriority, String expectedType, String testName) {
-                // Test with different priorities
-                Map<String, Object> comp = new HashMap<>();
-                comp.put("id", 1);
-                comp.put("nom", "Java");
-                Map<String, Object> aff = new HashMap<>();
-                aff.put("competence", comp);
-                aff.put("niveauMaitrise", 2);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                        RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
 
                 Map<String, Object> besoin = new HashMap<>();
-                besoin.put("competence", "Java");
+                besoin.put("competenceNom", "Java");
                 besoin.put("titre", "Formation Java");
 
                 List<Map<String, Object>> besoinsList = new ArrayList<>();
                 for (int i = 0; i < count; i++) {
                         besoinsList.add(besoin);
                 }
-
-                when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-                                .thenReturn(List.of(aff));
-                when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-                                .thenReturn(Collections.emptyList());
-                lenient().when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-                                .thenReturn(Collections.emptyList());
-                when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-                                .thenReturn(besoinsList);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS, besoinsList.toArray());
 
                 Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
                 assertNotNull(result);
@@ -85,12 +76,11 @@ class AnalysePredictiveServiceBesoinsTest {
         @ParameterizedTest
         @MethodSource("provideBesoinFieldVariants")
         void testDetecterBesoins_WithVariousFields(String fieldKey, String fieldValue, boolean expectEmpty, String description) {
-                Map<String, Object> comp = new HashMap<>();
-                comp.put("id", 1);
-                comp.put("nom", "Java");
-                Map<String, Object> aff = new HashMap<>();
-                aff.put("competence", comp);
-                aff.put("niveauMaitrise", 2);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                        RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
 
                 Map<String, Object> besoin = new HashMap<>();
                 if (fieldKey != null) {
@@ -98,15 +88,7 @@ class AnalysePredictiveServiceBesoinsTest {
                 } else {
                         besoin.put("otherField", "value");
                 }
-
-                when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-                                .thenReturn(List.of(aff));
-                when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-                                .thenReturn(Collections.emptyList());
-                lenient().when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-                                .thenReturn(Collections.emptyList());
-                when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-                                .thenReturn(List.of(besoin));
+                RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS, besoin);
 
                 Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
                 assertNotNull(result);
@@ -121,29 +103,19 @@ class AnalysePredictiveServiceBesoinsTest {
         private static Stream<Arguments> provideBesoinFieldVariants() {
                 return Stream.of(
                                 Arguments.of("titre", "Formation Java", false, "Les besoins doivent être détectés avec titre"),
-                                Arguments.of("competence", "Java", false, "Les besoins doivent être détectés avec competence"),
+                                Arguments.of("competenceNom", "Java", false, "Les besoins doivent être détectés avec competenceNom"),
                                 Arguments.of(null, null, true, "Les besoins sans compétence ni titre sont ignorés"));
         }
 
 
         @Test
         void testDetecterBesoins_WithServiceFailure() {
-                // Test with service failure (fallback via gaps)
-                Map<String, Object> comp = new HashMap<>();
-                comp.put("id", 1);
-                comp.put("nom", "Java");
-                Map<String, Object> aff = new HashMap<>();
-                aff.put("competence", comp);
-                aff.put("niveauMaitrise", 2);
-
-                when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-                                .thenReturn(List.of(aff));
-                when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-                                .thenReturn(Collections.emptyList());
-                lenient().when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-                                .thenReturn(Collections.emptyList());
-                when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-                                .thenThrow(new RuntimeException("Service down"));
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                        RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
+                RestTemplateMockHelper.mockEndpointFailure(restTemplate, BESOINS, new RuntimeException("Service down"));
 
                 Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
                 assertNotNull(result);
@@ -154,35 +126,28 @@ class AnalysePredictiveServiceBesoinsTest {
 
         @Test
         void testDetecterBesoins_WithMultipleBesoins() {
-                // Test with multiple besoins with different priorities
-                Map<String, Object> comp = new HashMap<>();
-                comp.put("id", 1);
-                comp.put("nom", "Java");
-                Map<String, Object> aff = new HashMap<>();
-                aff.put("competence", comp);
-                aff.put("niveauMaitrise", 2);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                        RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
+                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
 
                 Map<String, Object> besoin1 = new HashMap<>();
-                besoin1.put("competence", "Java");
+                besoin1.put("competenceNom", "Java");
 
                 Map<String, Object> besoin2 = new HashMap<>();
-                besoin2.put("competence", "Python");
+                besoin2.put("competenceNom", "Python");
 
-                when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-                                .thenReturn(List.of(aff));
-                when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-                                .thenReturn(Collections.emptyList());
-                lenient().when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-                                .thenReturn(Collections.emptyList());
-                when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-                                .thenReturn(List.of(besoin1, besoin1, besoin1, besoin1, besoin1, besoin2)); // 5 Java, 1
-                                                                                                            // Python
+                List<Map<String, Object>> liste = new ArrayList<>();
+                for (int i = 0; i < 5; i++) liste.add(besoin1);
+                liste.add(besoin2);
+
+                RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS, liste.toArray());
 
                 Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
                 assertNotNull(result);
                 List<Map<String, Object>> besoins = (List<Map<String, Object>>) result.get("besoinsDetectes");
                 assertEquals(2, besoins.size(), "Deux types de besoins doivent être détectés");
-                // Besoins should be sorted by priority (high first)
                 assertEquals("haute", besoins.get(0).get("priorite"), "Java doit avoir une priorité haute");
                 assertEquals("faible", besoins.get(1).get("priorite"), "Python doit avoir une priorité faible");
         }

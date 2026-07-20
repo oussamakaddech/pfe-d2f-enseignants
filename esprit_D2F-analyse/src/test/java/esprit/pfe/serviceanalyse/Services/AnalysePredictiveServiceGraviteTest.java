@@ -1,4 +1,5 @@
 package esprit.pfe.serviceanalyse.services;
+import static esprit.pfe.serviceanalyse.services.RestTemplateMockHelper.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,25 +40,26 @@ class AnalysePredictiveServiceGraviteTest {
         ReflectionTestUtils.setField(analysePredictiveService, "besoinFormationServiceUrl", "http://besoin");
     }
 
+    private static String niveauString(int n) {
+        return switch (n) {
+            case 1 -> "DEBUTANT";
+            case 2 -> "INITIE";
+            case 3 -> "CONFIRME";
+            case 4 -> "AVANCE";
+            case 5 -> "EXPERT";
+            default -> "DEBUTANT";
+        };
+    }
+
     @ParameterizedTest
     @MethodSource("provideGapTestCases")
     void testGetGraviteValue_WithGap(int niveauMaitrise, String expectedGravite, boolean shouldHaveGap) {
-        // Test with different gap values
-        Map<String, Object> comp = new HashMap<>();
-        comp.put("id", 1);
-        comp.put("nom", "Java");
-        Map<String, Object> aff = new HashMap<>();
-        aff.put("competence", comp);
-        aff.put("niveauMaitrise", niveauMaitrise);
-
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", niveauString(niveauMaitrise)));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS);
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
@@ -82,29 +84,13 @@ class AnalysePredictiveServiceGraviteTest {
 
     @Test
     void testGetGraviteOrder_WithHighGravite() {
-        // Test with high gravite
-        Map<String, Object> comp = new HashMap<>();
-        comp.put("id", 1);
-        comp.put("nom", "Java");
-        Map<String, Object> aff = new HashMap<>();
-        aff.put("competence", comp);
-        aff.put("niveauMaitrise", 1); // High gap
-
-        Map<String, Object> comp2 = new HashMap<>();
-        comp2.put("id", 2);
-        comp2.put("nom", "Python");
-        Map<String, Object> aff2 = new HashMap<>();
-        aff2.put("competence", comp2);
-        aff2.put("niveauMaitrise", 3); // Low gap
-
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenReturn(List.of(aff, aff2));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "DEBUTANT"),
+                RestTemplateMockHelper.affectation(2L, "Python", 1L, "DOM", "CONFIRME"));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS);
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
@@ -116,29 +102,13 @@ class AnalysePredictiveServiceGraviteTest {
 
     @Test
     void testGetGraviteOrder_WithMediumGravite() {
-        // Test with medium gravite
-        Map<String, Object> comp = new HashMap<>();
-        comp.put("id", 1);
-        comp.put("nom", "Java");
-        Map<String, Object> aff = new HashMap<>();
-        aff.put("competence", comp);
-        aff.put("niveauMaitrise", 2); // Medium gap
-
-        Map<String, Object> comp2 = new HashMap<>();
-        comp2.put("id", 2);
-        comp2.put("nom", "Python");
-        Map<String, Object> aff2 = new HashMap<>();
-        aff2.put("competence", comp2);
-        aff2.put("niveauMaitrise", 3); // Low gap
-
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenReturn(List.of(aff, aff2));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"),
+                RestTemplateMockHelper.affectation(2L, "Python", 1L, "DOM", "CONFIRME"));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS);
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
@@ -150,28 +120,17 @@ class AnalysePredictiveServiceGraviteTest {
 
     @Test
     void testGetGraviteOrder_WithUnknownGravite() {
-        // Test with unknown gravite
-        Map<String, Object> comp = new HashMap<>();
-        comp.put("id", 1);
-        comp.put("nom", "Java");
-        Map<String, Object> aff = new HashMap<>();
-        aff.put("competence", comp);
-        aff.put("niveauMaitrise", 2); // Medium gap
-
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
-            .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
-            .thenReturn(Collections.emptyList());
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS);
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
         List<Map<String, Object>> gaps = (List<Map<String, Object>>) result.get("gaps");
         assertFalse(gaps.isEmpty(), "Les gaps doivent être détectés");
-        // The gravite should be "moyenne" for a gap of 2
         assertEquals("moyenne", gaps.get(0).get("gravite"), "La gravité doit être moyenne pour un gap de 2");
     }
 }
