@@ -1,6 +1,6 @@
 import { defaultApi as axios } from "@/services/httpClient";
 import { config } from "@/config/env";
-import type { FormationsByEtat, ParticipantStats, CountHeures, FormationsByType, CountByTrainerTypeWithIds } from "@/models/analyse/kpi";
+import type { FormationsByEtat, ParticipantStats, CountHeures, FormationsByType, CountByTrainerTypeWithIds, CountByLabel } from "@/models/analyse/kpi";
 import type { Enseignant } from "@/models/enseignant";
 
 const API_URL = `${config.FORMATION_URL}/formation/kpi`;
@@ -228,6 +228,34 @@ const KPIService = {
           interneOnlyIds: [],
           mixteIds: [],
         };
+      }
+      throw error;
+    }
+  },
+
+  async getFormationsByDomaine(start: string, end: string): Promise<CountByLabel[]> {
+    try {
+      const response = await axios.get(`${API_URL}/formations-by-domaine`, {
+        params: { start, end },
+      });
+      return response.data || [];
+    } catch (error: unknown) {
+      if (isNotFoundError(error)) {
+        return [];
+      }
+      throw error;
+    }
+  },
+
+  async getFormationsByCompetence(start: string, end: string): Promise<CountByLabel[]> {
+    try {
+      const response = await axios.get(`${API_URL}/formations-by-competence`, {
+        params: { start, end },
+      });
+      return response.data || [];
+    } catch (error: unknown) {
+      if (isNotFoundError(error)) {
+        return [];
       }
       throw error;
     }

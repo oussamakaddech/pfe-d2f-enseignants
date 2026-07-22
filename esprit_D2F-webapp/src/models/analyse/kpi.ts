@@ -53,3 +53,8 @@ export interface GlobalParticipantKPI {
   nombreParticipantsPresent: number;
   tauxParticipation: number;
 }
+
+export interface CountByLabel {
+  label: string;
+  count: number;
+}

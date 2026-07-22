@@ -55,6 +55,8 @@ export default function CupDashboardPage() {
   const {
     kpis, topCompetences, besoinsPriorises,
     loading, formationsByType, formationsByTypeLoading, timeline, timelineLoading,
+    formationsByDomaine, formationsByDomaineLoading,
+    formationsByCompetence, formationsByCompetenceLoading,
   } = useCupDashboard();
 
   const displayName = user?.username ?? user?.email ?? "Utilisateur";
@@ -76,6 +78,23 @@ export default function CupDashboardPage() {
     { label: "Externe", value: formationsByType?.externe ?? 0, color: "#2563eb" },
     { label: "En ligne", value: formationsByType?.enLigne ?? 0, color: "#0e7490" },
   ], [formationsByType]);
+
+  const domaineColors = ["#2563eb", "#c1121f", "#16a34a", "#ea580c", "#7c3aed", "#0e7490", "#ca8a04", "#be185d"];
+  const domaineItems = useMemo(() =>
+    formationsByDomaine.slice(0, 8).map((d, i) => ({
+      label: d.label,
+      value: d.count,
+      color: domaineColors[i % domaineColors.length],
+    })),
+  [formationsByDomaine]);
+
+  const competenceItems = useMemo(() =>
+    formationsByCompetence.slice(0, 8).map((c, i) => ({
+      label: c.label,
+      value: c.count,
+      color: domaineColors[(i + 2) % domaineColors.length],
+    })),
+  [formationsByCompetence]);
 
   const periodMonths: Record<PeriodKey, number> = { "30j": 2, trimestre: 3, semestre: 6, annee: 12 };
   const periodLabel: Record<PeriodKey, string> = {
@@ -224,8 +243,34 @@ export default function CupDashboardPage() {
         </Card>
       </Section>
 
+      {/* ── Répartition par domaine et compétence ──────────── */}
+      <Section index={2} id="cd-domaines" title="Répartition par domaine et compétence" subtitle="Nombre de formations pour chaque domaine et compétence">
+        <Card
+          className="cd-span-6"
+          title="Formations par domaine"
+          subtitle={`${formationsByDomaine.length} domaines · ${kpis.totalFormations ?? 0} formations`}
+          icon={<ApartmentOutlined />}
+          iconColor="#2563eb"
+          iconBg="rgba(37,99,235,.12)"
+          loading={domaineLoading}
+        >
+          <SegBars items={domaineItems} />
+        </Card>
+        <Card
+          className="cd-span-6"
+          title="Formations par compétence"
+          subtitle={`${formationsByCompetence.length} compétences · ${kpis.totalFormations ?? 0} formations`}
+          icon={<ThunderboltOutlined />}
+          iconColor="#ea580c"
+          iconBg="rgba(234,88,12,.12)"
+          loading={competenceLoading}
+        >
+          <SegBars items={competenceItems} />
+        </Card>
+      </Section>
+
       {/* ── Suivi opérationnel ─────────────────────────────── */}
-      <Section index={2} id="cd-suivi" title="Suivi opérationnel" subtitle="Formations à venir et besoins à traiter">
+      <Section index={3} id="cd-suivi" title="Suivi opérationnel" subtitle="Formations à venir et besoins à traiter">
         <Card
           className="cd-span-6"
           title="Prochaines formations"
@@ -273,7 +318,7 @@ export default function CupDashboardPage() {
       </Section>
 
       {/* ── Couverture et compétences ──────────────────────── */}
-      <Section index={3} id="cd-couverture" title="Couverture et compétences" subtitle="Niveau de couverture de l'UP et compétences à renforcer">
+      <Section index={4} id="cd-couverture" title="Couverture et compétences" subtitle="Niveau de couverture de l'UP et compétences à renforcer">
         <Card
           className="cd-span-5"
           title="Couverture globale"

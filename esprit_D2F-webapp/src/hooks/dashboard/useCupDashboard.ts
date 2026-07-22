@@ -76,6 +76,18 @@ export function useCupDashboard() {
     staleTime: STALE,
   });
 
+  const { data: formationsByDomaine = [], isLoading: domaineLoading } = useQuery({
+    queryKey: ["kpi", "formations-by-domaine", START, END],
+    queryFn: () => KPIService.getFormationsByDomaine(START, END),
+    staleTime: STALE,
+  });
+
+  const { data: formationsByCompetence = [], isLoading: competenceLoading } = useQuery({
+    queryKey: ["kpi", "formations-by-competence", START, END],
+    queryFn: () => KPIService.getFormationsByCompetence(START, END),
+    staleTime: STALE,
+  });
+
   const { data: heures } = useQuery({
     queryKey: ["kpi", "heures", START, END],
     queryFn: () => KPIService.getTotalHeures(START, END),
@@ -256,6 +268,10 @@ export function useCupDashboard() {
     besoins,
     formationsByType,
     formationsByTypeLoading: typeLoading,
+    formationsByDomaine,
+    formationsByDomaineLoading: domaineLoading,
+    formationsByCompetence,
+    formationsByCompetenceLoading: competenceLoading,
     timeline,
     timelineLoading,
     loading: etatLoading || besoinsLoading,

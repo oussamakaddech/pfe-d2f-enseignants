@@ -108,6 +108,22 @@ public class KPIService {
         return dto;
     }
 
+    public List<CountByLabelDTO> getCountFormationsByDomaine(LocalDate start, LocalDate end) {
+        validateDates(start, end);
+        return formationRepository.countFormationsByDomaine(start, end)
+                .stream()
+                .map(row -> new CountByLabelDTO((String) row[0], ((Long) row[1]).intValue()))
+                .toList();
+    }
+
+    public List<CountByLabelDTO> getCountFormationsByCompetence(LocalDate start, LocalDate end) {
+        validateDates(start, end);
+        return formationRepository.countFormationsByCompetence(start, end)
+                .stream()
+                .map(row -> new CountByLabelDTO((String) row[0], ((Long) row[1]).intValue()))
+                .toList();
+    }
+
     public CountByTrainerTypeWithIdsDTO getCountByTrainerTypeWithIds(FormationFilter filter, String etatParam) {
         validateDates(filter.getStart(), filter.getEnd());
         validateFilters(filter.getUpId() != null ? filter.getUpId().toString() : null,

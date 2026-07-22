@@ -58,6 +58,20 @@ public class KPIController {
         return kpiService.getFormationsByEtat(start, end);
     }
 
+    @GetMapping("/formations-by-domaine")
+    public ResponseEntity<List<CountByLabelDTO>> getFormationsByDomaine(
+            @RequestParam("start") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate start,
+            @RequestParam("end") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
+        return ResponseEntity.ok(kpiService.getCountFormationsByDomaine(start, end));
+    }
+
+    @GetMapping("/formations-by-competence")
+    public ResponseEntity<List<CountByLabelDTO>> getFormationsByCompetence(
+            @RequestParam("start") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate start,
+            @RequestParam("end") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
+        return ResponseEntity.ok(kpiService.getCountFormationsByCompetence(start, end));
+    }
+
     @GetMapping("/top-participants")
     public ResponseEntity<Object> topParticipants(
             @RequestParam(required = false) String upId,

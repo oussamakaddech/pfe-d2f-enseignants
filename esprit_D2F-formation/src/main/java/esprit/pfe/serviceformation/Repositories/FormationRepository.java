@@ -91,6 +91,14 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
   @Query("SELECT f.etatFormation, COUNT(f) FROM Formation f WHERE f.dateDebut BETWEEN :start AND :end GROUP BY f.etatFormation")
   List<Object[]> countFormationsByEtat(@Param("start") LocalDate start, @Param("end") LocalDate end);
 
+  // ==================== GROUP BY QUERIES ====================
+
+  @Query("SELECT COALESCE(f.domaine, 'Non défini'), COUNT(f) FROM Formation f WHERE f.dateDebut BETWEEN :start AND :end GROUP BY f.domaine ORDER BY COUNT(f) DESC")
+  List<Object[]> countFormationsByDomaine(@Param("start") LocalDate start, @Param("end") LocalDate end);
+
+  @Query("SELECT COALESCE(f.competence, 'Non défini'), COUNT(f) FROM Formation f WHERE f.dateDebut BETWEEN :start AND :end GROUP BY f.competence ORDER BY COUNT(f) DESC")
+  List<Object[]> countFormationsByCompetence(@Param("start") LocalDate start, @Param("end") LocalDate end);
+
   // ==================== TEACHER QUERIES ====================
   
   List<Formation> findDistinctBySeances_Animateurs_Id(String enseignantId);
