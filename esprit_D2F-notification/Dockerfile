@@ -10,7 +10,7 @@ LABEL maintainer="seddik bouzayani <seddik.bouzayani@esprit.tn>"
 
 WORKDIR /opt/build
 
-RUN apk add --no-cache dos2unix maven
+RUN apk add --no-cache dos2unix
 
 # Install shared d2f-common-security library (non publiée sur Maven Central)
 COPY esprit_D2F-common-security/ /tmp/d2f-common-security/
@@ -24,11 +24,16 @@ WORKDIR /opt/build/esprit_D2F-notification
 COPY esprit_D2F-notification/pom.xml        ./
 COPY esprit_D2F-notification/src/           src/
 
+# Copy Maven Wrapper
+COPY esprit_D2F-notification/.mvn/  .mvn/
+COPY esprit_D2F-notification/mvnw   ./
+RUN dos2unix mvnw && chmod +x mvnw
+
 # Resolve dependencies (cached layer)
-RUN --mount=type=cache,target=/root/.m2 mvn dependency:go-offline -q
+RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline -q
 
 # Build & package
-RUN --mount=type=cache,target=/root/.m2 mvn clean package -Dmaven.test.skip=true -q
+RUN --mount=type=cache,target=/root/.m2 ./mvnw clean package -Dmaven.test.skip=true -q
 
 # Unpack layered jar for optimal Docker layer caching
 RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)

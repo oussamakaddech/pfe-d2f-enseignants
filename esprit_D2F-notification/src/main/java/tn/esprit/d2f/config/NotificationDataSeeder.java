@@ -35,6 +35,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class NotificationDataSeeder implements CommandLineRunner {
 
+    private static final String ACTOR_SYSTEM = "Système";
+    private static final String ACTOR_DEPARTMENT = "Chef Département";
+    private static final String ACTOR_CUP = "CUP";
+
     private final NotificationRepository repository;
     private final INotificationService notificationService;
 
@@ -61,23 +65,23 @@ public class NotificationDataSeeder implements CommandLineRunner {
                 new NotificationRequest(demo, NotificationType.FORMATION, NotificationSeverity.INFO,
                         "Nouvelle formation planifiée",
                         "« Intelligence Artificielle appliquée » – 12 oct. 2026, Bloc C.",
-                        "/home/Formation/Consulter", "CUP", Map.of("formationId", 42)),
+                        "/home/Formation/Consulter", ACTOR_CUP, Map.of("formationId", 42)),
                 new NotificationRequest(demo, NotificationType.CERTIFICAT, NotificationSeverity.SUCCESS,
                         "Certificat disponible",
                         "Votre certificat « Cloud & DevOps » est prêt au téléchargement.",
-                        "/home/certificate/MyCertificate", "Système", Map.of("certificatId", 17)),
+                        "/home/certificate/MyCertificate", ACTOR_SYSTEM, Map.of("certificatId", 17)),
                 new NotificationRequest(demo, NotificationType.BESOIN, NotificationSeverity.INFO,
                         "Besoin validé",
                         "Votre besoin en formation « Python avancé » a été validé par votre chef de département.",
-                        "/home/besoins", "Chef Département", Map.of("besoinId", 8)),
+                        "/home/besoins", ACTOR_DEPARTMENT, Map.of("besoinId", 8)),
                 new NotificationRequest(demo, NotificationType.EVALUATION, NotificationSeverity.WARNING,
                         "Évaluation à compléter",
                         "Votre évaluation de la formation « Cybersécurité » expire dans 48 h.",
-                        "/home/Evaluations", "Système", Map.of("evaluationId", 23)),
+                        "/home/Evaluations", ACTOR_SYSTEM, Map.of("evaluationId", 23)),
                 new NotificationRequest(demo, NotificationType.COMPETENCE, NotificationSeverity.SUCCESS,
                         "Compétence acquise",
                         "La compétence « Gestion de projet agile » a été ajoutée à votre Skill Passport.",
-                        "/home/skill-passport", "Système", Map.of("competenceId", 5))
+                        "/home/skill-passport", ACTOR_SYSTEM, Map.of("competenceId", 5))
         );
 
         for (NotificationRequest req : seed) {

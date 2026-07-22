@@ -74,44 +74,46 @@ VALUES
   ((SELECT id FROM "analyse"."training_paths" WHERE enseignant_id='ENSTEST001'), 90, 'formation-spring', 'EXTERNE', 16, 3, false, '[]'::jsonb, 2, 3, true, false, 0.66, 'Approfondissement');
 
 -- ── 4. Événements d'alerte (répartis sur 6 mois pour l'évolution du risque) ──
+-- CORRIGÉ : departement_id correspond aux IDs du seed V5 (D1..D5).
+-- formation_id référence les IDs du seed V5 (1..10, 24, 75, 90 n'existent pas → utilisés comme placeholders).
 INSERT INTO "analyse"."alert_events"
   (type_alerte, cible_type, enseignant_id, departement_id, competence_id, skill_gap_id,
    severite, titre, message, details_json, statut, created_at)
 VALUES
-  ('GAP_CRITIQUE', 'ENSEIGNANT', 'E00003', 'DEPT_DEV_WEB', 4, NULL, 'CRITICAL',
+  ('GAP_CRITIQUE', 'ENSEIGNANT', 'E00003', 'D2', 4, NULL, 'CRITICAL',
    'Gap critique — Sécurité Applicative', 'Niveau actuel 2 / requis 4 sur la compétence Sécurité Applicative.',
    '{"competence":"Sécurité Applicative","ecart":2}'::jsonb, 'NOUVELLE', now() - interval '6 days'),
-  ('REGRESSION', 'ENSEIGNANT', 'E00003', 'DEPT_DEV_WEB', 6, NULL, 'CRITICAL',
+  ('REGRESSION', 'ENSEIGNANT', 'E00003', 'D2', 6, NULL, 'CRITICAL',
    'Régression — Machine Learning', 'Le niveau en Machine Learning a baissé de 12 % sur 6 mois.',
    '{"competence":"Machine Learning","delta":-0.12}'::jsonb, 'NOUVELLE', now() - interval '3 days'),
-  ('STAGNATION', 'ENSEIGNANT', 'E00003', 'DEPT_DEV_WEB', 1, NULL, 'WARNING',
+  ('STAGNATION', 'ENSEIGNANT', 'E00003', 'D2', 2, NULL, 'WARNING',
    'Stagnation — Développement Backend', 'Aucune formation validée depuis 14 mois.',
    '{"mois_stagnation":14}'::jsonb, 'LUE', now() - interval '20 days'),
-  ('GAP_CRITIQUE', 'ENSEIGNANT', 'E00003', 'DEPT_DEV_WEB', 2, NULL, 'WARNING',
+  ('GAP_CRITIQUE', 'ENSEIGNANT', 'E00003', 'D2', 2, NULL, 'WARNING',
    'Gap modéré — Développement Frontend', 'Niveau actuel 2 / requis 3.',
    '{"competence":"Développement Frontend","ecart":1}'::jsonb, 'TRAITEE', now() - interval '40 days'),
-  ('COMPLETION_FAIBLE', 'ENSEIGNANT', 'E00004', 'DEPT_DEV_WEB', 2, NULL, 'WARNING',
+  ('COMPLETION_FAIBLE', 'ENSEIGNANT', 'E00004', 'D1', 2, NULL, 'WARNING',
    'Complétion faible — Frontend', 'Taux de complétion formation à 50 %.',
    '{"taux":0.5}'::jsonb, 'NOUVELLE', now() - interval '2 days'),
-  ('STAGNATION', 'ENSEIGNANT', 'E00004', 'DEPT_DEV_WEB', 5, NULL, 'WARNING',
+  ('STAGNATION', 'ENSEIGNANT', 'E00004', 'D1', 5, NULL, 'WARNING',
    'Stagnation — Infrastructure & Cloud', 'Stagnation de 8 mois détectée.',
    '{"mois_stagnation":8}'::jsonb, 'LUE', now() - interval '15 days'),
-  ('TENDANCE_DEPARTEMENT', 'DEPARTEMENT', NULL, 'DEPT_INFO', NULL, NULL, 'CRITICAL',
-   'Tendance département — DEPT_INFO', '3 enseignants avec gaps croissants en Sécurité.',
+  ('TENDANCE_DEPARTEMENT', 'DEPARTEMENT', NULL, 'D1', NULL, NULL, 'CRITICAL',
+   'Tendance département — D1', '3 enseignants avec gaps croissants en Sécurité.',
    '{"nb":3}'::jsonb, 'NOUVELLE', now() - interval '5 days'),
-  ('BESOIN_NON_COUVERT', 'DEPARTEMENT', NULL, 'DEPT_DEV_WEB', 4, NULL, 'CRITICAL',
+  ('BESOIN_NON_COUVERT', 'DEPARTEMENT', NULL, 'D2', 4, NULL, 'CRITICAL',
    'Besoin non couvert — Sécurité', '8 besoins exprimés non couverts en Sécurité Applicative.',
    '{"nb_besoins":8}'::jsonb, 'NOUVELLE', now() - interval '1 days'),
-  ('GAP_CRITIQUE', 'ENSEIGNANT', 'E00003', 'DEPT_DEV_WEB', 4, NULL, 'CRITICAL', 'Gap critique (févr.)', 'Historique.', '{}'::jsonb, 'TRAITEE', now() - interval '5 months'),
-  ('STAGNATION', 'ENSEIGNANT', 'E00004', 'DEPT_DEV_WEB', 5, NULL, 'WARNING', 'Stagnation (févr.)', 'Historique.', '{}'::jsonb, 'TRAITEE', now() - interval '5 months'),
-  ('REGRESSION', 'ENSEIGNANT', 'E00003', 'DEPT_DEV_WEB', 6, NULL, 'CRITICAL', 'Régression (mars)', 'Historique.', '{}'::jsonb, 'TRAITEE', now() - interval '4 months'),
-  ('GAP_CRITIQUE', 'ENSEIGNANT', 'E00003', 'DEPT_DEV_WEB', 4, NULL, 'CRITICAL', 'Gap critique (mars)', 'Historique.', '{}'::jsonb, 'TRAITEE', now() - interval '4 months'),
-  ('STAGNATION', 'ENSEIGNANT', 'E00004', 'DEPT_DEV_WEB', 2, NULL, 'WARNING', 'Stagnation (avr.)', 'Historique.', '{}'::jsonb, 'TRAITEE', now() - interval '3 months'),
-  ('COMPLETION_FAIBLE', 'ENSEIGNANT', 'ENSTEST001', 'DEPT_INFO', 6, NULL, 'WARNING', 'Complétion (avr.)', 'Historique.', '{}'::jsonb, 'TRAITEE', now() - interval '3 months'),
-  ('GAP_CRITIQUE', 'ENSEIGNANT', 'E00003', 'DEPT_DEV_WEB', 4, NULL, 'CRITICAL', 'Gap critique (mai)', 'Historique.', '{}'::jsonb, 'TRAITEE', now() - interval '2 months'),
-  ('REGRESSION', 'ENSEIGNANT', 'E00003', 'DEPT_DEV_WEB', 1, NULL, 'CRITICAL', 'Régression (mai)', 'Historique.', '{}'::jsonb, 'TRAITEE', now() - interval '2 months'),
-  ('STAGNATION', 'ENSEIGNANT', 'E00004', 'DEPT_DEV_WEB', 5, NULL, 'WARNING', 'Stagnation (juin)', 'Historique.', '{}'::jsonb, 'TRAITEE', now() - interval '1 month'),
-  ('TENDANCE_DEPARTEMENT', 'DEPARTEMENT', NULL, 'DEPT_INFO', NULL, NULL, 'CRITICAL', 'Tendance (juin)', 'Historique.', '{}'::jsonb, 'LUE', now() - interval '1 month');
+  ('GAP_CRITIQUE', 'ENSEIGNANT', 'E00003', 'D2', 4, NULL, 'CRITICAL', 'Gap critique (févr.)', 'Historique.', '{}'::jsonb, 'TRAITEE', now() - interval '5 months'),
+  ('STAGNATION', 'ENSEIGNANT', 'E00004', 'D1', 5, NULL, 'WARNING', 'Stagnation (févr.)', 'Historique.', '{}'::jsonb, 'TRAITEE', now() - interval '5 months'),
+  ('REGRESSION', 'ENSEIGNANT', 'E00003', 'D2', 6, NULL, 'CRITICAL', 'Régression (mars)', 'Historique.', '{}'::jsonb, 'TRAITEE', now() - interval '4 months'),
+  ('GAP_CRITIQUE', 'ENSEIGNANT', 'E00003', 'D2', 4, NULL, 'CRITICAL', 'Gap critique (mars)', 'Historique.', '{}'::jsonb, 'TRAITEE', now() - interval '4 months'),
+  ('STAGNATION', 'ENSEIGNANT', 'E00004', 'D1', 2, NULL, 'WARNING', 'Stagnation (avr.)', 'Historique.', '{}'::jsonb, 'TRAITEE', now() - interval '3 months'),
+  ('COMPLETION_FAIBLE', 'ENSEIGNANT', 'ENSTEST001', 'D1', 6, NULL, 'WARNING', 'Complétion (avr.)', 'Historique.', '{}'::jsonb, 'TRAITEE', now() - interval '3 months'),
+  ('GAP_CRITIQUE', 'ENSEIGNANT', 'E00003', 'D2', 4, NULL, 'CRITICAL', 'Gap critique (mai)', 'Historique.', '{}'::jsonb, 'TRAITEE', now() - interval '2 months'),
+  ('REGRESSION', 'ENSEIGNANT', 'E00003', 'D2', 1, NULL, 'CRITICAL', 'Régression (mai)', 'Historique.', '{}'::jsonb, 'TRAITEE', now() - interval '2 months'),
+  ('STAGNATION', 'ENSEIGNANT', 'E00004', 'D1', 5, NULL, 'WARNING', 'Stagnation (juin)', 'Historique.', '{}'::jsonb, 'TRAITEE', now() - interval '1 month'),
+  ('TENDANCE_DEPARTEMENT', 'DEPARTEMENT', NULL, 'D1', NULL, NULL, 'CRITICAL', 'Tendance (juin)', 'Historique.', '{}'::jsonb, 'LUE', now() - interval '1 month');
 
 -- ── 5. Journal de ré-entraînement du modèle ──────────────────────────────────
 INSERT INTO "analyse"."model_retraining_log"
@@ -122,15 +124,17 @@ VALUES
    'Ré-entraînement hebdomadaire (données complètes)', 'scheduler', now() - interval '11 days');
 
 -- ── 6. Historique de gaps (pour "Compétences en Déclin") ─────────────────────
+-- CORRIGÉ : domaine_id et domaine_nom cohérents avec le seed V5 (domaines.id = 1..8).
+-- domaine_id 1=INFO, 3=NET, 4=IA, 5=DATA, 6=ELEC, 8=TELC.
 INSERT INTO "analyse"."skill_gaps"
   (enseignant_id, competence_id, competence_code, competence_nom, domaine_id, domaine_nom,
    niveau_actuel, niveau_requis, niveau_vise, gap_score, impact_score, urgence_score,
    priorite_score, niveau_urgence, mois_stagnation, en_regression, nb_besoins_exprimes, computed_at)
 VALUES
-  ('E00003', 6, 'C6', 'Machine Learning', 8, 'Conception Pédagogique', 5, 3, 4, 0.4, 0.6, 0.3, 0.4, 'FAIBLE', 12, false, 2, now() - interval '6 months'),
-  ('E00003', 2, 'C2', 'Développement Frontend', 8, 'Conception Pédagogique', 5, 3, 4, 0.3, 0.4, 0.2, 0.3, 'FAIBLE', 10, false, 1, now() - interval '6 months'),
-  ('E00004', 5, 'C5', 'Infrastructure & Cloud', 8, 'Conception Pédagogique', 5, 3, 4, 0.3, 0.5, 0.2, 0.3, 'FAIBLE', 8, false, 1, now() - interval '6 months'),
-  ('E00004', 2, 'C2', 'Développement Frontend', 8, 'Conception Pédagogique', 5, 3, 4, 0.3, 0.4, 0.2, 0.3, 'FAIBLE', 8, false, 1, now() - interval '6 months');
+  ('E00003', 6, 'C6', 'Machine Learning', 4, 'Intelligence Artificielle', 5, 3, 4, 0.4, 0.6, 0.3, 0.4, 'FAIBLE', 12, false, 2, now() - interval '6 months'),
+  ('E00003', 2, 'C2', 'Programmation Java', 1, 'Informatique', 3, 4, 4, 0.25, 0.30, 0.20, 0.30, 'FAIBLE', 8, false, 1, now() - interval '6 months'),
+  ('E00004', 5, 'C5', 'Infrastructure & Cloud', 5, 'Data Science', 3, 4, 4, 0.30, 0.35, 0.25, 0.30, 'FAIBLE', 6, false, 1, now() - interval '6 months'),
+  ('E00004', 2, 'C2', 'Programmation Java', 1, 'Informatique', 3, 4, 4, 0.25, 0.30, 0.20, 0.30, 'FAIBLE', 8, false, 1, now() - interval '6 months');
 
 -- ── 7. Quelques gaps récents en urgence CRITIQUE (pour "Gaps critiques") ─────
 UPDATE "analyse"."skill_gaps"

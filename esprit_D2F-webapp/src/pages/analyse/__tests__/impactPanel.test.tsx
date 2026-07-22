@@ -1,14 +1,16 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { ReactElement } from "react";
 
 const mocks = vi.hoisted(() => ({
   useWhatIfSimulation: vi.fn(),
 }));
 
-vi.mock("../hooks/useAnalyticsQueries", () => ({
+vi.mock("@/hooks/analytics/useAnalyticsQueries", () => ({
   useWhatIfSimulation: mocks.useWhatIfSimulation,
 }));
 
 import { render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ImpactPanel from "@/components/analytics/ImpactPanel";
 import type { Recommendation, SkillGap } from "@/models/analyse/analyticsFeature";
 
@@ -52,19 +54,26 @@ const reco: Recommendation = {
   statut: "PROPOSEE",
 };
 
+const createWrapper = () => {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  return ({ children }: { children: ReactElement }) => (
+    <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+  );
+};
+
 describe("ImpactPanel", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => { vi.clearAllMocks(); });
 
   it("affiche un message vide sans gaps", () => {
     mocks.useWhatIfSimulation.mockReturnValue({ mutate: vi.fn(), isPending: false, isError: false, data: undefined });
-    render(<ImpactPanel enseignantId="T1" gaps={[]} recommendations={[]} />);
+    render(<ImpactPanel enseignantId="T1" gaps={[]} recommendations={[]} />, { wrapper: createWrapper() });
     expect(screen.getByText(/Aucun gap — lancez une analyse/i)).toBeInTheDocument();
   });
 
   it("affiche le bouton de simulation et lance la mutation", async () => {
     const mutate = vi.fn();
     mocks.useWhatIfSimulation.mockReturnValue({ mutate, isPending: false, isError: false, data: undefined });
-    render(<ImpactPanel enseignantId="T1" gaps={[gap]} recommendations={[reco]} />);
+    render(<ImpactPanel enseignantId="T1" gaps={[gap]} recommendations={[reco]} />, { wrapper: createWrapper() });
     const btn = screen.getByText(/Simuler l'impact/i);
     btn.click();
     await waitFor(() =>
@@ -93,7 +102,7 @@ describe("ImpactPanel", () => {
         ],
       },
     });
-    render(<ImpactPanel enseignantId="T1" gaps={[gap]} recommendations={[reco]} />);
+    render(<ImpactPanel enseignantId="T1" gaps={[gap]} recommendations={[reco]} />, { wrapper: createWrapper() });
     expect(screen.getByText(/Risque avant/i)).toBeInTheDocument();
     expect(screen.getByText(/Résultat de la simulation/i)).toBeInTheDocument();
   });

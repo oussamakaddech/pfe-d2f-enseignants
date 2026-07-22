@@ -37,6 +37,12 @@ volumes:
     name: d2f_redis_data
   d2f_pgadmin_data:
     name: d2f_pgadmin_data
+  d2f_sonarqube_data:
+    name: d2f_sonarqube_data
+  d2f_sonarqube_logs:
+    name: d2f_sonarqube_logs
+  d2f_sonarqube_extensions:
+    name: d2f_sonarqube_extensions
 
 # =============================================================================
 # SERVICES
@@ -144,6 +150,36 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - d2f-network
+
+  # ── SonarQube (Quality Analysis) ────────────────────────────────────────────
+  sonarqube:
+    image: sonarqube:community
+    container_name: d2f-sonarqube
+    restart: unless-stopped
+    profiles:
+      - quality
+    environment:
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+    ulimits:
+      nofile:
+        soft: 131072
+        hard: 131072
+    ports:
+      - "9000:9000"
+    volumes:
+      - d2f_sonarqube_data:/opt/sonarqube/data
+      - d2f_sonarqube_logs:/opt/sonarqube/logs
+      - d2f_sonarqube_extensions:/opt/sonarqube/extensions
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=0
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/api/system/status | grep -q UP || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
     networks:
       - d2f-network
 
@@ -551,8 +587,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      # DSI §2.4 — RabbitMQ n'est obligatoire que si MESSAGING_ENABLED=true.
+      # Sinon, dépendre du broker bloque le démarrage en dev/CI sans broker et
+      # fait échouer les healthchecks (le service attend un bus qu'il n'utilise pas).
       rabbitmq:
         condition: service_healthy
+        required: ${MESSAGING_ENABLED:-false}
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8000/api/v1/analytics/health || exit 1"]
       interval: 30s

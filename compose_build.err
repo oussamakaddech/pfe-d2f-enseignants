@@ -1,0 +1,30 @@
+ Image pfe-d2f-enseignants-formation-service Building 
+ Image pfe-d2f-enseignants-certificat-service Building 
+ Image pfe-d2f-enseignants-analyse-service Building 
+ Image pfe-d2f-enseignants-competence-service Building 
+ Image pfe-d2f-enseignants-webapp Building 
+ Image pfe-d2f-enseignants-besoin-formation-service Building 
+ Image pfe-d2f-enseignants-auth-service Building 
+ Image pfe-d2f-enseignants-notification-service Building 
+ Image pfe-d2f-enseignants-api-gateway Building 
+ Image pfe-d2f-enseignants-evaluation-service Building 
+ Image pfe-d2f-enseignants-predictive-analytics-service Building 
+ Image pfe-d2f-enseignants-rice-service Building 
+Dockerfile:13
+
+--------------------
+
+  11 |     WORKDIR /opt/build
+
+  12 |     
+
+  13 | >>> RUN apk add --no-cache dos2unix maven
+
+  14 |     
+
+  15 |     # Install shared d2f-common-security library (non publiée sur Maven Central)
+
+--------------------
+
+target notification-service: failed to solve: process "/bin/sh -c apk add --no-cache dos2unix maven" did not complete successfully: exit code: 2
+

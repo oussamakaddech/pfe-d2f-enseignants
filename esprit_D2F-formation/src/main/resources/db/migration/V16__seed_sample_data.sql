@@ -13,7 +13,7 @@ INSERT INTO enseignants (id, nom, prenom, mail, type, etat, cup, chefdepartement
     ('ENS003', 'GHARBI',    'Amine',  'a.gharbi@esprit.tn',            'P', 'A', 'N', 'N', 'UP_RT',   'DEPT_RT'),
     ('ENS004', 'HAMDI',     'Mourad', 'm.hamdi@esprit.tn',             'P', 'A', 'N', 'O', 'UP_GC',   'DEPT_GC'),
     ('ENS005', 'BEN SALEM', 'Leila',  'l.bensalem@esprit.tn',         'P', 'A', 'O', 'N', 'UP_INFO', 'DEPT_INFO'),
-    ('FORM001','DUPONT',    'Jean',   'j.dupont@formation-pro.tn',     'V', 'A', 'N', 'N', NULL,      NULL)
+    ('ENS006', 'DUPONT',    'Jean',   'j.dupont@formation-pro.tn',     'V', 'A', 'N', 'N', NULL,      NULL)
 ON CONFLICT (id) DO NOTHING;
 
 -- ── Formations ────────────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ INSERT INTO formations (
     'QCM final + projet pratique noté',
      'INTERNE', '2026-01-15', '2026-02-28', 'ACHEVE',
      0.0, 30, true,
-    'UP_INFO', 'DEPT_INFO', false, false, '2025-2026-S2'
+    'UP_GL', 'DEPT_GL', false, false, '2025-2026-S2'
 WHERE NOT EXISTS (SELECT 1 FROM formations WHERE titre_formation = 'Atelier Spring Boot 3 & JPA Avancé');
 
 -- Formation 2 — EN_COURS
@@ -83,7 +83,7 @@ INSERT INTO formations (
     'AI Training Institute',
     '2026-09-15', '2026-10-31', 'PLANIFIEE',
     1500.0, 20, false,
-    'UP_GL', 'DEPT_GL', false, false, '2026-2027-S1'
+    'UP_IA', 'DEPT_IA', false, false, '2026-2027-S1'
 WHERE NOT EXISTS (SELECT 1 FROM formations WHERE titre_formation = 'Introduction au Machine Learning avec Python');
 
 -- ── Séances — Formation 1 (ACHEVE) ─────────────────────────────────────────
@@ -342,11 +342,11 @@ AND NOT EXISTS (SELECT 1 FROM presences p WHERE p.seance_id = s.id_seance AND p.
 
 -- ── Animateurs ────────────────────────────────────────────────────────────────
 INSERT INTO formation_animateur (formation_id, enseignant_id)
-SELECT f.id_formation, 'FORM001'
+SELECT f.id_formation, 'ENS006'
 FROM formations f WHERE f.titre_formation = 'Atelier Spring Boot 3 & JPA Avancé'
 AND NOT EXISTS (
     SELECT 1 FROM formation_animateur fa
-    WHERE fa.formation_id = f.id_formation AND fa.enseignant_id = 'FORM001'
+    WHERE fa.formation_id = f.id_formation AND fa.enseignant_id = 'ENS006'
 );
 
 INSERT INTO formation_animateur (formation_id, enseignant_id)

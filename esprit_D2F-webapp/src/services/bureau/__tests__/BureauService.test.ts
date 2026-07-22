@@ -28,7 +28,7 @@ describe('BureauService', () => {
     expect(result).toEqual([{ id: 1, nom: 'Informatique' }]);
     expect(httpMocks.mockGet).toHaveBeenCalledWith(
       expect.stringContaining('/bureaux'),
-      { params: { page: 0, size: 1000, sort: 'id,desc' } },
+      { params: { page: 0, size: 100, sort: 'id,desc' } },
     );
   });
 

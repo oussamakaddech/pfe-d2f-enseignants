@@ -23,15 +23,23 @@ public class AuditorAwareConfig {
             }
             Object principal = auth.getPrincipal();
             if (principal instanceof Jwt jwt) {
-                String email = jwt.getClaimAsString("email");
-                if (email != null && !email.isBlank()) return Optional.of(email);
-                String username = jwt.getClaimAsString("preferred_username");
-                if (username != null && !username.isBlank()) return Optional.of(username);
-                String sub = jwt.getSubject();
-                return Optional.ofNullable(sub != null ? sub : SYSTEM_USER);
+                return Optional.of(resolveFromJwt(jwt));
             }
             String name = auth.getName();
             return Optional.of(name != null ? name : SYSTEM_USER);
         };
+    }
+
+    private static String resolveFromJwt(Jwt jwt) {
+        String email = jwt.getClaimAsString("email");
+        if (email != null && !email.isBlank()) {
+            return email;
+        }
+        String username = jwt.getClaimAsString("preferred_username");
+        if (username != null && !username.isBlank()) {
+            return username;
+        }
+        String sub = jwt.getSubject();
+        return sub != null ? sub : SYSTEM_USER;
     }
 }

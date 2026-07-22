@@ -4,20 +4,20 @@
 
 -- ── UPs (Unités Pédagogiques) ──────────────────────────────────────────────────
 INSERT INTO ups (id, libelle) VALUES
-    ('UP_INFO',     'Informatique'),
-    ('UP_GL',       'Génie Logiciel'),
-    ('UP_RT',       'Réseaux & Télécoms'),
-    ('UP_GC',       'Génie Civil'),
-    ('UP_INF2',     'UP Informatique'),
-    ('UP_TECH_WEB', 'UP Technologie Web')
+    ('UP_INFO',   'Informatique'),
+    ('UP_GL',     'Génie Logiciel'),
+    ('UP_RT',     'Réseaux & Télécommunications'),
+    ('UP_GC',     'Génie Civil'),
+    ('UP_WEB',    'Développement Web'),
+    ('UP_IA',     'Intelligence Artificielle & Data')
 ON CONFLICT (id) DO NOTHING;
 
 -- ── Départements ──────────────────────────────────────────────────────────────
 INSERT INTO departements (id, libelle) VALUES
-    ('DEPT_INFO',    'Département Informatique'),
-    ('DEPT_GL',      'Département Génie Logiciel'),
-    ('DEPT_RT',      'Département Réseaux'),
-    ('DEPT_GC',      'Département Génie Civil'),
-    ('DEPT_GLS',     'Génie Logiciel'),
-    ('DEPT_DEV_WEB', 'Développement Web')
+    ('DEPT_INFO',  'Département Informatique'),
+    ('DEPT_GL',    'Département Génie Logiciel'),
+    ('DEPT_RT',    'Département Réseaux & Télécommunications'),
+    ('DEPT_GC',    'Département Génie Civil'),
+    ('DEPT_WEB',   'Département Développement Web'),
+    ('DEPT_IA',    'Département Intelligence Artificielle & Data')
 ON CONFLICT (id) DO NOTHING;

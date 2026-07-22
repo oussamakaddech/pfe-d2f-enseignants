@@ -26,7 +26,7 @@ const api = vi.hoisted(() => ({
   rollback: vi.fn(),
 }));
 
-vi.mock("../services/analyticsApi", () => ({ analyticsApi: api, default: api }));
+vi.mock("@/services/analyse/analyticsApi", () => ({ analyticsApi: api, default: api }));
 
 import {
   useAnalyzeTeacher,
