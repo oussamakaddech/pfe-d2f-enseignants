@@ -252,7 +252,7 @@ export default function CupDashboardPage() {
           icon={<ApartmentOutlined />}
           iconColor="#2563eb"
           iconBg="rgba(37,99,235,.12)"
-          loading={domaineLoading}
+          loading={formationsByDomaineLoading}
         >
           <SegBars items={domaineItems} />
         </Card>
@@ -263,7 +263,7 @@ export default function CupDashboardPage() {
           icon={<ThunderboltOutlined />}
           iconColor="#ea580c"
           iconBg="rgba(234,88,12,.12)"
-          loading={competenceLoading}
+          loading={formationsByCompetenceLoading}
         >
           <SegBars items={competenceItems} />
         </Card>
