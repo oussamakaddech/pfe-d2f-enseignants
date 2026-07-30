@@ -38,8 +38,13 @@ def _score_reussite(
     formation_id: int,
     inscriptions: list[dict],
     evaluations: list[dict],
+    global_taux_completion: float = 0.5,
 ) -> float:
-    """Taux de complétion historique × note évaluation."""
+    """Taux de complétion historique × note évaluation.
+
+    Fallback: utilise le taux de complétion global de l'enseignant
+    (depuis snapshot_taux_completion) au lieu de 0.5 neutre.
+    """
     inscrits    = [i for i in inscriptions if i.get("formation_id") == formation_id]
     nb_inscrits = len(inscrits)
     nb_complets = sum(1 for i in inscrits if i.get("etat") in ("APPROVED",))
@@ -52,7 +57,10 @@ def _score_reussite(
     else:
         note_norm = 0.5  # neutre si pas de données
 
-    return round(taux_hist * 0.6 + note_norm * 0.4, 4) if nb_inscrits > 0 else 0.5
+    if nb_inscrits > 0:
+        return round(taux_hist * 0.6 + note_norm * 0.4, 4)
+    # Fallback: utilise le taux global de complétion de l'enseignant
+    return round(global_taux_completion * 0.6 + note_norm * 0.4, 4)
 
 
 def _score_disponibilite(formation: dict) -> float:
@@ -71,6 +79,7 @@ def _score_candidates(
     evaluations: list[dict],
     collaborative: Any,
     risk_data: dict | None = None,
+    global_taux_completion: float = 0.5,
 ) -> list[dict]:
     """Score les formations candidates via MSAS (Multi-Signal Adaptive Scoring).
 
@@ -99,7 +108,7 @@ def _score_candidates(
     for f in candidates:
         fid = int(f.get("formation_id") or f.get("id_formation", 0))
         s_pert = _score_pertinence(f, niveau_actuel, niveau_requis)
-        s_reus = _score_reussite(fid, inscriptions, evaluations)
+        s_reus = _score_reussite(fid, inscriptions, evaluations, global_taux_completion)
         s_disp = _score_disponibilite(f)
         f["_score_pertinence"]  = s_pert
         f["_score_reussite"]    = s_reus
@@ -147,6 +156,31 @@ def _score_candidates(
             )
     candidates.sort(key=lambda x: x["_score_global"], reverse=True)
     return candidates
+
+
+def _diversify_candidates(
+    candidates: list[dict],
+    used_formations: dict[int, int],
+    max_per_formation: int = 2,
+) -> list[dict]:
+    """Limite le nombre de fois qu'une même formation apparaît dans les
+    recommandations globales pour un même enseignant (diversité).
+
+    Args:
+        candidates: formations candidates triées par score décroissant
+        used_formations: {formation_id → nombre d'utilisations déjà faites}
+        max_per_formation: nombre max d'utilisations par formation
+
+    Returns:
+        liste filtrée respectant la contrainte de diversité
+    """
+    diversified = []
+    for f in candidates:
+        fid = int(f.get("formation_id") or f.get("id_formation", 0))
+        if used_formations.get(fid, 0) < max_per_formation:
+            diversified.append(f)
+            used_formations[fid] = used_formations.get(fid, 0) + 1
+    return diversified
 
 
 def _persist_path_items(
@@ -237,7 +271,7 @@ class RecommendationEngine:
             if not cid:
                 continue
             cid = int(cid)
-            fid = int(fc.get("formation_id", 0))
+            fid = int(fc.get("formation_id") or fc.get("id_formation", 0))
             form = formations_index.get(fid)
             if form:
                 entry = {**form, **fc}
@@ -258,6 +292,7 @@ class RecommendationEngine:
 
         all_recommendations: list[Recommendation] = []
         all_paths: list[TrainingPath] = []
+        used_formations: dict[int, int] = {}  # diversité: fid → count
 
         sorted_gaps = sorted(gaps, key=lambda g: float(g.priorite_score), reverse=True)
 
@@ -270,11 +305,15 @@ class RecommendationEngine:
             if not candidates:
                 continue
 
-            _score_candidates(candidates, enseignant_id, gap.niveau_actuel, gap.niveau_requis, inscriptions, evaluations, collaborative)
+            _score_candidates(candidates, enseignant_id, gap.niveau_actuel, gap.niveau_requis, inscriptions, evaluations, collaborative, global_taux_completion=snapshot_taux_completion / 100.0)
+
+            # Diversité: limiter les formations déjà utilisées ailleurs
+            candidates = _diversify_candidates(candidates, used_formations, max_per_formation=2)
 
             path_items_data = self._build_path(
                 candidates, gap, prereq_index,
-                comp_to_formations, formations_completees, evaluations, inscriptions
+                comp_to_formations, formations_completees, evaluations, inscriptions,
+                global_taux_completion=snapshot_taux_completion / 100.0
             )
             if not path_items_data:
                 continue
@@ -330,9 +369,9 @@ class RecommendationEngine:
                 continue
             if fid in formations_completees:
                 continue
-            if nprq > niveau_actuel:
+            if niveau_actuel > 0 and nprq > niveau_actuel:
                 continue
-            if nvis <= niveau_actuel:
+            if nvis > 0 and nvis <= niveau_actuel:
                 continue
             candidates.append(f)
         return candidates
@@ -346,6 +385,7 @@ class RecommendationEngine:
         formations_completees: set,
         evaluations: list[dict],
         inscriptions: list[dict],
+        global_taux_completion: float = 0.5,
     ) -> list[dict]:
         items = []
         rang  = 1
@@ -358,14 +398,14 @@ class RecommendationEngine:
             if prereq_candidates:
                 best = max(prereq_candidates, key=lambda x: x.get("_score_global", 0.0))
                 fid  = int(best.get("formation_id") or best.get("id_formation", 0))
-                s_r  = _score_reussite(fid, inscriptions, evaluations)
+                s_r  = _score_reussite(fid, inscriptions, evaluations, global_taux_completion)
                 items.append(self._make_item(best, rang, True, 0, 1, s_r, est_prereq=True))
                 rang += 1
 
         # Ajouter les formations principales (max 3)
         for f in candidates[:3]:
             fid = int(f.get("formation_id") or f.get("id_formation", 0))
-            s_r = _score_reussite(fid, inscriptions, evaluations)
+            s_r = _score_reussite(fid, inscriptions, evaluations, global_taux_completion)
             niv_avant = int(gap.niveau_actuel) + (rang - 1)
             niv_apres = min(5, niv_avant + 1)
             items.append(self._make_item(f, rang, True, niv_avant, niv_apres, s_r))

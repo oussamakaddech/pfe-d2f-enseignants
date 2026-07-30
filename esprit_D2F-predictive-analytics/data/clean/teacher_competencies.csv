@@ -1,0 +1,52 @@
+teacher_id,competence_code,competence_nom,domaine,current_level,required_level,gap_value,is_critical_gap
+ENS001,PROG,Programmation,GL,3,5,2,False
+ENS002,BD,Bases de Donnees,INFO,4,5,1,False
+ENS003,RESEAU,Reseaux,RT,1,5,4,True
+ENS003,SEC,Securite Informatique,RT,3,5,2,False
+ENS004,GC_STRU,Structure Batiment,GC,2,5,3,True
+ENS004,GC_MAT,Matériaux,GC,3,5,2,False
+ENS005,WEB_B,Developpement Web Back,WEB,2,5,3,True
+ENS006,PED,Pedagogie,SUP,2,5,3,True
+ENS006,GESTION,Gestion de Projet,SUP,2,5,3,True
+ENS007,ALG,Algorithmique,GL,1,5,4,True
+ENS007,PROG,Programmation,GL,4,4,0,False
+ENS008,BD,Bases de Donnees,INFO,2,3,1,False
+ENS009,RESEAU,Reseaux,RT,4,5,1,False
+ENS009,SEC,Securite Informatique,RT,3,3,0,False
+ENS010,GC_STRU,Structure Batiment,GC,4,4,0,False
+ENS010,GC_MAT,Matériaux,GC,3,3,0,False
+ENS012,GESTION,Gestion de Projet,SUP,3,3,0,False
+ENS012,ANG,Anglais Technique,SUP,5,5,0,False
+ENS013,ALG,Algorithmique,GL,2,4,2,False
+ENS013,PROG,Programmation,GL,4,5,1,False
+ENS015,RESEAU,Reseaux,RT,2,5,3,True
+ENS016,GC_STRU,Structure Batiment,GC,3,4,1,False
+ENS017,WEB_B,Developpement Web Back,WEB,4,5,1,False
+ENS018,PED,Pedagogie,SUP,4,4,0,False
+ENS018,ANG,Anglais Technique,SUP,2,3,1,False
+ENS019,ALG,Algorithmique,GL,3,4,1,False
+ENS019,PROG,Programmation,GL,4,3,0,False
+ENS020,BD,Bases de Donnees,INFO,1,4,3,True
+ENS021,RESEAU,Reseaux,RT,3,4,1,False
+ENS021,SEC,Securite Informatique,RT,4,5,1,False
+ENS022,GC_STRU,Structure Batiment,GC,3,4,1,False
+ENS022,GC_MAT,Matériaux,GC,2,5,3,True
+ENS023,WEB_F,Developpement Web Front,WEB,3,5,2,False
+ENS023,WEB_B,Developpement Web Back,WEB,4,5,1,False
+ENS024,PED,Pedagogie,SUP,4,5,1,False
+ENS024,GESTION,Gestion de Projet,SUP,2,4,2,False
+ENS024,ANG,Anglais Technique,SUP,2,4,2,False
+ENS025,PROG,Programmation,GL,4,5,1,False
+ENS026,BD,Bases de Donnees,INFO,4,4,0,False
+ENS027,RESEAU,Reseaux,RT,2,5,3,True
+ENS027,SEC,Securite Informatique,RT,3,4,1,False
+ENS029,WEB_F,Developpement Web Front,WEB,1,4,3,True
+ENS030,PED,Pedagogie,SUP,3,5,2,False
+ENS030,GESTION,Gestion de Projet,SUP,4,5,1,False
+ENS030,ANG,Anglais Technique,SUP,2,4,2,False
+ENS011,WEB_F,Developpement Web Front,WEB,2,4,2,False
+ENS011,WEB_B,Developpement Web Back,WEB,1,4,3,True
+ENS014,BD,Bases de Donnees,INFO,2,4,2,False
+ENS014,PROG,Programmation,GL,3,5,2,False
+ENS028,GC_STRU,Structure Batiment,GC,2,4,2,False
+ENS028,GC_MAT,Matériaux,GC,1,3,2,False
