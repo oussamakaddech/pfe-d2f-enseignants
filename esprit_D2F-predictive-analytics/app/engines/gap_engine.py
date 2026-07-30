@@ -467,5 +467,36 @@ def build_gap_factors(gap: dict[str, Any]) -> list[dict[str, Any]]:
             "contribution": w["strategic_impact"],
         })
 
-    return factors 
+        return factors
+
+
+class GapEngine:
+    """Coverage-based Gap Engine — replaces the forbidden formula.
+
+    The old formula gap = niveau_requis - niveau_actuel is replaced
+    with coverage-based gap detection using the assignment service
+    as the source of truth.
+    """
+
+    def __init__(self, db):
+        self.db = db
+
+    def compute_gaps(self, enseignant_id, competence_levels=None, required_levels=None,
+                     besoins=None, prediction_result_id=None, domaine_demand=None,
+                     departement_id="", **kwargs):
+        enseignant_id = _normalize_teacher_id(enseignant_id)
+        gaps = detect_gaps_for_teacher(
+            teacher_id=enseignant_id,
+            db=self.db,
+            connaissances=competence_levels,
+            assignments=None,
+            besoins_individuels=besoins,
+            besoins_collectifs=None,
+            formations_suivies=None,
+            domaine_demand=domaine_demand or {},
+        )
+        return gaps
+
+    def _persist_coverage_snapshot(self, enseignant_id, departement_id, current_index, required_index):
+        pass 
  
