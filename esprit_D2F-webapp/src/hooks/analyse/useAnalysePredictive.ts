@@ -172,7 +172,30 @@ export function useBulkUpdateAlerts() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: BulkAlertUpdateRequest) => AnalysePredictiveService.bulkUpdateAlerts(payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["analyse", "alerts-summary"] }),
+    onMutate: async (newStatus) => {
+      await qc.cancelQueries({ queryKey: ["analyse", "alerts-summary"] });
+      const previousData = qc.getQueryData(["analyse", "alerts-summary"]);
+      qc.setQueryData(["analyse", "alerts-summary"], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          alerts: (old.alerts ?? []).map((a: any) =>
+            newStatus.alert_ids.includes(a.id)
+              ? { ...a, statut: newStatus.statut, commentaire_traitement: newStatus.commentaire }
+              : a,
+          ),
+        };
+      });
+      return { previousData };
+    },
+    onError: (_err, _newStatus, context) => {
+      if (context?.previousData) {
+        qc.setQueryData(["analyse", "alerts-summary"], context.previousData);
+      }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["analyse", "alerts-summary"] });
+    },
   });
 }
 

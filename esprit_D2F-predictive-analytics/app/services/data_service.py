@@ -633,6 +633,10 @@ class DataService:
             teacher_id = self.normalize_teacher_id(teacher_id)
         return execute_query(self.db, EVALUATIONS_TEACHER_QUERY, {"teacher_id": teacher_id})
 
+    def get_evaluations_globales(self) -> list[dict[str, Any]]:
+        """Get all global evaluations (formation-level). No teacher filter."""
+        return execute_query(self.db, EVALUATIONS_GLOBALES_QUERY)
+
     def get_certificats(self, teacher_id: str | None = None) -> list[dict[str, Any]]:
         if teacher_id:
             teacher_id = self.normalize_teacher_id(teacher_id)

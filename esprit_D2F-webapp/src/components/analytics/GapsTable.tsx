@@ -1,4 +1,5 @@
-import { Table, Tag, Progress, Space, Empty } from "antd";
+import { useMemo } from "react";
+import { Table, Tag, Progress, Space, Empty, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { URGENCE_COLORS } from "@/utils/analytics/constants";
 import { gapSeverityColor } from "@/utils/analytics/format";
@@ -10,9 +11,23 @@ interface GapsTableProps {
   readonly onRowClick?: (gap: SkillGap) => void;
 }
 
+/** Déduplique les gaps par competence_id, en gardant celui avec le gap_score le plus élevé. */
+function deduplicateGaps(gaps: SkillGap[]): SkillGap[] {
+  const map = new Map<number, SkillGap>();
+  for (const gap of gaps) {
+    const existing = map.get(gap.competence_id);
+    if (!existing || gap.gap_score > existing.gap_score) {
+      map.set(gap.competence_id, gap);
+    }
+  }
+  return Array.from(map.values());
+}
+
 /** Table des gaps de compétence avec filtres, tri et badges de sévérité. */
 export default function GapsTable({ gaps, loading, onRowClick }: GapsTableProps) {
-  const columns: ColumnsType<SkillGap> = [
+  const uniqueGaps = useMemo(() => deduplicateGaps(gaps), [gaps]);
+
+  const columns = useMemo<ColumnsType<SkillGap>>(() => [
     {
       title: "Compétence",
       dataIndex: "competence_nom",
@@ -30,26 +45,26 @@ export default function GapsTable({ gaps, loading, onRowClick }: GapsTableProps)
     {
       title: "Domaine",
       dataIndex: "domaine_nom",
-      sorter: (a, b) => (a.domaine_nom ?? "").localeCompare(b.domaine_nom ?? ""),
-      render: (v) => v ?? "—",
+      render: (v: string) => v || "—",
     },
     {
-      title: "Niveau actuel → requis",
-      render: (_, r) => (
-        <Tag>
-          N{r.niveau_actuel} → N{r.niveau_requis}
-        </Tag>
-      ),
-      sorter: (a, b) => a.niveau_requis - a.niveau_actuel,
+      title: "Niveau actuel",
+      dataIndex: "niveau_actuel",
+      sorter: (a, b) => a.niveau_actuel - b.niveau_actuel,
+      render: (v: number) => <Progress percent={v * 20} size="small" />,
     },
     {
-      title: "Écart",
+      title: "Niveau requis",
+      dataIndex: "niveau_requis",
+      sorter: (a, b) => a.niveau_requis - b.niveau_requis,
+    },
+    {
+      title: "Gap",
       dataIndex: "gap_score",
-      render: (v: number) => (
-        <Progress percent={Math.round(v * 100)} size="small" strokeColor={gapSeverityColor(v)} />
-      ),
       sorter: (a, b) => a.gap_score - b.gap_score,
-      defaultSortOrder: "descend",
+      render: (v: number) => (
+        <Tag color={gapSeverityColor(v)}>{v.toFixed(2)}</Tag>
+      ),
     },
     {
       title: "Urgence",
@@ -71,21 +86,28 @@ export default function GapsTable({ gaps, loading, onRowClick }: GapsTableProps)
       dataIndex: "en_regression",
       render: (v: boolean) => (v ? <Tag color="red">Oui</Tag> : <Tag>Non</Tag>),
     },
-  ];
+  ], [gaps]);
 
-  if (!loading && gaps.length === 0) {
+  if (!loading && uniqueGaps.length === 0) {
     return <Empty description="Aucun gap détecté" />;
   }
 
   return (
-    <Table<SkillGap>
-      rowKey="id"
-      loading={loading}
-      columns={columns}
-      dataSource={gaps}
-      pagination={{ pageSize: 10 }}
-      onRow={(r) => ({ onClick: () => onRowClick?.(r), style: { cursor: onRowClick ? "pointer" : "default" } })}
-      size="middle"
-    />
+    <div>
+      {gaps.length !== uniqueGaps.length && (
+        <Typography.Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 8 }}>
+          {gaps.length - uniqueGaps.length} doublon(s) masqué(s) — {uniqueGaps.length} compétence(s) unique(s)
+        </Typography.Text>
+      )}
+      <Table<SkillGap>
+        rowKey={(r) => `${r.competence_id}-${r.niveau_requis}`}
+        loading={loading}
+        columns={columns}
+        dataSource={uniqueGaps}
+        pagination={{ pageSize: 10 }}
+        onRow={(r) => ({ onClick: () => onRowClick?.(r), style: { cursor: onRowClick ? "pointer" : "default" } })}
+        size="middle"
+      />
+    </div>
   );
 }

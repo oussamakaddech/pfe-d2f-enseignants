@@ -1,0 +1,9 @@
+{'GET'} /api/v1/d2f/kpis
+{'GET'} /api/v1/d2f/teachers
+{'GET'} /api/v1/d2f/teachers/{teacher_id}
+{'GET'} /api/v1/d2f/teachers/{teacher_id}/ml-signal
+{'GET'} /api/v1/d2f/at-risk
+{'GET'} /api/v1/d2f/critical
+{'GET'} /api/v1/d2f/alerts
+{'GET'} /api/v1/d2f/recommendations
+{'POST'} /api/v1/d2f/teachers/{teacher_id}/training-complete

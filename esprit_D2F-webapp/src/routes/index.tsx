@@ -62,6 +62,7 @@ const AnalyticsDashboardPage = lazy(() => import("@/pages/analyse/AnalyticsDashb
 const HeatmapPage = lazy(() => import("@/pages/analyse/HeatmapPage"));
 const ModelMonitoringPage = lazy(() => import("@/pages/analyse/ModelMonitoringPage"));
 const ForecastPage = lazy(() => import("@/pages/analyse/ForecastPage"));
+const D2FOverviewPage = lazy(() => import("@/pages/analyse/D2FOverviewPage"));
 
 function PageSkeleton() {
   return (
@@ -151,7 +152,9 @@ export default function AppRoutes() {
                   <Route path="/home/analytics/benchmark" element={<PeerBenchmarkPage />} />
                   <Route path="/home/analytics/anomalies" element={<AnomalyDetectionPage />} />
                   <Route path="/home/analytics/pilotage" element={<ForecastPage />} />
-                </Route>
+                  {/* D2F master view — source unique de vérité */}
+                  <Route path="/home/analytics/d2f" element={<D2FOverviewPage />} />
+               </Route>
 
                 <Route element={<RoleGuard allowedRoles={[ROLES.ENSEIGNANT, ROLES.ANIMATEUR]} />}>
                   <Route path="/home/personal-dashboard" element={<PersonalDashboard />} />

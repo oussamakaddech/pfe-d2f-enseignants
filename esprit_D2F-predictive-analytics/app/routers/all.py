@@ -16,13 +16,30 @@ ReadAuth = Annotated[dict, Depends(require_roles("ADMIN", "CUP"))]
 from app.models.schemas import (
     AtRiskTeachersResponse, DashboardResponse, GapPredictionRequest,
     GapPredictionResponse, HealthResponse, PathRecommendationRequest,
-    PathRecommendationResponse,
+    PathRecommendationResponse, DashboardKPIsResponse, TeacherProfileResponse,
+    AlertResponse, RecommendationResponse,
 )
 from app.ml.gap_predictor import gap_predictor
 from app.models.db_models import TrainingPath, TrainingPathItem
 from app.services.data_service import DataService
 
 router = APIRouter()
+
+# IMPORTANT: d2f_extras doit etre importe AVANT include_router car il enregistre
+# ses routes (/heatmap, /top-formations, /stats, /plan-actions) sur le meme router
+# via @router.get - si on include_router avant, ces routes ne sont pas copiees.
+from app.routers import d2f_extras  # noqa: F401  (side-effect import - DOIT etre avant include_router)
+
+from app.routers.d2f_master import router as d2f_master_router
+router.include_router(d2f_master_router)
+
+# Compatibility adapter: maps legacy T-format IDs → canonical ENS via
+# /api/v1/compat/teacher/{legacyId}/* (delegates to /api/v1/analytics/*).
+from app.routers.d2f_compat import router as d2f_compat_router
+router.include_router(d2f_compat_router)
+
+# Endpoints supplementaires D2F (heatmap, top-formations, plan-actions, stats)
+# Le module enregistre ses routes sur le meme router d2f_master via @router.get.
 
 # Requête SQL réutilisée pour résoudre les enseignants d'un département
 # (filtrage côté serveur, injection impossible : paramètre lié `:dept`).
@@ -145,6 +162,17 @@ async def check_model_drift(db: DBSession) -> dict[str, Any]:
 
     drift_report = gap_predictor.check_drift(teachers, comp_levels)
     return drift_report
+
+
+@router.get("/predict/model-health", tags=["Prediction"])
+async def get_model_health() -> dict[str, Any]:
+    """P0.3 — expose l'état ML pour le dashboard (model_name, n_features, metrics,
+    feature_skew_ok, fallback_mode, warnings).
+
+    Aucun appel DB : lit le modèle + training_metadata.json via le GapPredictor
+    singleton. Toujours 200 (même si modèle absent) — `model_loaded: false`.
+    """
+    return gap_predictor.model_health()
 
 
 # ── Recommend ──────────────────────────────────

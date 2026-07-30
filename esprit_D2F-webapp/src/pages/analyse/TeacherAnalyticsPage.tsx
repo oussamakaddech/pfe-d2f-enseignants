@@ -16,6 +16,7 @@ import RecommendationCard from "@/components/charts/RecommendationCard";
 import GroupedRecommendations from "@/components/charts/GroupedRecommendations";
 import WhatIfSimulator from "@/components/charts/WhatIfSimulator";
 import TrainingPathTimeline from "@/components/charts/TrainingPathTimeline";
+import RiskBreakdownPanel from "@/components/analytics/RiskBreakdownPanel";
 import type { SkillGap } from "@/models/analyse";
 import { AppPageHeader, brand, shadow } from "@/components/common";
 import "@/styles/pages/teacher-analytics-page.css";
@@ -238,27 +239,34 @@ export default function TeacherAnalyticsPage() {
             <Card style={cardStyle} size="small">
               <Statistic title="Gaps détectés" value={analyseResult.nb_gaps_detectes}
                 valueStyle={{ color: "#f59e0b" }} />
-            </Card>
-          </Col>
+           </Card>
+         </Col>
           <Col xs={12} sm={6}>
             <Card style={cardStyle} size="small">
               <Statistic title="Gaps critiques" value={analyseResult.nb_gaps_critiques}
                 valueStyle={{ color: "#ef4444" }} />
-            </Card>
-          </Col>
+           </Card>
+         </Col>
           <Col xs={12} sm={6}>
             <Card style={cardStyle} size="small">
               <Statistic title="Recommandations" value={analyseResult.nb_recommendations}
                 valueStyle={{ color: "#10b981" }} />
-            </Card>
-          </Col>
+           </Card>
+         </Col>
           <Col xs={12} sm={6}>
             <Card style={cardStyle} size="small">
               <Statistic title="Alertes générées" value={analyseResult.nb_alertes_generees}
                 valueStyle={{ color: "#8b5cf6" }} />
-            </Card>
-          </Col>
-        </Row>
+           </Card>
+         </Col>
+       </Row>
+      )}
+
+      {/* Decomposition Score metier vs Signal ML (consomme API ml-signal) */}
+      {activeId && (
+        <Card style={{ ...cardStyle, marginBottom: 24 }} title="Decomposition du risque">
+          <RiskBreakdownPanel teacherId={activeId} />
+       </Card>
       )}
 
       <Card style={cardStyle}>

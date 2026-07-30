@@ -1,0 +1,37 @@
+{
+  "audit_date": "2026-07-30",
+  "total_teachers": 30,
+  "departments": 6,
+  "ups": 6,
+  "competency_families": 8,
+  "active_trainings": 8,
+  "teacher_id_analysis": {
+    "ENS_format": {
+      "count": 27,
+      "range": "ENS001-ENS027",
+      "avg_gaps": 60,
+      "gap_range": [32, 149]
+    },
+    "T_format": {
+      "count": 4,
+      "teachers": ["T003", "T006", "T007", "T015"],
+      "gaps_per_teacher": 8
+    }
+  },
+  "missing_data": ["T011", "T014", "T028"],
+  "recommendation_analysis": {
+    "unique_formations": 8,
+    "top1_concentration": 100.0,
+    "top3_duplicate_percentage": 100.0,
+    "identical_scores": ["T006", "T007", "T015"]
+  },
+  "acceptance_criteria": {
+    "minimum_teachers": {"required": 30, "actual": 30, "status": "PASS"},
+    "minimum_departments": {"required": 3, "actual": 6, "status": "PASS"},
+    "minimum_competency_families": {"required": 5, "actual": 8, "status": "PASS"},
+    "minimum_trainings": {"required": 10, "actual": 8, "status": "FAIL"},
+    "no_duplicate_ids": {"status": "FAIL", "reason": "Mixed ENS/T format"},
+    "top3_unique_max_25_percent": {"actual": 100.0, "status": "FAIL"},
+    "gap_traceability_100_percent": {"status": "FAIL", "reason": "ID format mismatch"}
+  }
+}

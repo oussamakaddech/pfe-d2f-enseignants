@@ -106,8 +106,10 @@ class DashboardEngine:
                     kpis_json     = kpis,
                 ))
             self.db.flush()
+            self.db.commit()  # commit obligatoire sinon rollback a la fermeture de session
         except Exception as exc:  # noqa: BLE001 — cache best-effort
             logger.warning("Persistance du snapshot dashboard échouée : %s", exc)
+            self.db.rollback()
         return kpis
 
     # ── KPI 1 : Compétences en déclin ────────────────────────
@@ -176,15 +178,29 @@ class DashboardEngine:
             niv_anc = old_index.get(cid, niv_act)
             delta = niv_act - niv_anc
             if delta < -0.3:
+                nb_concernes = (
+                    self.db.query(func.count(func.distinct(SkillGap.enseignant_id)))
+                    .filter(
+                        SkillGap.competence_id == cid,
+                        SkillGap.computed_at >= today - timedelta(days=30),
+                    )
+                    .scalar() or 0
+                )
+                nb_total = (
+                    self.db.query(func.count(func.distinct(SkillGap.enseignant_id)))
+                    .filter(SkillGap.computed_at >= today - timedelta(days=30))
+                    .scalar() or 1
+                )
+                pct = round(nb_concernes / nb_total * 100, 1) if nb_total else 0
                 result.append({
-                    "competence_id":  cid,
-                    "competence_nom": r.competence_nom,
-                    "domaine_nom":    r.domaine_nom,
-                    "niveau_actuel":  round(niv_act, 2),
-                    "niveau_ancien":  round(niv_anc, 2),
-                    "delta":          round(delta, 2),
+                    "competence_id":           cid,
+                    "competence_nom":          r.competence_nom,
+                    "domaine_nom":             r.domaine_nom,
+                    "variation_moyenne":       round(delta, 2),
+                    "pct_enseignants_en_declin": pct,
+                    "nb_enseignants_concernes": int(nb_concernes),
                 })
-        result.sort(key=lambda x: x["delta"])
+        result.sort(key=lambda x: x["variation_moyenne"])
         return result[:10]
 
     # ── KPI 2 : Compétences en forte demande ─────────────────
@@ -575,25 +591,35 @@ class DashboardEngine:
 
     # ── KPI 9 : Évolution mensuelle du risque ────────────────
     def monthly_risk_evolution(self, months: int = 6) -> list[dict]:
-        """Nombre d'alertes critiques / élevées par mois (série temporelle)."""
+        """Évolution mensuelle du score de risque moyen a partir de teacher_risk_snapshots.
+
+        Source: teacher_risk_snapshots (donnees historiques calculees par le pipeline batch).
+        Pour chaque mois, agrege: nombre d'enseignants par niveau de risque + score moyen.
+        """
+        from app.models.db_models import TeacherRiskSnapshot
+
         cutoff = date.today() - timedelta(days=months * 31)
-        month_expr = func.to_char(AlertEvent.created_at, "YYYY-MM")
+        month_expr = func.to_char(TeacherRiskSnapshot.snapshot_date, "YYYY-MM")
         rows = (
             self.db.query(
                 month_expr.label("mois"),
-                func.sum(func.cast(AlertEvent.severite == "CRITICAL", Integer)).label("critical"),
-                func.sum(func.cast(AlertEvent.severite == "WARNING", Integer)).label("high"),
+                func.avg(TeacherRiskSnapshot.score_risque).label("score_moyen"),
+                func.sum(func.cast(TeacherRiskSnapshot.niveau_risque == "CRITIQUE", Integer)).label("critical"),
+                func.sum(func.cast(TeacherRiskSnapshot.niveau_risque == "ELEVE", Integer)).label("high"),
+                func.count(TeacherRiskSnapshot.id).label("total"),
             )
-            .filter(AlertEvent.created_at >= cutoff)
+            .filter(TeacherRiskSnapshot.snapshot_date >= cutoff)
             .group_by(month_expr)
             .order_by(month_expr)
             .all()
         )
         return [
             {
-                "month":    r.mois,
-                "critical": int(r.critical or 0),
-                "high":     int(r.high or 0),
+                "month":              r.mois,
+                "critical":           int(r.critical or 0),
+                "high":               int(r.high or 0),
+                "score_risque_moyen": round(float(r.score_moyen or 0), 4),
+                "total_enseignants":  int(r.total or 0),
             }
             for r in rows
         ]

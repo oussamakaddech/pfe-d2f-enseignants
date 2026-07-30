@@ -362,6 +362,12 @@ def _warm_start_train(predictor, teacher_profiles, comp_levels, req_levels) -> d
     x_df = df_train[FEATURE_COLS].copy()
     y = df_train["gap"].values.clip(0, 5)
 
+    # Balanced sample weights (rebalance rare gap classes)
+    y_bins = _discretize_y(y, n_bins=5)
+    bin_counts = np.bincount(y_bins)
+    bin_weights = 1.0 / np.maximum(bin_counts[y_bins], 1)
+    bin_weights *= len(y_bins) / bin_weights.sum()
+
     if predictor.feature_ranges:
         x_df = apply_normalization(x_df, FEATURE_COLS, predictor.feature_ranges)
     else:
@@ -369,7 +375,9 @@ def _warm_start_train(predictor, teacher_profiles, comp_levels, req_levels) -> d
         x_df = apply_normalization(x_df, FEATURE_COLS, predictor.feature_ranges)
 
     X = x_df.values
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test, w_train, w_test = train_test_split(
+        X, y, bin_weights, test_size=0.2, random_state=42
+    )
 
     model = predictor.model
     model_name = predictor.model_name
@@ -383,7 +391,7 @@ def _warm_start_train(predictor, teacher_profiles, comp_levels, req_levels) -> d
             n_estimators=50, max_depth=5, learning_rate=0.1,
             subsample=0.8, random_state=42, verbosity=0,
         )
-        model.fit(X_train, y_train, xgb_model=prev_booster)
+        model.fit(X_train, y_train, xgb_model=prev_booster, sample_weight=w_train)
 
     elif model_name == "lightgbm" and hasattr(model, "booster_"):
         import lightgbm as lgb
@@ -400,7 +408,7 @@ def _warm_start_train(predictor, teacher_profiles, comp_levels, req_levels) -> d
         # scikit-learn GradientBoostingRegressor: warm_start adds 50 more trees
         if hasattr(model, "set_params"):
             model.set_params(warm_start=True, n_estimators=model.n_estimators + 50)
-        model.fit(X_train, y_train)
+        model.fit(X_train, y_train, sample_weight=w_train)
 
     predictor.model = model
 

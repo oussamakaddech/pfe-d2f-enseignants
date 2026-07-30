@@ -41,6 +41,13 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 # Code applicatif (pas de tests/ ni init_db/ en production)
 COPY app/ ./app/
 
+# Dataset maitre D2F (CSV) — source de vérité pour /api/v1/d2f/*
+# d2f_master.py lit ces fichiers via load_master_data()
+COPY data/clean/ ./data/clean/
+COPY data/models/ ./data/models/
+# Exports (dashboard_kpis.json) — requis par le routeur d2f_master
+COPY data/exports/ ./data/exports/
+
 # Répertoire de travail pour les logs en écriture
 RUN mkdir -p /app/logs && chown -R appuser:appuser /app/logs
 
@@ -50,6 +57,8 @@ EXPOSE 8000
 
 ENV PYTHONPATH=/app
 ENV APP_ENV=production
+# P0 — persistance des modèles ML dans le container
+ENV MODELS_DIR=/app/data/models
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -sf http://localhost:8000/api/v1/analytics/health || exit 1

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Card, Table, Tag, Button, InputNumber, Checkbox, Space, Statistic, Empty, Spin, Alert, Progress } from "antd";
+import { Card, Table, Tag, Button, InputNumber, Checkbox, Space, Statistic, Empty, Spin, Alert, Progress, Typography } from "antd";
 import { ThunderboltOutlined, ArrowRightOutlined } from "@ant-design/icons";
 import { useWhatIfSimulation } from "@/hooks/analytics/useAnalyticsQueries";
 import { RISK_LEVEL_COLORS, RISK_LEVEL_LABELS } from "@/utils/analytics/constants";
@@ -13,15 +13,25 @@ interface Props {
 
 const fmtPct = (v: number) => `${Math.round(v * 100)}%`;
 
+/** Déduplique les gaps par competence_id (garde le plus critique). */
+function deduplicateGaps(gaps: SkillGap[]): SkillGap[] {
+  const map = new Map<number, SkillGap>();
+  for (const g of gaps) {
+    const existing = map.get(g.competence_id);
+    if (!existing || g.gap_score > existing.gap_score) map.set(g.competence_id, g);
+  }
+  return Array.from(map.values());
+}
+
 export default function ImpactPanel({ enseignantId, gaps, recommendations }: Props) {
   const sim = useWhatIfSimulation(enseignantId);
+  const uniqueGaps = useMemo(() => deduplicateGaps(gaps), [gaps]);
 
-  // Plan par défaut : tous les gaps inclus, niveau visé = niveau requis.
   const [selected, setSelected] = useState<Record<number, boolean>>(() =>
-    Object.fromEntries(gaps.map((g) => [g.competence_id, true])),
+    Object.fromEntries(uniqueGaps.map((g) => [g.competence_id, true])),
   );
   const [niveaux, setNiveaux] = useState<Record<number, number>>(() =>
-    Object.fromEntries(gaps.map((g) => [g.competence_id, g.niveau_requis])),
+    Object.fromEntries(uniqueGaps.map((g) => [g.competence_id, g.niveau_requis])),
   );
 
   const formationParCompetence = useMemo(() => {
@@ -32,13 +42,15 @@ export default function ImpactPanel({ enseignantId, gaps, recommendations }: Pro
     return m;
   }, [recommendations]);
 
-  const rows = gaps.map((g) => ({
+  const rows = uniqueGaps.map((g) => ({
     gap: g,
     formation: formationParCompetence.get(g.competence_id),
   }));
 
+  const selectedCount = rows.filter((r) => selected[r.gap.competence_id]).length;
+
   const run = () => {
-    const plan = gaps
+    const plan = uniqueGaps
       .filter((g) => selected[g.competence_id])
       .map((g) => ({
         competence_id: g.competence_id,
@@ -65,68 +77,90 @@ export default function ImpactPanel({ enseignantId, gaps, recommendations }: Pro
         {rows.length === 0 ? (
           <Empty description="Aucun gap — lancez une analyse" />
         ) : (
-          <Table
-            size="small"
-            pagination={false}
-            rowKey={(r) => r.gap.competence_id}
-            dataSource={rows}
-            columns={[
-              {
-                title: "Compétence",
-                dataIndex: ["gap", "competence_nom"],
-                render: (_: unknown, r: { gap: SkillGap }) => (
-                  <Space>
-                    <Checkbox
-                      checked={selected[r.gap.competence_id]}
-                      onChange={(e) =>
-                        setSelected((s) => ({ ...s, [r.gap.competence_id]: e.target.checked }))
-                      }
-                    />
-                    <span>{r.gap.competence_nom}</span>
-                  </Space>
-                ),
-              },
-              {
-                title: "Actuel → Requis",
-                dataIndex: ["gap", "niveau_actuel"],
-                render: (_: unknown, r: { gap: SkillGap }) => (
-                  <Tag color="default">
-                    N{r.gap.niveau_actuel} → N{r.gap.niveau_requis}
-                  </Tag>
-                ),
-              },
-              {
-                title: "Niveau visé",
-                dataIndex: ["gap", "competence_id"],
-                render: (_: unknown, r: { gap: SkillGap }) => (
-                  <InputNumber
-                    min={1}
-                    max={5}
-                    value={niveaux[r.gap.competence_id]}
-                    onChange={(v) => setNiveaux((s) => ({ ...s, [r.gap.competence_id]: (v as number) ?? r.gap.niveau_requis }))}
-                    disabled={!selected[r.gap.competence_id]}
-                  />
-                ),
-              },
-              {
-                title: "Formation liée",
-                dataIndex: ["formation", "formation_titre"],
-                render: (_: unknown, r: { gap: SkillGap; formation?: Recommendation }) =>
-                  r.formation ? (
-                    <span>{r.formation.formation_titre}</span>
-                  ) : (
-                    <span style={{ color: "#94a3b8" }}>—</span>
+          <>
+            <div style={{ marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Space>
+                <Checkbox
+                  checked={selectedCount === rows.length}
+                  indeterminate={selectedCount > 0 && selectedCount < rows.length}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setSelected(Object.fromEntries(rows.map((r) => [r.gap.competence_id, checked])));
+                  }}
+                >
+                  Tout sélectionner
+                </Checkbox>
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  {selectedCount}/{rows.length} compétence(s)
+                </Typography.Text>
+              </Space>
+            </div>
+            <Table
+              size="small"
+              pagination={false}
+              rowKey={(r) => r.gap.competence_id}
+              dataSource={rows}
+              columns={[
+                {
+                  title: "Compétence",
+                  dataIndex: ["gap", "competence_nom"],
+                  render: (_: unknown, r: { gap: SkillGap }) => (
+                    <Space>
+                      <Checkbox
+                        checked={selected[r.gap.competence_id]}
+                        onChange={(e) =>
+                          setSelected((s) => ({ ...s, [r.gap.competence_id]: e.target.checked }))
+                        }
+                      />
+                      <span>
+                        {r.gap.competence_nom}
+                        {r.gap.niveau_actuel === 0 && <Tag color="red" style={{ marginLeft: 4 }}>Manquante</Tag>}
+                      </span>
+                    </Space>
                   ),
-              },
-            ]}
-          />
+                },
+                {
+                  title: "Actuel → Requis",
+                  dataIndex: ["gap", "niveau_actuel"],
+                  render: (_: unknown, r: { gap: SkillGap }) => (
+                    <Tag color={r.gap.niveau_actuel === 0 ? "red" : "default"}>
+                      N{r.gap.niveau_actuel} → N{r.gap.niveau_requis}
+                    </Tag>
+                  ),
+                },
+                {
+                  title: "Niveau visé",
+                  dataIndex: ["gap", "competence_id"],
+                  render: (_: unknown, r: { gap: SkillGap }) => (
+                    <InputNumber
+                      min={1}
+                      max={5}
+                      value={niveaux[r.gap.competence_id]}
+                      onChange={(v) => setNiveaux((s) => ({ ...s, [r.gap.competence_id]: (v as number) ?? r.gap.niveau_requis }))}
+                      disabled={!selected[r.gap.competence_id]}
+                    />
+                  ),
+                },
+                {
+                  title: "Formation liée",
+                  dataIndex: ["formation", "formation_titre"],
+                  render: (_: unknown, r: { gap: SkillGap; formation?: Recommendation }) =>
+                    r.formation ? (
+                      <span>{r.formation.formation_titre}</span>
+                    ) : (
+                      <span style={{ color: "#94a3b8" }}>—</span>
+                    ),
+                },
+              ]}
+            />
+          </>
         )}
         <Space style={{ marginTop: 12 }}>
           <Button
             type="primary"
             icon={<ThunderboltOutlined />}
             loading={sim.isPending}
-            disabled={rows.length === 0}
+            disabled={rows.length === 0 || selectedCount === 0}
             onClick={run}
           >
             Simuler l'impact

@@ -41,6 +41,10 @@ services:
     image: ${REGISTRY}/d2f-api-gateway:${IMAGE_TAG}
     pull_policy: always
 
+  analyse-service:
+    image: ${REGISTRY}/d2f-analyse:${IMAGE_TAG}
+    pull_policy: always
+
   formation-service:
     image: ${REGISTRY}/d2f-formation:${IMAGE_TAG}
     pull_policy: always

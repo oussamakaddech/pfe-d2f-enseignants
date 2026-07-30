@@ -1,4 +1,4 @@
-"""Pydantic schemas for inter-service events (DSI §2 — event-driven sync).
+"""Pydantic schemas for inter-service events (DSI Section 2 — event-driven sync).
 
 These schemas define the strict contract for events received from:
 - User Management Service (user.updated)
@@ -6,7 +6,7 @@ These schemas define the strict contract for events received from:
 - Training Service (training.completed)
 
 All events MUST include:
-- teacher_id: str matching ^ENS\d{3}$
+- teacher_id: str matching pattern `^ENS[0-9]{3}$`
 - event_id: str, unique UUID
 - event_type: str, one of the defined event types
 - correlation_id: str, optional but required if present in contract

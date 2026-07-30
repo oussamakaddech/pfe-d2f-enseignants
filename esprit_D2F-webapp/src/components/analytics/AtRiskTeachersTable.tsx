@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Table, Tag, Progress, Empty } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { riskColor, riskLabel, formatDepartment, formatUP, teacherStatus, STATUT_META } from "@/utils/analytics/format";
@@ -15,7 +16,7 @@ export default function AtRiskTeachersTable({
   loading,
   onSelect,
 }: AtRiskTeachersTableProps) {
-  const columns: ColumnsType<AtRiskTeacher> = [
+  const columns = useMemo<ColumnsType<AtRiskTeacher>>(() => [
     { title: "Enseignant", dataIndex: "nom", render: (v) => <button type="button" className="ar-teacher-link">{v}</button> },
     { title: "Département", dataIndex: "departement", render: (v) => formatDepartment(v) || "Non affecté" },
     { title: "UP", dataIndex: "up", render: (v) => formatUP(v) || "Non affecté" },
@@ -26,7 +27,7 @@ export default function AtRiskTeachersTable({
         <Progress percent={Math.round(v * 100)} size="small" strokeColor={riskColor(riskLabelToLevel(v))} />
       ),
       sorter: (a, b) => a.score_risque - b.score_risque,
-      defaultSortOrder: "descend",
+      defaultSortOrder: "descend" as const,
     },
     {
       title: "Statut",
@@ -44,13 +45,9 @@ export default function AtRiskTeachersTable({
         Object.keys(STATUT_META).indexOf(teacherStatus(a.tendance, a.niveau_risque)) -
         Object.keys(STATUT_META).indexOf(teacherStatus(b.tendance, b.niveau_risque)),
     },
-    {
-      title: "Niveau",
-      dataIndex: "niveau_risque",
-      render: (v: AtRiskTeacher["niveau_risque"]) => <Tag color={riskColor(v)}>{riskLabel(v)}</Tag>,
-    },
+    { title: "Niveau", dataIndex: "niveau_risque", render: (v: AtRiskTeacher["niveau_risque"]) => <Tag color={riskColor(v)}>{riskLabel(v)}</Tag> },
     { title: "Gaps critiques", dataIndex: "nb_gaps_critiques", sorter: (a, b) => a.nb_gaps_critiques - b.nb_gaps_critiques },
-  ];
+  ], [teachers]);
 
   if (!loading && teachers.length === 0) return <Empty description="Aucun enseignant à risque" />;
 

@@ -83,15 +83,15 @@ function mapDashboard(raw: RawDashboard): DashboardResponse {
     competence_id: Number(c.competence_id ?? 0),
     competence_nom: c.competence_nom ?? "",
     domaine_nom: c.domaine_nom ?? null,
-    variation_moyenne: c.delta ?? 0,
-    pct_enseignants_en_declin: 0,
-    nb_enseignants_concernes: 0,
+    variation_moyenne: c.variation_moyenne ?? 0,
+    pct_enseignants_en_declin: c.pct_enseignants_en_declin ?? 0,
+    nb_enseignants_concernes: c.nb_enseignants_concernes ?? 0,
   }));
 
   const trends = (raw.monthly_risk_evolution ?? []).map((p: RawRiskTrendPoint) => ({
     month: p.month ?? "",
     nb_gaps_critiques: p.critical ?? 0,
-    score_risque_moyen: 0,
+    score_risque_moyen: p.score_risque_moyen ?? 0,
     nb_alertes: (p.critical ?? 0) + (p.high ?? 0),
   }));
 
@@ -148,11 +148,11 @@ function mapDashboard(raw: RawDashboard): DashboardResponse {
     cible_type: "INDIVIDUEL",
     enseignant_id: a.enseignant_id ?? null,
     departement_id: a.departement_id ?? null,
-    competence_id: a.competence_id ?? null,
-    severite: a.severite ?? "INFO",
+    competence_id: a.competence_id != null ? Number(a.competence_id) : null,
+    severite: (a.severite ?? "INFO") as AlertEvent["severite"],
     titre: a.titre ?? "",
     message: a.message ?? "",
-    statut: a.statut ?? "NOUVELLE",
+    statut: (a.statut ?? "NOUVELLE") as AlertEvent["statut"],
     created_at: a.created_at ?? new Date().toISOString(),
   }));
 
@@ -254,6 +254,11 @@ export const analyticsApi = {
     return axios.get<RiskScore>(`${BASE}/risk/${enseignantId}`).then((r) => r.data);
   },
 
+  /** Returns the raw envelope (with analysis_status/data_source) for diagnostics. */
+  getRiskEnvelope(enseignantId: string): Promise<RiskScore & { analysis_status: string; data_source: string; warnings: string[] }> {
+    return axios.get(`${BASE}/risk/${enseignantId}`).then((r) => r.data);
+  },
+
   // Endpoint backend réel : /enseignants/{id}/historique-risque (F3).
   getRiskHistory(enseignantId: string, mois = 12): Promise<RiskHistoryResponse> {
     return axios
@@ -331,7 +336,7 @@ export const analyticsApi = {
   // Endpoint backend réel : PATCH /alerts/{id} (cycle de vie).
   updateAlert(id: number, payload: AlertUpdatePayload): Promise<{ id: number; statut: string }> {
     return axios
-      .patch<{ id: number; statut: string }>(`${BASE}/alerts/${id}`, payload)
+      .patch<{ id: number; statut: string }>(`${BASE}/alerts/${id}`, null, { params: payload })
       .then((r) => r.data);
   },
 

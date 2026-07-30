@@ -113,11 +113,6 @@ export default function NewFeaturesSection({ departementId }: { readonly departe
                       { title: "Formation", dataIndex: "formation_titre", key: "formation_titre" },
                       { title: "Enseignants", dataIndex: "nb_enseignants", key: "nb_enseignants", width: 110 },
                       {
-                        title: "Niveau avant → après", key: "gain",
-                        render: (_: unknown, f: { niveau_moyen_avant: number; niveau_moyen_apres: number }) =>
-                          `${f.niveau_moyen_avant.toFixed(1)} → ${f.niveau_moyen_apres.toFixed(1)}`,
-                      },
-                      {
                         title: "Gain moyen", key: "gain_niveau_moyen", width: 120,
                         render: (_: unknown, f: { niveau_moyen_avant: number; niveau_moyen_apres: number }) => (
                           <Tag color="success">+{(f.niveau_moyen_apres - f.niveau_moyen_avant).toFixed(2)}</Tag>

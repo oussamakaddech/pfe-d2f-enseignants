@@ -1,0 +1,26 @@
+{
+  "checks": [
+    {
+      "name": "risk_formula_consistency",
+      "passed": true,
+      "details": [
+        "Risk formula matches documented weights (0.40/0.25/0.20/0.15)"
+      ]
+    },
+    {
+      "name": "no_alternative_risk_formulas",
+      "passed": true,
+      "details": [
+        "No alternative risk formulas found"
+      ]
+    },
+    {
+      "name": "risk_levels",
+      "passed": true,
+      "details": [
+        "All risk levels defined: CRITIQUE, ELEVE, MODERE, FAIBLE"
+      ]
+    }
+  ],
+  "all_passed": true
+}

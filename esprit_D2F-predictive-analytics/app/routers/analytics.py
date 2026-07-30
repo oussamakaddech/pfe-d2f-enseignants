@@ -55,6 +55,15 @@ from app.models.schemas import (
 )
 from app.services.analysis_collection_service import collect_analysis_data, build_domaine_demand as _build_domaine_demand
 from app.services.data_service import DataService
+from app.core.id_policy import validate_canonical_id, is_legacy_t
+from app.core.response_envelope import (
+    ready as env_ready,
+    data_incomplete as env_data_incomplete,
+    not_found as env_not_found,
+    model_fallback as env_model_fallback,
+    DATA_INCOMPLETE, NOT_FOUND, MODEL_FALLBACK, READY,
+    SRC_DB, SRC_CSV, SRC_HEURISTIC, SRC_ML,
+)
 
 # Dépendance d'autorisation en lecture (dashboards/analyse). ADMIN ou CUP.
 ReadAuth = Annotated[dict, Depends(require_roles("ADMIN", "CUP"))]
@@ -148,14 +157,8 @@ async def analyze_enseignant(
     t_start = time.time()
 
     # Normalize teacher ID at API boundary
+    enseignant_id = validate_canonical_id(enseignant_id, path=request.url.path)
     svc = DataService(db)
-    try:
-        enseignant_id = svc.normalize_teacher_id(enseignant_id)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=_dsi_error(400, "ENS-400", f"Invalid teacher ID: {e}", request.url.path),
-        )
 
     profile = _get_teacher_or_404(svc, enseignant_id, request)
     _enforce_teacher_access(auth, enseignant_id, db)
@@ -478,16 +481,14 @@ def _upsert_risk_profile(db: Session, enseignant_id: str, gaps: list, snapshot: 
 @router.get("/gaps/{enseignant_id}", summary="Gaps de compétences d'un enseignant")
 async def get_gaps(
     enseignant_id: str,
+    request: Request,
     db: DbSession,
     urgence: UrgenceFilter = None,
     page: PageParam = 0,
     size: SizeParam = 20,
 ) -> dict[str, Any]:
+    enseignant_id = validate_canonical_id(enseignant_id, path=request.url.path)
     svc = DataService(db)
-    try:
-        enseignant_id = svc.normalize_teacher_id(enseignant_id)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail={"message": f"Invalid teacher ID: {e}"})
     q = (
         db.query(SkillGap)
         .filter(SkillGap.enseignant_id == enseignant_id)
@@ -542,18 +543,17 @@ async def get_risk(
     Lit ``TeacherRiskProfile.facteurs_risque`` (factors / contributions /
     weights) calculé par le pipeline et le mappe vers des ``RiskFactor``
     lisibles (libellé FR + explication vulgarisée)."""
+    enseignant_id = validate_canonical_id(enseignant_id, path="/v1/analytics/teacher")
     svc = DataService(db)
-    try:
-        enseignant_id = svc.normalize_teacher_id(enseignant_id)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail={"message": f"Invalid teacher ID: {e}"})
     profile = (
         db.query(TeacherRiskProfile)
         .filter_by(enseignant_id=enseignant_id)
         .first()
     )
 
-    if not profile:
+    # Demo mode: use CSV fallback only if explicitly enabled
+    demo_mode = os.getenv("ANALYTICS_DEMO_DATA_MODE", "false").lower() == "true"
+    if demo_mode:
         csv_risk = _load_csv_risk_score(enseignant_id)
         if csv_risk:
             csv_teacher = _load_csv_teacher_profile(enseignant_id)
@@ -561,13 +561,20 @@ async def get_risk(
             return {
                 "enseignant_id": enseignant_id,
                 "enseignant_nom": teacher_name,
+                "analysis_status": "DEMO_DATA",
+                "data_source": "demo_dataset",
                 "score": csv_risk["score"],
                 "niveau": csv_risk["niveau"],
                 "facteurs": [],
                 "tendance": "STABLE",
                 "precedent_score": None,
                 "computed_at": None,
+                "warnings": ["Score issu du jeu de démonstration (ANALYTICS_DEMO_DATA_MODE=true)"],
+                "source": "DEMO_DATASET_RISK_SCORE",
             }
+
+    # Production: use deterministic risk scoring from DB
+    if not profile:
         raise HTTPException(
             status_code=404,
             detail=_dsi_error(404, "RISK-404", f"Profil de risque de {enseignant_id} introuvable", f"/v1/analytics/risk/{enseignant_id}"),
@@ -635,6 +642,8 @@ async def get_risk(
         "precedent_score":  round(float(profile.precedent_score_risque), 4)
                             if profile.precedent_score_risque is not None else None,
         "computed_at":      profile.computed_at.isoformat() if profile.computed_at else None,
+        "source":           "RULE_BASED_RISK_SCORING",
+        "analysis_status":  "READY",
     }
 
 
@@ -651,11 +660,8 @@ async def historique_risque(
 ) -> dict[str, Any]:
     """Série temporelle du score de risque (F3) pour identifier amélioration /
     stagnation / régression. Backfill de démonstration si aucun snapshot."""
+    enseignant_id = validate_canonical_id(enseignant_id, path="/v1/analytics/teacher")
     svc = DataService(db)
-    try:
-        enseignant_id = svc.normalize_teacher_id(enseignant_id)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail={"message": f"Invalid teacher ID: {e}"})
     cutoff = date.today() - timedelta(days=mois * 31)
     rows = (
         db.query(TeacherRiskSnapshot)
@@ -698,11 +704,8 @@ async def get_recommendations(
     page: PageParam = 0,
     size: SizeParam = 20,
 ) -> dict[str, Any]:
+    enseignant_id = validate_canonical_id(enseignant_id, path="/v1/analytics/teacher")
     svc = DataService(db)
-    try:
-        enseignant_id = svc.normalize_teacher_id(enseignant_id)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail={"message": f"Invalid teacher ID: {e}"})
     q = (
         db.query(Recommendation, SkillGap.competence_nom, SkillGap.niveau_actuel)
         .outerjoin(SkillGap, Recommendation.skill_gap_id == SkillGap.id)
@@ -745,11 +748,8 @@ async def get_recommendations_grouped(
 ) -> dict[str, Any]:
     """Regroupe les recommandations (déjà scorées) par compétence, type ou
     urgence, avec agrégats par groupe (score moyen/max, nb acceptées)."""
+    enseignant_id = validate_canonical_id(enseignant_id, path="/v1/analytics/teacher")
     svc = DataService(db)
-    try:
-        enseignant_id = svc.normalize_teacher_id(enseignant_id)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail={"message": f"Invalid teacher ID: {e}"})
     if group_by not in ("competence", "type", "urgence"):
         raise HTTPException(
             status_code=400,
@@ -787,11 +787,8 @@ async def get_training_path(
     competence_id: int,
     db: DbSession,
 ) -> dict[str, Any]:
+    enseignant_id = validate_canonical_id(enseignant_id, path="/v1/analytics/teacher")
     svc = DataService(db)
-    try:
-        enseignant_id = svc.normalize_teacher_id(enseignant_id)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail={"message": f"Invalid teacher ID: {e}"})
     path = (
         db.query(TrainingPath)
         .filter_by(enseignant_id=enseignant_id, competence_id=competence_id, statut="ACTIF")
@@ -1206,11 +1203,8 @@ async def forecast_competences(
 ) -> dict[str, Any]:
     """Projette sur N mois l'évolution des niveaux de compétence d'un enseignant
     (intervalle de confiance + drapeau de régression)."""
+    enseignant_id = validate_canonical_id(enseignant_id, path="/v1/analytics/teacher")
     svc = DataService(db)
-    try:
-        enseignant_id = svc.normalize_teacher_id(enseignant_id)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail={"message": f"Invalid teacher ID: {e}"})
     if not svc.get_teacher_profile(enseignant_id):
         raise HTTPException(
             status_code=404,
@@ -1232,11 +1226,8 @@ async def benchmark_enseignant(
     par_up: Annotated[bool, Query(description="Restreindre la cohorte à la même UP")] = False,
 ) -> dict[str, Any]:
     """Compare un enseignant à ses pairs (niveau moyen, complétion, risque, gaps)."""
+    enseignant_id = validate_canonical_id(enseignant_id, path="/v1/analytics/teacher")
     svc = DataService(db)
-    try:
-        enseignant_id = svc.normalize_teacher_id(enseignant_id)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail={"message": f"Invalid teacher ID: {e}"})
     if not svc.get_teacher_profile(enseignant_id):
         raise HTTPException(
             status_code=404,
@@ -1257,11 +1248,8 @@ async def detect_anomalies_teacher(
     db: DbSession,
 ) -> dict[str, Any]:
     """Lance les détecteurs d'anomalies et persiste les alertes (idempotent)."""
+    enseignant_id = validate_canonical_id(enseignant_id, path="/v1/analytics/teacher")
     svc = DataService(db)
-    try:
-        enseignant_id = svc.normalize_teacher_id(enseignant_id)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail={"message": f"Invalid teacher ID: {e}"})
     profil = svc.get_teacher_profile(enseignant_id)
     if not profil:
         raise HTTPException(
@@ -1350,6 +1338,37 @@ async def pilotage_dashboard(
     - anomalies live
     - corrélation besoins ↔ gaps"""
     return PilotageDashboardEngine(db).compute_all(horizon_mois=horizon_mois)
+
+
+# ── GET /api/v1/analytics/model/health ────────────────────────
+@router.get("/model/health", summary="ML model health status", include_in_schema=False)
+async def model_health() -> dict[str, Any]:
+    """Return ML model health status.
+
+    WARNING: The GapPredictor model is DEPRECATED due to target leakage.
+    The current gap is computed deterministically by GapEngine.
+    """
+    from app.ml.gap_predictor import gap_predictor
+    import sklearn
+    import sys
+    python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    sklearn_version = sklearn.__version__
+
+    # Get model health from the deprecated gap predictor
+    health = gap_predictor.model_health()
+
+    # Enrich with runtime info
+    return {
+        "gap_prediction_ml_status": "DEPRECATED_TARGET_LEAKAGE",
+        "fallback_mode": True,
+        "current_gap_source": "RULE_BASED_DIAGNOSTIC",
+        "reason": "Current gap is deterministically derived from current and required levels. ML model caused target leakage (R²=1.0).",
+        "future_ml_status": "DATA_COLLECTION_REQUIRED",
+        "python_version": python_version,
+        "sklearn_runtime_version": sklearn_version,
+        "artifact_status": "deprecated",
+        "model_health": health,
+    }
 
 
 # ── GET /api/v1/analytics/health ─────────────────────────────

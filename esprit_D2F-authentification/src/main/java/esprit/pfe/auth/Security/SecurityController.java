@@ -43,6 +43,9 @@ public class SecurityController {
     @Value("${app.cookie.secure:true}")
     private boolean cookieSecure;
 
+    @Value("${app.cookie.samesite:Strict}")
+    private String cookieSameSite;
+
     public SecurityController(AuthService authService) {
         this.authService = authService;
     }
@@ -118,12 +121,12 @@ public class SecurityController {
 
     // ── Helpers HTTP (cookies, IP) ──────────────────────────────────────────────
 
-    /** Cookie HttpOnly + Secure + SameSite=Strict portant le JWT. */
+    /** Cookie HttpOnly + Secure + SameSite portant le JWT. */
     private ResponseCookie buildJwtCookie(String jwt, long maxAgeSeconds) {
         return ResponseCookie.from(COOKIE_NAME, jwt)
                 .httpOnly(true)
                 .secure(cookieSecure)
-                .sameSite("Strict")
+                .sameSite(cookieSameSite)
                 .path("/")
                 .maxAge(maxAgeSeconds)
                 .build();
@@ -134,7 +137,7 @@ public class SecurityController {
         return ResponseCookie.from(COOKIE_NAME, "")
                 .httpOnly(true)
                 .secure(cookieSecure)
-                .sameSite("Strict")
+                .sameSite(cookieSameSite)
                 .path("/")
                 .maxAge(0)
                 .build();

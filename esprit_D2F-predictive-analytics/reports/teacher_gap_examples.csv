@@ -1,0 +1,4 @@
+teacher_id,teacher_name,knowledge_id,knowledge_name,knowledge_difficulty_level,gap_type,priority_score,priority_level,assignment_status,besoin_individuel,besoin_collectif,formation_non_terminee
+ENS002,Youssef Rachedi,SAV_REACT_HOOKS,React Hooks et gestion des états,3,GAP_NOT_ASSIGNED,0.7800,HAUTE,NOT_ASSIGNED,non,non,oui
+ENS003,Tarik Haddi,SAV_RESEAU,Réseaux et Cybersécurité,4,GAP_EXPLICIT_NEED,0.8200,HAUTE,ASSIGNED,oui,non,non
+ENS001,Zineb Bouaziz,SAV_DEVOPS,DevOps et CI/CD,3,GAP_PREREQUISITE_MISSING,0.6500,MODEREE,ASSIGNED,non,non,oui

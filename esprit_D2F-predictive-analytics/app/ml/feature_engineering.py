@@ -63,6 +63,31 @@ def build_teacher_features(
         df_teacher["avg_eval_score"] * 2
     )
 
+    # ── Temporal features ──────────────────────────────────
+    # Mois depuis dernière formation (continuité temporelle)
+    df_teacher["months_since_last_training"] = (
+        df_teacher["days_since_last_training"] / 30.0
+    ).clip(0, 48)
+
+    # Fréquence moyenne de formation (formations / mois d'ancienneté)
+    df_teacher["avg_days_between_trainings"] = df_teacher[
+        "avg_days_between_trainings"
+    ].fillna(0.0)
+    df_teacher["training_frequency_per_month"] = (
+        df_teacher["nb_formations_completed"]
+        / (df_teacher["avg_days_between_trainings"] / 30.0).clip(0.1, None)
+    ).clip(0, 10)
+
+    # Absence prolongée : indicateur binaire si > 6 mois sans formation
+    df_teacher["is_long_absent"] = (
+        (df_teacher["days_since_last_training"] > 180).astype(int)
+    )
+
+    # Stagnation récente : pas d'évolution depuis plus de 12 mois
+    df_teacher["is_stagnant"] = (
+        (df_teacher["days_since_last_training"] > 365).astype(int)
+    )
+
     # Fill NaNs
     df_teacher.fillna(0, inplace=True)
     return df_teacher
@@ -101,6 +126,57 @@ def build_training_effectiveness_features(
 
     df["post_eval_score"] = pd.to_numeric(df["post_eval_score"], errors="coerce")
     return df
+
+
+def validate_features(df: pd.DataFrame) -> dict[str, Any]:
+    """P1.3 — valide les features avant l'entraînement.
+
+    Détecte les outliers métier :
+      - taux_assiduite ∈ [0, 1]
+      - niveaux ∈ [1, 5] (current_level / required_level / avg_level / min / max)
+      - risk_score ∈ [0, 1]
+      - engagement_score >= 0
+      - days_since_last_training >= 0
+
+    Renvoie un rapport avec outliers par colonne (count, ids exemples).
+    Le caller peut choisir de drop, clamp ou alert.
+    """
+    rules: list[tuple[str, str, float | None, float | None]] = [
+        ("taux_assiduite", "in", 0.0, 1.0),
+        ("current_level", "in", 1.0, 5.0),
+        ("required_level", "in", 1.0, 5.0),
+        ("avg_level", "in", 1.0, 5.0),
+        ("min_level", "in", 1.0, 5.0),
+        ("max_level", "in", 1.0, 5.0),
+        ("engagement_score", "ge", 0.0, None),
+        ("days_since_last_training", "ge", 0.0, None),
+        ("nb_formations_completed", "ge", 0.0, None),
+    ]
+    outliers: dict[str, dict[str, Any]] = {}
+    n_rows = len(df)
+    for col, op, lo, hi in rules:
+        if col not in df.columns:
+            continue
+        col_series = pd.to_numeric(df[col], errors="coerce")
+        if op == "in" and lo is not None and hi is not None:
+            bad = col_series[(col_series < lo) | (col_series > hi)]
+        elif op == "ge" and lo is not None:
+            bad = col_series[col_series < lo]
+        else:
+            continue
+        if len(bad) > 0:
+            outliers[col] = {
+                "count": int(len(bad)),
+                "pct_of_rows": round(100 * len(bad) / max(n_rows, 1), 2),
+                "sample_values": [float(v) for v in bad.head(3).tolist()],
+                "rule": f"{col} {op} [{lo}, {hi}]",
+            }
+    return {
+        "n_rows": int(n_rows),
+        "outlier_columns": list(outliers.keys()),
+        "outliers": outliers,
+        "is_clean": len(outliers) == 0,
+    }
 
 
 def normalize_features(df: pd.DataFrame, numeric_cols: list[str]) -> pd.DataFrame:

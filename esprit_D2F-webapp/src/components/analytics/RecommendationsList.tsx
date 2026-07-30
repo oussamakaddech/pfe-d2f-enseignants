@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { List, Card, Tag, Progress, Typography, Empty } from "antd";
 import { CheckCircleOutlined, CloseCircleOutlined, ArrowRightOutlined } from "@ant-design/icons";
 import type { Recommendation } from "@/models/analyse/analyticsFeature";
@@ -16,7 +17,9 @@ export default function RecommendationsList({
   onAccept,
   onReject,
 }: RecommendationsListProps) {
-  if (!loading && recommendations.length === 0) {
+  const items = useMemo(() => recommendations, [recommendations]);
+
+  if (!loading && items.length === 0) {
     return <Empty description="Aucune recommandation" />;
   }
 
@@ -24,7 +27,7 @@ export default function RecommendationsList({
     <List
       loading={loading}
       itemLayout="vertical"
-      dataSource={recommendations}
+      dataSource={items}
       renderItem={(r) => (
         <List.Item key={r.id}>
           <Card size="small" style={{ width: "100%", borderRadius: 10 }}>
@@ -46,23 +49,13 @@ export default function RecommendationsList({
               />
             </div>
             <div style={{ marginTop: 6 }}>
-              {r.niveau_actuel != null && r.niveau_apres != null && (
-                <Tag color="green" icon={<ArrowRightOutlined />}>
-                  Impact : {Math.round(r.niveau_actuel * 100)}% → {Math.round(r.niveau_apres * 100)}% après formation
-                  {" "}(−{Math.round((r.niveau_actuel - r.niveau_apres) * 100)} pts)
-                </Tag>
-              )}
               {r.est_prerequis && <Tag color="gold">prérequis</Tag>}
               {!r.prerequis_satisfaits && <Tag color="red">prérequis manquants</Tag>}
               {r.statut === "ACCEPTEE" && (
-                <Tag color="green" icon={<CheckCircleOutlined />}>
-                  acceptée
-                </Tag>
+                <Tag color="green" icon={<CheckCircleOutlined />}>acceptée</Tag>
               )}
               {r.statut === "IGNOREE" && (
-                <Tag color="default" icon={<CloseCircleOutlined />}>
-                  ignorée
-                </Tag>
+                <Tag color="default" icon={<CloseCircleOutlined />}>ignorée</Tag>
               )}
             </div>
             {r.justification && (
@@ -70,7 +63,7 @@ export default function RecommendationsList({
                 {r.justification}
               </Typography.Paragraph>
             )}
-            {onAccept && onReject && r.statut === "PROPOSEE" && (
+            {onAccept && onReject && r.statut === "PROPOSÉE" && (
               <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
                 <button type="button" onClick={() => onAccept(r.id)}>Accepter</button>
                 <button type="button" onClick={() => onReject(r.id)}>Ignorer</button>

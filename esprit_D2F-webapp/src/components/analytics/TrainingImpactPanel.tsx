@@ -43,14 +43,6 @@ export default function TrainingImpactPanel() {
               dataIndex: "gain_niveau_moyen",
               render: (v: number) => <Tag color="green">+{v.toFixed(2)}</Tag>,
             },
-            {
-              title: "Niveau moyen",
-              render: (_: unknown, r: FormationImpactRow) => (
-                <span>
-                  {r.niveau_moyen_avant.toFixed(2)} → <b>{r.niveau_moyen_apres.toFixed(2)}</b>
-                </span>
-              ),
-            },
           ]}
         />
       </Card>

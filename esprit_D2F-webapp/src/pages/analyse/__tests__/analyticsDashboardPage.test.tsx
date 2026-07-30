@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   useDecliningSkills: vi.fn(),
 }));
 
-vi.mock("../hooks/useAnalyticsQueries", () => ({
+vi.mock("@/hooks/analytics/useAnalyticsD2FAdapter", () => ({
   useDashboard: mocks.useDashboard,
   useAtRisk: mocks.useAtRisk,
   useAlerts: mocks.useAlerts,

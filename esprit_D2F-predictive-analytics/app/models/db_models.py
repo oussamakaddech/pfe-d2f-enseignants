@@ -262,13 +262,13 @@ class TeacherCompetenceCoverage(Base):
 
 class TeacherIdMapping(Base):
     """Canonical teacher ID mapping table.
-    
+
     DB (enseignants.id) uses ENS001..ENS030 format.
     Legacy CSV/master dataset uses T001..T030 format.
     This table provides explicit, auditable mapping.
     """
     __tablename__ = "teacher_id_mapping"
-    
+
     canonical_id = Column(String(36), primary_key=True, comment="ENS format from DB")
     legacy_id = Column(String(36), nullable=False, unique=True, comment="T format from CSV")
     source = Column(String(50), nullable=False, comment="Origin: 'db', 'csv', 'manual'")
@@ -277,8 +277,105 @@ class TeacherIdMapping(Base):
     verified_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=_now)
     updated_at = Column(DateTime(timezone=True), default=_now, onupdate=_now)
-    
+
     __table_args__ = (
         Index("ix_teacher_id_mapping_legacy", "legacy_id"),
         UniqueConstraint("canonical_id", "legacy_id", name="uq_canonical_legacy"),
+    )
+
+
+class Knowledge(Base):
+    """Savoirs du référentiel — chaque savoir a un niveau de difficulté fixe.
+
+    Le niveau de difficulté est immutable et identique pour tous les
+    enseignants. Il représente la complexité pédagogique du savoir,
+    pas une maîtrise individuelle.
+    """
+
+    __tablename__ = "knowledge"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    knowledge_code = Column(String(50), nullable=False, unique=True)
+    knowledge_name = Column(String(255), nullable=False)
+    knowledge_type = Column(String(20), nullable=False, default="THEORETICAL")
+    competency_id = Column(BigInteger, nullable=False)
+    competency_code = Column(String(50), nullable=False)
+    competency_name = Column(String(255), nullable=False)
+    sous_competence_id = Column(BigInteger, nullable=True)
+    sous_competence_name = Column(String(255), nullable=True)
+    domaine_id = Column(BigInteger, nullable=True)
+    domaine_name = Column(String(255), nullable=True)
+    difficulty_level = Column(SmallInteger, nullable=False, default=1)
+    description = Column(Text, nullable=True)
+    prerequis_ids = Column(JSONB, nullable=True, default=[])
+    actif = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+    updated_at = Column(DateTime(timezone=True), default=_now, onupdate=_now)
+
+    __table_args__ = (
+        Index("ix_knowledge_code", "knowledge_code"),
+        Index("ix_knowledge_competency", "competency_id"),
+    )
+
+
+class TeacherKnowledgeAssignment(Base):
+    """Affectation d'un savoir à un enseignant.
+
+    C'est la source de vérité pour connaître les savoirs associés
+    au profil d'un enseignant. Le service d'analyse prédictive ne
+    modifie pas cette table directement — il la lit.
+    """
+
+    __tablename__ = "teacher_knowledge_assignments"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    teacher_id = Column(String(36), nullable=False, index=True)
+    knowledge_id = Column(BigInteger, nullable=False)
+    knowledge_code = Column(String(50), nullable=True)
+    knowledge_name = Column(String(255), nullable=True)
+    competency_id = Column(BigInteger, nullable=True)
+    competency_code = Column(String(50), nullable=True)
+    competency_name = Column(String(255), nullable=True)
+    assignment_status = Column(String(20), nullable=False, default="PROPOSED")
+    assignment_source = Column(String(20), nullable=False, default="RICE")
+    assigned_at = Column(DateTime(timezone=True), default=_now)
+    validated_at = Column(DateTime(timezone=True), nullable=True)
+    generated_at = Column(DateTime(timezone=True), nullable=True)
+    generated_by = Column(String(36), nullable=True)
+    comment = Column(Text, nullable=True)
+    active = Column(Boolean, nullable=False, default=True)
+    data_quality_status = Column(String(20), nullable=False, default="COMPLETE")
+    created_at = Column(DateTime(timezone=True), default=_now)
+    updated_at = Column(DateTime(timezone=True), default=_now, onupdate=_now)
+
+    __table_args__ = (
+        Index("ix_tka_teacher_knowledge", "teacher_id", "knowledge_id"),
+        Index("ix_tka_status", "assignment_status"),
+    )
+
+
+class TeacherCompetencyAssignment(Base):
+    """Affectation d'une compétence à un enseignant.
+
+    Source de vérité pour les liens enseignant–compétence.
+    """
+
+    __tablename__ = "teacher_competency_assignments"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    teacher_id = Column(String(36), nullable=False, index=True)
+    competency_id = Column(BigInteger, nullable=False)
+    competency_code = Column(String(50), nullable=True)
+    competency_name = Column(String(255), nullable=True)
+    assignment_status = Column(String(20), nullable=False, default="PROPOSED")
+    assignment_source = Column(String(20), nullable=False, default="RICE")
+    assigned_at = Column(DateTime(timezone=True), default=_now)
+    validated_at = Column(DateTime(timezone=True), nullable=True)
+    active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+    updated_at = Column(DateTime(timezone=True), default=_now, onupdate=_now)
+
+    __table_args__ = (
+        Index("ix_tca_teacher_competency", "teacher_id", "competency_id"),
+        Index("ix_tca_status", "assignment_status"),
     )

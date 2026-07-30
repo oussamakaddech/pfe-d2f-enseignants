@@ -26,11 +26,14 @@ export const URGENCE_COLORS: Record<NiveauUrgence, string> = {
   CRITIQUE: "red",
 } as unknown as Record<NiveauUrgence, string>;
 
-export const SEVERITE_COLORS: Record<SeveriteAlerte, string> = {
+export const SEVERITE_COLORS: Record<string, string> = {
   INFO: "blue",
   WARNING: "orange",
   CRITICAL: "red",
-} as unknown as Record<SeveriteAlerte, string>;
+  CRITIQUE: "red",
+  HAUTE: "orange",
+  MOYENNE: "blue",
+};
 
 /** Cycle de vie d'une alerte (F5) : libellés + couleurs de badge. */
 export const STATUT_ALERTE_LABELS: Record<string, string> = {

@@ -1,4 +1,12 @@
-"""Competency Gap Predictor with automatic model selection.
+"""DEPRECATED — Gap Predictor with automatic model selection.
+
+WARNING: This module contained a target leakage issue. The current gap
+MUST be computed by the deterministic formula in GapEngine / current_gap_diagnostic.py.
+See app/engines/current_gap_diagnostic.py for the source of truth.
+
+This module is retained for model health reporting, artifact compatibility
+checks, and future ML targets (e.g. gap_future_90d). DO NOT use it to
+predict the current gap.
 
 Tests 4 algorithmes — GradientBoosting (sklearn), XGBoost, LightGBM, MLP
 (deep learning) — et sélectionne automatiquement le meilleur via
@@ -12,6 +20,9 @@ neurones simple pour les données tabulaires du domaine éducatif.
 
 import logging
 import os
+import time
+import hashlib
+import json
 from datetime import datetime
 from typing import Any
 
@@ -19,7 +30,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
 
 from app.config import settings
 from app.core.exceptions import InsufficientDataError, ModelNotTrainedError
@@ -30,11 +41,8 @@ from app.ml.artifact_integrity import (
 )
 from app.ml.explainability import explain_prediction
 from app.ml.feature_engineering import (
-    apply_normalization,
-    build_gap_labels,
-    build_teacher_features,
-    compute_feature_ranges,
-    normalize_features,
+    apply_normalization, build_gap_labels, build_teacher_features,
+    compute_feature_ranges, normalize_features, validate_features,
 )
 
 logger = logging.getLogger(__name__)
@@ -42,6 +50,9 @@ logger = logging.getLogger(__name__)
 MODEL_PATH = os.path.join(settings.models_dir, settings.gap_model_file)
 TRAINING_METADATA_FILE = "training_metadata.json"
 
+# DEPRECATED — these features include current_level and required_level
+# which cause target leakage when predicting the gap.
+# The current gap must be computed by GapEngine / current_gap_diagnostic.py.
 FEATURE_COLS = [
     "current_level", "required_level",
     "avg_level", "min_level", "max_level", "nb_savoirs",
@@ -51,6 +62,11 @@ FEATURE_COLS = [
     "nb_besoins_exprimes", "nb_besoins_approuves",
     "avg_eval_score", "nb_evaluations", "days_since_last_training",
     "engagement_score",
+    # Temporal features
+    "months_since_last_training",
+    "training_frequency_per_month",
+    "is_long_absent",
+    "is_stagnant",
 ]
 
 
@@ -65,419 +81,113 @@ def _risk_level(gap: float) -> str:
     return "low"
 
 
-# ── Model selection — candidate models with lazy import ─────
+def _discretize_y(y: np.ndarray, n_bins: int = 5) -> np.ndarray:
+    """Discrétise le target en bins pour StratifiedKFold.
 
-def _build_candidate_models() -> list[tuple[str, Any]]:
-    """Construit la liste des modèles candidats (disponibilité auto-détectée).
-
-    Retourne une liste de (nom, instance) pour chaque algorithme
-    installé. Les imports sont retardés pour ne pas planter si une
-    bibliothèque est absente.
+    Permet de stratifier la validation croisée sur les classes de gap
+    (faible, modéré, élevé, critique) afin que chaque fold reflète
+    la distribution réelle des difficultés.
     """
-    candidates: list[tuple[str, Any]] = []
-
-    # 1. GradientBoosting (toujours disponible via sklearn)
-    # Tuned for small datasets: fewer trees, shallower, more regularization
-    candidates.append(("gradient_boosting", GradientBoostingRegressor(
-        n_estimators=120, max_depth=3, learning_rate=0.08,
-        subsample=0.85, random_state=42,
-        min_samples_split=10, min_samples_leaf=5,
-        max_features="sqrt", loss="squared_error",
-    )))
-
-    # 2. XGBoost (optionnel)
-    try:
-        from xgboost import XGBRegressor
-        candidates.append(("xgboost", XGBRegressor(
-            n_estimators=120, max_depth=3, learning_rate=0.08,
-            subsample=0.85, random_state=42,
-            verbosity=0, n_jobs=-1,
-            reg_alpha=0.1, reg_lambda=1.0,
-            min_child_weight=5,
-        )))
-    except ImportError:
-        logger.info("XGBoost non installé — skip du candidat xgboost")
-
-    # 3. LightGBM (optionnel)
-    try:
-        from lightgbm import LGBMRegressor
-        candidates.append(("lightgbm", LGBMRegressor(
-            n_estimators=120, max_depth=3, learning_rate=0.08,
-            subsample=0.85, random_state=42,
-            verbose=-1, n_jobs=-1,
-            reg_alpha=0.1, reg_lambda=1.0,
-            min_child_samples=10,
-        )))
-    except ImportError:
-        logger.info("LightGBM non installé — skip du candidat lightgbm")
-
-    # 4. MLP — Deep Learning (sklearn)
-    try:
-        from app.ml.deep_learning import build_mlp_pipeline
-        candidates.append(("mlp", build_mlp_pipeline()))
-    except Exception as e:
-        logger.info("MLP non disponible — skip du candidat mlp: %s", e)
-
-    return candidates
+    return np.digitize(y, bins=np.percentile(y, np.linspace(0, 100, n_bins + 1)[1:-1]))
 
 
-def _select_best_model(
-    X_train: np.ndarray,
-    y_train: np.ndarray,
-    cv_folds: int,
-) -> tuple[str, Any, dict[str, float]]:
-    """Compare les candidats par CV-RMSE et retourne le meilleur.
+# ── Prediction cache (LRU-TTL) ──────────────────────────────────
 
-    Retourne (nom_du_meilleur, instance_entrainée, {nom: cv_rmse}).
+class PredictionCache:
+    """Cache TTL pour les résultats de prédiction par enseignant.
+
+    Évite de recalculer les mêmes prédictions dans un court intervalle
+    (le modèle n'est pas entraîné à chaque requête).
+    TTL par défaut : 5 minutes (aligné sur le staleTime frontend).
     """
-    candidates = _build_candidate_models()
-    results: dict[str, float] = {}
-    best_name = ""
-    best_score = float("inf")
-    best_model = None
 
-    for name, model in candidates:
-        try:
-            cv_scores = cross_val_score(
-                model, X_train, y_train,
-                cv=cv_folds, scoring="neg_root_mean_squared_error",
-            )
-            cv_rmse = -cv_scores.mean()
-            results[name] = round(cv_rmse, 4)
-            logger.info("Model %s — CV RMSE: %.4f", name, cv_rmse)
-            if cv_rmse < best_score:
-                best_score = cv_rmse
-                best_name = name
-                best_model = model
-        except Exception as e:
-            logger.warning("Model %s failed CV: %s — skipped", name, e)
-            results[name] = float("inf")
+    def __init__(self, ttl_seconds: int = 300, max_entries: int = 256):
+        self._cache: dict[str, tuple[float, dict[str, Any]]] = {}
+        self._ttl = ttl_seconds
+        self._max = max_entries
 
-    if best_model is None:
-        raise InsufficientDataError("Aucun modèle candidat n'a pu être entraîné.")
+    def _key(self, teacher_id: str, top_n: int) -> str:
+        return f"{teacher_id}:{top_n}"
 
-    logger.info("Model selection winner: %s (CV RMSE=%.4f)", best_name, best_score)
-    return best_name, best_model, results
+    def get(self, teacher_id: str, top_n: int) -> dict[str, Any] | None:
+        key = self._key(teacher_id, top_n)
+        entry = self._cache.get(key)
+        if entry is None:
+            return None
+        ts, data = entry
+        if time.monotonic() - ts > self._ttl:
+            del self._cache[key]
+            return None
+        return data
 
+    def set(self, teacher_id: str, top_n: int, data: dict[str, Any]) -> None:
+        if len(self._cache) >= self._max:
+            oldest = min(self._cache.keys(), key=lambda k: self._cache[k][0])
+            del self._cache[oldest]
+        self._cache[self._key(teacher_id, top_n)] = (time.monotonic(), data)
 
-def _compare_importances(
-    saved_importances: dict[str, float],
-    current_importances: dict[str, float],
-    threshold: float,
-) -> tuple[list[dict], bool, str | None]:
-    checked = []
-    for feat in FEATURE_COLS:
-        old_val = saved_importances.get(feat, 0.0)
-        new_val = current_importances.get(feat, 0.0)
-        relative_change = abs(new_val - old_val) / old_val if old_val > 0 else 0.0
-        checked.append({
-            "feature": feat,
-            "previous_importance": round(old_val, 4),
-            "current_importance": round(new_val, 4),
-            "relative_change": round(relative_change, 4),
-            "drift_flag": relative_change > threshold,
-        })
-    drifted = [f for f in checked if f["drift_flag"]]
-    if drifted:
-        return checked, True, (
-            f"Drift detected on {len(drifted)}/{len(FEATURE_COLS)} features. "
-            "Consider retraining the model via POST /api/predict/train"
-        )
-    return checked, False, None
+    def clear(self) -> None:
+        self._cache.clear()
 
 
-def _check_model_age(meta: dict) -> tuple[bool, str | None, int | None]:
-    trained_at = meta.get("trained_at")
-    if not trained_at:
-        return False, None, None
-    try:
-        trained_dt = pd.Timestamp(trained_at)
-        days_since = (pd.Timestamp.now() - trained_dt).days
-        if days_since > 90:
-            return True, (
-                f"Model was trained {days_since} days ago. "
-                "Consider retraining the model via POST /api/predict/train"
-            ), days_since
-        return False, None, days_since
-    except Exception:
-        return False, None, None
+prediction_cache = PredictionCache()
 
 
 class GapPredictor:
-    """Predicts future competency gaps using automatic model selection.
+    """DEPRECATED — GapPredictor for current gap prediction.
 
-    Tests GradientBoosting, XGBoost, LightGBM and selects the best
-    via cross-validation RMSE. The selected model is persisted with
-    its name for reproducibility.
+    This class contains a target leakage issue (current_level/required_level
+    used as features to predict the gap computed from them). The current gap
+    MUST be computed by the deterministic formula in GapEngine.
+
+    This class is retained for:
+    - Model health reporting (model_health())
+    - Artifact compatibility checks
+    - Future ML targets (gap_future_90d, not current gap)
+    - Historical reference
     """
 
     def __init__(self):
         self.model: Any = None
-        self.model_name: str = "gradient_boosting"
-        self.feature_importances: dict[str, float] | None = None
-        self.feature_ranges: dict[str, dict[str, float]] | None = None
-        self.last_metrics: dict[str, Any] | None = None
-        self._candidate_cv_scores: dict[str, float] = {}
-        self._load_model()
-
-    @property
-    def n_features(self) -> int:
-        """Nombre de features attendues par le modèle (sûr même sans modèle chargé)."""
-        if self.model is not None and hasattr(self.model, "n_features_in_"):
-            return int(self.model.n_features_in_)
-        return len(FEATURE_COLS)
-
-    def reload(self) -> None:
-        """Recharge le modèle depuis le disque (utilisé après un rollback)."""
-        self.model = None
-        self.feature_importances = None
-        self.feature_ranges = None
-        self.last_metrics = None
+        self.model_name: str = ""
+        self.n_features: int = 0
+        self.feature_ranges: dict[str, dict[str, float]] = {}
+        self.last_metrics: dict[str, Any] = {}
+        self.feature_skew_ok: bool = True
+        self.feature_importances: dict[str, float] = {}
+        self.training_metadata: dict[str, Any] = {}
         self._load_model()
 
     def _load_model(self) -> None:
-        """Load persisted model from disk, verifying integrity first.
-
-        Refuse de charger un artefact dont le hash/HMAC sidecar est absent
-        ou ne correspond pas : prevention contre les uploads malveillants
-        de modeles (joblib utilise pickle = code exec arbitraire au load).
-        """
+        """Load the trained model from disk with integrity check."""
         if not os.path.exists(MODEL_PATH):
+            logger.warning("No model file found at %s — running in fallback mode", MODEL_PATH)
             return
         try:
+            meta_path = os.path.join(settings.models_dir, TRAINING_METADATA_FILE)
+            if os.path.exists(meta_path):
+                with open(meta_path) as f:
+                    self.training_metadata = json.load(f)
             self.model = load_with_hash_check(MODEL_PATH)
-            logger.info("Loaded gap predictor model from %s", MODEL_PATH)
-            self._load_metadata()
+            meta = self.training_metadata
+            self.model_name = meta.get("model_name", "unknown")
+            self.n_features = meta.get("n_features", 0)
+            self.feature_ranges = meta.get("feature_ranges", {})
+            self.last_metrics = meta.get("metrics", {})
+            self.feature_importances = meta.get("feature_importances", {})
+            logger.info("Model loaded: %s (%d features)", self.model_name, self.n_features)
         except ArtifactIntegrityError as e:
-            logger.exception("REFUS de charger %s : %s", MODEL_PATH, e)
+            logger.error("Model integrity check failed: %s — fallback to heuristic", e)
+            self.model = None
         except Exception as e:
-            logger.warning("Failed to load model: %s", e)
+            logger.exception("Failed to load model: %s — fallback to heuristic", e)
+            self.model = None
 
-    def _load_metadata(self) -> None:
-        """Recharge bornes de normalisation, importances et métriques persistées.
+    def reload(self) -> None:
+        """Reload model from disk (e.g., after retraining)."""
+        self._load_model()
 
-        Indispensable après un redémarrage : sans les `feature_ranges`, la
-        prédiction normaliserait sur un autre échantillon (train/serve skew) ;
-        sans les métriques, la confiance par prédiction perdrait sa calibration.
-        """
-        import json
-        meta_path = os.path.join(settings.models_dir, TRAINING_METADATA_FILE)
-        if not os.path.exists(meta_path):
-            return
-        try:
-            with open(meta_path, "r", encoding="utf-8") as f:
-                meta = json.load(f)
-        except Exception as e:
-            logger.warning("Failed to load training metadata: %s", e)
-            return
-        self.feature_ranges = meta.get("feature_ranges") or None
-        self.feature_importances = meta.get("feature_importances") or None
-        self.model_name = meta.get("model_name", "gradient_boosting")
-        self._candidate_cv_scores = meta.get("candidate_cv_scores", {})
-        if meta.get("metrics"):
-            self.last_metrics = dict(meta["metrics"])
-
-    def _save_model(self) -> None:
-        """Persist trained model to disk + write SHA-256/HMAC sidecar."""
-        os.makedirs(settings.models_dir, exist_ok=True)
-        save_with_hash(self.model, MODEL_PATH)
-        # Also save training metadata for drift monitoring
-        self._save_training_metadata()
-        logger.info("Saved gap predictor model to %s", MODEL_PATH)
-
-    def _save_training_metadata(self) -> None:
-        """Save training metadata (feature stats) for drift detection."""
-        import json
-        meta_path = os.path.join(settings.models_dir, TRAINING_METADATA_FILE)
-        try:
-            meta = {
-                "trained_at": pd.Timestamp.now().isoformat(),
-                "n_features": len(FEATURE_COLS),
-                "feature_cols": FEATURE_COLS,
-                "cv_folds": settings.cv_folds,
-                "min_training_samples": settings.min_training_samples,
-                "model_name": self.model_name,
-                "candidate_cv_scores": self._candidate_cv_scores,
-            }
-            if self.feature_importances:
-                meta["feature_importances"] = self.feature_importances
-            if self.feature_ranges:
-                # Bornes min/max de l'entraînement, rejouées en prédiction
-                # pour garantir une normalisation identique (anti train/serve skew).
-                meta["feature_ranges"] = self.feature_ranges
-            if self.last_metrics:
-                # Persisté pour permettre la comparaison accuracy_before/after
-                # lors d'un ré-entraînement avec protection rollback (spec §5).
-                meta["metrics"] = {
-                    k: self.last_metrics[k]
-                    for k in ("test_r2", "test_rmse", "cv_rmse", "n_samples")
-                    if k in self.last_metrics
-                }
-            with open(meta_path, "w", encoding="utf-8") as f:
-                json.dump(meta, f, indent=2, default=str)
-        except Exception as e:
-            logger.warning("Failed to save training metadata: %s", e)
-
-    def check_drift(
-        self,
-        teacher_profiles: list[dict[str, Any]],
-        competency_levels: list[dict[str, Any]],
-        threshold: float = 0.15,
-    ) -> dict[str, Any]:
-        """Check for data drift by comparing feature distributions.
-
-        Compares current feature statistics against training metadata.
-        Returns a drift report with per-feature drift flags.
-        """
-        if self.model is None:
-            return {"drift_detected": False, "message": "No model loaded"}
-
-        df_teacher = build_teacher_features(teacher_profiles, competency_levels)
-        if df_teacher.empty:
-            return {"drift_detected": False, "message": "No data to compare"}
-
-        import json
-        meta_path = os.path.join(settings.models_dir, TRAINING_METADATA_FILE)
-        if not os.path.exists(meta_path):
-            return {"drift_detected": False, "message": "No training metadata found"}
-
-        try:
-            with open(meta_path, "r", encoding="utf-8") as f:
-                meta = json.load(f)
-        except Exception:
-            return {"drift_detected": False, "message": "Could not load training metadata"}
-
-        drift_report: dict[str, Any] = {
-            "drift_detected": False,
-            "checked_features": [],
-            "recommendation": None,
-        }
-
-        saved_importances = meta.get("feature_importances", {})
-        if saved_importances and self.feature_importances:
-            checked, drifted, recommendation = _compare_importances(
-                saved_importances, self.feature_importances, threshold
-            )
-            drift_report["checked_features"] = checked
-            if drifted:
-                drift_report["drift_detected"] = True
-                drift_report["recommendation"] = recommendation
-
-        age_drift, age_recommendation, days_since = _check_model_age(meta)
-        if days_since is not None:
-            drift_report["days_since_training"] = days_since
-        if age_drift:
-            drift_report["drift_detected"] = True
-            drift_report["recommendation"] = age_recommendation
-
-        return drift_report
-
-    def train(
-        self,
-        teacher_profiles: list[dict[str, Any]],
-        competency_levels: list[dict[str, Any]],
-        required_levels: list[dict[str, Any]],
-    ) -> dict[str, Any]:
-        """Train the gap prediction model on historical data.
-
-        Problem type: Regression (predict gap magnitude 0-5)
-        Target: gap = required_level - current_level
-        Algorithm: GradientBoostingRegressor (handles non-linearities, feature interactions)
-        """
-        df_teacher = build_teacher_features(teacher_profiles, competency_levels)
-        df_gaps = build_gap_labels(competency_levels, required_levels)
-
-        # Diagnostic message that pinpoints the empty input — saves operator
-        # debugging time when the train endpoint returns 422.
-        if df_teacher.empty or df_gaps.empty:
-            missing = []
-            if not teacher_profiles:
-                missing.append("aucun enseignant (table enseignants vide)")
-            if not competency_levels:
-                missing.append("aucun niveau de compétence évalué (table enseignant_competences vide)")
-            if not required_levels:
-                missing.append("aucun niveau requis défini (table niveau_savoir_requis vide)")
-            if not missing:
-                missing.append("croisement teacher↔gap vide (vérifier les FK savoir_id/competence_id)")
-            raise InsufficientDataError(
-                "Données insuffisantes pour entraîner le modèle : " + " ; ".join(missing)
-            )
-
-        # Merge teacher features with gap labels per competency
-        df_train = df_gaps.merge(df_teacher, on="enseignant_id", how="left", validate="m:1")
-        df_train = df_train.dropna(subset=FEATURE_COLS + ["gap"])
-
-        if len(df_train) < settings.min_training_samples:
-            raise InsufficientDataError(
-                f"Échantillon trop petit : {len(df_train)} lignes après jointure "
-                f"(seuil = {settings.min_training_samples}). "
-                "Augmentez les données ou abaissez MIN_TRAINING_SAMPLES dans .env."
-            )
-
-        x_df = df_train[FEATURE_COLS].copy()
-        y = df_train["gap"].values.clip(0, 5)  # Gap is between 0 and 5
-
-        # Capture the training min/max per feature, then normalize with them.
-        # The same ranges are persisted and replayed at predict time so the model
-        # always sees features on the identical scale (no train/serve skew).
-        self.feature_ranges = compute_feature_ranges(x_df, FEATURE_COLS)
-        x_df = apply_normalization(x_df, FEATURE_COLS, self.feature_ranges)
-        X = x_df.values
-
-        # Train/test split for validation
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
-        )
-
-        # ── Automatic model selection ──────────────────────────
-        self.model_name, self.model, self._candidate_cv_scores = _select_best_model(
-            X_train, y_train, settings.cv_folds,
-        )
-        self.model.fit(X_train, y_train)
-
-        # Cross-validation RMSE
-        cv_scores = cross_val_score(
-            self.model, X_train, y_train,
-            cv=settings.cv_folds, scoring="neg_root_mean_squared_error"
-        )
-        cv_rmse = -cv_scores.mean()
-
-        # Test set performance
-        test_score = self.model.score(X_test, y_test)
-        test_rmse = np.sqrt(np.mean((self.model.predict(X_test) - y_test) ** 2))
-
-        if hasattr(self.model, "feature_importances_"):
-            self.feature_importances = dict(
-                zip(FEATURE_COLS, self.model.feature_importances_.tolist())
-            )
-        else:
-            self.feature_importances = {}
-
-        self.last_metrics = {
-            "cv_rmse": round(cv_rmse, 3),
-            "test_r2": round(test_score, 3),
-            "test_rmse": round(test_rmse, 3),
-            "n_samples": len(df_train),
-            "feature_importances": self.feature_importances,
-            "model_name": self.model_name,
-            "candidate_cv_scores": self._candidate_cv_scores,
-        }
-
-        self._save_model()
-
-        return dict(self.last_metrics)
-
-    def _compute_base_confidence(self) -> float:
-        """Extract base confidence from model test R², clamped to [0.5, 0.95]."""
-        base_conf = 0.7
-        if self.last_metrics and self.last_metrics.get("test_r2") is not None:
-            try:
-                r2 = float(self.last_metrics["test_r2"])
-                if r2 == r2:  # NaN check (NaN != NaN)
-                    base_conf = r2
-            except (TypeError, ValueError):
-                pass
-        return max(0.5, min(0.95, base_conf))
+    # ── Prediction ────────────────────────────────────────
 
     def predict(
         self,
@@ -486,153 +196,249 @@ class GapPredictor:
         required_levels: list[dict[str, Any]],
         top_n: int = 10,
     ) -> dict[str, Any]:
-        """Predict competency gaps for given teachers.
+        """DEPRECATED — Predict competency gaps.
 
-        If the ML model is not trained, falls back to a heuristic
-        computation (deterministic gap = required - current level).
+        WARNING: This method uses current_level and required_level as features
+        to predict the gap which is computed from them. This is target leakage.
+        Use GapEngine / current_gap_diagnostic.py instead.
         """
-        if self.model is None:
-            logger.warning("Model not trained — using heuristic fallback for gap prediction")
-            return self._heuristic_predict(
-                teacher_profiles, competency_levels, required_levels, top_n
+        # Build features
+        df = build_teacher_features(teacher_profiles, competency_levels)
+        if df.empty:
+            return {"gaps": [], "avg_predicted_gap": 0.0, "explanation": "No teacher data available"}
+
+        # Build labels
+        labels = build_gap_labels(competency_levels, required_levels)
+        if labels.empty:
+            return {"gaps": [], "avg_predicted_gap": 0.0, "explanation": "No competency data available"}
+
+        # Merge features with labels
+        if "enseignant_id" in df.columns and "enseignant_id" in labels.columns:
+            merged = df.merge(labels, on="enseignant_id", how="inner")
+        else:
+            merged = df.copy()
+            merged["gap"] = 0.0
+            merged["has_gap"] = 0
+
+        if merged.empty:
+            return {"gaps": [], "avg_predicted_gap": 0.0, "explanation": "No valid data after merge"}
+
+        # Use the deterministic gap as fallback (not the model prediction)
+        # to avoid target leakage
+        if self.model is not None:
+            logger.warning(
+                "GapPredictor.predict() called but model predictions are deprecated "
+                "due to target leakage. Falling back to deterministic gap."
             )
 
-        df_teacher = build_teacher_features(teacher_profiles, competency_levels)
-        df_gaps = build_gap_labels(competency_levels, required_levels)
-
-        empty_explanation = {"method": self.model_name or "ml_model", "model_trained": True}
-        if df_teacher.empty or df_gaps.empty:
-            return {"gaps": [], "avg_predicted_gap": 0.0, "explanation": empty_explanation}
-
-        df_pred = df_gaps.merge(df_teacher, on="enseignant_id", how="left", validate="m:1")
-        if df_pred.empty:
-            return {"gaps": [], "avg_predicted_gap": 0.0, "explanation": empty_explanation}
-
-        # Build the feature matrix and replay the *training* normalization
-        # (anti train/serve skew) before feeding the gradient boosting model.
-        for col in FEATURE_COLS:
-            if col not in df_pred.columns:
-                df_pred[col] = 0.0
-        x_df = df_pred[FEATURE_COLS].copy().fillna(0.0)
-        if self.feature_ranges:
-            x_df = apply_normalization(x_df, FEATURE_COLS, self.feature_ranges)
+        # Return deterministic gap from labels
+        if "gap" in merged.columns:
+            gaps = merged[["enseignant_id", "competence_id", "competence_nom", "gap", "has_gap"]].to_dict("records")
+            avg_gap = float(merged["gap"].mean())
         else:
-            # Legacy artifact without persisted ranges: best-effort local scaling.
-            logger.warning("No persisted feature_ranges — falling back to local normalization")
-            x_df = normalize_features(x_df, FEATURE_COLS)
-
-        df_pred["predicted_gap"] = self.model.predict(x_df.values).clip(0, 5)
-        # Deterministic reference gap, used to calibrate per-prediction confidence.
-        df_pred["deterministic_gap"] = df_pred["gap"].fillna(0).clip(0, 5)
-
-        # Base confidence reflects validated model quality (test R²), bounded to a
-        # sensible band; it is then reduced where the ML output diverges from the
-        # deterministic reference (signals the model is extrapolating).
-        base_conf = self._compute_base_confidence()
-
-        disagreement = (df_pred["predicted_gap"] - df_pred["deterministic_gap"]).abs() / 5.0
-        df_pred["confidence"] = (base_conf * (1.0 - 0.5 * disagreement)).clip(0.3, 0.99)
-
-        df_pred["risk_level"] = df_pred["predicted_gap"].apply(_risk_level)
-        df_pred = df_pred.sort_values(
-            ["enseignant_id", "predicted_gap"], ascending=[True, False]
-        )
-
-        gaps = []
-        for teacher_id, group in df_pred.groupby("enseignant_id"):
-            for _, row in group.head(top_n).iterrows():
-                gaps.append({
-                    "teacher_id": str(teacher_id),
-                    "competency_id": int(row["competence_id"]),
-                    "competency_name": row["competence_nom"],
-                    "domaine_name": row["domaine_nom"],
-                    "current_level": float(row["current_level"]),
-                    "required_level": float(row.get("required_level") or 0),
-                    "predicted_gap": round(float(row["predicted_gap"]), 2),
-                    "confidence": round(float(row["confidence"]), 2),
-                    "risk_level": row["risk_level"],
-                })
-
-        overall_risk = float(df_pred["predicted_gap"].mean())
-        explanation = explain_prediction(self.model, feature_names=FEATURE_COLS)
-        explanation.update({
-            "method": self.model_name or "ml_model",
-            "model_trained": True,
-            "n_predictions": int(len(df_pred)),
-            "base_confidence": round(base_conf, 3),
-        })
-        if self.last_metrics:
-            explanation["model_metrics"] = {
-                k: self.last_metrics[k]
-                for k in ("test_r2", "test_rmse", "cv_rmse")
-                if k in self.last_metrics
-            }
+            gaps = []
+            avg_gap = 0.0
 
         return {
             "gaps": gaps,
-            "avg_predicted_gap": round(overall_risk, 2),
-            "explanation": explanation,
+            "avg_predicted_gap": round(avg_gap, 3),
+            "explanation": "Gap computed deterministically (ML model deprecated due to target leakage). Use GapEngine for current gap diagnostic.",
+            "model_version": self.model_name,
+            "source": "RULE_BASED_DIAGNOSTIC",
         }
 
-    def _heuristic_predict(
+    # ── Training ──────────────────────────────────────────
+
+    def train(
         self,
         teacher_profiles: list[dict[str, Any]],
         competency_levels: list[dict[str, Any]],
         required_levels: list[dict[str, Any]],
-        top_n: int = 10,
+        retrain: bool = False,
     ) -> dict[str, Any]:
-        """Heuristic fallback when the ML model is not trained.
+        """DEPRECATED — Train the gap predictor model.
 
-        Computes gaps deterministically: gap = required_level - current_level.
-        Uses engagement and stagnation signals to adjust confidence.
+        WARNING: Training with current_level and required_level as features
+        to predict the gap computed from them causes target leakage.
+        This method is retained for future ML targets (e.g. gap_future_90d).
         """
-        df_teacher = build_teacher_features(teacher_profiles, competency_levels)
-        df_gaps = build_gap_labels(competency_levels, required_levels)
+        logger.warning(
+            "GapPredictor.train() called with current gap target. "
+            "This is deprecated due to target leakage. "
+            "Use gap_future_90d or another future target instead."
+        )
 
-        if df_teacher.empty or df_gaps.empty:
-            return {"gaps": [], "avg_predicted_gap": 0.0, "explanation": {"method": "heuristic", "model_trained": False}}
+        df = build_teacher_features(teacher_profiles, competency_levels)
+        if df.empty:
+            raise InsufficientDataError("No teacher data available for training")
 
-        df_pred = df_gaps.merge(df_teacher, on="enseignant_id", how="left", validate="m:1")
+        labels = build_gap_labels(competency_levels, required_levels)
+        if labels.empty:
+            raise InsufficientDataError("No label data available for training")
 
-        if df_pred.empty:
-            return {"gaps": [], "avg_predicted_gap": 0.0, "explanation": {"method": "heuristic", "model_trained": False}}
+        if "enseignant_id" in df.columns and "enseignant_id" in labels.columns:
+            merged = df.merge(labels, on="enseignant_id", how="inner")
+        else:
+            merged = df.copy()
+            merged["gap"] = 0.0
 
-        # Deterministic gap: required - current (already computed in build_gap_labels)
-        df_pred["predicted_gap"] = df_pred["gap"].clip(0, 5)
+        if merged.empty:
+            raise InsufficientDataError("No valid data after merge")
 
-        # Confidence is lower for heuristic (no ML validation)
-        df_pred["confidence"] = 0.5  # Fixed moderate confidence for heuristic
+        # Check for constant features
+        X = merged[FEATURE_COLS].copy()
+        y = merged["gap"].values
 
-        # Risk level categorization
-        df_pred["risk_level"] = df_pred["predicted_gap"].apply(_risk_level)
+        # Report constant features
+        constant_cols = [col for col in FEATURE_COLS if X[col].nunique() <= 1]
+        if constant_cols:
+            logger.warning("Constant features detected: %s", constant_cols)
 
-        # Sort by predicted gap descending, take top N per teacher
-        df_pred = df_pred.sort_values(["enseignant_id", "predicted_gap"], ascending=[True, False])
+        # Remove current_level and required_level from features
+        # to avoid target leakage
+        X = X.drop(columns=["current_level", "required_level"], errors="ignore")
+        logger.info(
+            "Removed current_level and required_level from features to prevent target leakage. "
+            "Remaining features: %s", list(X.columns)
+        )
 
-        gaps = []
-        for teacher_id, group in df_pred.groupby("enseignant_id"):
-            top = group.head(top_n)
-            for _, row in top.iterrows():
-                gaps.append({
-                    "teacher_id": str(teacher_id),
-                    "competency_id": int(row["competence_id"]),
-                    "competency_name": row["competence_nom"],
-                    "domaine_name": row["domaine_nom"],
-                    "current_level": float(row["current_level"]),
-                    "required_level": float(row.get("required_level") or 0),
-                    "predicted_gap": round(float(row["predicted_gap"]), 2),
-                    "confidence": round(float(row["confidence"]), 2),
-                    "risk_level": row["risk_level"],
-                })
+        n_samples = len(X)
+        if n_samples < settings.min_training_samples:
+            raise InsufficientDataError(
+                f"Only {n_samples} samples, need at least {settings.min_training_samples}"
+            )
 
-        overall_risk = float(df_pred["predicted_gap"].mean())
+        # Train model
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42
+        )
+
+        model = GradientBoostingRegressor(
+            n_estimators=100, max_depth=3, random_state=42, validation_fraction=0.1,
+            n_iter_no_change=10, early_stopping=True,
+        )
+        model.fit(X_train, y_train)
+
+        # Evaluate
+        train_score = model.score(X_train, y_train)
+        test_score = model.score(X_test, y_test)
+        logger.info("Train R²: %.4f, Test R²: %.4f", train_score, test_score)
+
+        # Save model
+        os.makedirs(settings.models_dir, exist_ok=True)
+        save_with_hash(model, MODEL_PATH)
+
+        # Save metadata
+        self.model = model
+        self.model_name = "gradient_boosting"
+        self.n_features = X.shape[1]
+        importances = dict(zip(X.columns, model.feature_importances_))
+        self.feature_importances = importances
+        self.feature_ranges = compute_feature_ranges(X, list(X.columns))
+        self.last_metrics = {
+            "test_r2": round(float(test_score), 4),
+            "train_r2": round(float(train_score), 4),
+            "n_samples": n_samples,
+            "n_features": X.shape[1],
+            "constant_features_removed": constant_cols,
+        }
+        self.training_metadata = {
+            "trained_at": datetime.now().isoformat(),
+            "n_features": X.shape[1],
+            "feature_cols": list(X.columns),
+            "model_name": self.model_name,
+            "metrics": self.last_metrics,
+            "feature_ranges": self.feature_ranges,
+            "feature_importances": importances,
+            "sklearn_version": "1.5.2",
+            "python_version": "3.11",
+            "target": "gap (deterministic — for future targets only)",
+            "warning": "Target leakage prevented: current_level/required_level removed from features",
+        }
+        meta_path = os.path.join(settings.models_dir, TRAINING_METADATA_FILE)
+        with open(meta_path, "w") as f:
+            json.dump(self.training_metadata, f, indent=2, default=str)
+
+        return self.last_metrics
+
+    # ── Model health ──────────────────────────────────────
+
+    def model_health(self) -> dict[str, Any]:
+        """Return model health status."""
+        if self.model is None:
+            return {
+                "model_loaded": False,
+                "model_name": "none",
+                "fallback_mode": True,
+                "fallback_reason": "No model loaded — using heuristic fallback",
+                "source": "RULE_BASED_DIAGNOSTIC",
+                "warnings": ["GapPredictor is deprecated for current gap prediction. Use GapEngine / current_gap_diagnostic.py."],
+            }
+
+        meta = self.training_metadata
+        trained_at = meta.get("trained_at", "unknown")
+        days_since = 0
+        if trained_at != "unknown":
+            try:
+                trained_dt = datetime.fromisoformat(trained_at)
+                days_since = (datetime.now() - trained_dt).days
+            except Exception:
+                pass
+
+        freshness = "fresh" if days_since < 7 else "stale" if days_since < 30 else "old"
+        warnings = [
+            "GapPredictor is deprecated for current gap prediction. Use GapEngine / current_gap_diagnostic.py.",
+        ]
+        r2 = meta.get("metrics", {}).get("test_r2", 0)
+        if r2 and r2 > 0.99:
+            warnings.append(
+                f"R²={r2:.3f} is suspiciously high — target leakage detected. "
+                "Current gap must be computed by deterministic formula."
+            )
 
         return {
-            "gaps": gaps,
-            "avg_predicted_gap": round(overall_risk, 2),
-            "explanation": {"method": "heuristic", "model_trained": False},
+            "model_loaded": True,
+            "model_name": meta.get("model_name", "unknown"),
+            "trained_at": trained_at,
+            "n_samples": meta.get("metrics", {}).get("n_samples", 0),
+            "n_features": meta.get("n_features", 0),
+            "feature_cols": meta.get("feature_cols", []),
+            "freshness_status": freshness,
+            "days_since_training": days_since,
+            "fallback_mode": True,  # Always true for current gap prediction
+            "fallback_reason": "GapPredictor deprecated for current gap due to target leakage. Use GapEngine.",
+            "source": "RULE_BASED_DIAGNOSTIC",
+            "metrics": meta.get("metrics", {}),
+            "feature_importances": meta.get("feature_importances", {}),
+            "warnings": warnings,
+            "sklearn_version": meta.get("sklearn_version", "unknown"),
+            "python_version": meta.get("python_version", "unknown"),
+            "target": meta.get("target", "gap (deprecated)"),
         }
 
+    # ── Drift detection ───────────────────────────────────
 
-# Singleton instance
+    def check_drift(
+        self,
+        teacher_profiles: list[dict[str, Any]],
+        competency_levels: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """Check for data drift comparing current data to training metadata."""
+        if self.model is None or not self.feature_ranges:
+            return {"drift_detected": False, "message": "No model loaded — drift check skipped"}
+
+        df = build_teacher_features(teacher_profiles, competency_levels)
+        if df.empty:
+            return {"drift_detected": False, "message": "No data available for drift check"}
+
+        drift_report = {
+            "drift_detected": False,
+            "feature_skew_ok": True,
+            "feature_skew_reason": None,
+            "drift_status": "UNKNOWN",
+            "drift_message": "GapPredictor is deprecated — drift check is for reference only",
+        }
+        return drift_report
+
+
 gap_predictor = GapPredictor()

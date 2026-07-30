@@ -1,0 +1,129 @@
+"""Canonical teacher ID policy — enforces ENS-only IDs on new endpoints.
+
+Policy (DSI §11 — no legacy leakage):
+  - Canonical format: ENS001..ENS999 (uppercase, ENS prefix + digits)
+  - Legacy format: T001..T999 — DEPRECATED, never returned by new APIs
+  - New versioned endpoints (/api/v1/analytics/*) accept ENS only
+  - Any Txxx input is rejected with HTTP 400 and code LEGACY_ID_NOT_ALLOWED
+  - A separate compatibility adapter (/api/v1/compat/*) may map Txxx→ENS
+    but must log a deprecation warning and never leak Txxx back
+
+This module centralizes validation so every router enforces the same rule.
+"""
+
+from __future__ import annotations
+
+import logging
+import re
+from typing import Any
+
+from fastapi import HTTPException
+
+logger = logging.getLogger(__name__)
+
+# Regex: ENS followed by 1-6 digits (supports ENS001..ENS999999)
+_ENS_RE = re.compile(r"^ENS\d{1,6}$", re.IGNORECASE)
+# Legacy: T followed by 1-6 digits
+_LEGACY_T_RE = re.compile(r"^T\d{1,6}$", re.IGNORECASE)
+
+LEGACY_ID_NOT_ALLOWED_CODE = "LEGACY_ID_NOT_ALLOWED"
+INVALID_ID_CODE = "INVALID_TEACHER_ID"
+
+
+def is_canonical_ens(teacher_id: str) -> bool:
+    """True if teacher_id matches the canonical ENS format."""
+    if not teacher_id:
+        return False
+    return bool(_ENS_RE.match(teacher_id.strip()))
+
+
+def is_legacy_t(teacher_id: str) -> bool:
+    """True if teacher_id matches the deprecated T format."""
+    if not teacher_id:
+        return False
+    return bool(_LEGACY_T_RE.match(teacher_id.strip()))
+
+
+def validate_canonical_id(teacher_id: str, *, path: str = "") -> str:
+    """Validate that teacher_id is canonical ENS format.
+
+    - Accepts ENSxxx (returns it uppercased and stripped).
+    - Rejects Txxx with HTTP 400 + LEGACY_ID_NOT_ALLOWED.
+    - Rejects any other format with HTTP 400 + INVALID_TEACHER_ID.
+
+    Args:
+        teacher_id: raw ID from the URL path.
+        path: request path for error context (optional).
+
+    Returns:
+        The validated, normalized canonical ID (e.g. "ENS002").
+
+    Raises:
+        HTTPException(400) if the ID is legacy or invalid.
+    """
+    if not teacher_id:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": INVALID_ID_CODE,
+                "message": "Teacher ID is required (canonical ENS format expected).",
+                "path": path,
+            },
+        )
+
+    tid = teacher_id.strip().upper()
+
+    if is_canonical_ens(tid):
+        return tid
+
+    if is_legacy_t(tid):
+        logger.warning(
+            "Legacy T-format ID rejected on new endpoint: %s (path=%s). "
+            "Use the compatibility adapter /api/v1/compat/* or convert to ENS.",
+            tid,
+            path,
+        )
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": LEGACY_ID_NOT_ALLOWED_CODE,
+                "message": (
+                    f"Legacy teacher ID '{tid}' is not allowed on this endpoint. "
+                    "Use canonical ENS format (e.g. ENS002) or the compatibility "
+                    "adapter /api/v1/compat/teacher/{legacyId}."
+                ),
+                "legacy_id": tid,
+                "path": path,
+            },
+        )
+
+    raise HTTPException(
+        status_code=400,
+        detail={
+            "error_code": INVALID_ID_CODE,
+            "message": (
+                f"Invalid teacher ID format: '{teacher_id}'. "
+                "Expected canonical ENS format (e.g. ENS002)."
+            ),
+            "path": path,
+        },
+    )
+
+
+def sanitize_response_id(teacher_id: str | None) -> dict[str, Any]:
+    """Build the canonical ID block for API responses.
+
+    Always returns:
+        {"teacher_id": "ENS002", "legacy_teacher_id": null}
+
+    Never serializes Txxx to normal API clients.
+    """
+    tid = (teacher_id or "").strip().upper()
+    if is_canonical_ens(tid):
+        return {"teacher_id": tid, "legacy_teacher_id": None}
+    if is_legacy_t(tid):
+        # Should never happen if validate_canonical_id was called,
+        # but defensive: do not leak T back.
+        logger.error("T-format ID reached response serialization: %s — masked.", tid)
+        return {"teacher_id": None, "legacy_teacher_id": None}
+    return {"teacher_id": teacher_id, "legacy_teacher_id": None}

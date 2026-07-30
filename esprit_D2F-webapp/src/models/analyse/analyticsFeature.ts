@@ -36,12 +36,16 @@ export interface RiskFactor {
 
 export interface RiskScore {
   enseignant_id: string;
+  enseignant_nom: string | null;
+  analysis_status?: "READY" | "DATA_INCOMPLETE" | "NOT_FOUND" | "STALE_DATA" | "COMPUTATION_FAILED" | "MODEL_FALLBACK";
+  data_source?: "db" | "csv_fallback" | "cache" | "heuristic" | "ml_model";
   score: number; // 0..1
   niveau: NiveauRisque;
   facteurs: RiskFactor[];
   tendance: "AMELIORATION" | "STABLE" | "DEGRADATION";
   precedent_score: number | null;
   computed_at: string;
+  warnings?: string[];
 }
 
 // ── Historique du score de risque (F3) ───────────────
@@ -451,13 +455,16 @@ export interface RawDecliningSkill {
   competence_id?: string;
   competence_nom?: string;
   domaine_nom?: string | null;
-  delta?: number;
+  variation_moyenne?: number;
+  pct_enseignants_en_declin?: number;
+  nb_enseignants_concernes?: number;
 }
 
 export interface RawRiskTrendPoint {
   month?: string;
   critical?: number;
   high?: number;
+  score_risque_moyen?: number;
 }
 
 export interface RawRiskDistribution {
@@ -470,7 +477,7 @@ export interface RawAlertEvent {
   type_alerte?: string;
   enseignant_id?: string | null;
   departement_id?: string | null;
-  competence_id?: string | null;
+  competence_id?: number | string | null;
   severite?: string;
   titre?: string;
   message?: string;

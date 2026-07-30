@@ -222,3 +222,74 @@ class WhatIfResponse(BaseModel):
     nb_gaps_after: int
     nb_gaps_resolus: int
     details: list[WhatIfDetail] = []
+
+
+class DashboardKPIsResponse(BaseModel):
+    """Dashboard KPIs computed from master D2F dataset."""
+    total_teachers: int
+    enseignants_a_risque: int
+    enseignants_critiques: int
+    score_risque_moyen: float
+    taux_couverture_global: float
+    nb_gaps_critiques: int
+    nb_alertes_nouvelles: int
+    nb_recommandations: int
+    generated_at: str
+
+
+class CompetencyGapDetail(BaseModel):
+    """Detailed competency gap for a teacher."""
+    teacher_id: str
+    competence_code: str
+    competence_nom: str
+    domaine: str
+    current_level: int
+    required_level: int
+    gap_value: int
+    is_critical_gap: bool
+
+
+class TeacherProfileResponse(BaseModel):
+    """Complete teacher profile with risk, gaps, alerts, and recommendations."""
+    teacher: dict[str, Any]
+    risk_profile: dict[str, Any]
+    gaps: list[CompetencyGapDetail]
+    alerts: list[dict[str, Any]]
+    recommendations: list[dict[str, Any]]
+
+
+class AlertResponse(BaseModel):
+    """Business alert with French labels."""
+    alert_id: str
+    teacher_id: str
+    type: str
+    severity: str
+    message: str
+    created_at: str
+    status: str
+
+
+class RecommendationResponse(BaseModel):
+    """Recommendation with business explanation."""
+    recommendation_id: str
+    teacher_id: str
+    training_code: str
+    training_title: str
+    target_competency_code: str
+    relevance_score: float
+    expected_risk_reduction: float
+    explanation_fr: str
+    priority: str
+
+
+class TrainingCompletionResponse(BaseModel):
+    """Response after marking a training as completed."""
+    teacher_id: str
+    training_code: str
+    old_risk_score: float
+    old_risk_level: str
+    new_risk_score: float
+    new_risk_level: str
+    risk_reduction: float
+    impact_message: str
+    next_recommendations: str

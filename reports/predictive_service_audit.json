@@ -1,0 +1,44 @@
+{
+  "audit_date": "2026-07-30",
+  "service": "D2F Predictive Analytics",
+  "executive_summary": "Critical personalization failures - teachers receive identical recommendations",
+  "findings": [
+    {
+      "area": "ID Consistency",
+      "severity": "CRITICAL",
+      "issue": "Mixed ID formats (ENS vs T prefix)",
+      "evidence": "skill_gaps contains ENS001-ENS027 and T003,T006,T007,T015",
+      "impact": "Recommendations not teacher-specific"
+    },
+    {
+      "area": "Gap Distribution",
+      "severity": "HIGH",
+      "issue": "Extreme variance in gap counts",
+      "evidence": "ENS023 has 149 gaps, T006 has 8 gaps",
+      "impact": "Inconsistent risk scoring and recommendations"
+    },
+    {
+      "area": "Recommendation Scores",
+      "severity": "CRITICAL",
+      "issue": "Identical scores for different teachers",
+      "evidence": "T006, T007, T015 all have score_global=0.4143",
+      "impact": "No personalization in recommendations"
+    }
+  ],
+  "metrics": {
+    "n_teachers_db": 28,
+    "n_teachers_csv": 30,
+    "n_enS_teachers": 27,
+    "n_t_teachers": 4,
+    "n_formations": 8,
+    "unique_recommendations": 8,
+    "top1_concentration_pct": 100.0,
+    "top3_duplicate_pct": 100.0
+  },
+  "recommendations": [
+    "Align teacher IDs between DB and CSV",
+    "Fix data generation for teacher diversity",
+    "Implement teacher-specific cache keys",
+    "Add QA assertions for profile uniqueness"
+  ]
+}

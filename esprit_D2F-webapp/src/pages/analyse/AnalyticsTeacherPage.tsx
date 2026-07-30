@@ -1,34 +1,27 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Row, Col, Card, Tabs, Button, Space, Input, Alert, Spin, Empty } from "antd";
-import { ThunderboltOutlined, ReloadOutlined, UserOutlined } from "@ant-design/icons";
+import { Row, Col, Input, Spin, Empty, Tag } from "antd";
+import {
+  ReloadOutlined, ExperimentOutlined,
+  RiseOutlined, FallOutlined, AimOutlined, InfoCircleOutlined,
+} from "@ant-design/icons";
 import {
   useAnalyzeTeacher,
   useTeacherGaps,
   useTeacherRecommendations,
   useTeacherRisk,
-  useTeacherTrainingPath,
   useRiskHistory,
-  useAlerts,
-  useUpdateAlert,
 } from "@/hooks/analytics/useAnalyticsQueries";
 import {
-  RiskScoreCard,
-  FactorsExplanationPanel,
   GapsTable,
   RecommendationsList,
-  TrainingPathStepper,
   RiskHistoryChart,
-  ImpactPanel,
-  AlertCenter,
 } from "@/components/analytics";
-import { AppPageHeader } from "@/components/common";
+import { riskColor, riskLabel } from "@/utils/analytics/format";
+import type { RiskFactor } from "@/models/analyse/analyticsFeature";
+import { Tabs as AntTabs } from "antd";
+import "./analyticsTeacher.redesign.css";
 
-/**
- * Page individuelle d'un enseignant : analyse, gaps, recommandations, parcours.
- * RBAC : le backend applique la garde d'accès objet (BOLA) ; ici on masque
- * simplement les actions non autorisées côté UI.
- */
 export default function AnalyticsTeacherPage() {
   const { enseignantId = "" } = useParams<{ enseignantId: string }>();
   const [urgence, setUrgence] = useState<string | undefined>();
@@ -38,130 +31,261 @@ export default function AnalyticsTeacherPage() {
   const risk = useTeacherRisk(enseignantId);
   const gaps = useTeacherGaps(enseignantId, urgence);
   const recos = useTeacherRecommendations(enseignantId, competenceId ?? undefined);
-  const path = useTeacherTrainingPath(enseignantId, competenceId);
   const history = useRiskHistory(enseignantId);
 
   const loading = analyze.isPending || risk.isLoading || gaps.isLoading || recos.isLoading;
 
+  const gapStats = useMemo(() => {
+    const list = gaps.data?.gaps ?? [];
+    const unique = new Map<number, (typeof list)[0]>();
+    for (const g of list) {
+      const existing = unique.get(g.competence_id);
+      if (!existing || g.gap_score > existing.gap_score) unique.set(g.competence_id, g);
+    }
+    const deduped = Array.from(unique.values());
+    const critiques = deduped.filter((g) => g.niveau_urgence === "CRITIQUE").length;
+    const hautes = deduped.filter((g) => g.niveau_urgence === "HAUTE").length;
+    const stagnants = deduped.filter((g) => g.mois_stagnation > 0).length;
+    const regressions = deduped.filter((g) => g.en_regression).length;
+    return { total: deduped.length, critiques, hautes, stagnants, regressions };
+  }, [gaps.data]);
+
+  const score = risk.data?.score ?? 0;
+  const level = risk.data?.niveau ?? "FAIBLE";
+  const color = riskColor(level);
+  const pct = Math.round(score * 100);
+  const circumference = 2 * Math.PI * 70;
+  const offset = circumference * (1 - score);
+
+  const trend = risk.data?.tendance ?? "STABLE";
+  const trendClass = trend === "PROGRESSION" ? "at-trend-up" : trend === "REGRESSION" ? "at-trend-down" : "at-trend-flat";
+  const trendIcon = trend === "PROGRESSION" ? <RiseOutlined /> : trend === "REGRESSION" ? <FallOutlined /> : "—";
+
   return (
-    <div style={{ padding: 24 }}>
-      <AppPageHeader
-        icon={<UserOutlined />}
-        title="Analyse prédictive — Enseignant"
-        actions={
-          <Space>
-            <Input value={enseignantId} disabled placeholder="ID enseignant" style={{ width: 220 }} />
-            <Button
-              type="primary"
-              icon={<ThunderboltOutlined />}
-              loading={analyze.isPending}
+    <div className="at-root">
+      {/* ── Hero ───────────────────────────────────────────── */}
+      <div className="at-hero at-animate">
+        <div className="at-hero-glow" />
+        <div className="at-hero-row">
+          <div className="at-hero-avatar">
+            {risk.data?.enseignant_nom
+              ? risk.data.enseignant_nom.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()
+              : enseignantId.slice(-2)}
+          </div>
+          <div className="at-hero-info">
+            <div className="at-hero-kicker">
+              <AimOutlined /> Analyse prédictive — Enseignant
+            </div>
+            <h1 className="at-hero-title">{risk.data?.enseignant_nom || enseignantId}</h1>
+            <p className="at-hero-sub">
+              Score de risque <b>{pct}%</b> · {riskLabel(level)}
+            </p>
+          </div>
+          <div className="at-hero-actions">
+            <Input
+              value={risk.data?.enseignant_nom ? `${risk.data.enseignant_nom} (${enseignantId})` : enseignantId}
+              disabled
+              placeholder="Enseignant"
+              style={{
+                width: 220, background: "var(--at-panel2)", borderColor: "var(--at-line)",
+                color: "var(--at-ink)", borderRadius: 12,
+              }}
+            />
+            <button
+              type="button"
+              className="at-btn at-btn-primary"
+              disabled={analyze.isPending}
               onClick={() => analyze.mutate()}
             >
-              Lancer l'analyse
-            </Button>
-            <Button icon={<ReloadOutlined />} onClick={() => risk.refetch()}>
-              Rafraîchir
-            </Button>
-          </Space>
-        }
-      />
+              <ExperimentOutlined />
+              {analyze.isPending ? "Analyse..." : "Lancer l'analyse"}
+            </button>
+            <button type="button" className="at-btn" onClick={() => risk.refetch()}>
+              <ReloadOutlined /> Rafraîchir
+            </button>
+          </div>
+        </div>
+      </div>
 
-      {analyze.isError && (
-        <Alert type="error" showIcon message="Échec du lancement de l'analyse." style={{ marginBottom: 16 }} />
-      )}
-
-      <Row gutter={[16, 16]}>
+      {/* ── Score + Factors ───────────────────────────────── */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} md={8}>
-          <RiskScoreCard risk={risk.data} loading={risk.isLoading} />
+          <div
+            className="at-score-card at-animate at-animate-d1"
+            style={{ "--score-color": color } as React.CSSProperties}
+          >
+            {risk.isLoading ? (
+              <div style={{ padding: 40, textAlign: "center" }}><Spin /></div>
+            ) : (
+              <>
+                <div className="at-score-gauge">
+                  <svg className="at-score-ring" viewBox="0 0 160 160">
+                    <circle className="at-score-ring-bg" cx="80" cy="80" r="70" />
+                    <circle
+                      className="at-score-ring-fill"
+                      cx="80" cy="80" r="70"
+                      style={{ strokeDasharray: circumference, strokeDashoffset: offset, stroke: color }}
+                    />
+                  </svg>
+                  <div className="at-score-label">
+                    <div className="at-score-pct">
+                      {pct}<span className="at-score-pct-sign">%</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="at-score-tag" style={{ color, borderColor: color }}>
+                  {riskLabel(level)}
+                </div>
+                <div className="at-score-meta">
+                  {risk.data?.precedent_score != null && (
+                    <div className="at-score-meta-row">
+                      Précédent : <b>{Math.round(risk.data.precedent_score * 100)}%</b>
+                    </div>
+                  )}
+                  <div className="at-score-meta-row">
+                    Tendance :{" "}
+                    <span className={`at-trend-badge ${trendClass}`}>
+                      {trendIcon} {trend}
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </Col>
         <Col xs={24} md={16}>
-          <FactorsExplanationPanel facteurs={risk.data?.facteurs} loading={risk.isLoading} />
+          <FactorsPanel
+            facteurs={risk.data?.facteurs}
+            loading={risk.isLoading}
+          />
         </Col>
       </Row>
 
-      <Card style={{ marginTop: 16, borderRadius: 12 }}>
-        <Tabs
+      {/* ── Stats pills ────────────────────────────────────── */}
+      {!gaps.isLoading && gapStats.total > 0 && (
+        <div className="at-stats at-animate at-animate-d2">
+          <div className="at-stat" style={{ "--accent": "var(--at-brand)" } as React.CSSProperties}>
+            <div className="at-stat-value" style={{ color: "var(--at-brand)" }}>{gapStats.total}</div>
+            <div className="at-stat-label">Gaps détectés</div>
+          </div>
+          <div className="at-stat" style={{ "--accent": gapStats.critiques > 0 ? "var(--at-danger)" : "var(--at-success)" } as React.CSSProperties}>
+            <div className="at-stat-value" style={{ color: gapStats.critiques > 0 ? "var(--at-danger)" : "var(--at-success)" }}>
+              {gapStats.critiques}
+            </div>
+            <div className="at-stat-label">Critiques</div>
+          </div>
+          <div className="at-stat" style={{ "--accent": "var(--at-warning)" } as React.CSSProperties}>
+            <div className="at-stat-value" style={{ color: "var(--at-warning)" }}>{gapStats.stagnants}</div>
+            <div className="at-stat-label">Stagnants</div>
+          </div>
+          <div className="at-stat" style={{ "--accent": gapStats.regressions > 0 ? "var(--at-danger)" : "var(--at-success)" } as React.CSSProperties}>
+            <div className="at-stat-value" style={{ color: gapStats.regressions > 0 ? "var(--at-danger)" : "var(--at-success)" }}>
+              {gapStats.regressions}
+            </div>
+            <div className="at-stat-label">En régression</div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Tabs ───────────────────────────────────────────── */}
+      <div className="at-tabs-card at-animate at-animate-d3">
+        <AntTabs
+          className="at-tabs"
           items={[
             {
               key: "gaps",
-              label: "Gaps de compétences",
+              label: `Gaps de compétences${gapStats.total > 0 ? ` (${gapStats.total})` : ""}`,
               children: (
                 <div>
-                  <Space style={{ marginBottom: 12 }}>
+                  <div className="at-urgence-pills">
                     {(["FAIBLE", "MODEREE", "HAUTE", "CRITIQUE"] as const).map((u) => (
-                      <Button
+                      <span
                         key={u}
-                        size="small"
-                        type={urgence === u ? "primary" : "default"}
+                        className={`at-pill ${urgence === u ? "is-active" : ""}`}
                         onClick={() => setUrgence(urgence === u ? undefined : u)}
                       >
                         {u}
-                      </Button>
+                      </span>
                     ))}
-                  </Space>
-                  <GapsTab
-                    gaps={gaps}
-                    onSelectCompetence={(g) => setCompetenceId(g.competence_id)}
-                  />
+                  </div>
+                  <GapsTab gaps={gaps} onSelectCompetence={(g) => setCompetenceId(g.competence_id)} />
                 </div>
               ),
             },
             {
               key: "recos",
-              label: "Recommandations",
+              label: `Recommandations${recos.data?.total ? ` (${recos.data.total})` : ""}`,
               children: (
                 <RecommendationsList recommendations={recos.data?.recommendations ?? []} loading={recos.isLoading} />
               ),
-            },
-            {
-              key: "path",
-              label: "Parcours de formation",
-              children: <TrainingPathStepper path={path.data} loading={path.isLoading} />,
             },
             {
               key: "history",
               label: "Historique du risque",
               children: <RiskHistoryChart points={history.data?.points ?? []} loading={history.isLoading} />,
             },
-            {
-              key: "impact",
-              label: "Impact estimé",
-              children: (
-                <ImpactPanel
-                  enseignantId={enseignantId}
-                  gaps={gaps.data?.gaps ?? []}
-                  recommendations={recos.data?.recommendations ?? []}
-                />
-              ),
-            },
-            {
-              key: "alertes",
-              label: "Alertes",
-              children: <TeacherAlerts enseignantId={enseignantId} />,
-            },
           ]}
         />
-      </Card>
-
-      {loading && <div style={{ marginTop: 16 }} />}
+      </div>
     </div>
   );
 }
 
-/** Onglet Alertes de l'enseignant (F2) : cycle de vie + action contextuelle. */
-function TeacherAlerts({ enseignantId }: { readonly enseignantId: string }) {
-  const { data, isLoading } = useAlerts({ enseignant_id: enseignantId });
-  const update = useUpdateAlert();
+/* ── Factors panel ──────────────────────────────────────────── */
+function FactorsPanel({ facteurs, loading }: { facteurs: RiskFactor[] | undefined; loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="at-factors" style={{ display: "grid", placeItems: "center", minHeight: 200 }}>
+        <Spin />
+      </div>
+    );
+  }
+  if (!facteurs?.length) {
+    return (
+      <div className="at-factors" style={{ display: "grid", placeItems: "center", minHeight: 200 }}>
+        <Empty description="Aucun facteur disponible" />
+      </div>
+    );
+  }
   return (
-    <AlertCenter
-      alerts={data?.alerts ?? []}
-      loading={isLoading}
-      onUpdate={(id, payload) => update.mutate({ id, payload })}
-    />
+    <div className="at-factors">
+      <div className="at-factors-head">
+        <div className="at-icon"><InfoCircleOutlined /></div>
+        Explication du score (facteurs pondérés)
+      </div>
+      {facteurs.map((f) => {
+        const contribPct = Math.round(Math.abs(f.contribution) * 100);
+        const isRisk = f.contribution >= 0;
+        return (
+          <div key={f.nom} className="at-factor-row">
+            <div>
+              <div className="at-factor-name">{f.nom}</div>
+              <div className="at-factor-bar-wrap">
+                <div className="at-factor-bar">
+                  <div
+                    className={`at-factor-bar-fill ${isRisk ? "is-risk" : "is-safe"}`}
+                    style={{ width: `${contribPct}%` }}
+                  />
+                </div>
+                <span className="at-factor-weight">poids {(f.poids * 100).toFixed(0)}%</span>
+              </div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div className={`at-factor-contrib ${isRisk ? "is-risk" : "is-safe"}`}>
+                {contribPct}%
+              </div>
+              <div style={{ fontSize: 10, color: "var(--at-ink3)" }}>
+                contribution {f.contribution.toFixed(3)}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
-/** Contenu de l'onglet Gaps : spinner, tableau ou état vide. */
+/* ── Contenu onglet Gaps ──────────────────────────────────────── */
 function GapsTab({
   gaps,
   onSelectCompetence,
@@ -169,7 +293,7 @@ function GapsTab({
   readonly gaps: ReturnType<typeof useTeacherGaps>;
   readonly onSelectCompetence: (g: { competence_id: number }) => void;
 }) {
-  if (gaps.isLoading) return <Spin />;
+  if (gaps.isLoading) return <div style={{ padding: 30, textAlign: "center" }}><Spin /></div>;
   if (gaps.data?.gaps.length) {
     return (
       <GapsTable

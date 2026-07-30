@@ -26,6 +26,7 @@ RUN dos2unix mvnw && chmod u+x mvnw
 RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline
 
 # Copy source code
+ARG CACHE_BUST=1
 COPY esprit_D2F-authentification/src ./src
 
 # Build the fat JAR (skip tests — already run in CI)
