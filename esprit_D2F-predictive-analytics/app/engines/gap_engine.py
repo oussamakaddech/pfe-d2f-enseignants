@@ -470,6 +470,52 @@ def build_gap_factors(gap: dict[str, Any]) -> list[dict[str, Any]]:
         return factors
 
 
+class _GapDictAdapter:
+    """Wrap a gap dict as an object with attribute access for legacy engines.
+
+    Maps new knowledge-based keys to old competency-level keys:
+      knowledge_id → competence_id
+      knowledge_name → competence_nom
+      priority_score → priorite_score
+      knowledge_difficulty_level → niveau_actuel (default 0)
+    """
+    _KEY_MAP = {
+        "priority_score": "priorite_score",
+        "competency_id": "competence_id",
+        "competency_name": "competence_nom",
+        "knowledge_id": "competence_id",
+        "knowledge_name": "competence_nom",
+        "knowledge_difficulty_level": "niveau_actuel",
+    }
+
+    def __init__(self, d: dict):
+        self._d = d
+
+    def __getattr__(self, name):
+        mapped = self._KEY_MAP.get(name, name)
+        if mapped in self._d:
+            return self._d[mapped]
+        defaults = {
+            "priorite_score": 0.0,
+            "gap_score": 0.0,
+            "niveau_actuel": 0,
+            "niveau_requis": 1,
+            "niveau_vise": 3,
+            "niveau_urgence": "FAIBLE",
+            "mois_stagnation": 0,
+            "en_regression": False,
+            "nb_besoins_exprimes": 0,
+            "id": 0,
+            "competence_id": 0,
+            "competence_nom": "",
+            "competence_code": "",
+            "domaine_id": 0,
+            "domaine_nom": "",
+            "justification": "",
+        }
+        return defaults.get(name, 0)
+
+
 class GapEngine:
     """Coverage-based Gap Engine — replaces the forbidden formula.
 
@@ -485,17 +531,27 @@ class GapEngine:
                      besoins=None, prediction_result_id=None, domaine_demand=None,
                      departement_id="", **kwargs):
         enseignant_id = _normalize_teacher_id(enseignant_id)
+
+        connaissances = None
+        if competence_levels and isinstance(competence_levels, list) and competence_levels:
+            if isinstance(competence_levels[0], dict) and "id" in competence_levels[0]:
+                connaissances = competence_levels
+
+        besoins_ind = None
+        if besoins and isinstance(besoins, list) and besoins:
+            besoins_ind = besoins
+
         gaps = detect_gaps_for_teacher(
             teacher_id=enseignant_id,
             db=self.db,
-            connaissances=competence_levels,
+            connaissances=connaissances,
             assignments=None,
-            besoins_individuels=besoins,
+            besoins_individuels=besoins_ind,
             besoins_collectifs=None,
             formations_suivies=None,
             domaine_demand=domaine_demand or {},
         )
-        return gaps
+        return [_GapDictAdapter(g) for g in gaps]
 
     def _persist_coverage_snapshot(self, enseignant_id, departement_id, current_index, required_index):
         pass
