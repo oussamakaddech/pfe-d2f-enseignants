@@ -73,6 +73,8 @@ def check_eligibility(
     teacher_completed_formations: set[str],
 ) -> tuple[bool, list[str]]:
     """Check if a formation is eligible for a teacher given a gap."""
+    if hasattr(gap, "to_dict"):
+        gap = gap.to_dict()
     warnings: list[str] = []
     eligible = True
 
@@ -151,6 +153,8 @@ def compute_recommendation_score(
     historical_effectiveness: dict[str, float] | None = None,
 ) -> Recommendation:
     """Compute a contextual recommendation score for a teacher–formation pair."""
+    if hasattr(gap, "to_dict"):
+        gap = gap.to_dict()
     eligible, eligibility_warnings = check_eligibility(formation, gap, teacher_completed_formations)
 
     if not eligible:
