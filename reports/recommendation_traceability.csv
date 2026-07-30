@@ -1,0 +1,34 @@
+teacher_id,recommendation_id,training_id,training_title,target_competency,teacher_gap_value,teacher_required_level,teacher_current_level,gap_resolved,score_global,score_pertinence,score_reussite,score_disponibilite,score_peer,peer_adoption_count,msas_alpha,msas_beta,msas_gamma,justification,personalization_evidence
+ENS001,R-PROG-ENS001,F002,Architecture logicielle orientée services,PROG,2,5,3,True,0.6147,0.5,0.5,0.5,,0,,,"Recommandé car gap 2 sur Programmation et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS002,R-BD-ENS002,F003,Data Engineering et pipelines,BD,1,5,4,True,0.4512,0.5,0.5,0.5,,0,,,"Recommandé car gap 1 sur Bases de Donnees et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS003,R-SEC-ENS003,F004,Cybersécurité appliquée,SEC,2,5,3,True,0.7867,0.5,0.5,0.5,,0,,,"Recommandé car gap 2 sur Securite Informatique et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS004,R-GC_STRU-ENS004,F006,BIM et modélisation 3D,GC_STRU,3,5,2,True,1.0259,0.5,0.5,0.5,,0,,,"Recommandé car gap 3 sur Structure Batiment et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS005,R-WEB_B-ENS005,F005,Développement full-stack React,WEB_B,3,5,2,True,0.907,0.5,0.5,0.5,,0,,,"Recommandé car gap 3 sur Developpement Web Back et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS006,R-PED-ENS006,F007,Pédagogie active par compétences,PED,3,5,2,True,1.0167,0.5,0.5,0.5,,0,,,"Recommandé car gap 3 sur Pedagogie et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS006,R-GESTION-ENS006,F008,Management de projet agile,GESTION,3,5,2,True,0.9723,0.5,0.5,0.5,,0,,,"Recommandé car gap 3 sur Gestion de Projet et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS007,R-ALG-ENS007,F001,Maîtrise des algorithmes avancés,ALG,4,5,1,True,1.2336,0.5,0.5,0.5,,0,,,"Recommandé car gap 4 sur Algorithmique et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS008,R-BD-ENS008,F003,Data Engineering et pipelines,BD,1,3,2,True,0.5364,0.5,0.5,0.5,,0,,,"Recommandé car gap 1 sur Bases de Donnees et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS013,R-ALG-ENS013,F001,Maîtrise des algorithmes avancées,ALG,2,4,2,True,0.7878,0.5,0.5,0.5,,0,,,"Recommandé car gap 2 sur Algorithmique et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS013,R-PROG-ENS013,F002,Architecture logicielle orientée services,PROG,1,5,4,True,0.4029,0.5,0.5,0.5,,0,,,"Recommandé car gap 1 sur Programmation et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS016,R-GC_STRU-ENS016,F006,BIM et modélisation 3D,GC_STRU,1,4,3,True,0.4985,0.5,0.5,0.5,,0,,,"Recommandé car gap 1 sur Structure Batiment et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS017,R-WEB_B-ENS017,F005,Développement full-stack React,WEB_B,1,5,4,True,0.4045,0.5,0.5,0.5,,0,,,"Recommandé car gap 1 sur Developpement Web Back et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS019,R-ALG-ENS019,F001,Maîtrise des algorithmes avancées,ALG,1,4,3,True,0.4935,0.5,0.5,0.5,,0,,,"Recommandé car gap 1 sur Algorithmique et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS020,R-BD-ENS020,F003,Data Engineering et pipelines,BD,3,4,1,True,0.9875,0.5,0.5,0.5,,0,,,"Recommandé car gap 3 sur Bases de Donnees et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS021,R-SEC-ENS021,F004,Cybersécurité appliquée,SEC,1,5,4,True,0.4511,0.5,0.5,0.5,,0,,,"Recommandé car gap 1 sur Securite Informatique et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS022,R-GC_STRU-ENS022,F006,BIM et modélisation 3D,GC_STRU,1,4,3,True,0.5311,0.5,0.5,0.5,,0,,,"Recommandé car gap 1 sur Structure Batiment et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS023,R-WEB_F-ENS023,F005,Développement full-stack React,WEB_F,2,5,3,True,0.6185,0.5,0.5,0.5,,0,,,"Recommandé car gap 2 sur Developpement Web Front et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS023,R-WEB_B-ENS023,F005,Développement full-stack React,WEB_B,1,5,4,True,0.5159,0.5,0.5,0.5,,0,,,"Recommandé car gap 1 sur Developpement Web Back et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS024,R-GESTION-ENS024,F008,Management de projet agile,GESTION,2,4,2,True,0.6007,0.5,0.5,0.5,,0,,,"Recommandé car gap 2 sur Gestion de Projet et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS025,R-PROG-ENS025,F002,Architecture logicielle orientée services,PROG,1,5,4,True,0.4774,0.5,0.5,0.5,,0,,,"Recommandé car gap 1 sur Programmation et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS027,R-SEC-ENS027,F004,Cybersécurité appliquée,SEC,1,4,3,True,0.3823,0.5,0.5,0.5,,0,,,"Recommandé car gap 1 sur Securite Informatique et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS029,R-WEB_F-ENS029,F005,Développement full-stack React,WEB_F,3,5,1,True,0.9603,0.5,0.5,0.5,,0,,,"Recommandé car gap 3 sur Developpement Web Front et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+ENS030,R-PED-ENS030,F007,Pédagogie active par compétences,PED,2,5,3,True,0.7122,0.5,0.5,0.5,,0,,,"Recommandé car gap 2 sur Pedagogie et stagnation >= 90 jours","Gap-specific; stagnation signal teacher-specific"
+
+# AUDIT NOTES:
+# 1. All recommendations map to actual teacher gaps (gap_value > 0) - PASS
+# 2. No completed trainings recommended - PASS (CSV generator filters)
+# 3. Identical scores (0.5,0.5,0.5) for pertinence/reussite/disponibilite suggest fallback scoring - INVESTIGATE
+# 4. MSAS peer scores missing (all 0) - collaborative filter not active in CSV generation
+# 5. T006/T007/T015 issue from audit report refers to DIFFERENT dataset (CSV uses ENS format here)
+# 6. Recommendation concentration: Only 8 unique trainings (F001-F008) for 24 recommendations - HIGH CONCENTRATION
+# 7. All recommendations use "stagnation >= 90 jours" - template explanation, not personalized

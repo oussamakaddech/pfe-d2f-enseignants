@@ -42,6 +42,53 @@ NIVEAU_REQUIS_CASE = """
 
 # ── Queries ────────────────────────────────────────────────
 
+# P1.1 — validation / clamp outliers metier
+
+import logging as _logging
+_data_logger = _logging.getLogger(__name__)
+
+
+def _clamp(value: Any, lo: float, hi: float, field: str, row_id: str) -> tuple[Any, bool]:
+    """Clamp une valeur dans [lo, hi]. Logge si clamp effectif."""
+    if value is None:
+        return None, False
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return value, False
+    if v < lo:
+        _data_logger.warning("Outlier: %s[%s]=%s < %s -> clamp to %s", field, row_id, v, lo, lo)
+        return lo, True
+    if v > hi:
+        _data_logger.warning("Outlier: %s[%s]=%s > %s -> clamp to %s", field, row_id, v, hi, hi)
+        return hi, True
+    return v, False
+
+
+def _validate_and_clamp_teacher_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """P1.1 — clamp taux_assiduite dans [0,1] sur chaque profil enseignant."""
+    for row in rows:
+        tid = str(row.get("enseignant_id", "?"))
+        if "taux_assiduite" in row:
+            v, _ = _clamp(row["taux_assiduite"], 0.0, 1.0, "taux_assiduite", tid)
+            row["taux_assiduite"] = v
+        if "avg_eval_score" in row:
+            v, _ = _clamp(row["avg_eval_score"], 0.0, 5.0, "avg_eval_score", tid)
+            row["avg_eval_score"] = v
+    return rows
+
+
+def _validate_and_clamp_competency_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """P1.1 — clamp current_level/required_level dans [1,5]."""
+    for row in rows:
+        tid = str(row.get("enseignant_id", "?"))
+        for field in ("current_level", "required_level", "niveau_vise"):
+            if field in row:
+                v, _ = _clamp(row[field], 1, 5, field, tid)
+                row[field] = int(v) if v is not None else None
+    return rows
+
+
 TEACHER_PROFILE_QUERY = """
 WITH tf AS (
     SELECT i.enseignant_id,
@@ -493,10 +540,48 @@ class DataService:
         self.db = db
 
     def get_teacher_profile(self, teacher_id: str | None = None) -> list[dict[str, Any]]:
-        return execute_query(self.db, TEACHER_PROFILE_QUERY, {"teacher_id": teacher_id})
+        if teacher_id:
+            teacher_id = self.normalize_teacher_id(teacher_id)
+        rows = execute_query(self.db, TEACHER_PROFILE_QUERY, {"teacher_id": teacher_id})
+        # P1.1 — validation outliers metier (assiduite[0,1], niveaux[1,5], risk[0,1])
+        return _validate_and_clamp_teacher_rows(rows)
 
     def get_competency_levels(self, teacher_id: str | None = None) -> list[dict[str, Any]]:
-        return execute_query(self.db, COMPETENCY_LEVELS_QUERY, {"teacher_id": teacher_id})
+        if teacher_id:
+            teacher_id = self.normalize_teacher_id(teacher_id)
+        rows = execute_query(self.db, COMPETENCY_LEVELS_QUERY, {"teacher_id": teacher_id})
+        return _validate_and_clamp_competency_rows(rows)
+
+    def get_teacher_id_mapping(self, canonical_id: str | None = None, legacy_id: str | None = None) -> dict | None:
+        """Resolve teacher ID between canonical (ENS) and legacy (T) formats."""
+        from app.models.db_models import TeacherIdMapping
+        q = self.db.query(TeacherIdMapping)
+        if canonical_id:
+            q = q.filter(TeacherIdMapping.canonical_id == canonical_id.upper())
+        elif legacy_id:
+            q = q.filter(TeacherIdMapping.legacy_id == legacy_id.upper())
+        else:
+            return None
+        row = q.first()
+        if row:
+            return {"canonical_id": row.canonical_id, "legacy_id": row.legacy_id}
+        return None
+
+    def normalize_teacher_id(self, teacher_id: str) -> str:
+        """Normalize teacher ID to canonical ENS format.
+        
+        Raises ValueError if ID format is unknown or unmapped.
+        """
+        tid = teacher_id.strip().upper()
+        if tid.startswith("ENS"):
+            return tid
+        if tid.startswith("T"):
+            mapping = self.get_teacher_id_mapping(legacy_id=tid)
+            if mapping:
+                return mapping["canonical_id"]
+            # Fallback: positional mapping if verified
+            raise ValueError(f"Unmapped legacy teacher ID: {tid}")
+        raise ValueError(f"Invalid teacher ID format: {teacher_id} (must be ENS### or T###)")
 
     def get_required_levels(self, page: int = 0, size: int = 0) -> list[dict[str, Any]]:
         query = REQUIRED_LEVELS_QUERY
@@ -529,27 +614,28 @@ class DataService:
         return execute_query(self.db, query, params)
 
     def get_inscriptions(self, teacher_id: str | None = None) -> list[dict[str, Any]]:
+        if teacher_id:
+            teacher_id = self.normalize_teacher_id(teacher_id)
         return execute_query(self.db, INSCRIPTIONS_TEACHER_QUERY, {"teacher_id": teacher_id})
 
     def get_presences(self, teacher_id: str | None = None) -> list[dict[str, Any]]:
+        if teacher_id:
+            teacher_id = self.normalize_teacher_id(teacher_id)
         return execute_query(self.db, PRESENCES_TEACHER_QUERY, {"teacher_id": teacher_id})
 
     def get_besoins(self, teacher_id: str | None = None) -> list[dict[str, Any]]:
+        if teacher_id:
+            teacher_id = self.normalize_teacher_id(teacher_id)
         return execute_query(self.db, BESOINS_TEACHER_QUERY, {"teacher_id": teacher_id})
 
     def get_evaluations(self, teacher_id: str | None = None) -> list[dict[str, Any]]:
+        if teacher_id:
+            teacher_id = self.normalize_teacher_id(teacher_id)
         return execute_query(self.db, EVALUATIONS_TEACHER_QUERY, {"teacher_id": teacher_id})
 
-    def get_evaluations_globales(self, page: int = 0, size: int = 0) -> list[dict[str, Any]]:
-        query = EVALUATIONS_GLOBALES_QUERY
-        params: dict[str, Any] = {}
-        if size > 0:
-            query += _LIMIT_OFFSET_CLAUSE
-            params["limit"] = size
-            params["offset"] = page * size
-        return execute_query(self.db, query, params)
-
     def get_certificats(self, teacher_id: str | None = None) -> list[dict[str, Any]]:
+        if teacher_id:
+            teacher_id = self.normalize_teacher_id(teacher_id)
         return execute_query(self.db, CERTIFICATS_TEACHER_QUERY, {"teacher_id": teacher_id})
 
     def get_besoin_demand(self, use_pgtrgm: bool = True) -> list[dict[str, Any]]:

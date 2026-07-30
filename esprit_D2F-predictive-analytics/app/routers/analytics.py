@@ -53,8 +53,8 @@ from app.models.schemas import (
     WhatIfRequest,
     WhatIfResponse,
 )
-from app.services.data_service import DataService
 from app.services.analysis_collection_service import collect_analysis_data, build_domaine_demand as _build_domaine_demand
+from app.services.data_service import DataService
 
 # Dépendance d'autorisation en lecture (dashboards/analyse). ADMIN ou CUP.
 ReadAuth = Annotated[dict, Depends(require_roles("ADMIN", "CUP"))]
@@ -147,7 +147,16 @@ async def analyze_enseignant(
     """
     t_start = time.time()
 
+    # Normalize teacher ID at API boundary
     svc = DataService(db)
+    try:
+        enseignant_id = svc.normalize_teacher_id(enseignant_id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=_dsi_error(400, "ENS-400", f"Invalid teacher ID: {e}", request.url.path),
+        )
+
     profile = _get_teacher_or_404(svc, enseignant_id, request)
     _enforce_teacher_access(auth, enseignant_id, db)
 
@@ -208,12 +217,65 @@ async def analyze_enseignant(
 
 def _get_teacher_or_404(svc: DataService, enseignant_id: str, request: Request) -> dict:
     profiles = svc.get_teacher_profile(enseignant_id)
-    if not profiles:
-        raise HTTPException(
-            status_code=404,
-            detail=_dsi_error(404, "ENS-404", f"Enseignant {enseignant_id} introuvable", request.url.path),
-        )
-    return profiles[0]
+    if profiles:
+        return profiles[0]
+    csv_profile = _load_csv_teacher_profile(enseignant_id)
+    if csv_profile:
+        return csv_profile
+    raise HTTPException(
+        status_code=404,
+        detail=_dsi_error(404, "ENS-404", f"Enseignant {enseignant_id} introuvable", request.url.path),
+    )
+
+
+def _load_csv_teacher_profile(enseignant_id: str) -> dict | None:
+    """Fallback: load teacher profile from the master CSV dataset when the DB has no record."""
+    import csv, pathlib, os
+    csv_dir = os.getenv("CSV_DATA_DIR", str(pathlib.Path(__file__).resolve().parents[2] / "data" / "clean"))
+    csv_path = pathlib.Path(csv_dir) / "teachers.csv"
+    if not csv_path.exists():
+        return None
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            if row.get("teacher_id") == enseignant_id:
+                return {
+                    "enseignant_id": enseignant_id,
+                    "nom": row.get("full_name", ""),
+                    "prenom": "",
+                    "email": "",
+                    "departement_id": row.get("department_code", ""),
+                    "up_id": row.get("up_code", ""),
+                    "nb_formations_completed": 0,
+                    "nb_formations_in_progress": 0,
+                    "taux_assiduite": 0.0,
+                    "nb_besoins_exprimes": 0,
+                    "nb_besoins_approuves": 0,
+                    "avg_eval_score": 0.0,
+                    "nb_evaluations": 0,
+                    "days_since_last_training": None,
+                    "avg_days_between_trainings": None,
+                }
+    return None
+
+
+def _load_csv_risk_score(enseignant_id: str) -> dict | None:
+    """Load risk score from risk_scores.csv for teachers not yet in teacher_risk_profiles."""
+    import csv, pathlib, os
+    csv_dir = os.getenv("CSV_DATA_DIR", str(pathlib.Path(__file__).resolve().parents[2] / "data" / "clean"))
+    csv_path = pathlib.Path(csv_dir) / "risk_scores.csv"
+    if not csv_path.exists():
+        return None
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            if row.get("teacher_id") == enseignant_id:
+                return {
+                    "score": float(row.get("risk_score", 0)),
+                    "niveau": row.get("risk_level", "FAIBLE"),
+                    "avg_gap": float(row.get("avg_gap", 0)),
+                    "n_critical_gaps": int(row.get("n_critical_gaps", 0)),
+                    "n_active_alerts": int(row.get("n_active_alerts", 0)),
+                }
+    return None
 
 
 def _reco_to_dict(r: "Recommendation", competence_nom: str | None = None, niveau_actuel: float | None = None) -> dict[str, Any]:
@@ -240,6 +302,8 @@ def _reco_to_dict(r: "Recommendation", competence_nom: str | None = None, niveau
         "justification":        r.justification,
         "niveau_actuel":        float(niveau_actuel) if niveau_actuel is not None else None,
         "niveau_apres":         float(r.niveau_apres) if getattr(r, "niveau_apres", None) is not None else None,
+        "est_prerequis":        getattr(r, "est_prerequis", False),
+        "prerequis_satisfaits": getattr(r, "prerequis_satisfaits", True),
         "statut":               r.statut,
     }
 
@@ -300,6 +364,9 @@ def _run_pipeline(
     )
     dept_id = str(profile.get("departement_id") or "")
     gap_eng = GapEngine(db)
+    db.query(SkillGap).filter_by(enseignant_id=enseignant_id).delete()
+    db.query(Recommendation).filter_by(enseignant_id=enseignant_id).delete()
+    db.flush()
     gaps = gap_eng.compute_gaps(
         enseignant_id, data["comp_levels"], data["req_levels"],
         data["besoins"], pred_id, data["dom_demand"], dept_id,
@@ -416,6 +483,11 @@ async def get_gaps(
     page: PageParam = 0,
     size: SizeParam = 20,
 ) -> dict[str, Any]:
+    svc = DataService(db)
+    try:
+        enseignant_id = svc.normalize_teacher_id(enseignant_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail={"message": f"Invalid teacher ID: {e}"})
     q = (
         db.query(SkillGap)
         .filter(SkillGap.enseignant_id == enseignant_id)
@@ -470,12 +542,32 @@ async def get_risk(
     Lit ``TeacherRiskProfile.facteurs_risque`` (factors / contributions /
     weights) calculé par le pipeline et le mappe vers des ``RiskFactor``
     lisibles (libellé FR + explication vulgarisée)."""
+    svc = DataService(db)
+    try:
+        enseignant_id = svc.normalize_teacher_id(enseignant_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail={"message": f"Invalid teacher ID: {e}"})
     profile = (
         db.query(TeacherRiskProfile)
         .filter_by(enseignant_id=enseignant_id)
         .first()
     )
+
     if not profile:
+        csv_risk = _load_csv_risk_score(enseignant_id)
+        if csv_risk:
+            csv_teacher = _load_csv_teacher_profile(enseignant_id)
+            teacher_name = csv_teacher.get("nom") if csv_teacher else None
+            return {
+                "enseignant_id": enseignant_id,
+                "enseignant_nom": teacher_name,
+                "score": csv_risk["score"],
+                "niveau": csv_risk["niveau"],
+                "facteurs": [],
+                "tendance": "STABLE",
+                "precedent_score": None,
+                "computed_at": None,
+            }
         raise HTTPException(
             status_code=404,
             detail=_dsi_error(404, "RISK-404", f"Profil de risque de {enseignant_id} introuvable", f"/v1/analytics/risk/{enseignant_id}"),
@@ -520,8 +612,22 @@ async def get_risk(
     else:
         tendance_ui = "STABLE"
 
+    # Resolve teacher name from enseignants table, fallback to CSV
+    teacher_name = None
+    row = db.execute(
+        sa_text("SELECT nom, prenom FROM enseignants WHERE id = :eid AND deleted_at IS NULL"),
+        {"eid": enseignant_id},
+    ).fetchone()
+    if row:
+        teacher_name = f"{row[1]} {row[0]}".strip()
+    if not teacher_name:
+        csv_teacher = _load_csv_teacher_profile(enseignant_id)
+        if csv_teacher:
+            teacher_name = csv_teacher.get("nom") or None
+
     return {
         "enseignant_id":    enseignant_id,
+        "enseignant_nom":   teacher_name,
         "score":            round(float(profile.score_risque or 0.0), 4),
         "niveau":           profile.niveau_risque,
         "facteurs":         facteurs,
@@ -545,6 +651,11 @@ async def historique_risque(
 ) -> dict[str, Any]:
     """Série temporelle du score de risque (F3) pour identifier amélioration /
     stagnation / régression. Backfill de démonstration si aucun snapshot."""
+    svc = DataService(db)
+    try:
+        enseignant_id = svc.normalize_teacher_id(enseignant_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail={"message": f"Invalid teacher ID: {e}"})
     cutoff = date.today() - timedelta(days=mois * 31)
     rows = (
         db.query(TeacherRiskSnapshot)
@@ -587,6 +698,11 @@ async def get_recommendations(
     page: PageParam = 0,
     size: SizeParam = 20,
 ) -> dict[str, Any]:
+    svc = DataService(db)
+    try:
+        enseignant_id = svc.normalize_teacher_id(enseignant_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail={"message": f"Invalid teacher ID: {e}"})
     q = (
         db.query(Recommendation, SkillGap.competence_nom, SkillGap.niveau_actuel)
         .outerjoin(SkillGap, Recommendation.skill_gap_id == SkillGap.id)
@@ -629,6 +745,11 @@ async def get_recommendations_grouped(
 ) -> dict[str, Any]:
     """Regroupe les recommandations (déjà scorées) par compétence, type ou
     urgence, avec agrégats par groupe (score moyen/max, nb acceptées)."""
+    svc = DataService(db)
+    try:
+        enseignant_id = svc.normalize_teacher_id(enseignant_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail={"message": f"Invalid teacher ID: {e}"})
     if group_by not in ("competence", "type", "urgence"):
         raise HTTPException(
             status_code=400,
@@ -666,6 +787,11 @@ async def get_training_path(
     competence_id: int,
     db: DbSession,
 ) -> dict[str, Any]:
+    svc = DataService(db)
+    try:
+        enseignant_id = svc.normalize_teacher_id(enseignant_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail={"message": f"Invalid teacher ID: {e}"})
     path = (
         db.query(TrainingPath)
         .filter_by(enseignant_id=enseignant_id, competence_id=competence_id, statut="ACTIF")
@@ -1081,6 +1207,10 @@ async def forecast_competences(
     """Projette sur N mois l'évolution des niveaux de compétence d'un enseignant
     (intervalle de confiance + drapeau de régression)."""
     svc = DataService(db)
+    try:
+        enseignant_id = svc.normalize_teacher_id(enseignant_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail={"message": f"Invalid teacher ID: {e}"})
     if not svc.get_teacher_profile(enseignant_id):
         raise HTTPException(
             status_code=404,
@@ -1103,6 +1233,10 @@ async def benchmark_enseignant(
 ) -> dict[str, Any]:
     """Compare un enseignant à ses pairs (niveau moyen, complétion, risque, gaps)."""
     svc = DataService(db)
+    try:
+        enseignant_id = svc.normalize_teacher_id(enseignant_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail={"message": f"Invalid teacher ID: {e}"})
     if not svc.get_teacher_profile(enseignant_id):
         raise HTTPException(
             status_code=404,
@@ -1124,6 +1258,10 @@ async def detect_anomalies_teacher(
 ) -> dict[str, Any]:
     """Lance les détecteurs d'anomalies et persiste les alertes (idempotent)."""
     svc = DataService(db)
+    try:
+        enseignant_id = svc.normalize_teacher_id(enseignant_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail={"message": f"Invalid teacher ID: {e}"})
     profil = svc.get_teacher_profile(enseignant_id)
     if not profil:
         raise HTTPException(
@@ -1151,6 +1289,48 @@ async def detect_anomalies_department(
     result = AnomalyEngine(db).detect_department(departement_id)
     db.commit()
     return result
+
+
+# ── POST /api/v1/analytics/analyse-batch ────────────
+@router.post(
+    "/analyse-batch",
+    summary="Analyse batch de plusieurs enseignants (ADMIN/CUP)",
+    response_model=dict,
+)
+async def analyse_batch(
+    enseignant_ids: list[str],
+    auth: ReadAuth,
+    db: DbSession,
+) -> dict[str, Any]:
+    """Analyse prédictive par lot pour plusieurs enseignants.
+
+    Utile pour les dashboards départementaux et les rapports de masse.
+    Retourne les résultats par enseignant avec statut.
+    """
+    results: dict[str, Any] = {"success": [], "errors": [], "total": len(enseignant_ids)}
+    svc = DataService(db)
+
+    for eid in enseignant_ids:
+        try:
+            profile = svc.get_teacher_profile(teacher_id=eid)
+            if not profile:
+                results["errors"].append({"id": eid, "error": "Enseignant introuvable"})
+                continue
+            data = collect_analysis_data(svc, eid)
+            gaps, recommendations, alerts, snapshot = _run_pipeline(
+                db, svc, eid, profile[0] if profile else {}, data, None,
+            )
+            results["success"].append({
+                "enseignant_id": eid,
+                "nb_gaps": len(gaps),
+                "nb_recommendations": len(recommendations),
+                "nb_alerts": len(alerts),
+            })
+        except Exception as exc:
+            results["errors"].append({"id": eid, "error": str(exc)})
+
+    db.commit()
+    return results
 
 
 # ── GET /api/v1/analytics/pilotage ──────────────────────────

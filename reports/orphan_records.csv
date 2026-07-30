@@ -1,0 +1,129 @@
+record_type,source_id,target_system,status,details
+teacher,ENS001,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS002,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS003,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS004,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS005,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS006,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS007,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS008,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS009,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS010,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS011,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS012,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS013,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS014,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS015,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS016,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS017,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS018,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS019,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS020,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS021,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS022,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS023,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS024,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS025,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS026,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS027,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS028,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS029,predictive_db,EXISTS,Primary key in enseignants table
+teacher,ENS030,predictive_db,EXISTS,Primary key in enseignants table
+teacher,T001,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T002,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T003,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T004,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T005,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T006,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T007,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T008,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T009,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T010,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T011,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T012,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T013,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T014,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T015,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T016,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T017,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T018,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T019,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T020,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T021,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T022,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T023,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T024,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T025,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T026,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T027,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T028,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T029,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+teacher,T030,master_csv,ORPHAN,No mapping to DB enseignants; different ID format
+competency,ENS011,teacher_competencies.csv,MISSING,Zero competency rows for ENS011 (Chaima Cherif, WEB dept)
+competency,ENS014,teacher_competencies.csv,MISSING,Zero competency rows for ENS014 (Adel Haddad, INFO dept)
+competency,ENS028,teacher_competencies.csv,MISSING,Zero competency rows for ENS028 (Youssef Amrani, GC dept)
+competency,ENS001,teacher_competencies.csv,EXISTS,1 row (PROG)
+competency,ENS002,teacher_competencies.csv,EXISTS,1 row (BD)
+competency,ENS003,teacher_competencies.csv,EXISTS,2 rows (RESEAU, SEC)
+competency,ENS004,teacher_competencies.csv,EXISTS,2 rows (GC_STRU, GC_MAT)
+competency,ENS005,teacher_competencies.csv,EXISTS,1 row (WEB_B)
+competency,ENS006,teacher_competencies.csv,EXISTS,2 rows (PED, GESTION)
+competency,ENS007,teacher_competencies.csv,EXISTS,2 rows (ALG, PROG)
+competency,ENS008,teacher_competencies.csv,EXISTS,1 row (BD)
+competency,ENS009,teacher_competencies.csv,EXISTS,2 rows (RESEAU, SEC)
+competency,ENS010,teacher_competencies.csv,EXISTS,2 rows (GC_STRU, GC_MAT)
+competency,ENS012,teacher_competencies.csv,EXISTS,2 rows (GESTION, ANG)
+competency,ENS013,teacher_competencies.csv,EXISTS,2 rows (ALG, PROG)
+competency,ENS015,teacher_competencies.csv,EXISTS,1 row (RESEAU)
+competency,ENS016,teacher_competencies.csv,EXISTS,1 row (GC_STRU)
+competency,ENS017,teacher_competencies.csv,EXISTS,1 row (WEB_B)
+competency,ENS018,teacher_competencies.csv,EXISTS,2 rows (PED, ANG)
+competency,ENS019,teacher_competencies.csv,EXISTS,2 rows (ALG, PROG)
+competency,ENS020,teacher_competencies.csv,EXISTS,1 row (BD)
+competency,ENS021,teacher_competencies.csv,EXISTS,2 rows (RESEAU, SEC)
+competency,ENS022,teacher_competencies.csv,EXISTS,2 rows (GC_STRU, GC_MAT)
+competency,ENS023,teacher_competencies.csv,EXISTS,2 rows (WEB_F, WEB_B)
+competency,ENS024,teacher_competencies.csv,EXISTS,3 rows (PED, GESTION, ANG)
+competency,ENS025,teacher_competencies.csv,EXISTS,1 row (PROG)
+competency,ENS026,teacher_competencies.csv,EXISTS,1 row (BD)
+competency,ENS027,teacher_competencies.csv,EXISTS,2 rows (RESEAU, SEC)
+competency,ENS029,teacher_competencies.csv,EXISTS,1 row (WEB_F)
+competency,ENS030,teacher_competencies.csv,EXISTS,3 rows (PED, GESTION, ANG)
+recommendation,ENS001,recommendations.csv,EXISTS,1 recommendation (F002)
+recommendation,ENS002,recommendations.csv,EXISTS,1 recommendation (F003)
+recommendation,ENS003,recommendations.csv,EXISTS,1 recommendation (F004)
+recommendation,ENS004,recommendations.csv,EXISTS,1 recommendation (F006)
+recommendation,ENS005,recommendations.csv,EXISTS,1 recommendation (F005)
+recommendation,ENS006,recommendations.csv,EXISTS,2 recommendations (F007, F008)
+recommendation,ENS007,recommendations.csv,EXISTS,1 recommendation (F001)
+recommendation,ENS008,recommendations.csv,EXISTS,1 recommendation (F003)
+recommendation,ENS009,recommendations.csv,MISSING,Has gaps (RESEAU, SEC) but no recommendations generated
+recommendation,ENS010,recommendations.csv,MISSING,Has gaps (none critical) but no recommendations
+recommendation,ENS011,recommendations.csv,MISSING,Zero competency rows -> zero gaps -> zero recommendations
+recommendation,ENS012,recommendations.csv,MISSING,Has gaps (none critical) but no recommendations
+recommendation,ENS013,recommendations.csv,EXISTS,2 recommendations (F001, F002)
+recommendation,ENS014,recommendations.csv,MISSING,Zero competency rows -> zero gaps -> zero recommendations
+recommendation,ENS015,recommendations.csv,MISSING,Has gaps (RESEAU) but no recommendations
+recommendation,ENS016,recommendations.csv,EXISTS,1 recommendation (F006)
+recommendation,ENS017,recommendations.csv,EXISTS,1 recommendation (F005)
+recommendation,ENS018,recommendations.csv,MISSING,Has gaps (none critical) but no recommendations
+recommendation,ENS019,recommendations.csv,EXISTS,1 recommendation (F001)
+recommendation,ENS020,recommendations.csv,EXISTS,1 recommendation (F003)
+recommendation,ENS021,recommendations.csv,EXISTS,1 recommendation (F004)
+recommendation,ENS022,recommendations.csv,EXISTS,1 recommendation (F006)
+recommendation,ENS023,recommendations.csv,EXISTS,2 recommendations (F005 x2)
+recommendation,ENS024,recommendations.csv,EXISTS,1 recommendation (F008)
+recommendation,ENS025,recommendations.csv,EXISTS,1 recommendation (F002)
+recommendation,ENS026,recommendations.csv,MISSING,Has gaps (none critical) but no recommendations
+recommendation,ENS027,recommendations.csv,EXISTS,1 recommendation (F004)
+recommendation,ENS028,recommendations.csv,MISSING,Zero competency rows -> zero gaps -> zero recommendations
+recommendation,ENS029,recommendations.csv,EXISTS,1 recommendation (F005)
+recommendation,ENS030,recommendations.csv,EXISTS,1 recommendation (F007)
+training,F001,formations.csv,EXISTS,Active training (Maîtrise des algorithmes avancés)
+training,F002,formations.csv,EXISTS,Active training (Architecture logicielle orientée services)
+training,F003,formations.csv,EXISTS,Active training (Data Engineering et pipelines)
+training,F004,formations.csv,EXISTS,Active training (Cybersécurité appliquée)
+training,F005,formations.csv,EXISTS,Active training (Développement full-stack React)
+training,F006,formations.csv,EXISTS,Active training (BIM et modélisation 3D)
+training,F007,formations.csv,EXISTS,Active training (Pédagogie active par compétences)
+training,F008,formations.csv,EXISTS,Active training (Management de projet agile)

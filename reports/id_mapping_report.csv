@@ -1,0 +1,36 @@
+canonical_id,db_id,csv_id,mapping_evidence,confidence,action_required
+ENS001,ENS001,T001,Position 1 in both lists (index 0),HIGH,Normalize CSV to ENS
+ENS002,ENS002,T002,Position 2 in both lists (index 1),HIGH,Normalize CSV to ENS
+ENS003,ENS003,T003,Position 3 in both lists (index 2),HIGH,Normalize CSV to ENS
+ENS004,ENS004,T004,Position 4 in both lists (index 3),HIGH,Normalize CSV to ENS
+ENS005,ENS005,T005,Position 5 in both lists (index 4),HIGH,Normalize CSV to ENS
+ENS006,ENS006,T006,Position 6 in both lists (index 5),HIGH,Normalize CSV to ENS
+ENS007,ENS007,T007,Position 7 in both lists (index 6),HIGH,Normalize CSV to ENS
+ENS008,ENS008,T008,Position 8 in both lists (index 7),HIGH,Normalize CSV to ENS
+ENS009,ENS009,T009,Position 9 in both lists (index 8),HIGH,Normalize CSV to ENS
+ENS010,ENS010,T010,Position 10 in both lists (index 9),HIGH,Normalize CSV to ENS
+ENS011,ENS011,T011,Position 11 in both lists (index 10),HIGH,Normalize CSV to ENS + add competency rows
+ENS012,ENS012,T012,Position 12 in both lists (index 11),HIGH,Normalize CSV to ENS
+ENS013,ENS013,T013,Position 13 in both lists (index 12),HIGH,Normalize CSV to ENS
+ENS014,ENS014,T014,Position 14 in both lists (index 13),HIGH,Normalize CSV to ENS + add competency rows
+ENS015,ENS015,T015,Position 15 in both lists (index 14),HIGH,Normalize CSV to ENS
+ENS016,ENS016,T016,Position 16 in both lists (index 15),HIGH,Normalize CSV to ENS
+ENS017,ENS017,T017,Position 17 in both lists (index 16),HIGH,Normalize CSV to ENS
+ENS018,ENS018,T018,Position 18 in both lists (index 17),HIGH,Normalize CSV to ENS
+ENS019,ENS019,T019,Position 19 in both lists (index 18),HIGH,Normalize CSV to ENS
+ENS020,ENS020,T020,Position 20 in both lists (index 19),HIGH,Normalize CSV to ENS
+ENS021,ENS021,T021,Position 21 in both lists (index 20),HIGH,Normalize CSV to ENS
+ENS022,ENS022,T022,Position 22 in both lists (index 21),HIGH,Normalize CSV to ENS
+ENS023,ENS023,T023,Position 23 in both lists (index 22),HIGH,Normalize CSV to ENS
+ENS024,ENS024,T024,Position 24 in both lists (index 23),HIGH,Normalize CSV to ENS
+ENS025,ENS025,T025,Position 25 in both lists (index 24),HIGH,Normalize CSV to ENS
+ENS026,ENS026,T026,Position 26 in both lists (index 25),HIGH,Normalize CSV to ENS
+ENS027,ENS027,T027,Position 27 in both lists (index 26),HIGH,Normalize CSV to ENS
+ENS028,ENS028,T028,Position 28 in both lists (index 27),HIGH,Normalize CSV to ENS + add competency rows
+ENS029,ENS029,T029,Position 29 in both lists (index 28),HIGH,Normalize CSV to ENS
+ENS030,ENS030,T030,Position 30 in both lists (index 29),HIGH,Normalize CSV to ENS
+
+canonical_id_owner,DB (enseignants table)
+mapping_method,Positional alignment (both lists ordered identically by generation script)
+verification_status,ASSUMED - needs explicit identity proof (email, national_id, etc.)
+recommended_action,Create teacher_id_mapping table; add unique constraint on canonical_id; reject unknown formats at API boundary
