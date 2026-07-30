@@ -1,0 +1,11 @@
+{
+  "total_teachers": 30,
+  "enseignants_a_risque": 12,
+  "enseignants_critiques": 1,
+  "score_risque_moyen": 0.3601,
+  "taux_couverture_global": 20.0,
+  "nb_gaps_critiques": 11,
+  "nb_alertes_nouvelles": 16,
+  "nb_recommandations": 34,
+  "generated_at": "2026-07-30T05:53:08.468056"
+}

@@ -1,0 +1,17 @@
+alert_id,teacher_id,type,severity,competence_code,message,created_at,status
+A001,ENS001,gap_critique,CRITIQUE,,Gap critique detecte sur competence inconnue,2026-07-28,NOUVELLE
+A002,ENS001,gap_critique,CRITIQUE,,Un autre gap critique a ete detecte,2026-07-11,NOUVELLE
+A003,ENS001,stagnation,HAUTE,,Enseignant en stagnation depuis plus de 90 jours,2026-05-14,NOUVELLE
+A004,ENS001,stagnation,HAUTE,,Regression des competencies observée,2026-04-27,NOUVELLE
+A005,ENS002,gap_critique,CRITIQUE,,Gap critique detecte sur competence inconnue,2026-07-28,NOUVELLE
+A006,ENS002,gap_critique,CRITIQUE,,Un autre gap critique a ete detecte,2026-07-06,NOUVELLE
+A007,ENS002,stagnation,HAUTE,,Enseignant en stagnation depuis plus de 90 jours,2026-06-10,NOUVELLE
+A008,ENS002,stagnation,HAUTE,,Regression des competencies observée,2026-05-28,NOUVELLE
+A009,ENS003,gap_critique,CRITIQUE,RESEAU,Gap critique detecte sur Reseaux,2026-07-13,NOUVELLE
+A010,ENS003,gap_critique,CRITIQUE,RESEAU,Un autre gap critique a ete detecte,2026-07-28,NOUVELLE
+A011,ENS003,stagnation,HAUTE,,Enseignant en stagnation depuis plus de 90 jours,2026-05-29,NOUVELLE
+A012,ENS003,stagnation,HAUTE,,Regression des competencies observée,2026-05-26,NOUVELLE
+A013,ENS004,gap_critique,CRITIQUE,GC_STRU,Gap critique detecte sur Structure Batiment,2026-07-10,NOUVELLE
+A014,ENS005,gap_critique,CRITIQUE,WEB_B,Gap critique detecte sur Developpement Web Back,2026-07-17,NOUVELLE
+A015,ENS006,gap_critique,CRITIQUE,PED,Gap critique detecte sur Pedagogie,2026-07-11,NOUVELLE
+A016,ENS007,gap_critique,CRITIQUE,ALG,Gap critique detecte sur Algorithmique,2026-07-16,NOUVELLE

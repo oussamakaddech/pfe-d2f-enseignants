@@ -1,0 +1,13 @@
+code,titre,competences,niveau_cible
+F001,Maîtrise des algorithmes avancés,['ALG'],4
+F002,Architecture logicielle orientée services,['PROG'],4
+F003,Data Engineering et pipelines,['BD'],3
+F004,Cybersécurité appliquée,['SEC'],3
+F005,Développement full-stack React,"['WEB_F', 'WEB_B']",3
+F006,BIM et modélisation 3D,['GC_STRU'],3
+F007,Pédagogie active par compétences,['PED'],3
+F008,Management de projet agile,['GESTION'],3
+F009,Architecture réseau et sécurité TCP/IP,"['RESEAU', 'SEC']",3
+F010,Matériaux de construction et durabilité,['GC_MAT'],3
+F011,Anglais technique et communication,['ANG'],3
+F012,Introduction à la cybersécurité réseau,['RESEAU'],4

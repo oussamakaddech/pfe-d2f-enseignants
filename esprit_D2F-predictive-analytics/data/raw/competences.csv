@@ -1,0 +1,13 @@
+code,nom,domaine
+ALG,Algorithmique,GL
+PROG,Programmation,GL
+BD,Bases de Donnees,INFO
+RESEAU,Reseaux,RT
+SEC,Securite Informatique,RT
+WEB_F,Developpement Web Front,WEB
+WEB_B,Developpement Web Back,WEB
+GC_STRU,Structure Batiment,GC
+GC_MAT,Matériaux,GC
+PED,Pedagogie,SUP
+GESTION,Gestion de Projet,SUP
+ANG,Anglais Technique,SUP
