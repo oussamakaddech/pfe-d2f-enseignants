@@ -72,22 +72,57 @@ class AnalyticsEventConsumer:
         logger.info("Queues déclarées: %s + DLQ %s", ANALYTICS_QUEUE, ANALYTICS_DLQ)
 
     def _on_message(self, channel, method, properties, body):
-        """Callback appelé pour chaque message reçu."""
+        """Callback appelé pour chaque message reçu.
+
+        Validates the payload, normalizes teacher_id, checks idempotency,
+        processes the event, and acknowledges only after success.
+        Invalid payloads are rejected (not requeued) to prevent poison messages.
+        """
+        from app.core.event_validation import EventValidationError, validate_event_for_rabbitmq
+        from app.services.event_processing_service import EventProcessingService
+
         try:
-            payload = json.loads(body)
-            event   = payload.get("event", "")
-            eid     = payload.get("enseignantId")
-            logger.info("Event reçu : %s pour enseignant %s", event, eid)
+            # Validate payload
+            event = validate_event_for_rabbitmq(body)
 
-            if eid and event in (
-                "EVALUATION_SUBMITTED",
-                "INSCRIPTION_APPROVED",
-                "BESOIN_APPROVED",
-            ):
-                self._trigger_individual_analysis(eid)
+            # Log sanitized event (no PII)
+            from app.core.event_validation import sanitize_event_for_logging
+            logger.info(
+                "Event reçu : %s pour enseignant %s",
+                event.event_type.value,
+                event.teacher_id,
+                extra={"event": sanitize_event_for_logging(event)},
+            )
 
-            # Acknowledgement manuel — message traité
-            channel.basic_ack(delivery_tag=method.delivery_tag)
+            # Process event
+            service = EventProcessingService()
+            result = service.process_event(event)
+
+            if result.processed and not result.error:
+                # Acknowledgement manuel — message traité avec succès
+                channel.basic_ack(delivery_tag=method.delivery_tag)
+                logger.info(
+                    "Event %s traité avec succès pour %s",
+                    event.event_id,
+                    event.teacher_id,
+                )
+            else:
+                # Processing failed — nack with requeue for retry
+                logger.warning(
+                    "Event %s processing failed: %s",
+                    event.event_id,
+                    result.error,
+                )
+                channel.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+
+        except EventValidationError as exc:
+            # Invalid payload — reject without requeue (poison message)
+            logger.warning(
+                "Payload invalide rejeté (DLQ): %s — %s",
+                exc.message,
+                exc.details,
+            )
+            channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
         except Exception as exc:
             logger.warning("Erreur traitement message RabbitMQ : %s", exc)

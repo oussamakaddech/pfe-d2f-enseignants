@@ -296,11 +296,29 @@ class RecommendationEngine:
 
         sorted_gaps = sorted(gaps, key=lambda g: float(g.priorite_score), reverse=True)
 
+        # Get teacher context for department/UP filtering
+        teacher_department_id = None
+        teacher_up_id = None
+
+        # Try to get teacher profile for department/UP info
+        try:
+            from app.services.data_service import DataService
+            svc = DataService(self.db)
+            profile = svc.get_teacher_profile(enseignant_id)
+            if profile:
+                profile0 = profile[0] if isinstance(profile, list) else profile
+                teacher_department_id = profile0.get("department_code") or profile0.get("dept_id")
+                teacher_up_id = profile0.get("up_code") or profile0.get("up_id")
+        except Exception:
+            pass  # Continue without filtering if cannot get context
+
         for gap in sorted_gaps:
             cid = gap.competence_id
             candidates = self._filter_candidates(
                 cid, gap.niveau_actuel,
-                comp_to_formations, formations_completees
+                comp_to_formations, formations_completees,
+                teacher_department_id=teacher_department_id,
+                teacher_up_id=teacher_up_id,
             )
             if not candidates:
                 continue
@@ -357,6 +375,8 @@ class RecommendationEngine:
         niveau_actuel: int,
         comp_to_formations: dict,
         formations_completees: set,
+        teacher_department_id: str | None = None,
+        teacher_up_id: str | None = None,
     ) -> list[dict]:
         candidates = []
         for f in comp_to_formations.get(competence_id, []):
@@ -364,8 +384,11 @@ class RecommendationEngine:
             nprq = int(f.get("niveau_prerequis") or f.get("niveau_cible") or 0)
             nvis = int(f.get("niveau_vise") or f.get("niveau_cible") or 0)
             etat = (f.get("etat_formation") or "").upper()
+            ouvert = bool(f.get("inscriptions_ouvertes") or f.get("ouverte"))
 
             if etat == "ANNULE":
+                continue
+            if not ouvert:
                 continue
             if fid in formations_completees:
                 continue
@@ -373,6 +396,15 @@ class RecommendationEngine:
                 continue
             if nvis > 0 and nvis <= niveau_actuel:
                 continue
+            # Department / UP filtering
+            target_depts = f.get("target_departments") or f.get("departement_ids")
+            target_ups = f.get("target_ups") or f.get("up_ids")
+            if target_depts and teacher_department_id:
+                if teacher_department_id not in target_depts:
+                    continue
+            if target_ups and teacher_up_id:
+                if teacher_up_id not in target_ups:
+                    continue
             candidates.append(f)
         return candidates
 

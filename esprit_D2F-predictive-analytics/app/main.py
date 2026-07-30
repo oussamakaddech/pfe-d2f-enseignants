@@ -138,11 +138,27 @@ def metrics():
     Compteurs en mémoire : requêtes totales, 2xx/4xx/5xx, erreurs DB, latence p95.
     """
     snap = get_metrics_snapshot()
-    return {
+    result: dict[str, Any] = {
         "service":          "d2f-predictive-analytics",
         "uptime_seconds":   round(time.time() - _start_time, 1),
         **snap,
     }
+    # GPU monitoring (§4.6 — infrastructure DGX)
+    try:
+        import pynvml
+        pynvml.nvmlInit()
+        handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+        mem = pynvml.nvmlDeviceGetMemoryInfo(handle)
+        result["gpu"] = {
+            "utilization_percent": pynvml.nvmlDeviceGetUtilizationRates(handle).gpu,
+            "memory_used_mb": mem.used // (1024 * 1024),
+            "memory_total_mb": mem.total // (1024 * 1024),
+            "temperature_c": pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU),
+        }
+        pynvml.nvmlShutdown()
+    except Exception:
+        result["gpu"] = {"available": False}
+    return result
 
 
 # ── Middleware ───────────────────────────────────────────────
@@ -208,3 +224,8 @@ app.include_router(reporting_router, prefix="/api")
 # A/B testing étaient du code mort non joignable en production.
 from app.routers.ab_testing import router as ab_testing_router
 app.include_router(ab_testing_router, prefix="/api")
+
+# Router d'intégration d'événements inter-services (DSI §2 — event-driven sync).
+# Endpoints REST pour simuler les événements RabbitMQ quand le broker n'est pas disponible.
+from app.routers.integration_events import router as integration_router
+app.include_router(integration_router)
