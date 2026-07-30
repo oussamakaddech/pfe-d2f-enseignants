@@ -498,5 +498,4 @@ class GapEngine:
         return gaps
 
     def _persist_coverage_snapshot(self, enseignant_id, departement_id, current_index, required_index):
-        pass 
- 
+        pass
