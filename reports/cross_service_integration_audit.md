@@ -21,6 +21,7 @@ The Predictive Analytics service connects to **three external services** (User M
 - ✅ Training catalog expanded: 12 formations (was 8)
 - ✅ Cache isolation by teacher_id implemented
 - ✅ Recommendation diversity reranking implemented
+- ✅ seed_remaining.sql hardcoded scores replaced with gap-based dynamic scoring
 
 ---
 

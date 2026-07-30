@@ -136,6 +136,26 @@
 
 ---
 
+## 10. Backend Data Pipeline Fixes (P4 — Identical Recommendations)
+
+**Issue:** ENS002/T002 and ENS003/T003 showed identical recommendations, scores, gaps count, and alerts count.
+
+**Root Cause:** `seed_remaining.sql` used hardcoded constant scores for all generic recommendations (`score_global=0.72`, `probabilite_reussite=0.68`), making teachers with the same gap competences appear to have identical recommendations.
+
+**Fix:** Replaced hardcoded constants with gap-score-dependent dynamic formulas:
+- `score_pertinence` = `GREATEST(0.4, LEAST(0.98, gap_score * 0.9 + 0.1))`
+- `score_taux_reussite` = `GREATEST(0.4, LEAST(0.95, 1.0 - gap_score * 0.3))`
+- `score_disponibilite` = `GREATEST(0.5, LEAST(0.98, 0.8 - gap_score * 0.05))`
+- `score_global` = `GREATEST(0.4, LEAST(0.98, gap_score * 0.85 +urgence_bonus))`
+- `probabilite_reussite` = `GREATEST(0.4, LEAST(0.95, gap_score * 0.7 + urgence_bonus))`
+- `rang_dans_parcours` uses `ROW_NUMBER() OVER (PARTITION BY teacher ORDER BY gap.priorite_score DESC)` for correct ordering
+
+**Files changed:** `init_db/seed_remaining.sql`
+
+**File changed:** `reports/cross_service_integration_audit.md` — updated fixed issues list
+
+---
+
 ## 9. Teacher Search Confirmation
 
 **Confirmed:** The `TeacherAnalyticsPage` autocomplete flow uses **server-side search only** via `UnifiedProfileService.search()` → `GET /api/v1/unified-profiles?search={term}&size=20`. There is **no preloading of 5000 teachers** in the autocomplete flow. The existing `EnseignantService.getAllEnseignants(size=5000)` is used only by `GlobalSearch` (Ctrl+K), which was not in scope for this change.
