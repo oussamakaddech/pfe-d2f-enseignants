@@ -358,6 +358,42 @@ def _group_recommendations(recs: list[dict], group_by: str) -> list[dict]:
     return result
 
 
+def _persist_gaps(db: Session, enseignant_id: str, gaps: list, pred_id: int) -> list:
+    """Persist gap dicts/adapters as SkillGap rows and return the ORM objects."""
+    from app.engines.gap_engine import classify_priority, _knowledge_difficulty_score
+    persisted: list = []
+    for g in gaps:
+        d = g._d if hasattr(g, "_d") else g
+        diff = d.get("knowledge_difficulty_level", 1)
+        gap_score = _knowledge_difficulty_score(diff)
+        niveau_urgence = classify_priority(gap_score)
+        sg = SkillGap(
+            enseignant_id=enseignant_id,
+            competence_id=int(d.get("competency_id") or 0) or 1,
+            competence_code=d.get("competency_code") or d.get("competency_id", ""),
+            competence_nom=d.get("competency_name") or d.get("knowledge_name", ""),
+            domaine_id=None,
+            domaine_nom=None,
+            niveau_actuel=diff,
+            niveau_requis=diff + 1,
+            niveau_vise=min(5, diff + 2),
+            gap_score=gap_score,
+            impact_score=gap_score * 0.8,
+            urgence_score=gap_score * 0.6,
+            priorite_score=gap_score,
+            niveau_urgence=niveau_urgence,
+            mois_stagnation=0,
+            en_regression=False,
+            nb_besoins_exprimes=1 if d.get("gap_type") in ("GAP_EXPLICIT_NEED",) else 0,
+            justification=d.get("explanation_fr") or d.get("gap_type", ""),
+            prediction_result_id=pred_id,
+        )
+        db.add(sg)
+        persisted.append(sg)
+    db.flush()
+    return persisted
+
+
 def _run_pipeline(
     db: Session, svc: DataService, enseignant_id: str, profile: dict,
     data: dict, pred_id: int,
@@ -371,10 +407,11 @@ def _run_pipeline(
     db.query(SkillGap).filter_by(enseignant_id=enseignant_id).delete()
     db.query(Recommendation).filter_by(enseignant_id=enseignant_id).delete()
     db.flush()
-    gaps = gap_eng.compute_gaps(
+    raw_gaps = gap_eng.compute_gaps(
         enseignant_id, data["comp_levels"], data["req_levels"],
         data["besoins"], pred_id, data["dom_demand"], dept_id,
     )
+    persisted_gaps = _persist_gaps(db, enseignant_id, raw_gaps, pred_id)
     collaborative = CollaborativeFilter(
         svc.get_competency_levels(),
         svc.get_inscriptions(),
@@ -382,7 +419,7 @@ def _run_pipeline(
     reco_eng = RecommendationEngine(db)
     all_evals = data["evaluations"] + data["eval_glob"]
     recommendations, _ = reco_eng.generate(
-        enseignant_id, gaps, data["formations"], data["form_comps"],
+        enseignant_id, persisted_gaps, data["formations"], data["form_comps"],
         data["inscriptions"], all_evals, data["prereqs"],
         float(snapshot.taux_completion_formations),
         float(snapshot.taux_presence_moyen),
@@ -390,10 +427,10 @@ def _run_pipeline(
     )
     alert_eng = AlertEngine(db)
     alerts = alert_eng.detect_and_save(
-        enseignant_id, gaps, profile, data["besoins"], dept_id,
+        enseignant_id, persisted_gaps, profile, data["besoins"], dept_id,
     )
-    _upsert_risk_profile(db, enseignant_id, gaps, snapshot)
-    return gaps, recommendations, alerts, snapshot
+    _upsert_risk_profile(db, enseignant_id, persisted_gaps, snapshot)
+    return persisted_gaps, recommendations, alerts, snapshot
 
 
 def _finalize_prediction(
