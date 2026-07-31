@@ -1,0 +1,4 @@
+# Fichier favicon.ico par défaut (peut être vide si absent)
+# En production, remplacer par un vrai favicon.ico
+# Pour éviter le 404, on génère un placeholder minimal en base64
+# Équivalent en HTML : <link rel="icon" href="data:,">

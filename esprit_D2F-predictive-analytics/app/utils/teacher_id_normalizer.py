@@ -57,37 +57,74 @@ def normalize_teacher_id(teacher_id: str, db: Optional[Session] = None) -> str:
     if is_canonical_id(tid):
         return tid
     
-    # Legacy format - try mapping table
+    # Legacy format - try mapping table.
+    # P2 — NO silent positional fallback: an unmapped legacy ID is an explicit
+    # error (CDC Phase 2: "Aucun fallback positionnel silencieux n'est autorisé").
     if is_legacy_id(tid):
         if db:
             mapping = db.query(TeacherIdMapping).filter_by(legacy_id=tid).first()
-            if mapping:
+            if mapping and mapping.verified == "VERIFIED":
                 return mapping.canonical_id
-        # Fallback: positional mapping (T001 -> ENS001)
-        num = tid[1:]
-        return f"ENS{num}"
+            if mapping:
+                raise ValueError(
+                    f"Legacy teacher ID '{tid}' mapping exists but is not VERIFIED "
+                    f"(status={mapping.verified}). Resolve mapping before use."
+                )
+        raise ValueError(
+            f"Unmapped legacy teacher ID: '{tid}'. "
+            "Provide a DB session with a verified teacher_id_mapping row, "
+            "or use the canonical ENS format directly."
+        )
     
     # Unknown format
     raise ValueError(f"Unknown teacher_id format: {teacher_id}. Expected ENS### or T###")
 
 
 def denormalize_to_legacy(canonical_id: str, db: Optional[Session] = None) -> Optional[str]:
-    """Convert canonical ID to legacy format for CSV export compatibility."""
+    """Convert canonical ID to legacy format for CSV export compatibility.
+
+    Returns None if no VERIFIED mapping exists — a guessed positional fallback
+    is forbidden (CDC Phase 2)."""
     if not canonical_id:
         return None
-    
+
     cid = canonical_id.strip().upper()
     if not is_canonical_id(cid):
         return None
-    
+
     if db:
-        mapping = db.query(TeacherIdMapping).filter_by(canonical_id=cid).first()
+        mapping = db.query(TeacherIdMapping).filter_by(canonical_id=cid, verified="VERIFIED").first()
         if mapping:
             return mapping.legacy_id
-    
-    # Fallback: positional mapping
-    num = cid[3:]
-    return f"T{num}"
+
+    return None
+
+
+def validate_canonical_teacher_id(teacher_id: str) -> bool:
+    """Return True only if the ID is a strict canonical ENSxxx ID.
+
+    CDC Phase 2 — this is the ONLY format accepted by modern APIs.
+    """
+    if not teacher_id:
+        return False
+    return is_canonical_id(teacher_id.strip())
+
+
+def resolve_legacy_teacher_id(teacher_id: str, db: Session) -> Optional[str]:
+    """Resolve a legacy T-format ID to canonical ENS via the mapping table.
+
+    Returns the canonical ENS ID if a VERIFIED mapping exists, else None.
+    No positional guessing.
+    """
+    if not teacher_id:
+        return None
+    tid = teacher_id.strip().upper()
+    if is_canonical_id(tid):
+        return tid
+    if is_legacy_id(tid):
+        mapping = db.query(TeacherIdMapping).filter_by(legacy_id=tid, verified="VERIFIED").first()
+        return mapping.canonical_id if mapping else None
+    return None
 
 
 def validate_teacher_id(teacher_id: str, db: Optional[Session] = None) -> str:

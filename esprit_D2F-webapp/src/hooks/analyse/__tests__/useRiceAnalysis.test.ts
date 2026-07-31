@@ -22,10 +22,10 @@ const makeEnseignant = (over: Record<string, unknown> = {}) => ({ id: 1, nom: "D
 const baseParams = (over: Record<string, unknown> = {}) => ({
   files: [] as File[],
   departement: "INFO",
-  allEnseignants: [makeEnseignant()] as never,
+  allEnseignants: [makeEnseignant()] as any,
   ignoreEnseignants: false,
-  riceAnalyze: { mutateAsync: vi.fn() } as never,
-  msgApi: { warning: vi.fn(), error: vi.fn(), success: vi.fn(), info: vi.fn() } as never,
+  riceAnalyze: { mutateAsync: vi.fn() } as any,
+  msgApi: { warning: vi.fn(), error: vi.fn(), success: vi.fn(), info: vi.fn() } as any,
   setTree: vi.fn(),
   setCurrentStep: vi.fn(),
   setDepartement: vi.fn(),
@@ -49,7 +49,7 @@ describe("useRiceAnalysis", () => {
   });
 
   it("handleAnalyze warns when no files", async () => {
-    const msgApi = { warning: vi.fn(), error: vi.fn() } as never;
+    const msgApi = { warning: vi.fn(), error: vi.fn() } as any;
     const { result } = renderHook(() => useRiceAnalysis(baseParams({ files: [], msgApi })), { wrapper });
     await act(async () => { await result.current.handleAnalyze(); });
     expect(msgApi.warning).toHaveBeenCalledWith("Veuillez charger au moins un fichier.");
@@ -65,7 +65,7 @@ describe("useRiceAnalysis", () => {
       propositions: [{ code: "D1", nom: "Domaine", competences: [] }],
       extractedEnseignants: [{ nom_complet: "Jane Smith" }],
       detectedDepartement: "INFO",
-    } as never) } as never;
+    } as any) } as any;
     const { result } = renderHook(() => useRiceAnalysis(baseParams({
       files: [new File([], "a.pdf")], riceAnalyze, setTree, setCurrentStep, skipHistoryRef, prevTreeRef,
     })), { wrapper });
@@ -91,11 +91,11 @@ describe("useRiceAnalysis", () => {
 
   it("handleAnalyze dedupes extracted enseignants already in DB", async () => {
     vi.useFakeTimers();
-    const allEnseignants = [makeEnseignant({ nom: "Smith", prenom: "Jane" })] as never;
+    const allEnseignants = [makeEnseignant({ nom: "Smith", prenom: "Jane" })] as any;
     const riceAnalyze = { mutateAsync: vi.fn().mockResolvedValue({
       propositions: [],
       extractedEnseignants: [{ nom_complet: "Jane Smith" }, { nom_complet: "Jane Smith" }],
-    } as never) } as never;
+    } as any) } as any;
     const { result } = renderHook(() => useRiceAnalysis(baseParams({ files: [new File([], "a.pdf")], riceAnalyze, allEnseignants })), { wrapper });
     await act(async () => {
       const p = result.current.handleAnalyze();
@@ -110,11 +110,11 @@ describe("useRiceAnalysis", () => {
   it("handleAnalyze detects new department and warns", async () => {
     vi.useFakeTimers();
     const setDepartement = vi.fn();
-    const msgApi = { warning: vi.fn(), error: vi.fn() } as never;
+    const msgApi = { warning: vi.fn(), error: vi.fn() } as any;
     const riceAnalyze = { mutateAsync: vi.fn().mockResolvedValue({
       propositions: [],
       detectedDepartement: "TI",
-    } as never) } as never;
+    } as any) } as any;
     const { result } = renderHook(() => useRiceAnalysis(baseParams({ files: [new File([], "a.pdf")], riceAnalyze, setDepartement, msgApi })), { wrapper });
     await act(async () => {
       const p = result.current.handleAnalyze();
@@ -130,8 +130,8 @@ describe("useRiceAnalysis", () => {
   it("handleAnalyze error path", async () => {
     vi.useFakeTimers();
     const setCurrentStep = vi.fn();
-    const msgApi = { warning: vi.fn(), error: vi.fn() } as never;
-    const riceAnalyze = { mutateAsync: vi.fn().mockRejectedValue({ response: { data: { detail: "boom" } } }) } as never;
+    const msgApi = { warning: vi.fn(), error: vi.fn() } as any;
+    const riceAnalyze = { mutateAsync: vi.fn().mockRejectedValue({ response: { data: { detail: "boom" } } }) } as any;
     const { result } = renderHook(() => useRiceAnalysis(baseParams({ files: [new File([], "a.pdf")], riceAnalyze, setCurrentStep, msgApi })), { wrapper });
     await act(async () => {
       const p = result.current.handleAnalyze();
@@ -147,8 +147,8 @@ describe("useRiceAnalysis", () => {
 
   it("handleAnalyze falls back to message on error", async () => {
     vi.useFakeTimers();
-    const msgApi = { warning: vi.fn(), error: vi.fn() } as never;
-    const riceAnalyze = { mutateAsync: vi.fn().mockRejectedValue({ message: "kaboom" }) } as never;
+    const msgApi = { warning: vi.fn(), error: vi.fn() } as any;
+    const riceAnalyze = { mutateAsync: vi.fn().mockRejectedValue({ message: "kaboom" }) } as any;
     const { result } = renderHook(() => useRiceAnalysis(baseParams({ files: [new File([], "a.pdf")], riceAnalyze, msgApi })), { wrapper });
     await act(async () => {
       const p = result.current.handleAnalyze();
@@ -161,7 +161,7 @@ describe("useRiceAnalysis", () => {
   });
 
   it("handleUploadChange filters by extension and size", () => {
-    const msgApi = { warning: vi.fn(), error: vi.fn() } as never;
+    const msgApi = { warning: vi.fn(), error: vi.fn() } as any;
     const { result } = renderHook(() => useRiceAnalysis(baseParams({ msgApi })), { wrapper });
     const big = new File([new Uint8Array(21 * 1024 * 1024)], "big.pdf");
     Object.defineProperty(big, "size", { value: 21 * 1024 * 1024 });
@@ -174,16 +174,16 @@ describe("useRiceAnalysis", () => {
         { originFileObj: bad, name: "x.png", size: 1 },
         { originFileObj: ok1, name: "a.pdf", size: 1 },
         { originFileObj: ok2, name: "b.docx", size: 1 },
-      ] as never,
+      ] as any,
     });
     expect(accepted).toHaveLength(2);
     expect(msgApi.warning).toHaveBeenCalledTimes(2);
   });
 
   it("handleUploadChange rejects files without originFileObj", () => {
-    const msgApi = { warning: vi.fn(), error: vi.fn() } as never;
+    const msgApi = { warning: vi.fn(), error: vi.fn() } as any;
     const { result } = renderHook(() => useRiceAnalysis(baseParams({ msgApi })), { wrapper });
-    const accepted = result.current.handleUploadChange({ fileList: [{ name: "a.pdf" }] as never });
+    const accepted = result.current.handleUploadChange({ fileList: [{ name: "a.pdf" }] as any });
     expect(accepted).toHaveLength(0);
     expect(msgApi.warning).not.toHaveBeenCalled();
   });
@@ -200,7 +200,7 @@ describe("useRiceAnalysis", () => {
           sousCompetences: [{ code: "SC", nom: "SC", savoirs: [{ code: "S3", nom: "Metadata line: : :", enseignantsSuggeres: [] }] }],
         }],
       }],
-    } as never) } as never;
+    } as any) } as any;
     const setTree = vi.fn();
     const { result } = renderHook(() => useRiceAnalysis(baseParams({ files: [new File([], "a.pdf")], riceAnalyze, setTree })), { wrapper });
     await act(async () => {
@@ -210,7 +210,7 @@ describe("useRiceAnalysis", () => {
       await p;
     });
     vi.useRealTimers();
-    const tree = setTree.mock.calls[0][0] as never[];
+    const tree = setTree.mock.calls[0][0] as any[];
     const comp = (tree[0] as { competences: { savoirs: unknown[]; sousCompetences: unknown[] }[] }).competences[0];
     expect(comp.savoirs).toHaveLength(1);
     expect((comp.savoirs[0] as { nom: string }).nom).toBe("Real savoir name");
@@ -222,7 +222,7 @@ describe("useRiceAnalysis", () => {
     act(() => result.current.setAnalyzing(true));
     act(() => result.current.setAnalysisProgress(50));
     act(() => result.current.setEnsSearchStep2("foo"));
-    act(() => result.current.setExtractedEnseignants([{ nom_complet: "A B" }] as never));
+    act(() => result.current.setExtractedEnseignants([{ nom_complet: "A B" }] as any));
     expect(result.current.analyzing).toBe(true);
     expect(result.current.analysisProgress).toBe(50);
     expect(result.current.ensSearchStep2).toBe("foo");
@@ -231,8 +231,8 @@ describe("useRiceAnalysis", () => {
 
   it("handleAnalyze sends empty enseignants when ignoreEnseignants", async () => {
     vi.useFakeTimers();
-    const riceAnalyze = { mutateAsync: vi.fn().mockResolvedValue({ propositions: [] }) } as never;
-    const { result } = renderHook(() => useRiceAnalysis(baseParams({ files: [new File([], "a.pdf")], riceAnalyze, ignoreEnseignants: true, allEnseignants: [makeEnseignant()] as never })), { wrapper });
+    const riceAnalyze = { mutateAsync: vi.fn().mockResolvedValue({ propositions: [] }) } as any;
+    const { result } = renderHook(() => useRiceAnalysis(baseParams({ files: [new File([], "a.pdf")], riceAnalyze, ignoreEnseignants: true, allEnseignants: [makeEnseignant()] as any })), { wrapper });
     await act(async () => {
       const p = result.current.handleAnalyze();
       await Promise.resolve();
@@ -246,8 +246,8 @@ describe("useRiceAnalysis", () => {
 
   it("handleAnalyze includes enseignants mapped from allEnseignants", async () => {
     vi.useFakeTimers();
-    const riceAnalyze = { mutateAsync: vi.fn().mockResolvedValue({ propositions: [] }) } as never;
-    const { result } = renderHook(() => useRiceAnalysis(baseParams({ files: [new File([], "a.pdf")], riceAnalyze, allEnseignants: [makeEnseignant({ id: 7, nom: "X", prenom: "Y", modules: ["M2"] })] as never })), { wrapper });
+    const riceAnalyze = { mutateAsync: vi.fn().mockResolvedValue({ propositions: [] }) } as any;
+    const { result } = renderHook(() => useRiceAnalysis(baseParams({ files: [new File([], "a.pdf")], riceAnalyze, allEnseignants: [makeEnseignant({ id: 7, nom: "X", prenom: "Y", modules: ["M2"] })] as any })), { wrapper });
     await act(async () => {
       const p = result.current.handleAnalyze();
       await Promise.resolve();

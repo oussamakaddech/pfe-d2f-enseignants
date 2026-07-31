@@ -38,7 +38,7 @@ const ap = {
   useDashboardSummary, useRiskDistribution, useRiskEvolution, useSupplyDemand,
   useHeatmapDrilldown, usePriorityActions, useAlertsSummary, useDemandForecast,
   useOverview, useModelPerformance, useGapHeatmap,
-} as Record<string, ReturnType<typeof vi.fn>>;
+} as unknown as Record<string, ReturnType<typeof vi.fn>>;
 
 beforeEach(() => {
   Object.values(ap).forEach((m) => m.mockClear());

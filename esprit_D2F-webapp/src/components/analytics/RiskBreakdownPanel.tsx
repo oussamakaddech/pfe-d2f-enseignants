@@ -16,7 +16,7 @@ import D2FService from "@/services/analyse/D2FService";
 
 const h = React.createElement;
 
-function levelFromScore(s) {
+function levelFromScore(s: number | null | undefined): string {
   if (s == null) return "FAIBLE";
   if (s >= 0.75) return "CRITIQUE";
   if (s >= 0.5) return "ELEVE";
@@ -24,14 +24,22 @@ function levelFromScore(s) {
   return "FAIBLE";
 }
 
-const COLORS = {
+const COLORS: Record<string, string> = {
   CRITIQUE: "#f5222d",
   ELEVE: "#fa8c16",
   MODERE: "#faad14",
   FAIBLE: "#52c41a",
 };
 
-function ScoreCell(props) {
+interface ScoreCellProps {
+  label: string;
+  score: number | null;
+  level: string;
+  tooltip: string;
+  icon: React.ReactNode;
+  suffix?: string;
+}
+function ScoreCell(props: ScoreCellProps) {
   const color = COLORS[props.level];
   const display = props.score == null ? "-" : Number(props.score).toFixed(3);
   const pct = props.score == null ? 0 : Math.round(Number(props.score) * 100);
@@ -56,7 +64,7 @@ function ScoreCell(props) {
   );
 }
 
-function useTeacherProfile(teacherId) {
+function useTeacherProfile(teacherId: string) {
   return useQuery({
     queryKey: ["d2f", "teacher", teacherId],
     queryFn: () => D2FService.getTeacherProfile(teacherId),
@@ -65,7 +73,7 @@ function useTeacherProfile(teacherId) {
   });
 }
 
-function useTeacherMLSignal(teacherId) {
+function useTeacherMLSignal(teacherId: string) {
   return useQuery({
     queryKey: ["d2f", "ml-signal", teacherId],
     queryFn: () => D2FService.getTeacherMLSignal(teacherId),
@@ -74,7 +82,10 @@ function useTeacherMLSignal(teacherId) {
   });
 }
 
-export function RiskBreakdownPanel(props) {
+interface RiskBreakdownPanelProps {
+  teacherId: string;
+}
+export function RiskBreakdownPanel(props: RiskBreakdownPanelProps) {
   const profileQ = useTeacherProfile(props.teacherId);
   const mlQ = useTeacherMLSignal(props.teacherId);
 

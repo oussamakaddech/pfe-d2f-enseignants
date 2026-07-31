@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
+import React from 'react';
 import ErrorBoundary from '../ErrorBoundary';
 
 function Boom(): never {
@@ -28,7 +29,7 @@ describe('ErrorBoundary', () => {
 
   it('resets the error state via the retry button', () => {
     let shouldThrow = true;
-    function Toggle(): JSX.Element {
+    function Toggle(): React.ReactElement {
       if (shouldThrow) throw new Error('kaboom');
       return <div>recovered</div>;
     }

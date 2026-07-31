@@ -14,7 +14,7 @@ const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 const wrapper = ({ children }: { children: React.ReactNode }) =>
   React.createElement(QueryClientProvider, { client: qc }, children);
 
-const msgApi = { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() } as never;
+const msgApi = { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() } as any;
 
 const tree = ([{
   code: "D1", nom: "Domaine1", description: "", competences: [
@@ -24,7 +24,7 @@ const tree = ([{
       ], sousCompetences: [],
     },
   ],
-}] as never);
+}] as any);
 
 describe("useRiceReport", () => {
   beforeEach(() => vi.clearAllMocks());

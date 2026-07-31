@@ -13,6 +13,7 @@ const summary: AlertSummary = {
     { key: "INFO", count: 5 },
   ],
   by_type: [],
+  by_statut: [],
   top_competences: [{ competence_id: 1, competence_nom: "Python", count: 6 }],
   top_departements: [{ departement_id: "d1", departement_nom: "Info", count: 4 }],
   trend_30j: [

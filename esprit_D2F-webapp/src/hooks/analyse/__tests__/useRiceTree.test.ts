@@ -15,7 +15,7 @@ const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 const wrapper = ({ children }: { children: React.ReactNode }) =>
   React.createElement(QueryClientProvider, { client: qc }, children);
 
-const msgApi = { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() } as never;
+const msgApi = { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() } as any;
 
 const seedTree = () => ([
   {
@@ -33,7 +33,7 @@ const seedTree = () => ([
       },
     ],
   },
-] as never);
+] as any);
 
 describe("useRiceTree", () => {
   it("addDomaine adds a domaine and starts rename", () => {

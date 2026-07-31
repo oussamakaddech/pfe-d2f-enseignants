@@ -1,0 +1,434 @@
+[
+  {
+    "module": "app.config",
+    "file": "app/config.py",
+    "role": "unknown",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.main",
+    "file": "app/main.py",
+    "role": "unknown",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.risk_engine",
+    "file": "app/risk_engine.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.__init__",
+    "file": "app/__init__.py",
+    "role": "package init",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.core.auth",
+    "file": "app/core/auth.py",
+    "role": "core infrastructure",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.core.db",
+    "file": "app/core/db.py",
+    "role": "core infrastructure",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.core.event_validation",
+    "file": "app/core/event_validation.py",
+    "role": "core infrastructure",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.core.exceptions",
+    "file": "app/core/exceptions.py",
+    "role": "core infrastructure",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.core.id_policy",
+    "file": "app/core/id_policy.py",
+    "role": "core infrastructure",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.core.jwt_middleware",
+    "file": "app/core/jwt_middleware.py",
+    "role": "core infrastructure",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.core.logging_config",
+    "file": "app/core/logging_config.py",
+    "role": "core infrastructure",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.core.observability",
+    "file": "app/core/observability.py",
+    "role": "core infrastructure",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.core.pii_safe_logger",
+    "file": "app/core/pii_safe_logger.py",
+    "role": "core infrastructure",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.core.rate_limit",
+    "file": "app/core/rate_limit.py",
+    "role": "core infrastructure",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.core.response_envelope",
+    "file": "app/core/response_envelope.py",
+    "role": "core infrastructure",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.core.__init__",
+    "file": "app/core/__init__.py",
+    "role": "package init",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.ab_testing",
+    "file": "app/engines/ab_testing.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.action_center",
+    "file": "app/engines/action_center.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.alert_engine",
+    "file": "app/engines/alert_engine.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.anomaly_engine",
+    "file": "app/engines/anomaly_engine.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.benchmark_engine",
+    "file": "app/engines/benchmark_engine.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.collaborative",
+    "file": "app/engines/collaborative.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.contextual_recommendation_engine",
+    "file": "app/engines/contextual_recommendation_engine.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.current_gap_diagnostic",
+    "file": "app/engines/current_gap_diagnostic.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.dashboard_engine",
+    "file": "app/engines/dashboard_engine.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.feature_engine",
+    "file": "app/engines/feature_engine.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.forecast_engine",
+    "file": "app/engines/forecast_engine.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.gap_engine",
+    "file": "app/engines/gap_engine.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.impact_engine",
+    "file": "app/engines/impact_engine.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.insights_engine",
+    "file": "app/engines/insights_engine.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.msas",
+    "file": "app/engines/msas.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.pilotage_dashboard_engine",
+    "file": "app/engines/pilotage_dashboard_engine.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.predictive_gap_diagnostic",
+    "file": "app/engines/predictive_gap_diagnostic.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.recommendation_engine",
+    "file": "app/engines/recommendation_engine.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.reporting_engine",
+    "file": "app/engines/reporting_engine.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.risk_scoring",
+    "file": "app/engines/risk_scoring.py",
+    "role": "business engine",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.engines.__init__",
+    "file": "app/engines/__init__.py",
+    "role": "package init",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.messaging.consumer",
+    "file": "app/messaging/consumer.py",
+    "role": "unknown",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.messaging.__init__",
+    "file": "app/messaging/__init__.py",
+    "role": "package init",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.ml.artifact_integrity",
+    "file": "app/ml/artifact_integrity.py",
+    "role": "unknown",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.ml.deep_learning",
+    "file": "app/ml/deep_learning.py",
+    "role": "unknown",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.ml.explainability",
+    "file": "app/ml/explainability.py",
+    "role": "unknown",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.ml.feature_engineering",
+    "file": "app/ml/feature_engineering.py",
+    "role": "unknown",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.ml.gap_predictor",
+    "file": "app/ml/gap_predictor.py",
+    "role": "unknown",
+    "status": "DEPRECATED"
+  },
+  {
+    "module": "app.ml.governance",
+    "file": "app/ml/governance.py",
+    "role": "unknown",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.ml.__init__",
+    "file": "app/ml/__init__.py",
+    "role": "package init",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.models.db_models",
+    "file": "app/models/db_models.py",
+    "role": "ORM model",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.models.schemas",
+    "file": "app/models/schemas.py",
+    "role": "unknown",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.models.teacher_mapping",
+    "file": "app/models/teacher_mapping.py",
+    "role": "unknown",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.models.__init__",
+    "file": "app/models/__init__.py",
+    "role": "package init",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.routers.ab_testing",
+    "file": "app/routers/ab_testing.py",
+    "role": "API router",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.routers.all",
+    "file": "app/routers/all.py",
+    "role": "API router",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.routers.analytics",
+    "file": "app/routers/analytics.py",
+    "role": "API router",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.routers.d2f_compat",
+    "file": "app/routers/d2f_compat.py",
+    "role": "API router",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.routers.d2f_extras",
+    "file": "app/routers/d2f_extras.py",
+    "role": "API router",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.routers.d2f_master",
+    "file": "app/routers/d2f_master.py",
+    "role": "API router",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.routers.insights",
+    "file": "app/routers/insights.py",
+    "role": "API router",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.routers.integration_events",
+    "file": "app/routers/integration_events.py",
+    "role": "API router",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.routers.reporting",
+    "file": "app/routers/reporting.py",
+    "role": "API router",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.routers.__init__",
+    "file": "app/routers/__init__.py",
+    "role": "package init",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.scheduler.jobs",
+    "file": "app/scheduler/jobs.py",
+    "role": "unknown",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.scheduler.__init__",
+    "file": "app/scheduler/__init__.py",
+    "role": "package init",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.schemas.events",
+    "file": "app/schemas/events.py",
+    "role": "unknown",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.services.analysis_collection_service",
+    "file": "app/services/analysis_collection_service.py",
+    "role": "data service",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.services.cache_service",
+    "file": "app/services/cache_service.py",
+    "role": "data service",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.services.data_service",
+    "file": "app/services/data_service.py",
+    "role": "data service",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.services.event_idempotency_service",
+    "file": "app/services/event_idempotency_service.py",
+    "role": "data service",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.services.event_processing_service",
+    "file": "app/services/event_processing_service.py",
+    "role": "data service",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.services.export_service",
+    "file": "app/services/export_service.py",
+    "role": "data service",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.services.model_trainer",
+    "file": "app/services/model_trainer.py",
+    "role": "data service",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.services.__init__",
+    "file": "app/services/__init__.py",
+    "role": "package init",
+    "status": "ACTIVE"
+  },
+  {
+    "module": "app.utils.teacher_id_normalizer",
+    "file": "app/utils/teacher_id_normalizer.py",
+    "role": "unknown",
+    "status": "ACTIVE"
+  }
+]

@@ -12,6 +12,7 @@ const summary: AlertSummary = {
     { key: "GAP_CRITIQUE", count: 8 },
     { key: "STAGNATION", count: 4 },
   ],
+  by_statut: [],
   top_competences: [{ competence_id: 1, competence_nom: "Python", count: 6 }],
   top_departements: [{ departement_id: "d1", departement_nom: "Info", count: 5 }],
   trend_30j: [],

@@ -5,15 +5,17 @@ import type { PriorityAction } from "@/models/analyse";
 
 const teachers: PriorityAction[] = [
   {
-    enseignant_id: "ENS-1", teacher_name: "Amel Benali", score_risque: 0.86, tendance: "REGRESSION",
+    enseignant_id: "ENS-1", teacher_name: "Amel Benali", score_risque: 0.86, score_action: 0.86,
+    tendance: "REGRESSION", niveau_risque: "CRITIQUE",
     nb_gaps_critiques: 3, nb_alertes_ouvertes: 2,
-    competence_prioritaire: { competence_id: 1, competence_nom: "Python" },
+    competence_prioritaire: { competence_id: 1, competence_nom: "Python", niveau_actuel: 2, niveau_requis: 4 },
     action_recommandee: "Former Python", meilleure_formation: null, impact_estime_niveaux: null,
     historique: { score_precedent: 0.7, taux_completion: 50, nb_mois_stagnation: 6, tendance: null, analyse_le: null },
     derniere_formation: { formation_titre: "Intro Python", date: "2024-01-10", statut: "DONE" },
   },
   {
-    enseignant_id: "ENS-2", teacher_name: "Karim Haddad", score_risque: 0.3, tendance: null,
+    enseignant_id: "ENS-2", teacher_name: "Karim Haddad", score_risque: 0.3, score_action: 0.3,
+    tendance: null, niveau_risque: "FAIBLE",
     nb_gaps_critiques: 0, nb_alertes_ouvertes: 0,
     competence_prioritaire: null, action_recommandee: "—", meilleure_formation: null, impact_estime_niveaux: null,
   },

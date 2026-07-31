@@ -553,49 +553,31 @@ services:
     networks:
       - d2f-network
 
-  # ── Predictive Analytics (Python/FastAPI) ───────────────────────────────────
-  # SÉCURITÉ : aucun port exposé — accessible uniquement via l'API Gateway
+    # ── Predictive Analytics (Python/FastAPI) — MODULE COMPLET ──────────────────
+  # Module complet (esprit_D2F-predictive-analytics) : moteurs + pipeline ML +
+  # routes /api/v1/d2f/* et /api/v1/analytics/dashboard/* consommées par le
+  # frontend (AnalyticsDashboardPage, AnalysePredictive).
+  # SÉCURITÉ : aucun port exposé en production — accessible uniquement via l'API Gateway
+  # EXPOSÉ POUR VALIDATION TEMPORAIRE (Phase 9 CDC)
   predictive-analytics-service:
     build:
       context: ./esprit_D2F-predictive-analytics
       dockerfile: Dockerfile
     container_name: d2f-predictive-analytics
     restart: unless-stopped
+    ports:
+      - "8000:8000"  # ← TEMPORAIRE : validation CDC Phase 9 (à retirer après validation)
     environment:
       APP_ENV: production
-      # DSI §2 — hostname DB standard (alias db.dsi.local résolu dans Docker)
-      DATABASE_URL: postgresql://${DB_USER_ANALYSE:-app_user_analyse}:${DB_PASSWORD}@db.dsi.local:5432/d2f
+      DATABASE_URL: postgresql://${DB_USER_ANALYSE:-app_user_analyse}:${DB_PASSWORD_ANALYSE:-${DB_PASSWORD}}@db.dsi.local:5432/d2f
       JWT_SECRET: ${JWT_SECRET}
-      JWT_ALGORITHM: HS512
-      JWT_AUTH_ENABLED: "true"
-      # DSI §1.1 — seuils de détection externalisés (valeurs par défaut dans .env.example)
-      SEUIL_GAP_CRITIQUE: ${SEUIL_GAP_CRITIQUE:-0.75}
-      SEUIL_GAP_HAUTE: ${SEUIL_GAP_HAUTE:-0.50}
-      SEUIL_STAGNATION_MOIS: ${SEUIL_STAGNATION_MOIS:-12}
-      SEUIL_COMPLETION_FAIBLE: ${SEUIL_COMPLETION_FAIBLE:-40.0}
-      # Scheduler nightly
-      SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-true}
-      BATCH_ANALYSIS_HOUR: ${BATCH_ANALYSIS_HOUR:-2}
-      DASHBOARD_REFRESH_HOUR: ${DASHBOARD_REFRESH_HOUR:-3}
-      # Messaging RabbitMQ (désactivé par défaut)
-      MESSAGING_ENABLED: ${MESSAGING_ENABLED:-false}
-      RABBITMQ_HOST: broker.dsi.local
-      RABBITMQ_PORT: "5672"
-      RABBITMQ_USER: ${RABBITMQ_USERNAME:-d2f}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
-      # DSI §1.1+§10 — CORS externalisé (production = domaine interne DSI)
-      CORS_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
-      # P0 — aligné avec le Dockerfile (/app/data/models contient les modèles pré-entraînés)
+      SCHEDULER_ENABLED: "true"
+      MESSAGING_ENABLED: "false"
+      CORS_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
       MODELS_DIR: /app/data/models
     depends_on:
       postgres:
         condition: service_healthy
-      # DSI §2.4 — RabbitMQ n'est obligatoire que si MESSAGING_ENABLED=true.
-      # Sinon, dépendre du broker bloque le démarrage en dev/CI sans broker et
-      # fait échouer les healthchecks (le service attend un bus qu'il n'utilise pas).
-      rabbitmq:
-        condition: service_healthy
-        required: ${MESSAGING_ENABLED:-false}
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8000/api/v1/analytics/health || exit 1"]
       interval: 30s

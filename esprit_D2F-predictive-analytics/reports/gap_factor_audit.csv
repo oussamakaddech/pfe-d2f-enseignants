@@ -1,0 +1,4 @@
+gap_id,teacher_id,gap_type,knowledge_difficulty,explicit_need,collective_need,prerequisite_gap,training_completion,assignment_freshness,strategic_impact,priority_score,priority_level,sum_factors,diff
+GAP-ENS002-K2-GAP_EXPLICIT_NEED,ENS002,GAP_EXPLICIT_NEED,3,True,False,False,False,False,False,0.68,HAUTE,0.68,0.0
+GAP-ENS002-K1-GAP_PREREQUISITE_MISSING,ENS002,GAP_PREREQUISITE_MISSING,2,False,False,True,False,False,False,0.54,MODEREE,0.54,0.0
+GAP-ENS003-K1-GAP_NOT_ASSIGNED,ENS003,GAP_NOT_ASSIGNED,1,False,False,False,False,False,False,0.25,FAIBLE,0.25,0.0

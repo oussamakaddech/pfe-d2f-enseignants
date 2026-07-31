@@ -359,14 +359,54 @@ def _group_recommendations(recs: list[dict], group_by: str) -> list[dict]:
 
 
 def _persist_gaps(db: Session, enseignant_id: str, gaps: list, pred_id: int) -> list:
-    """Persist gap dicts/adapters as SkillGap rows and return the ORM objects."""
+    """Persist gap dicts/adapters as SkillGap rows and return the ORM objects.
+
+    Gap scores are differentiated per teacher based on:
+      - knowledge_difficulty_level (base)
+      - gap_type weight (NOT_ASSIGNED > STALE > COLLECTIVE)
+      - assignment_status (NOT_ASSIGNED is worse)
+    """
     from app.engines.gap_engine import classify_priority, _knowledge_difficulty_score
+
+    GAP_TYPE_WEIGHTS = {
+        "GAP_NOT_ASSIGNED": 1.0,
+        "GAP_EXPLICIT_NEED": 0.9,
+        "GAP_PREREQUISITE_MISSING": 0.85,
+        "GAP_TRAINING_NOT_COMPLETED": 0.75,
+        "GAP_COLLECTIVE_NEED": 0.65,
+        "GAP_STALE_ASSIGNMENT": 0.55,
+        "GAP_STRATEGIC_COVERAGE": 0.50,
+        "GAP_DEMAND_TREND": 0.40,
+    }
+
     persisted: list = []
     for g in gaps:
         d = g._d if hasattr(g, "_d") else g
         diff = d.get("knowledge_difficulty_level", 1)
-        gap_score = _knowledge_difficulty_score(diff)
+        gap_type = d.get("gap_type", "GAP_NOT_ASSIGNED")
+        assignment = d.get("assignment_status", "NOT_ASSIGNED")
+
+        current = d.get("current_level", 0)
+        base = _knowledge_difficulty_score(diff)
+        type_weight = GAP_TYPE_WEIGHTS.get(gap_type, 0.5)
+        assignment_penalty = 0.0 if assignment == "NOT_ASSIGNED" else 0.15
+
+        # Adjust gap score based on the teacher's actual current_level.
+        # A teacher with partial coverage (level < required) should have a
+        # lower gap score than one with no coverage at all.
+        if current > 0 and current < diff:
+            level_gap = (diff - current) / max(diff, 1)
+            gap_score = round(min(1.0, base * type_weight * level_gap + assignment_penalty), 4)
+        else:
+            gap_score = round(min(1.0, base * type_weight + assignment_penalty), 4)
+        impact_score = round(gap_score * 0.8, 4)
+        urgence_score = round(gap_score * 0.6, 4)
         niveau_urgence = classify_priority(gap_score)
+
+        niveau_actuel = d.get("current_level", max(0, diff - 1) if assignment == "NOT_ASSIGNED" else diff)
+        niveau_requis = d.get("required_level", diff + 1)
+        niveau_vise = min(5, niveau_requis + 1)
+
         sg = SkillGap(
             enseignant_id=enseignant_id,
             competence_id=int(d.get("competency_id") or 0) or 1,
@@ -374,18 +414,18 @@ def _persist_gaps(db: Session, enseignant_id: str, gaps: list, pred_id: int) -> 
             competence_nom=d.get("competency_name") or d.get("knowledge_name", ""),
             domaine_id=None,
             domaine_nom=None,
-            niveau_actuel=diff,
-            niveau_requis=diff + 1,
-            niveau_vise=min(5, diff + 2),
+            niveau_actuel=niveau_actuel,
+            niveau_requis=niveau_requis,
+            niveau_vise=niveau_vise,
             gap_score=gap_score,
-            impact_score=gap_score * 0.8,
-            urgence_score=gap_score * 0.6,
+            impact_score=impact_score,
+            urgence_score=urgence_score,
             priorite_score=gap_score,
             niveau_urgence=niveau_urgence,
             mois_stagnation=0,
             en_regression=False,
-            nb_besoins_exprimes=1 if d.get("gap_type") in ("GAP_EXPLICIT_NEED",) else 0,
-            justification=d.get("explanation_fr") or d.get("gap_type", ""),
+            nb_besoins_exprimes=1 if gap_type == "GAP_EXPLICIT_NEED" else 0,
+            justification=d.get("explanation_fr") or gap_type,
             prediction_result_id=pred_id,
         )
         db.add(sg)
@@ -527,6 +567,46 @@ async def get_gaps(
 ) -> dict[str, Any]:
     enseignant_id = validate_canonical_id(enseignant_id, path=request.url.path)
     svc = DataService(db)
+    
+    # Check if teacher has competency data in enseignant_competences (competence schema)
+    # or skill_gaps already computed. TeacherKnowledgeAssignment (analytics-owned) may be
+    # empty, so we also check enseignant_competences which is the seeded source of truth.
+    profile = svc.get_teacher_profile(enseignant_id)
+    has_competency_data = False
+    if profile:
+        # Check enseignant_competences (seeded, competence schema)
+        comp_levels = svc.get_competency_levels(enseignant_id)
+        has_competency_data = len(comp_levels) > 0
+        # Also check if skill_gaps already exist (from a previous analysis)
+        if not has_competency_data:
+            from sqlalchemy import func
+            nb_gaps = (
+                db.query(func.count(SkillGap.id))
+                .filter(SkillGap.enseignant_id == enseignant_id)
+                .scalar() or 0
+            )
+            has_competency_data = nb_gaps > 0
+    
+    if not has_competency_data:
+        # 🔴 Retourne DATA_INCOMPLETE avec warnings explicites
+        from app.core.response_envelope import data_incomplete, DATA_INCOMPLETE
+        warnings = [
+            f"Aucune affectation de compétence trouvée pour {enseignant_id}.",
+            "Le profil est démarré mais sans savoirs/compétences évalués.",
+            "Action requise : compléter les affectations via le CUP.",
+        ]
+        return data_incomplete(
+            {
+                "enseignant_id": enseignant_id,
+                "total": 0,
+                "page": page,
+                "size": size,
+                "gaps": [],
+            },
+            data_source="db_no_competencies",
+            warnings=warnings,
+        )
+    
     q = (
         db.query(SkillGap)
         .filter(SkillGap.enseignant_id == enseignant_id)
@@ -543,6 +623,8 @@ async def get_gaps(
         "total":         total,
         "page":          page,
         "size":          size,
+        "analysis_status": "READY",
+        "data_source": "db",
         "gaps": [
             {
                 "id":               g.id,
@@ -1428,4 +1510,202 @@ async def health(db: DbSession) -> dict[str, Any]:
         "nb_gaps_stored": nb_gaps,
         "nb_alerts_new":  nb_alerts,
         "timestamp":      datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ── GET /api/v1/analytics/integrity/teachers ───────────────────
+@router.get("/integrity/teachers", summary="Integrity check: teacher canonical IDs & assignments")
+async def integrity_teachers(
+    auth: ReadAuth,
+    db: DbSession,
+) -> dict[str, Any]:
+    """Verify all analyzed teachers have canonical ENS IDs and valid assignment references."""
+    from app.models.db_models import TeacherIdMapping
+    from sqlalchemy import func
+
+    # Teachers in skill_gaps
+    gap_teachers = db.execute(sa_text("""
+        SELECT DISTINCT enseignant_id FROM skill_gaps
+    """)).fetchall()
+    gap_teacher_ids = {row[0] for row in gap_teachers}
+
+    # Teachers in teacher_risk_profiles
+    risk_teachers = db.execute(sa_text("""
+        SELECT DISTINCT enseignant_id FROM teacher_risk_profiles
+    """)).fetchall()
+    risk_teacher_ids = {row[0] for row in risk_teachers}
+
+    all_teacher_ids = gap_teacher_ids | risk_teacher_ids
+
+    # Check canonical format
+    non_canonical = [tid for tid in all_teacher_ids if not tid.startswith("ENS")]
+    
+    # Check mappings for any legacy IDs
+    mapped = db.execute(sa_text("""
+        SELECT legacy_id, canonical_id, verified FROM teacher_id_mapping
+    """)).fetchall()
+    legacy_map = {row[0]: {"canonical": row[1], "verified": row[2]} for row in mapped}
+
+    # Check assignments reference valid knowledge
+    invalid_assignments = db.execute(sa_text("""
+        SELECT tka.teacher_id, tka.knowledge_id 
+        FROM teacher_knowledge_assignments tka
+        LEFT JOIN knowledge k ON k.id = tka.knowledge_id
+        WHERE k.id IS NULL
+    """)).fetchall()
+
+    return {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "total_teachers_analyzed": len(all_teacher_ids),
+        "non_canonical_ids": non_canonical,
+        "legacy_mappings": legacy_map,
+        "invalid_knowledge_references": [
+            {"teacher_id": row[0], "knowledge_id": row[1]} for row in invalid_assignments
+        ],
+        "status": "OK" if not non_canonical and not invalid_assignments else "ISSUES_FOUND",
+    }
+
+
+# ── GET /api/v1/analytics/integrity/assignments ────────────────
+@router.get("/integrity/assignments", summary="Integrity check: teacher-knowledge assignments")
+async def integrity_assignments(
+    auth: ReadAuth,
+    db: DbSession,
+) -> dict[str, Any]:
+    """Verify assignment integrity: knowledge exists, statuses valid, no orphans."""
+    # Assignments with invalid knowledge
+    invalid_knowledge = db.execute(sa_text("""
+        SELECT tka.id, tka.teacher_id, tka.knowledge_id, tka.assignment_status
+        FROM teacher_knowledge_assignments tka
+        LEFT JOIN knowledge k ON k.id = tka.knowledge_id
+        WHERE k.id IS NULL
+    """)).fetchall()
+
+    # Assignments with invalid status
+    valid_statuses = ("PROPOSED", "VALIDATED", "REJECTED", "ARCHIVED")
+    invalid_status = db.execute(sa_text(f"""
+        SELECT id, teacher_id, knowledge_id, assignment_status
+        FROM teacher_knowledge_assignments
+        WHERE assignment_status NOT IN {valid_statuses}
+    """)).fetchall()
+
+    # Orphan assignments (teacher doesn't exist in enseignants)
+    orphan_teacher = db.execute(sa_text("""
+        SELECT tka.id, tka.teacher_id
+        FROM teacher_knowledge_assignments tka
+        LEFT JOIN enseignants e ON e.id = tka.teacher_id
+        WHERE e.id IS NULL
+    """)).fetchall()
+
+    return {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "invalid_knowledge_refs": len(invalid_knowledge),
+        "details_invalid_knowledge": [
+            {"id": r[0], "teacher_id": r[1], "knowledge_id": r[2], "status": r[3]} for r in invalid_knowledge
+        ],
+        "invalid_statuses": len(invalid_status),
+        "details_invalid_status": [
+            {"id": r[0], "teacher_id": r[1], "knowledge_id": r[2], "status": r[3]} for r in invalid_status
+        ],
+        "orphan_teacher_refs": len(orphan_teacher),
+        "details_orphan_teacher": [
+            {"id": r[0], "teacher_id": r[1]} for r in orphan_teacher
+        ],
+        "status": "OK" if not invalid_knowledge and not invalid_status and not orphan_teacher else "ISSUES_FOUND",
+    }
+
+
+# ── GET /api/v1/analytics/integrity/trainings ──────────────────
+@router.get("/integrity/trainings", summary="Integrity check: recommended formations exist and are active")
+async def integrity_trainings(
+    auth: ReadAuth,
+    db: DbSession,
+) -> dict[str, Any]:
+    """Verify all recommended formations exist, are not cancelled, and match gaps."""
+    # Recommendations referencing non-existent formations
+    missing_formations = db.execute(sa_text("""
+        SELECT r.id, r.enseignant_id, r.formation_id, r.formation_titre
+        FROM recommendations r
+        LEFT JOIN formations f ON f.id_formation = r.formation_id
+        WHERE f.id_formation IS NULL
+    """)).fetchall()
+
+    # Recommendations for cancelled formations
+    cancelled_formations = db.execute(sa_text("""
+        SELECT r.id, r.enseignant_id, r.formation_id, f.etat_formation
+        FROM recommendations r
+        JOIN formations f ON f.id_formation = r.formation_id
+        WHERE f.etat_formation = 'ANNULE'
+    """)).fetchall()
+
+    # Recommendations for gaps that don't exist
+    missing_gaps = db.execute(sa_text("""
+        SELECT r.id, r.enseignant_id, r.skill_gap_id
+        FROM recommendations r
+        LEFT JOIN skill_gaps sg ON sg.id = r.skill_gap_id
+        WHERE r.skill_gap_id IS NOT NULL AND sg.id IS NULL
+    """)).fetchall()
+
+    return {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "missing_formation_refs": len(missing_formations),
+        "details_missing_formations": [
+            {"reco_id": r[0], "teacher_id": r[1], "formation_id": r[2], "formation_titre": r[3]} for r in missing_formations
+        ],
+        "cancelled_formation_refs": len(cancelled_formations),
+        "details_cancelled_formations": [
+            {"reco_id": r[0], "teacher_id": r[1], "formation_id": r[2], "etat": r[3]} for r in cancelled_formations
+        ],
+        "missing_gap_refs": len(missing_gaps),
+        "details_missing_gaps": [
+            {"reco_id": r[0], "teacher_id": r[1], "gap_id": r[2]} for r in missing_gaps
+        ],
+        "status": "OK" if not missing_formations and not cancelled_formations and not missing_gaps else "ISSUES_FOUND",
+    }
+
+
+# ── GET /api/v1/analytics/integrity/summary ────────────────────
+@router.get("/integrity/summary", summary="Integrity check: cross-service summary")
+async def integrity_summary(
+    auth: ReadAuth,
+    db: DbSession,
+) -> dict[str, Any]:
+    """Aggregate integrity summary across all domains."""
+    # Reuse the individual checks
+    teachers = await integrity_teachers(auth, db)
+    assignments = await integrity_assignments(auth, db)
+    trainings = await integrity_trainings(auth, db)
+
+    # Prerequisite graph cycle check (simplified)
+    cycle_check = db.execute(sa_text("""
+        WITH RECURSIVE prereq_path AS (
+            SELECT cp.competence_id AS target_id, cp.prerequisite_id AS prereq_id, 
+                   ARRAY[cp.competence_id] AS path
+            FROM competence_prerequisite cp
+            UNION ALL
+            SELECT pp.target_id, cp.prerequisite_id, pp.path || cp.competence_id
+            FROM prereq_path pp
+            JOIN competence_prerequisite cp ON cp.competence_id = pp.prereq_id
+            WHERE NOT cp.prerequisite_id = ANY(pp.path)
+        )
+        SELECT COUNT(*) FROM prereq_path WHERE prereq_id = ANY(path)
+    """)).scalar() or 0
+
+    # Department/UP scope consistency
+    scope_check = db.execute(sa_text("""
+        SELECT COUNT(*) FROM formations f
+        WHERE f.departement_id IS NOT NULL 
+        AND NOT EXISTS (SELECT 1 FROM departements d WHERE d.id = f.departement_id)
+    """)).scalar() or 0
+
+    return {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "teachers": teachers,
+        "assignments": assignments,
+        "trainings": trainings,
+        "prerequisite_cycles": cycle_check,
+        "orphan_department_refs": scope_check,
+        "overall_status": "OK" if all(
+            c.get("status") == "OK" for c in [teachers, assignments, trainings]
+        ) and cycle_check == 0 and scope_check == 0 else "ISSUES_FOUND",
     }

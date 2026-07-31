@@ -4,8 +4,8 @@ import DecliningCompetencies from "@/redesign/components/charts/DecliningCompete
 import type { DecliningCompetency } from "@/models/analyse";
 
 const items: DecliningCompetency[] = [
-  { competence_id: 1, competence_nom: "Structures", domaine_nom: "GC", delta: -0.6, niveau_actuel: 2.4, niveau_ancien: 3.0 } as DecliningCompetency,
-  { competence_id: 2, competence_nom: "Anglais", domaine_nom: "Langues", delta: -0.2, niveau_actuel: 3.0, niveau_ancien: 3.2 } as DecliningCompetency,
+  { competence_id: 1, competence_nom: "Structures", domaine_nom: "GC", delta: -0.6, niveau_actuel: 2.4, niveau_ancien: 3.0 } as unknown as DecliningCompetency,
+  { competence_id: 2, competence_nom: "Anglais", domaine_nom: "Langues", delta: -0.2, niveau_actuel: 3.0, niveau_ancien: 3.2 } as unknown as DecliningCompetency,
 ];
 
 describe("DecliningCompetencies", () => {
@@ -27,7 +27,7 @@ describe("DecliningCompetencies", () => {
   it("tolère la convention camelCase (niveauActuel)", () => {
     const { container } = render(
       <DecliningCompetencies
-        items={[{ competence_id: 1, competence_nom: "X", domaine_nom: "D", delta: -0.1, niveau_actuel: 1, niveau_ancien: 2 } as DecliningCompetency]}
+        items={[{ competence_id: 1, competence_nom: "X", domaine_nom: "D", delta: -0.1, niveau_actuel: 1, niveau_ancien: 2 } as unknown as DecliningCompetency]}
         loading={false}
       />,
     );

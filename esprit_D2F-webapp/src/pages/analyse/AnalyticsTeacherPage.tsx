@@ -58,8 +58,8 @@ export default function AnalyticsTeacherPage() {
   const offset = circumference * (1 - score);
 
   const trend = risk.data?.tendance ?? "STABLE";
-  const trendClass = trend === "PROGRESSION" ? "at-trend-up" : trend === "REGRESSION" ? "at-trend-down" : "at-trend-flat";
-  const trendIcon = trend === "PROGRESSION" ? <RiseOutlined /> : trend === "REGRESSION" ? <FallOutlined /> : "—";
+  const trendClass = trend === "AMELIORATION" ? "at-trend-up" : trend === "DEGRADATION" ? "at-trend-down" : "at-trend-flat";
+  const trendIcon = trend === "AMELIORATION" ? <RiseOutlined /> : trend === "DEGRADATION" ? <FallOutlined /> : "—";
 
   return (
     <div className="at-root">

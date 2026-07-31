@@ -30,7 +30,7 @@ import {
 } from "@/hooks/analyse/useD2FData";
 import type { ColumnsType } from "antd/es/table";
 import type {
-  AtRiskTeacherRow, D2FAlert, D2FRecommendation, TeacherSummary,
+  AtRiskTeacherRow, D2FAlert, D2FRecommendation, TeacherSummary, TeacherGap,
 } from "@/services/analyse/D2FService";
 
 // ── Tooltip Definitions (in French) ─────────────────────
@@ -537,7 +537,7 @@ export function D2FDashboard({ defaultTeacherId }: D2FDashboardProps) {
                 {
                   title: "Gap",
                   dataIndex: "gap_value",
-                  render: (v: number, r: { is_critical_gap: boolean }) => (
+                  render: (v: number, r: TeacherGap) => (
                     <Tag color={r.is_critical_gap ? "red" : "default"}>Δ {v}</Tag>
                   ),
                 },

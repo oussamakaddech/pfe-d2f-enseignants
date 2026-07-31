@@ -159,7 +159,7 @@ describe("NotificationContext", () => {
       </NotificationProvider>,
     );
     await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
-    const c = ctx as { notifications: { id: string }[] };
+    const c = ctx as { notifications: Array<{ id: string; read: boolean }> };
     expect(c.notifications.filter((n) => n.id === "b1")).toHaveLength(1);
     expect(c.notifications.find((n) => n.id === "b1")?.read).toBe(false);
   });

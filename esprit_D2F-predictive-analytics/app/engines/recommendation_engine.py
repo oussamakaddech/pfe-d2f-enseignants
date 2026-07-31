@@ -22,6 +22,23 @@ logger = logging.getLogger(__name__)
 NIVEAU_MAP_INT = {1: "N1", 2: "N2", 3: "N3", 4: "N4", 5: "N5"}
 
 
+def _clamp01(x: float) -> float:
+    return max(0.0, min(1.0, float(x)))
+
+
+def _weighted_global(parts: list[tuple[float | None, float]]) -> float:
+    """Weighted average over only available (non-None) components.
+
+    parts: list of (value, weight). Missing values excluded; remaining
+    weights renormalized to sum=1. Returns 0.0 if no parts available.
+    """
+    available = [(v, w) for v, w in parts if v is not None]
+    if not available:
+        return 0.0
+    total_w = sum(w for _, w in available)
+    return round(sum(v * w for v, w in available) / total_w, 4)
+
+
 def _score_pertinence(formation: dict, niveau_actuel: int, niveau_requis: int) -> float:
     """Alignement entre ce que comble la formation et le gap réel."""
     niv_cible = int(formation.get("niveau_vise") or formation.get("niveau_cible") or 0)
@@ -38,29 +55,41 @@ def _score_reussite(
     formation_id: int,
     inscriptions: list[dict],
     evaluations: list[dict],
-    global_taux_completion: float = 0.5,
-) -> float:
+    global_taux_completion: float | None = None,
+) -> float | None:
     """Taux de complétion historique × note évaluation.
 
-    Fallback: utilise le taux de complétion global de l'enseignant
-    (depuis snapshot_taux_completion) au lieu de 0.5 neutre.
+    CDC Phase 6 — aucune composante fictive à 0.5 :
+    - Retourne ``None`` (NO_DATA) si aucune source disponible
+      (ni historique formation, ni évaluations, ni taux global enseignant).
+    - Les sous-parties manquantes sont exclues et les poids restants
+      renormalisés (ex. évaluations absentes → taux_hist seul, poids 1.0).
     """
     inscrits    = [i for i in inscriptions if i.get("formation_id") == formation_id]
     nb_inscrits = len(inscrits)
     nb_complets = sum(1 for i in inscrits if i.get("etat") in ("APPROVED",))
-    taux_hist   = nb_complets / max(nb_inscrits, 1)
+    taux_hist: float | None = (nb_complets / nb_inscrits) if nb_inscrits > 0 else None
 
     evals_form = [e for e in evaluations if e.get("formation_id") == formation_id]
+    note_norm: float | None = None
     if evals_form:
         note_moy = sum(float(e.get("note_globale") or e.get("note", 3)) for e in evals_form) / len(evals_form)
         note_norm = min(1.0, note_moy / 5.0)
-    else:
-        note_norm = 0.5  # neutre si pas de données
 
-    if nb_inscrits > 0:
-        return round(taux_hist * 0.6 + note_norm * 0.4, 4)
-    # Fallback: utilise le taux global de complétion de l'enseignant
-    return round(global_taux_completion * 0.6 + note_norm * 0.4, 4)
+    # Combiner uniquement les composantes disponibles (poids renormalisés).
+    parts: list[tuple[float, float]] = []
+    if taux_hist is not None:
+        parts.append((taux_hist, 0.6))
+    if note_norm is not None:
+        parts.append((note_norm, 0.4))
+    if parts:
+        total_w = sum(w for _, w in parts)
+        return round(sum(v * w for v, w in parts) / total_w, 4)
+
+    # Fallback ultime : taux global de complétion de l'enseignant, si fourni.
+    if global_taux_completion is not None:
+        return round(_clamp01(global_taux_completion), 4)
+    return None  # NO_DATA — le caller doit exposer null + renormaliser
 
 
 def _score_disponibilite(formation: dict) -> float:
@@ -147,12 +176,12 @@ def _score_candidates(
             s_peer = collaborative.peer_success_rate(enseignant_id, fid)
             f["_score_peer"]     = s_peer
             f["_peer_adoption"]  = collaborative.peer_adoption_count(enseignant_id, fid)
-            f["_score_global"]   = round(
-                s_pert * 0.40 + s_peer * 0.25 + s_reus * 0.20 + s_disp * 0.15, 4
+            f["_score_global"]   = _weighted_global(
+                [(s_pert, 0.40), (s_peer, 0.25), (s_reus, 0.20), (s_disp, 0.15)]
             )
         else:
-            f["_score_global"]   = round(
-                s_pert * 0.40 + s_reus * 0.35 + s_disp * 0.25, 4
+            f["_score_global"]   = _weighted_global(
+                [(s_pert, 0.40), (s_reus, 0.35), (s_disp, 0.25)]
             )
     candidates.sort(key=lambda x: x["_score_global"], reverse=True)
     return candidates
@@ -447,11 +476,15 @@ class RecommendationEngine:
 
     def _make_item(
         self, f: dict, rang: int, obligatoire: bool,
-        niv_avant: int, niv_apres: int, score_reussite: float,
+        niv_avant: int, niv_apres: int, score_reussite: float | None,
         est_prereq: bool = False,
     ) -> dict:
-        score_g = float(f.get("_score_global", 0.5))
-        proba   = round(min(0.95, 0.55 + score_g * 0.3 + score_reussite * 0.15), 4)
+        score_g = f.get("_score_global")
+        if score_g is None:
+            score_g = 0.0
+        else:
+            score_g = float(score_g)
+        proba = round(min(0.95, 0.55 + score_g * 0.3 + (score_reussite or 0.0) * 0.15), 4)
         duree   = int(f.get("charge_horaire_global") or f.get("duree_formation") or 20)
         score_peer    = f.get("_score_peer")
         peer_adoption = int(f.get("_peer_adoption", 0) or 0)
@@ -479,13 +512,21 @@ class RecommendationEngine:
             "deja_suivie":        False,
             "score":              score_g,
             "proba_reussite":     proba,
-            "score_pertinence":   float(f.get("_score_pertinence", 0.0)),
+            "score_pertinence":   f.get("_score_pertinence"),
             "score_reussite":     score_reussite,
-            "score_disponibilite": float(f.get("_score_disponibilite", 0.0)),
-            "score_peer":         float(score_peer) if score_peer is not None else None,
+            "score_disponibilite": f.get("_score_disponibilite"),
+            "score_peer":         score_peer,
             "peer_adoption":      peer_adoption,
             "est_prerequis":      est_prereq,
             "justification":      justification,
+            # Expose components for traceability (CDC Phase 6)
+            "score_components": {
+                "gap_relevance":      f.get("_score_pertinence"),
+                "historical_success": score_reussite,
+                "availability":       f.get("_score_disponibilite"),
+                "peer_signal":        score_peer,
+                "risk_priority":      None,
+            },
         }
 
     def _proba_globale(self, items: list[dict], facteur_engagement: float) -> float:

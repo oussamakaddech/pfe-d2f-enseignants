@@ -21,6 +21,7 @@ const path: TrainingPath = {
       formation_type: "INTERNE",
       duree_heures: 20,
       est_obligatoire: true,
+      prerequis_competences: null,
       prerequis_satisfaits: true,
       deja_suivie: false,
       niveau_avant: 2,

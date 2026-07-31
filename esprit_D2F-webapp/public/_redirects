@@ -1,0 +1,2 @@
+# Favicon fallback — éviter middleware 404
+/favicon.ico 200

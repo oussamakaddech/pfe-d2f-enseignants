@@ -74,7 +74,7 @@ const DashboardKpiGrid = memo(function DashboardKpiGrid({ scope }: { readonly sc
         { title: "Formations", value: totalForm.data ?? 0, icon: <BookOutlined />, color: "primary", loading: totalForm.isLoading, trend: trendFrom(totalForm.data ?? 0, totalFormPrev.data ?? 0), to: "/home/KPI" },
         { title: "Participants uniques", value: participants.data ?? 0, icon: <TeamOutlined />, color: "info", loading: participants.isLoading, to: "/home/KPI" },
         { title: "Taux de présence", value: pct(presence), unit: "%", icon: <RiseOutlined />, color: presence == null ? "info" : presenceColor(presence), loading: presenceQ.isLoading },
-        { title: "Enseignants à risque", value: global.data?.enseignants_a_risque?.length ?? 0, icon: <WarningOutlined />, color: "danger", loading: global.isLoading, to: "/home/analytics/teacher" },
+        { title: "Enseignants à risque", value: global.data?.enseignants_a_risque?.length ?? 0, icon: <WarningOutlined />, color: "danger", loading: global.isLoading, to: "/home/analytics" },
         { title: "Besoins en attente", value: (besoins.data ?? []).filter(isPendingBesoin).length, icon: <BellOutlined />, color: "warning", loading: besoins.isLoading, to: "/home/besoins" },
         { title: "Couverture compétences", value: pct(overview.data?.taux_couverture_global), unit: "%", icon: <SafetyCertificateOutlined />, color: "success", loading: overview.isLoading, trend: overview.data?.deltas?.taux_couverture_global == null ? undefined : { value: Math.round(overview.data.deltas.taux_couverture_global), direction: overview.data.deltas.taux_couverture_global >= 0 ? "up" : "down", label: "pts" } },
       ]

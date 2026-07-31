@@ -9,7 +9,7 @@ import { config } from "@/config/env";
  * `/api/analyse/v1/analytics/ab/**` ; `config.ANALYSE_URL` contient déjà le
  * préfixe `/api/analyse`, d'où la base ci-dessous.
  */
-const AB_API = `${config.ANALYSE_URL}/v1/analytics/ab`;
+const AB_API = `${config.ANALYSE_URL}/analyse/v1/analytics/ab`;
 
 export interface ABAssignRequest {
   teacher_id: string;

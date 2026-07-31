@@ -57,8 +57,8 @@ export interface LegacyDashboardData {
   enseignants_a_risque: LegacyAtRiskTeacher[];
   heatmap: Array<{
     departement: string;
-    competenceId: number;
-    competenceNom: string;
+    competence_id: number;
+    competence_nom: string;
     avg_gap: number;
     enseignants_count: number;
   }>;
@@ -298,8 +298,8 @@ export function useDashboard(_opts: unknown = {}) {
     }),
     heatmap: (heatmapQ.data?.cells ?? []).map((c) => ({
       departement: c.departement_nom || c.departement,
-      competenceId: 0,
-      competenceNom: c.competence_nom,
+      competence_id: 0,
+      competence_nom: c.competence_nom,
       avg_gap: c.avg_gap,
       enseignants_count: c.enseignants_count,
     })),

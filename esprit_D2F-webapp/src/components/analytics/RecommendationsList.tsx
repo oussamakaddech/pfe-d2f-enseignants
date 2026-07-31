@@ -63,7 +63,7 @@ export default function RecommendationsList({
                 {r.justification}
               </Typography.Paragraph>
             )}
-            {onAccept && onReject && r.statut === "PROPOSÉE" && (
+            {onAccept && onReject && r.statut === "PROPOSEE" && (
               <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
                 <button type="button" onClick={() => onAccept(r.id)}>Accepter</button>
                 <button type="button" onClick={() => onReject(r.id)}>Ignorer</button>

@@ -52,6 +52,90 @@ def _normalize_teacher_id(teacher_id: str) -> str:
     raise ValueError(f"Invalid teacher ID format: {teacher_id} (must be ENSxxx)")
 
 
+def _build_connaissances_from_req_levels(req_levels: list[dict]) -> list[dict]:
+    """Build knowledge list from required_levels (niveau_savoir_requis).
+
+    Deduplicates by savoir_id and maps keys to the format expected by
+    detect_gaps_for_teacher. Takes the maximum required_level when the same
+    savoir appears under multiple competences.
+    """
+    seen: dict[Any, dict] = {}
+    for rl in req_levels:
+        sid = rl.get("savoir_id")
+        if sid is None:
+            continue
+        req_lv = int(rl.get("required_level", 1) or 1)
+        existing = seen.get(sid)
+        if existing is None:
+            seen[sid] = {
+                "id": sid,
+                "knowledge_code": str(sid),
+                "knowledge_name": rl.get("savoir_nom", ""),
+                "knowledge_type": "THEORETICAL",
+                "competency_id": rl.get("competence_id"),
+                "competency_code": str(rl.get("competence_id", "")),
+                "competency_name": rl.get("competence_nom", ""),
+                "difficulty_level": req_lv,
+                "prerequis_ids": [],
+            }
+        else:
+            # Keep the highest required level for this savoir
+            if req_lv > existing["difficulty_level"]:
+                existing["difficulty_level"] = req_lv
+    return list(seen.values())
+
+
+def _build_assignments_from_comp_levels(
+    comp_levels: list[dict],
+    req_levels: list[dict] | None = None,
+) -> list[dict]:
+    """Build assignments from competence_levels (enseignant_competences).
+
+    Maps the teacher's actual competency data to the assignment format
+    expected by detect_gaps_for_teacher. Uses required_levels to determine
+    if the teacher's level meets the requirement (VALIDATED vs PROPOSED).
+    """
+    # Build a lookup of required levels by savoir_id (take max)
+    req_lookup: dict[Any, int] = {}
+    if req_levels:
+        for rl in req_levels:
+            sid = rl.get("savoir_id")
+            if sid is None:
+                continue
+            req_lv = int(rl.get("required_level", 1) or 1)
+            if sid not in req_lookup or req_lv > req_lookup[sid]:
+                req_lookup[sid] = req_lv
+
+    result = []
+    for cl in comp_levels:
+        level = int(cl.get("current_level", 0) or 0)
+        sid = cl.get("savoir_id")
+        req_level = req_lookup.get(sid, 3)  # Default required level is 3
+        date_acq = cl.get("date_acquisition")
+
+        # "VALIDATED" if the teacher's level meets or exceeds the required level
+        is_validated = level >= req_level
+
+        result.append({
+            "id": sid,
+            "teacher_id": cl.get("enseignant_id"),
+            "knowledge_id": sid,
+            "knowledge_code": str(sid),
+            "knowledge_name": cl.get("savoir_nom", ""),
+            "competency_id": cl.get("competence_id"),
+            "competency_code": str(cl.get("competence_id", "")),
+            "competency_name": cl.get("competence_nom", ""),
+            "assignment_status": "VALIDATED" if is_validated else "PROPOSED",
+            "assignment_source": "ENSEIGNANT_COMPETENCES",
+            "assigned_at": date_acq,
+            "validated_at": date_acq if is_validated else None,
+            "active": True,
+            "data_quality_status": "COMPLETE",
+            "current_level": level,
+        })
+    return result
+
+
 def _knowledge_difficulty_score(difficulty_level: int) -> float:
     """Normalize the fixed knowledge difficulty level to [0, 1]."""
     return max(0.0, min(1.0, float(difficulty_level) / 5.0))
@@ -159,6 +243,8 @@ def detect_gaps_for_teacher(
             "competency_name": cname,
             "gap_type": gap_type,
             "assignment_status": assignment.get("assignment_status") if assignment else "NOT_ASSIGNED",
+            "current_level": assignment.get("current_level", 0) if assignment else 0,
+            "required_level": kdiff,
             "priority_score": 0.0,
             "priority_level": "FAIBLE",
             "factors": [],
@@ -467,7 +553,7 @@ def build_gap_factors(gap: dict[str, Any]) -> list[dict[str, Any]]:
             "contribution": w["strategic_impact"],
         })
 
-        return factors
+    return factors
 
 
 class _GapDictAdapter:
@@ -532,20 +618,32 @@ class GapEngine:
                      departement_id="", **kwargs):
         enseignant_id = _normalize_teacher_id(enseignant_id)
 
+        # Build connaissances from required_levels (niveau_savoir_requis).
+        # This gives us ALL required knowledge items to check against — not
+        # just the teacher's own competencies. Falls back to Knowledge table
+        # if req_levels is empty.
         connaissances = None
-        if competence_levels and isinstance(competence_levels, list) and competence_levels:
-            if isinstance(competence_levels[0], dict) and "id" in competence_levels[0]:
-                connaissances = competence_levels
+        if required_levels and isinstance(required_levels, list) and required_levels:
+            connaissances = _build_connaissances_from_req_levels(required_levels)
 
+        # Build assignments from competence_levels (enseignant_competences).
+        # This is the teacher's actual competency data — makes gaps
+        # teacher-specific. Uses req_levels to determine VALIDATED vs PROPOSED.
+        assignments = None
+        if competence_levels and isinstance(competence_levels, list) and competence_levels:
+            assignments = _build_assignments_from_comp_levels(
+                competence_levels, required_levels
+            )
+
+        # Don't pass besoins from data["besoins"] — it doesn't have
+        # competence_id. Let the engine load from AlertEvent table instead.
         besoins_ind = None
-        if besoins and isinstance(besoins, list) and besoins:
-            besoins_ind = besoins
 
         gaps = detect_gaps_for_teacher(
             teacher_id=enseignant_id,
             db=self.db,
             connaissances=connaissances,
-            assignments=None,
+            assignments=assignments,
             besoins_individuels=besoins_ind,
             besoins_collectifs=None,
             formations_suivies=None,

@@ -26,9 +26,13 @@ export function useAnalyzeTeacher(enseignantId: string) {
   return useMutation({
     mutationFn: () => analyticsApi.analyze(enseignantId),
     onSuccess: () => {
+      // Invalidate with exact prefix — TanStack v5 prefix-matches on the segments provided.
+      // Using only 2 segments would NOT match the 5-segment keys used in useTeacherGaps.
       qc.invalidateQueries({ queryKey: ["analytics", "gaps", enseignantId] });
       qc.invalidateQueries({ queryKey: ["analytics", "recos", enseignantId] });
       qc.invalidateQueries({ queryKey: ["analytics", "risk", enseignantId] });
+      qc.invalidateQueries({ queryKey: ["analytics", "risk-history", enseignantId] });
+      qc.invalidateQueries({ queryKey: ["analytics", "path", enseignantId] });
     },
   });
 }
@@ -102,7 +106,7 @@ export function useTrainingImpactFormations(page = 0, size = 10) {
 
 export function useWhatIfSimulation(enseignantId: string) {
   const qc = useQueryClient();
-  return useMutation<WhatIfResponse, Error, WhatIfRequestPayload>({
+  return useMutation<WhatIfResponse, Error, Omit<WhatIfRequestPayload, "enseignant_id">>({
     mutationFn: (payload) => analyticsApi.simulateWhatIf({ ...payload, enseignant_id: enseignantId }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["analytics", "risk", enseignantId] });

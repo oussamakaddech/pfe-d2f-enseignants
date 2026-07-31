@@ -2,7 +2,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { describe, it, expect, vi } from 'vitest';
 import NotificationCenter from '../NotificationCenter';
-import type { AppNotification, ConnectionStatus, NotificationContextValue } from '@/models/notification';
+import type { AppNotification, ConnectionStatus } from '@/models/notification';
+import type { NotificationContextValue } from '@/context/NotificationContext';
 
 vi.mock('@/hooks/notification', () => ({
   useNotifications: vi.fn(),

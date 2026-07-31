@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ReactElement } from "react";
+import type { ReactNode } from "react";
 
 const mocks = vi.hoisted(() => ({
   useTrainingImpact: vi.fn(),
@@ -17,7 +17,7 @@ import TrainingImpactPanel from "@/components/analytics/TrainingImpactPanel";
 
 const createWrapper = () => {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  return ({ children }: { children: ReactElement }) => (
+  return ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={qc}>{children}</QueryClientProvider>
   );
 };

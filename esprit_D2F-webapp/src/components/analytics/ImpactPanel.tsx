@@ -58,7 +58,7 @@ export default function ImpactPanel({ enseignantId, gaps, recommendations }: Pro
         formation_id: formationParCompetence.get(g.competence_id)?.formation_id ?? null,
       }));
     if (!plan.length) return;
-    sim.mutate({ enseignant_id: enseignantId, plan, horizon_mois: 6 });
+    sim.mutate({ plan, horizon_mois: 6 });
   };
 
   const res: WhatIfResponse | undefined = sim.data;

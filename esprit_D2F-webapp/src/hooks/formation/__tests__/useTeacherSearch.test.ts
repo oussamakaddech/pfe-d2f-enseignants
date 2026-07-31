@@ -1,5 +1,5 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useTeacherSearch, formatTeacherLabel, getTeacherId } from "@/hooks/formation/useTeacherSearch";
 import UnifiedProfileService from "@/services/formation/UnifiedProfileService";
 import { createWrapper } from "@/hooks/testUtils";

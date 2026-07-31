@@ -62,7 +62,10 @@ const DashboardPredictiveInsights = memo(function DashboardPredictiveInsights({ 
           <Button
             type="link"
             className="dash-predictive-cta"
-            onClick={() => navigate("/home/analytics/teacher")}
+            onClick={() => {
+              const firstTeacher = topAtRisk[0]?.teacher_id;
+              navigate(firstTeacher ? `/home/analytics/teacher/${firstTeacher}` : "/home/analytics");
+            }}
           >
             Vue détaillée <ArrowRightOutlined />
           </Button>
@@ -95,7 +98,10 @@ const DashboardPredictiveInsights = memo(function DashboardPredictiveInsights({ 
               <InsightRow key={`r-${f.formation_id}`} icon={<BulbOutlined />} tone="success" title={`À lancer — ${f.formation_titre}`} value={`${f.nb_recommandations}×`} onClick={() => navigate("/home/Formation")} />
             ))}
             {scope.isAdmin && lowCoverageDepts.map((d) => (
-              <InsightRow key={`c-${d.departement}`} icon={<ApartmentOutlined />} tone="info" title={`Intervenir — ${d.departement}`} value={`${d.taux_couverture}%`} onClick={() => navigate("/home/analytics/teacher")} />
+              <InsightRow key={`c-${d.departement}`} icon={<ApartmentOutlined />} tone="info" title={`Intervenir — ${d.departement}`} value={`${d.taux_couverture}%`} onClick={() => {
+                const deptTeacher = riskList.find((r) => r.departement === d.departement)?.teacher_id || topAtRisk[0]?.teacher_id;
+                navigate(deptTeacher ? `/home/analytics/teacher/${deptTeacher}` : "/home/analytics");
+              }} />
             ))}
             {!scope.isAdmin && topAtRisk.length === 0 && topDeclining.length === 0 && (
               <Tag>Tendances plateforme indisponibles à votre périmètre</Tag>
@@ -109,7 +115,10 @@ const DashboardPredictiveInsights = memo(function DashboardPredictiveInsights({ 
           type="primary"
           block
           icon={<ArrowRightOutlined />}
-          onClick={() => navigate("/home/analytics/teacher")}
+          onClick={() => {
+            const firstTeacher = topAtRisk[0]?.teacher_id;
+            navigate(firstTeacher ? `/home/analytics/teacher/${firstTeacher}` : "/home/analytics");
+          }}
         >
           Ouvrir la fiche enseignant (données complètes)
         </Button>

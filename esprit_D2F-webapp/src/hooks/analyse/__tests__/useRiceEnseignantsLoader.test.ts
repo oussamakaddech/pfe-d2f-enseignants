@@ -11,7 +11,7 @@ vi.mock("@/services/analyse/RiceService", () => ({
   __esModule: true,
 }));
 
-const msgApi = { warning: vi.fn(), success: vi.fn() } as never;
+const msgApi = { warning: vi.fn(), success: vi.fn() } as any;
 
 describe("useRiceEnseignantsLoader", () => {
   beforeEach(() => vi.clearAllMocks());

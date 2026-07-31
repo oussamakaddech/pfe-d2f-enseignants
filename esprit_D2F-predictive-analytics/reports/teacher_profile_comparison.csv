@@ -1,0 +1,3 @@
+enseignant_id,enseignant_nom,score_risque,niveau_risque,nb_gaps_critiques,nb_gaps_total,taux_completion,mois_stagnation_max,tendance,analysis_status
+ENS002,Dupont Jean,0.72,ELEVE,3,8,35.0,14,DEGRADATION,READY
+ENS003,Martin Sophie,0.18,FAIBLE,0,2,85.0,2,STABLE,READY

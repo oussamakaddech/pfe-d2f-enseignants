@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ExecutiveDashboard from '../ExecutiveDashboard';
@@ -16,7 +17,7 @@ const dashboardMocks = vi.hoisted(() => {
     'DashboardRecentActivity', 'DashboardFormationTypes', 'DashboardTrainerTypes',
     'DashboardTopPresences', 'DashboardTopAbsences', 'DashboardNonAffected',
   ];
-  const m: Record<string, { default: () => JSX.Element }> = {};
+  const m: Record<string, { default: () => React.ReactElement }> = {};
   names.forEach((n) => { m[n] = { default: () => <div>{n}</div> }; });
   return m;
 });

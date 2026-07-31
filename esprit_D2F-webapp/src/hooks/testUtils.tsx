@@ -2,7 +2,7 @@ import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react";
 
-export async function flushQuery(result: { current: { isSuccess?: boolean; isFetched?: boolean; isError?: boolean } }) {
+export async function flushQuery(result: { current: any }) {
   try {
     await waitFor(() => {
       if (!(result.current.isSuccess || result.current.isFetched || result.current.isError)) {

@@ -24,7 +24,7 @@ const BASE = "/api/analyse/v1/analytics";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  httpMocks.mockGet.mockResolvedValue({ data: {} });
+  httpMocks.mockGet.mockResolvedValue({ data: { data: {}, meta: {}, errors: [] } });
   httpMocks.mockPost.mockResolvedValue({ data: {} });
   httpMocks.mockPatch.mockResolvedValue({ data: {} });
 });
@@ -35,24 +35,47 @@ describe("analyticsApi – indivuel", () => {
     expect(httpMocks.mockPost).toHaveBeenCalledWith(`${BASE}/analyze/T1`);
   });
 
-  it("getGaps appelle GET avec pagination par défaut", async () => {
+  it("getGaps appelle GET /teachers/:id/gaps", async () => {
     await analyticsApi.getGaps("T1");
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/gaps/T1`, {
-      params: { urgence: undefined, page: 0, size: 20 },
-    });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/teachers/T1/gaps`);
   });
 
-  it("getGaps transmet urgence et pagination", async () => {
-    await analyticsApi.getGaps("T1", { urgence: "CRITIQUE", page: 2, size: 5 });
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/gaps/T1`, {
-      params: { urgence: "CRITIQUE", page: 2, size: 5 },
-    });
+  it("getGaps filtre urgence et pagine côté client", async () => {
+    const envelope = {
+      data: {
+        data: {
+          teacher_id: "T1",
+          gaps: [
+            { teacher_id: "T1", severity: "CRITICAL", gap_level: 4, required_level: 5, knowledge_id: "k1", knowledge_code: "C1", knowledge_name: "Compétence", domain_id: "DOM" },
+            { teacher_id: "T1", severity: "HIGH", gap_level: 3, required_level: 5, knowledge_id: "k2", knowledge_code: "C2", knowledge_name: "Compétence 2", domain_id: "DOM" },
+          ],
+        },
+        meta: {},
+        errors: [],
+      },
+    };
+    httpMocks.mockGet
+      .mockResolvedValueOnce(envelope)
+      .mockResolvedValueOnce(envelope)
+      .mockResolvedValueOnce(envelope);
+    expect(httpMocks.mockGet).not.toHaveBeenCalled();
+    const resPage0 = await analyticsApi.getGaps("T1", { urgence: "CRITIQUE" });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/teachers/T1/gaps`);
+    expect(resPage0.total).toBe(1);
+    expect(resPage0.page).toBe(0);
+    expect(resPage0.size).toBe(1);
+    expect(resPage0.gaps[0].niveau_urgence).toBe("CRITIQUE");
+    const resPage2 = await analyticsApi.getGaps("T1", { urgence: "CRITIQUE", page: 2, size: 5 });
+    expect(resPage2.total).toBe(1);
+    expect(resPage2.page).toBe(2);
+    expect(resPage2.size).toBe(5);
+    expect(resPage2.gaps).toHaveLength(0);
   });
 
-  it("getRecommendations transmet competence_id", async () => {
+  it("getRecommendations appelle GET /teachers/:id/recommendations avec limit", async () => {
     await analyticsApi.getRecommendations("T1", { competence_id: 7, page: 1 });
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/recommendations/T1`, {
-      params: { competence_id: 7, page: 1, size: 20 },
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/teachers/T1/recommendations`, {
+      params: { limit: 20 },
     });
   });
 
@@ -61,9 +84,33 @@ describe("analyticsApi – indivuel", () => {
     expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/training-path/T1/3`);
   });
 
-  it("getRisk appelle GET /risk/:id", async () => {
+  it("getRisk appelle GET /teachers/:id/risk", async () => {
     await analyticsApi.getRisk("T1");
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/risk/T1`);
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/teachers/T1/risk`);
+  });
+
+  it("getRisk mappe l'enveloppe v2 vers RiskScore", async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: {
+        data: {
+          teacher_id: "T1",
+          risk_score: 0.85,
+          risk_level: "CRITICAL",
+          factors: [
+            { code: "CRITICAL_GAP_PRESSURE", label: "Pression gaps critiques", weight: 0.25, contribution: 1, detail: "3 gaps critiques" },
+          ],
+          ml_stagnation_probability: null,
+          model_version: null,
+        },
+        meta: { teacher_id: "T1" },
+        errors: [],
+      },
+    });
+    const res = await analyticsApi.getRisk("T1");
+    expect(res.score).toBe(0.85);
+    expect(res.niveau).toBe("CRITIQUE");
+    expect(res.facteurs[0].nom).toBe("Pression gaps critiques");
+    expect(res.facteurs[0].valeur_brute).toBe(4);
   });
 
   it("getRiskHistory transmet mois", async () => {
@@ -87,53 +134,79 @@ describe("analyticsApi – indivuel", () => {
 });
 
 describe("analyticsApi – dashboard", () => {
-  it("mappe le dashboard brut vers le type UI", async () => {
-    httpMocks.mockGet.mockResolvedValueOnce({
-      data: {
-        enseignants_a_risque: [
-          { enseignant_id: "T1", teacher_name: "Alice", score_risque: 0.8, niveau_risque: "CRITIQUE", nb_gaps_critiques: 2, tendance: "DEGRADATION" },
-        ],
-        department_gap_heatmap: [{ departement: "DEPT_INFO", competence_id: 1, competence_nom: "C", avg_gap: 0.6, enseignants_count: 5 }],
-        alertes_recentes: [{ id: 1, type_alerte: "GAP_CRITIQUE", severite: "CRITICAL", titre: "Alerte", statut: "NOUVELLE" }],
-        nb_enseignants_suivis: 10,
-        nb_gaps_critiques: 3,
-      },
-    });
+  it("mappe le dashboard v2 vers le type UI", async () => {
+    httpMocks.mockGet
+      .mockResolvedValueOnce({
+        data: {
+          data: { total_teachers: 30, teachers_with_data: 30, teachers_at_risk: 25, avg_risk_score: 0.6, total_open_gaps: 120, critical_gaps: 40, open_needs: 15, enrollment_rate: 0.8, completion_rate: 0.6 },
+          meta: {},
+          errors: [],
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          data: { rows: [{ teacher_id: "T1", department_code: "DEPT_INFO", risk_score: 0.8, risk_level: "CRITICAL", top_gap: "Python (CRITICAL)", gap_count: 2 }], count: 1 },
+          meta: {},
+          errors: [],
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          data: { cells: [{ department_code: "DEPT_INFO", domain_id: "COMP-1", gap_count: 5, max_severity: "CRITICAL", weighted_severity: 2.5 }], count: 1 },
+          meta: {},
+          errors: [],
+        },
+      })
+      .mockResolvedValueOnce({
+        data: { data: { rows: [], count: 0 }, meta: {}, errors: [] },
+      });
     const res = await analyticsApi.getDashboard();
-    expect(res.enseignants_a_risque[0].nom).toBe("Alice");
+    expect(res.enseignants_a_risque[0].nom).toBe("T1");
     expect(res.enseignants_a_risque[0].score_risque).toBe(0.8);
-    expect(res.heatmap[0].avg_gap).toBe(0.6);
-    expect(res.alertes_recentes[0].type_alerte).toBe("GAP_CRITIQUE");
-    expect(res.kpis.nb_enseignants_suivis).toBe(10);
-    expect(res.kpis.nb_gaps_critiques).toBe(3);
+    expect(res.heatmap[0].avg_gap).toBe(0.5);
+    expect(res.kpis.nb_enseignants_suivis).toBe(30);
+    expect(res.kpis.nb_gaps_critiques).toBe(40);
   });
 
   it("dérive la distribution des risques de la liste à risque", async () => {
-    httpMocks.mockGet.mockResolvedValueOnce({
-      data: {
-        enseignants_a_risque: [
-          { enseignant_id: "T1", niveau_risque: "CRITIQUE" },
-          { enseignant_id: "T2", niveau_risque: "CRITIQUE" },
-          { enseignant_id: "T3", niveau_risque: "FAIBLE" },
-        ],
-      },
-    });
+    httpMocks.mockGet
+      .mockResolvedValueOnce({
+        data: { data: { total_teachers: 3, teachers_with_data: 3, teachers_at_risk: 3 }, meta: {}, errors: [] },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          data: {
+            rows: [
+              { teacher_id: "T1", department_code: "", risk_score: 0.8, risk_level: "CRITICAL", top_gap: "", gap_count: 1 },
+              { teacher_id: "T2", department_code: "", risk_score: 0.75, risk_level: "CRITICAL", top_gap: "", gap_count: 1 },
+              { teacher_id: "T3", department_code: "", risk_score: 0.55, risk_level: "HIGH", top_gap: "", gap_count: 1 },
+            ],
+            count: 3,
+          },
+          meta: {},
+          errors: [],
+        },
+      })
+      .mockResolvedValueOnce({
+        data: { data: { cells: [], count: 0 }, meta: {}, errors: [] },
+      })
+      .mockResolvedValueOnce({
+        data: { data: { rows: [], count: 0 }, meta: {}, errors: [] },
+      });
     const res = await analyticsApi.getDashboard();
     const byLevel = Object.fromEntries(res.distribution_risques.map((d) => [d.niveau, d.count]));
     expect(byLevel.CRITIQUE).toBe(2);
-    expect(byLevel.FAIBLE).toBe(1);
+    expect(byLevel.ELEVE).toBe(1);
   });
 
   it("getHeatmap appelle GET /dashboard/gap-heatmap", async () => {
     await analyticsApi.getHeatmap();
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/dashboard/gap-heatmap`, { params: {} });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/dashboard/gap-heatmap`);
   });
 
-  it("getAtRisk transmet le seuil", async () => {
+  it("getAtRisk appelle GET /dashboard/teachers-at-risk", async () => {
     await analyticsApi.getAtRisk({ departement_id: "D1", seuil: 0.5 });
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/dashboard/teachers-at-risk`, {
-      params: { departement_id: "D1", seuil: 0.5 },
-    });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/dashboard/teachers-at-risk`);
   });
 
   it("getTeachersByCell transmet limit", async () => {
@@ -161,7 +234,9 @@ describe("analyticsApi – alertes & impact", () => {
 
   it("updateAlert fait PATCH", async () => {
     await analyticsApi.updateAlert(1, { statut: "TRAITEE" });
-    expect(httpMocks.mockPatch).toHaveBeenCalledWith(`${BASE}/alerts/1`, { statut: "TRAITEE" });
+    expect(httpMocks.mockPatch).toHaveBeenCalledWith(`${BASE}/alerts/1`, null, {
+      params: { statut: "TRAITEE" },
+    });
   });
 
   it("getTrainingImpact appelle GET", async () => {

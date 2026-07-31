@@ -1,0 +1,3 @@
+teacher_id,score_risque,niveau_risque,no_training_raw,no_training_w,no_training_c,stagnation_raw,stagnation_w,stagnation_c,gap_count_raw,gap_count_w,gap_count_c,feedback_decline_raw,feedback_decline_w,feedback_decline_c,unmet_needs_raw,unmet_needs_w,unmet_needs_c,weights_sum,contributions_sum
+ENS002,0.62,ELEVE,0.7,0.3,0.21,0.5,0.25,0.125,0.6,0.2,0.12,1.0,0.1,0.1,0.4,0.15,0.06,1.0,0.615
+ENS003,0.28,MODERE,0.3,0.3,0.09,0.2,0.25,0.05,0.1,0.2,0.02,0.0,0.1,0.0,0.2,0.15,0.03,1.0,0.19

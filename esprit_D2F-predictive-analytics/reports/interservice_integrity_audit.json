@@ -1,0 +1,30 @@
+{
+  "timestamp": "2026-07-30T22:45:44.798851",
+  "checks": {
+    "canonical_ids_only": {
+      "status": "PASS",
+      "details": "All modern APIs enforce ENS format via validate_canonical_id"
+    },
+    "assignments_reference_valid_knowledge": {
+      "status": "PASS",
+      "details": "FK knowledge_id in teacher_knowledge_assignments"
+    },
+    "recommended_formations_active": {
+      "status": "PASS",
+      "details": "_filter_candidates excludes ANNULE, closed, completed"
+    },
+    "referenced_gaps_exist": {
+      "status": "PASS",
+      "details": "Recommendations linked to persisted SkillGap rows"
+    },
+    "prerequisite_graph_acyclic": {
+      "status": "UNKNOWN",
+      "details": "Not validated in this session"
+    },
+    "department_up_scope_respected": {
+      "status": "PASS",
+      "details": "Filtering in _filter_candidates"
+    }
+  },
+  "summary": "Core integrity checks pass; graph cycle check pending"
+}

@@ -215,6 +215,12 @@ app.include_router(insights_router, prefix="/api")
 from app.routers.analytics import router as analytics_router
 app.include_router(analytics_router, prefix="/api")
 
+# Router de compatibilité V2 — expose les routes /teachers/{id}/gaps|risk|recommendations
+# au format enveloppe {data, meta, errors} attendu par analyticsApi.ts (frontend).
+# Permet au frontend (AnalyticsTeacherPage) de fonctionner avec l'ancien module complet.
+from app.routers.compat_v2 import router as compat_v2_router
+app.include_router(compat_v2_router, prefix="/api")
+
 # Router reporting descriptif (features 1-4 + export) — même préfixe /v1/analytics
 from app.routers.reporting import router as reporting_router
 app.include_router(reporting_router, prefix="/api")

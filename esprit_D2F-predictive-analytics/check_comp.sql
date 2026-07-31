@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM "competence".enseignant_competences WHERE enseignant_id IN ('ENS007', 'ENS015');

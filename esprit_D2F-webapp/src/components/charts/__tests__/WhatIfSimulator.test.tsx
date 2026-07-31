@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useState } from 'react';
+import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import WhatIfSimulator from '../WhatIfSimulator';
 import type { WhatIfResponse } from '@/models/analyse';
@@ -17,12 +18,11 @@ const response: WhatIfResponse = {
 const hoisted = vi.hoisted(() => ({ shouldFail: false }));
 
 vi.mock('@/hooks/analyse/useAnalytics', () => {
-  const React = require('react');
   return {
     useSimulateWhatIf: () => {
-      const [data, setData] = React.useState<WhatIfResponse | null>(null);
-      const [isError, setError] = React.useState(false);
-      const [isPending, setPending] = React.useState(false);
+      const [data, setData] = useState<WhatIfResponse | null>(null);
+      const [isError, setError] = useState(false);
+      const [isPending, setPending] = useState(false);
       const mutateAsync = () => {
         if (hoisted.shouldFail) {
           setError(true);

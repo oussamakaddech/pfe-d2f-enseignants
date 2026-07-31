@@ -22,6 +22,7 @@ describe("scoreToRiskLevel", () => {
 describe("RiskScoreCard", () => {
   const base: RiskScore = {
     enseignant_id: "T1",
+    enseignant_nom: "Test Teacher",
     score: 0.82,
     niveau: "CRITIQUE",
     facteurs: [],

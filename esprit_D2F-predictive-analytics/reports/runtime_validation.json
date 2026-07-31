@@ -1,0 +1,45 @@
+{
+  "timestamp": "2026-07-30T22:50:44.793319",
+  "compileall": "OK",
+  "ruff": "SKIPPED",
+  "new_tests": {
+    "total": 43,
+    "passed": 43,
+    "failed": 0
+  },
+  "existing_suite": {
+    "passed": 636,
+    "failed": 76,
+    "note": "Pre-existing failures in deprecated ML modules"
+  },
+  "docker_build": "DAEMON_NOT_RUNNING",
+  "docker_commands": [
+    "docker compose build --no-cache predictive-analytics-service",
+    "docker compose up -d --force-recreate predictive-analytics-service",
+    "docker compose logs --tail=250 predictive-analytics-service",
+    "docker compose ps"
+  ],
+  "gateway_calls": "NOT_TESTED",
+  "api_calls_tested": [],
+  "api_commands": [
+    "curl http://localhost:8222/api/v1/analytics/health",
+    "curl http://localhost:8222/api/v1/analytics/model/health",
+    "curl http://localhost:8222/api/v1/analytics/teachers/ENS002/gaps",
+    "curl http://localhost:8222/api/v1/analytics/teachers/ENS002/risk",
+    "curl http://localhost:8222/api/v1/analytics/teachers/ENS002/recommendations",
+    "curl http://localhost:8222/api/v1/analytics/teachers/ENS003/gaps",
+    "curl http://localhost:8222/api/v1/analytics/teachers/ENS003/risk",
+    "curl http://localhost:8222/api/v1/analytics/teachers/ENS003/recommendations"
+  ],
+  "criteria": {
+    "compileall_ok": true,
+    "new_tests_pass": true,
+    "docker_ok": false,
+    "gateway_ok": false,
+    "ids_ens_only": true,
+    "no_leaky_ml_serving": true,
+    "no_fictitious_05": true,
+    "eligibility_strict": true
+  },
+  "final_status": "PARTIALLY_VALIDATED - RUNTIME OU DOCKER NON VERIFIE"
+}

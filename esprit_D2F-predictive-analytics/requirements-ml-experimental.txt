@@ -1,0 +1,20 @@
+# ML Experimental Dependencies
+# These are NOT installed in production Docker image
+# Use: pip install -r requirements-ml-experimental.txt
+
+# Gradient boosting (heavy, not used in prod - GapPredictor deprecated)
+xgboost==2.1.3
+lightgbm==4.5.0
+
+# Imbalanced learning - SMOTE for class rebalancing (gap bins)
+imbalanced-learn==0.12.4
+
+# Explainability - SHAP (uses feature_importance proxy in prod)
+shap==0.46.0
+
+# Deep learning (experimental)
+# torch==2.4.0  # Uncomment if needed
+
+# Testing extras
+pytest==8.3.3
+pytest-asyncio==0.24.0

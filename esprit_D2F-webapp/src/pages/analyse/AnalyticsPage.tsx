@@ -546,7 +546,7 @@ function ModelPerfSection({ model, drift, alerts, donutSegments, horizon, naviga
         <div className="ap-card-body ap-reco">
           <p>Le modèle anticipe <b>{donutSegments[0].value + donutSegments[1].value}</b> enseignants à risque élevé/critique sur <b>{horizon} mois</b>.</p>
           <p>Priorisez les formations sur les <b>{inDemand.data?.length ?? 0}</b> compétences en forte demande avant la prochaine rentrée.</p>
-          <button className="ap-btn ap-btn-primary ap-btn-sm" onClick={() => navigate("/home/analytics/teacher")}>
+          <button className="ap-btn ap-btn-primary ap-btn-sm" onClick={() => navigate("/home/analytics")}>
             <ApartmentOutlined /> Pilotage par enseignant
           </button>
         </div>

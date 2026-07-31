@@ -165,6 +165,6 @@ describe('AnalyticsPage', () => {
     renderWith(queryClient);
     const btn = await screen.findByText('Pilotage par enseignant');
     fireEvent.click(btn);
-    expect(navigate).toHaveBeenCalledWith('/home/analytics/teacher');
+    expect(navigate).toHaveBeenCalledWith('/home/analytics');
   });
 });
