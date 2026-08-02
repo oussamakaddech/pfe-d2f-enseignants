@@ -1,13 +1,13 @@
 {
-  "timestamp": "2026-07-25T05:02:33.594129",
+  "timestamp": "2026-08-01T18:23:32.430876",
   "passed": true,
   "total_errors": 0,
   "errors": [],
   "summary": {
     "teachers": 30,
-    "competencies": 45,
+    "competencies": 51,
     "alerts": 16,
-    "recommendations": 24,
+    "recommendations": 34,
     "kpis": {
       "total_teachers": 30,
       "enseignants_a_risque": 12,
@@ -16,8 +16,8 @@
       "taux_couverture_global": 20.0,
       "nb_gaps_critiques": 11,
       "nb_alertes_nouvelles": 16,
-      "nb_recommandations": 24,
-      "generated_at": "2026-07-25T05:02:33.553137"
+      "nb_recommandations": 34,
+      "generated_at": "2026-07-30T05:53:08.468056"
     }
   }
 }

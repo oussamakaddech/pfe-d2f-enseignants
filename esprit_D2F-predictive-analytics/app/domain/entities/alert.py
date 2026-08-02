@@ -1,9 +1,16 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 
 AlertStatusOpen = "NOUVELLE"
 AlertStatusAck = "ACK"
 AlertStatusResolved = "RESOLUE"
+
+
+def _iso_utc(value: datetime) -> str:
+    """ISO 8601 UTC sans doublon de fuseau (évite `...+00:00Z`)."""
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc).isoformat()
+    return value.astimezone(timezone.utc).isoformat()
 
 
 @dataclass(frozen=True)
@@ -35,5 +42,5 @@ class Alert:
             "message": self.message,
             "details": self.details or {},
             "status": self.status,
-            "created_at": self.created_at.isoformat() + "Z",
+            "created_at": _iso_utc(self.created_at),
         }

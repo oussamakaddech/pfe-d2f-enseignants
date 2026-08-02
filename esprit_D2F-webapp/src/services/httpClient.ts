@@ -51,7 +51,7 @@ function notifyUnexpectedError(err: AxiosError, status: number | undefined, serv
 
 export function createApiClient(baseURL?: string) {
   const api = axios.create({
-    baseURL,
+    ...(baseURL !== undefined ? { baseURL } : {}),
     withCredentials: true, // Send HttpOnly cookies with every request
   });
 

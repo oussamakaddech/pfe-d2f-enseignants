@@ -129,6 +129,8 @@ async def get_teacher_profile(teacher_id: str):
     if teacher.empty:
         raise HTTPException(status_code=404, detail="Enseignant non trouvé")
 
+    import math
+
     teacher_dict = teacher.iloc[0].to_dict()
 
     teacher_gaps = data["competencies"][data["competencies"]["teacher_id"] == teacher_id].to_dict(orient="records")
@@ -140,12 +142,23 @@ async def get_teacher_profile(teacher_id: str):
 
     teacher_recs = data["recommendations"][data["recommendations"]["teacher_id"] == teacher_id].to_dict(orient="records")
 
+    def _sanitize_floats(obj):
+        if isinstance(obj, float):
+            if math.isnan(obj) or math.isinf(obj):
+                return None
+            return obj
+        if isinstance(obj, dict):
+            return {k: _sanitize_floats(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [_sanitize_floats(v) for v in obj]
+        return obj
+
     return {
-        "teacher": teacher_dict,
-        "risk_profile": risk_dict,
-        "gaps": teacher_gaps,
-        "alerts": teacher_alerts,
-        "recommendations": teacher_recs,
+        "teacher": _sanitize_floats(teacher_dict),
+        "risk_profile": _sanitize_floats(risk_dict),
+        "gaps": _sanitize_floats(teacher_gaps),
+        "alerts": _sanitize_floats(teacher_alerts),
+        "recommendations": _sanitize_floats(teacher_recs),
     }
 
 
@@ -354,8 +367,12 @@ async def list_recommendations(priority: Optional[str] = None, db: Session = Dep
     """
     from app.models.db_models import Recommendation as DbRecommendation
 
-    q = db.query(DbRecommendation)
-    db_recs = q.order_by(DbRecommendation.score_global.desc()).limit(100).all()
+    try:
+        q = db.query(DbRecommendation)
+        db_recs = q.order_by(DbRecommendation.score_global.desc()).limit(100).all()
+    except Exception:
+        # DB indisponible → fallback sur le dataset maitre CSV
+        db_recs = []
 
     if db_recs:
         result = []
@@ -380,14 +397,27 @@ async def list_recommendations(priority: Optional[str] = None, db: Session = Dep
             })
         return {"total": len(result), "recommendations": result}
 
+    import math
+
     data = load_master_data()
     recs = data["recommendations"].copy()
 
     if priority:
         recs = recs[recs["priority"] == priority]
 
+    def _sanitize_floats(obj):
+        if isinstance(obj, float):
+            if math.isnan(obj) or math.isinf(obj):
+                return None
+            return obj
+        if isinstance(obj, dict):
+            return {k: _sanitize_floats(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [_sanitize_floats(v) for v in obj]
+        return obj
+
     result = recs.to_dict(orient="records")
-    return {"total": len(result), "recommendations": result}
+    return {"total": len(result), "recommendations": _sanitize_floats(result)}
 
 
 @router.post("/teachers/{teacher_id}/training-complete", summary="Feedback loop: mark training as completed")

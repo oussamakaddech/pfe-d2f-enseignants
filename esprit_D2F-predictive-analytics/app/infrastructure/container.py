@@ -53,7 +53,8 @@ class Container:
         self.model_port: ModelPort = ArtifactModelPort(settings, self.database)
 
         self.compute_gaps = ComputeGaps(
-            self.competency_source, self.analysis_repository, self.model_port, settings
+            self.competency_source, self.analysis_repository, self.model_port, settings,
+            teacher_source=self.teacher_source,
         )
         self.compute_risk = ComputeRisk(
             self.competency_source,

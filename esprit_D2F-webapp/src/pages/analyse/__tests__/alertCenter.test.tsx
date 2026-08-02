@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import AlertCenter from "@/components/analytics/AlertCenter";
 import type { AlertEvent } from "@/models/analyse/analyticsFeature";
 
@@ -32,7 +32,13 @@ describe("AlertCenter", () => {
   it("propose les actions de cycle de vie pour une alerte ouverte", () => {
     const onUpdate = vi.fn();
     render(<AlertCenter alerts={[alert]} onUpdate={onUpdate} />);
-    screen.getByText("Planifier").click();
+    const items = document.querySelector(".ac-group__items");
+    expect(items).not.toBeNull();
+    const primary = within(items as HTMLElement)
+      .getAllByRole("button")
+      .find((b) => (b as HTMLButtonElement).classList.contains("ant-btn-primary"));
+    expect(primary).toBeDefined();
+    primary!.click();
     expect(onUpdate).toHaveBeenCalledWith(1, { statut: "TRAITEE" });
   });
 });

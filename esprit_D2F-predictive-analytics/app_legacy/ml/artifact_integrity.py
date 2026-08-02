@@ -73,12 +73,13 @@ def _verification_enabled() -> bool:
     return os.getenv(_VERIFY_ENV, "true").lower() not in ("false", "0", "no")
 
 
-def save_with_hash(obj: Any, path: str) -> None:
+def save_with_hash(obj: Any, path: str | os.PathLike) -> None:
     """Persist `obj` via joblib and write a SHA-256 (or HMAC) sidecar.
 
     If MODEL_SIGNING_KEY is set, an HMAC sidecar (.hmac) is written;
     otherwise a plain SHA-256 sidecar (.sha256).
     """
+    path = os.fspath(path)
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     joblib.dump(obj, path)
 
@@ -141,7 +142,8 @@ def verify_integrity(path: str) -> None:
     logger.info("SHA-256 verified for %s", path)
 
 
-def load_with_hash_check(path: str) -> Any:
+def load_with_hash_check(path: str | os.PathLike) -> Any:
     """Verify integrity then load the joblib artifact."""
+    path = os.fspath(path)
     verify_integrity(path)
     return joblib.load(path)

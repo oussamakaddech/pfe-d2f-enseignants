@@ -12,6 +12,13 @@ export function formatScore(value: number, digits = 2): string {
   return value.toFixed(digits);
 }
 
+/** Formate un nombre entier à la française (espace des milliers : 1 176). */
+export function formatCount(value: number | null | undefined): string {
+  const n = Number(value ?? 0);
+  if (!Number.isFinite(n)) return "0";
+  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
+}
+
 export function riskColor(level: NiveauRisque): string {
   return RISK_LEVEL_COLORS[level] ?? "#8c8c8c";
 }

@@ -137,65 +137,82 @@ describe("analyticsApi – indivuel", () => {
 });
 
 describe("analyticsApi – dashboard", () => {
-  it("mappe le dashboard v2 vers le type UI", async () => {
-    httpMocks.mockGet
-      .mockResolvedValueOnce({
+  it("mappe le payload réel /dashboard/global vers le type UI", async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: {
         data: {
-          data: { total_teachers: 30, teachers_with_data: 30, teachers_at_risk: 25, avg_risk_score: 0.6, total_open_gaps: 120, critical_gaps: 40, open_needs: 15, enrollment_rate: 0.8, completion_rate: 0.6 },
-          meta: {},
-          errors: [],
+          real_kpis: {
+            nb_enseignants_suivis: 30,
+            nb_profils_risque: 30,
+            score_risque_moyen: 0.6,
+            nb_gaps_critiques: 40,
+            nb_alertes_nouvelles: 15,
+            taux_couverture_global: 0.75,
+            nb_regression: 3,
+            nb_stagnation: 5,
+            besoins_critiques_non_satisfaits: 8,
+            alertes_critiques_ouvertes: 2,
+          },
+          enseignants_a_risque: [
+            { enseignant_id: "T1", nom: "Nom Test", departement: "DEPT_INFO", up: "UP-INFO", score_risque: 0.8, niveau_risque: "CRITIQUE", tendance: "STABLE", nb_gaps_critiques: 2 },
+          ],
+          department_gap_heatmap: [
+            { departement: "DEPT_INFO", competence_id: 1, competence_nom: "COMP-1", avg_gap: 0.5, enseignants_count: 5 },
+          ],
+          top_formations_recommandees: [
+            { formation_id: 7, formation_titre: "Formation A", nb_recommandations: 3, enseignants_cibles: 3, departements: ["DEPT_INFO"], competences_couvertes: ["COMP-1"], impact_estime: 0.6, score_moyen: 0.8, proba_reussite_moy: 0.7 },
+          ],
+          monthly_risk_evolution: [
+            { month: "2026-06", critical: 2, high: 3, score_risque_moyen: 0.6, total_enseignants: 30 },
+          ],
+          generated_at: "2026-08-01",
         },
-      })
-      .mockResolvedValueOnce({
-        data: {
-          data: { rows: [{ teacher_id: "T1", department_code: "DEPT_INFO", risk_score: 0.8, risk_level: "CRITICAL", top_gap: "Python (CRITICAL)", gap_count: 2 }], count: 1 },
-          meta: {},
-          errors: [],
-        },
-      })
-      .mockResolvedValueOnce({
-        data: {
-          data: { cells: [{ department_code: "DEPT_INFO", domain_id: "COMP-1", gap_count: 5, max_severity: "CRITICAL", weighted_severity: 2.5 }], count: 1 },
-          meta: {},
-          errors: [],
-        },
-      })
-      .mockResolvedValueOnce({
-        data: { data: { rows: [], count: 0 }, meta: {}, errors: [] },
-      });
+        meta: {},
+        errors: [],
+      },
+    });
     const res = await analyticsApi.getDashboard();
-    expect(res.enseignants_a_risque[0].nom).toBe("T1");
+    expect(res.enseignants_a_risque[0].nom).toBe("Nom Test");
     expect(res.enseignants_a_risque[0].score_risque).toBe(0.8);
     expect(res.heatmap[0].avg_gap).toBe(0.5);
     expect(res.kpis.nb_enseignants_suivis).toBe(30);
     expect(res.kpis.nb_gaps_critiques).toBe(40);
+    expect(res.tendances[0].nb_gaps_critiques).toBe(2);
+  });
+
+  it("supporte un payload brut (sans enveloppe) sur /dashboard/global", async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: {
+        real_kpis: { nb_enseignants_suivis: 12, score_risque_moyen: 0.4, nb_gaps_critiques: 6 },
+        enseignants_a_risque: [],
+        department_gap_heatmap: [],
+        top_formations_recommandees: [],
+        monthly_risk_evolution: [],
+      },
+    });
+    const res = await analyticsApi.getDashboard();
+    expect(res.kpis.nb_enseignants_suivis).toBe(12);
+    expect(res.kpis.score_risque_moyen).toBe(0.4);
   });
 
   it("dérive la distribution des risques de la liste à risque", async () => {
-    httpMocks.mockGet
-      .mockResolvedValueOnce({
-        data: { data: { total_teachers: 3, teachers_with_data: 3, teachers_at_risk: 3 }, meta: {}, errors: [] },
-      })
-      .mockResolvedValueOnce({
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: {
         data: {
-          data: {
-            rows: [
-              { teacher_id: "T1", department_code: "", risk_score: 0.8, risk_level: "CRITICAL", top_gap: "", gap_count: 1 },
-              { teacher_id: "T2", department_code: "", risk_score: 0.75, risk_level: "CRITICAL", top_gap: "", gap_count: 1 },
-              { teacher_id: "T3", department_code: "", risk_score: 0.55, risk_level: "HIGH", top_gap: "", gap_count: 1 },
-            ],
-            count: 3,
-          },
-          meta: {},
-          errors: [],
+          real_kpis: { nb_enseignants_suivis: 3, score_risque_moyen: 0.7 },
+          enseignants_a_risque: [
+            { enseignant_id: "T1", nom: "T1", score_risque: 0.8, niveau_risque: "CRITIQUE", tendance: "STABLE", nb_gaps_critiques: 1 },
+            { enseignant_id: "T2", nom: "T2", score_risque: 0.75, niveau_risque: "CRITIQUE", tendance: "STABLE", nb_gaps_critiques: 1 },
+            { enseignant_id: "T3", nom: "T3", score_risque: 0.55, niveau_risque: "ELEVE", tendance: "STABLE", nb_gaps_critiques: 1 },
+          ],
+          department_gap_heatmap: [],
+          top_formations_recommandees: [],
+          monthly_risk_evolution: [],
         },
-      })
-      .mockResolvedValueOnce({
-        data: { data: { cells: [], count: 0 }, meta: {}, errors: [] },
-      })
-      .mockResolvedValueOnce({
-        data: { data: { rows: [], count: 0 }, meta: {}, errors: [] },
-      });
+        meta: {},
+        errors: [],
+      },
+    });
     const res = await analyticsApi.getDashboard();
     const byLevel = Object.fromEntries(res.distribution_risques.map((d) => [d.niveau, d.count]));
     expect(byLevel.CRITIQUE).toBe(2);
@@ -225,21 +242,51 @@ describe("analyticsApi – dashboard", () => {
       params: { up_id: "UP1" },
     });
   });
+
+  it("getRiskEvolution appelle GET /dashboard/risk-evolution", async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: [{ month: "2026-06", critical: 2, high: 3, score_risque_moyen: 0.6, total_enseignants: 30 }],
+    });
+    const res = await analyticsApi.getRiskEvolution(6);
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/dashboard/risk-evolution`, { params: { months: 6 } });
+    expect(res[0].nb_gaps_critiques).toBe(2);
+    expect(res[0].score_risque_moyen).toBe(0.6);
+  });
 });
 
 describe("analyticsApi – alertes & impact", () => {
-  it("getAlerts transmet les filtres", async () => {
-    await analyticsApi.getAlerts({ severite: "CRITICAL", page: 1 });
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/alerts`, {
-      params: { severite: "CRITICAL", page: 1 },
+  it("getAlerts lit l'enveloppe réelle et mappe les alertes", async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: {
+        data: [
+          {
+            id: 42, alert_type: "GAP_CRITIQUE", target_type: "INDIVIDUEL",
+            teacher_id: "T1", department_id: null, competence_id: 3,
+            severity: "CRITICAL", title: "Gap critique détecté", message: "Écart sévère",
+            details: {}, status: "NOUVELLE", created_at: "2026-07-01T10:00:00Z",
+          },
+        ],
+        meta: { total: 1 },
+        errors: [],
+      },
     });
+    const res = await analyticsApi.getAlerts({ severite: "CRITICAL", page: 1 });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/alerts`, {
+      params: { page: 1, size: 100, severity: "CRITICAL", status: undefined, target_type: undefined },
+    });
+    expect(res.alerts[0].id).toBe(42);
+    expect(res.alerts[0].type_alerte).toBe("GAP_CRITIQUE");
+    expect(res.alerts[0].statut).toBe("NOUVELLE");
   });
 
-  it("updateAlert fait PATCH", async () => {
-    await analyticsApi.updateAlert(1, { statut: "TRAITEE" });
-    expect(httpMocks.mockPatch).toHaveBeenCalledWith(`${BASE}/alerts/1`, null, {
-      params: { statut: "TRAITEE" },
+  it("updateAlert fait PATCH /alerts/{id}/status avec le statut backend", async () => {
+    httpMocks.mockPatch.mockResolvedValueOnce({ data: { id: 1, status: "RESOLUE" } });
+    const res = await analyticsApi.updateAlert(1, { statut: "TRAITEE" });
+    expect(httpMocks.mockPatch).toHaveBeenCalledWith(`${BASE}/alerts/1/status`, {
+      status: "RESOLUE",
+      comment: null,
     });
+    expect(res.statut).toBe("TRAITEE");
   });
 
   it("getTrainingImpact appelle GET", async () => {

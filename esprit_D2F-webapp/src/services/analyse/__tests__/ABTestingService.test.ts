@@ -22,7 +22,7 @@ import ABTestingService from '../ABTestingService';
 describe('ABTestingService', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
-  const base = `${config.ANALYSE_URL}/v1/analytics/ab`;
+  const base = `${config.ANALYSE_URL}/analyse/v1/analytics/ab`;
 
   it('assigns a teacher to a variant', async () => {
     const res = { teacher_id: 't1', experiment_name: 'exp', variant: 'A' };

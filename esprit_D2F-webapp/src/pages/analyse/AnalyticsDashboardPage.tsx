@@ -1,50 +1,47 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import dayjs from "dayjs";
 import {
   Row, Col, Select, Alert, Empty, Tag, Button, Skeleton, Tooltip, Modal,
-  Segmented, message, DatePicker, Spin,
+  Segmented, message, Spin,
 } from "antd";
-import { useDebounce } from "@/hooks/ui/useDebounce";
 import {
   TeamOutlined, AlertOutlined, LineChartOutlined, WarningOutlined,
   DashboardOutlined, ReloadOutlined, ClockCircleOutlined, HeatMapOutlined,
   TrophyOutlined, SafetyCertificateOutlined, RiseOutlined, FallOutlined,
   InfoCircleOutlined, DownloadOutlined, ArrowDownOutlined,
-  FilePdfOutlined, BulbOutlined, AppstoreOutlined,
+  FilePdfOutlined, BulbOutlined, AppstoreOutlined, FilterOutlined,
 } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
 import {
-  useDashboard,
-  useAtRisk,
+  useRealDashboardImpact,
   useAlerts,
   useUpdateAlert,
-} from "@/hooks/analytics/useAnalyticsD2FAdapter";
+  useRiskTrends,
+} from "@/hooks/analytics/useAnalyticsQueries";
 import { useSupplyDemand } from "@/hooks/analyse/useAnalysePredictive";
 import { analyticsApi } from "@/services/analyse/analyticsApi";
 import {
   AtRiskTeachersTable, TrendChart, Heatmap, AlertCenter,
   TrainingImpactPanel,
 } from "@/components/analytics";
-import RealDashboardSection from "@/components/analytics/RealDashboardSection";
 import SupplyDemandChart from "@/components/charts/SupplyDemandChart";
-import type { DashboardFilters, NiveauRisque, AtRiskTeacher, HeatmapCell, TopFormation, DashboardResponse } from "@/models/analyse/analyticsFeature";
-import { formatDepartment, formatUP, toCsv, downloadCsv } from "@/utils/analytics/format";
+import type {
+  DashboardFilters, NiveauRisque, AtRiskTeacher, HeatmapCell, TopFormation,
+  RealDashboardImpact, AlertEvent,
+} from "@/models/analyse/analyticsFeature";
+import { formatDepartment, formatUP, toCsv, downloadCsv, formatCount } from "@/utils/analytics/format";
 import "./analyticsDashboard.redesign.css";
-
-const { RangePicker } = DatePicker;
 
 /* ── Définitions métier des KPI (affichées en tooltip) ──────── */
 const KPI_DEFS: Record<string, string> = {
-  "Enseignants monitorés": "Enseignants réellement monitorés (présents dans la couverture des compétences ou ayant au moins un gap calculé sur la fenêtre).",
-  "Indice de risque moyen": "Score 0–1 du modèle multi-facteurs (absence de formation, stagnation, gaps critiques, besoins non couverts). Seuils : < 0,25 Faible · 0,25–0,5 Modéré · 0,5–0,75 Élevé · ≥ 0,75 Critique.",
-  "Gaps critiques (≥ 0,7)": "Nombre d'écarts sévères (écart ≥ 0,7) sur la fenêtre sélectionnée (30 j par défaut).",
-  "Alertes nouvelles": "Alertes non traitées (NOUVELLE/LUE) créées sur la fenêtre.",
-  "Taux de couverture": "Part des couples (enseignant × compétence) déjà au niveau requis, tous départements confondus.",
-  "En régression": "Enseignants ayant au moins un gap marqué en régression sur la fenêtre.",
-  "En stagnation (≥ 3 mois)": "Enseignants sans progression depuis ≥ 3 mois (sur la fenêtre).",
-  "Besoins critiques non satisfaits": "Gaps d'urgence CRITIQUE non satisfaits sur la fenêtre.",
-  "Alertes critiques ouvertes": "Alertes de sévérité CRITICAL encore non traitées.",
+  "Enseignants en base": "Enseignants actifs présents en base (formation.enseignants, deleted_at IS NULL).",
+  "Indice de risque moyen": "Score moyen des derniers snapshots de risque (0–1). Seuils : < 0,25 Faible · 0,25–0,5 Modéré · 0,5–0,75 Élevé · ≥ 0,75 Critique.",
+  "Gaps critiques": "Écarts d'urgence CRITIQUE calculés sur les données réelles (analyse.skill_gaps).",
+  "Alertes non traitées": "Alertes réelles au statut NOUVELLE ou LUE (analyse.alert_events).",
+  "Taux de couverture": "Part des enseignants actifs ayant au moins une compétence affectée (competence.enseignant_competences).",
+  "Gaps haute priorité": "Écarts d'urgence HAUTE sur les données réelles.",
+  "Avec gaps calculés": "Enseignants distincts présents dans la table des gaps (analyse.skill_gaps).",
+  "Alertes critiques ouvertes": "Alertes réelles de sévérité CRITICAL/CRITIQUE non traitées.",
 };
 
 /* ── Petite carte KPI « riche » (dégradé + bulle d'icône) ──────── */
@@ -138,79 +135,152 @@ const WINDOWS: { label: string; days: number }[] = [
   { label: "Semestre", days: 180 },
 ];
 
+/** Niveau de risque (valeurs base) → niveau UI. */
+function toNiveauRisque(raw: string | null | undefined): NiveauRisque {
+  const v = (raw ?? "").toUpperCase();
+  if (v === "CRITIQUE" || v === "CRITICAL") return "CRITIQUE";
+  if (v === "ELEVE" || v === "HIGH") return "ELEVE";
+  if (v === "MODERE" || v === "MEDIUM") return "MODERE";
+  return "FAIBLE";
+}
+
+/** Enseignants à risque réels (score 0–1 en base) → format tableau. */
+function toAtRiskTeacher(row: RealDashboardImpact["at_risk_teachers"][number]): AtRiskTeacher {
+  return {
+    enseignant_id: row.enseignant_id,
+    nom: `${row.prenom ?? ""} ${row.nom ?? ""}`.trim() || row.enseignant_id,
+    departement: row.dept_libelle ?? null,
+    up: row.up_libelle ?? null,
+    score_risque: row.score_risque ?? 0,
+    niveau_risque: toNiveauRisque(row.niveau_risque),
+    nb_gaps_critiques: row.nb_gaps_critiques ?? 0,
+    tendance: "STABLE",
+  };
+}
+
+/** Heatmap réelle (département × compétence) → format UI. */
+function toHeatmapCell(row: RealDashboardImpact["heatmap"][number]): HeatmapCell {
+  return {
+    departement: row.dept_libelle ?? (row.dept_id ? formatDepartment(row.dept_id) : "Non affecté"),
+    competence_id: row.competence_id,
+    competence_nom: row.competence_nom ?? row.competence_code,
+    avg_gap: row.avg_gap_score ?? 0,
+    enseignants_count: row.nb_enseignants_touches ?? 0,
+  };
+}
+
+/** Top formations réelles → format tableau. */
+function toTopFormation(row: RealDashboardImpact["top_formations"][number]): TopFormation {
+  return {
+    formation_id: row.formation_id,
+    formation_titre: row.titre_formation ?? `Formation #${row.formation_id}`,
+    nb_recommandations: row.nb_recommandations ?? 0,
+    score_moyen: row.score_moyen ?? 0,
+    proba_reussite_moy: row.score_moyen ?? 0,
+    enseignants_cibles: row.nb_enseignants ?? 0,
+    departements: [],
+    competences_couvertes: row.competence_nom ? [row.competence_nom] : [],
+    impact_estime: row.score_moyen ?? 0,
+  };
+}
+
 /**
  * Dashboard global décisionnel (ADMIN / CUP) — version pilotage.
- * Filtres département / UP / niveau / temporel (réels), drill-down heatmap,
- * alertes groupées, recommandations enrichies, export CSV.
+ * Toutes les données proviennent de la base PostgreSQL réelle :
+ *   - /dashboard/real/impact  (KPIs, heatmap, à-risque, formations)
+ *   - /alerts                 (alertes réelles)
+ *   - /dashboard/supply-demand, /dashboard/training-impact
+ *   - /dashboard/risk-evolution (tendances mensuelles)
  */
 export default function AnalyticsDashboardPage() {
   const [windowDays, setWindowDays] = useState<number>(30);
-  const [range, setRange] = useState<[string, string] | null>(null);
   const [filters, setFilters] = useState<DashboardFilters>({});
   const [methodOpen, setMethodOpen] = useState(false);
   const [drill, setDrill] = useState<{ departement: string; competenceId: number; competenceNom: string } | null>(null);
-  // Debounced filter values so API calls are not triggered on every filter change.
-  const debouncedDepartement = useDebounce(filters.departement_id, 350);
-  const debouncedUP = useDebounce(filters.up_id, 350);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const navigate = useNavigate();
 
   /** Drill-down (F4) : un KPI ouvre la section pertinente du dashboard. */
   const jump = (id: string) =>
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  const navigate = useNavigate();
 
-  // Fenêtre temporelle → params ISO envoyés au backend.
-  const periode = useMemo(() => {
-    if (range) return { periode_debut: range[0], periode_fin: range[1] };
-    const fin = new Date();
-    const debut = new Date(fin.getTime() - windowDays * 86400000);
-    return { periode_debut: debut.toISOString(), periode_fin: fin.toISOString() };
-  }, [windowDays, range]);
-
-  const dashboard = useDashboard({ ...filters, departement_id: debouncedDepartement, up_id: debouncedUP, ...periode });
-  const atRisk = useAtRisk({ ...filters, departement_id: debouncedDepartement, up_id: debouncedUP, ...periode });
-  const alerts = useAlerts({ departement_id: filters.departement_id, size: 100 });
+  const impact = useRealDashboardImpact();
+  const [alertsPage, setAlertsPage] = useState<number>(1);
+  const alerts = useAlerts({ departement_id: filters.departement_id, page: alertsPage, size: 100 });
   const updateAlert = useUpdateAlert();
   const supplyDemand = useSupplyDemand();
-  const data = dashboard.data;
+
+  // Accumule les pages d'alertes (charge plus) ; reset dès que le filtre change.
+  const [accumAlerts, setAccumAlerts] = useState<AlertEvent[]>([]);
+  useEffect(() => {
+    if (filters.departement_id !== undefined) {
+      setAlertsPage(1);
+      setAccumAlerts([]);
+    }
+  }, [filters.departement_id]);
+  useEffect(() => {
+    const page = alerts.data?.alerts ?? [];
+    setAccumAlerts((prev) => {
+      if (alertsPage === 1) return page;
+      const seen = new Set(prev.map((a) => a.id));
+      return [...prev, ...page.filter((a) => !seen.has(a.id))];
+    });
+  }, [alerts.data?.alerts, alertsPage]);
+  const canLoadMoreAlerts = !!alerts.data && alerts.data.total > accumAlerts.length;
+
+  // Fenêtre temporelle → fenêtre des tendances (le backend agrège par mois).
+  const trendWindow = WINDOWS.find((w) => w.days === windowDays) ?? WINDOWS[3];
+  const trendMonths = Math.max(1, Math.round(trendWindow.days / 30));
+  const trends = useRiskTrends(trendMonths);
+
+  const data = impact.data;
   const kpis = data?.kpis;
 
-  const hasRiskData =
-    (data?.enseignants_a_risque?.length ?? 0) > 0 ||
-    (kpis?.nb_profils_risque ?? 0) > 0;
-  const hasGaps = (data?.heatmap?.length ?? 0) > 0 || (data?.alertes_recentes?.length ?? 0) > 0;
+  // Données réelles → formes UI.
+  const allAtRisk = useMemo<AtRiskTeacher[]>(
+    () => (data?.at_risk_teachers ?? []).map(toAtRiskTeacher),
+    [data],
+  );
+  const allHeatmap = useMemo<HeatmapCell[]>(
+    () => (data?.heatmap ?? []).map(toHeatmapCell),
+    [data],
+  );
+  const topFormations = useMemo<TopFormation[]>(
+    () => (data?.top_formations ?? []).map(toTopFormation),
+    [data],
+  );
 
   const departmentOptions = useMemo(() => {
     const seen = new Set<string>();
     const add = (d?: string | null) => {
       if (d && d !== "non_affecte" && d !== "NON_AFFECTE") seen.add(d);
     };
-    (data?.heatmap ?? []).forEach((h) => add(h.departement));
-    (atRisk.data ?? []).forEach((t) => add(t.departement));
+    allHeatmap.forEach((h) => add(h.departement));
+    allAtRisk.forEach((t) => add(t.departement));
     return Array.from(seen).sort((a, b) => a.localeCompare(b)).map((v) => ({ value: v, label: formatDepartment(v) }));
-  }, [data?.heatmap, atRisk.data]);
+  }, [allHeatmap, allAtRisk]);
 
   const upOptions = useMemo(() => {
     const seen = new Set<string>();
-    (atRisk.data ?? []).forEach((t) => { if (t.up && t.up !== "non_affecte") seen.add(t.up); });
+    allAtRisk.forEach((t) => { if (t.up && t.up !== "non_affecte") seen.add(t.up); });
     return Array.from(seen).sort((a, b) => a.localeCompare(b)).map((v) => ({ value: v, label: formatUP(v) }));
-  }, [atRisk.data]);
+  }, [allAtRisk]);
 
   const filteredAtRisk = useMemo<AtRiskTeacher[]>(() => {
-    return (atRisk.data ?? []).filter((t) =>
+    return allAtRisk.filter((t) =>
       (!filters.departement_id || t.departement === filters.departement_id) &&
       (!filters.up_id || t.up === filters.up_id) &&
       (!filters.niveau_risque || t.niveau_risque === filters.niveau_risque),
     );
-  }, [atRisk.data, filters.departement_id, filters.up_id, filters.niveau_risque]);
+  }, [allAtRisk, filters.departement_id, filters.up_id, filters.niveau_risque]);
 
   const filteredHeatmap = useMemo<HeatmapCell[]>(() => {
-    return (data?.heatmap ?? []).filter(
+    return allHeatmap.filter(
       (h) =>
         h.departement && h.departement !== "non_affecte" &&
         (!filters.departement_id || h.departement === filters.departement_id),
     );
-  }, [data?.heatmap, filters.departement_id]);
+  }, [allHeatmap, filters.departement_id]);
 
   const filteredRiskKpis = useMemo(() => {
     const list = filteredAtRisk;
@@ -220,6 +290,17 @@ export default function AnalyticsDashboardPage() {
     return { nb, scoreMoyen, gapsCritiques };
   }, [filteredAtRisk]);
 
+  // Alertes ouvertes réelles (backend, filtre département appliqué) → résumé AlertCenter.
+  const alertOpenTotal = useMemo(() => {
+    const sev = alerts.data?.severity_open;
+    if (sev) return sev.CRITICAL + sev.WARNING + sev.INFO;
+    return kpis?.nb_alertes_non_traitees;
+  }, [alerts.data?.severity_open, kpis?.nb_alertes_non_traitees]);
+
+  const hasActiveFilters = !!(filters.departement_id || filters.up_id || filters.niveau_risque);
+
+  const clearFilters = () => { setFilters({}); setWindowDays(30); };
+
   // Drill-down heatmap → enseignants impactés.
   const drillQuery = useQuery({
     queryKey: ["analytics", "cell", drill?.departement, drill?.competenceId],
@@ -227,21 +308,20 @@ export default function AnalyticsDashboardPage() {
     queryFn: () => analyticsApi.getTeachersByCell(drill!.departement, drill!.competenceId, 50),
   });
 
-  const onRefresh = () => { dashboard.refetch(); atRisk.refetch(); };
+  const onRefresh = () => { impact.refetch(); alerts.refetch(); trends.refetch(); };
 
   const onExportPdf = () => window.print();
 
   const onExport = () => {
     const rows = [
-      { indicateur: "Enseignants monitorés", valeur: kpis?.nb_enseignants_suivis ?? 0 },
-      { indicateur: "Indice de risque moyen", valeur: (kpis?.score_risque_moyen ?? 0).toFixed(2) },
-      { indicateur: "Gaps critiques (≥ 0,7)", valeur: kpis?.nb_gaps_critiques ?? 0 },
-      { indicateur: "Alertes nouvelles", valeur: kpis?.nb_alertes_nouvelles ?? 0 },
-      { indicateur: "Taux de couverture (%)", valeur: kpis?.taux_couverture_global ?? 0 },
-      { indicateur: "En régression", valeur: kpis?.nb_regression ?? 0 },
-      { indicateur: "En stagnation (≥ 3 mois)", valeur: kpis?.nb_stagnation ?? 0 },
-      { indicateur: "Besoins critiques non satisfaits", valeur: kpis?.besoins_critiques_non_satisfaits ?? 0 },
-      { indicateur: "Alertes critiques ouvertes", valeur: kpis?.alertes_critiques_ouvertes ?? 0 },
+      { indicateur: "Enseignants en base", valeur: formatCount(kpis?.nb_enseignants) },
+      { indicateur: "Enseignants avec gaps calculés", valeur: formatCount(kpis?.nb_enseignants_avec_gaps) },
+      { indicateur: "Indice de risque moyen", valeur: (kpis?.avg_risk_score ?? 0).toFixed(2) },
+      { indicateur: "Gaps critiques", valeur: formatCount(kpis?.nb_gaps_critiques) },
+      { indicateur: "Gaps haute priorité", valeur: formatCount(kpis?.nb_gaps_haute) },
+      { indicateur: "Alertes non traitées", valeur: formatCount(kpis?.nb_alertes_non_traitees) },
+      { indicateur: "Alertes critiques ouvertes", valeur: formatCount(kpis?.nb_alertes_critiques) },
+      { indicateur: "Taux de couverture (%)", valeur: (kpis?.taux_couverture_pct ?? 0).toFixed(1) },
     ];
     downloadCsv("dashboard-analytique.csv", toCsv(rows, ["indicateur", "valeur"]));
     message.success("Export CSV généré");
@@ -254,14 +334,15 @@ export default function AnalyticsDashboardPage() {
           <DashboardOutlined className="ad-header__icon" />
           <div className="ad-header__titles">
             <span className="ad-header__title">Tableau de bord analytique</span>
-            <span className="ad-header__subtitle">Pilotage du développement professionnel des enseignants</span>
+            <span className="ad-header__subtitle">Pilotage du développement professionnel des enseignants — données réelles (base)</span>
           </div>
         </div>
         <div className="ad-header__actions">
-          {data?.generated_at && (
-            <Tooltip title="Date du dernier recalcul du snapshot (cache ≤ 6 h)">
+          {kpis?.model?.mode && (
+            <Tooltip title="Mode d'exécution du modèle de risque (ML ou fallback heuristique)">
               <span className="ad-header__updated">
-                <ClockCircleOutlined /> Recalcul : {data.generated_at}
+                <ClockCircleOutlined /> Modèle : {kpis.model.mode}
+                {kpis.model.version ? ` · v${kpis.model.version.slice(0, 10)}` : ""}
               </span>
             </Tooltip>
           )}
@@ -283,7 +364,7 @@ export default function AnalyticsDashboardPage() {
           <Button
             className="ad-refresh-btn"
             icon={<ReloadOutlined />}
-            loading={dashboard.isFetching || atRisk.isFetching}
+            loading={impact.isFetching || alerts.isFetching}
             onClick={onRefresh}
           >
             Actualiser
@@ -291,35 +372,18 @@ export default function AnalyticsDashboardPage() {
         </div>
       </header>
 
-      {dashboard.isError && (
-        <Alert type="error" showIcon message="Impossible de charger le dashboard." style={{ marginBottom: 16, borderRadius: 12 }} />
+      {impact.isError && (
+        <Alert type="error" showIcon message="Impossible de charger le dashboard (données réelles)." style={{ marginBottom: 16, borderRadius: 12 }} />
       )}
 
       {/* ── Barre de filtres ─────────────── */}
       <div className="ad-filters">
         <span className="ad-filters__label">Filtres</span>
         <Segmented
-          value={range ? "custom" : String(windowDays)}
-          onChange={(v) => {
-            if (v === "custom") return;
-            setRange(null);
-            setWindowDays(Number(v));
-          }}
-          options={[
-            ...WINDOWS.map((w) => ({ label: w.label, value: String(w.days) })),
-            { label: "Période…", value: "custom" },
-          ]}
+          value={String(windowDays)}
+          onChange={(v) => setWindowDays(Number(v))}
+          options={WINDOWS.map((w) => ({ label: w.label, value: String(w.days) }))}
         />
-        {range && (
-          <RangePicker
-            value={range ? [dayjs(range[0]), dayjs(range[1])] : null}
-            onChange={(dates) =>
-              setRange(dates?.[0] && dates?.[1]
-                ? [dates[0].toISOString(), dates[1].toISOString()]
-                : null)
-            }
-          />
-        )}
         <Select
           allowClear placeholder="Département" className="ad-filter-select"
           value={filters.departement_id}
@@ -339,29 +403,53 @@ export default function AnalyticsDashboardPage() {
           options={["FAIBLE", "MODERE", "ELEVE", "CRITIQUE"].map((r) => ({ value: r, label: r }))}
         />
         <span className="ad-filters__spacer" />
-        <Button type="text" onClick={() => { setFilters({}); setRange(null); setWindowDays(30); }}>Réinitialiser</Button>
+        <Button type="text" onClick={clearFilters}>Réinitialiser</Button>
       </div>
 
-      {/* ── Ligne 1 : KPI globaux ─────────────── */}
+      {hasActiveFilters && (
+        <div className="ad-filters-active">
+          <span className="ad-filters-active__label"><FilterOutlined /> Filtres actifs :</span>
+          {filters.departement_id && (
+            <Tag color="red" closable onClose={() => setFilters((f) => ({ ...f, departement_id: undefined }))}>
+              {formatDepartment(filters.departement_id)}
+            </Tag>
+          )}
+          {filters.up_id && (
+            <Tag color="orange" closable onClose={() => setFilters((f) => ({ ...f, up_id: undefined }))}>
+              {formatUP(filters.up_id)}
+            </Tag>
+          )}
+          {filters.niveau_risque && (
+            <Tag color="purple" closable onClose={() => setFilters((f) => ({ ...f, niveau_risque: undefined }))}>
+              Risque {filters.niveau_risque}
+            </Tag>
+          )}
+          <span className="ad-filters-active__hint">
+            At-risk, heatmap et alertes sont filtrés · tendances sur {trendWindow.label}
+          </span>
+        </div>
+      )}
+
+      {/* ── Ligne 1 : KPI globaux (données réelles) ─────────────── */}
       <Row gutter={[16, 16]} className="ad-kpi-row">
         <Col xs={12} md={6}>
-          <RichKpi title="Enseignants monitorés" tone="primary" icon={<TeamOutlined />}
-            value={kpis?.nb_enseignants_suivis ?? 0} tooltip={KPI_DEFS["Enseignants monitorés"]} loading={dashboard.isLoading}
+          <RichKpi title="Enseignants en base" tone="primary" icon={<TeamOutlined />}
+            value={formatCount(kpis?.nb_enseignants)} tooltip={KPI_DEFS["Enseignants en base"]} loading={impact.isLoading}
             onClick={() => jump("sec-atrisk")} />
         </Col>
         <Col xs={12} md={6}>
           <RichKpi title="Indice de risque moyen" tone="warning" icon={<LineChartOutlined />}
-            value={(kpis?.score_risque_moyen ?? 0).toFixed(2)} tooltip={KPI_DEFS["Indice de risque moyen"]} loading={dashboard.isLoading}
+            value={(kpis?.avg_risk_score ?? 0).toFixed(2)} tooltip={KPI_DEFS["Indice de risque moyen"]} loading={impact.isLoading}
             onClick={() => jump("sec-atrisk")} />
         </Col>
         <Col xs={12} md={6}>
-          <RichKpi title="Gaps critiques (≥ 0,7)" tone="danger" icon={<AlertOutlined />}
-            value={filteredRiskKpis.gapsCritiques} hint="Fenêtre sélectionnée" tooltip={KPI_DEFS["Gaps critiques"]} loading={dashboard.isLoading}
+          <RichKpi title="Gaps critiques" tone="danger" icon={<AlertOutlined />}
+            value={formatCount(kpis?.nb_gaps_critiques)} hint="Urgence CRITIQUE" tooltip={KPI_DEFS["Gaps critiques"]} loading={impact.isLoading}
             onClick={() => jump("sec-heatmap")} />
         </Col>
         <Col xs={12} md={6}>
-          <RichKpi title="Alertes nouvelles" tone="info" icon={<WarningOutlined />}
-            value={kpis?.nb_alertes_nouvelles ?? 0} tooltip={KPI_DEFS["Alertes nouvelles"]} loading={dashboard.isLoading}
+          <RichKpi title="Alertes non traitées" tone="info" icon={<WarningOutlined />}
+            value={formatCount(kpis?.nb_alertes_non_traitees)} tooltip={KPI_DEFS["Alertes non traitées"]} loading={impact.isLoading}
             onClick={() => jump("sec-alertes")} />
         </Col>
       </Row>
@@ -370,52 +458,38 @@ export default function AnalyticsDashboardPage() {
       <Row gutter={[16, 16]} className="ad-kpi-row">
         <Col xs={12} md={6}>
           <RichKpi title="Taux de couverture" tone="success" icon={<RiseOutlined />}
-            value={`${(kpis?.taux_couverture_global ?? 0).toFixed(1)}%`} tooltip={KPI_DEFS["Taux de couverture"]} loading={dashboard.isLoading}
+            value={`${(kpis?.taux_couverture_pct ?? 0).toFixed(1)}%`} tooltip={KPI_DEFS["Taux de couverture"]} loading={impact.isLoading}
             onClick={() => jump("sec-heatmap")} />
         </Col>
         <Col xs={12} md={6}>
-          <RichKpi title="En régression" tone="warning" icon={<FallOutlined />}
-            value={kpis?.nb_regression ?? 0} tooltip={KPI_DEFS["En régression"]} loading={dashboard.isLoading}
-            onClick={() => jump("sec-supply-demand")} />
+          <RichKpi title="Gaps haute priorité" tone="warning" icon={<FallOutlined />}
+            value={formatCount(kpis?.nb_gaps_haute)} tooltip={KPI_DEFS["Gaps haute priorité"]} loading={impact.isLoading}
+            onClick={() => jump("sec-heatmap")} />
         </Col>
         <Col xs={12} md={6}>
-          <RichKpi title="En stagnation (≥ 3 mois)" tone="warning" icon={<RiseOutlined />}
-            value={kpis?.nb_stagnation ?? 0} tooltip={KPI_DEFS["En stagnation"]} loading={dashboard.isLoading}
+          <RichKpi title="Avec gaps calculés" tone="info" icon={<RiseOutlined />}
+            value={formatCount(kpis?.nb_enseignants_avec_gaps)} tooltip={KPI_DEFS["Avec gaps calculés"]} loading={impact.isLoading}
             onClick={() => jump("sec-supply-demand")} />
         </Col>
         <Col xs={12} md={6}>
           <RichKpi title="Alertes critiques ouvertes" tone="danger" icon={<AlertOutlined />}
-            value={kpis?.alertes_critiques_ouvertes ?? 0} tooltip={KPI_DEFS["Alertes critiques ouvertes"]} loading={dashboard.isLoading}
+            value={formatCount(kpis?.nb_alertes_critiques)} tooltip={KPI_DEFS["Alertes critiques ouvertes"]} loading={impact.isLoading}
             onClick={() => jump("sec-alertes")} />
         </Col>
       </Row>
-
-      {/* ── Section impact reel (donnees DB) ─────── */}
-      <RealDashboardSection />
-
-      {/* ── Avertissement sur le reste (legacy/demo) ─────── */}
-      <Alert
-        className="ad-banner"
-        type="warning"
-        showIcon
-        icon={<InfoCircleOutlined />}
-        message="La suite du tableau de bord ci-dessous utilise le dataset de demonstration (CSV legacy)"
-        description="Les sections KPI/Heatmap/At-risk/Formations ci-dessus sont calculees depuis la base reelle. Ci-dessous, les tendances historiques et les points detailles restent lies au jeu de donnees de demonstration (generate_d2f_dataset, 30 enseignants fictifs)."
-        style={{ marginBottom: 24 }}
-      />
 
       {/* ── Ligne 2 : à risque + impact formations ─────── */}
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={14}>
           <Section id="sec-atrisk" title="Enseignants à risque (score ≥ 0,5)" icon={<SafetyCertificateOutlined />}
             extra={<Tag color={filteredAtRisk.length ? "red" : "default"}>{filteredAtRisk.length}</Tag>}
-            loading={atRisk.isLoading}>
-            <AtRiskTeachersTable teachers={filteredAtRisk} loading={atRisk.isLoading}
+            loading={impact.isLoading}>
+            <AtRiskTeachersTable teachers={filteredAtRisk} loading={impact.isLoading}
               onSelect={(id) => navigate(`/home/analytics/teacher/${id}`)} />
           </Section>
         </Col>
         <Col xs={24} lg={10}>
-          <Section id="sec-impact" title="Impact des formations" icon={<TrophyOutlined />} loading={dashboard.isLoading}>
+          <Section id="sec-impact" title="Impact des formations" icon={<TrophyOutlined />} loading={impact.isLoading}>
             <TrainingImpactPanel />
           </Section>
         </Col>
@@ -424,9 +498,9 @@ export default function AnalyticsDashboardPage() {
         <Col xs={24} lg={14}>
           <Section id="sec-heatmap" title="Cartographie des écarts — Département × Compétence" icon={<HeatMapOutlined />}
             extra={<Tooltip title="Cliquez une cellule pour voir les enseignants impactés"><HeatMapOutlined style={{ color: "#c8102e" }} /></Tooltip>}
-            loading={dashboard.isLoading}>
+            loading={impact.isLoading}>
             {filteredHeatmap.length
-              ? <Heatmap cells={filteredHeatmap} loading={dashboard.isLoading}
+              ? <Heatmap cells={filteredHeatmap} loading={impact.isLoading}
                   onCellClick={(d, c, n) => setDrill({ departement: d, competenceId: c, competenceNom: n })} />
               : <div className="ad-empty"><Empty description="Aucun gap pour ce département" /></div>}
           </Section>
@@ -440,34 +514,39 @@ export default function AnalyticsDashboardPage() {
         {/* ── Ligne 4 : alertes + tendances ─────── */}
         <Col xs={24} lg={12}>
           <Section id="sec-alertes" title="Alertes & signaux à traiter" icon={<WarningOutlined />}
-            extra={<Tag color="orange">{(alerts.data?.alerts ?? []).length}</Tag>}
+            extra={<Tag color="orange">{formatCount(alerts.data?.total)}</Tag>}
             loading={alerts.isLoading}>
             <AlertCenter
-              alerts={alerts.data?.alerts ?? []}
+              alerts={accumAlerts}
               loading={alerts.isLoading}
+              loadingMore={alerts.isFetching && alertsPage > 1}
+              total={alertOpenTotal}
+              severityTotal={alerts.data?.severity_open}
+              canLoadMore={canLoadMoreAlerts}
+              onLoadMore={() => setAlertsPage((p) => p + 1)}
               onUpdate={(id, payload) => updateAlert.mutate({ id, payload })}
               onSelectEnseignant={(id) => navigate(`/home/analytics/teacher/${id}`)}
             />
           </Section>
         </Col>
         <Col xs={24} lg={12}>
-          <Section title="Tendances d'évolution du risque" icon={<RiseOutlined />} loading={dashboard.isLoading}>
-            {data?.tendances?.length
-              ? <TrendChart trends={data.tendances} loading={dashboard.isLoading} />
-              : <div className="ad-empty"><Empty description="Aucune donnée de tendance" /></div>}
+          <Section title={`Tendances d'évolution du risque (${trendWindow.label})`} icon={<RiseOutlined />} loading={trends.isLoading}>
+            {trends.data?.length
+              ? <TrendChart trends={trends.data} loading={trends.isLoading} />
+              : <div className="ad-empty"><Empty description="Aucune donnée de tendance (snapshots historiques)" /></div>}
           </Section>
         </Col>
 
         {/* ── Ligne 5 : top formations + actions prioritaires ─────── */}
         <Col xs={24} lg={14}>
-          <Section title="Formations recommandées (argumentées)" icon={<TrophyOutlined />} loading={dashboard.isLoading}>
-            {data?.top_formations?.length
-              ? <TopFormationsTable formations={data.top_formations} />
+          <Section title="Formations recommandées (argumentées)" icon={<TrophyOutlined />} loading={impact.isLoading}>
+            {topFormations.length
+              ? <TopFormationsTable formations={topFormations} />
               : <div className="ad-empty"><Empty description="Aucune recommandation récente" /></div>}
           </Section>
         </Col>
         <Col xs={24} lg={10}>
-          <Section title="Plan d'action prioritaire" icon={<ArrowDownOutlined />} loading={dashboard.isLoading}>
+          <Section title="Plan d'action prioritaire" icon={<ArrowDownOutlined />} loading={impact.isLoading}>
             <PriorityActions kpis={kpis} atRisk={filteredAtRisk} onFilter={setFilters} />
           </Section>
         </Col>
@@ -483,10 +562,11 @@ export default function AnalyticsDashboardPage() {
           <Tag color="red">CRITIQUE ≥ 0,75</Tag>.
         </p>
         <p style={{ fontSize: 13, lineHeight: 1.7 }}>
-          Les <b>gaps critiques</b> et les <b>alertes</b> sont calculés sur la fenêtre temporelle
-          sélectionnée (7 j / 30 j / trimestre / semestre). Le tableau de bord exploite un
-          snapshot calculé toutes les 6 h (recalcul à la volée si une fenêtre personnalisée est
-          choisie). La couverture est issue de l'état réel des niveaux enseignant × compétence.
+          Toutes les données affichées sont issues de la <b>base PostgreSQL réelle</b>
+          (schémas <code>formation</code>, <code>competence</code> et <code>analyse</code> :
+          skill_gaps, teacher_risk_snapshots, alert_events, recommendations). Aucun jeu de
+          données de démonstration n'est utilisé. La heatmap, les enseignants à risque, les
+          alertes et les tendances mensuelles sont recalculés depuis ces tables.
         </p>
       </Modal>
 
@@ -527,22 +607,22 @@ export default function AnalyticsDashboardPage() {
 function PriorityActions({
   kpis, atRisk, onFilter,
 }: {
-  readonly kpis: DashboardResponse["kpis"] | undefined;
+  readonly kpis: RealDashboardImpact["kpis"] | undefined;
   readonly atRisk: AtRiskTeacher[];
   readonly onFilter: (f: DashboardFilters) => void;
 }) {
   const actions: { label: string; count: number; tone: "red" | "orange"; filter?: DashboardFilters }[] = [
-    { label: "Traiter les alertes critiques ouvertes", count: kpis?.alertes_critiques_ouvertes ?? 0, tone: "red" },
-    { label: "Couvrir les besoins critiques non satisfaits", count: kpis?.besoins_critiques_non_satisfaits ?? 0, tone: "red" },
-    { label: "Relancer les enseignants en stagnation", count: kpis?.nb_stagnation ?? 0, tone: "orange" },
-    { label: "Soutenir les enseignants en régression", count: kpis?.nb_regression ?? 0, tone: "orange" },
+    { label: "Traiter les alertes critiques ouvertes", count: kpis?.nb_alertes_critiques ?? 0, tone: "red" },
+    { label: "Couvrir les gaps critiques (urgence CRITIQUE)", count: kpis?.nb_gaps_critiques ?? 0, tone: "red" },
+    { label: "Traiter les gaps haute priorité", count: kpis?.nb_gaps_haute ?? 0, tone: "orange" },
+    { label: "Enseignants avec gaps calculés", count: kpis?.nb_enseignants_avec_gaps ?? 0, tone: "orange" },
     { label: "Examiner les enseignants à risque CRITIQUE", count: atRisk.filter((t) => t.niveau_risque === "CRITIQUE").length, tone: "red", filter: { niveau_risque: "CRITIQUE" } },
   ];
   return (
     <ul className="ad-actions">
       {actions.map((a) => (
         <li key={a.label}>
-          <span className={`ad-actions__badge ad-actions__badge--${a.tone}`}>{a.count}</span>
+          <span className={`ad-actions__badge ad-actions__badge--${a.tone}`}>{formatCount(a.count)}</span>
           <span className="ad-actions__label">{a.label}</span>
           {a.filter && <Button size="small" type="link" onClick={() => onFilter(a.filter!)}>Filtrer</Button>}
         </li>

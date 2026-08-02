@@ -1,11 +1,11 @@
 from sqlalchemy import text
 
 CHECK_EVENT = """
-    SELECT 1 FROM analyse.event_processing WHERE event_id = :event_id
+    SELECT 1 FROM "analyse".event_processing WHERE event_id = :event_id
 """
 
 INSERT_EVENT = """
-    INSERT INTO analyse.event_processing (event_id, event_type)
+    INSERT INTO "analyse".event_processing (event_id, event_type)
     VALUES (:event_id, :event_type)
     ON CONFLICT (event_id) DO NOTHING
 """

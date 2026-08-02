@@ -3,7 +3,7 @@ from sqlalchemy.engine import Engine
 
 ANALYSE_DDL = [
     """
-    CREATE TABLE IF NOT EXISTS analyse.skill_gaps (
+    CREATE TABLE IF NOT EXISTS "analyse".skill_gaps (
         id                BIGSERIAL PRIMARY KEY,
         enseignant_id     VARCHAR(36) NOT NULL,
         competence_id     BIGINT NOT NULL,
@@ -27,11 +27,11 @@ ANALYSE_DDL = [
         prediction_result_id BIGINT,
         computed_at       TIMESTAMPTZ NOT NULL DEFAULT now()
     );
-    CREATE INDEX IF NOT EXISTS ix_skill_gaps_enseignant ON analyse.skill_gaps (enseignant_id);
-    CREATE INDEX IF NOT EXISTS ix_skill_gaps_competence ON analyse.skill_gaps (competence_id);
+    CREATE INDEX IF NOT EXISTS ix_skill_gaps_enseignant ON "analyse".skill_gaps (enseignant_id);
+    CREATE INDEX IF NOT EXISTS ix_skill_gaps_competence ON "analyse".skill_gaps (competence_id);
     """,
     """
-    CREATE TABLE IF NOT EXISTS analyse.recommendations (
+    CREATE TABLE IF NOT EXISTS "analyse".recommendations (
         id                 BIGSERIAL PRIMARY KEY,
         enseignant_id      VARCHAR(36) NOT NULL,
         competence_id      BIGINT NOT NULL,
@@ -48,10 +48,10 @@ ANALYSE_DDL = [
         model_version      VARCHAR(40),
         computed_at        TIMESTAMPTZ NOT NULL DEFAULT now()
     );
-    CREATE INDEX IF NOT EXISTS ix_recommendations_enseignant ON analyse.recommendations (enseignant_id);
+    CREATE INDEX IF NOT EXISTS ix_recommendations_enseignant ON "analyse".recommendations (enseignant_id);
     """,
     """
-    CREATE TABLE IF NOT EXISTS analyse.teacher_risk_snapshots (
+    CREATE TABLE IF NOT EXISTS "analyse".teacher_risk_snapshots (
         id            BIGSERIAL PRIMARY KEY,
         enseignant_id VARCHAR(36) NOT NULL,
         snapshot_date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -61,10 +61,10 @@ ANALYSE_DDL = [
         details_json  JSONB,
         computed_at   TIMESTAMPTZ NOT NULL DEFAULT now()
     );
-    CREATE INDEX IF NOT EXISTS ix_risk_snap_enseignant ON analyse.teacher_risk_snapshots (enseignant_id, snapshot_date DESC);
+    CREATE INDEX IF NOT EXISTS ix_risk_snap_enseignant ON "analyse".teacher_risk_snapshots (enseignant_id, snapshot_date DESC);
     """,
     """
-    CREATE TABLE IF NOT EXISTS analyse.prediction_results (
+    CREATE TABLE IF NOT EXISTS "analyse".prediction_results (
         id                       BIGSERIAL PRIMARY KEY,
         enseignant_id            VARCHAR(36) NOT NULL,
         analyse_date             TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -80,10 +80,10 @@ ANALYSE_DDL = [
         duree_analyse_ms         INTEGER,
         details_json             JSONB
     );
-    CREATE INDEX IF NOT EXISTS ix_pred_results_enseignant ON analyse.prediction_results (enseignant_id, analyse_date DESC);
+    CREATE INDEX IF NOT EXISTS ix_pred_results_enseignant ON "analyse".prediction_results (enseignant_id, analyse_date DESC);
     """,
     """
-    CREATE TABLE IF NOT EXISTS analyse.alert_events (
+    CREATE TABLE IF NOT EXISTS "analyse".alert_events (
         id                     BIGSERIAL PRIMARY KEY,
         type_alerte            VARCHAR(40) NOT NULL,
         cible_type             VARCHAR(20) NOT NULL DEFAULT 'INDIVIDUEL',
@@ -101,12 +101,12 @@ ANALYSE_DDL = [
         created_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
         updated_at             TIMESTAMPTZ NOT NULL DEFAULT now()
     );
-    CREATE INDEX IF NOT EXISTS ix_alert_events_enseignant ON analyse.alert_events (enseignant_id);
-    CREATE INDEX IF NOT EXISTS ix_alert_events_statut ON analyse.alert_events (statut);
-    CREATE INDEX IF NOT EXISTS ix_alert_events_created ON analyse.alert_events (created_at DESC);
+    CREATE INDEX IF NOT EXISTS ix_alert_events_enseignant ON "analyse".alert_events (enseignant_id);
+    CREATE INDEX IF NOT EXISTS ix_alert_events_statut ON "analyse".alert_events (statut);
+    CREATE INDEX IF NOT EXISTS ix_alert_events_created ON "analyse".alert_events (created_at DESC);
     """,
     """
-    CREATE TABLE IF NOT EXISTS analyse.training_needs (
+    CREATE TABLE IF NOT EXISTS "analyse".training_needs (
         id              BIGSERIAL PRIMARY KEY,
         type_besoin     VARCHAR(20) NOT NULL,
         competence_id   BIGINT NOT NULL,
@@ -119,11 +119,11 @@ ANALYSE_DDL = [
         statut          VARCHAR(20) NOT NULL DEFAULT 'OPEN',
         detected_at     TIMESTAMPTZ NOT NULL DEFAULT now()
     );
-    CREATE INDEX IF NOT EXISTS ix_training_needs_competence ON analyse.training_needs (competence_id);
-    CREATE INDEX IF NOT EXISTS ix_training_needs_statut ON analyse.training_needs (statut);
+    CREATE INDEX IF NOT EXISTS ix_training_needs_competence ON "analyse".training_needs (competence_id);
+    CREATE INDEX IF NOT EXISTS ix_training_needs_statut ON "analyse".training_needs (statut);
     """,
     """
-    CREATE TABLE IF NOT EXISTS analyse.dashboard_snapshots (
+    CREATE TABLE IF NOT EXISTS "analyse".dashboard_snapshots (
         id            BIGSERIAL PRIMARY KEY,
         scope         VARCHAR(20) NOT NULL DEFAULT 'GLOBAL',
         scope_id      VARCHAR(36),
@@ -131,10 +131,10 @@ ANALYSE_DDL = [
         kpis_json     JSONB NOT NULL,
         computed_at   TIMESTAMPTZ NOT NULL DEFAULT now()
     );
-    CREATE INDEX IF NOT EXISTS ix_dashboard_snapshots_scope ON analyse.dashboard_snapshots (scope, scope_id, snapshot_date DESC);
+    CREATE INDEX IF NOT EXISTS ix_dashboard_snapshots_scope ON "analyse".dashboard_snapshots (scope, scope_id, snapshot_date DESC);
     """,
     """
-    CREATE TABLE IF NOT EXISTS analyse.teacher_competence_coverage (
+    CREATE TABLE IF NOT EXISTS "analyse".teacher_competence_coverage (
         id             BIGSERIAL PRIMARY KEY,
         enseignant_id  VARCHAR(64) NOT NULL,
         competence_id  BIGINT NOT NULL,
@@ -144,10 +144,10 @@ ANALYSE_DDL = [
         covered        BOOLEAN NOT NULL DEFAULT FALSE,
         snapshot_date  DATE NOT NULL DEFAULT CURRENT_DATE
     );
-    CREATE INDEX IF NOT EXISTS ix_coverage_enseignant ON analyse.teacher_competence_coverage (enseignant_id);
+    CREATE INDEX IF NOT EXISTS ix_coverage_enseignant ON "analyse".teacher_competence_coverage (enseignant_id);
     """,
     """
-    CREATE TABLE IF NOT EXISTS analyse.feature_snapshots (
+    CREATE TABLE IF NOT EXISTS "analyse".feature_snapshots (
         id             BIGSERIAL PRIMARY KEY,
         teacher_id     VARCHAR(36) NOT NULL,
         feature_set    VARCHAR(50) NOT NULL,
@@ -155,10 +155,10 @@ ANALYSE_DDL = [
         payload        JSONB NOT NULL,
         computed_at    TIMESTAMPTZ NOT NULL DEFAULT now()
     );
-    CREATE INDEX IF NOT EXISTS ix_feature_snapshots_teacher ON analyse.feature_snapshots (teacher_id, as_of DESC);
+    CREATE INDEX IF NOT EXISTS ix_feature_snapshots_teacher ON "analyse".feature_snapshots (teacher_id, as_of DESC);
     """,
     """
-    CREATE TABLE IF NOT EXISTS analyse.event_processing (
+    CREATE TABLE IF NOT EXISTS "analyse".event_processing (
         id             BIGSERIAL PRIMARY KEY,
         event_id       VARCHAR(64) NOT NULL UNIQUE,
         event_type     VARCHAR(64),

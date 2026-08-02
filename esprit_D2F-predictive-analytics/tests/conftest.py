@@ -10,9 +10,15 @@ TEST_SETTINGS = build_settings()
 
 
 @pytest.fixture
-def client() -> TestClient:
+def container():
     fake_container = build_fake_container(TEST_SETTINGS)
     app.dependency_overrides[get_container] = lambda: fake_container
+    yield fake_container
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def client(container) -> TestClient:
     app.dependency_overrides[get_settings] = lambda: TEST_SETTINGS
     with TestClient(app) as test_client:
         yield test_client

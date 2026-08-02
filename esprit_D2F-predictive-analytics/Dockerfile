@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# D2F Predictive Analytics Microservice
+# D2F Predictive Analytics Microservice — Sprint 1 (architecture DDD cible)
 # FastAPI + SQLAlchemy + PostgreSQL — port 8000
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -7,10 +7,8 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# Dépendances système pour compiler psycopg2, numpy, pandas
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
-    g++ \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -21,12 +19,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# ─── Stage de production ──────────────────────────────────────────────────────
 FROM python:3.11-slim AS production
 
 WORKDIR /app
 
-# Runtime uniquement
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     curl \
@@ -35,21 +31,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Utilisateur non-root (sécurité DSI §3)
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Code applicatif (pas de tests/ ni init_db/ en production)
+# Architecture cible (Sprint 1/2 DDD) : app/main.py + app/api/v1
 COPY app/ ./app/
-
-# Dataset maitre D2F (CSV) — source de vérité pour /api/v1/d2f/*
-# d2f_master.py lit ces fichiers via load_master_data()
+# Héritage Sprint 1 (routes /api/v1/d2f/* consommées par le webapp pendant la migration)
+COPY app_legacy/ ./app_legacy/
+# Dataset maître D2F + modèles ML — source de vérité pour /api/v1/d2f/*
 COPY data/clean/ ./data/clean/
 COPY data/models/ ./data/models/
-# Exports (dashboard_kpis.json) — requis par le routeur d2f_master
 COPY data/exports/ ./data/exports/
 
-# Répertoire de travail pour les logs en écriture
-RUN mkdir -p /app/logs && chown -R appuser:appuser /app/logs
+RUN mkdir -p /app/ml/artifacts /app/logs && chown -R appuser:appuser /app/ml /app/logs
 
 USER appuser
 
@@ -57,7 +50,6 @@ EXPOSE 8000
 
 ENV PYTHONPATH=/app
 ENV APP_ENV=production
-# P0 — persistance des modèles ML dans le container
 ENV MODELS_DIR=/app/data/models
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \

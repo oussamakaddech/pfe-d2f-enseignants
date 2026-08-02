@@ -440,5 +440,50 @@ class GapPredictor:
         }
         return drift_report
 
+    # ── Backward-compat shims (legacy /api/v1/d2f/*) ─────────
+    # L'API legacy (routeur d2f_master + tests_legacy) appelle encore
+    # _features_match_model(), _heuristic_predict() et lit `_trained_at`.
+    # Shims conservés pour la migration ; la cible reste GapEngine.
+
+    def _features_match_model(self) -> tuple[bool, str | None]:
+        """Legacy feature-skew guard.
+
+        Retourne (ok, reason) selon l'alignement du modèle persisté avec
+        FEATURE_COLS. Sans modèle, pas de skew possible → (True, None).
+        """
+        if self.model is None:
+            return True, None
+        n_model = getattr(self.model, "n_features_in_", None)
+        if n_model is None:
+            n_model = self.n_features or 0
+        if n_model != len(FEATURE_COLS):
+            reason = (
+                f"feature count mismatch: model={n_model} vs code={len(FEATURE_COLS)}"
+            )
+            return False, reason
+        return True, None
+
+    def _heuristic_predict(
+        self,
+        teacher_profiles: list[dict[str, Any]],
+        competency_levels: list[dict[str, Any]],
+        required_levels: list[dict[str, Any]],
+        top_n: int = 10,
+    ) -> dict[str, Any]:
+        """Legacy heuristic fallback — délègue à predict() (déterministe)."""
+        result = self.predict(teacher_profiles, competency_levels, required_levels, top_n=top_n)
+        explanation = result.get("explanation", {})
+        if isinstance(explanation, str):
+            explanation = {"method": "heuristic", "detail": explanation}
+        else:
+            explanation = {**explanation, "method": "heuristic"}
+        result["explanation"] = explanation
+        return result
+
+    @property
+    def _trained_at(self) -> Any:
+        """Legacy alias de training_metadata['trained_at']."""
+        return self.training_metadata.get("trained_at")
+
 
 gap_predictor = GapPredictor()

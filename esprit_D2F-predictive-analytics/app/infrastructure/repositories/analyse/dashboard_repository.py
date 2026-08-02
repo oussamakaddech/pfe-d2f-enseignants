@@ -5,13 +5,13 @@ from app.core.logging import get_logger
 logger = get_logger("dashboard_repository")
 
 INSERT_SNAPSHOT = """
-    INSERT INTO analyse.dashboard_snapshots (scope, scope_id, snapshot_date, kpis_json, computed_at)
+    INSERT INTO "analyse".dashboard_snapshots (scope, scope_id, snapshot_date, kpis_json, computed_at)
     VALUES (:scope, :scope_id, CURRENT_DATE, :kpis_json, now())
 """
 
 LATEST_SNAPSHOT = """
     SELECT kpis_json, snapshot_date
-    FROM analyse.dashboard_snapshots
+    FROM "analyse".dashboard_snapshots
     WHERE scope = :scope AND (scope_id = :scope_id OR (scope_id IS NULL AND :scope_id IS NULL))
     ORDER BY snapshot_date DESC, id DESC
     LIMIT 1
@@ -19,7 +19,7 @@ LATEST_SNAPSHOT = """
 
 LATEST_DECLINING = """
     SELECT kpis_json
-    FROM analyse.dashboard_snapshots
+    FROM "analyse".dashboard_snapshots
     WHERE scope = :scope AND (scope_id = :scope_id OR (scope_id IS NULL AND :scope_id IS NULL))
     ORDER BY snapshot_date DESC, id DESC
     LIMIT 1

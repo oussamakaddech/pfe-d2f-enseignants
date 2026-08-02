@@ -6,7 +6,7 @@ from app.domain.entities.training_need import TrainingNeed
 logger = get_logger("training_need_repository")
 
 INSERT_NEED = """
-    INSERT INTO analyse.training_needs
+    INSERT INTO "analyse".training_needs
         (type_besoin, competence_id, competence_code, nom, scope_type, scope_id,
          nb_enseignants, evidence_json, statut, detected_at)
     VALUES
@@ -18,11 +18,11 @@ INSERT_NEED = """
 SELECT_NEED = """
     SELECT id, type_besoin, competence_id, competence_code, nom, scope_type, scope_id,
            nb_enseignants, evidence_json, statut, detected_at
-    FROM analyse.training_needs
+    FROM "analyse".training_needs
 """
 
 CLOSE_NEED = """
-    UPDATE analyse.training_needs
+    UPDATE "analyse".training_needs
     SET statut = 'CLOSED'
     WHERE id = :need_id
 """
@@ -65,7 +65,7 @@ class SqlTrainingNeedRepository:
         )
 
     def _run(self, session, query: str, params: dict, page: int, size: int) -> tuple[list[TrainingNeed], int]:
-        count_row = session.execute(text(query.replace(SELECT_NEED, "SELECT COUNT(*) AS total FROM analyse.training_needs")), params).mappings().first()
+        count_row = session.execute(text(query.replace(SELECT_NEED, "SELECT COUNT(*) AS total FROM \"analyse\".training_needs")), params).mappings().first()
         total = int(count_row["total"]) if count_row else 0
         rows = session.execute(text(query + " ORDER BY detected_at DESC LIMIT :limit OFFSET :offset"), {**params, "limit": size, "offset": (page - 1) * size}).mappings().all()
         return [self._map_row(row) for row in rows], total

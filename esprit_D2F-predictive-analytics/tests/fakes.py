@@ -115,8 +115,11 @@ class FakeAnalysisRepository:
         self.risk: list[RiskProfile] = []
         self.recommendations: list[Recommendation] = []
 
-    def save_skill_gaps(self, gaps: list[SkillGap]) -> None:
+    def save_skill_gaps(self, gaps: list[SkillGap], teacher_id: str | None = None) -> None:
         self.gaps = list(gaps)
+
+    def list_gaps_by_teacher(self, teacher_id: str) -> list[SkillGap]:
+        return [g for g in self.gaps if g.teacher_id == teacher_id]
 
     def save_risk_snapshot(self, profile: RiskProfile) -> None:
         self.risk.append(profile)
@@ -179,17 +182,43 @@ class FakeAlertRepository:
             return False
         return True
 
-    def list_alerts(self, page: int, size: int, severity: str | None = None, status: str | None = None, target_type: str | None = None) -> tuple[list[Alert], int]:
-        matching = [a for a in self.alerts if self._matches(a, severity, status, target_type)]
-        return matching, len(matching)
+    def list_alerts(self, page: int, size: int, severity: str | None = None, status: str | None = None, target_type: str | None = None, department_id: str | None = None) -> tuple[list[Alert], int]:
+        matching = [a for a in self.alerts if self._matches(a, severity, status, target_type) and (not department_id or a.department_id == department_id)]
+        start = (page - 1) * size
+        return matching[start : start + size], len(matching)
 
     def list_for_teacher(self, teacher_id: str, page: int, size: int, severity: str | None = None, status: str | None = None) -> tuple[list[Alert], int]:
         matching = [a for a in self.alerts if a.teacher_id == teacher_id and self._matches(a, severity, status, None)]
-        return matching, len(matching)
+        start = (page - 1) * size
+        return matching[start : start + size], len(matching)
 
     def list_for_department(self, department_id: str, page: int, size: int, severity: str | None = None, status: str | None = None) -> tuple[list[Alert], int]:
         matching = [a for a in self.alerts if a.department_id == department_id and self._matches(a, severity, status, None)]
-        return matching, len(matching)
+        start = (page - 1) * size
+        return matching[start : start + size], len(matching)
+
+    def count_open_by_severity(self, severity: str | None = None, status: str | None = None,
+                               target_type: str | None = None,
+                               teacher_id: str | None = None,
+                               department_id: str | None = None) -> dict[str, int]:
+        result = {"CRITICAL": 0, "WARNING": 0, "INFO": 0}
+        for alert in self.alerts:
+            if alert.status not in ("NOUVELLE", "LUE"):
+                continue
+            if severity and alert.severity != severity.upper():
+                continue
+            if status and alert.status != status.upper():
+                continue
+            if target_type and alert.target_type != target_type.upper():
+                continue
+            if teacher_id and alert.teacher_id != teacher_id:
+                continue
+            if department_id and alert.department_id != department_id:
+                continue
+            sev = alert.severity.upper()
+            bucket = "CRITICAL" if sev in ("CRITICAL", "CRITIQUE") else "WARNING" if sev in ("WARNING", "HAUTE", "MOYENNE") else "INFO"
+            result[bucket] += 1
+        return result
 
     def list_open_since(self, cutoff_days: int) -> list[Alert]:
         return [a for a in self.alerts if a.status == "NOUVELLE"]
@@ -358,7 +387,11 @@ def build_fake_container(settings: Settings | None = None):
     container.dashboard_repository = dashboard_repository
     container.idempotency_repository = idempotency_repository
     container.model_port = model_port
-    container.compute_gaps = ComputeGaps(competency_source, analysis_repository, model_port, settings)
+    container.compute_gaps = ComputeGaps(competency_source, analysis_repository, model_port, settings, teacher_source=container.teacher_source)
+    # Seed persistant des gaps pour T001 : requis par les tests d'intégration gaps.
+    # Le service calculant ces gaps appelle save_skill_gaps — on les ré-insère aussitôt.
+    _seed_gaps, _, _ = container.compute_gaps.execute("T001")
+    # compute_gaps a persisté via save_skill_gaps (le fake garde en mémoire).
     container.compute_risk = ComputeRisk(
         competency_source, formation_source, evaluation_source, besoin_source, analysis_repository, model_port, settings
     )

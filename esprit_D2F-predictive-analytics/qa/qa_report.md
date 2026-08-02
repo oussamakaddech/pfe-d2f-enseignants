@@ -1,14 +1,14 @@
 # Rapport de Validation QA - Dataset D2F
 
-**Date**: 2026-07-25T05:02:33.594129
+**Date**: 2026-08-01T18:23:32.430876
 
 ## Resultat: [OK] PASSE
 
 ## Statistiques du Dataset
 - Enseignants: 30
-- Competences suivi: 45
+- Competences suivi: 51
 - Alertes: 16
-- Recommandations: 24
+- Recommandations: 34
 
 ## Verification Effectuees
 1. [OK] Schéma des donnees

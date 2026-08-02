@@ -5,17 +5,19 @@
  * intercepteurs 401/403) et par la gateway : /api/v1/analytics.
  * Aucun appel direct aux microservices internes n'est effectué côté frontend.
  *
- * Le backend réel est le nouveau module predictive-analytics (moteurs purs,
- * sans base de données). Chaque réponse est enveloppée dans
- *   { data: <payload>, meta: {...}, errors: [] }.
+ * Le backend réel est le module predictive-analytics : le nouveau DDD
+ * (app.api.v1) enveloppe ses réponses dans { data, meta, errors }, tandis que
+ * les endpoints legacy (app_legacy, lus depuis la base PostgreSQL réelle)
+ * renvoient des payloads bruts. `unpack` gère les deux formes.
  * Le gateway route /api/analyse/** vers le service avec le rewrite
  * /api/analyse/(.*) -> /api/(.*), donc pour atteindre /api/v1/analytics/...
  * le frontend appelle /api/analyse/v1/analytics/... (config.ANALYSE_URL = "/api").
  *
  * Endpoints couverts (alignés sur le nouveau module) :
  *   - /teachers/{id}/risk, /teachers/{id}/gaps, /teachers/{id}/recommendations
- *   - /dashboard/global, /dashboard/teachers-at-risk, /dashboard/gap-heatmap,
- *     /dashboard/training-demand
+ *   - /dashboard/global (KPIs + à-risque + heatmap + formations réelles),
+ *     /dashboard/teachers-at-risk, /dashboard/gap-heatmap,
+ *     /dashboard/risk-evolution, /alerts (+ PATCH statut)
  * Les réponses (enveloppe) sont mappées vers les types UI stricts définis
  * dans @/models/analyse/analyticsFeature pour que les composants restent
  * découplés du backend.
@@ -46,11 +48,15 @@ import type {
   RiskFactor,
   RiskHistoryResponse,
   RiskScore,
+  SeveriteAlerte,
   SkillGap,
+  StatutAlerte,
   TopFormation,
   TrainingImpactResponse,
   TrainingImpactTopFormationsResponse,
   TrainingPath,
+  TrendPoint,
+  TypeAlerte,
   WhatIfRequestPayload,
   WhatIfResponse,
 } from "@/models/analyse/analyticsFeature";
@@ -77,9 +83,14 @@ interface ApiEnvelope<T> {
   errors: unknown[];
 }
 
-/** Extrait le payload de l'enveloppe {data, meta, errors}. */
-function unpack<T>(envelope: ApiEnvelope<T>): T {
-  return envelope?.data;
+/**
+ * Extrait le payload de l'enveloppe {data, meta, errors}.
+ * Tolérant : si la réponse est déjà le payload brut (endpoints legacy DB),
+ * il est renvoyé tel quel.
+ */
+function unpack<T>(envelope: ApiEnvelope<T> | T): T {
+  const d = (envelope as ApiEnvelope<T>)?.data;
+  return d === undefined || d === null ? (envelope as T) : d;
 }
 
 interface BackendRiskFactor {
@@ -117,18 +128,6 @@ interface BackendRecommendation {
   matched_savoirs: string[];
 }
 
-interface BackendGlobalKpis {
-  total_teachers: number;
-  teachers_with_data: number;
-  teachers_at_risk: number;
-  avg_risk_score: number;
-  total_open_gaps: number;
-  critical_gaps: number;
-  open_needs: number;
-  enrollment_rate: number;
-  completion_rate: number;
-}
-
 interface BackendRiskRow {
   teacher_id: string;
   department_code: string;
@@ -161,6 +160,11 @@ const RISK_LEVEL_MAP: Record<string, NiveauRisque> = {
   MEDIUM: "MODERE",
   HIGH: "ELEVE",
   CRITICAL: "CRITIQUE",
+  FAIBLE: "FAIBLE",
+  MODERE: "MODERE",
+  MODEREE: "MODERE",
+  ELEVE: "ELEVE",
+  CRITIQUE: "CRITIQUE",
 };
 
 const URGENCE_MAP: Record<string, NiveauUrgence> = {
@@ -302,59 +306,87 @@ function mapRecommendation(raw: BackendRecommendation): Recommendation {
   };
 }
 
-function mapKpis(raw: BackendGlobalKpis, atRisk: AtRiskTeacher[]): DashboardResponse["kpis"] {
-  const total = raw?.total_teachers ?? 0;
-  const suivis = raw?.teachers_with_data ?? atRisk.length;
+function mapRiskRow(raw: unknown): AtRiskTeacher {
+  const source = (raw ?? {}) as Record<string, unknown>;
   return {
-    nb_enseignants_suivis: suivis,
-    nb_profils_risque: total,
-    score_risque_moyen: raw?.avg_risk_score ?? 0,
-    nb_gaps_critiques: raw?.critical_gaps ?? 0,
-    nb_alertes_nouvelles: raw?.open_needs ?? 0,
-    taux_couverture_global: total > 0 ? Number((suivis / total).toFixed(4)) : 0,
-    nb_regression: 0,
-    nb_stagnation: raw?.teachers_at_risk ?? atRisk.length,
-    besoins_critiques_non_satisfaits: raw?.open_needs ?? 0,
-    alertes_critiques_ouvertes: 0,
+    enseignant_id: String(source.enseignant_id ?? source.teacher_id ?? ""),
+    nom: String(source.nom ?? source.teacher_name ?? source.teacher_id ?? ""),
+    departement: String(source.departement ?? source.department_code ?? "") || null,
+    up: String(source.up ?? "") || null,
+    score_risque: Number(source.score_risque ?? source.risk_score ?? 0),
+    niveau_risque: mapRiskLevel(String(source.niveau_risque ?? source.risk_level ?? "")),
+    nb_gaps_critiques: Number(source.nb_gaps_critiques ?? source.gap_count ?? 0),
+    tendance: String(source.tendance ?? "STABLE"),
   };
 }
 
-function mapRiskRow(raw: BackendRiskRow): AtRiskTeacher {
+function mapHeatmapCell(raw: unknown): HeatmapCell {
+  const source = (raw ?? {}) as Record<string, unknown>;
+  const avgGap = Number(source.avg_gap ?? source.weighted_severity ?? 0);
+  const count = Number(source.enseignants_count ?? source.gap_count ?? 0);
   return {
-    enseignant_id: raw.teacher_id,
-    nom: raw.teacher_id,
-    departement: raw.department_code || null,
-    up: null,
-    score_risque: raw.risk_score,
-    niveau_risque: mapRiskLevel(raw.risk_level),
-    nb_gaps_critiques: raw.gap_count,
-    tendance: "STABLE",
+    departement: String(source.departement ?? source.department_code ?? ""),
+    competence_id: Number(source.competence_id ?? hashId(String(source.domain_id ?? "ALL"))),
+    competence_nom: String(source.competence_nom ?? source.domain_id ?? ""),
+    avg_gap: clamp01(avgGap),
+    enseignants_count: count,
   };
 }
 
-function mapHeatmapCell(raw: BackendHeatmapCell): HeatmapCell {
-  const avg = raw.gap_count > 0 ? raw.weighted_severity / raw.gap_count : 0;
+function mapTopFormation(raw: unknown): TopFormation {
+  const source = (raw ?? {}) as Record<string, unknown>;
+  const impact = Number(source.impact_estime ?? source.avg_relevance ?? 0);
   return {
-    departement: raw.department_code,
-    competence_id: hashId(raw.domain_id || "ALL"),
-    competence_nom: raw.domain_id,
-    avg_gap: clamp01(avg),
-    enseignants_count: raw.gap_count,
+    formation_id: Number(source.formation_id ?? hashId(String(source.training_id ?? ""))),
+    formation_titre: String(source.formation_titre ?? source.title ?? ""),
+    nb_recommandations: Number(source.nb_recommandations ?? source.demand_count ?? 0),
+    score_moyen: Number(source.score_moyen ?? source.avg_relevance ?? 0),
+    proba_reussite_moy: Number(source.proba_reussite_moy ?? source.avg_relevance ?? 0),
+    enseignants_cibles: Number(source.enseignants_cibles ?? source.demand_count ?? 0),
+    departements: Array.isArray(source.departements) ? source.departements as string[] : [],
+    competences_couvertes: Array.isArray(source.competences_couvertes) ? source.competences_couvertes as string[] : Array.isArray(source.target_domains) ? source.target_domains as string[] : [],
+    impact_estime: clamp01(impact),
   };
 }
 
-function mapTopFormation(raw: BackendTrainingDemandRow): TopFormation {
+/** Payload du endpoint réel /dashboard/global (lisible aussi sans enveloppe). */
+interface BackendGlobalPayload {
+  real_kpis?: Record<string, unknown>;
+  enseignants_a_risque?: BackendRiskRow[];
+  department_gap_heatmap?: BackendHeatmapCell[];
+  top_formations_recommandees?: BackendTrainingDemandRow[];
+  monthly_risk_evolution?: BackendRiskEvolutionRow[];
+  competences_en_declin?: BackendHeatmapCell[];
+  generated_at?: string;
+  kpis?: Record<string, unknown>;
+}
+
+function mapGlobalKpis(payload: BackendGlobalPayload, atRisk: AtRiskTeacher[]): DashboardResponse["kpis"] {
+  const k = payload?.real_kpis ?? payload?.kpis ?? {};
+  const kpis = (k ?? {}) as Record<string, unknown>;
+  const nb = Number(kpis.nb_enseignants_suivis ?? atRisk.length ?? 0);
+  const score = Number(kpis.score_risque_moyen ?? 0);
   return {
-    formation_id: hashId(raw.training_id),
-    formation_titre: raw.title,
-    nb_recommandations: raw.demand_count,
-    score_moyen: raw.avg_relevance,
-    proba_reussite_moy: raw.avg_relevance,
-    enseignants_cibles: raw.demand_count,
-    departements: [],
-    competences_couvertes: raw.target_domains,
-    impact_estime: raw.avg_relevance,
+    nb_enseignants_suivis: Number.isFinite(nb) ? nb : 0,
+    nb_profils_risque: Number(kpis.nb_profils_risque ?? nb ?? 0) || 0,
+    score_risque_moyen: Number.isFinite(score) ? score : 0,
+    nb_gaps_critiques: Number(kpis.nb_gaps_critiques ?? 0) || 0,
+    nb_alertes_nouvelles: Number(kpis.nb_alertes_nouvelles ?? 0) || 0,
+    taux_couverture_global: Number(kpis.taux_couverture_global ?? 0) || 0,
+    nb_regression: Number(kpis.nb_regression ?? 0) || 0,
+    nb_stagnation: Number(kpis.nb_stagnation ?? 0) || 0,
+    besoins_critiques_non_satisfaits: Number(kpis.besoins_critiques_non_satisfaits ?? 0) || 0,
+    alertes_critiques_ouvertes: Number(kpis.alertes_critiques_ouvertes ?? 0) || 0,
   };
+}
+
+/** Distribution du risque calculée depuis la liste des enseignants à risque. */
+function computeDistribution(atRisk: AtRiskTeacher[]): DashboardResponse["distribution_risques"] {
+  const dist: Record<string, number> = { FAIBLE: 0, MODERE: 0, ELEVE: 0, CRITIQUE: 0 };
+  atRisk.forEach((t) => {
+    dist[t.niveau_risque] = (dist[t.niveau_risque] ?? 0) + 1;
+  });
+  return Object.entries(dist).map(([niveau, count]) => ({ niveau: niveau as NiveauRisque, count }));
 }
 
 function mapModelStatus(raw: unknown): ModelStatus {
@@ -384,6 +416,95 @@ function mapDrift(raw: unknown): DriftReport {
     jours_depuis_entrainement: 0,
     message: "Évolution du risque (backend /dashboard/risk-evolution).",
     detected_at: new Date().toISOString(),
+  };
+}
+
+// ── Alertes réelles (nouveau module DDD : enveloppe {data, meta, errors}) ──
+
+interface BackendAlertRow {
+  id: number | null;
+  alert_type: string;
+  target_type: string;
+  teacher_id: string | null;
+  department_id: string | null;
+  competence_id: number | null;
+  severity: string;
+  title: string;
+  message: string;
+  details: Record<string, unknown>;
+  status: string;
+  created_at: string | null;
+}
+
+const ALERT_TYPE_MAP: Record<string, TypeAlerte> = {
+  GAP_CRITIQUE: "GAP_CRITIQUE",
+  REGRESSION: "REGRESSION",
+  STAGNATION: "STAGNATION",
+  TENDANCE_DEPARTEMENT: "TENDANCE_DEPARTEMENT",
+  COMPLETION_FAIBLE: "COMPLETION_FAIBLE",
+  BESOIN_NON_COUVERT: "BESOIN_NON_COUVERT",
+};
+
+function mapAlertType(raw: string | null | undefined): TypeAlerte {
+  return ALERT_TYPE_MAP[(raw ?? "").toUpperCase()] ?? "BESOIN_NON_COUVERT";
+}
+
+function mapAlertSeverity(raw: string | null | undefined): SeveriteAlerte {
+  const sev = (raw ?? "").toUpperCase();
+  if (sev === "CRITIQUE" || sev === "CRITICAL") return "CRITICAL";
+  if (sev === "INFO") return "INFO";
+  return "WARNING";
+}
+
+/** Cycle de vie DDD : NOUVELLE | ACK | RESOLUE | IGNOREE | ESCALADEE. */
+function mapAlertStatus(raw: string | null | undefined): StatutAlerte {
+  const s = (raw ?? "").toUpperCase();
+  if (s === "ACK") return "LUE";
+  if (s === "RESOLUE") return "TRAITEE";
+  if (s === "IGNOREE") return "IGNOREE";
+  if (s === "ESCALADEE") return "ESCALADEE";
+  return "NOUVELLE";
+}
+
+/** Statut UI → statut backend DDD (PATCH /alerts/{id}/status). */
+function toBackendStatus(statut: StatutAlerte): string {
+  if (statut === "TRAITEE") return "RESOLUE";
+  if (statut === "LUE") return "ACK";
+  return statut;
+}
+
+function mapAlert(raw: BackendAlertRow): AlertEvent {
+  return {
+    id: raw.id ?? hashId(`${raw.alert_type}:${raw.teacher_id ?? ""}`),
+    type_alerte: mapAlertType(raw.alert_type),
+    cible_type: raw.target_type === "DEPARTEMENT" ? "DEPARTEMENT" : raw.target_type === "GLOBAL" ? "GLOBAL" : "INDIVIDUEL",
+    enseignant_id: raw.teacher_id ?? null,
+    departement_id: raw.department_id ?? null,
+    competence_id: raw.competence_id ?? null,
+    severite: mapAlertSeverity(raw.severity),
+    titre: raw.title || raw.alert_type,
+    message: raw.message ?? "",
+    statut: mapAlertStatus(raw.status),
+    created_at: raw.created_at ?? new Date().toISOString(),
+  };
+}
+
+// ── Évolution mensuelle du risque (endpoint réel /dashboard/risk-evolution) ──
+
+interface BackendRiskEvolutionRow {
+  month: string;
+  critical: number;
+  high: number;
+  score_risque_moyen: number;
+  total_enseignants: number;
+}
+
+function mapRiskEvolutionRow(raw: BackendRiskEvolutionRow): TrendPoint {
+  return {
+    month: raw.month,
+    nb_gaps_critiques: raw.critical ?? 0,
+    score_risque_moyen: raw.score_risque_moyen ?? 0,
+    nb_alertes: raw.total_enseignants ?? 0,
   };
 }
 
@@ -522,66 +643,65 @@ export const analyticsApi = {
   },
 
   // ── Dashboard global ─────────────────────────────────
-  // Le nouveau module n'a pas de snapshot unique : on agrège 4 endpoints
-  // (KPIs globaux, enseignants à risque, heatmap, demande de formation).
+  // Endpoint backend réel : /dashboard/global — snapshot recalculé depuis la
+  // base PostgreSQL (skill_gaps, teacher_risk_snapshots, alert_events…).
   getDashboard(_filters?: DashboardFilters): Promise<DashboardResponse> {
-    return Promise.all([
-      axios.get<ApiEnvelope<BackendGlobalKpis>>(`${BASE}/dashboard/global`),
-      axios.get<ApiEnvelope<{ rows: BackendRiskRow[]; count: number }>>(
-        `${BASE}/dashboard/teachers-at-risk`,
-      ),
-      axios.get<ApiEnvelope<{ cells: BackendHeatmapCell[]; count: number }>>(
-        `${BASE}/dashboard/gap-heatmap`,
-      ),
-      axios.get<ApiEnvelope<{ rows: BackendTrainingDemandRow[]; count: number }>>(
-        `${BASE}/dashboard/training-demand`,
-      ),
-    ]).then(([kpisRes, atRiskRes, heatmapRes, demandRes]) => {
-      const kpis = unpack(kpisRes.data);
-      const atRisk = (unpack(atRiskRes.data).rows ?? []).map(mapRiskRow);
-      const heatmap = (unpack(heatmapRes.data).cells ?? []).map(mapHeatmapCell);
-      const top_formations = (unpack(demandRes.data).rows ?? []).map(mapTopFormation);
-
-      const dist: Record<string, number> = { FAIBLE: 0, MODERE: 0, ELEVE: 0, CRITIQUE: 0 };
-      atRisk.forEach((t) => {
-        dist[t.niveau_risque] = (dist[t.niveau_risque] ?? 0) + 1;
+    return axios
+      .get<ApiEnvelope<BackendGlobalPayload> | BackendGlobalPayload>(`${BASE}/dashboard/global`, {
+        params: toParams(_filters),
+      })
+      .then((r) => {
+        const raw = unpack(r.data) as BackendGlobalPayload | undefined;
+        const atRisk = (raw?.enseignants_a_risque ?? []).map(mapRiskRow);
+        const heatmap = (raw?.department_gap_heatmap ?? []).map(mapHeatmapCell);
+        const top_formations = (raw?.top_formations_recommandees ?? []).map(mapTopFormation);
+        const tendances = (raw?.monthly_risk_evolution ?? []).map(mapRiskEvolutionRow);
+        return {
+          generated_at: raw?.generated_at ?? new Date().toISOString(),
+          filtres: {},
+          kpis: mapGlobalKpis(raw ?? {}, atRisk),
+          enseignants_a_risque: atRisk,
+          competences_en_declin: (raw?.competences_en_declin ?? []).map(mapHeatmapCell).map((c) => ({
+            competence_id: c.competence_id,
+            competence_nom: c.competence_nom,
+            domaine_nom: null,
+            variation_moyenne: 0,
+            pct_enseignants_en_declin: 0,
+            nb_enseignants_concernes: c.enseignants_count,
+          })),
+          distribution_risques: computeDistribution(atRisk),
+          tendances,
+          alertes_recentes: [],
+          heatmap,
+          top_formations,
+        };
       });
-      const distribution = Object.entries(dist).map(([niveau, count]) => ({
-        niveau: niveau as NiveauRisque,
-        count,
-      }));
-
-      return {
-        generated_at: new Date().toISOString(),
-        filtres: {},
-        kpis: mapKpis(kpis, atRisk),
-        enseignants_a_risque: atRisk,
-        competences_en_declin: [],
-        distribution_risques: distribution,
-        tendances: [],
-        alertes_recentes: [],
-        heatmap,
-        top_formations,
-      };
-    });
   },
 
   // Endpoint backend réel : /dashboard/gap-heatmap (département × domaine).
   getHeatmap(_filters?: DashboardFilters): Promise<HeatmapCell[]> {
     return axios
-      .get<ApiEnvelope<{ cells: BackendHeatmapCell[]; count: number }>>(
+      .get<ApiEnvelope<{ cells: BackendHeatmapCell[]; count: number }> | BackendHeatmapCell[]>(
         `${BASE}/dashboard/gap-heatmap`,
       )
-      .then((r) => (unpack(r.data).cells ?? []).map(mapHeatmapCell));
+      .then((r) => {
+        const unwrapped = (r.data as { data?: unknown })?.data ?? r.data;
+        const rows = Array.isArray(unwrapped) ? unwrapped : (unwrapped as { cells?: BackendHeatmapCell[] }).cells ?? [];
+        return rows.map(mapHeatmapCell);
+      });
   },
 
   // Endpoint backend réel : /dashboard/teachers-at-risk (seuil 0.5 fixe).
   getAtRisk(_filters?: DashboardFilters & { seuil?: number }): Promise<AtRiskTeacher[]> {
     return axios
-      .get<ApiEnvelope<{ rows: BackendRiskRow[]; count: number }>>(
+      .get<ApiEnvelope<{ rows: BackendRiskRow[]; count: number }> | BackendRiskRow[]>(
         `${BASE}/dashboard/teachers-at-risk`,
       )
-      .then((r) => (unpack(r.data).rows ?? []).map(mapRiskRow));
+      .then((r) => {
+        const unwrapped = (r.data as { data?: unknown })?.data ?? r.data;
+        const rows = Array.isArray(unwrapped) ? unwrapped : (unwrapped as { rows?: BackendRiskRow[] }).rows ?? [];
+        return rows.map(mapRiskRow);
+      });
   },
 
   // Endpoint backend réel : /dashboard/teachers-by-cell (drill-down heatmap).
@@ -602,8 +722,19 @@ export const analyticsApi = {
       .then((r) => r.data);
   },
 
+  // Endpoint backend réel : /dashboard/risk-evolution (évolution mensuelle,
+  // calculée depuis les snapshots teacher_risk_snapshots de la base réelle).
+  getRiskEvolution(months = 6): Promise<TrendPoint[]> {
+    return axios
+      .get<BackendRiskEvolutionRow[]>(`${BASE}/dashboard/risk-evolution`, { params: { months } })
+      .then((r) => {
+        const rows = Array.isArray(r.data) ? r.data : [];
+        return rows.map(mapRiskEvolutionRow);
+      });
+  },
+
   // ── Alertes (F5/F6) ────────────────────────────────
-  // Endpoint backend réel : GET /alerts (filtres + pagination).
+  // Endpoint backend réel : GET /alerts (nouveau module DDD, enveloppe {data, meta, errors}).
   getAlerts(filters: {
     type_alerte?: string;
     severite?: string;
@@ -614,15 +745,42 @@ export const analyticsApi = {
     size?: number;
   } = {}): Promise<AlertListResponse> {
     return axios
-      .get<AlertListResponse>(`${BASE}/alerts`, { params: filters })
-      .then((r) => r.data);
+      .get<ApiEnvelope<BackendAlertRow[]> | BackendAlertRow[]>(`${BASE}/alerts`, {
+        params: { page: filters.page ?? 1, size: filters.size ?? 100, severity: filters.severite, status: filters.statut, target_type: filters.type_alerte, department_id: filters.departement_id },
+      })
+      .then((r) => {
+        const raw = unpack(r.data);
+        const list = Array.isArray(raw) ? raw : [];
+        const alerts = list.map(mapAlert);
+        const meta = (r.data as ApiEnvelope<BackendAlertRow[]>)?.meta;
+        const totalMatching = Number(meta?.total_matching);
+        const sevOpen = meta?.severity_open as
+          | { CRITICAL?: number; WARNING?: number; INFO?: number }
+          | undefined;
+        return {
+          total: Number.isFinite(totalMatching) && totalMatching > 0 ? totalMatching : alerts.length,
+          page: 0,
+          size: alerts.length,
+          alerts,
+          severity_open: sevOpen
+            ? {
+                CRITICAL: Number(sevOpen.CRITICAL ?? 0),
+                WARNING: Number(sevOpen.WARNING ?? 0),
+                INFO: Number(sevOpen.INFO ?? 0),
+              }
+            : undefined,
+        };
+      });
   },
 
-  // Endpoint backend réel : PATCH /alerts/{id} (cycle de vie).
+  // Endpoint backend réel : PATCH /alerts/{id}/status (cycle de vie).
   updateAlert(id: number, payload: AlertUpdatePayload): Promise<{ id: number; statut: string }> {
     return axios
-      .patch<{ id: number; statut: string }>(`${BASE}/alerts/${id}`, null, { params: payload })
-      .then((r) => r.data);
+      .patch<{ id: number; status: string }>(`${BASE}/alerts/${id}/status`, {
+        status: toBackendStatus(payload.statut),
+        comment: payload.commentaire ?? null,
+      })
+      .then((r) => ({ id: r.data.id ?? id, statut: mapAlertStatus(r.data.status) }));
   },
 
   // ── Impact des formations & simulation what-if (F8) ──

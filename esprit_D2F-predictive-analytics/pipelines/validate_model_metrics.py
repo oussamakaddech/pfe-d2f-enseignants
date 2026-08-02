@@ -27,6 +27,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 def validate() -> dict[str, Any]:
     """Exécute toutes les validations et retourne un rapport structuré."""
+    import pipelines._legacy_compat as _compat
+    _compat.setup()
     from app.ml.gap_predictor import gap_predictor
 
     health = gap_predictor.model_health()
@@ -49,6 +51,13 @@ def validate() -> dict[str, Any]:
     # ── 1. Feature skew ──────────────────────────────────
     if not health["model_loaded"]:
         _add("feature_skew", True, "Modèle non chargé — fallback heuristic", "info")
+    elif "feature_skew_ok" not in health:
+        _add(
+            "feature_skew",
+            True,
+            "Pas de contrôle de skew disponible (legacy health dict)",
+            "info",
+        )
     else:
         skew_ok = health["feature_skew_ok"]
         _add(

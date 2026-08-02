@@ -50,6 +50,8 @@ def build_teacher_features(
         ("nb_besoins_exprimes", 0),
         ("taux_assiduite", 0.0),
         ("avg_eval_score", 0.0),
+        ("days_since_last_training", 0),
+        ("avg_days_between_trainings", 0.0),
     ):
         if col not in df_teacher.columns:
             df_teacher[col] = default

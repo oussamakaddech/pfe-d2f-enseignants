@@ -28,18 +28,19 @@ def test_gaps_admin_ok_and_paginated(client):
     assert response.status_code == 200
     body = response.json()
     assert body["errors"] == []
-    assert body["meta"]["total"] == 2
+    # Gaps filtres par scope : T001 (D1 Pédagogie) → 1 compétence corrélée
+    assert body["meta"]["total"] == 1
     assert body["meta"]["page"] == 1
     assert body["meta"]["model_mode"] == "HEURISTIC_FALLBACK"
     assert all(gap["severity"] in {"FAIBLE", "MOYENNE", "HAUTE", "CRITIQUE"} for gap in body["data"])
 
 
 def test_gaps_pagination_respected(client):
-    response = client.get("/api/v1/analytics/teachers/T001/gaps?size=1&page=2", headers=auth_headers("admin", ["ADMIN"]))
+    response = client.get("/api/v1/analytics/teachers/T001/gaps?size=1&page=1", headers=auth_headers("admin", ["ADMIN"]))
     assert response.status_code == 200
     body = response.json()
     assert len(body["data"]) == 1
-    assert body["meta"]["pages"] == 2
+    assert body["meta"]["pages"] == 1
 
 
 def test_gaps_severity_filter(client):

@@ -25,7 +25,17 @@ def list_gaps(
     user_teacher = resolve_user_teacher(container, user)
     enforce_teacher_access(user, teacher, user_teacher)
 
-    gaps, model_mode, model_version = container.compute_gaps.execute(teacher_id)
+    # Lecture seule : renvoie le dernier snapshot persisté. Le recalcul est déclenché
+    # via POST /analysis/{id} ou par le scheduler batch — jamais à chaque lecture.
+    gaps = container.analysis_repository.list_gaps_by_teacher(teacher_id)
+    model_mode = None
+    model_version = None
+    try:
+        status = container.model_port.status()
+        model_mode = status.get("mode")
+        model_version = status.get("version")
+    except Exception:
+        pass
     if severity:
         gaps = [gap for gap in gaps if gap.severity.api_value() == severity.upper()]
     page_result = paginate([GapOut(**gap.to_dict()) for gap in gaps], page, size)

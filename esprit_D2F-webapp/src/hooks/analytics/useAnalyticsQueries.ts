@@ -19,6 +19,7 @@ import type {
   WhatIfRequestPayload,
   WhatIfResponse,
   TrainingPath,
+  TrendPoint,
 } from "@/models/analyse/analyticsFeature";
 
 // ── Analyse individuelle ───────────────────────────────────
@@ -92,6 +93,14 @@ export function useRealDashboardImpact() {
   return useQuery({
     queryKey: ["analytics", "dashboard", "real-impact"],
     queryFn: () => analyticsApi.getRealDashboardImpact(),
+    staleTime: 60_000,
+  });
+}
+
+export function useRiskTrends(months = 6) {
+  return useQuery<TrendPoint[]>({
+    queryKey: ["analytics", "risk-evolution", months],
+    queryFn: () => analyticsApi.getRiskEvolution(months),
     staleTime: 60_000,
   });
 }

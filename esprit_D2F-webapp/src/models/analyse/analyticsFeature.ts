@@ -85,6 +85,8 @@ export interface RealDashboardKpis {
   nb_alertes_critiques: number;
   avg_risk_score: number;
   taux_couverture_pct: number;
+  /** Statut du modèle de risque renvoyé dans kpis par /dashboard/real/impact. */
+  model?: { name: string; mode: string; version?: string };
 }
 
 export interface RealHeatmapRow {
@@ -283,6 +285,8 @@ export interface AlertListResponse {
   page: number;
   size: number;
   alerts: AlertEvent[];
+  /** Alertes ouvertes réelles par sévérité (backend, même filtre). */
+  severity_open?: { CRITICAL: number; WARNING: number; INFO: number };
 }
 
 /** Payload de mise à jour du cycle de vie d'une alerte (F5). */

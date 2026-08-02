@@ -20,11 +20,20 @@ DECISION_ROLES = ("ADMIN", "CUP", "CHEF_DEPARTEMENT")
 KPIS_SQL = """
 SELECT
   (SELECT COUNT(*) FROM formation.enseignants WHERE deleted_at IS NULL) AS nb_enseignants,
-  (SELECT COUNT(DISTINCT enseignant_id) FROM "analyse".skill_gaps) AS nb_enseignants_avec_gaps,
-  (SELECT COUNT(*) FROM "analyse".skill_gaps WHERE UPPER(niveau_urgence) = 'CRITIQUE') AS nb_gaps_critiques,
-  (SELECT COUNT(*) FROM "analyse".skill_gaps WHERE UPPER(niveau_urgence) = 'HAUTE') AS nb_gaps_haute,
-  (SELECT COUNT(*) FROM "analyse".skill_gaps) AS nb_gaps_total,
-  (SELECT ROUND(AVG(gap_score)::numeric, 4) FROM "analyse".skill_gaps) AS avg_gap_score,
+  (SELECT COUNT(DISTINCT sg.enseignant_id) FROM "analyse".skill_gaps sg
+     JOIN formation.enseignants e ON e.id = sg.enseignant_id AND e.deleted_at IS NULL) AS nb_enseignants_avec_gaps,
+  (SELECT COUNT(DISTINCT ec.enseignant_id) FROM competence.enseignant_competences ec
+     JOIN formation.enseignants e ON e.id = ec.enseignant_id AND e.deleted_at IS NULL) AS nb_enseignants_avec_competences,
+  (SELECT COUNT(*) FROM "analyse".skill_gaps sg
+     JOIN formation.enseignants e ON e.id = sg.enseignant_id AND e.deleted_at IS NULL
+     WHERE UPPER(sg.niveau_urgence) = 'CRITIQUE') AS nb_gaps_critiques,
+  (SELECT COUNT(*) FROM "analyse".skill_gaps sg
+     JOIN formation.enseignants e ON e.id = sg.enseignant_id AND e.deleted_at IS NULL
+     WHERE UPPER(sg.niveau_urgence) = 'HAUTE') AS nb_gaps_haute,
+  (SELECT COUNT(*) FROM "analyse".skill_gaps sg
+     JOIN formation.enseignants e ON e.id = sg.enseignant_id AND e.deleted_at IS NULL) AS nb_gaps_total,
+  (SELECT ROUND(AVG(sg.gap_score)::numeric, 4) FROM "analyse".skill_gaps sg
+     JOIN formation.enseignants e ON e.id = sg.enseignant_id AND e.deleted_at IS NULL) AS avg_gap_score,
   (SELECT COUNT(*) FROM "analyse".alert_events WHERE statut IN ('NOUVELLE', 'LUE')) AS nb_alertes_non_traitees,
   (SELECT COUNT(*) FROM "analyse".alert_events WHERE UPPER(severite) IN ('CRITIQUE','CRITICAL') AND statut IN ('NOUVELLE','LUE')) AS nb_alertes_critiques,
   (SELECT ROUND(AVG(score_risque)::numeric, 4)
@@ -104,8 +113,10 @@ SELECT
   ROUND(AVG(r.score_global)::numeric, 4) AS score_moyen,
   ROUND(MAX(r.score_global)::numeric, 4) AS score_max,
   (SELECT COUNT(*) FROM "analyse".recommendations r2
+   JOIN formation.enseignants e2 ON e2.id = r2.enseignant_id AND e2.deleted_at IS NULL
    WHERE r2.formation_id = r.formation_id AND r2.statut IN ('SUGGESTED', 'PROPOSEE')) AS en_attente
 FROM "analyse".recommendations r
+JOIN formation.enseignants e ON e.id = r.enseignant_id AND e.deleted_at IS NULL
 LEFT JOIN formation.formations f ON f.id_formation = r.formation_id
 LEFT JOIN competence.competences c ON c.id = r.competence_id
 GROUP BY r.formation_id, f.titre_formation, r.competence_id, c.nom
@@ -153,7 +164,7 @@ def get_real_dashboard_impact(
     # Normalisation legere
     kpis["nb_enseignants"] = int(kpis.get("nb_enseignants") or 0)
     kpis["taux_couverture_pct"] = round(
-        100.0 * kpis.get("nb_enseignants_avec_gaps", 0) / max(1, kpis["nb_enseignants"]), 1
+        100.0 * kpis.get("nb_enseignants_avec_competences", 0) / max(1, kpis["nb_enseignants"]), 1
     )
     kpis["model"] = container.model_port.status()
 

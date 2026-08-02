@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.AssertTrue;
 import lombok.*;
 import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
+import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitriseConverter;
 import tn.esprit.d2f.competence.entity.enumerations.TypeSavoir;
 
 @Entity
@@ -40,7 +41,7 @@ public class Savoir extends BaseAuditEntity {
     private TypeSavoir type;
 
     /** Niveau de complexité Bloom (N1=débutant … N5=expert) */
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = NiveauMaitriseConverter.class)
     @Column(columnDefinition = "VARCHAR(255) DEFAULT 'N2_ELEMENTAIRE'")
     @Builder.Default
     private NiveauMaitrise niveau = NiveauMaitrise.N2_ELEMENTAIRE;

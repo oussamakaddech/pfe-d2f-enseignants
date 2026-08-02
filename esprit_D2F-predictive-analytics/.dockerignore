@@ -17,3 +17,9 @@ venv/
 .ruff_cache/
 htmlcov/
 .coverage
+tests_legacy/
+qa/
+reports/
+docs/
+init_db/
+pipelines/

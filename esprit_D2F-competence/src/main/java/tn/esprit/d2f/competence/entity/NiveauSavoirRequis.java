@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.AssertTrue;
 import lombok.*;
 import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
+import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitriseConverter;
 
 /**
  * Définit les savoirs requis pour chaque niveau de compétence/sous-compétence.
@@ -41,7 +42,7 @@ public class NiveauSavoirRequis extends BaseAuditEntity {
     private SousCompetence sousCompetence;
 
     /** Le niveau (1 à 5) */
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = NiveauMaitriseConverter.class)
     @Column(nullable = false)
     private NiveauMaitrise niveau;
 

@@ -1,4 +1,28 @@
+from datetime import datetime
+
+from app.domain.entities.alert import Alert
 from tests.conftest import auth_headers
+
+
+def _make_alerts(container, n: int) -> None:
+    repo = container.alert_repository
+    for i in range(n):
+        repo.save(
+            Alert(
+                alert_type="GAP_CRITIQUE",
+                target_type="INDIVIDUEL",
+                severity="CRITICAL",
+                title=f"Alerte {i}",
+                message=f"Message {i}",
+                teacher_id=f"T{i % 10}",
+                department_id=None,
+                competence_id=None,
+                skill_gap_id=None,
+                details={},
+                status="NOUVELLE",
+                created_at=datetime.utcnow(),
+            )
+        )
 
 
 def test_list_alerts_empty_for_fresh_container(client):
@@ -8,6 +32,22 @@ def test_list_alerts_empty_for_fresh_container(client):
     assert body["errors"] == []
     assert body["data"] == []
     assert body["meta"]["page"] == 1
+
+
+def test_list_alerts_pagination_returns_distinct_pages(client, container):
+    _make_alerts(container, 25)
+    first = client.get("/api/v1/analytics/alerts?page=1&size=10", headers=auth_headers("admin", ["ADMIN"])).json()
+    second = client.get("/api/v1/analytics/alerts?page=2&size=10", headers=auth_headers("admin", ["ADMIN"])).json()
+    third = client.get("/api/v1/analytics/alerts?page=3&size=10", headers=auth_headers("admin", ["ADMIN"])).json()
+    assert first["meta"]["total_matching"] == 25
+    assert first["meta"]["pages"] == 3
+    assert len(first["data"]) == 10
+    assert len(second["data"]) == 10
+    assert len(third["data"]) == 5
+    ids1 = {item["id"] for item in first["data"]}
+    ids2 = {item["id"] for item in second["data"]}
+    ids3 = {item["id"] for item in third["data"]}
+    assert not (ids1 & ids2) and not (ids2 & ids3) and not (ids1 & ids3)
 
 
 def test_list_alerts_requires_auth(client):

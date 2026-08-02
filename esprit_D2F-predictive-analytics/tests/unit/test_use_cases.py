@@ -9,6 +9,7 @@ from tests.fakes import (
     FakeEvaluationSource,
     FakeFormationSource,
     FakeModelPort,
+    FakeTeacherSource,
     build_settings,
 )
 
@@ -22,16 +23,19 @@ def repositories():
         "besoin": FakeBesoinSource(),
         "analyse": FakeAnalysisRepository(),
         "model": FakeModelPort(),
+        "teacher": FakeTeacherSource(),
     }
 
 
 def test_compute_gaps_returns_heuristic_mode(repositories):
     settings = build_settings()
-    use_case = ComputeGaps(repositories["competency"], repositories["analyse"], repositories["model"], settings)
+    use_case = ComputeGaps(repositories["competency"], repositories["analyse"], repositories["model"], settings, teacher_source=repositories["teacher"])
     gaps, mode, version = use_case.execute("T001")
     assert mode == "HEURISTIC_FALLBACK"
     assert version is None
-    assert len(gaps) == 2
+    # Gaps filtres par scope : T001 est rattaché au departement D1 (Pedagogie),
+    # une seule compétence dans le périmètre (C1).
+    assert len(gaps) == 1
     assert all(gap.teacher_id == "T001" for gap in gaps)
     assert repositories["analyse"].gaps == gaps
 

@@ -12,6 +12,7 @@ import {
   QuestionCircleOutlined,
   FilterOutlined,
   ReloadOutlined,
+  DownOutlined,
 } from "@ant-design/icons";
 import {
   SEVERITE_COLORS,
@@ -65,6 +66,14 @@ const INITIAL_VISIBLE = 10;
 interface AlertCenterProps {
   readonly alerts: AlertEvent[];
   readonly loading?: boolean;
+  readonly loadingMore?: boolean;
+  /** Total réel d'alertes correspondant au filtre côté backend (badge). */
+  readonly total?: number;
+  /** Alertes ouvertes réelles par sévérité (backend, même filtre). */
+  readonly severityTotal?: { CRITICAL: number; WARNING: number; INFO: number };
+  /** Permet de charger la page suivante (pagination réelle). */
+  readonly canLoadMore?: boolean;
+  readonly onLoadMore?: () => void;
   readonly onUpdate?: (id: number, payload: AlertUpdatePayload) => void;
   readonly onSelectEnseignant?: (enseignantId: string) => void;
 }
@@ -99,10 +108,35 @@ const PRIORITE_COLOR: Record<string, string> = {
 const SEVERITE_CRIT = ["CRITICAL", "CRITIQUE"];
 const SEVERITE_WARN = ["WARNING", "HAUTE", "MOYENNE"];
 
+/* Chips de filtrage rapide — valeurs internes (le Select ne les connaît pas). */
+const CHIP_FILTERS = new Set(["__CRIT__", "__WARN__", "__INFO__"]);
+
+/** Date relative lisible (« Aujourd'hui 14:32 », « Hier 09:10 », « il y a 3 j »). */
+function relativeDate(iso: string): string {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "Date inconnue";
+  const diffDays = Math.floor(
+    (Date.now() - d.getTime()) / (24 * 60 * 60 * 1000),
+  );
+  const time = d.toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  if (diffDays <= 0) return `Aujourd'hui ${time}`;
+  if (diffDays === 1) return `Hier ${time}`;
+  if (diffDays < 7) return `Il y a ${diffDays} j · ${time}`;
+  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+}
+
 /* ── component ──────────────────────────────────────────── */
 export default function AlertCenter({
   alerts,
   loading,
+  loadingMore,
+  total,
+  severityTotal,
+  canLoadMore,
+  onLoadMore,
   onUpdate,
   onSelectEnseignant,
 }: AlertCenterProps) {
@@ -130,6 +164,12 @@ export default function AlertCenter({
     if (severiteFilter !== "__ALL__") {
       if (severiteFilter === "__OUVERT__") {
         result = result.filter((a) => ALERT_STATUTS_OUVERTS.includes(a.statut));
+      } else if (severiteFilter === "__CRIT__") {
+        result = result.filter((a) => SEVERITE_CRIT.includes(a.severite));
+      } else if (severiteFilter === "__WARN__") {
+        result = result.filter((a) => SEVERITE_WARN.includes(a.severite));
+      } else if (severiteFilter === "__INFO__") {
+        result = result.filter((a) => a.severite === "INFO");
       } else {
         result = result.filter((a) => a.severite === severiteFilter);
       }
@@ -146,10 +186,17 @@ export default function AlertCenter({
   const openCount = alerts.filter((a) =>
     ALERT_STATUTS_OUVERTS.includes(a.statut),
   ).length;
+  const useRealCounts = severityTotal != null;
   const severityCounts = {
-    CRITICAL: alerts.filter((a) => SEVERITE_CRIT.includes(a.severite)).length,
-    WARNING: alerts.filter((a) => SEVERITE_WARN.includes(a.severite)).length,
-    INFO: alerts.filter((a) => a.severite === "INFO").length,
+    CRITICAL: useRealCounts
+      ? severityTotal.CRITICAL
+      : alerts.filter((a) => SEVERITE_CRIT.includes(a.severite)).length,
+    WARNING: useRealCounts
+      ? severityTotal.WARNING
+      : alerts.filter((a) => SEVERITE_WARN.includes(a.severite)).length,
+    INFO: useRealCounts
+      ? severityTotal.INFO
+      : alerts.filter((a) => a.severite === "INFO").length,
   };
 
   /* ── group filtered alerts by type ── */
@@ -204,26 +251,104 @@ export default function AlertCenter({
       {/* ── Summary bar ─────────────────────────────────── */}
       <div className="ac-summary">
         <div className="ac-summary__total">
-          <span className="ac-summary__count">{openCount}</span>
+          <span className="ac-summary__count">{total != null && total > alerts.length ? total : openCount}</span>
           <span className="ac-summary__label">alertes ouvertes</span>
         </div>
         <div className="ac-summary__separateur" />
-        <div className="ac-summary__item">
-          <span className="ac-dot ac-dot--critical" />
-          <span className="ac-summary__num">{severityCounts.CRITICAL}</span>
-          <span className="ac-summary__text">critiques</span>
-        </div>
-        <div className="ac-summary__item">
-          <span className="ac-dot ac-dot--warning" />
-          <span className="ac-summary__num">{severityCounts.WARNING}</span>
-          <span className="ac-summary__text">warnings</span>
-        </div>
-        <div className="ac-summary__item">
-          <span className="ac-dot ac-dot--info" />
-          <span className="ac-summary__num">{severityCounts.INFO}</span>
-          <span className="ac-summary__text">infos</span>
+        <div className="ac-summary__chips">
+          <Button
+            size="small"
+            type={severiteFilter === "__ALL__" ? "primary" : "text"}
+            onClick={() => setSeveriteFilter("__ALL__")}
+          >
+            Toutes
+          </Button>
+          <Button
+            size="small"
+            danger
+            type={severiteFilter === "__CRIT__" ? "primary" : "text"}
+            onClick={() => setSeveriteFilter("__CRIT__")}
+          >
+            {severityCounts.CRITICAL} critiques
+          </Button>
+          <Button
+            size="small"
+            type={severiteFilter === "__WARN__" ? "primary" : "text"}
+            style={
+              severiteFilter === "__WARN__"
+                ? { background: "#f59e0b", borderColor: "#f59e0b", color: "#fff" }
+                : { color: "#d97706" }
+            }
+            onClick={() => setSeveriteFilter("__WARN__")}
+          >
+            {severityCounts.WARNING} warnings
+          </Button>
+          <Button
+            size="small"
+            type={severiteFilter === "__INFO__" ? "primary" : "text"}
+            onClick={() => setSeveriteFilter("__INFO__")}
+          >
+            {severityCounts.INFO} infos
+          </Button>
         </div>
       </div>
+
+      {/* ── Distribution bar (proportions réelles) ──────── */}
+      {(() => {
+        const crit = severityCounts.CRITICAL;
+        const warn = severityCounts.WARNING;
+        const info = severityCounts.INFO;
+        const sum = crit + warn + info;
+        if (sum <= 0) return null;
+        const pct = (v: number) => `${((v / sum) * 100).toFixed(1).replace(".", ",")} %`;
+        return (
+          <div className="ac-dist">
+            <div className="ac-dist__bar">
+              {crit > 0 && (
+                <span
+                  className="ac-dist__seg ac-dist__seg--critical"
+                  style={{ width: `${(crit / sum) * 100}%` }}
+                  title={`${crit} critiques (${pct(crit)})`}
+                />
+              )}
+              {warn > 0 && (
+                <span
+                  className="ac-dist__seg ac-dist__seg--warning"
+                  style={{ width: `${(warn / sum) * 100}%` }}
+                  title={`${warn} warnings (${pct(warn)})`}
+                />
+              )}
+              {info > 0 && (
+                <span
+                  className="ac-dist__seg ac-dist__seg--info"
+                  style={{ width: `${(info / sum) * 100}%` }}
+                  title={`${info} infos (${pct(info)})`}
+                />
+              )}
+            </div>
+            <div className="ac-dist__legend">
+              {crit > 0 && (
+                <span>
+                  <i className="ac-dist__dot ac-dist__dot--critical" />
+                  <b>{crit}</b> critiques · {pct(crit)}
+                </span>
+              )}
+              {warn > 0 && (
+                <span>
+                  <i className="ac-dist__dot ac-dist__dot--warning" />
+                  <b>{warn}</b> warnings · {pct(warn)}
+                </span>
+              )}
+              {info > 0 && (
+                <span>
+                  <i className="ac-dist__dot ac-dist__dot--info" />
+                  <b>{info}</b> infos · {pct(info)}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Filters ────────────────────────────────────── */}
       <div className="ac-filters">
@@ -238,9 +363,10 @@ export default function AlertCenter({
           />
           <Select
             size="small"
-            value={severiteFilter}
+            value={CHIP_FILTERS.has(severiteFilter) ? undefined : severiteFilter}
             onChange={setSeveriteFilter}
             options={SEVERITE_OPTIONS}
+            placeholder="Sévérité"
             style={{ width: 160 }}
           />
           <Select
@@ -353,15 +479,18 @@ export default function AlertCenter({
                         />,
                       );
                     }
+                    const sevColor = (SEVERITE_COLORS[a.severite] as string) ?? "#94a3b8";
                     return (
-                      <List.Item className="ac-item" actions={actions}>
+                      <List.Item
+                        className={`ac-item${isOpen ? "" : " ac-item--traitee"}`}
+                        style={{ borderLeft: `3px solid ${sevColor}` }}
+                        actions={actions}
+                      >
                         <List.Item.Meta
                           title={
                             <span className="ac-item__title">
                               <Tag
-                                color={
-                                  (SEVERITE_COLORS[a.severite] as string) ?? "default"
-                                }
+                                color={sevColor}
                               >
                                 {a.severite}
                               </Tag>
@@ -395,12 +524,16 @@ export default function AlertCenter({
                                   marginTop: 2,
                                 }}
                               >
-                                {(() => {
-                                  const d = new Date(a.created_at);
-                                  return Number.isFinite(d.getTime())
-                                    ? d.toLocaleString("fr-FR")
-                                    : "Date inconnue";
-                                })()}
+                                <Tooltip
+                                  title={(() => {
+                                    const d = new Date(a.created_at);
+                                    return Number.isFinite(d.getTime())
+                                      ? d.toLocaleString("fr-FR")
+                                      : "Date inconnue";
+                                  })()}
+                                >
+                                  <span>{relativeDate(a.created_at)}</span>
+                                </Tooltip>
                               </div>
                             </div>
                           }
@@ -425,6 +558,22 @@ export default function AlertCenter({
           );
         })}
       </div>
+
+      {/* ── Load more (pagination réelle) ───────────────── */}
+      {canLoadMore && onLoadMore && (
+        <div className="ac-groups__more">
+          <Button
+            block
+            size="small"
+            type="dashed"
+            icon={<DownOutlined />}
+            loading={loadingMore}
+            onClick={onLoadMore}
+          >
+            Charger plus d'alertes — {alerts.length} / {total ?? alerts.length} affichées
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

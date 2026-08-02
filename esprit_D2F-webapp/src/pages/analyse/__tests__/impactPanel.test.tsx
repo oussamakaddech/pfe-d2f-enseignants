@@ -78,7 +78,12 @@ describe("ImpactPanel", () => {
     btn.click();
     await waitFor(() =>
       expect(mutate).toHaveBeenCalledWith(
-        expect.objectContaining({ enseignant_id: "T1", horizon_mois: 6 }),
+        expect.objectContaining({
+          horizon_mois: 6,
+          plan: expect.arrayContaining([
+            expect.objectContaining({ competence_id: 10, formation_id: 5, niveau_vise: 4 }),
+          ]),
+        }),
       ),
     );
   });

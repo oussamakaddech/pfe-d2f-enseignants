@@ -29,7 +29,9 @@ RUN dos2unix mvnw && \
     chmod u+x mvnw
 
 # Resolves all project dependencies offline and keep cache
-RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline
+# NOTE: d2f-common-security is a local module (not in Maven Central) — go-offline
+# fails on it; `mvnw clean install` below resolves and installs everything instead.
+# RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline
 
 # Copy source code application
 COPY esprit_D2F-competence/src ./src

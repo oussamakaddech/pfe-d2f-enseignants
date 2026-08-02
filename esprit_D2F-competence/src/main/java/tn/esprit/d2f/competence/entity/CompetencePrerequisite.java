@@ -5,6 +5,7 @@ import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
+import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitriseConverter;
 
 import java.time.LocalDateTime;
 
@@ -37,7 +38,7 @@ public class CompetencePrerequisite {
     @JoinColumn(name = "prerequisite_id", nullable = false)
     private Competence prerequisite;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = NiveauMaitriseConverter.class)
     @Column(name = "niveau_minimum", nullable = false)
     private NiveauMaitrise niveauMinimum;
 

@@ -24,6 +24,10 @@ from sklearn.model_selection import StratifiedKFold, cross_val_score
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from pipelines._legacy_compat import setup as _legacy_setup
+
+_legacy_setup()
+
 from app.ml.artifact_integrity import save_with_hash
 from app.ml.deep_learning import build_mlp_pipeline
 from app.ml.feature_engineering import compute_feature_ranges, normalize_features

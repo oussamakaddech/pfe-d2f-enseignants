@@ -87,6 +87,33 @@
 .ad-filters__spacer { flex: 1 1 auto; }
 .ad-filter-select { min-width: 170px; }
 
+/* ── Bandeau « filtres actifs » ─────────────────────────────── */
+.ad-filters-active {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  margin: -6px 0 18px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(200, 16, 46, 0.08), rgba(200, 16, 46, 0.03));
+  border: 1px dashed rgba(200, 16, 46, 0.35);
+}
+.ad-filters-active__label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #c8102e;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ad-filters-active__hint {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: #64748b;
+}
+.ad-page[data-theme="dark"] .ad-filters-active__hint { color: #94a3b8; }
+
 /* ── Cartes « glass » génériques ────────────────────────────── */
 .ad-card {
   height: 100%;
@@ -350,14 +377,8 @@
   .ad-filters, .ad-refresh-btn, .ant-segmented, .ant-picker { display: none !important; }
 }
 
-/* -- Section "Impact reel" (donnees base) --------------------------- */
-.ad-real-section {
-  border-left: 4px solid #2563eb;
-  background: linear-gradient(180deg, #eff6ff 0%, var(--ad-surface, #ffffff) 100%);
-  padding: 16px 18px;
-  border-radius: 14px;
-  margin-bottom: 16px;
-}
-.ad-real-section h4 {
-  font-size: 14px; font-weight: 700; color: var(--ad-ink, #1e293b); margin: 0;
-}
+/* -- Section "Impact reel" (donnees base) ---------------------------
+   Supprimée : les données réelles (KPIs, heatmap, à-risque, formations)
+   sont désormais intégrées directement dans le tableau de bord (sections
+   uniques, sans doublon). */
+

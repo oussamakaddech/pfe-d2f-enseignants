@@ -4,6 +4,7 @@ from app.core.logging import get_logger
 from app.domain.entities.recommendation import Recommendation
 from app.domain.entities.risk_profile import RiskProfile
 from app.domain.entities.skill_gap import SkillGap
+from app.domain.value_objects.enums import Trend
 
 logger = get_logger("analyse_repository")
 
@@ -37,17 +38,31 @@ INSERT_RECOMMENDATION = """
          1, false, true, :raison, 'SUGGESTED', now())
 """
 
+SELECT_GAPS_BY_TEACHER = """
+    SELECT competence_id, competence_code, competence_nom, niveau_actuel,
+           niveau_requis, gap_score, niveau_urgence, computed_at::date AS computed_at
+    FROM "analyse".skill_gaps
+    WHERE enseignant_id = :id
+    ORDER BY gap_score DESC, competence_id
+"""
+
 
 class SqlAnalysisRepository:
     def __init__(self, database) -> None:
         self._database = database
 
-    def save_skill_gaps(self, gaps: list[SkillGap]) -> None:
-        if not gaps:
+    def save_skill_gaps(self, gaps: list[SkillGap], teacher_id: str | None = None) -> None:
+        tid = gaps[0].teacher_id if gaps else teacher_id
+        if not tid:
             return
-        saved = 0
         try:
             with self._database.session() as session:
+                # Remplace l'état précédent : chaque appel remplace le snapshot
+                # (évite l'empilement de doublons lors de analyses répétées).
+                session.execute(
+                    text('DELETE FROM "analyse".skill_gaps WHERE enseignant_id = :eid'),
+                    {"eid": tid},
+                )
                 for gap in gaps:
                     session.execute(
                         text(INSERT_GAPS),
@@ -71,9 +86,35 @@ class SqlAnalysisRepository:
                             "nb_besoins_exprimes": 0,
                         },
                     )
-                    saved += 1
         except Exception as exc:
             logger.error("persistance gaps impossible", error=str(exc))
+
+    def list_gaps_by_teacher(self, teacher_id: str) -> list[SkillGap]:
+        from app.domain.value_objects.enums import Severity
+
+        rows = []
+        try:
+            from sqlalchemy import text as _text
+            with self._database.read_connection() as session:
+                rows = session.execute(_text(SELECT_GAPS_BY_TEACHER), {"id": teacher_id}).mappings().all()
+        except Exception as exc:
+            logger.error("lecture gaps impossible", error=str(exc))
+            return []
+        return [
+            SkillGap(
+                teacher_id=teacher_id,
+                competence_id=row["competence_id"],
+                competence_code=row["competence_code"],
+                competence_nom=row["competence_nom"],
+                current_level=row["niveau_actuel"],
+                target_level=row["niveau_requis"],
+                gap_score=float(row["gap_score"]),
+                severity=Severity(row["niveau_urgence"].upper()),
+                trend=Trend.STABLE,
+                as_of=row["computed_at"],
+            )
+            for row in rows
+        ]
 
     def save_risk_snapshot(self, profile: RiskProfile) -> None:
         try:
@@ -96,6 +137,12 @@ class SqlAnalysisRepository:
             return
         try:
             with self._database.session() as session:
+                # Remplace l'état précédent pour éviter les doublons successifs.
+                teacher_id = recommendations[0].teacher_id
+                session.execute(
+                    text('DELETE FROM "analyse".recommendations WHERE enseignant_id = :eid'),
+                    {"eid": teacher_id},
+                )
                 for recommendation in recommendations:
                     session.execute(
                         text(INSERT_RECOMMENDATION),

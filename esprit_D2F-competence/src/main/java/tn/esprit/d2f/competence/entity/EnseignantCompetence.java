@@ -3,6 +3,7 @@ package tn.esprit.d2f.competence.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
+import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitriseConverter;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -34,7 +35,7 @@ public class EnseignantCompetence extends BaseAuditEntity {
     @JoinColumn(name = "savoir_id", nullable = false)
     private Savoir savoir;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = NiveauMaitriseConverter.class)
     @Column(nullable = false)
     private NiveauMaitrise niveau;
 

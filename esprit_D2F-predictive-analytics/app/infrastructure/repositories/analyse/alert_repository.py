@@ -6,7 +6,7 @@ from app.domain.entities.alert import Alert
 logger = get_logger("alert_repository")
 
 INSERT_ALERT = """
-    INSERT INTO analyse.alert_events
+    INSERT INTO "analyse".alert_events
         (type_alerte, cible_type, enseignant_id, departement_id, competence_id,
          skill_gap_id, severite, titre, message, details_json, statut, created_at, updated_at)
     VALUES
@@ -18,11 +18,11 @@ INSERT_ALERT = """
 SELECT_ALERT = """
     SELECT id, type_alerte, cible_type, enseignant_id, departement_id, competence_id,
            skill_gap_id, severite, titre, message, details_json, statut, created_at
-    FROM analyse.alert_events
+    FROM "analyse".alert_events
 """
 
 UPDATE_STATUS = """
-    UPDATE analyse.alert_events
+    UPDATE "analyse".alert_events
     SET statut = :statut,
         traite_par = :traite_par,
         commentaire_traitement = :commentaire_traitement,
@@ -33,9 +33,20 @@ UPDATE_STATUS = """
 SELECT_OPEN_SINCE = """
     SELECT id, type_alerte, cible_type, enseignant_id, departement_id, competence_id,
            skill_gap_id, severite, titre, message, details_json, statut, created_at
-    FROM analyse.alert_events
+    FROM "analyse".alert_events
     WHERE statut = 'NOUVELLE'
       AND created_at < now() - make_interval(days => :cutoff_days)
+"""
+
+SEVERITY_BREAKDOWN_SQL = """
+    SELECT
+      CASE
+        WHEN UPPER(severite) IN ('CRITICAL', 'CRITIQUE') THEN 'CRITICAL'
+        WHEN UPPER(severite) IN ('WARNING', 'HAUTE', 'MOYENNE') THEN 'WARNING'
+        ELSE 'INFO'
+      END AS bucket,
+      COUNT(*) AS n
+    FROM "analyse".alert_events
 """
 
 
@@ -85,12 +96,14 @@ class SqlAlertRepository:
         return SELECT_ALERT + where + " ORDER BY created_at DESC"
 
     def _run(self, session, query: str, params: dict, page: int, size: int) -> tuple[list[Alert], int]:
-        count_row = session.execute(text(query.replace(SELECT_ALERT, "SELECT COUNT(*) AS total FROM analyse.alert_events")), params).mappings().first()
+        count_query = query.replace(SELECT_ALERT, "SELECT COUNT(*) AS total FROM \"analyse\".alert_events")
+        count_query = count_query.replace(" ORDER BY created_at DESC", "")
+        count_row = session.execute(text(count_query), params).mappings().first()
         total = int(count_row["total"]) if count_row else 0
         rows = session.execute(text(query + " LIMIT :limit OFFSET :offset"), {**params, "limit": size, "offset": (page - 1) * size}).mappings().all()
         return [self._map_row(row) for row in rows], total
 
-    def list_alerts(self, page: int, size: int, severity: str | None = None, status: str | None = None, target_type: str | None = None) -> tuple[list[Alert], int]:
+    def list_alerts(self, page: int, size: int, severity: str | None = None, status: str | None = None, target_type: str | None = None, department_id: str | None = None) -> tuple[list[Alert], int]:
         filters, params = [], {}
         if severity:
             filters.append("severite = :severite")
@@ -101,6 +114,9 @@ class SqlAlertRepository:
         if target_type:
             filters.append("cible_type = :cible_type")
             params["cible_type"] = target_type.upper()
+        if department_id:
+            filters.append("departement_id = :departement_id")
+            params["departement_id"] = department_id
         with self._database.read_connection() as connection:
             return self._run(connection, self._build_query(filters), params, page, size)
 
@@ -125,6 +141,41 @@ class SqlAlertRepository:
             params["statut"] = status.upper()
         with self._database.read_connection() as connection:
             return self._run(connection, self._build_query(filters), params, page, size)
+
+    @staticmethod
+    def _severity_breakdown_query(filters: list[str]) -> str:
+        where = " WHERE " + " AND ".join(filters) if filters else ""
+        return SEVERITY_BREAKDOWN_SQL + where + " GROUP BY bucket"
+
+    def count_open_by_severity(self, severity: str | None = None, status: str | None = None,
+                               target_type: str | None = None,
+                               teacher_id: str | None = None,
+                               department_id: str | None = None) -> dict[str, int]:
+        """Nb d'alertes OUVRES (NOUVELLE/LUE) par bucket de severite, meme scope que la liste."""
+        filters, params = ["statut IN ('NOUVELLE', 'LUE')"], {}
+        if severity:
+            filters.append("severite = :severite")
+            params["severite"] = severity.upper()
+        if status:
+            filters.append("statut = :statut")
+            params["statut"] = status.upper()
+        if target_type:
+            filters.append("cible_type = :cible_type")
+            params["cible_type"] = target_type.upper()
+        if teacher_id:
+            filters.append("enseignant_id = :enseignant_id")
+            params["enseignant_id"] = teacher_id
+        if department_id:
+            filters.append("departement_id = :departement_id")
+            params["departement_id"] = department_id
+        with self._database.read_connection() as connection:
+            rows = connection.execute(
+                text(self._severity_breakdown_query(filters)), params
+            ).mappings().all()
+        result = {"CRITICAL": 0, "WARNING": 0, "INFO": 0}
+        for row in rows:
+            result[row["bucket"]] = int(row["n"])
+        return result
 
     def list_open_since(self, cutoff_days: int) -> list[Alert]:
         with self._database.read_connection() as connection:

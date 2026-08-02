@@ -17,7 +17,7 @@ interface TrendChartProps {
   readonly loading?: boolean;
 }
 
-/** Courbe de tendance (gaps critiques, score moyen, alertes). */
+/** Courbe de tendance (score de risque moyen, enseignants CRITIQUE, effectifs). */
 export default function TrendChart({ trends, loading }: TrendChartProps) {
   if (loading) return <div>Chargement…</div>;
   const data = {
@@ -30,13 +30,13 @@ export default function TrendChart({ trends, loading }: TrendChartProps) {
         yAxisID: "y",
       },
       {
-        label: "Gaps critiques",
+        label: "Enseignants CRITIQUE",
         data: trends.map((t) => t.nb_gaps_critiques),
         borderColor: "#f5222d",
         yAxisID: "y1",
       },
       {
-        label: "Alertes",
+        label: "Enseignants évalués",
         data: trends.map((t) => t.nb_alertes),
         borderColor: "#faad14",
         yAxisID: "y1",

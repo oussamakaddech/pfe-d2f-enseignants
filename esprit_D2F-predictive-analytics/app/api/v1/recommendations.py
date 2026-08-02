@@ -36,13 +36,12 @@ def list_recommendations(
 def _recommend_top_gaps(container, teacher_id: str, limit: int) -> list:
     """Agrege les recommandations sur les competences en plus grand ecart.
 
-    Quand le frontend ne cible aucune competence (competence_id non fourni),
-    on classe les gaps de l'enseignant par gap_score et on ne conserve que les
-    meilleures formations (dedupees par formation_id).
+    Lit les gaps persistes (pas de recalcul) pour éviter toute ecriture
+    lors d'une simple lecture.
     """
     from app.domain.entities.recommendation import Recommendation
 
-    gaps, _, _ = container.compute_gaps.execute(teacher_id)
+    gaps = container.analysis_repository.list_gaps_by_teacher(teacher_id)
     best_score: dict[int, float] = {}
     for gap in gaps:
         best_score[gap.competence_id] = max(best_score.get(gap.competence_id, 0.0), gap.gap_score)

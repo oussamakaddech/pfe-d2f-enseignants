@@ -92,6 +92,7 @@ def test_get_analysis_full_payload(client):
     assert response.status_code == 200
     body = response.json()
     assert body["data"]["teacher_id"] == "T001"
-    assert len(body["data"]["gaps"]) == 2
+    # Gaps scoped au périmètre de T001 (D1 Pédagogie) = 1 compétence
+    assert len(body["data"]["gaps"]) == 1
     assert body["data"]["risk"]["risk_level"]
     assert body["meta"]["model_mode"] == "HEURISTIC_FALLBACK"
