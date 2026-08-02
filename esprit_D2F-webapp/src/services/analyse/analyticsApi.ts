@@ -28,6 +28,8 @@ import type {
   AlertListResponse,
   AlertUpdatePayload,
   AtRiskTeacher,
+  RealDashboardImpact,
+  TeacherScopeAnalysis,
   DashboardFilters,
   DashboardResponse,
   DecliningSkill,
@@ -81,77 +83,38 @@ function unpack<T>(envelope: ApiEnvelope<T>): T {
 }
 
 interface BackendRiskFactor {
-  code: string;
-  label: string;
-  weight: number;
+  feature: string;
+  value: number;
   contribution: number;
-  detail: string;
 }
 
 interface BackendRiskProfile {
   teacher_id: string;
-  risk_score: number;
-  risk_level: string;
+  risk_score: number; // 0..100
+  risk_level: string; // LOW/MEDIUM/HIGH/CRITICAL
   factors: BackendRiskFactor[];
-  ml_stagnation_probability: number | null;
-  model_version: string | null;
+  computed_at: string;
 }
 
 interface BackendGapDiagnostic {
-  teacher_id: string;
-  domain_id: string;
-  competency_id: string;
-  sub_competency_id: string;
-  knowledge_id: string;
-  knowledge_code: string;
-  knowledge_name: string;
-  knowledge_type: string;
-  current_level: number | null;
-  required_level: number | null;
-  gap_level: number;
-  gap_type: string;
-  severity: string;
-  evidence: unknown[];
-  explainability: { human_readable?: string } | null;
-  data_quality_status: string;
-  detected_at: string | null;
-}
-
-interface BackendTeacherGapAnalysis {
-  teacher_id: string;
-  gaps: BackendGapDiagnostic[];
-  data_quality_status: string;
-  detected_at: string | null;
-  has_competency_records: boolean;
-  warnings: string[];
+  competence_id: number;
+  competence_code: string;
+  competence_nom: string;
+  current_level: number;
+  target_level: number;
+  gap_score: number; // 0..1
+  severity: string; // FAIBLE/MOYENNE/HAUTE/CRITIQUE
+  trend: string; // IMPROVING/STABLE/DECLINING
+  as_of: string;
 }
 
 interface BackendRecommendation {
-  training_id: string;
-  title: string;
-  recommendation_score: number;
-  priority: string;
-  target_gap_ids: string[];
-  target_competencies: string[];
-  expected_level_progression: Record<
-    string,
-    { niveau_vise?: number | null; niveau_prerequis?: number | null }
-  >;
-  prerequisite_status: string;
-  estimated_duration_hours: number;
-  available_from: string | null;
-  reason_codes: string[];
-  human_readable_explanation: string;
-  alternatives: string[];
-  data_quality_status: string;
-  score_breakdown: Record<string, number>;
-}
-
-interface BackendRecommendationResult {
-  teacher_id: string;
-  recommendations: BackendRecommendation[];
-  excluded_trainings: Array<Record<string, unknown>>;
-  no_eligible_reason: string | null;
+  formation_id: number;
+  titre: string;
+  competence_id: number | null;
+  rank_score: number;
+  reason: string;
+  matched_savoirs: string[];
 }
 
 interface BackendGlobalKpis {
@@ -203,8 +166,12 @@ const RISK_LEVEL_MAP: Record<string, NiveauRisque> = {
 const URGENCE_MAP: Record<string, NiveauUrgence> = {
   LOW: "FAIBLE",
   MEDIUM: "MODEREE",
+  MOYENNE: "MODEREE",
   HIGH: "HAUTE",
   CRITICAL: "CRITIQUE",
+  CRITIQUE: "CRITIQUE",
+  FAIBLE: "FAIBLE",
+  HAUTE: "HAUTE",
 };
 
 function mapRiskLevel(level: string | null | undefined): NiveauRisque {
@@ -230,75 +197,107 @@ function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
 }
 
+const FACTOR_LABELS: Record<string, string> = {
+  stagnation: "Stagnation",
+  decline: "Régression",
+  attendance: "Taux de présence",
+  low_eval: "Évaluations faibles",
+  repeated_need: "Besoins répétés",
+  low_engagement: "Faible engagement",
+};
+
 function mapRiskProfile(raw: BackendRiskProfile): RiskScore {
-  const facteurs: RiskFactor[] = (raw.factors ?? []).map((f) => ({
-    nom: f.label,
-    valeur_brute: f.weight > 0 ? Number(((f.contribution ?? 0) / f.weight).toFixed(4)) : 0,
-    poids: f.weight,
-    contribution: f.contribution,
-    explication: f.detail || f.label,
-  }));
+  const facteurs: RiskFactor[] = (raw.factors ?? []).map((f) => {
+    const poids = f.value > 0 ? Number((f.contribution / f.value).toFixed(4)) : 0;
+    return {
+      nom: FACTOR_LABELS[f.feature] ?? f.feature,
+      valeur_brute: f.value,
+      poids,
+      contribution: f.contribution,
+      explication: `${FACTOR_LABELS[f.feature] ?? f.feature} (valeur ${(f.value * 100).toFixed(0)}%)`,
+    };
+  });
   return {
     enseignant_id: raw.teacher_id,
     enseignant_nom: null,
     analysis_status: "READY",
-    data_source: raw.ml_stagnation_probability != null ? "ml_model" : "heuristic",
-    score: raw.risk_score,
+    data_source: "heuristic",
+    score: clamp01(raw.risk_score / 100),
     niveau: mapRiskLevel(raw.risk_level),
+    model_mode: undefined,  // sera positionne par getRisk depuis meta
+    model_version: null,
     facteurs,
     tendance: "STABLE",
     precedent_score: null,
-    computed_at: new Date().toISOString(),
-    warnings: raw.model_version ? [`ML ${raw.model_version}`] : [],
+    computed_at: raw.computed_at ?? new Date().toISOString(),
+    warnings: [],
   };
 }
 
 function mapGap(raw: BackendGapDiagnostic): SkillGap {
-  const required = raw.required_level ?? 5;
-  const gapScore = clamp01(raw.gap_level / Math.max(1, required));
+  const gapScore = clamp01(raw.gap_score ?? 0);
   return {
-    id: hashId(`${raw.teacher_id}:${raw.knowledge_id}:${raw.gap_type}`),
-    competence_id: hashId(raw.competency_id || raw.knowledge_id || raw.teacher_id),
-    competence_code: raw.knowledge_code || raw.knowledge_id,
-    competence_nom: raw.knowledge_name || raw.knowledge_id,
-    domaine_nom: raw.domain_id || null,
+    id: hashId(`${raw.competence_id}:${raw.competence_code}`),
+    competence_id: raw.competence_id,
+    competence_code: raw.competence_code || String(raw.competence_id),
+    competence_nom: raw.competence_nom || String(raw.competence_id),
+    domaine_nom: null,
     niveau_actuel: raw.current_level ?? 0,
-    niveau_requis: required,
-    niveau_vise: required,
+    niveau_requis: raw.target_level ?? 5,
+    niveau_vise: raw.target_level ?? 5,
     gap_score: gapScore,
     priorite_score: gapScore,
     niveau_urgence: mapUrgence(raw.severity),
-    mois_stagnation: raw.gap_type === "STALE_ASSESSMENT" ? 6 : 0,
-    en_regression: false,
+    mois_stagnation: 0,
+    en_regression: raw.trend === "DECLINING",
     nb_besoins_exprimes: 0,
-    justification: raw.explainability?.human_readable ?? null,
-    computed_at: raw.detected_at ?? new Date().toISOString(),
+    justification: null,
+    computed_at: raw.as_of ?? new Date().toISOString(),
   };
 }
 
+// ── Scope-Analysis (analyse contextuelle) ────────────────
+interface BackendTeacherContext {
+  teacher_id: string;
+  nom_complet: string;
+  mail: string;
+  specialite: string | null;
+  grade: string | null;
+  up_id: string | null;
+  up_libelle: string | null;
+  dept_id: string | null;
+  dept_libelle: string | null;
+}
+
+interface BackendTeacherScopeAnalysis {
+  context: BackendTeacherContext;
+  gaps: BackendGapDiagnostic[];
+  recommendations: BackendRecommendation[];
+  scoped_competencies_count: number;
+  total_competencies_count: number;
+  is_fallback_global: boolean;
+  computed_at: string;
+}
+
 function mapRecommendation(raw: BackendRecommendation): Recommendation {
-  const breakdown = raw.score_breakdown ?? {};
-  const firstTarget = raw.target_competencies?.[0] ?? "";
-  const progression = raw.expected_level_progression ?? {};
-  const firstProgression = Object.values(progression)[0];
   return {
-    id: hashId(raw.training_id),
-    formation_id: hashId(raw.training_id),
-    formation_titre: raw.title,
+    id: hashId(`${raw.formation_id}`),
+    formation_id: raw.formation_id,
+    formation_titre: raw.titre,
     formation_type: null,
-    competence_id: hashId(firstTarget),
-    competence_nom: firstTarget || null,
-    score_global: raw.recommendation_score,
-    score_pertinence: breakdown.gap_relevance ?? raw.recommendation_score,
-    score_reussite: breakdown.training_effectiveness ?? 0,
-    score_disponibilite: breakdown.availability ?? 0,
-    probabilite_reussite: breakdown.training_effectiveness ?? 0,
+    competence_id: raw.competence_id ?? 0,
+    competence_nom: raw.matched_savoirs?.[0] ?? null,
+    score_global: raw.rank_score,
+    score_pertinence: raw.rank_score,
+    score_reussite: 0,
+    score_disponibilite: 0,
+    probabilite_reussite: raw.rank_score,
     rang_dans_parcours: 0,
     est_prerequis: false,
-    prerequis_satisfaits: raw.prerequisite_status === "MET",
-    niveau_apres: firstProgression?.niveau_vise ?? null,
+    prerequis_satisfaits: false,
+    niveau_apres: null,
     niveau_actuel: null,
-    justification: raw.human_readable_explanation || null,
+    justification: raw.reason || null,
     statut: "PROPOSEE",
   };
 }
@@ -392,7 +391,7 @@ export const analyticsApi = {
   // ── Analyse individuelle ──────────────────────────────
   analyze(enseignantId: string): Promise<AnalyseResult> {
     return axios
-      .post<AnalyseResult>(`${BASE}/analyze/${enseignantId}`)
+      .post<AnalyseResult>(`${BASE}/analysis/${enseignantId}`)
       .then((r) => r.data);
   },
 
@@ -401,17 +400,19 @@ export const analyticsApi = {
     opts: { urgence?: string; page?: number; size?: number } = {},
   ): Promise<GapsResponse> {
     return axios
-      .get<ApiEnvelope<BackendTeacherGapAnalysis>>(`${BASE}/teachers/${enseignantId}/gaps`)
+      .get<ApiEnvelope<BackendGapDiagnostic[]>>(`${BASE}/teachers/${enseignantId}/gaps`, {
+        params: { page: (opts.page ?? 0) + 1, size: opts.size ?? 20 },
+      })
       .then((r) => {
-        const analysis = unpack(r.data);
-        const mapped = (analysis.gaps ?? []).map(mapGap);
+        const list = unpack(r.data) ?? [];
+        const mapped = list.map(mapGap);
         const filtered = opts.urgence
           ? mapped.filter((g) => g.niveau_urgence === opts.urgence)
           : mapped;
         const size = opts.size ?? filtered.length;
         const start = (opts.page ?? 0) * size;
         return {
-          enseignant_id: analysis.teacher_id,
+          enseignant_id: enseignantId,
           total: filtered.length,
           page: opts.page ?? 0,
           size,
@@ -425,17 +426,16 @@ export const analyticsApi = {
     opts: { competence_id?: number; page?: number; size?: number } = {},
   ): Promise<RecommendationsResponse> {
     return axios
-      .get<ApiEnvelope<BackendRecommendationResult>>(
+      .get<ApiEnvelope<BackendRecommendation[]>>(
         `${BASE}/teachers/${enseignantId}/recommendations`,
-        { params: { limit: opts.size ?? 20 } },
+        { params: { competence_id: opts.competence_id ?? undefined, limit: opts.size ?? 20 } },
       )
       .then((r) => {
-        const result = unpack(r.data);
-        const recs = (result.recommendations ?? []).map(mapRecommendation);
+        const recs = (unpack(r.data) ?? []).map(mapRecommendation);
         const size = opts.size ?? recs.length;
         const start = (opts.page ?? 0) * size;
         return {
-          enseignant_id: result.teacher_id,
+          enseignant_id: enseignantId,
           total: recs.length,
           page: opts.page ?? 0,
           size,
@@ -450,10 +450,52 @@ export const analyticsApi = {
       .then((r) => r.data);
   },
 
+  // Analyse contextuelle complete (specialite / UP / departement) — nouveau endpoint.
+  getTeacherScopeAnalysis(enseignantId: string): Promise<TeacherScopeAnalysis> {
+    return axios
+      .get<ApiEnvelope<BackendTeacherScopeAnalysis>>(`${BASE}/teachers/${enseignantId}/scope-analysis`)
+      .then((r) => {
+        const raw: BackendTeacherScopeAnalysis = unpack<BackendTeacherScopeAnalysis>(r.data);
+        if (!raw) throw new Error("Pas de donnees scope-analysis");
+        return {
+          context: {
+            teacher_id: raw.context.teacher_id,
+            nom_complet: raw.context.nom_complet,
+            mail: raw.context.mail,
+            specialite: raw.context.specialite,
+            grade: raw.context.grade,
+            up_id: raw.context.up_id,
+            up_libelle: raw.context.up_libelle,
+            dept_id: raw.context.dept_id,
+            dept_libelle: raw.context.dept_libelle,
+          },
+          gaps: (raw.gaps ?? []).map(mapGap),
+          recommendations: (raw.recommendations ?? []).map(mapRecommendation),
+          scoped_competencies_count: raw.scoped_competencies_count,
+          total_competencies_count: raw.total_competencies_count,
+          is_fallback_global: raw.is_fallback_global,
+          computed_at: raw.computed_at,
+        };
+      });
+  },
+
+  // Dashboard impact reel (donnees base PostgreSQL, pas le CSV legacy).
+  getRealDashboardImpact(): Promise<RealDashboardImpact> {
+    return axios
+      .get<ApiEnvelope<RealDashboardImpact>>(`${BASE}/dashboard/real/impact`)
+      .then((r) => unpack(r.data));
+  },
+
   getRisk(enseignantId: string): Promise<RiskScore> {
     return axios
       .get<ApiEnvelope<BackendRiskProfile>>(`${BASE}/teachers/${enseignantId}/risk`)
-      .then((r) => mapRiskProfile(unpack(r.data)));
+      .then((r) => {
+        const mapped = mapRiskProfile(unpack(r.data));
+        const meta = (r.data.meta ?? {}) as { model_mode?: string; model_version?: string | null };
+        mapped.model_mode = meta.model_mode === "ML" ? "ML" : "HEURISTIC_FALLBACK";
+        mapped.model_version = meta.model_version ?? null;
+        return mapped;
+      });
   },
 
   /** Returns the raw backend payload (RiskProfile, format v2) for diagnostics. */

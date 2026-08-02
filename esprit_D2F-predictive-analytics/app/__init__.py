@@ -1,1 +1,1 @@
-"""D2F Predictive Analytics Microservice."""
+__version__ = "0.1.0"

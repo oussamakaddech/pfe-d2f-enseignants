@@ -1,0 +1,37 @@
+{
+  "model_name": "gradient_boosting_regressor",
+  "trained_at": "2026-08-02T03:24:20.568051",
+  "n_samples": 18,
+  "n_teachers": 12,
+  "n_features": 13,
+  "feature_cols": [
+    "content_match_heuristic",
+    "nb_savoirs_couverts",
+    "nb_savoirs_cibles",
+    "coverage_ratio_savoirs",
+    "teacher_nb_formations_completed",
+    "teacher_avg_eval",
+    "teacher_nb_eval",
+    "teacher_avg_level_sur_savoirs",
+    "diff_level_cible_teacher",
+    "days_since_last_training",
+    "formation_avg_eval_all",
+    "formation_age_days",
+    "est_meme_departement"
+  ],
+  "cv_folds": 5,
+  "metrics": {
+    "cv_rmse": 0.115,
+    "baseline_rmse": 0.1069,
+    "baseline_mae": 0.0775,
+    "lift_rmse": -0.0081
+  },
+  "feature_importances": {},
+  "decision": "reject",
+  "notes": "Score de pertinence appris. Fallback : blending 70% heuristique + 30% ML dans RecommendTrainings.",
+  "data_sources": {
+    "real_samples_from_db": 18,
+    "synthetic_bootstrap": 0,
+    "strategy": "bootstrap synthetique si < 15 lignes reelles, tracking actif"
+  }
+}

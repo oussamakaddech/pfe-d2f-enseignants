@@ -1,0 +1,93 @@
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, Field
+
+Cfg = ConfigDict(protected_namespaces=())
+
+
+class RiskFactorOut(BaseModel):
+    model_config = Cfg
+    feature: str
+    value: float
+    contribution: float
+
+
+class RiskOut(BaseModel):
+    model_config = Cfg
+    teacher_id: str
+    risk_score: float
+    risk_level: str
+    factors: list[RiskFactorOut]
+    computed_at: datetime
+
+
+class GapOut(BaseModel):
+    model_config = Cfg
+    competence_id: int
+    competence_code: str
+    competence_nom: str
+    current_level: float
+    target_level: float
+    gap_score: float
+    severity: str
+    trend: str
+    as_of: str
+
+
+class RecommendationOut(BaseModel):
+    model_config = Cfg
+    formation_id: int
+    titre: str
+    competence_id: int | None
+    rank_score: float
+    reason: str
+    matched_savoirs: list[str]
+
+
+class AnalysisOut(BaseModel):
+    model_config = Cfg
+    teacher_id: str
+    gaps: list[GapOut]
+    risk: RiskOut | None
+    recommendations: list[RecommendationOut]
+    model_mode: str
+    computed_at: datetime
+
+
+class TeacherContextOut(BaseModel):
+    model_config = Cfg
+    teacher_id: str
+    nom_complet: str
+    mail: str
+    specialite: str | None
+    grade: str | None
+    up_id: str | None
+    up_libelle: str | None
+    dept_id: str | None
+    dept_libelle: str | None
+
+
+class TeacherScopeAnalysisOut(BaseModel):
+    model_config = Cfg
+    context: TeacherContextOut
+    gaps: list[GapOut]
+    recommendations: list[RecommendationOut]
+    scoped_competencies_count: int
+    total_competencies_count: int
+    is_fallback_global: bool
+    computed_at: datetime
+
+
+class HealthOut(BaseModel):
+    model_config = Cfg
+    status: str
+    service: str
+    version: str
+    database: str
+    model: str
+
+
+class AnalysisAcceptedOut(BaseModel):
+    model_config = Cfg
+    analysis_id: str
+    status: str = Field(default="ACCEPTED")

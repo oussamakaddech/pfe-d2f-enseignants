@@ -26,6 +26,7 @@ import {
   AtRiskTeachersTable, TrendChart, Heatmap, AlertCenter,
   TrainingImpactPanel,
 } from "@/components/analytics";
+import RealDashboardSection from "@/components/analytics/RealDashboardSection";
 import SupplyDemandChart from "@/components/charts/SupplyDemandChart";
 import type { DashboardFilters, NiveauRisque, AtRiskTeacher, HeatmapCell, TopFormation, DashboardResponse } from "@/models/analyse/analyticsFeature";
 import { formatDepartment, formatUP, toCsv, downloadCsv } from "@/utils/analytics/format";
@@ -389,12 +390,19 @@ export default function AnalyticsDashboardPage() {
         </Col>
       </Row>
 
-      {/* ── Avertissement si peu de données ─────── */}
-      {!dashboard.isLoading && !hasRiskData && hasGaps && (
-        <Alert className="ad-banner" type="info" showIcon
-          message="Données de risque agrégées non encore calculées"
-          description="Lancez une analyse ou le batch pour peupler les profils de risque. Les indicateurs utilisent les données disponibles (gaps, alertes)." />
-      )}
+      {/* ── Section impact reel (donnees DB) ─────── */}
+      <RealDashboardSection />
+
+      {/* ── Avertissement sur le reste (legacy/demo) ─────── */}
+      <Alert
+        className="ad-banner"
+        type="warning"
+        showIcon
+        icon={<InfoCircleOutlined />}
+        message="La suite du tableau de bord ci-dessous utilise le dataset de demonstration (CSV legacy)"
+        description="Les sections KPI/Heatmap/At-risk/Formations ci-dessus sont calculees depuis la base reelle. Ci-dessous, les tendances historiques et les points detailles restent lies au jeu de donnees de demonstration (generate_d2f_dataset, 30 enseignants fictifs)."
+        style={{ marginBottom: 24 }}
+      />
 
       {/* ── Ligne 2 : à risque + impact formations ─────── */}
       <Row gutter={[16, 16]}>

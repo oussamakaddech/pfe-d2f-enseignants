@@ -1,0 +1,203 @@
+{
+  "model_name": "gradient_boosting",
+  "n_samples": 5000,
+  "n_train": 3332,
+  "n_test": 1668,
+  "n_features": 29,
+  "feature_cols": [
+    "current_level_t3",
+    "current_level_t2",
+    "current_level_t1",
+    "current_level_t",
+    "lag_gap_t3_t2",
+    "lag_gap_t2_t1",
+    "lag_gap_t1_t",
+    "rolling_tendance",
+    "days_since_last_training",
+    "training_frequency_per_month",
+    "is_long_absent",
+    "is_stagnant",
+    "avg_level",
+    "min_level",
+    "max_level",
+    "nb_level_5",
+    "nb_level_1",
+    "nb_savoirs",
+    "nb_competences",
+    "competency_coverage_rate",
+    "nb_formations_completed",
+    "nb_formations_in_progress",
+    "taux_assiduite",
+    "nb_besoins_exprimes",
+    "nb_besoins_approuves",
+    "avg_eval_score",
+    "nb_evaluations",
+    "months_since_last_training",
+    "engagement_score"
+  ],
+  "cv_folds": 5,
+  "candidate_cv_scores": {
+    "gradient_boosting": 0.9726,
+    "xgboost": 0.9759,
+    "mlp": 0.9935
+  },
+  "metrics": {
+    "test_r2": 0.3145,
+    "test_rmse": 1.0018,
+    "test_mae": 0.8362,
+    "baseline_rmse": 1.7888,
+    "baseline_mae": 1.4086,
+    "lift_rmse": 0.787
+  },
+  "feature_importances": {
+    "current_level_t3": 0.047869,
+    "current_level_t2": 0.007778,
+    "current_level_t1": 0.017399,
+    "current_level_t": 0.024023,
+    "lag_gap_t3_t2": 0.005399,
+    "lag_gap_t2_t1": 0.005158,
+    "lag_gap_t1_t": 0.00402,
+    "rolling_tendance": 0.005959,
+    "days_since_last_training": 0.022051,
+    "training_frequency_per_month": 0.005852,
+    "is_long_absent": 0.000621,
+    "is_stagnant": 0.001091,
+    "avg_level": 0.211806,
+    "min_level": 0.101477,
+    "max_level": 0.245051,
+    "nb_level_5": 0.020888,
+    "nb_level_1": 0.17176,
+    "nb_savoirs": 0.002788,
+    "nb_competences": 0.003124,
+    "competency_coverage_rate": 0.002035,
+    "nb_formations_completed": 0.00387,
+    "nb_formations_in_progress": 0.005694,
+    "taux_assiduite": 0.020698,
+    "nb_besoins_exprimes": 0.004989,
+    "nb_besoins_approuves": 0.002853,
+    "avg_eval_score": 0.021543,
+    "nb_evaluations": 0.00272,
+    "months_since_last_training": 0.007632,
+    "engagement_score": 0.02385
+  },
+  "feature_ranges": {
+    "current_level_t3": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "current_level_t2": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "current_level_t1": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "current_level_t": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "lag_gap_t3_t2": {
+      "min": -2.0,
+      "max": 2.0
+    },
+    "lag_gap_t2_t1": {
+      "min": -2.0,
+      "max": 2.0
+    },
+    "lag_gap_t1_t": {
+      "min": -2.0,
+      "max": 2.0
+    },
+    "rolling_tendance": {
+      "min": -0.67,
+      "max": 0.67
+    },
+    "days_since_last_training": {
+      "min": 30.0,
+      "max": 365.0
+    },
+    "training_frequency_per_month": {
+      "min": 0.0,
+      "max": 0.42
+    },
+    "is_long_absent": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "is_stagnant": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "avg_level": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "min_level": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "max_level": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "nb_level_5": {
+      "min": 0.0,
+      "max": 4.0
+    },
+    "nb_level_1": {
+      "min": 0.0,
+      "max": 4.0
+    },
+    "nb_savoirs": {
+      "min": 1.0,
+      "max": 3.0
+    },
+    "nb_competences": {
+      "min": 1.0,
+      "max": 3.0
+    },
+    "competency_coverage_rate": {
+      "min": 0.5,
+      "max": 1.0
+    },
+    "nb_formations_completed": {
+      "min": 0.0,
+      "max": 5.0
+    },
+    "nb_formations_in_progress": {
+      "min": 0.0,
+      "max": 3.0
+    },
+    "taux_assiduite": {
+      "min": 0.5,
+      "max": 0.95
+    },
+    "nb_besoins_exprimes": {
+      "min": 0.0,
+      "max": 4.0
+    },
+    "nb_besoins_approuves": {
+      "min": 0.0,
+      "max": 2.0
+    },
+    "avg_eval_score": {
+      "min": 2.5,
+      "max": 4.5
+    },
+    "nb_evaluations": {
+      "min": 1.0,
+      "max": 4.0
+    },
+    "months_since_last_training": {
+      "min": 1.0,
+      "max": 12.0
+    },
+    "engagement_score": {
+      "min": 10.17,
+      "max": 33.22
+    }
+  },
+  "decision": "accept",
+  "trained_at": "2026-08-02T02:00:47.226735"
+}

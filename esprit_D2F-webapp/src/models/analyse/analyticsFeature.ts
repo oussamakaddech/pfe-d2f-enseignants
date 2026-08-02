@@ -46,6 +46,108 @@ export interface RiskScore {
   precedent_score: number | null;
   computed_at: string;
   warnings?: string[];
+  model_mode?: "ML" | "HEURISTIC_FALLBACK";
+  model_version?: string | null;
+}
+
+// ── Analyse contextuelle par spécialité/UP/département (scope-analysis) ──
+export interface TeacherContextInfo {
+  teacher_id: string;
+  nom_complet: string;
+  mail: string;
+  specialite: string | null;
+  grade: string | null;
+  up_id: string | null;
+  up_libelle: string | null;
+  dept_id: string | null;
+  dept_libelle: string | null;
+}
+
+export interface TeacherScopeAnalysis {
+  context: TeacherContextInfo;
+  gaps: SkillGap[];
+  recommendations: Recommendation[];
+  scoped_competencies_count: number;
+  total_competencies_count: number;
+  is_fallback_global: boolean;
+  computed_at: string;
+}
+
+// ── Dashboard impact reel (donnees base) ────────────────────
+export interface RealDashboardKpis {
+  nb_enseignants: number;
+  nb_enseignants_avec_gaps: number;
+  nb_gaps_critiques: number;
+  nb_gaps_haute: number;
+  nb_gaps_total: number;
+  avg_gap_score: number;
+  nb_alertes_non_traitees: number;
+  nb_alertes_critiques: number;
+  avg_risk_score: number;
+  taux_couverture_pct: number;
+}
+
+export interface RealHeatmapRow {
+  dept_id: string | null;
+  dept_libelle: string | null;
+  competence_id: number;
+  competence_code: string;
+  competence_nom: string;
+  avg_gap_score: number;
+  nb_occurrences: number;
+  nb_critiques: number;
+  nb_haute: number;
+  nb_enseignants_touches: number;
+}
+
+export interface RealAtRiskTeacher {
+  enseignant_id: string;
+  nom: string;
+  prenom: string;
+  specialite: string | null;
+  grade: string | null;
+  up_id: string | null;
+  dept_id: string | null;
+  up_libelle: string | null;
+  dept_libelle: string | null;
+  score_risque: number;
+  niveau_risque: string;
+  snapshot_date: string;
+  nb_gaps_persistes: number;
+  nb_gaps_critiques: number;
+  max_gap_score: number;
+}
+
+export interface RealTopFormation {
+  formation_id: number;
+  titre_formation: string | null;
+  competence_id: number | null;
+  competence_nom: string | null;
+  nb_recommandations: number;
+  nb_enseignants: number;
+  score_moyen: number;
+  score_max: number;
+  en_attente: number;
+}
+
+export interface RealCoverageByDept {
+  dept_id: string | null;
+  dept_libelle: string | null;
+  nb_enseignants: number;
+  nb_enseignants_avec_competences: number;
+  nb_affectations: number;
+  niveau_moyen: number;
+}
+
+export interface RealDashboardImpact {
+  kpis: RealDashboardKpis;
+  heatmap: RealHeatmapRow[];
+  at_risk_teachers: RealAtRiskTeacher[];
+  top_formations: RealTopFormation[];
+  coverage_by_dept: RealCoverageByDept[];
+  model?: { name: string; mode: string; version?: string };
+  data_source: "database" | "csv";
+  note?: string;
 }
 
 // ── Historique du score de risque (F3) ───────────────

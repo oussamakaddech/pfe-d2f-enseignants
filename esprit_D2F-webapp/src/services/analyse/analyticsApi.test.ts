@@ -30,26 +30,28 @@ beforeEach(() => {
 });
 
 describe("analyticsApi – indivuel", () => {
-  it("analyze appelle POST sur /analyze/:id", async () => {
+  it("analyze appelle POST sur /analysis/:id", async () => {
     await analyticsApi.analyze("T1");
-    expect(httpMocks.mockPost).toHaveBeenCalledWith(`${BASE}/analyze/T1`);
+    expect(httpMocks.mockPost).toHaveBeenCalledWith(`${BASE}/analysis/T1`);
   });
 
   it("getGaps appelle GET /teachers/:id/gaps", async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: { data: [], meta: {}, errors: [] },
+    });
     await analyticsApi.getGaps("T1");
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/teachers/T1/gaps`);
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/teachers/T1/gaps`, {
+      params: { page: 1, size: 20 },
+    });
   });
 
   it("getGaps filtre urgence et pagine côté client", async () => {
     const envelope = {
       data: {
-        data: {
-          teacher_id: "T1",
-          gaps: [
-            { teacher_id: "T1", severity: "CRITICAL", gap_level: 4, required_level: 5, knowledge_id: "k1", knowledge_code: "C1", knowledge_name: "Compétence", domain_id: "DOM" },
-            { teacher_id: "T1", severity: "HIGH", gap_level: 3, required_level: 5, knowledge_id: "k2", knowledge_code: "C2", knowledge_name: "Compétence 2", domain_id: "DOM" },
-          ],
-        },
+        data: [
+          { competence_id: 1, competence_code: "C1", competence_nom: "Compétence", current_level: 1, target_level: 5, gap_score: 0.8, severity: "CRITIQUE", trend: "STABLE", as_of: "2026-08-01" },
+          { competence_id: 2, competence_code: "C2", competence_nom: "Compétence 2", current_level: 2, target_level: 5, gap_score: 0.6, severity: "HAUTE", trend: "DECLINING", as_of: "2026-08-01" },
+        ],
         meta: {},
         errors: [],
       },
@@ -60,7 +62,9 @@ describe("analyticsApi – indivuel", () => {
       .mockResolvedValueOnce(envelope);
     expect(httpMocks.mockGet).not.toHaveBeenCalled();
     const resPage0 = await analyticsApi.getGaps("T1", { urgence: "CRITIQUE" });
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/teachers/T1/gaps`);
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/teachers/T1/gaps`, {
+      params: { page: 1, size: 20 },
+    });
     expect(resPage0.total).toBe(1);
     expect(resPage0.page).toBe(0);
     expect(resPage0.size).toBe(1);
@@ -72,10 +76,10 @@ describe("analyticsApi – indivuel", () => {
     expect(resPage2.gaps).toHaveLength(0);
   });
 
-  it("getRecommendations appelle GET /teachers/:id/recommendations avec limit", async () => {
+  it("getRecommendations appelle GET /teachers/:id/recommendations avec competence_id", async () => {
     await analyticsApi.getRecommendations("T1", { competence_id: 7, page: 1 });
     expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/teachers/T1/recommendations`, {
-      params: { limit: 20 },
+      params: { competence_id: 7, limit: 20 },
     });
   });
 
@@ -89,18 +93,17 @@ describe("analyticsApi – indivuel", () => {
     expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/teachers/T1/risk`);
   });
 
-  it("getRisk mappe l'enveloppe v2 vers RiskScore", async () => {
+  it("getRisk mappe l'enveloppe DDD vers RiskScore", async () => {
     httpMocks.mockGet.mockResolvedValueOnce({
       data: {
         data: {
           teacher_id: "T1",
-          risk_score: 0.85,
+          risk_score: 85,
           risk_level: "CRITICAL",
           factors: [
-            { code: "CRITICAL_GAP_PRESSURE", label: "Pression gaps critiques", weight: 0.25, contribution: 1, detail: "3 gaps critiques" },
+            { feature: "stagnation", value: 0.8, contribution: 0.2 },
           ],
-          ml_stagnation_probability: null,
-          model_version: null,
+          computed_at: "2026-08-01T00:00:00Z",
         },
         meta: { teacher_id: "T1" },
         errors: [],
@@ -109,8 +112,8 @@ describe("analyticsApi – indivuel", () => {
     const res = await analyticsApi.getRisk("T1");
     expect(res.score).toBe(0.85);
     expect(res.niveau).toBe("CRITIQUE");
-    expect(res.facteurs[0].nom).toBe("Pression gaps critiques");
-    expect(res.facteurs[0].valeur_brute).toBe(4);
+    expect(res.facteurs[0].nom).toBe("Stagnation");
+    expect(res.facteurs[0].valeur_brute).toBe(0.8);
   });
 
   it("getRiskHistory transmet mois", async () => {
@@ -292,5 +295,63 @@ describe("analyticsApi – monitoring", () => {
   it("rollback fait POST with rollback_only", async () => {
     await analyticsApi.rollback();
     expect(httpMocks.mockPost).toHaveBeenCalledWith(`${BASE}/admin/retrain`, { rollback_only: true });
+  });
+});
+
+describe("analyticsApi – scope-analysis", () => {
+  it("getTeacherScopeAnalysis appelle GET /teachers/:id/scope-analysis", async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: {
+        data: {
+          context: {
+            teacher_id: "T1", nom_complet: "Alice Dupont", mail: "a@esprit.tn",
+            specialite: "Dev Backend", grade: "Assistant",
+            up_id: "UP_GL", up_libelle: "Genie Logiciel",
+            dept_id: "DEPT_GL", dept_libelle: "Genie Logiciel",
+          },
+          gaps: [
+            { competence_id: 1, competence_code: "DEV.BACK", competence_nom: "Backend",
+              current_level: 2, target_level: 5, gap_score: 0.75, severity: "CRITIQUE",
+              trend: "STABLE", as_of: "2026-08-02" },
+          ],
+          recommendations: [
+            { formation_id: 1, titre: "Spring Boot Avance", competence_id: 1,
+              rank_score: 0.65, reason: "Couvre savoirs manquants", matched_savoirs: ["S1"] },
+          ],
+          scoped_competencies_count: 3,
+          total_competencies_count: 12,
+          is_fallback_global: false,
+          computed_at: "2026-08-02T00:00:00Z",
+        },
+        meta: {}, errors: [],
+      },
+    });
+    const out = await analyticsApi.getTeacherScopeAnalysis("T1");
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/teachers/T1/scope-analysis`);
+    expect(out.context.nom_complet).toBe("Alice Dupont");
+    expect(out.context.specialite).toBe("Dev Backend");
+    expect(out.gaps).toHaveLength(1);
+    expect(out.gaps[0].niveau_urgence).toBe("CRITIQUE");
+    expect(out.recommendations).toHaveLength(1);
+    expect(out.recommendations[0].formation_titre).toBe("Spring Boot Avance");
+    expect(out.scoped_competencies_count).toBe(3);
+    expect(out.total_competencies_count).toBe(12);
+    expect(out.is_fallback_global).toBe(false);
+  });
+
+  it("getRisk propage model_mode et model_version depuis la meta", async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: {
+        data: {
+          teacher_id: "T1", risk_score: 75, risk_level: "HIGH",
+          factors: [], computed_at: "2026-08-02T00:00:00Z",
+        },
+        meta: { model_mode: "ML", model_version: "2026-08-02T02:00:47" },
+        errors: [],
+      },
+    });
+    const score = await analyticsApi.getRisk("T1");
+    expect(score.model_mode).toBe("ML");
+    expect(score.model_version).toBe("2026-08-02T02:00:47");
   });
 });

@@ -10,6 +10,7 @@ import {
   useTeacherGaps,
   useTeacherRecommendations,
   useTeacherRisk,
+  useTeacherScopeAnalysis,
   useRiskHistory,
 } from "@/hooks/analytics/useAnalyticsQueries";
 import {
@@ -17,6 +18,8 @@ import {
   RecommendationsList,
   RiskHistoryChart,
 } from "@/components/analytics";
+import ModelBadge from "@/components/analytics/ModelBadge";
+import TeacherScopePanel from "@/components/analytics/TeacherScopePanel";
 import { riskColor, riskLabel } from "@/utils/analytics/format";
 import type { RiskFactor } from "@/models/analyse/analyticsFeature";
 import { Tabs as AntTabs } from "antd";
@@ -32,6 +35,7 @@ export default function AnalyticsTeacherPage() {
   const gaps = useTeacherGaps(enseignantId, urgence);
   const recos = useTeacherRecommendations(enseignantId, competenceId ?? undefined);
   const history = useRiskHistory(enseignantId);
+  const scope = useTeacherScopeAnalysis(enseignantId);
 
   const loading = analyze.isPending || risk.isLoading || gaps.isLoading || recos.isLoading;
 
@@ -76,9 +80,12 @@ export default function AnalyticsTeacherPage() {
             <div className="at-hero-kicker">
               <AimOutlined /> Analyse prédictive — Enseignant
             </div>
-            <h1 className="at-hero-title">{risk.data?.enseignant_nom || enseignantId}</h1>
+            <h1 className="at-hero-title">{risk.data?.enseignant_nom || scope.data?.context?.nom_complet || enseignantId}</h1>
             <p className="at-hero-sub">
               Score de risque <b>{pct}%</b> · {riskLabel(level)}
+              <span style={{ marginLeft: 12, verticalAlign: "middle" }}>
+                <ModelBadge modelMode={risk.data?.model_mode} modelVersion={risk.data?.model_version} size="small" />
+              </span>
             </p>
           </div>
           <div className="at-hero-actions">
@@ -193,6 +200,11 @@ export default function AnalyticsTeacherPage() {
           className="at-tabs"
           items={[
             {
+              key: "scope",
+              label: `Analyse contextuelle${scope.data ? ` (${scope.data.gaps.length})` : ""}`,
+              children: <TeacherScopePanel data={scope.data} loading={scope.isLoading} />,
+            },
+            {
               key: "gaps",
               label: `Gaps de compétences${gapStats.total > 0 ? ` (${gapStats.total})` : ""}`,
               children: (
@@ -218,6 +230,11 @@ export default function AnalyticsTeacherPage() {
               children: (
                 <RecommendationsList recommendations={recos.data?.recommendations ?? []} loading={recos.isLoading} />
               ),
+            },
+            {
+              key: "models",
+              label: "Modèles",
+              children: <ModelsInfoPanel risk={risk} />,
             },
             {
               key: "history",
@@ -256,10 +273,25 @@ function FactorsPanel({ facteurs, loading }: { facteurs: RiskFactor[] | undefine
       {facteurs.map((f) => {
         const contribPct = Math.round(Math.abs(f.contribution) * 100);
         const isRisk = f.contribution >= 0;
+        // Facteurs ML : HIGH_proba / MEDIUM_proba / LOW_proba / CRITICAL_proba -> produit du classifier
+        const isProbaFactor = /^(HIGH|MEDIUM|LOW|CRITICAL)_proba$/i.test(f.nom);
+        const displayName = isProbaFactor
+          ? `Probabilité ${f.nom.replace("_proba", "").toLowerCase()}`
+          : f.nom;
+        const displayValue = isProbaFactor
+          ? `${(f.valeur_brute * 100).toFixed(0)}% (prob.)`
+          : `valeur ${f.valeur_brute % 1 === 0 ? f.valeur_brute : f.valeur_brute.toFixed(2)}`;
         return (
           <div key={f.nom} className="at-factor-row">
             <div>
-              <div className="at-factor-name">{f.nom}</div>
+              <div className="at-factor-name">
+                {displayName}
+                {isProbaFactor && (
+                  <span style={{ fontSize: 10, color: "var(--at-ink3)", marginLeft: 6 }} title="Probabilite calculee par le classifier RandomForest entraine">
+                    ML
+                  </span>
+                )}
+              </div>
               <div className="at-factor-bar-wrap">
                 <div className="at-factor-bar">
                   <div
@@ -267,7 +299,9 @@ function FactorsPanel({ facteurs, loading }: { facteurs: RiskFactor[] | undefine
                     style={{ width: `${contribPct}%` }}
                   />
                 </div>
-                <span className="at-factor-weight">poids {(f.poids * 100).toFixed(0)}%</span>
+                <span className="at-factor-weight" title="Valeur brute du facteur (proba pour les facteurs ML, sinon valeur brute metriquee)">
+                  {displayValue}
+                </span>
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
@@ -281,6 +315,37 @@ function FactorsPanel({ facteurs, loading }: { facteurs: RiskFactor[] | undefine
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/* ── Panneau Modeles ─────────────────────────────────────────────── */
+function ModelsInfoPanel({ risk }: { risk: ReturnType<typeof useTeacherRisk> }) {
+  if (risk.isLoading) {
+    return <div style={{ padding: 30, textAlign: "center" }}><Spin /></div>;
+  }
+  const mode = risk.data?.model_mode ?? "HEURISTIC_FALLBACK";
+  const version = risk.data?.model_version ?? null;
+  return (
+    <div style={{ padding: "6px 2px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--at-ink2)" }}>
+          Statut du modèle :
+        </span>
+        <ModelBadge modelMode={mode} modelVersion={version} />
+      </div>
+      {mode === "ML" && version && (
+        <div style={{ marginTop: 12, fontSize: 12, color: "var(--at-ink3)" }}>
+          Modèle entraîné le <b>{new Date(version).toLocaleString("fr-FR")}</b> — GradientBoosting
+          temporel sur corpus réel + synthétique. Les gaps proviennent du vrai artefact
+          (pas de fallback heuristique).
+        </div>
+      )}
+      {mode !== "ML" && (
+        <div style={{ marginTop: 12, fontSize: 12, color: "var(--at-warning)" }}>
+          Pas d'artefact ML disponible. Calcul en mode règles (heuristique).
+        </div>
+      )}
     </div>
   );
 }

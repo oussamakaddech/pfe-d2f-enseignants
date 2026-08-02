@@ -4,6 +4,7 @@
  */
 import { useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { message } from "antd";
 import { analyticsApi } from "@/services/analyse/analyticsApi";
 import type {
   AlertUpdatePayload,
@@ -33,6 +34,11 @@ export function useAnalyzeTeacher(enseignantId: string) {
       qc.invalidateQueries({ queryKey: ["analytics", "risk", enseignantId] });
       qc.invalidateQueries({ queryKey: ["analytics", "risk-history", enseignantId] });
       qc.invalidateQueries({ queryKey: ["analytics", "path", enseignantId] });
+      message.success("Analyse lancée — résultats actualisés.");
+    },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      message.error(axiosErr.response?.data?.message || "L'analyse a échoué. Vérifiez votre session puis réessayez.");
     },
   });
 }
@@ -71,6 +77,22 @@ export function useTeacherRisk(enseignantId: string) {
     queryKey: ["analytics", "risk", enseignantId],
     queryFn: () => analyticsApi.getRisk(enseignantId),
     enabled: !!enseignantId,
+  });
+}
+
+export function useTeacherScopeAnalysis(enseignantId: string) {
+  return useQuery({
+    queryKey: ["analytics", "scope-analysis", enseignantId],
+    queryFn: () => analyticsApi.getTeacherScopeAnalysis(enseignantId),
+    enabled: !!enseignantId,
+  });
+}
+
+export function useRealDashboardImpact() {
+  return useQuery({
+    queryKey: ["analytics", "dashboard", "real-impact"],
+    queryFn: () => analyticsApi.getRealDashboardImpact(),
+    staleTime: 60_000,
   });
 }
 

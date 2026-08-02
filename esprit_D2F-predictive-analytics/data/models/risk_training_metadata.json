@@ -1,0 +1,50 @@
+{
+  "model_name": "random_forest_classifier",
+  "trained_at": "2026-08-02T02:20:37.881115",
+  "n_samples": 36,
+  "n_teachers": 36,
+  "n_features": 16,
+  "feature_cols": [
+    "n_gaps_total",
+    "n_gaps_critical",
+    "n_gaps_high",
+    "avg_gap_score",
+    "max_gap_score",
+    "stagnation_months",
+    "avg_eval_score",
+    "nb_evaluations",
+    "attendance_rate",
+    "nb_formations_completed",
+    "nb_besoins_exprimes",
+    "nb_besoins_approuves",
+    "critical_ratio",
+    "has_critical",
+    "low_attendance",
+    "has_decline"
+  ],
+  "label_distribution": {
+    "MEDIUM": 26,
+    "HIGH": 6,
+    "LOW": 3,
+    "CRITICAL": 1
+  },
+  "labels": [
+    "LOW",
+    "MEDIUM",
+    "HIGH",
+    "CRITICAL"
+  ],
+  "cv_folds": 5,
+  "metrics": {
+    "macro_f1": 0.5242,
+    "baseline_macro_f1": 0.2097,
+    "f1_per_class": {
+      "LOW": 0.6667,
+      "MEDIUM": 0.8302,
+      "HIGH": 0.6,
+      "CRITICAL": 0.0
+    }
+  },
+  "decision": "accept",
+  "notes": "Classifier dedie au niveau de risque. Fallback : regle arbitraire sur gaps si absent."
+}
