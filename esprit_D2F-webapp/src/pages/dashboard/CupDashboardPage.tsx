@@ -77,27 +77,36 @@ export default function CupDashboardPage() {
     queryFn: () => InscriptionService.getAllInscriptions(500),
     staleTime: 5 * 60 * 1000,
   });
-  const inscriptions = useMemo(() => (Array.isArray(inscriptionsRaw) ? inscriptionsRaw : []), [inscriptionsRaw]);
+  const inscriptions = useMemo(() => {
+    if (!inscriptionsRaw) return [];
+    if (Array.isArray(inscriptionsRaw)) return inscriptionsRaw;
+    const candidate = inscriptionsRaw as { content?: unknown[]; data?: unknown[] };
+    if (Array.isArray(candidate.content)) return candidate.content;
+    if (Array.isArray(candidate.data)) return candidate.data;
+    return [];
+  }, [inscriptionsRaw]);
 
-  const formationsAVenir = useMemo(() =>
-    formations
-      .filter((f) => f.etatFormation === "PLANIFIE" && f.dateDebut)
+  const formationsAVenir = useMemo(() => {
+    const items = Array.isArray(formations) ? formations : [];
+    const inscList = Array.isArray(inscriptions) ? inscriptions : [];
+    return items
+      .filter((f) => f && f.etatFormation === "PLANIFIE" && f.dateDebut)
       .map<FormationAVenir>((f) => {
         const formationId = f.idFormation;
-        const inscrits = (inscriptions as Array<{ formationId?: unknown }>)
-          .filter((i) => Number(i?.formationId) === Number(formationId)).length;
+        const inscrits = inscList
+          .filter((i) => Number((i as { formationId?: unknown })?.formationId) === Number(formationId)).length;
         return {
-          id: String(formationId),
+          id: String(formationId ?? ""),
           date: dayjs(f.dateDebut).format("DD MMM"),
           title: f.titreFormation ?? "Sans titre",
           inscrits,
-          capacite: (f as unknown as Record<string, unknown>).capaciteMax as number ?? 20,
+          capacite: ((f as unknown as Record<string, unknown>).capaciteMax as number) ?? 20,
           statut: (f as unknown as Record<string, unknown>).etatFormation as string ?? "PLANIFIE",
         };
       })
       .sort((a, b) => dayjs(a.date, "DD MMM").valueOf() - dayjs(b.date, "DD MMM").valueOf())
-      .slice(0, 8),
-    [formations, inscriptions]);
+      .slice(0, 8);
+  }, [formations, inscriptions]);
 
   const nbInscriptionsAttente = useMemo(
     () => (inscriptions as Array<{ etat?: string }>)
