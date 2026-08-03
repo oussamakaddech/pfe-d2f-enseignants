@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   Button, Tag, Alert, Input, Statistic, Table, Segmented, Progress,
   Tooltip, Breadcrumb, Avatar, Badge,
@@ -15,6 +16,9 @@ import dayjs from "dayjs";
 import "dayjs/locale/fr";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useCupDashboard } from "@/hooks/dashboard/useCupDashboard";
+import FormationService from "@/services/formation/FormationService";
+import InscriptionService from "@/services/formation/InscriptionService";
+import type { Formation } from "@/models/formation";
 import { brand } from "@/styles/themes/tokens";
 import { Card } from "@/redesign/components/Section";
 import "@/pages/dashboard/CupDashboardPage.css";
@@ -27,7 +31,7 @@ const pct = (v: number | null) => Math.max(0, Math.min(100, Math.round(v ?? 0)))
 
 type PeriodKey = "30j" | "trimestre" | "semestre" | "annee";
 
-const MOCK_INSCRIPTIONS_ATTENTE = 14;
+/** Formation à venir (données réelles depuis le backend). */
 interface FormationAVenir {
   id: string;
   date: string;
@@ -36,13 +40,6 @@ interface FormationAVenir {
   capacite: number;
   statut: string;
 }
-
-const MOCK_FORMATIONS_A_VENIR: FormationAVenir[] = [
-  { id: "f1", date: "12 oct.", title: "Python pour la data scientifique", inscrits: 24, capacite: 30, statut: "Planifiée" },
-  { id: "f2", date: "18 oct.", title: "Approche pédagogique active", inscrits: 18, capacite: 20, statut: "Planifiée" },
-  { id: "f3", date: "23 oct.", title: "Sécurité numérique", inscrits: 11, capacite: 25, statut: "Réservée" },
-  { id: "f4", date: "02 nov.", title: "Anglais académique", inscrits: 9, capacite: 15, statut: "Planifiée" },
-];
 
 export default function CupDashboardPage() {
   const { user } = useAuth();
@@ -59,6 +56,55 @@ export default function CupDashboardPage() {
     formationsByCompetence, formationsByCompetenceLoading,
   } = useCupDashboard();
 
+  // Formations à venir (données réelles, filtrées depuis le référentiel formations).
+  const { data: formationsRaw, isLoading: formationsLoading } = useQuery({
+    queryKey: ["cup", "formations"],
+    queryFn: () => FormationService.getAllFormations(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const formations = useMemo(() => {
+    if (Array.isArray(formationsRaw)) return formationsRaw;
+    if (formationsRaw && typeof formationsRaw === "object") {
+      const candidate = formationsRaw as { content?: unknown[]; data?: unknown[]; items?: unknown[] };
+      if (Array.isArray(candidate.content)) return candidate.content as Formation[];
+      if (Array.isArray(candidate.data)) return candidate.data as Formation[];
+      if (Array.isArray(candidate.items)) return candidate.items as Formation[];
+    }
+    return [];
+  }, [formationsRaw]);
+  const { data: inscriptionsRaw, isLoading: inscriptionsLoading } = useQuery({
+    queryKey: ["cup", "inscriptions"],
+    queryFn: () => InscriptionService.getAllInscriptions(500),
+    staleTime: 5 * 60 * 1000,
+  });
+  const inscriptions = useMemo(() => (Array.isArray(inscriptionsRaw) ? inscriptionsRaw : []), [inscriptionsRaw]);
+
+  const formationsAVenir = useMemo(() =>
+    formations
+      .filter((f) => f.etatFormation === "PLANIFIE" && f.dateDebut)
+      .map<FormationAVenir>((f) => {
+        const formationId = f.idFormation;
+        const inscrits = (inscriptions as Array<{ formationId?: unknown }>)
+          .filter((i) => Number(i?.formationId) === Number(formationId)).length;
+        return {
+          id: String(formationId),
+          date: dayjs(f.dateDebut).format("DD MMM"),
+          title: f.titreFormation ?? "Sans titre",
+          inscrits,
+          capacite: (f as unknown as Record<string, unknown>).capaciteMax as number ?? 20,
+          statut: (f as unknown as Record<string, unknown>).etatFormation as string ?? "PLANIFIE",
+        };
+      })
+      .sort((a, b) => dayjs(a.date, "DD MMM").valueOf() - dayjs(b.date, "DD MMM").valueOf())
+      .slice(0, 8),
+    [formations, inscriptions]);
+
+  const nbInscriptionsAttente = useMemo(
+    () => (inscriptions as Array<{ etat?: string }>)
+      .filter((i) => i.etat === "PENDING").length,
+    [inscriptions],
+  );
+
   const displayName = user?.username ?? user?.email ?? "Utilisateur";
   const initials = displayName.split(/[\s.]+/).filter(Boolean).map((s) => s[0]).join("").slice(0, 2).toUpperCase();
   const updateLabel = dayjs().format("DD MMM YYYY à HH:mm");
@@ -71,7 +117,7 @@ export default function CupDashboardPage() {
     finally { setRefreshing(false); }
   }
 
-  const actionCount = (kpis.pendingBesoins ?? 0) + MOCK_INSCRIPTIONS_ATTENTE + (kpis.critiques ?? 0);
+  const actionCount = (kpis.pendingBesoins ?? 0) + nbInscriptionsAttente + (kpis.critiques ?? 0);
 
   const typeItems = useMemo(() => [
     { label: "Interne", value: formationsByType?.interne ?? 0, color: "#c1121f" },
@@ -115,13 +161,16 @@ export default function CupDashboardPage() {
   }, [besoinsPriorises, besoinSearch]);
 
   const top5 = useMemo(() => topCompetences.slice(0, 5), [topCompetences]);
-  const coverageFor = (i: number) => Math.max(28, 92 - i * 14);
+  const maxTopCount = Math.max(1, ...top5.map((c) => c.count));
+  // Pas de taux de couverture par compétence dans l'API actuelle : on affiche
+  // une mesure réelle (nb besoins) plutôt qu'une barre factice.
+  const densityFor = (count: number) => Math.round((count / maxTopCount) * 100);
 
   const kpiList = [
-    { id: "actives", label: "Formations actives", value: kpis.enCours ?? 0, suffix: "", delta: "+12 %", up: true, tone: "navy" as const, icon: <BookOutlined />, detail: { label: "Voir les formations", onClick: () => navigate("/home/Formation") }, spark: [4, 6, 5, 8, 7, 10, 9, 12] },
-    { id: "insc", label: "Inscriptions en attente", value: MOCK_INSCRIPTIONS_ATTENTE, suffix: "", delta: "+5 %", up: true, tone: "orange" as const, icon: <TeamOutlined />, detail: { label: "Gérer les inscriptions", onClick: () => scrollTo("cd-suivi") }, spark: [10, 9, 11, 8, 12, 13, 12, 14] },
-    { id: "completion", label: "Taux de complétion moyen", value: pct(kpis.tauxReussiteGlobal), suffix: "%", delta: "+8,4 %", up: true, tone: "green" as const, icon: <CheckCircleOutlined />, detail: { label: "Détail complétion", onClick: () => scrollTo("cd-couverture") }, spark: [60, 64, 63, 68, 70, 72, 74, 76] },
-    { id: "couv", label: "Taux de couverture des compétences", value: pct(kpis.couverture), suffix: "%", delta: "+3,1 %", up: true, tone: "blue" as const, icon: <SafetyCertificateOutlined />, detail: { label: "Voir le référentiel", onClick: () => scrollTo("cd-couverture") }, spark: [70, 72, 71, 74, 76, 78, 80, 82] },
+    { id: "actives", label: "Formations actives", value: kpis.enCours ?? 0, suffix: "", delta: `${kpis.enCours ?? 0} actives`, up: true, tone: "navy" as const, icon: <BookOutlined />, detail: { label: "Voir les formations", onClick: () => navigate("/home/Formation") }, spark: [kpis.enCours ?? 0] },
+    { id: "insc", label: "Inscriptions en attente", value: nbInscriptionsAttente, suffix: "", delta: nbInscriptionsAttente + " à valider", up: true, tone: "orange" as const, icon: <TeamOutlined />, detail: { label: "Gérer les inscriptions", onClick: () => scrollTo("cd-suivi") }, spark: [nbInscriptionsAttente] },
+    { id: "completion", label: "Taux de complétion moyen", value: pct(kpis.tauxReussiteGlobal), suffix: "%", delta: `${kpis.tauxReussiteGlobal ?? 0}%`, up: true, tone: "green" as const, icon: <CheckCircleOutlined />, detail: { label: "Détail complétion", onClick: () => scrollTo("cd-couverture") }, spark: [pct(kpis.tauxReussiteGlobal)] },
+    { id: "couv", label: "Taux de couverture des compétences", value: pct(kpis.couverture), suffix: "%", delta: `${kpis.couverture ?? 0}%`, up: true, tone: "blue" as const, icon: <SafetyCertificateOutlined />, detail: { label: "Voir le référentiel", onClick: () => scrollTo("cd-couverture") }, spark: [pct(kpis.couverture)] },
   ];
 
   const prioColor = (v: string) => {
@@ -188,8 +237,8 @@ export default function CupDashboardPage() {
         </div>
         <div className="cd-priority-stats">
           <div className="cd-pstat"><span className="cd-pstat-val">{kpis.pendingBesoins ?? 0}</span><span className="cd-pstat-lbl">Besoins en attente</span></div>
-          <div className="cd-pstat"><span className="cd-pstat-val">{MOCK_FORMATIONS_A_VENIR.length}</span><span className="cd-pstat-lbl">Formations à venir</span></div>
-          <div className="cd-pstat"><span className="cd-pstat-val">{MOCK_INSCRIPTIONS_ATTENTE}</span><span className="cd-pstat-lbl">Inscriptions à valider</span></div>
+          <div className="cd-pstat"><span className="cd-pstat-val">{formationsAVenir.length || 0}</span><span className="cd-pstat-lbl">Formations à venir</span></div>
+          <div className="cd-pstat"><span className="cd-pstat-val">{nbInscriptionsAttente}</span><span className="cd-pstat-lbl">Inscriptions à valider</span></div>
         </div>
         <div className="cd-priority-cta">
           <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/home/Formation")}>Créer une formation</Button>
@@ -274,7 +323,7 @@ export default function CupDashboardPage() {
         <Card
           className="cd-span-6"
           title="Prochaines formations"
-          subtitle={`${MOCK_FORMATIONS_A_VENIR.length} planifiées`}
+          subtitle={`${formationsAVenir.length} planifiées${formationsLoading ? " (chargement…)" : ""}`}
           icon={<CalendarOutlined />}
           iconColor="#2563eb"
           iconBg="rgba(37,99,235,.12)"
@@ -284,7 +333,8 @@ export default function CupDashboardPage() {
             size="middle"
             pagination={false}
             columns={formCols}
-            dataSource={MOCK_FORMATIONS_A_VENIR}
+            dataSource={formationsAVenir}
+            loading={formationsLoading}
           />
         </Card>
         <Card
@@ -354,7 +404,7 @@ export default function CupDashboardPage() {
                     <Tag color={i < 2 ? "red" : "orange"}>{i < 2 ? "HAUTE" : "MOYENNE"}</Tag>
                     <span>{c.count} enseignants impactés</span>
                   </div>
-                  <Progress percent={coverageFor(i)} size="small" strokeColor="#ea580c" />
+                  <Progress percent={densityFor(c.count)} size="small" strokeColor="#ea580c" />
                 </div>
                 <Button size="small" onClick={() => navigate("/home/Formation")}>Planifier</Button>
               </li>
@@ -460,14 +510,25 @@ function KpiTile({
 /* ── Sparkline (mini courbe SVG) ─────────────────────────────── */
 function Sparkline({ data, tone }: { readonly data: number[]; readonly tone: string }) {
   const w = 76, h = 26;
-  const max = Math.max(...data, 1), min = Math.min(...data, 0);
-  const span = max - min || 1;
-  const pts = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - 2 - ((v - min) / span) * (h - 4)}`).join(" ");
+  const safe = Array.isArray(data) ? data.filter((v) => Number.isFinite(v)) : [];
   let color: string;
   if (tone === "green") color = "#16a34a";
   else if (tone === "orange") color = "#ea580c";
   else if (tone === "blue") color = "#2563eb";
   else color = "#102a43";
+  if (safe.length < 2) {
+    // Un seul point (ou données manquantes) : on dessine un repère discret
+    // plutôt qu'une courbe (évite NaN dans les coordonnées du polyline).
+    const v = safe[0] ?? 0;
+    return (
+      <svg className="cup-spark" width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden>
+        <text x={2} y={h - 6} fontSize="10" fontWeight={700} fill={color}>{v}</text>
+      </svg>
+    );
+  }
+  const max = Math.max(...safe, 1), min = Math.min(...safe, 0);
+  const span = max - min || 1;
+  const pts = safe.map((v, i) => `${(i / (safe.length - 1)) * w},${h - 2 - ((v - min) / span) * (h - 4)}`).join(" ");
   return (
     <svg className="cup-spark" width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden>
       <polyline points={pts} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />

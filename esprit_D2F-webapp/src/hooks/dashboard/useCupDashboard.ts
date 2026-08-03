@@ -104,12 +104,14 @@ export function useCupDashboard() {
     queryKey: ["cup", "dept-analytics"],
     queryFn: () => AnalyticsService.getFormationsParDepartement({}),
     staleTime: STALE,
+    enabled: false, // Endpoint 404 Pending — désactivé pour éviter les erreurs en console.
   });
 
   const { data: upData } = useQuery({
     queryKey: ["cup", "up-analytics"],
     queryFn: () => AnalyticsService.getFormationsParUp({}),
     staleTime: STALE,
+    enabled: false, // Endpoint 404 Pending — désactivé pour éviter les erreurs en console.
   });
 
   const { data: besoins = [], isLoading: besoinsLoading } = useQuery({
