@@ -25,6 +25,7 @@ psql -v ON_ERROR_STOP=1 \
      -v "pwd_competence=${DB_PASSWORD_COMPETENCE}" \
      -v "pwd_analyse=${DB_PASSWORD_ANALYSE}" \
      -v "pwd_notification=${DB_PASSWORD_NOTIFICATION}" \
+     -v "pwd_rice=${DB_PASSWORD_RICE}" \
      -f "$SQL_DIR/01_create_roles.sql"
 
 psql -v ON_ERROR_STOP=1 \

@@ -69,6 +69,7 @@ services:
       DB_PASSWORD_COMPETENCE: ${DB_PASSWORD_COMPETENCE:-${DB_PASSWORD}}
       DB_PASSWORD_ANALYSE: ${DB_PASSWORD_ANALYSE:-${DB_PASSWORD}}
       DB_PASSWORD_NOTIFICATION: ${DB_PASSWORD_NOTIFICATION:-${DB_PASSWORD}}
+      DB_PASSWORD_RICE: ${DB_PASSWORD_RICE:-${DB_PASSWORD}}
     ports:
       - "7432:5432"
     volumes:
@@ -501,6 +502,7 @@ services:
       SERVICES_FORMATION_URL: http://d2f-formation:8088
       SERVICES_COMPETENCE_URL: http://d2f-competence:8005
       SERVICES_BESOIN_FORMATION_URL: http://d2f-besoin-formation:8004
+      SERVICES_PREDICTIVE_URL: http://d2f-predictive-analytics:8000
     depends_on:
       auth-service:
         condition: service_healthy
@@ -534,8 +536,9 @@ services:
     environment:
       APP_ENV: production
       DB_NAME: ${POSTGRES_DB:-d2f}
-      DB_USER: ${DB_USER:-d2f}
-      DB_PASS: ${DB_PASSWORD}
+      # DSI §3.4 : rôle dédié lecture seule (app_user_rice) au lieu du superuser d2f
+      DB_USER: ${DB_USER_RICE:-app_user_rice}
+      DB_PASS: ${DB_PASSWORD_RICE:-${DB_PASSWORD}}
       # DSI §2 — hostname DB standard
       DB_HOST: db.dsi.local
       DB_PORT: "5432"
@@ -558,15 +561,18 @@ services:
   # routes /api/v1/d2f/* et /api/v1/analytics/dashboard/* consommées par le
   # frontend (AnalyticsDashboardPage, AnalysePredictive).
   # SÉCURITÉ : aucun port exposé en production — accessible uniquement via l'API Gateway
-  # EXPOSÉ POUR VALIDATION TEMPORAIRE (Phase 9 CDC)
+  # (validation interne réalisée : ports retirés ; l'accès passe par api-gateway:8080)
   predictive-analytics-service:
     build:
       context: ./esprit_D2F-predictive-analytics
       dockerfile: Dockerfile
     container_name: d2f-predictive-analytics
     restart: unless-stopped
-    ports:
-      - "8000:8000"  # ← TEMPORAIRE : validation CDC Phase 9 (à retirer après validation)
+    # SÉCURITÉ DSI §Contraintes transversales : aucun port exposé —
+    # les requêtes IA transitent exclusivement par api-gateway (/api/analyse/**)
+    # expose (interne Docker uniquement, non publié sur l'hôte)
+    expose:
+      - "8000"
     environment:
       APP_ENV: production
       DATABASE_URL: postgresql://${DB_USER_ANALYSE:-app_user_analyse}:${DB_PASSWORD_ANALYSE:-${DB_PASSWORD}}@db.dsi.local:5432/d2f

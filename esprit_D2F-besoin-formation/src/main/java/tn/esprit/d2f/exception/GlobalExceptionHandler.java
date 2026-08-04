@@ -12,6 +12,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -107,6 +108,18 @@ public class GlobalExceptionHandler {
         log.error("Data integrity violation at {}: {}", request.getRequestURI(), ex.getMessage());
         return build(HttpStatus.CONFLICT, ERR_DATA_CONFLICT,
                 "Conflit de données : une contrainte d'intégrité a été violée.", request);
+    }
+
+    /**
+     * Ressource statique / endpoint introuvable → 404 (au lieu de 500).
+     * Empêche NoResourceFoundException de tomber dans le handler générique.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFound(
+            NoResourceFoundException ex, HttpServletRequest request) {
+        log.warn("Resource not found at {}: {}", request.getRequestURI(), ex.getMessage());
+        return build(HttpStatus.NOT_FOUND, ERR_NOT_FOUND,
+                "La ressource demandée n'existe pas : " + ex.getResourcePath(), request);
     }
 
     // ── 500 — Erreur inattendue ───────────────────────────────────────────────

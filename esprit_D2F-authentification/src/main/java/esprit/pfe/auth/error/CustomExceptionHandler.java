@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -144,6 +145,25 @@ public class CustomExceptionHandler {
                                 ERROR_CODE_PREFIX + HttpStatus.UNAUTHORIZED.value(),
                                 request.getRequestURI());
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .body(errorResponse);
+        }
+
+        /**
+         * Endpoint ou ressource statique introuvable : renvoie 404 au lieu de 500.
+         * Empêche NoResourceFoundException de remonter au handler Exception.
+         */
+        @ExceptionHandler(NoResourceFoundException.class)
+        public ResponseEntity<CustomErrorResponse> handleNoResourceFound(NoResourceFoundException ex,
+                        HttpServletRequest request) {
+                logHandled(HttpStatus.NOT_FOUND.value(),
+                        "La ressource demandée n'existe pas : " + ex.getResourcePath(), request);
+                CustomErrorResponse errorResponse = buildErrorResponse(
+                                HttpStatus.NOT_FOUND.value(),
+                                "La ressource demandée n'existe pas : " + ex.getResourcePath(),
+                                ERROR_CODE_PREFIX + HttpStatus.NOT_FOUND.value(),
+                                request.getRequestURI());
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .body(errorResponse);
         }

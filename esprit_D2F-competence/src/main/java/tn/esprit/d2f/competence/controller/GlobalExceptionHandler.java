@@ -17,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.security.access.AccessDeniedException;
 
 @RestControllerAdvice
@@ -79,9 +80,22 @@ public class GlobalExceptionHandler {
                 MODULE_PREFIX + "-409", request.getRequestURI());
     }
 
+    /**
+     * Ressource statique / endpoint introuvable – réponse 404 Not Found.
+     * Corrige la transformation systématique en 500 par le handler générique.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResourceFound(
+            NoResourceFoundException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND,
+                "La ressource demandée n'existe pas : " + ex.getResourcePath(),
+                MODULE_PREFIX + "-404",
+                request.getRequestURI());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex,
-                                                               HttpServletRequest request) {
+                                                                HttpServletRequest request) {
         String traceId = UUID.randomUUID().toString();
         log.error("[{}] Erreur interne non gérée: {}", traceId, ex.getMessage(), ex);
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR,

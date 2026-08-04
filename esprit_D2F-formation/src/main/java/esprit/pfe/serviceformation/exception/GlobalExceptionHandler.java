@@ -18,6 +18,7 @@ import org.springframework.transaction.TransactionSystemException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -50,6 +51,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleNotFound(RuntimeException ex, HttpServletRequest request) {
         log.error("Resource not found: {}", ex.getMessage());
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), MODULE_PREFIX + "-404", request);
+    }
+
+    /**
+     * Endpoint ou ressource statique introuvable – renvoie 404 (pas 500).
+     * Corrige la transformation en 500 par le handler générique Exception.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFound(NoResourceFoundException ex, HttpServletRequest request) {
+        log.debug("No static resource: {}", ex.getResourcePath());
+        return buildResponse(HttpStatus.NOT_FOUND,
+                "La ressource demandée n'existe pas : " + ex.getResourcePath(),
+                MODULE_PREFIX + "-404", request);
     }
 
     // ==================== VALIDATION ====================

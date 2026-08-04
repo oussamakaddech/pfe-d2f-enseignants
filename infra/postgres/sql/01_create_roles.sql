@@ -13,7 +13,8 @@ CREATE ROLE app_user_evaluation        LOGIN PASSWORD :'pwd_evaluation';
 CREATE ROLE app_user_certificat        LOGIN PASSWORD :'pwd_certificat';
 CREATE ROLE app_user_competence        LOGIN PASSWORD :'pwd_competence';
 CREATE ROLE app_user_analyse           LOGIN PASSWORD :'pwd_analyse';
-CREATE ROLE app_user_notification       LOGIN PASSWORD :'pwd_notification';
+CREATE ROLE app_user_notification      LOGIN PASSWORD :'pwd_notification';
+CREATE ROLE app_user_rice              LOGIN PASSWORD :'pwd_rice';
 
 -- Schémas dédiés (ownership donnée au rôle applicatif)
 CREATE SCHEMA IF NOT EXISTS auth       AUTHORIZATION app_user_auth;

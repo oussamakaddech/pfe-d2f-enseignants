@@ -1,0 +1,521 @@
+ 
+1 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+    
+ 
+  
+      
+  Cahier des Charges  
+ Technique  
+ 
+2025 -2026  DSI  
+
+ 
+2 
+ 
+Table des matières  
+ 
+Introduction Générale  ................................ ................................ ................................ .............  3 
+0.1 Contexte général du projet  ................................ ................................ ...........................  3 
+0.2 Rôle et responsabilités de la DSI  ................................ ................................ ....................  3 
+0.3 Objectifs du cahier des charges  ................................ ................................ .....................  3 
+0.5 Mode de collaboration avec les intervenants externes  ................................ ................  3 
+Partie I – Exigences Techniques Globales  ................................ ................................ ...............  5 
+1.  Exigences techniques communes  ................................ ................................ .................  5 
+2.  Contraintes techniques transversales  ................................ ................................ ..........  6 
+3. Normes et standards globaux ................................ ................................ ........................  7 
+Partie II – Technologies et Architecture  ................................ ................................ ..................  8 
+1. Technologies  ................................ ................................ ................................ .................  8 
+2.  Architecture  ................................ ................................ ................................ ..................  8 
+Partie III – Couches Spécifiques  ................................ ................................ ..............................  9 
+1. Exigences Techniques Frontend  ................................ ................................ ....................  9 
+3. Exigences Techniques Backend  ................................ ................................ ...................  10 
+4.  Exigences Techniques de la Base de Données  ................................ ............................  13 
+5.  Exigences Techniques liées aux composants d’Intelligence Artificielle  ......................  13 
+Partie IV – Exigences (à compléter)  ................................ ................................ .......................  15 
+1. Exigences de Sécurité  ................................ ................................ ................................ .. 15 
+2. Exigences DevOps  ................................ ................................ ................................ ........  16 
+Conclusion et Validation  ................................ ................................ ................................ .......  17 
+1. Synthèse finale  ................................ ................................ ................................ ............  17 
+2. Conditions de validation par la DSI  ................................ ................................ ..............  17 
+3. Décision finale  ................................ ................................ ................................ .............  17 
+ 
+  
+
+ 
+3 
+ 
+Introduction Générale  
+0.1 Contexte général du projet  
+La DSI intervient comme validateur final pour l’ensemble des projets applicatifs externes, 
+développés par différents départements via des intervenants tels que des étudiants ou des 
+prestataires. Elle ne participe pas directement au développement, mais véri fie que le code 
+source livré respecte les standards et les technologies imposées avant d’en assurer le 
+déploiement.  
+0.2 Rôle et responsabilités de la DSI  
+La DSI assure donc un rôle de contrôle et de validation. Elle s’assure que les projets utilisent 
+les technologies validées par l’entreprise, qu’ils respectent les normes de qualité et de 
+sécurité, et qu’ils soient conformes aux standards internes avant la mise en production.  
+0.3 Objectifs du cahier des charges  
+L’objectif de ce cahier des charges est de fixer un cadre commun pour éviter la dispersion 
+technologique et assurer que tout le monde utilise les mêmes bases techniques. Il s’agit 
+d’éviter que chaque département adopte ses propres outils sans cohérence.  
+0.5 Mode de collaboration avec les intervenants externes  
+Les intervenants externes (comme les étudiants ou les prestataires) développent les 
+applications, puis soumettent le code à la DSI pour validation. La DSI ne code pas elle -même, 
+mais s’assure que le code livré est conforme avant de le faire passer en produ ction. En cas de 
+non-conformité, le code est retourné pour correction.  
+Scénario de gestion et déploiement de projet externe  
+1. Fourniture du projet par l’intervenant externe :  
+L’intervenant externe fournit à la DSI un dépôt Git contenant :  
+• Le projet complet.  
+• Un dump de données associé.  
+2. Prise en charge par la DSI :  
+La DSI effectue les actions suivantes :  
+1. Cloner le dépôt Git fourni.  
+2. Exécuter le projet et valider son fonctionnement ainsi que sa structure conformément 
+aux exigences spécifiées dans le cahier des charges.  
+3. Validation du projet :  
+• Si le projet est validé :  
+1. Configurer le projet avec toutes les configurations nécessaires pour le 
+déploiement.  
+
+ 
+4 
+ 
+2. Créer un nouveau dépôt Git sous la responsabilité de la DSI et y pousser cette 
+version validée.  
+3. Passer le projet à la phase de déploiement en environnement de qualification 
+(QA).  
+4. Une fois déployé, envoyer un email d’information contenant les liens d’accès 
+pour tester l’application (accessibles uniquement via le réseau RX ESPRIT).  
+5. Après validation des tests et confirmation du bon fonctionnement, procéder au 
+déploiement en production.  
+• Si le projet présente des anomalies ou ne répond pas aux exigences :  
+1. Informer immédiatement le développeur et l’intervenant externe des 
+problèmes identifiés.  
+2. Les corrections sont effectuées par le développeur et l’intervenant externe.  
+3. La DSI n’intervient ni dans le code ni dans les tests fonctionnels.  
+4. Reprendre ensuite le processus depuis l’étape de validation.  
+ 
+ 
+4. Condition préalable à l’acceptation :  
+Aucun projet ne sera accepté sans qu’un développeur soit disponible pour assurer sa 
+maintenance et les corrections éventuelles.  
+
+
+ 
+5 
+ 
+Partie I – Exigences Techniques Globales  
+1. Exigences techniques communes  
+1.1 Absence de Hard -Coding  
+Aucune valeur sensible ou variable ne doit être codée en dur dans le code source. Les 
+informations suivantes doivent être externalisées :  
+    
+Identifiants et mots de 
+passe  
+ URLs et Endpoint  de 
+services  
+ Clés API et tokens 
+d'authentification  
+ Paramètres métiers 
+configurables  
+ 
+ 
+• Configurations d'environnement (dev, staging, production)  
+ 
+1.2 Lisibilité et Clarté du Code  
+Le code doit être facile à comprendre et à suivre, même pour les développeurs non familiers 
+avec le projet. Cette exigence inclut :  
+• Nommage explicite des variables, fonctions et classes   
+• Commentaires pertinents pour les logiques complexes   
+• Respect de conventions de nommage cohérentes  
+
+
+ 
+6 
+ 
+ 
+ 
+1.3 Modularité et Réutilisabilité  
+Le code doit être organisé en modules plus petits et réutilisables. Appliquer les principes 
+SOLID et les patterns architecturaux appropriés (MVC, Repository, Service Layer) pour 
+favoriser un code propre et modulaire.  
+ 
+1.4 Organisation Structurée du Code  
+Une structure de dossiers claire et cohérente doit être définie dès le début :  
+ 
+• Conventions de nommage des fichiers et dossiers  
+• Séparation claire des responsabilités (présentation, 
+logique métier, accès aux données)  
+• Limites de modules bien définies  
+• Documentation de la structure dans un fichier 
+README  
+ 
+ 
+1.5 Gestion de Versions  
+Utilisation obligatoire de Git avec des stratégies de branchement claires (GitFlow, trunk -based 
+development):  
+• Pull requests descriptives liées aux IDs des issues  
+• Commits atomiques avec messages explicites  
+• Templates de PR et guidelines de revue documentés  
+ 
+2. Contraintes techniques transversales  
+Services DSI prédéfinis obligatoires:  
+• API Gateway : api-gateway.dsi.local:8080  
+• Message Broker : RabbitMQ  broker.dsi.local:5672  
+• Database : PostgreSQL  db.dsi.local:5432  
+• Utilisateur DB : app_user_{service_name}  
+
+
+ 
+7 
+ 
+ 
+Performance:  
+• Temps réponse API < 200ms  
+Maintenabilité:  
+• Code lisible partout  
+• SonarQube Quality Gate A  
+Scalabilité:  
+• Docker obligatoire  
+3. Normes et standards globaux  
+3.1 Standards API (REST)  
+• Nommage : URLs en kebab -case  ou snake_case  (choix unique pour tout le projet).  
+• Codes HTTP standards :  
+o 200/201/204 succès, 400 validation, 401/403 auth, 404, 409 conflit, 500.  
+• Format d’erreur standard  (obligatoire) :  
+o timestamp , status , errorCode , message , path , traceId  
+• Versioning API  : 
+o /api/v1/...  (recommandé) ou version via headers, choix unique documenté.  
+• OpenAPI/Swagger  : documenter endpoints, payloads, codes retour, exemples.  
+ 
+3.2 Standards Base de données  
+• Migrations obligatoires : 
+o aucune création manuelle non traçable  
+• Naming conventions :  
+o tables : snake_case, pluriel ou singulier (choix unique)  
+o FK explicites, index sur colonnes de recherche  
+• Soft delete si besoin (champ deleted_at ) plutôt que suppression directe, selon cas 
+métier.  
+ 
+ 
+ 
+
+ 
+8 
+ 
+Partie II – Technologies et Architecture  
+1. Technologies  
+1.1 Stack Front -End (Obligatoire)  
+• Framework  : React 18+ avec JSx 
+• Build Tool: Vite  
+• State Management : React Context   
+• HTTP Client  : Axios  
+ 
+1.2 Stack Back -End (Préférence)  
+• Framework : Spring Boot 3.x avec JDK 17+ (préféré)  
+• Security : Spring Security avec JWT  
+• Documentation API : SpringDoc OpenAPI (Swagger)  
+ 
+1.3 Bases de Données  
+• Relationnelle  : PostgreSQL  
+• NoSQL  : MongoDB (si nécessaire)  
+ 
+1.4 DevOps  
+• Conteneurisation  : Docker (obligatoire)  
+• CI : Sonar Qube  
+ 
+2. Architecture  
+2.1 Architecture Microservices (Obligatoire)  
+Tous les projets doivent adopter une  architecture microservices  avec les caractéristiques 
+suivantes :  
+• Services indépendants et déployables séparément  
+• Communication interservices  via API REST ou message queues  
+• Scalabilité indépendante par service  
+
+ 
+9 
+ 
+2.2 Domain -Driven Design (DDD)  
+L'architecture doit suivre les principes du  Domain -Driven Design  pour structurer les 
+microservices . 
+ 
+Partie III – Couches Spécifiques  
+1. Exigences Techniques Frontend  
+Le code React doit être structuré en utilisant l a structure suivants pour une organisation claire:  
+Structure de Dossiers Obligatoire  
+src/ 
+├── components/      # Composants r éutilisables (Button, Modal, etc.)  
+├── services/             # Appels API (Axios)  
+├── models/              # Interfaces TypeScript (types objets)  
+├── hooks/                # Custom Hooks personnalis és 
+├── pages/                # Pages principales (routes)  
+├── utils/                  # Fonctions utilitaires  
+└── styles/                # Styles globaux (CSS/Tailwind)  
+ 
+Règles obligatoires:  
+• Services : Centraliser TOUS les appels API  
+• Pas de hard -coding  d'URL API (utiliser VITE_API_URL)  
+• Models : Définir interfaces TypeScript pour tous les objets  
+• Components : Uniquement UI, pas de logique métier  
+• Hooks : Logique de données (React Query)  
+ 
+➢ Exemples de Code  
+ 
+  MAUVAIS - Appels API dispersés  
+
+
+ 
+10 
+ 
+ 
+   BON - Services centralisés  
+ 
+2. Exigences Techniques Backend  
+2.1 Configuration Externalisée (Obligatoire)  
+Toutes les configs sensibles dans fichiers externes :  
+• application.yml  
+• config.json  
+• .env 
+ 
+Tels que  (tokens, clés API, mails, Feign clients, URLs)  
+ 
+2.2 Pagination Obligatoire (Listes Volumineuses)  
+Toutes les APIs retournant des listes doivent implémenter la pagination :  
+ 
+Paramètres standards :  
+ 
+ 
+ 
+ 
+
+
+ 
+11 
+ 
+Exemple Controller :  
+ 
+ 
+2.3 Feign  client configuration  
+Le Feign Client  est utilisé uniquement lorsque la communication entre microservices 
+nécessite une interaction synchrone  (request/response).  
+Dans la plupart des cas, la communication entre microservices est asynchrone , via un broker  
+comme mentionné précédemment ( ActiveMQ .), ce qui permet un découplage et une 
+meilleure scalabilité.  
+Ainsi, Feign Client est optionnel , et son usage se limite aux cas où :  
+• Une réponse immédiate est nécessaire entre services,  
+• On souhaite simplifier les appels HTTP REST internes.  
+Ci-dessous, dans l’image, un exemple de configuration de Feign Client  est présenté, illustrant 
+comment déclarer un client et ses endpoints dans une architecture Spring Boot.  
+• Configuration dans application.properties  
+ 
+ 
+ 
+
+
+ 
+12 
+ 
+• Fishier d’apelle  
+ 
+ 
+2.4 Configuration broker  ActiveMQ  
+ActiveMQ  est un message broker  utilisé pour la communication asynchrone  entre 
+microservices. Contrairement à Feign Client, qui fonctionne en mode synchrone, ActiveMQ 
+permet de découpler les services  et de gérer la transmission de messages de manière fiable, 
+même si un service est temporairement indisponible.  
+ 
+• Dépendances Maven (Spr ing Boot)  
+ 
+Pour intégrer ActiveMQ  dans un projet Spring 
+Boot, il faut ajouter les dépendances suivantes 
+dans le pom.xml  : 
+  
+
+
+ 
+13 
+ 
+ 
+• Configuration dans application.properties  
+ 
+ 
+ 
+3. Exigences Techniques de la Base de Données  
+• Pour tout projet nécessitant une base de données relationnelle , l’utilisation de 
+PostgreSQL est obligatoire . 
+• En cas d’utilisation de MongoDB , l’administration/visualisation se fait uniquement via 
+MongoDB Compass . 
+• Il est strictement interdit  d’utiliser des bases de données Cloud  (ex : MongoDB Atlas  ou 
+équivalent).  
+• Les bases de données doivent être hébergées en local / sur l’infrastructure interne  
+(DSI) et non exposées publiquement.  
+• Les paramètres de connexion (host, user, password) doivent être configurés via 
+fichiers/variables d’environnement  (pas dans le code).  
+ 
+4. Exigences Techniques liées aux composants d’Intelligence Artificielle  
+4.1 Principe “Local & Autonome” imposé par la DSI  
+• Tous les modèles IA (entraînement et/ou inférence) doivent être 100% locaux , 
+autonomes  et exécutés sur l’infrastructure Esprit . 
+• Interdiction  d’utiliser des services IA cloud (API externes, modèles SaaS, endpoints 
+publics) ou tout composant nécessitant une connexion Internet pour fonctionner.  
+• Objectif : garantir la confidentialité  et éviter toute réutilisation/exploitation des 
+données  par des tiers (fournisseurs/entreprises).  
+4.2 Gestion des mises à jour “hors connexion” (offline releases)  
+• Le cycle de mise à jour des composants IA doit être réalisé hors connexion  (offline) :  
+o packages, dépendances, images Docker, modèles, weights et artefacts doivent 
+être livrés via un canal interne  validé par la DSI (ex : dépôt interne / support 
+offline).  
+
+
+ 
+14 
+ 
+• Toute release IA doit être reproductible  et traçable  : version modèle, date, commit, 
+paramètres, dépendances.  
+4.3 Exigences de déploiement et d’exécution  
+• Le déploiement IA doit être conteneurisé  (Docker) et compatible avec l’environnement 
+DSI. 
+• Les endpoints IA doivent être exposés via API (REST/gRPC) derrière la Gateway, avec 
+contrôle d’accès (auth/roles).  
+• Aucune donnée sensible ne doit sortir du SI : logs et traces doivent être filtrés (pas de 
+prompts bruts, pas de PII).  
+4.4 Gestion des ressources et infrastructure DGX  
+• Si un modèle est trop lourd pour exécution sur un PC local standard, Esprit fournit un 
+accès à une machine NVIDIA DGX  (GPU) pour l’exécution/serving du modèle.  
+• L’architecture doit prévoir :  
+o un mode CPU/local  pour les petits modèles,  
+o un mode GPU/DGX  pour les modèles lourds, sans modification fonctionnelle 
+côté client (même API/contrat).  
+• Les déploiements DGX doivent rester internes  et respecter les règles DSI (réseau, 
+sécurité, monitoring).  
+4.5 Gouvernance des données et conformité  
+• Les datasets, prompts, fichiers d’entraînement et logs doivent être stockés uniquement  
+sur des supports internes autorisés.  
+• Toute utilisation de données personnelles doit respecter la politique interne 
+(minimisation, anonymisation si nécessaire).  
+• Interdiction d’utiliser des mécanismes d’amélioration automatique via cloud (ex : 
+“telemetry”, “data sharing”, “model feedback”) activés par défaut.  
+4.6 Observabilité et qualité IA (minimum requis)  
+• Journalisation des métriques techniques : latence, erreurs, charge GPU/CPU, 
+disponibilité.  
+• Pour les modèles ML : suivi des métriques fonctionnelles (ex : précision, taux de 
+succès) et mécanisme de rollback en cas de régression.  
+• Documentation obligatoire : procédure de déploiement offline, procédure de mise à 
+jour, et procédure de retour arrière.  
+ 
+
+ 
+15 
+ 
+Partie IV – Exigences (à compléter)  
+1. Exigences de Sécurité  
+1.1 Authentification & Autorisation  
+• JWT obligatoire (si stack Spring Security)  
+• RBAC obligatoire :  
+o rôles définis et documentés (ex : ADMIN, MANAGER, USER…)  
+o contrôles côté backend (pas uniquement front)  
+• CORS contrôlé via Gateway/Backend :  
+o origines autorisées limitées aux domaines internes.  
+1.2 Protection des données  
+• Données sensibles :  
+o jamais loggées (mots de passe, tokens, secrets, PII brute)  
+o masquage/anonymisation si besoin.  
+• Uploads :  
+o contrôle type, taille  
+o stockage interne uniquement.  
+1.3 Sécurité applicative  
+• Anti-injection :  
+o ORM + requêtes paramétrées  
+o interdiction concat SQL.  
+ 
+• Gestion erreurs :  
+o message utilisateur non technique  
+o détails techniques uniquement en logs.  
+1.4 Dépendances & vulnérabilités  
+• Scan dépendances :  
+o npm audit / OWASP dependency check (si activé)  
+• Toute vulnérabilité high/critical doit être corrigée avant validation.  
+1.5 Traçabilité & audit  
+• Audit minimal :  
+o qui a fait quoi (création/modification/suppression) sur objets critiques  
+o date  création  , action . 
+ 
+
+ 
+16 
+ 
+ 
+2. Exigences DevOps  
+2.1 Conteneurisation  
+• Un Dockerfile par service + bonnes pratiques :  
+o images slim  
+o user non -root si possible  
+o variables d’environnement pour config  
+• docker compose  fourni pour exécution locale/QA (si demandé par DSI).  
+• Healthcheck Docker (si applicable).  
+2.2 CI/CD (pipeline minimal)  
+Étapes CI minimales :  
+1. Lint/format  
+2. Build  
+3. SonarQube scan (Quality Gate bloquant)  
+4. Build image Docker + tag version  
+5. Publication sur registry interne (si existante)  
+Étapes CD (selon process DSI) :  
+• déploiement QA  
+• validation + rollback plan  
+• déploiement prod après go/no -go. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+17 
+ 
+Conclusion et Validation  
+1. Synthèse finale  
+Ce cahier des charges définit les règles techniques minimales exigées par la DSI pour accepter 
+et déployer tout projet applicatif externe. Il vise à garantir l’uniformité technologique, la 
+qualité du code, la sécurité et la facilité de maintenance, tout en  évitant la dispersion des 
+outils et des pratiques.  
+ Le respect de ces exigences permet à la DSI de valider rapidement les livraisons, d’assurer un 
+déploiement fiable en environnement QA puis en production, et de maintenir les applications 
+sur le long terme.  
+2. Conditions de validation par la DSI  
+Un projet est considéré validé  uniquement si :  
+• La stack imposée est respectée (React/Vite, Spring Boot, PostgreSQL, Docker, services 
+DSI).  
+• Le code est livré proprement (structure claire, pas de hard -coding, configuration 
+externalisée).  
+• Les exigences de qualité sont respectées (exécution stable, aucune erreur bloquante, 
+respect des standards).  
+• Les contraintes DSI sont respectées (pas de cloud pour BD, IA locale autonome, 
+déploiement interne).  
+• Un développeur est identifié pour assurer la maintenance et les corrections.  
+3. Décision finale  
+• Si conforme  : la DSI intègre le projet dans son dépôt validé, effectue la configuration 
+nécessaire, puis lance le déploiement en QA et ensuite en production après validation 
+des tests.  
+• Si non conforme  : le projet est retourné à l’intervenant externe avec les points à 
+corriger, et le processus de validation redémarre après correction.  
+ 
+
