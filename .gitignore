@@ -23,6 +23,9 @@ actions-runner/
 # ── Fichiers de build / compilation ───────────────────────────────────────────
 **/dist/
 **/.pytest_cache/
+**/.next/
+**/next-env.d.ts
+**/tsconfig.tsbuildinfo
 
 # ── Fichiers temporaires / backup ─────────────────────────────────────────────
 *.old
