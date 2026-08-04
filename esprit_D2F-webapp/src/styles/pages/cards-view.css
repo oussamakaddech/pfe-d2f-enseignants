@@ -312,3 +312,102 @@
   .ctp-cards-layout { grid-template-columns: 1fr; }
   .ctp-cards-sidebar { position: static; }
 }
+
+/* ─── Modern Enhancement ─────────────────── */
+
+.ctp-cards-layout {
+  animation: ctpFadeSlide 0.3s ease forwards;
+}
+
+.ctp-acc-section {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
+  transform: translateY(0);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ctp-acc-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+.ctp-savoir-mini {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.ctp-savoir-mini::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.ctp-savoir-mini:hover::before {
+  opacity: 1;
+}
+
+.ctp-acc-header {
+  position: relative;
+}
+
+.ctp-acc-header::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--ctp-stat-accent, #3b82f6);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s ease;
+}
+
+.ctp-acc-header:hover::after {
+  transform: scaleX(1);
+}
+
+.ctp-filter-summary {
+  animation: ctpPop 0.2s ease;
+}
+
+.ctp-list-mode-btn {
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border: 1px solid var(--ctp-border);
+  background: var(--ctp-surface);
+}
+
+.ctp-list-mode-btn.active {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
+}
+
+.ctp-sidebar-item.active {
+  background: linear-gradient(90deg, #eff6ff 0%, #ffffff 100%);
+  font-weight: 600;
+  border-left: 3px solid #3b82f6;
+}
+
+.ctp-savoir-mini__nom {
+  /* height constraint for multi-line ellipsis */
+  min-height: 42px;
+}
+
+@keyframes ctpFadeSlide {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ctpPop {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}

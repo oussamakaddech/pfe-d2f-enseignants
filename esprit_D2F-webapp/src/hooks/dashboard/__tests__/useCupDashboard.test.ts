@@ -154,13 +154,17 @@ describe("useCupDashboard", () => {
 
   it("tauxReussite derives from dept analytics", async () => {
     K.getFormationsByEtat.mockResolvedValue({});
-    A.getFormationsParDepartement.mockResolvedValue({
+    // La query dept-analytics est désactivée : on sème la donnée dans le cache.
+    const seeded = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+    seeded.setQueryData(["cup", "dept-analytics"], {
       departements: [
         { departementNom: "INFO", tauxParticipation: 80, scoreEngagement: 60 },
         { departementNom: "TI", tauxParticipation: 50, scoreEngagement: 50 },
       ],
     });
-    const { result } = renderHook(() => useCupDashboard(), { wrapper: createWrapper() });
+    const seededWrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(QueryClientProvider, { client: seeded }, children);
+    const { result } = renderHook(() => useCupDashboard(), { wrapper: seededWrapper });
     await waitFor(() => expect(result.current.tauxReussite).toHaveLength(2));
     const info = result.current.tauxReussite.find((d) => d.domaine === "INFO");
     expect(info?.reussite).toBe(Math.round(80 * 0.8 + 60 * 0.2));
@@ -195,10 +199,16 @@ describe("useCupDashboard", () => {
     K.getFormationsByEtat.mockResolvedValue({});
     A.getFormationsParDepartement.mockResolvedValue({ departements: [{ tauxParticipation: 100 }] });
     B.getAllBesoinFormations.mockResolvedValue([]);
-    P.getOverview.mockResolvedValue({ nb_enseignants_suivis: 12, taux_couverture_global: 0.75 });
+    // Le backend renvoie déjà un pourcentage (0-100) et un delta en points.
+    P.getOverview.mockResolvedValue({
+      nb_enseignants_suivis: 12,
+      taux_couverture_global: 75,
+      deltas: { taux_couverture_global: 2.5 },
+    });
     const { result } = renderHook(() => useCupDashboard(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.kpis.nbEnseignantsSuivis).toBe(12));
     expect(result.current.kpis.couverture).toBe(75);
+    expect(result.current.kpis.couvertureDelta).toBe(2.5);
   });
 
   it("exposes raw data and loading flags", async () => {
@@ -211,7 +221,8 @@ describe("useCupDashboard", () => {
     const { result } = renderHook(() => useCupDashboard(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.timeline).toEqual([{ x: 1 }]));
     expect(result.current.formationsByType).toEqual([{ type: "A" }]);
-    expect(result.current.upData).toEqual([{ up: "UP1" }]);
+    // La query up-analytics est volontairement désactivée (endpoint 404) : pas de données.
+    expect(result.current.upData).toBeUndefined();
     expect(result.current.loading).toBe(false);
     expect(typeof result.current.formationsByTypeLoading).toBe("boolean");
     expect(typeof result.current.timelineLoading).toBe("boolean");

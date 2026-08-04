@@ -105,6 +105,19 @@ export default function InscriptionsPage() {
 
   return (
     <div className="ins-page">
+      <div className="cat-hero">
+        <div className="cat-hero-top">
+          <div className="cat-hero-left">
+            <div className="cat-hero-icon"><AppstoreOutlined /></div>
+            <div>
+              <div className="cat-hero-title-row">
+                <h2 className="cat-hero-title">Catalogue des Formations</h2>
+              </div>
+              <div className="cat-hero-subtitle">Consulter le catalogue et suivre vos inscriptions</div>
+            </div>
+          </div>
+        </div>
+      </div>
       <Tabs
         activeKey={activeTab}
         onChange={(key) => setSearchParams({ tab: key })}

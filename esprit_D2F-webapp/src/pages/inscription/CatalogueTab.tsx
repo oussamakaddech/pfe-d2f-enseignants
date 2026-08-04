@@ -8,14 +8,14 @@ import {
   EyeOutlined, UnlockOutlined, LockOutlined, UserAddOutlined,
   CheckCircleOutlined, TeamOutlined, CalendarOutlined, BookOutlined,
   ApartmentOutlined, FilterOutlined, ReloadOutlined, AppstoreOutlined,
-  ThunderboltOutlined,
+  ThunderboltOutlined, SearchOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useFormationsVisibles, useAllFormations, useFormationsParUp, useUpdateInscriptionsOuvertes } from "@/hooks/formation/useFormations";
 import { useProfile, useDemanderInscription, useFormationsAccessibles, useInscriptionsByEnseignant } from "@/hooks/formation/useFormationExtras";
 import { useEnseignantById } from "@/hooks/enseignant/useEnseignants";
 import { normalizeRole } from "@/utils/constants/roles";
-import { PageLoader, EmptyStateStandard, InscriptionStatGrid, PageHero } from "@/components/common";
+import { PageLoader, EmptyStateStandard } from "@/components/common";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import type { Id } from "@/models/common";
 import type { Dayjs } from "dayjs";
@@ -31,8 +31,8 @@ interface FormationItem {
   dateFin?: string;
   ouverte?: boolean;
   inscriptionsOuvertes?: boolean;
-  up1?: { libelle?: string };
-  departement1?: { libelle?: string };
+  up?: { libelle?: string };
+  departement?: { libelle?: string };
 }
 
 interface EnseignantData {
@@ -58,8 +58,8 @@ function filterFormations(
   return list.filter((f) => {
     if (search && !f.titreFormation?.toLowerCase().includes(search.toLowerCase())) return false;
     if (type && f.typeFormation !== type) return false;
-    if (up && f.up1?.libelle !== up) return false;
-    if (dept && f.departement1?.libelle !== dept) return false;
+    if (up && f.up?.libelle !== up) return false;
+    if (dept && f.departement?.libelle !== dept) return false;
     if (ouverte !== undefined && f.ouverte !== ouverte) return false;
     if (dateRange.length === 2) {
       const d = dayjs(f.dateDebut);
@@ -123,8 +123,8 @@ export default function CatalogueTab() {
   const filtered = filterFormations(formationsList, search, typeFilter, upFilter, deptFilter, ouverteFilter, dateRange);
 
   const types = useMemo(() => [...new Set(formationsList.map((f) => f.typeFormation).filter(Boolean))].map((t) => ({ label: t as string, value: t as string })), [formationsList]);
-  const ups = useMemo(() => [...new Set(formationsList.map((f) => f.up1?.libelle).filter(Boolean))].map((u) => ({ label: u as string, value: u as string })), [formationsList]);
-  const depts = useMemo(() => [...new Set(formationsList.map((f) => f.departement1?.libelle).filter(Boolean))].map((d) => ({ label: d as string, value: d as string })), [formationsList]);
+  const ups = useMemo(() => [...new Set(formationsList.map((f) => f.up?.libelle).filter(Boolean))].map((u) => ({ label: u as string, value: u as string })), [formationsList]);
+  const depts = useMemo(() => [...new Set(formationsList.map((f) => f.departement?.libelle).filter(Boolean))].map((d) => ({ label: d as string, value: d as string })), [formationsList]);
 
   const stats = useMemo(() => {
     const total = formationsList.length;
@@ -179,48 +179,13 @@ export default function CatalogueTab() {
 
   return (
     <div className="cat-page">
-      <PageHero
-        icon={<AppstoreOutlined />}
-        tone="success"
-        title="Catalogue des Formations"
-        badge={
-          <span className="cat-hero-badge">
-            {filtered.length}<span className="cat-hero-badge-total">/ {formationsList.length}</span>
-          </span>
-        }
-        subtitle={`${filtered.length} formation${filtered.length > 1 ? "s" : ""} affichée${filtered.length > 1 ? "s" : ""}`}
-        actions={
-          <Button icon={<ReloadOutlined />} onClick={() => {
-            if (role === "cup") {
-              refetchParUp();
-            } else if (role === "animateur") {
-              refetchAccessibles();
-            } else {
-              refetch();
-            }
-          }} loading={loading} className="ins-btn">
-            Actualiser
-          </Button>
-        }
-      />
-
-      <InscriptionStatGrid stats={[
-        { icon: <AppstoreOutlined />, label: isTeacher ? "Disponibles" : "Total", value: stats.total, tone: "brand", loading },
-        ...(!isTeacher ? [
-          { icon: <UnlockOutlined />, label: "Ouvertes", value: stats.open, tone: "success" as const, loading },
-          { icon: <LockOutlined />, label: "Fermées", value: stats.closed, tone: "danger" as const, loading },
-        ] : []),
-        { icon: <BookOutlined />, label: "Types", value: stats.uniqueTypes, tone: "info", loading },
-        ...(stats.startingSoon > 0 ? [{ icon: <ThunderboltOutlined />, label: "< 7 jours", value: stats.startingSoon, tone: "warning" as const, loading }] : []),
-      ]} />
-
       <div className="cat-filters">
-        <FilterOutlined className="cat-filters-icon" />
-        <Input.Search placeholder="Rechercher…" allowClear value={search} onChange={(e) => setSearch(e.target.value)} onSearch={setSearch} style={{ width: 200 }} />
-        <Select placeholder="Type" options={types} allowClear value={typeFilter} onChange={setTypeFilter} style={{ width: 130 }} />
-        <Select placeholder="UP" options={ups} allowClear value={upFilter} onChange={setUpFilter} style={{ width: 150 }} />
-        <Select placeholder="Département" options={depts} allowClear value={deptFilter} onChange={setDeptFilter} style={{ width: 150 }} />
-        <Select placeholder="Inscriptions" allowClear value={ouverteFilter} onChange={setOuverteFilter} style={{ width: 140 }} options={[{ label: "Ouvertes", value: true }, { label: "Fermées", value: false }]} />
+        <SearchOutlined className="cat-filters-icon" />
+        <Input.Search placeholder="Rechercher une formation…" allowClear value={search} onChange={(e) => setSearch(e.target.value)} onSearch={setSearch} style={{ width: 240 }} />
+        <Select placeholder="Type" options={types} allowClear value={typeFilter} onChange={setTypeFilter} style={{ width: 140 }} />
+        <Select placeholder="UP" options={ups} allowClear value={upFilter} onChange={setUpFilter} style={{ width: 160 }} />
+        <Select placeholder="Département" options={depts} allowClear value={deptFilter} onChange={setDeptFilter} style={{ width: 160 }} />
+        <Select placeholder="Inscriptions" allowClear value={ouverteFilter} onChange={setOuverteFilter} style={{ width: 150 }} options={[{ label: "Ouvertes", value: true }, { label: "Fermées", value: false }]} />
         <RangePicker value={dateRange.length === 2 ? [dateRange[0], dateRange[1]] : null} onChange={(d) => setDateRange(d?.filter((v): v is Dayjs => v !== null) ?? [])} />
         <div className="cat-filters-divider" />
         <Button icon={<ReloadOutlined />} onClick={resetFilters} className="ins-btn">Réinitialiser</Button>
@@ -240,8 +205,8 @@ export default function CatalogueTab() {
                   <div className="cat-card-title">{f.titreFormation}</div>
                   <div className="cat-card-meta">
                     <span><CalendarOutlined /> {f.dateDebut ? dayjs(f.dateDebut).format("DD/MM/YYYY") : "—"} → {f.dateFin ? dayjs(f.dateFin).format("DD/MM/YYYY") : "—"}</span>
-                    <span><ApartmentOutlined /> {f.departement1?.libelle || "—"}</span>
-                    <span><TeamOutlined /> {f.up1?.libelle || "—"}</span>
+                    <span><ApartmentOutlined /> {f.departement?.libelle || "—"}</span>
+                    <span><TeamOutlined /> {f.up?.libelle || "—"}</span>
                   </div>
                   <div className="cat-card-tags">
                     <Badge status={isOpen ? "success" : "error"} text={isOpen ? "Inscriptions ouvertes" : "Fermées"} />

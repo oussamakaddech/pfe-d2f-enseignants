@@ -9,7 +9,7 @@ export interface ActorDraft {
   nom: string;
   prenom: string;
   email: string;
-  type: "P" | "V";
+  type: "P" | "V" | "C";
   cup: "O" | "N";
   chefDepartement: "O" | "N";
   upLibelle?: string;
@@ -29,6 +29,7 @@ export interface AddActorModalProps {
 const TYPE_OPTIONS = [
   { value: "P", label: "Permanent" },
   { value: "V", label: "Vacataire" },
+  { value: "C", label: "Contractuel" },
 ];
 
 const CUP_OPTIONS = [

@@ -21,6 +21,7 @@ const toList = <T>(payload: ApiListOrPage<T>): T[] =>
 const DomaineAPI = {
   getAll: async (upId?: number | null, departementId?: number | null): Promise<Domaine[]> => {
     const params = new URLSearchParams();
+    params.set("size", "200");
     if (upId)          params.set("upId",          String(upId));
     if (departementId) params.set("departementId", String(departementId));
     const res = await axios.get<ApiListOrPage<Domaine>>(`${BASE}/domaines?${params}`);
@@ -67,7 +68,7 @@ const DomaineAPI = {
 const CompetenceAPI = {
   getAll: async (): Promise<Competence[]> => {
     const res = await axios.get<ApiListOrPage<Competence>>(
-      `${BASE}/competences`,
+      `${BASE}/competences?size=200`,
       
     );
     return toList(res.data);
@@ -107,7 +108,7 @@ const CompetenceAPI = {
 const SousCompetenceAPI = {
   getAll: async (): Promise<SousCompetence[]> => {
     const res = await axios.get<ApiListOrPage<SousCompetence>>(
-      `${BASE}/sous-competences`,
+      `${BASE}/sous-competences?size=200`,
       
     );
     return toList(res.data);
@@ -169,7 +170,7 @@ const SousCompetenceAPI = {
 const SavoirAPI = {
   getAll: async (): Promise<Savoir[]> => {
     const res = await axios.get<ApiListOrPage<Savoir>>(
-      `${BASE}/savoirs`,
+      `${BASE}/savoirs?size=200`,
       
     );
     return toList(res.data);
@@ -359,33 +360,27 @@ const NiveauDefinitionAPI = {
 };
 
 const StructureAPI = {
-  getArbreComplet: async (upId?: number | null, departementId?: number | null): Promise<TreeNode[]> => {
+  getArbreComplet: async (upId?: string | null, departementId?: string | null): Promise<TreeNode[]> => {
     const params = new URLSearchParams();
-    if (upId)          params.set("upId",          String(upId));
-    if (departementId) params.set("departementId", String(departementId));
+    if (upId)          params.set("upId",          upId);
+    if (departementId) params.set("departementId", departementId);
     const query = params.toString() ? `?${params}` : "";
-    const res = await axios.get<TreeNode[]>(`${BASE}/structure/arbre${query}`);
-    return res.data;
+    const res = await axios.get<{ domaines: TreeNode[] }>(`${BASE}/structure/arbre${query}`);
+    return res.data.domaines ?? [];
   },
 
   getArbreDomaine: async (domaineId: Id): Promise<TreeNode[]> => {
-    const res = await axios.get<TreeNode[]>(`${BASE}/structure/arbre/domaine/${domaineId}`);
+    const res = await axios.get<any>(`${BASE}/structure/arbre/domaine/${domaineId}`);
+    return res.data?.domaines ?? (Array.isArray(res.data) ? res.data : [res.data]);
+  },
+
+  rechercheGlobale: async (keyword: string): Promise<{ domaines?: any[]; competences?: any[]; sousCompetences?: any[]; savoirs?: any[] }> => {
+    const res = await axios.get(`${BASE}/structure/recherche?keyword=${encodeURIComponent(keyword)}`);
     return res.data;
   },
 
-  rechercheGlobale: async (keyword: string): Promise<TreeNode[]> => {
-    const res = await axios.get<TreeNode[]>(
-      `${BASE}/structure/recherche?keyword=${encodeURIComponent(keyword)}`,
-      
-    );
-    return res.data;
-  },
-
-  rechercheParDomaine: async (domaineId: Id, keyword: string): Promise<TreeNode[]> => {
-    const res = await axios.get<TreeNode[]>(
-      `${BASE}/structure/recherche/domaine/${domaineId}?keyword=${encodeURIComponent(keyword)}`,
-      
-    );
+  rechercheParDomaine: async (domaineId: Id, keyword: string): Promise<{ domaines?: any[]; competences?: any[]; sousCompetences?: any[]; savoirs?: any[] }> => {
+    const res = await axios.get(`${BASE}/structure/recherche/domaine/${domaineId}?keyword=${encodeURIComponent(keyword)}`);
     return res.data;
   },
 };

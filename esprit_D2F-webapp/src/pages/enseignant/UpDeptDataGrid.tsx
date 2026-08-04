@@ -425,7 +425,7 @@ export default function UpDeptDataGrid() {
                     <Tooltip title="Rafraîchir">
                       <Button icon={<ReloadOutlined />} onClick={() => fetchUps()} />
                     </Tooltip>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={openCreateUp} style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', border: 'none', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)' }}>
+                    <Button type="primary" icon={<PlusOutlined />} onClick={openCreateUp} style={{ background: 'linear-gradient(135deg, #b51200, #9a0f00)', border: 'none', boxShadow: '0 4px 12px rgba(181, 18, 0, 0.3)' }}>
                       Ajouter UP
                     </Button>
                     <Upload
@@ -488,7 +488,7 @@ export default function UpDeptDataGrid() {
                     <Tooltip title="Rafraîchir">
                       <Button icon={<ReloadOutlined />} onClick={() => fetchDepts()} />
                     </Tooltip>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={openCreateDept} style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', border: 'none', boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)' }}>
+                    <Button type="primary" icon={<PlusOutlined />} onClick={openCreateDept} style={{ background: 'linear-gradient(135deg, #b51200, #9a0f00)', border: 'none', boxShadow: '0 4px 12px rgba(181, 18, 0, 0.3)' }}>
                       Ajouter Département
                     </Button>
                     <Upload

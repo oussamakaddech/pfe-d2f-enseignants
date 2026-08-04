@@ -1,4 +1,4 @@
-import { AppstoreOutlined, BarsOutlined } from "@ant-design/icons";
+import { AppstoreOutlined } from "@ant-design/icons";
 import { Segmented } from "antd";
 import ExportMenu from "./ExportMenu";
 
@@ -19,7 +19,6 @@ export default function ViewToolbar({ displayMode, setDisplayMode, handleExportE
         onChange={setDisplayMode}
         options={[
           { value: "cards", label: <span><AppstoreOutlined /> Par competence</span> },
-          { value: "list", label: <span><BarsOutlined /> Liste</span> },
         ]}
       />
 

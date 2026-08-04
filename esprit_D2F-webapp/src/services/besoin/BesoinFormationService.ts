@@ -18,10 +18,45 @@ export interface BesoinNotification {
   [key: string]: unknown;
 }
 
+/** Pagination canonique du backend besoin (contrat DSI, cf. PageResponse). */
+interface BesoinPage<T> {
+  content?: T[];
+  page?: number;
+  size?: number;
+  totalElements?: number;
+  totalPages?: number;
+  first?: boolean;
+  last?: boolean;
+}
+
+const PAGE_SIZE = 100;
+const MAX_PAGES = 25; // garde-fou : 2500 besoins max — évite une boucle infinie en cas de réponse mal formée.
+
+/** Récupère TOUTES les pages (le backend pagine par défaut à 10 éléments). */
+async function fetchAllBesoins<T>(url: string): Promise<T[]> {
+  const all: T[] = [];
+  let page = 0;
+  while (page < MAX_PAGES) {
+    const response = await axios.get<ApiListOrPage<T> | BesoinPage<T> | T[]>(url, {
+      params: { page, size: PAGE_SIZE },
+    });
+    const data = response.data;
+    if (Array.isArray(data)) {
+      all.push(...data);
+      break;
+    }
+    const content = (data as BesoinPage<T>).content ?? [];
+    all.push(...content);
+    const last = (data as BesoinPage<T>).last;
+    if (last === undefined || last === true) break;
+    page += 1;
+  }
+  return all;
+}
+
 const BesoinFormationService = {
   async getAllBesoinFormations(): Promise<BesoinFormation[]> {
-    const response = await axios.get<ApiListOrPage<BesoinFormation>>(`${API_URL}`);
-    return (response.data as { content?: BesoinFormation[] }).content ?? (response.data as BesoinFormation[]) ?? [];
+    return fetchAllBesoins<BesoinFormation>(`${API_URL}`);
   },
 
   async getBesoinFormation(id: Id): Promise<BesoinFormation> {
@@ -54,8 +89,7 @@ const BesoinFormationService = {
   },
 
   async getApprovedBesoinFormations(): Promise<BesoinFormation[]> {
-    const response = await axios.get<ApiListOrPage<BesoinFormation>>(`${API_URL}/approved`);
-    return (response.data as { content?: BesoinFormation[] }).content ?? (response.data as BesoinFormation[]) ?? [];
+    return fetchAllBesoins<BesoinFormation>(`${API_URL}/approved`);
   },
 
   async approveBesoin(id: Id): Promise<BesoinFormation> {

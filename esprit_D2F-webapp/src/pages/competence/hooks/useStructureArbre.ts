@@ -3,6 +3,7 @@ import { Form } from "antd";
 import { useStructureApi, useNiveauDefinitionApi, useSavoirApi } from "@/hooks/competence/useCompetenceService";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import type { TreeNode, NiveauDefinition } from "@/models/competence";
+import type { SearchResults } from "../components/StructureSearchResultsView";
 
 export function useStructureArbre() {
   const { message } = useAppNotification();
@@ -12,11 +13,14 @@ export function useStructureArbre() {
 
   const [loading, setLoading] = useState(true);
   const [structure, setStructure] = useState<TreeNode[] | null>(null);
-  const [searchResults, setSearchResults] = useState<TreeNode[] | null>(null);
+  const [searchResults, setSearchResults] = useState<SearchResults | null>(null);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectedDomaine, setSelectedDomaine] = useState<number | string | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("tree");
+
+  const [filterUpId, setFilterUpId] = useState<string | null>(null);
+  const [filterDeptId, setFilterDeptId] = useState<string | null>(null);
 
   // Niveau definitions modal
   const [niveauModalVisible, setNiveauModalVisible] = useState(false);
@@ -29,14 +33,14 @@ export function useStructureArbre() {
   const fetchStructure = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await structureApi.getArbreComplet();
+      const data = await structureApi.getArbreComplet(filterUpId, filterDeptId);
       setStructure(data);
     } catch {
       message.error("Erreur lors du chargement de la structure");
     } finally {
       setLoading(false);
     }
-  }, [structureApi, message]);
+  }, [structureApi, message, filterUpId, filterDeptId]);
 
   useEffect(() => {
     void fetchStructure();
@@ -192,6 +196,12 @@ export function useStructureArbre() {
     loading,
     structure,
     allSavoirs,
+    loadStructure: fetchStructure,
+    // filters
+    filterUpId,
+    filterDeptId,
+    setFilterUpId,
+    setFilterDeptId,
     // search
     searchResults,
     searchKeyword,

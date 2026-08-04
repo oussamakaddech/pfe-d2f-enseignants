@@ -30,7 +30,7 @@ export default function useStructureData() {
   const { message } = useAppNotification();
   const qc = useQueryClient();
 
-  const [searchResults, setSearchResults] = useState<TreeNode[] | null>(null);
+  const [searchResults, setSearchResults] = useState<Record<string, unknown> | null>(null);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectedDomaine, setSelectedDomaine] = useState<Id | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -57,7 +57,10 @@ export default function useStructureData() {
 
   const structureQuery = useQuery({
     queryKey: ["structure", filterUpId, filterDeptId],
-    queryFn: () => CompetenceService.structure.getArbreComplet(filterUpId, filterDeptId),
+    queryFn: () => CompetenceService.structure.getArbreComplet(
+        filterUpId != null ? String(filterUpId) : null,
+        filterDeptId != null ? String(filterDeptId) : null
+      ),
   });
 
   const niveauQuery = useQuery({
@@ -113,8 +116,9 @@ export default function useStructureData() {
 
   const treeData = useMemo(() => {
     const data = structureQuery.data as unknown as StructureData | undefined;
-    if (!data?.domaines) return [];
-    return data.domaines.map((d) => buildDomaineNode(d, openNiveauModal));
+    if (!data) return [];
+    const domaines = Array.isArray(data) ? data : (data.domaines ?? []);
+    return domaines.map((d) => buildDomaineNode(d, openNiveauModal));
   }, [structureQuery.data, openNiveauModal]);
 
   const loadStructure = useCallback(() => structureQuery.refetch(), [structureQuery]);
@@ -153,9 +157,9 @@ export default function useStructureData() {
     }
     setSearchLoading(true);
     try {
-      let data: TreeNode[];
+      let data: Record<string, unknown>;
       if (domaine) data = await CompetenceService.structure.rechercheParDomaine(domaine, keyword.trim());
-      else data = await CompetenceService.structure.rechercheGlobale(keyword.trim());
+      else data = await CompetenceService.structure.rechercheGlobale(keyword.trim()) as Record<string, unknown>;
       setSearchResults(data);
     } catch {
       message.error("Erreur de recherche");

@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Button, Tag, Alert, Input, Statistic, Table, Segmented, Progress,
   Tooltip, Breadcrumb, Avatar, Badge,
@@ -10,7 +10,7 @@ import {
   ReloadOutlined, PlusOutlined, BellOutlined, SearchOutlined, BookOutlined,
   TeamOutlined, CheckCircleOutlined, SafetyCertificateOutlined, RiseOutlined,
   ApartmentOutlined, ThunderboltOutlined, RightOutlined,
-  NodeIndexOutlined, CalendarOutlined, ClockCircleOutlined,
+  NodeIndexOutlined, CalendarOutlined, ClockCircleOutlined, DashboardOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import "dayjs/locale/fr";
@@ -93,8 +93,17 @@ export default function CupDashboardPage() {
       .filter((f) => f && f.etatFormation === "PLANIFIE" && f.dateDebut)
       .map<FormationAVenir>((f) => {
         const formationId = f.idFormation;
-        const inscrits = inscList
-          .filter((i) => Number((i as { formationId?: unknown })?.formationId) === Number(formationId)).length;
+        // L'API InscriptionDTO renvoie `formation.idFormation` (objet imbriqué) :
+        // on gère aussi les variantes plates (formationId) par compatibilité.
+        const formationInscriptionId = (i: unknown): unknown => {
+          const item = i as { formation?: { idFormation?: unknown }; formationId?: unknown };
+          return item?.formation?.idFormation ?? item?.formationId;
+        };
+        const countInscrits = inscList
+          .filter((i) => Number(formationInscriptionId(i)) === Number(formationId)).length;
+        // inscriptionCount (DTO) prioritaire s'il est renseigné, sinon comptage local.
+        const inscrits = (f as unknown as { inscriptionCount?: number | null })?.inscriptionCount
+          ?? countInscrits;
         return {
           id: String(formationId ?? ""),
           date: dayjs(f.dateDebut).format("DD MMM"),
@@ -108,11 +117,10 @@ export default function CupDashboardPage() {
       .slice(0, 8);
   }, [formations, inscriptions]);
 
-  const nbInscriptionsAttente = useMemo(
-    () => (inscriptions as Array<{ etat?: string }>)
-      .filter((i) => i.etat === "PENDING").length,
-    [inscriptions],
-  );
+  const nbInscriptionsAttente = useMemo(() => {
+    return (inscriptions as Array<{ etat?: string }>)
+      .filter((i) => i.etat === "PENDING").length;
+  }, [inscriptions]);
 
   const displayName = user?.username ?? user?.email ?? "Utilisateur";
   const initials = displayName.split(/[\s.]+/).filter(Boolean).map((s) => s[0]).join("").slice(0, 2).toUpperCase();
@@ -120,10 +128,22 @@ export default function CupDashboardPage() {
   const scrollTo = (id: string) =>
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
+  const queryClient = useQueryClient();
+
   async function handleRefresh() {
     setRefreshing(true);
-    try { await new Promise((r) => setTimeout(r, 500)); }
-    finally { setRefreshing(false); }
+    try {
+      // Invalide toutes les requêtes du dashboard CUP pour forcer un refetch réel
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["kpi"] }),
+        queryClient.invalidateQueries({ queryKey: ["cup"] }),
+        queryClient.invalidateQueries({ queryKey: ["besoins"] }),
+        queryClient.invalidateQueries({ queryKey: ["analyse"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   const actionCount = (kpis.pendingBesoins ?? 0) + nbInscriptionsAttente + (kpis.critiques ?? 0);
@@ -160,6 +180,8 @@ export default function CupDashboardPage() {
     return all.slice(-periodMonths[period]);
   }, [timeline, period]);
 
+  const chartTotal = useMemo(() => chartData.reduce((s, d) => s + d.value, 0), [chartData]);
+
   const besoinsTri = useMemo(() => {
     const q = besoinSearch.trim().toLowerCase();
     return [...besoinsPriorises]
@@ -175,11 +197,22 @@ export default function CupDashboardPage() {
   // une mesure réelle (nb besoins) plutôt qu'une barre factice.
   const densityFor = (count: number) => Math.round((count / maxTopCount) * 100);
 
+  // Priorité réelle (max des besoins contribuant) — CRITIQUE > HAUTE > MOYENNE > BASSE.
+  const topPrioriteTag = (c: (typeof top5)[number]) => {
+    if (c.priorite === "CRITIQUE") return { color: "red", label: "CRITIQUE" } as const;
+    if (c.priorite === "HAUTE") return { color: "orange", label: "HAUTE" } as const;
+    if (c.priorite === "MOYENNE") return { color: "gold", label: "MOYENNE" } as const;
+    if (c.priorite === "BASSE") return { color: "blue", label: "BASSE" } as const;
+    return { color: "default", label: "Non définie" } as const;
+  };
+
+  // Deltas : uniquement une vraie comparaison quand le backend la fournit
+  // (couverture vs snapshot précédent) ; sinon simple note descriptive.
   const kpiList = [
-    { id: "actives", label: "Formations actives", value: kpis.enCours ?? 0, suffix: "", delta: `${kpis.enCours ?? 0} actives`, up: true, tone: "navy" as const, icon: <BookOutlined />, detail: { label: "Voir les formations", onClick: () => navigate("/home/Formation") }, spark: [kpis.enCours ?? 0] },
-    { id: "insc", label: "Inscriptions en attente", value: nbInscriptionsAttente, suffix: "", delta: nbInscriptionsAttente + " à valider", up: true, tone: "orange" as const, icon: <TeamOutlined />, detail: { label: "Gérer les inscriptions", onClick: () => scrollTo("cd-suivi") }, spark: [nbInscriptionsAttente] },
-    { id: "completion", label: "Taux de complétion moyen", value: pct(kpis.tauxReussiteGlobal), suffix: "%", delta: `${kpis.tauxReussiteGlobal ?? 0}%`, up: true, tone: "green" as const, icon: <CheckCircleOutlined />, detail: { label: "Détail complétion", onClick: () => scrollTo("cd-couverture") }, spark: [pct(kpis.tauxReussiteGlobal)] },
-    { id: "couv", label: "Taux de couverture des compétences", value: pct(kpis.couverture), suffix: "%", delta: `${kpis.couverture ?? 0}%`, up: true, tone: "blue" as const, icon: <SafetyCertificateOutlined />, detail: { label: "Voir le référentiel", onClick: () => scrollTo("cd-couverture") }, spark: [pct(kpis.couverture)] },
+    { id: "actives", label: "Formations actives", value: kpis.enCours ?? 0, suffix: "", caption: `${kpis.enCours ?? 0} en cours`, tone: "navy" as const, icon: <BookOutlined />, detail: { label: "Voir les formations", onClick: () => navigate("/home/Formation") }, spark: [kpis.enCours ?? 0] },
+    { id: "insc", label: "Inscriptions en attente", value: nbInscriptionsAttente, suffix: "", caption: `${nbInscriptionsAttente} à valider`, tone: "orange" as const, icon: <TeamOutlined />, detail: { label: "Gérer les inscriptions", onClick: () => scrollTo("cd-suivi") }, spark: [nbInscriptionsAttente] },
+    { id: "completion", label: "Taux de complétion moyen", value: pct(kpis.tauxReussiteGlobal), suffix: "%", caption: `${kpis.tauxReussiteGlobal ?? 0}% de formations achevées`, tone: "green" as const, icon: <CheckCircleOutlined />, detail: { label: "Détail complétion", onClick: () => scrollTo("cd-couverture") }, spark: [pct(kpis.tauxReussiteGlobal)] },
+    { id: "couv", label: "Taux de couverture des compétences", value: pct(kpis.couverture), suffix: "%", delta: kpis.couvertureDelta != null ? `${kpis.couvertureDelta > 0 ? "+" : ""}${kpis.couvertureDelta} pts` : undefined, up: kpis.couvertureDelta != null ? kpis.couvertureDelta >= 0 : undefined, caption: kpis.couvertureDelta == null ? `${kpis.couverture ?? 0}% couverts` : undefined, tone: "blue" as const, icon: <SafetyCertificateOutlined />, detail: { label: "Voir le référentiel", onClick: () => scrollTo("cd-couverture") }, spark: [pct(kpis.couverture)] },
   ];
 
   const prioColor = (v: string) => {
@@ -211,26 +244,33 @@ export default function CupDashboardPage() {
 
   return (
     <div className="cd">
-      {/* ── Topbar (propre, sticky, breadcrumb) ─────────────── */}
-      <header className="cd-topbar">
-        <div className="cd-topbar-left">
-          <Breadcrumb
-            separator="/"
-            items={[{ title: "Accueil" }, { title: "Tableau de bord" }]}
-          />
-          <div className="cd-topbar-titles">
-            <h1 className="cd-page-title">Tableau de bord CUP</h1>
-            <p className="cd-page-sub">Vue consolidée de votre unité pédagogique</p>
+      {/* ── Header brand rouge (style Analyse Prédictive) ──── */}
+      <header className="cd-header">
+        <div className="cd-header-left">
+          <div className="cd-header-icon"><DashboardOutlined /></div>
+          <div className="cd-header-titles">
+            <span className="cd-header-breadcrumb">
+              <span onClick={() => navigate("/home")} className="cd-header-bc-link">Accueil</span>
+              <span className="cd-header-bc-sep">/</span>
+              <span>Tableau de bord</span>
+            </span>
+            <div className="cd-header-title-row">
+              <h1 className="cd-header-title">Tableau de bord CUP</h1>
+              {actionCount > 0 && (
+                <span className="cd-header-badge">{actionCount}</span>
+              )}
+            </div>
+            <span className="cd-header-sub">Vue consolidée de votre unité pédagogique</span>
           </div>
         </div>
-        <div className="cd-topbar-right">
-          <span className="cd-update"><ClockCircleOutlined /> Mise à jour : {updateLabel}</span>
-          <Button icon={<ReloadOutlined spin={refreshing} />} onClick={handleRefresh} loading={refreshing}>Actualiser</Button>
+        <div className="cd-header-actions">
+          <span className="cd-header-updated"><ClockCircleOutlined /> {updateLabel}</span>
+          <Button className="cd-header-btn" icon={<ReloadOutlined />} loading={refreshing} onClick={handleRefresh}>Actualiser</Button>
           <Badge count={kpis.pendingBesoins ?? 0} size="small" offset={[-2, 2]}>
-            <Button shape="circle" icon={<BellOutlined />} />
+            <Button className="cd-header-btn" shape="circle" icon={<BellOutlined />} />
           </Badge>
           <Tooltip title={displayName}>
-            <Avatar className="cd-avatar">{initials}</Avatar>
+            <Avatar className="cd-header-avatar">{initials}</Avatar>
           </Tooltip>
         </div>
       </header>
@@ -278,7 +318,7 @@ export default function CupDashboardPage() {
         <Card
           className="cd-span-7"
           title="Évolution mensuelle"
-          subtitle={`${timeline?.totalFormations ?? 0} formations · ${periodLabel[period]}`}
+          subtitle={`${chartTotal} formation${chartTotal > 1 ? "s" : ""} · ${periodLabel[period]}`}
           icon={<RiseOutlined />}
           iconColor="#0e7490"
           iconBg="rgba(14,116,144,.12)"
@@ -410,8 +450,8 @@ export default function CupDashboardPage() {
                 <div className="cd-coverage-main">
                   <div className="cd-coverage-name">{c.name}</div>
                   <div className="cd-coverage-meta">
-                    <Tag color={i < 2 ? "red" : "orange"}>{i < 2 ? "HAUTE" : "MOYENNE"}</Tag>
-                    <span>{c.count} enseignants impactés</span>
+                    <Tag color={topPrioriteTag(c).color}>{topPrioriteTag(c).label}</Tag>
+                    <span>{c.count} enseignant{c.count > 1 ? "s" : ""} impacté{c.count > 1 ? "s" : ""}</span>
                   </div>
                   <Progress percent={densityFor(c.count)} size="small" strokeColor="#ea580c" />
                 </div>
@@ -470,15 +510,19 @@ function Section({
   );
 }
 
-/* ── KPI tile (valeur dominante + delta + sparkline + lien) ──────── */
+/* ── KPI tile (valeur dominante + delta réel + sparkline + lien) ──────── */
 function KpiTile({
-  label, value, suffix, delta, up, tone, icon, detail, spark,
+  label, value, suffix, delta, up, caption, tone, icon, detail, spark,
 }: {
   readonly label: string;
   readonly value: number;
   readonly suffix: string;
-  readonly delta: string;
-  readonly up: boolean;
+  /** Variation réelle (comparaison vs période précédente), si disponible. */
+  readonly delta?: string;
+  /** Sens de la variation (uniquement si `delta` fourni). */
+  readonly up?: boolean;
+  /** Note descriptive affichée quand aucune comparaison réelle n'existe. */
+  readonly caption?: string;
   readonly tone: "navy" | "orange" | "green" | "blue";
   readonly icon: ReactNode;
   readonly detail: { readonly label: string; readonly onClick: () => void };
@@ -501,8 +545,14 @@ function KpiTile({
         <Statistic value={value} suffix={suffix ? ` ${suffix}` : ""} valueStyle={{ color: "#0f2740", fontWeight: 800, fontSize: 30, letterSpacing: "-.02em" }} />
       </div>
       <div className="cup-kpi-foot">
-        <span className={`cup-delta ${up ? "up" : "down"}`}>{up ? "▲" : "▼"} {delta}</span>
-        <span className="cup-delta-note">vs préc.</span>
+        {delta != null && up != null ? (
+          <>
+            <span className={`cup-delta ${up ? "up" : "down"}`}>{up ? "▲" : "▼"} {delta}</span>
+            <span className="cup-delta-note">vs préc.</span>
+          </>
+        ) : (
+          <span className="cup-delta-note">{caption ?? "—"}</span>
+        )}
         <Sparkline data={spark} tone={tone} />
       </div>
       <button
@@ -606,12 +656,18 @@ function AreaLineChart({ data, color = ACCENT }: { readonly data: Array<{ readon
   const niceMax = Math.max(4, Math.ceil(max / 4) * 4);
   const n = data.length;
   const innerW = W - PL - PR, innerH = H - PT - PB;
+  // Évite la division par zéro quand n === 1 : on répartit les points sur la largeur.
   const x = (i: number) => PL + (n <= 1 ? innerW / 2 : (i / (n - 1)) * innerW);
   const y = (v: number) => PT + innerH * (1 - v / niceMax);
 
   const px = data.map((d, i) => [x(i), y(d.value)] as const);
-  const line = buildSmoothPath(px);
-  const area = `${line} L ${x(n - 1).toFixed(1)} ${PT + innerH} L ${x(0).toFixed(1)} ${PT + innerH} Z`;
+  // Cas d'un seul point : on génère une ligne horizontale + aire pour visualiser la valeur.
+  const line = n < 2
+    ? `M ${px[0][0].toFixed(1)} ${px[0][1].toFixed(1)} L ${(W - PR).toFixed(1)} ${px[0][1].toFixed(1)}`
+    : buildSmoothPath(px);
+  const area = n < 2
+    ? `M ${px[0][0].toFixed(1)} ${(PT + innerH).toFixed(1)} L ${px[0][0].toFixed(1)} ${px[0][1].toFixed(1)} L ${(W - PR).toFixed(1)} ${px[0][1].toFixed(1)} L ${(W - PR).toFixed(1)} ${(PT + innerH).toFixed(1)} Z`
+    : `${line} L ${x(n - 1).toFixed(1)} ${PT + innerH} L ${x(0).toFixed(1)} ${PT + innerH} Z`;
 
   const fmtX = (label: string) => {
     const d = dayjs(label);

@@ -16,7 +16,7 @@ public final class AuthorizationMatrix {
     public static final String AFFECTATION_UPDATE_ALL = "hasAnyRole('ROLE_ADMIN')";
     public static final String AFFECTATION_DELETE = "hasAnyRole('ROLE_ADMIN')";
 
-    public static final String BESOIN_FORMATION_READ_ALL = "hasAnyRole('ROLE_ADMIN','ROLE_CHEF_DEPARTEMENT','ROLE_ANIMATEUR')";
+    public static final String BESOIN_FORMATION_READ_ALL = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT','ROLE_ANIMATEUR')";
     public static final String BESOIN_FORMATION_READ_CUP = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
     public static final String BESOIN_FORMATION_READ_ENSEIGNANT = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT')";
     // ANIMATEUR inclus : un animateur interne est aussi un enseignant et peut donc

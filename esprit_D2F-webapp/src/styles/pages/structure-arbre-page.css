@@ -172,3 +172,155 @@
     border-radius: var(--radius-md);
   }
 }
+
+/* ─── Modern Arbre Page ─────────────────────────────────────────────── */
+
+.ma-header {
+  background: #ffffff;
+  padding: 20px 32px;
+  margin-bottom: 24px;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ma-header h2 {
+  font-size: 1.875rem;
+  line-height: 1.2;
+  color: #1e293b;
+}
+
+.ma-header p {
+  font-size: 0.95rem;
+  color: #64748b;
+}
+
+.ma-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.ma-card {
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.ma-card:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+
+.ma-card--tree {
+  background: #ffffff;
+}
+
+.ma-card--tree .ant-tree {
+  padding: 16px;
+}
+
+.ma-card--tree .ant-tree-node-content-wrapper {
+  border-radius: 8px;
+  padding: 4px 8px;
+  transition: all 0.15s ease;
+}
+
+.ma-card--tree .ant-tree-node-content-wrapper:hover {
+  background: #f0f9ff;
+}
+
+.ma-card--tree .ant-tree-treenode-selected .ant-tree-node-content-wrapper {
+  background: #dbeafe;
+  color: #1e40af;
+  font-weight: 600;
+}
+
+.ma-card--tree .ant-tree-switcher {
+  color: #64748b;
+  transition: transform 0.2s ease;
+}
+
+.ma-card--tree .ant-tree-switcher-noop {
+  color: #94a3b5;
+}
+
+.ma-modal-content {
+  padding: 4px;
+}
+
+.ma-modal-body {
+  padding: 0 !important;
+}
+
+.ma-modal-content .ant-collapse-header {
+  background: #f8fafc;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.ma-modal-content .ant-table-small {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ma-modal-content .ant-table-row:hover {
+  background: #f8fafc;
+}
+
+/* Tab bar moderne */
+.ma-tabs .ant-tabs-nav {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  margin-bottom: 0;
+}
+
+.ma-tabs .ant-tabs-tab {
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.ma-tabs .ant-tabs-tab-active {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+.ma-tabs .ant-tabs-tab-active .ant-tabs-tab-heading {
+  color: #ffffff;
+}
+
+.ma-tabs .ant-tabs-tab:not(.ant-tabs-tab-active):hover {
+  background: #f8fafc;
+}
+
+/* Search filters modernes */
+.ma-filter-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.ma-filter-row__domain {
+  min-width: 220px;
+  flex-shrink: 0;
+}
+
+.ma-filter-row__search {
+  flex: 1;
+  min-width: 240px;
+}
+
+/* Empty state moderne */
+.ma-empty {
+  padding: 48px 24px;
+}

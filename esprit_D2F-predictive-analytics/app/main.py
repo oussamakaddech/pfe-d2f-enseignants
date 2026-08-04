@@ -62,11 +62,14 @@ def create_app() -> FastAPI:
     app.include_router(v1_router)
 
     from app.legacy_compat_runtime import (
+        get_legacy_all_router,
         get_legacy_analytics_router,
-        get_legacy_d2f_router,
         get_legacy_jwt_auth_middleware,
     )
-    app.include_router(get_legacy_d2f_router(), prefix="/api")
+    # Router legacy complet (predict/detect/recommend/dashboard + d2f_master
+    # + d2f_compat) — exposé sous /api comme dans l'ancien main.py. Il porte
+    # /dashboard/in-demand-competencies consommé par le dashboard CUP.
+    app.include_router(get_legacy_all_router(), prefix="/api")
     app.include_router(get_legacy_analytics_router(), prefix="/api")
 
     jwt_auth_middleware = get_legacy_jwt_auth_middleware()

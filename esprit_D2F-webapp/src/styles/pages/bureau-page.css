@@ -14,12 +14,11 @@
   position: relative;
   margin-bottom: 24px;
   padding: 28px 32px;
-  background: linear-gradient(135deg, #ffffff 0%, #fff8f5 50%, #fff1eb 100%);
-  border: 1px solid rgba(181, 18, 0, 0.12);
+  background: linear-gradient(120deg, #9b1c1c 0%, #c8102e 50%, #e11d2e 100%);
   border-radius: 20px;
   box-shadow:
-    0 4px 24px rgba(181, 18, 0, 0.06),
-    0 1px 3px rgba(0, 0, 0, 0.04);
+    0 4px 24px rgba(155, 28, 28, 0.25),
+    0 1px 3px rgba(0, 0, 0, 0.06);
   overflow: hidden;
 }
 
@@ -33,8 +32,8 @@
   border-radius: 50%;
   pointer-events: none;
   filter: blur(50px);
-  opacity: 0.5;
-  background: radial-gradient(circle, rgba(181, 18, 0, 0.16), transparent 70%);
+  opacity: 0.35;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1), transparent 70%);
 }
 
 .bureau-hero > * { position: relative; z-index: 1; }
@@ -42,17 +41,18 @@
 .bureau-hero-title {
   font-size: 28px !important;
   font-weight: 800 !important;
-  background: linear-gradient(135deg, #1f2937 0%, #b51200 80%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #fff !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: #fff !important;
+  background-clip: unset !important;
   margin: 0 !important;
   line-height: 1.2 !important;
   letter-spacing: -0.02em;
 }
 
 .bureau-hero-subtitle {
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.8);
   font-size: 14px;
   margin-top: 4px;
 }
@@ -62,12 +62,13 @@
   align-items: center;
   gap: 4px;
   padding: 4px 12px;
-  background: #fde8e4;
-  border: 1px solid #f5c2b5;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 20px;
   font-size: 13px;
   font-weight: 700;
-  color: #8b0e00;
+  color: #fff;
+  backdrop-filter: blur(4px);
 }
 
 /* ─── Stats cards ─────────────────────────────────────────────────────── */
@@ -167,13 +168,15 @@
 .bureau-btn-delete:hover { color: #b91c1c !important; background: #fef2f2 !important; }
 
 .bureau-btn-add {
-  background: #b51200 !important;
-  border-color: #b51200 !important;
+  background: #fff !important;
+  border-color: #fff !important;
+  color: #c8102e !important;
   border-radius: 8px !important;
   font-weight: 600 !important;
 }
 
 .bureau-btn-add:hover {
-  background: #9a0f00 !important;
-  border-color: #9a0f00 !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(255, 255, 255, 0.9) !important;
+  color: #9b1c1c !important;
 }

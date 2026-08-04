@@ -191,12 +191,21 @@ def get_legacy_jwt_auth_middleware():
     return JWTAuthMiddleware
 
 
-def get_legacy_d2f_router():
-    """Return the legacy ``/v1/d2f`` router (mounted under ``/api``)."""
-    ensure_legacy_aliases()
-    from app_legacy.routers import d2f_master
+def get_legacy_all_router():
+    """Return the legacy ``app.routers.all`` router (mounted under ``/api``).
 
-    return d2f_master.router
+    Carry the remaining legacy contract consumed by the webapp through the
+    gateway ``/api/analyse/**`` rewrite: ``/health``, ``/predict/*``,
+    ``/recommend/path``, ``/detect/*`` and ``/dashboard/{summary,
+    in-demand-competencies, declining-competencies, teacher-risk-indicators,
+    department/{id}}``. The router also includes ``d2f_master`` (``/v1/d2f``)
+    and ``d2f_compat`` (``/v1/compat``), so mounting it restores the exact
+    surface the legacy ``main.py`` exposed under ``/api``.
+    """
+    ensure_legacy_aliases()
+    from app_legacy.routers.all import router
+
+    return router
 
 
 def get_legacy_analytics_router():

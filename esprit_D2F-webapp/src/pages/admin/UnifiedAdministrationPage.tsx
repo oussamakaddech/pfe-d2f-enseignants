@@ -240,8 +240,13 @@ export default function UnifiedAdministrationPage() {
     activeAccounts: accounts.filter(a => a.status === 'ACTIF').length,
     blockedAccounts: accounts.filter(a => a.status === 'BLOQUÉ').length,
     admins: accounts.filter(a => (a.role ?? '').toUpperCase() === 'ADMIN').length,
+    enseignants: accounts.filter(a => (a.role ?? '').toUpperCase() === 'ENSEIGNANT').length,
+    chefsDept: accounts.filter(a => (a.role ?? '').toUpperCase() === 'CHEF_DEPARTEMENT').length,
+    animateurs: accounts.filter(a => (a.role ?? '').toUpperCase() === 'ANIMATEUR').length,
+    cup: accounts.filter(a => (a.role ?? '').toUpperCase() === 'CUP').length,
     permTeachers: teachers.filter(t => t.type === 'P').length,
     vacTeachers: teachers.filter(t => t.type === 'V').length,
+    contractTeachers: teachers.filter(t => t.type === 'C').length,
   }), [accounts, teachers]);
 
   /* ── Filtered & sorted data ── */
@@ -667,13 +672,13 @@ export default function UnifiedAdministrationPage() {
         }
         return (
           <Space size={4}>
-            <Tooltip title="Modifier">
-              <Button type="text" icon={<EditOutlined />} className="teachers-btn-edit" onClick={() => openEditTeacher(record)} />
+            <Tooltip title="Modifier l'enseignant">
+              <Button shape="circle" icon={<EditOutlined />} className="accounts-action-btn" onClick={() => openEditTeacher(record)} />
             </Tooltip>
             <Popconfirm title="Supprimer ?" description={`${record.nom || ""} ${record.prenom || ""} sera supprimé.`}
               onConfirm={() => handleDeleteTeacher(record)} okText="Supprimer" cancelText="Annuler" okButtonProps={{ danger: true }}>
               <Tooltip title="Supprimer">
-                <Button type="text" icon={<DeleteOutlined />} className="teachers-btn-delete" />
+                <Button shape="circle" danger icon={<DeleteOutlined />} className="accounts-action-btn accounts-action-btn--delete" />
               </Tooltip>
             </Popconfirm>
           </Space>
@@ -691,7 +696,7 @@ export default function UnifiedAdministrationPage() {
             <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <h2 className="accounts-hero-title">Administration</h2>
               <span className="accounts-hero-badge">
-                {stats.totalAccounts + stats.totalTeachers}
+                {unifiedData.length}
                 <span className="accounts-hero-badge-total">entrées</span>
               </span>
             </div>
@@ -714,9 +719,12 @@ export default function UnifiedAdministrationPage() {
         <StatCard icon={<CheckCircleOutlined />} label="Comptes actifs" value={stats.activeAccounts} iconColor="#10b981" accentColor="#10b981" />
         <StatCard icon={<StopOutlined />} label="Comptes bloqués" value={stats.blockedAccounts} iconColor="#ef4444" accentColor="#ef4444" />
         <StatCard icon={<SolutionOutlined />} label="Administrateurs" value={stats.admins} iconColor="#7c3aed" accentColor="#7c3aed" />
-        <StatCard icon={<TeamOutlined />} label="Enseignants" value={stats.totalTeachers} iconColor="#2563eb" accentColor="#2563eb" />
+        <StatCard icon={<TeamOutlined />} label="Enseignants" value={stats.enseignants} iconColor="#2563eb" accentColor="#2563eb" />
         <StatCard icon={<UserOutlined />} label="Permanents" value={stats.permTeachers} iconColor="#2563eb" accentColor="#2563eb" />
         <StatCard icon={<UserOutlined />} label="Vacataires" value={stats.vacTeachers} iconColor="#d97706" accentColor="#d97706" />
+        <StatCard icon={<UserOutlined />} label="Contractuels" value={stats.contractTeachers} iconColor="#0891b2" accentColor="#0891b2" />
+        <StatCard icon={<BankOutlined />} label="Chefs dépt" value={stats.chefsDept} iconColor="#0891b2" accentColor="#0891b2" />
+        <StatCard icon={<UserOutlined />} label="Animateurs" value={stats.animateurs} iconColor="#6366f1" accentColor="#6366f1" />
       </div>
 
       {/* ── Toolbar ── */}

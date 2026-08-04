@@ -14,6 +14,8 @@ const STALE = 5 * 60 * 1000;
 export interface CompetenceDemandee {
   name: string;
   count: number;
+  /** Priorité réelle maximale des besoins contribuant à cette compétence. */
+  priorite?: Priorite | "NON_DEFINIE";
 }
 
 export interface BesoinParDept {
@@ -63,6 +65,10 @@ function impactFromStrategique(s?: string): number {
   return 3;
 }
 
+const PRIORITE_RANK: Record<Priorite | "NON_DEFINIE", number> = {
+  CRITIQUE: 5, HAUTE: 4, MOYENNE: 3, BASSE: 2, NON_DEFINIE: 1,
+};
+
 export function useCupDashboard() {
   const { data: formationsByEtat, isLoading: etatLoading } = useQuery({
     queryKey: ["kpi", "formations-by-etat", START, END],
@@ -76,17 +82,23 @@ export function useCupDashboard() {
     staleTime: STALE,
   });
 
-  const { data: formationsByDomaine = [], isLoading: domaineLoading } = useQuery({
+  const { data: formationsByDomaineRaw = [], isLoading: domaineLoading } = useQuery({
     queryKey: ["kpi", "formations-by-domaine", START, END],
     queryFn: () => KPIService.getFormationsByDomaine(START, END),
     staleTime: STALE,
   });
+  const formationsByDomaine = formationsByDomaineRaw.filter(
+    (d) => d.label && d.label.trim().toLowerCase() !== "non défini" && d.label.trim().toLowerCase() !== "non defini"
+  );
 
-  const { data: formationsByCompetence = [], isLoading: competenceLoading } = useQuery({
+  const { data: formationsByCompetenceRaw = [], isLoading: competenceLoading } = useQuery({
     queryKey: ["kpi", "formations-by-competence", START, END],
     queryFn: () => KPIService.getFormationsByCompetence(START, END),
     staleTime: STALE,
   });
+  const formationsByCompetence = formationsByCompetenceRaw.filter(
+    (c) => c.label && c.label.trim().toLowerCase() !== "non défini" && c.label.trim().toLowerCase() !== "non defini"
+  );
 
   const { data: heures } = useQuery({
     queryKey: ["kpi", "heures", START, END],
@@ -154,25 +166,28 @@ export function useCupDashboard() {
     staleTime: STALE,
   });
 
-  // Derived: competences les plus demandees
+  // Derived: competences les plus demandees (avec priorite reelle max)
   const topCompetences = useMemo<CompetenceDemandee[]>(() => {
-    const comptMap = new Map<string, number>();
+    const comptMap = new Map<string, { count: number; priorite?: Priorite | "NON_DEFINIE" }>();
+    const add = (name: string | null | undefined, n: number, priorite?: Priorite | "NON_DEFINIE") => {
+      if (!name) return;
+      const cur = comptMap.get(name) ?? { count: 0, priorite: undefined };
+      cur.count += n;
+      if (priorite && PRIORITE_RANK[priorite] > PRIORITE_RANK[cur.priorite ?? "NON_DEFINIE"]) {
+        cur.priorite = priorite;
+      }
+      comptMap.set(name, cur);
+    };
     for (const b of besoins) {
-      if (b.theme) {
-        comptMap.set(b.theme, (comptMap.get(b.theme) ?? 0) + 1);
-      }
-      if (b.titre) {
-        comptMap.set(b.titre, (comptMap.get(b.titre) ?? 0) + 1);
-      }
+      add(b.theme, 1, b.priorite ?? "NON_DEFINIE");
+      add(b.titre, 1, b.priorite ?? "NON_DEFINIE");
     }
     // Also add from in-demand competencies
     for (const c of inDemandCompetencies) {
-      if (c.competency_name) {
-        comptMap.set(c.competency_name, (comptMap.get(c.competency_name) ?? 0) + (c.demand_12m ?? c.demand_3m ?? 1));
-      }
+      add(c.competency_name, c.demand_12m ?? c.demand_3m ?? 1);
     }
     return [...comptMap.entries()]
-      .map(([name, count]) => ({ name, count }))
+      .map(([name, v]) => ({ name, count: v.count, priorite: v.priorite }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
   }, [besoins, inDemandCompetencies]);
@@ -255,7 +270,13 @@ export function useCupDashboard() {
       totalBesoins: besoins.length,
       departements: deptAnalytics?.departements?.length ?? 0,
       nbEnseignantsSuivis: overview?.nb_enseignants_suivis ?? 0,
-      couverture: overview?.taux_couverture_global != null ? Math.round(overview.taux_couverture_global * 100) : null,
+      // Le backend renvoie déjà un pourcentage (0-100) : pas de *100 ici.
+      couverture: overview?.taux_couverture_global != null ? Math.round(overview.taux_couverture_global) : null,
+      // Variation réelle vs snapshot précédent (points de pourcentage), null si indisponible.
+      couvertureDelta:
+        overview?.deltas?.taux_couverture_global != null
+          ? Math.round((overview.deltas.taux_couverture_global as number) * 10) / 10
+          : null,
     };
   }, [formationsByEtat, deptAnalytics, besoins, heures, participants, overview]);
 

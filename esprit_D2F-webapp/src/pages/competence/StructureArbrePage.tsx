@@ -3,11 +3,14 @@ import {
   Tree, Card, Tabs, Tag, Space, Typography, Spin,
   Badge, Tooltip, Collapse, Empty, Modal,
   Form, Button, Popconfirm, Table, Input, Select,
+  Row, Col, Statistic,
 } from "antd";
 import {
   ApartmentOutlined, BookOutlined, TeamOutlined,
   BulbOutlined, ExperimentOutlined, FolderOpenOutlined, PlusOutlined,
   DeleteOutlined, InfoCircleOutlined, SearchOutlined,
+  ArrowLeftOutlined, ReloadOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
 import { NIVEAU_LABELS, NIVEAU_OPTIONS } from "@/utils/constants/competenceOptions";
 import StructureSearchResultsView, { type SearchResults } from "./components/StructureSearchResultsView";
@@ -15,7 +18,7 @@ import TreeFilters from "./components/tree/TreeFilters";
 import { useStructureArbre } from "./hooks/useStructureArbre";
 import "@/styles/pages/structure-arbre-page.css";
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 
 export default function StructureArbrePage() {
@@ -25,199 +28,343 @@ export default function StructureArbrePage() {
     searchLoading, activeTab, setActiveTab, handleSearch, handleClearSearch,
     niveauModalVisible, setNiveauModalVisible, niveauTarget, niveauData, niveauLoading,
     addNiveauForm, openNiveauModal, handleAddNiveauSavoir, handleRemoveNiveauSavoir,
+    loadStructure,
+    filterUpId, filterDeptId, setFilterUpId, setFilterDeptId,
   } = useStructureArbre();
 
-  // ── Tree node builders ───────────────────────────────────────────────────
+  const handleRefresh = useCallback(() => {
+    void loadStructure();
+  }, [loadStructure]);
 
-  const buildSavoirNode = useCallback((s: Record<string, unknown>) => ({
-    key: `sav-${s.id}`,
-    title: (
-      <Space>
-        {s.type === "THEORIQUE" ? <BookOutlined style={{ color: "#722ed1" }} /> : <ExperimentOutlined style={{ color: "#13c2c2" }} />}
-        <Text type="secondary">{String(s.nom)}</Text>
-        <Tag color={s.type === "THEORIQUE" ? "purple" : "cyan"}>{s.type === "THEORIQUE" ? "Théorique" : "Pratique"}</Tag>
-        <Tag>{String(s.code)}</Tag>
-      </Space>
-    ),
-    isLeaf: true,
-  }), []);
+  const domaines = (structure || []) as { id: number | string; nom: string; code: string; upId?: string; departementId?: string }[];
 
-  const buildDirectSavoirNode = useCallback((s: Record<string, unknown>) => ({
-    key: `sav-direct-${s.id}`,
-    title: (
-      <Space>
-        {s.type === "THEORIQUE" ? <BookOutlined style={{ color: "#722ed1" }} /> : <ExperimentOutlined style={{ color: "#13c2c2" }} />}
-        <Text type="secondary">{String(s.nom)}</Text>
-        <Tag color={s.type === "THEORIQUE" ? "purple" : "cyan"}>{s.type === "THEORIQUE" ? "Théorique" : "Pratique"}</Tag>
-        <Tag>{String(s.code)}</Tag>
-        <Tag color="gold">Direct</Tag>
-      </Space>
-    ),
-    isLeaf: true,
-  }), []);
+  const stats = useMemo(() => {
+    const totalDomaines = domaines.length;
+    const totalCompetences = domaines.reduce((acc: number, d: Record<string, unknown>) => acc + ((d.competences as Record<string, unknown>[])?.length ?? 0), 0);
+    const totalSousComp = domaines.reduce((acc: number, d: Record<string, unknown>) => {
+      const comps = (d.competences as Record<string, unknown>[]) ?? [];
+      return acc + comps.reduce((a: number, c: Record<string, unknown>) => a + ((c.sousCompetences as Record<string, unknown>[])?.length ?? 0), 0);
+    }, 0);
+    const totalSavoirs = domaines.reduce((acc: number, d: Record<string, unknown>) => {
+      const comps = (d.competences as Record<string, unknown>[]) ?? [];
+      return acc + comps.reduce((a: number, c: Record<string, unknown>) => {
+        const scs = (c.sousCompetences as Record<string, unknown>[]) ?? [];
+        const savDirect = (c.savoirsDirect as Record<string, unknown>[]) ?? [];
+        const scSavoirs = scs.reduce((sa: number, sc: Record<string, unknown>) => sa + ((sc.savoirs as Record<string, unknown>[])?.length ?? 0), 0);
+        return a + savDirect.length + scSavoirs;
+      }, 0);
+    }, 0);
+    const allSavoirsList = domaines.flatMap((d: Record<string, unknown>) => {
+      const comps = (d.competences as Record<string, unknown>[]) ?? [];
+      return comps.flatMap((c: Record<string, unknown>) => {
+        const scs = (c.sousCompetences as Record<string, unknown>[]) ?? [];
+        const savDirect = (c.savoirsDirect as Record<string, unknown>[]) ?? [];
+        const scSavoirs = scs.flatMap((sc: Record<string, unknown>) => (sc.savoirs as Record<string, unknown>[]) ?? []);
+        return [...savDirect, ...scSavoirs];
+      });
+    });
+    const totalTheoriques = allSavoirsList.filter((s: Record<string, unknown>) => String(s.type) === "THEORIQUE").length;
+    const totalPratiques = allSavoirsList.filter((s: Record<string, unknown>) => String(s.type) === "PRATIQUE").length;
 
-  const buildSousCompNode = useCallback((sc: Record<string, unknown>) => ({
-    key: `sc-${sc.id}`,
-    title: (
-      <Space>
-        <BulbOutlined style={{ color: "#fa8c16" }} />
-        <Text>{String(sc.nom)}</Text>
-        <Tag color="orange">{String(sc.code)}</Tag>
-        <Tooltip title={`${sc.nombreSavoirs} savoir(s)`}><Tag icon={<BookOutlined />}>{String(sc.nombreSavoirs)}</Tag></Tooltip>
-        <Tooltip title={`${sc.nombreEnseignants} enseignant(s)`}><Tag icon={<TeamOutlined />} color="purple">{String(sc.nombreEnseignants)}</Tag></Tooltip>
-        <Tooltip title="Voir les niveaux">
-          <Button size="small" type="link" icon={<InfoCircleOutlined />}
-            onClick={(e) => { e.stopPropagation(); openNiveauModal("sousCompetence", sc.id as number, String(sc.nom)); }} />
-        </Tooltip>
-      </Space>
-    ),
-    children: (sc.savoirs as Record<string, unknown>[] | undefined)?.map(buildSavoirNode),
-  }), [openNiveauModal, buildSavoirNode]);
+    return { totalDomaines, totalCompetences, totalSousComp, totalSavoirs, totalTheoriques, totalPratiques };
+  }, [domaines]);
 
-  const buildCompetenceNode = useCallback((comp: Record<string, unknown>) => ({
-    key: `comp-${comp.id}`,
-    title: (
-      <Space>
-        <ApartmentOutlined style={{ color: "#52c41a" }} />
-        <Text>{String(comp.nom)}</Text>
-        <Tag color="green">{String(comp.code)}</Tag>
-        <Tooltip title={`${String(comp.nombreSousCompetences)} sous-compétences, ${String(comp.nombreSavoirs)} savoirs`}>
-          <Tag>{String(comp.nombreSousCompetences)} SC / {String(comp.nombreSavoirs)} S</Tag>
-        </Tooltip>
-        <Tooltip title={`${comp.nombreEnseignants} enseignant(s)`}><Tag icon={<TeamOutlined />} color="purple">{String(comp.nombreEnseignants)}</Tag></Tooltip>
-        <Tooltip title="Voir les niveaux">
-          <Button size="small" type="link" icon={<InfoCircleOutlined />}
-            onClick={(e) => { e.stopPropagation(); openNiveauModal("competence", comp.id as number, String(comp.nom)); }} />
-        </Tooltip>
-      </Space>
-    ),
-    children: [
-      ...((comp.sousCompetences as Record<string, unknown>[] | undefined)?.map(buildSousCompNode) || []),
-      ...((comp.savoirsDirect as Record<string, unknown>[] | undefined)?.map(buildDirectSavoirNode) || []),
-    ],
-  }), [openNiveauModal, buildSousCompNode, buildDirectSavoirNode]);
+  const buildTree = useCallback((nodes: Record<string, unknown>[], level = 0): any[] => {
+    const getIcon = (node: Record<string, unknown>) => {
+      const nom = String(node.nom || "");
+      if (nom.includes("Domaine") || node.code) {
+        return <FolderOpenOutlined style={{ color: "#3b82f6" }} />;
+      }
+      if (String(node.type) === "THEORIQUE") {
+        return <BookOutlined style={{ color: "#7c3aed" }} />;
+      }
+      if (String(node.type) === "PRATIQUE") {
+        return <ExperimentOutlined style={{ color: "#06b6d4" }} />;
+      }
+      return <ApartmentOutlined style={{ color: "#22c55e" }} />;
+    };
 
-  const buildDomaineNode = useCallback((domaine: Record<string, unknown>) => ({
-    key: `dom-${domaine.id}`,
-    title: (
-      <Space>
-        <FolderOpenOutlined style={{ color: "#1890ff" }} />
-        <Text strong>{String(domaine.nom)}</Text>
-        <Tag color="blue">{String(domaine.code)}</Tag>
-        <Badge count={domaine.nombreCompetences as number} showZero style={{ backgroundColor: "#52c41a" }} overflowCount={99} title="Compétences" />
-        <Tooltip title={`${domaine.nombreEnseignants} enseignant(s)`}><Tag icon={<TeamOutlined />} color="purple">{String(domaine.nombreEnseignants)}</Tag></Tooltip>
-        {!domaine.actif && <Tag color="red">Inactif</Tag>}
-      </Space>
-    ),
-    children: (domaine.competences as Record<string, unknown>[] | undefined)?.map(buildCompetenceNode) || [],
-  }), [buildCompetenceNode]);
+    return (structure || []).map((node: any) => {
+      const key = `node-${node.id}`;
+      const childKeys = ["competences", "sousCompetences", "savoirs", "savoirsDirect", "enfants"].filter(k =>
+        Array.isArray((node as Record<string, unknown>)[k])
+      );
+
+      const children: any[] = [];
+      childKeys.forEach((k) => {
+        const childArr = (node as Record<string, unknown>)[k] as Record<string, unknown>[] | undefined;
+        if (childArr && childArr.length > 0) {
+          children.push(...buildTree(childArr, level + 1));
+        }
+      });
+
+      const hasChildren = children.length > 0;
+      const nodeType = String(node.type || "");
+      const isSavoir = nodeType === "THEORIQUE" || nodeType === "PRATIQUE";
+
+      return {
+        key,
+        title: (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, flexShrink: 0 }}>
+              {getIcon(node)}
+            </span>
+            <span style={{ fontWeight: isSavoir ? 500 : 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {String(node.nom || node.code || "?")}
+            </span>
+            {node.code && !isSavoir && node.code != null && (
+              <Tag style={{ borderRadius: 6, fontSize: 11, marginInlineStart: 6, backgroundColor: "#f1f5f9", color: "#64748b", border: "1px solid #e2e8f0" }}>
+                {String(node.code)}
+              </Tag>
+            )}
+            {node.nombreSavoirs != null && (
+              <Badge
+                count={node.nombreSavoirs as number}
+                style={{ backgroundColor: isSavoir ? "#7c3aed" : "#22c55e", borderRadius: 10, fontSize: 11, height: 20, minWidth: 20 }}
+                overflowCount={99}
+              />
+            )}
+          </div>
+        ),
+        isLeaf: !hasChildren,
+        children: hasChildren ? children : undefined,
+        _node: node,
+        _level: level,
+      };
+    });
+  }, []);
 
   const treeData = useMemo(() => {
-    if (!structure) return [];
-    return structure.map((domaine) => buildDomaineNode(domaine as unknown as Record<string, unknown>));
-  }, [structure, buildDomaineNode]);
+    if (!structure || !Array.isArray(structure)) return [];
+    return buildTree(structure as unknown as Record<string, unknown>[]);
+  }, [structure, buildTree]);
 
-  if (loading) {
+  const expandedKeys = useMemo(() => {
+    return treeData.slice(0, 4).map((n: any) => n.key);
+  }, [treeData]);
+
+if (loading) {
     return (
-      <div style={{ textAlign: "center", padding: 100 }}>
-        <Spin size="large" tip="Chargement de la structure..."><div /></Spin>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 24 }}>
+        <Spin size="large" tip="Chargement de la structure..." />
       </div>
     );
   }
 
-  const domaines = structure ?? [];
-
-  let searchContent;
-  if (searchLoading) searchContent = <Spin />;
-  else if (searchResults) searchContent = <StructureSearchResultsView results={searchResults as unknown as SearchResults} />;
-  else searchContent = <Empty description="Saisissez un mot-clé (min. 2 caractères) pour lancer la recherche" />;
-
   return (
-    <div style={{ padding: 24 }}>
-      <Title level={3}><ApartmentOutlined /> Structure des Compétences</Title>
+    <div className="modern-arbre-page">
+      {/* ── Header ── */}
+      <div className="ma-header">
+        <div>
+          <Title level={2} style={{ margin: 0, color: "#fff", fontWeight: 700 }}>
+            <ApartmentOutlined style={{ marginRight: 12 }} />
+            Structure des Compétences
+          </Title>
+          <Paragraph style={{ margin: 0, color: "rgba(255,255,255,0.85)", fontSize: 14 }}>
+            Arbre interactif des domaines, compétences, sous-compétences et savoirs
+          </Paragraph>
+        </div>
+        <Button
+          type="primary"
+          icon={<ReloadOutlined />}
+          onClick={handleRefresh}
+          size="middle"
+          style={{
+            background: "rgba(255,255,255,0.2)",
+            borderColor: "rgba(255,255,255,0.4)",
+            fontWeight: 600,
+            backdropFilter: "blur(10px)",
+          }}
+        >
+          Actualiser
+        </Button>
+      </div>
 
+      {/* ── Stat Cards ── */}
+      <div className="ma-container">
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={12} sm={8} lg={4}>
+            <Card size="small" className="ma-card">
+              <Statistic title="Domaines" value={stats.totalDomaines} prefix={<AppstoreOutlined />} valueStyle={{ color: "#3b82f6" }} />
+            </Card>
+          </Col>
+          <Col xs={12} sm={8} lg={4}>
+            <Card size="small" className="ma-card">
+              <Statistic title="Compétences" value={stats.totalCompetences} prefix={<BulbOutlined />} valueStyle={{ color: "#22c55e" }} />
+            </Card>
+          </Col>
+          <Col xs={12} sm={8} lg={4}>
+            <Card size="small" className="ma-card">
+              <Statistic title="Sous-comp." value={stats.totalSousComp} prefix={<ExperimentOutlined />} valueStyle={{ color: "#fa8c16" }} />
+            </Card>
+          </Col>
+          <Col xs={12} sm={8} lg={4}>
+            <Card size="small" className="ma-card">
+              <Statistic title="Savoirs" value={stats.totalSavoirs} prefix={<BookOutlined />} valueStyle={{ color: "#7c3aed" }} />
+            </Card>
+          </Col>
+          <Col xs={12} sm={8} lg={4}>
+            <Card size="small" className="ma-card">
+              <Statistic title="Théoriques" value={stats.totalTheoriques} valueStyle={{ color: stats.totalTheoriques === 0 ? "#9ca3af" : "#7c3aed" }} />
+            </Card>
+          </Col>
+          <Col xs={12} sm={8} lg={4}>
+            <Card size="small" className="ma-card">
+              <Statistic title="Pratiques" value={stats.totalPratiques} valueStyle={{ color: stats.totalPratiques === 0 ? "#9ca3af" : "#06b6d4" }} />
+            </Card>
+          </Col>
+        </Row>
 
-      <Tabs
-        activeKey={activeTab}
-        onChange={setActiveTab}
-        items={[
-          {
-            key: "tree",
-            label: <span><ApartmentOutlined /> Vue Arborescente</span>,
-            children: (
-              <Card>
-                {treeData.length > 0
-                  ? <Tree treeData={treeData} defaultExpandedKeys={treeData.map((d) => d.key)} showLine={{ showLeafIcon: false }} blockNode style={{ fontSize: 14 }} />
-                  : <Empty description="Aucune donnée dans la structure" />}
-              </Card>
-            ),
-          },
-          {
-            key: "search",
-            label: <span><SearchOutlined /> Recherche</span>,
-            children: (
-              <Card>
-                <TreeFilters
-                  domaines={domaines as { id: number | string; nom: string; code: string }[]}
-                  searchKeyword={searchKeyword}
-                  selectedDomaine={selectedDomaine}
-                  searchLoading={searchLoading}
-                  onSearchChange={setSearchKeyword}
-                  onSearch={handleSearch}
-                  onClearSearch={handleClearSearch}
-                  onDomaineChange={setSelectedDomaine}
-                />
-                {searchContent}
-              </Card>
-            ),
-          },
-        ]}
-      />
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          className="ma-tabs"
+          items={[
+            {
+              key: "tree",
+              label: (
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <ApartmentOutlined /> Vue Arborescente
+                </span>
+              ),
+              children: (
+                <Card className="ma-card ma-card--tree">
+                  {treeData.length > 0
+                    ? (
+                      <Tree
+                        treeData={treeData}
+                        defaultExpandAll
+                        showLine={{ showLeafIcon: false }}
+                        defaultExpandedKeys={expandedKeys}
+                        blockNode
+                        style={{ fontSize: 13 }}
+                        switcherIcon={
+                          <svg viewBox="0 0 24 24" width={16} height={16} style={{ transition: "transform 0.2s" }}>
+                            <path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9l6 6 6-6" />
+                          </svg>
+                        }
+                        height={600}
+                      />
+                    )
+                    : <Empty description="Aucune donnée dans la structure" style={{ padding: 40 }} />
+                  }
+                </Card>
+              ),
+            },
+            {
+              key: "search",
+              label: (
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <SearchOutlined /> Recherche
+                </span>
+              ),
+              children: (
+                <Card className="ma-card">
+                  <TreeFilters
+                    domaines={domaines}
+                    searchKeyword={searchKeyword}
+                    selectedDomaine={selectedDomaine}
+                    selectedUp={filterUpId}
+                    selectedDept={filterDeptId}
+                    searchLoading={searchLoading}
+                    onSearchChange={setSearchKeyword}
+                    onSearch={handleSearch}
+                    onClearSearch={handleClearSearch}
+                    onDomaineChange={setSelectedDomaine}
+                    onUpChange={setFilterUpId}
+                    onDeptChange={setFilterDeptId}
+                  />
+                  {searchLoading && <Spin size="large" style={{ display: "block", margin: "40px auto" }} tip="Recherche en cours..." />}
+                  {!searchLoading && searchResults && (
+                    <div style={{ marginTop: 16 }}><StructureSearchResultsView results={searchResults as unknown as SearchResults} /></div>
+                  )}
+                  {!searchLoading && !searchResults && (
+                    <div style={{ marginTop: 16 }}>
+                      <Empty description="Saisissez un mot-clé (min. 2 caractères) pour lancer la recherche" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                    </div>
+                  )}
+                </Card>
+              ),
+            },
+          ]}
+        />
+      </div>
 
-      {/* Niveau Definition Modal */}
-      <Modal title={`Niveaux de compétence — ${niveauTarget?.nom || ""}`} open={niveauModalVisible} onCancel={() => setNiveauModalVisible(false)} footer={null} width={800} forceRender>
-        {niveauLoading ? <Spin /> : (
-          <div>
+      {/* ── Niveau Definition Modal ── */}
+      <Modal
+        title={
+          <Space>
+            <InfoCircleOutlined style={{ color: "#3b82f6" }} />
+            <span>Niveaux de compétence — {niveauTarget?.nom || ""}</span>
+          </Space>
+        }
+        open={niveauModalVisible}
+        onCancel={() => setNiveauModalVisible(false)}
+        footer={null}
+        width={800}
+        centered
+        classNames={{ body: "ma-modal-body" }}
+      >
+        {niveauLoading ? (
+          <div style={{ textAlign: "center", padding: "60px 0" }}><Spin tip="Chargement..." /></div>
+        ) : (
+          <div className="ma-modal-content">
             <Collapse
               defaultActiveKey={Object.keys(NIVEAU_LABELS)}
+              ghost
               items={Object.entries(NIVEAU_LABELS).map(([key, val]) => {
                 const niveauItems = niveauData.filter((nd) => nd.niveau === key) as unknown as Record<string, unknown>[];
+                const meta = val as { color: string; label: string };
                 return {
                   key,
                   label: (
                     <Space>
-                      <Badge color={(val as { color: string; label: string }).color} />
-                      <Text strong>{(val as { color: string; label: string }).label}</Text>
-                      <Tag>{niveauItems.length} savoir(s) requis</Tag>
+                      <Badge color={meta.color} />
+                      <Text strong style={{ fontSize: 14 }}>{meta.label}</Text>
+                      <Tag style={{ borderRadius: 10, fontSize: 11, backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }}>{niveauItems.length} savoir(s)</Tag>
                     </Space>
                   ),
                   children: niveauItems.length > 0 ? (
-                    <Table size="small" dataSource={niveauItems} rowKey="id" pagination={false}
+                    <Table
+                      size="small"
+                      dataSource={niveauItems}
+                      rowKey="id"
+                      pagination={false}
                       columns={[
-                        { title: "Code", dataIndex: "savoirCode", width: 100 },
-                        { title: "Savoir", dataIndex: "savoirNom" },
-                        { title: "Description", dataIndex: "description", render: (value: string) => <span style={{ display: "inline-block", maxWidth: 420, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={value || ""}>{value || "-"}</span> },
-                        { title: "", width: 50, render: (_: unknown, record: Record<string, unknown>) => <Popconfirm title="Supprimer ce savoir requis ?" onConfirm={() => handleRemoveNiveauSavoir(record.id as number)}><Button size="small" danger icon={<DeleteOutlined />} /></Popconfirm> },
+                        { title: "Code", dataIndex: "savoirCode", width: 100, render: (v) => <Tag style={{ borderRadius: 6, fontSize: 11 }}>{v || "-"}</Tag> },
+                        { title: "Savoir", dataIndex: "savoirNom", render: (v) => <Text style={{ fontWeight: 500 }}>{v}</Text> },
+                        { title: "Description", dataIndex: "description", render: (value: string) => (
+                          <span style={{ display: "inline-block", maxWidth: 420, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={value || ""}>{value || "-"}</span>
+                        ) },
+                        {
+                          title: "",
+                          width: 50,
+                          render: (_: unknown, record: Record<string, unknown>) => (
+                            <Popconfirm title="Supprimer ce savoir requis ?" onConfirm={() => handleRemoveNiveauSavoir(record.id as number)}>
+                              <Button size="small" danger icon={<DeleteOutlined />} />
+                            </Popconfirm>
+                          ),
+                        },
                       ]}
                     />
-                  ) : <Text type="secondary">Aucun savoir requis défini pour ce niveau</Text>,
+                  ) : <Text type="secondary" style={{ padding: "10px 0", display: "block" }}>Aucun savoir requis défini pour ce niveau</Text>,
                 };
               })}
             />
-            <Card size="small" title="Ajouter un savoir requis" style={{ marginTop: 16 }}>
+            <Card size="small" title={<Space><PlusOutlined style={{ color: "#3b82f6" }} /><Text strong>Ajouter un savoir requis</Text></Space>}>
               <Form form={addNiveauForm} layout="inline" onFinish={handleAddNiveauSavoir}>
                 <Form.Item name="niveau" rules={[{ required: true, message: "Requis" }]}>
-                  <Select placeholder="Niveau" style={{ width: 180 }}>
+                  <Select placeholder="Niveau" style={{ width: 180 }} bordered>
                     {NIVEAU_OPTIONS.map((opt: { value: string; label: string }) => <Option key={opt.value} value={opt.value}>{opt.label}</Option>)}
                   </Select>
                 </Form.Item>
                 <Form.Item name="savoirId" rules={[{ required: true, message: "Requis" }]}>
-                  <Select placeholder="Savoir" showSearch optionFilterProp="children" style={{ width: 250 }}>
+                  <Select placeholder="Savoir" showSearch optionFilterProp="children" style={{ width: 250 }} bordered>
                     {allSavoirs.map((s: Record<string, unknown>) => <Option key={String(s.id)} value={s.id}>{String(s.code)} — {String(s.nom)}</Option>)}
                   </Select>
                 </Form.Item>
                 <Form.Item name="description">
-                  <Input placeholder="Description (optionnel)" style={{ width: 200 }} />
+                  <Input placeholder="Description (optionnel)" style={{ width: 200 }} bordered />
                 </Form.Item>
                 <Form.Item>
                   <Button type="primary" htmlType="submit" icon={<PlusOutlined />}>Ajouter</Button>
@@ -230,4 +377,3 @@ export default function StructureArbrePage() {
     </div>
   );
 }
-
