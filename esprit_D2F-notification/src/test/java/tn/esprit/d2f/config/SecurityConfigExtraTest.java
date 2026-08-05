@@ -2,7 +2,6 @@ package tn.esprit.d2f.config;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,7 +32,7 @@ class SecurityConfigExtraTest {
 
     @Test
     @DisplayName("SecurityConfig - accepte une injection valide des valeurs")
-    void securityConfig_shouldAcceptInjectedValues() throws Exception {
+    void securityConfig_shouldAcceptInjectedValues() {
         SecurityConfig config = new SecurityConfig();
         ReflectionTestUtils.setField(config, "jwtSecret", "secret");
         ReflectionTestUtils.setField(config, "allowedOriginsRaw", "http://localhost:3000");

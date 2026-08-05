@@ -47,13 +47,23 @@ class WebSocketConfigTest {
     }
 
     @Test
-    @DisplayName("registerWebSocketHandlers - doit fonctionner avec un registry null")
-    void registerWebSocketHandlers_shouldHandleNullRegistry() {
+    @DisplayName("registerWebSocketHandlers - doit ajouter interceptor et autoriser toutes les origines")
+    void registerWebSocketHandlers_shouldAddInterceptorAndAllowOrigins() {
         WebSocketSessionRegistry registry = new WebSocketSessionRegistry();
         WebSocketConfig config = new WebSocketConfig(null, registry);
+        WebSocketHandlerRegistry handlerRegistry = mock(WebSocketHandlerRegistry.class);
+        WebSocketHandlerRegistration registration = mock(WebSocketHandlerRegistration.class);
 
-        NotificationWebSocketHandler handler = config.notificationWebSocketHandler();
-        assertThat(handler).isNotNull();
+        when(handlerRegistry.addHandler(any(NotificationWebSocketHandler.class), eq("/ws/notifications")))
+                .thenReturn(registration);
+        when(registration.addInterceptors(any(org.springframework.web.socket.server.HandshakeInterceptor[].class)))
+                .thenReturn(registration);
+        when(registration.setAllowedOrigins(any(String[].class))).thenReturn(registration);
+
+        config.registerWebSocketHandlers(handlerRegistry);
+
+        verify(registration).addInterceptors(any(org.springframework.web.socket.server.HandshakeInterceptor[].class));
+        verify(registration).setAllowedOrigins("*");
     }
 
     @Test

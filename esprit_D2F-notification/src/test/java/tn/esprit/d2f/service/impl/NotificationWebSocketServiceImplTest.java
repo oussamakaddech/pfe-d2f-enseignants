@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -118,7 +119,7 @@ class NotificationWebSocketServiceImplTest {
     @Test
     @DisplayName("pushToUsers() - doit envoyer à plusieurs sessions d'un même destinataire")
     void pushToUsers_shouldSendToMultipleSessionsPerUser() {
-        WebSocketSession session2 = org.mockito.Mockito.mock(WebSocketSession.class);
+        WebSocketSession session2 = mock(WebSocketSession.class);
         Set<WebSocketSession> sessions = new HashSet<>();
         sessions.add(session);
         sessions.add(session2);

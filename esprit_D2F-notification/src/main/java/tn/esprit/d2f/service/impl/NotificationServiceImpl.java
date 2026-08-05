@@ -18,6 +18,8 @@ import tn.esprit.d2f.service.NotificationWebSocketService;
 import java.util.Map;
 import java.util.Optional;
 
+import tn.esprit.d2f.exception.ResourceNotFoundException;
+
 /**
  * Implémentation du service de notifications.
  *
@@ -65,9 +67,10 @@ public class NotificationServiceImpl implements INotificationService {
     }
 
     @Override
+    @Transactional
     public NotificationResponse markAsRead(Long id, String recipient) {
         Notification n = repository.findByIdNotificationAndRecipient(id, recipient)
-                .orElseThrow(() -> new IllegalArgumentException("Notification introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Notification non trouvée"));
         n.setRead(true);
         Notification saved = repository.save(n);
         NotificationResponse response = NotificationResponse.from(saved, Map.of());
@@ -76,18 +79,21 @@ public class NotificationServiceImpl implements INotificationService {
     }
 
     @Override
+    @Transactional
     public long markAllAsRead(String recipient) {
         return repository.markAllAsReadForRecipient(recipient);
     }
 
     @Override
+    @Transactional
     public void delete(Long id, String recipient) {
         Notification n = repository.findByIdNotificationAndRecipient(id, recipient)
-                .orElseThrow(() -> new IllegalArgumentException("Notification introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Notification non trouvée"));
         repository.delete(n);
     }
 
     @Override
+    @Transactional
     public void deleteAll(String recipient) {
         repository.deleteByRecipient(recipient);
     }

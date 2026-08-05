@@ -33,7 +33,7 @@ class NotificationWebSocketHandlerTest {
     private NotificationWebSocketHandler handler;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         concreteRegistry = new WebSocketSessionRegistry();
         handler = new NotificationWebSocketHandler(concreteRegistry);
     }
@@ -69,12 +69,17 @@ class NotificationWebSocketHandlerTest {
 
     @Test
     @DisplayName("Registry - unregister doit nettoyer le recipient si vide")
-    void registry_unregisterCleansRecipient() {
+    void registry_unregisterCleansRecipient() throws Exception {
         WebSocketSession session = mock(WebSocketSession.class);
         concreteRegistry.register("user1", session);
         concreteRegistry.unregister("user1", session);
 
-        assertThat(concreteRegistry.getSessions("user1")).isEmpty();
+        Field field = WebSocketSessionRegistry.class.getDeclaredField("sessionsByRecipient");
+        field.setAccessible(true);
+        java.util.concurrent.ConcurrentHashMap<String, Set<WebSocketSession>> internal =
+                (java.util.concurrent.ConcurrentHashMap<String, Set<WebSocketSession>>) field.get(concreteRegistry);
+
+        assertThat(internal).doesNotContainKey("user1");
     }
 
     @Test

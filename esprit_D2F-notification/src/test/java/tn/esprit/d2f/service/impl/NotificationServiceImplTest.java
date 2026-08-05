@@ -163,8 +163,8 @@ class NotificationServiceImplTest {
         when(repository.findByIdNotificationAndRecipient(99L, "test-user")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.markAsRead(99L, "test-user"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Notification introuvable");
+                .isInstanceOf(tn.esprit.d2f.exception.ResourceNotFoundException.class)
+                .hasMessage("Notification non trouvée");
 
         verify(repository, never()).save(any(Notification.class));
         verify(webSocketService, never()).pushToUser(anyString(), any(NotificationResponse.class));
@@ -198,8 +198,8 @@ class NotificationServiceImplTest {
         when(repository.findByIdNotificationAndRecipient(99L, "test-user")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.delete(99L, "test-user"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Notification introuvable");
+                .isInstanceOf(tn.esprit.d2f.exception.ResourceNotFoundException.class)
+                .hasMessage("Notification non trouvée");
 
         verify(repository, never()).delete(any(Notification.class));
     }

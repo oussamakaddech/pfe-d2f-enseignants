@@ -8,7 +8,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +25,6 @@ import tn.esprit.d2f.service.INotificationService;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -189,7 +187,7 @@ class NotificationControllerTest {
 
     @Test
     @DisplayName("currentRecipient() - doit utiliser l'email du JWT en priorité")
-    void currentRecipient_shouldUseEmailFromJwt() throws Exception {
+    void currentRecipient_shouldUseEmailFromJwt() {
         Authentication auth = jwtAuth("user@example.com", "user-fallback", "subject-1");
         NotificationCountResponse counts = new NotificationCountResponse(0L, 0L);
         when(notificationService.countForRecipient("user@example.com")).thenReturn(counts);
