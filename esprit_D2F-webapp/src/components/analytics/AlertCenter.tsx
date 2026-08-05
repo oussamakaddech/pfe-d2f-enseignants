@@ -16,7 +16,6 @@ import {
 } from "@ant-design/icons";
 import {
   SEVERITE_COLORS,
-  STATUT_ALERTE_COLORS,
   ALERT_STATUTS_OUVERTS,
   STATUT_ALERTE_LABELS,
 } from "@/utils/analytics/constants";
@@ -90,23 +89,14 @@ const ALERT_META: Record<
   BESOIN_NON_COUVERT: { label: "Besoin non couvert", priorite: "Haute", action: "Ouvrir une session dédiée", icon: <QuestionCircleOutlined /> },
 };
 
-const ACTION_VERB: Record<TypeAlerte, string> = {
-  GAP_CRITIQUE: "Planifier",
-  REGRESSION: "Diagnostiquer",
-  STAGNATION: "Relancer",
-  TENDANCE_DEPARTEMENT: "Revue",
-  COMPLETION_FAIBLE: "Sensibiliser",
-  BESOIN_NON_COUVERT: "Ouvrir session",
-};
-
 const PRIORITE_COLOR: Record<string, string> = {
   Haute: "#ef4444",
   Moyenne: "#f59e0b",
   Faible: "#6b7280",
 };
 
-const SEVERITE_CRIT = ["CRITICAL", "CRITIQUE"];
-const SEVERITE_WARN = ["WARNING", "HAUTE", "MOYENNE"];
+const SEVERITE_CRIT = new Set(["CRITICAL", "CRITIQUE"]);
+const SEVERITE_WARN = new Set(["WARNING", "HAUTE", "MOYENNE"]);
 
 /* Chips de filtrage rapide — valeurs internes (le Select ne les connaît pas). */
 const CHIP_FILTERS = new Set(["__CRIT__", "__WARN__", "__INFO__"]);
@@ -165,9 +155,9 @@ export default function AlertCenter({
       if (severiteFilter === "__OUVERT__") {
         result = result.filter((a) => ALERT_STATUTS_OUVERTS.includes(a.statut));
       } else if (severiteFilter === "__CRIT__") {
-        result = result.filter((a) => SEVERITE_CRIT.includes(a.severite));
+        result = result.filter((a) => SEVERITE_CRIT.has(a.severite));
       } else if (severiteFilter === "__WARN__") {
-        result = result.filter((a) => SEVERITE_WARN.includes(a.severite));
+        result = result.filter((a) => SEVERITE_WARN.has(a.severite));
       } else if (severiteFilter === "__INFO__") {
         result = result.filter((a) => a.severite === "INFO");
       } else {
@@ -190,10 +180,10 @@ export default function AlertCenter({
   const severityCounts = {
     CRITICAL: useRealCounts
       ? severityTotal.CRITICAL
-      : alerts.filter((a) => SEVERITE_CRIT.includes(a.severite)).length,
+      : alerts.filter((a) => SEVERITE_CRIT.has(a.severite)).length,
     WARNING: useRealCounts
       ? severityTotal.WARNING
-      : alerts.filter((a) => SEVERITE_WARN.includes(a.severite)).length,
+      : alerts.filter((a) => SEVERITE_WARN.has(a.severite)).length,
     INFO: useRealCounts
       ? severityTotal.INFO
       : alerts.filter((a) => a.severite === "INFO").length,
@@ -412,7 +402,6 @@ export default function AlertCenter({
             action: "Traiter",
             icon: <WarningOutlined />,
           };
-          const verb = ACTION_VERB[type] ?? "Traiter";
           const accentColor = PRIORITE_COLOR[meta.priorite] ?? "#6b7280";
           const visible = getVisibleItems(type, list);
           const truncated = isGroupTruncated(type, list);

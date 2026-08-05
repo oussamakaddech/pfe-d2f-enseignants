@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { List, Card, Tag, Progress, Typography, Empty } from "antd";
-import { CheckCircleOutlined, CloseCircleOutlined, ArrowRightOutlined } from "@ant-design/icons";
+import { CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
 import type { Recommendation } from "@/models/analyse/analyticsFeature";
 
 interface RecommendationsListProps {

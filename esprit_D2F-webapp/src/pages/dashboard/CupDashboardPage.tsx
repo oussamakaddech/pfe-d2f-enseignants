@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Button, Tag, Alert, Input, Statistic, Table, Segmented, Progress,
-  Tooltip, Breadcrumb, Avatar, Badge,
+  Tooltip, Avatar, Badge,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -72,7 +72,7 @@ export default function CupDashboardPage() {
     }
     return [];
   }, [formationsRaw]);
-  const { data: inscriptionsRaw, isLoading: inscriptionsLoading } = useQuery({
+  const { data: inscriptionsRaw } = useQuery({
     queryKey: ["cup", "inscriptions"],
     queryFn: () => InscriptionService.getAllInscriptions(500),
     staleTime: 5 * 60 * 1000,
@@ -90,7 +90,7 @@ export default function CupDashboardPage() {
     const items = Array.isArray(formations) ? formations : [];
     const inscList = Array.isArray(inscriptions) ? inscriptions : [];
     return items
-      .filter((f) => f && f.etatFormation === "PLANIFIE" && f.dateDebut)
+      .filter((f) => f?.etatFormation === "PLANIFIE" && f.dateDebut)
       .map<FormationAVenir>((f) => {
         const formationId = f.idFormation;
         // L'API InscriptionDTO renvoie `formation.idFormation` (objet imbriqué) :
@@ -208,11 +208,18 @@ export default function CupDashboardPage() {
 
   // Deltas : uniquement une vraie comparaison quand le backend la fournit
   // (couverture vs snapshot précédent) ; sinon simple note descriptive.
+  const couvertureDelta = kpis.couvertureDelta;
+  let deltaLabel: string | undefined;
+  let deltaUp: boolean | undefined;
+  if (couvertureDelta != null) {
+    deltaLabel = `${couvertureDelta >= 0 ? "+" : ""}${couvertureDelta} pts`;
+    deltaUp = couvertureDelta >= 0;
+  }
   const kpiList = [
     { id: "actives", label: "Formations actives", value: kpis.enCours ?? 0, suffix: "", caption: `${kpis.enCours ?? 0} en cours`, tone: "navy" as const, icon: <BookOutlined />, detail: { label: "Voir les formations", onClick: () => navigate("/home/Formation") }, spark: [kpis.enCours ?? 0] },
     { id: "insc", label: "Inscriptions en attente", value: nbInscriptionsAttente, suffix: "", caption: `${nbInscriptionsAttente} à valider`, tone: "orange" as const, icon: <TeamOutlined />, detail: { label: "Gérer les inscriptions", onClick: () => scrollTo("cd-suivi") }, spark: [nbInscriptionsAttente] },
     { id: "completion", label: "Taux de complétion moyen", value: pct(kpis.tauxReussiteGlobal), suffix: "%", caption: `${kpis.tauxReussiteGlobal ?? 0}% de formations achevées`, tone: "green" as const, icon: <CheckCircleOutlined />, detail: { label: "Détail complétion", onClick: () => scrollTo("cd-couverture") }, spark: [pct(kpis.tauxReussiteGlobal)] },
-    { id: "couv", label: "Taux de couverture des compétences", value: pct(kpis.couverture), suffix: "%", delta: kpis.couvertureDelta != null ? `${kpis.couvertureDelta > 0 ? "+" : ""}${kpis.couvertureDelta} pts` : undefined, up: kpis.couvertureDelta != null ? kpis.couvertureDelta >= 0 : undefined, caption: kpis.couvertureDelta == null ? `${kpis.couverture ?? 0}% couverts` : undefined, tone: "blue" as const, icon: <SafetyCertificateOutlined />, detail: { label: "Voir le référentiel", onClick: () => scrollTo("cd-couverture") }, spark: [pct(kpis.couverture)] },
+    { id: "couv", label: "Taux de couverture des compétences", value: pct(kpis.couverture), suffix: "%", delta: deltaLabel, up: deltaUp, caption: kpis.couvertureDelta == null ? `${kpis.couverture ?? 0}% couverts` : undefined, tone: "blue" as const, icon: <SafetyCertificateOutlined />, detail: { label: "Voir le référentiel", onClick: () => scrollTo("cd-couverture") }, spark: [pct(kpis.couverture)] },
   ];
 
   const prioColor = (v: string) => {
@@ -250,7 +257,11 @@ export default function CupDashboardPage() {
           <div className="cd-header-icon"><DashboardOutlined /></div>
           <div className="cd-header-titles">
             <span className="cd-header-breadcrumb">
-              <span onClick={() => navigate("/home")} className="cd-header-bc-link">Accueil</span>
+              <button
+                type="button"
+                onClick={() => navigate("/home")}
+                className="cd-header-bc-link"
+              >Accueil</button>
               <span className="cd-header-bc-sep">/</span>
               <span>Tableau de bord</span>
             </span>

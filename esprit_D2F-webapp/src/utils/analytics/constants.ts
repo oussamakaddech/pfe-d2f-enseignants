@@ -1,7 +1,7 @@
 /**
  * Constantes centralisées du feature-module Analytics.
  */
-import type { NiveauRisque, NiveauUrgence, SeveriteAlerte } from "@/models/analyse/analyticsFeature";
+import type { NiveauRisque, NiveauUrgence } from "@/models/analyse/analyticsFeature";
 
 export const ANALYTICS_ROUTES = {
   teacher: (id: string) => `/home/analytics/teacher/${id}`,

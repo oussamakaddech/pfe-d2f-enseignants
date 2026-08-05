@@ -4,7 +4,7 @@ import useAppNotification from "@/hooks/ui/useAppNotification";
 import CompetenceService from "@/services/competence/CompetenceService";
 import { buildDomaineNode } from "@/components/competence/tree/TreeNodeBuilders";
 import type { Id } from "@/models/common";
-import type { TreeNode, StructureData } from "@/models/competence";
+import type { StructureData } from "@/models/competence";
 
 interface NiveauTarget {
   type: "competence" | "sousCompetence";

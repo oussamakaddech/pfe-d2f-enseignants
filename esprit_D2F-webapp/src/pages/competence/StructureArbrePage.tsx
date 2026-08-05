@@ -1,15 +1,15 @@
 import React, { useCallback, useMemo } from "react";
 import {
   Tree, Card, Tabs, Tag, Space, Typography, Spin,
-  Badge, Tooltip, Collapse, Empty, Modal,
+  Badge, Collapse, Empty, Modal,
   Form, Button, Popconfirm, Table, Input, Select,
   Row, Col, Statistic,
 } from "antd";
 import {
-  ApartmentOutlined, BookOutlined, TeamOutlined,
+  ApartmentOutlined, BookOutlined,
   BulbOutlined, ExperimentOutlined, FolderOpenOutlined, PlusOutlined,
   DeleteOutlined, InfoCircleOutlined, SearchOutlined,
-  ArrowLeftOutlined, ReloadOutlined,
+  ReloadOutlined,
   AppstoreOutlined,
 } from "@ant-design/icons";
 import { NIVEAU_LABELS, NIVEAU_OPTIONS } from "@/utils/constants/competenceOptions";
@@ -21,13 +21,41 @@ import "@/styles/pages/structure-arbre-page.css";
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 
+function countSavoirsForDomaine(d: Record<string, unknown>): number {
+  const comps = (d.competences as Record<string, unknown>[]) ?? [];
+  let total = 0;
+  for (const c of comps) {
+    const scs = (c.sousCompetences as Record<string, unknown>[]) ?? [];
+    const savDirect = (c.savoirsDirect as Record<string, unknown>[]) ?? [];
+    total += savDirect.length;
+    for (const sc of scs) {
+      total += (sc.savoirs as Record<string, unknown>[])?.length ?? 0;
+    }
+  }
+  return total;
+}
+
+function listSavoirsForDomaine(d: Record<string, unknown>): Record<string, unknown>[] {
+  const comps = (d.competences as Record<string, unknown>[]) ?? [];
+  const out: Record<string, unknown>[] = [];
+  for (const c of comps) {
+    const scs = (c.sousCompetences as Record<string, unknown>[]) ?? [];
+    const savDirect = (c.savoirsDirect as Record<string, unknown>[]) ?? [];
+    out.push(...savDirect);
+    for (const sc of scs) {
+      out.push(...((sc.savoirs as Record<string, unknown>[]) ?? []));
+    }
+  }
+  return out;
+}
+
 export default function StructureArbrePage() {
   const {
     loading, structure, allSavoirs,
     searchResults, searchKeyword, setSearchKeyword, selectedDomaine, setSelectedDomaine,
     searchLoading, activeTab, setActiveTab, handleSearch, handleClearSearch,
     niveauModalVisible, setNiveauModalVisible, niveauTarget, niveauData, niveauLoading,
-    addNiveauForm, openNiveauModal, handleAddNiveauSavoir, handleRemoveNiveauSavoir,
+    addNiveauForm, handleAddNiveauSavoir, handleRemoveNiveauSavoir,
     loadStructure,
     filterUpId, filterDeptId, setFilterUpId, setFilterDeptId,
   } = useStructureArbre();
@@ -45,24 +73,8 @@ export default function StructureArbrePage() {
       const comps = (d.competences as Record<string, unknown>[]) ?? [];
       return acc + comps.reduce((a: number, c: Record<string, unknown>) => a + ((c.sousCompetences as Record<string, unknown>[])?.length ?? 0), 0);
     }, 0);
-    const totalSavoirs = domaines.reduce((acc: number, d: Record<string, unknown>) => {
-      const comps = (d.competences as Record<string, unknown>[]) ?? [];
-      return acc + comps.reduce((a: number, c: Record<string, unknown>) => {
-        const scs = (c.sousCompetences as Record<string, unknown>[]) ?? [];
-        const savDirect = (c.savoirsDirect as Record<string, unknown>[]) ?? [];
-        const scSavoirs = scs.reduce((sa: number, sc: Record<string, unknown>) => sa + ((sc.savoirs as Record<string, unknown>[])?.length ?? 0), 0);
-        return a + savDirect.length + scSavoirs;
-      }, 0);
-    }, 0);
-    const allSavoirsList = domaines.flatMap((d: Record<string, unknown>) => {
-      const comps = (d.competences as Record<string, unknown>[]) ?? [];
-      return comps.flatMap((c: Record<string, unknown>) => {
-        const scs = (c.sousCompetences as Record<string, unknown>[]) ?? [];
-        const savDirect = (c.savoirsDirect as Record<string, unknown>[]) ?? [];
-        const scSavoirs = scs.flatMap((sc: Record<string, unknown>) => (sc.savoirs as Record<string, unknown>[]) ?? []);
-        return [...savDirect, ...scSavoirs];
-      });
-    });
+    const totalSavoirs = domaines.reduce((acc: number, d: Record<string, unknown>) => acc + countSavoirsForDomaine(d), 0);
+    const allSavoirsList = domaines.flatMap(listSavoirsForDomaine);
     const totalTheoriques = allSavoirsList.filter((s: Record<string, unknown>) => String(s.type) === "THEORIQUE").length;
     const totalPratiques = allSavoirsList.filter((s: Record<string, unknown>) => String(s.type) === "PRATIQUE").length;
 
@@ -354,17 +366,17 @@ if (loading) {
             <Card size="small" title={<Space><PlusOutlined style={{ color: "#3b82f6" }} /><Text strong>Ajouter un savoir requis</Text></Space>}>
               <Form form={addNiveauForm} layout="inline" onFinish={handleAddNiveauSavoir}>
                 <Form.Item name="niveau" rules={[{ required: true, message: "Requis" }]}>
-                  <Select placeholder="Niveau" style={{ width: 180 }} bordered>
+                  <Select placeholder="Niveau" style={{ width: 180 }}>
                     {NIVEAU_OPTIONS.map((opt: { value: string; label: string }) => <Option key={opt.value} value={opt.value}>{opt.label}</Option>)}
                   </Select>
                 </Form.Item>
                 <Form.Item name="savoirId" rules={[{ required: true, message: "Requis" }]}>
-                  <Select placeholder="Savoir" showSearch optionFilterProp="children" style={{ width: 250 }} bordered>
+                  <Select placeholder="Savoir" showSearch optionFilterProp="children" style={{ width: 250 }}>
                     {allSavoirs.map((s: Record<string, unknown>) => <Option key={String(s.id)} value={s.id}>{String(s.code)} — {String(s.nom)}</Option>)}
                   </Select>
                 </Form.Item>
                 <Form.Item name="description">
-                  <Input placeholder="Description (optionnel)" style={{ width: 200 }} bordered />
+                  <Input placeholder="Description (optionnel)" style={{ width: 200 }} />
                 </Form.Item>
                 <Form.Item>
                   <Button type="primary" htmlType="submit" icon={<PlusOutlined />}>Ajouter</Button>

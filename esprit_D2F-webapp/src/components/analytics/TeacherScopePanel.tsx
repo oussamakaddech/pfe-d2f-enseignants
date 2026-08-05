@@ -3,8 +3,7 @@ import {
   AimOutlined, ApartmentOutlined, BookOutlined, CheckCircleFilled,
   AlertOutlined, ThunderboltOutlined, UserOutlined,
 } from "@ant-design/icons";
-import type { TeacherScopeAnalysis } from "@/models/analyse/analyticsFeature";
-import type { SkillGap, Recommendation } from "@/models/analyse/analyticsFeature";
+import type { TeacherScopeAnalysis, SkillGap } from "@/models/analyse/analyticsFeature";
 
 const URGENCE_COLOR: Record<string, string> = {
   CRITIQUE: "#ef4444",
@@ -13,9 +12,16 @@ const URGENCE_COLOR: Record<string, string> = {
   FAIBLE: "#10b981",
 };
 
+function urgenceColor(v: number): string {
+  if (v >= 0.75) return "CRITIQUE";
+  if (v >= 0.5) return "HAUTE";
+  if (v >= 0.25) return "MODEREE";
+  return "FAIBLE";
+}
+
 interface Props {
-  data: TeacherScopeAnalysis | undefined;
-  loading: boolean;
+  readonly data: TeacherScopeAnalysis | undefined;
+  readonly loading: boolean;
 }
 
 /**
@@ -23,7 +29,7 @@ interface Props {
  * Monte : bloc contexte (grade, specialite, UP, dept) + resultats filtres
  * (gaps + recommandations sur les competences du perimetre) + indicateurs ML.
  */
-export default function TeacherScopePanel({ data, loading }: Props) {
+export default function TeacherScopePanel({ data, loading }: Readonly<Props>) {
   if (loading) {
     return (
       <div style={{ padding: 40, textAlign: "center" }}>
@@ -136,7 +142,7 @@ export default function TeacherScopePanel({ data, loading }: Props) {
                 key: "gap",
                 width: 90,
                 render: (v: number) => (
-                  <span style={{ fontWeight: 600, color: URGENCE_COLOR[v >= 0.75 ? "CRITIQUE" : v >= 0.5 ? "HAUTE" : v >= 0.25 ? "MODEREE" : "FAIBLE"] }}>
+                  <span style={{ fontWeight: 600, color: URGENCE_COLOR[urgenceColor(v)] }}>
                     {Math.round(v * 100)}%
                   </span>
                 ),

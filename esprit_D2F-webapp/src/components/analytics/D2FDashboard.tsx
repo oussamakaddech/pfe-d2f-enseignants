@@ -15,22 +15,23 @@
 
 import { useMemo, useState } from "react";
 import {
-  Row, Col, Card, Tag, Alert, Empty, Skeleton, Tooltip, Button, Statistic,
-  Table, Progress, Modal, Select, Space, message,
+  Row, Col, Card, Tag, Alert, Empty, Skeleton, Tooltip, Button,
+  Table, Modal, Select, Space, message,
 } from "antd";
 import {
   TeamOutlined, AlertOutlined, LineChartOutlined, WarningOutlined,
   ReloadOutlined, InfoCircleOutlined, SafetyCertificateOutlined,
-  RiseOutlined, FallOutlined, CheckCircleOutlined,
+  RiseOutlined, CheckCircleOutlined,
 } from "@ant-design/icons";
 import {
   useD2FKPIs, useD2FAtRisk, useD2FCritical,
-  useD2FAlerts, useD2FRecommendations, useD2FTeachers,
+  useD2FAlerts, useD2FRecommendations,
   useD2FTeacherProfile, useMarkTrainingCompleted,
 } from "@/hooks/analyse/useD2FData";
 import type { ColumnsType } from "antd/es/table";
 import type {
-  AtRiskTeacherRow, D2FAlert, D2FRecommendation, TeacherSummary, TeacherGap,
+  AtRiskTeacherRow, D2FAlert, D2FRecommendation, TeacherGap,
+  TeacherProfile,
 } from "@/services/analyse/D2FService";
 
 // ── Tooltip Definitions (in French) ─────────────────────
@@ -47,7 +48,7 @@ const KPI_TOOLTIPS: Record<string, string> = {
 
 // ── Helper Components ──────────────────────────────────
 
-function RiskTag({ level, score }: { level: string; score: number }) {
+function RiskTag({ level, score }: Readonly<{ level: string; score: number }>) {
   const config: Record<string, { color: string; label: string }> = {
     CRITIQUE: { color: "red", label: "Critique" },
     ELEVE: { color: "orange", label: "Élevé" },
@@ -64,7 +65,7 @@ function RiskTag({ level, score }: { level: string; score: number }) {
 
 function KPICard({
   title, value, icon, color, loading, tooltip, suffix, precision = 2,
-}: {
+}: Readonly<{
   title: string;
   value: number | undefined;
   icon: React.ReactNode;
@@ -73,7 +74,7 @@ function KPICard({
   tooltip?: string;
   suffix?: string;
   precision?: number;
-}) {
+}>) {
   return (
     <Card
       size="small"
@@ -101,13 +102,172 @@ function KPICard({
   );
 }
 
+function gapTagColor(n: number): string {
+  if (n > 2) return "red";
+  if (n > 0) return "orange";
+  return "default";
+}
+
+function AsyncTable<T>({
+  isLoading, isError, items, emptyText, errorMessage, rowKey, columns,
+}: Readonly<{
+  isLoading: boolean;
+  isError: boolean;
+  items: readonly T[] | undefined;
+  emptyText: string;
+  errorMessage: string;
+  rowKey: string;
+  columns: ColumnsType<T>;
+}>) {
+  if (isLoading) return <Skeleton active paragraph={{ rows: 4 }} />;
+  if (isError) return <Alert type="error" message={errorMessage} />;
+  if (!items || items.length === 0) return <Empty description={emptyText} />;
+  return (
+    <Table
+      rowKey={rowKey}
+      size="small"
+      dataSource={items as T[]}
+      columns={columns}
+      pagination={{ pageSize: 10 }}
+    />
+  );
+}
+
+function TeacherProfileModal({
+  open,
+  teacherId,
+  onClose,
+  onTrainingComplete,
+}: Readonly<{
+  open: boolean;
+  teacherId: string | undefined;
+  onClose: () => void;
+  onTrainingComplete: (teacherId: string, trainingCode: string) => Promise<void>;
+}>) {
+  const profileQ = useD2FTeacherProfile(teacherId);
+
+  let content: React.ReactNode = null;
+  if (profileQ.isLoading) {
+    content = <Skeleton active />;
+  } else if (profileQ.isError) {
+    content = <Alert type="error" message="Échec du chargement du profil" />;
+  } else if (profileQ.data) {
+    content = <ProfileDetail profile={profileQ.data} onTrainingComplete={onTrainingComplete} />;
+  }
+
+  return (
+    <Modal
+      title="Profil enseignant"
+      open={open}
+      onCancel={onClose}
+      width={900}
+      footer={null}
+    >
+      {content}
+    </Modal>
+  );
+}
+
+function ProfileDetail({
+  profile,
+  onTrainingComplete,
+}: Readonly<{
+  profile: TeacherProfile;
+  onTrainingComplete: (teacherId: string, trainingCode: string) => Promise<void>;
+}>) {
+  const selectedTeacherId = profile.risk_profile.teacher_id;
+  return (
+    <div>
+      <Card size="small" style={{ marginBottom: 12 }}>
+        <Space direction="vertical" style={{ width: "100%" }}>
+          <div>
+            <strong>{profile.teacher.full_name as string}</strong>
+            <Tag style={{ marginLeft: 8 }}>
+              {profile.teacher.department_code as string}
+            </Tag>
+            <Tag>{profile.teacher.up_code as string}</Tag>
+          </div>
+          <div>
+            <RiskTag
+              level={profile.risk_profile.risk_level}
+              score={profile.risk_profile.risk_score}
+            />
+            <span style={{ marginLeft: 12 }}>
+              Gap moyen: {profile.risk_profile.avg_gap.toFixed(2)}
+            </span>
+            <span style={{ marginLeft: 12 }}>
+              Gaps critiques: {profile.risk_profile.n_critical_gaps}
+            </span>
+          </div>
+        </Space>
+      </Card>
+
+      <h4>
+        Compétences
+        <Tooltip title="Liste des compétences suivies avec niveau actuel vs requis. Un gap est critique si ≥ 3 (sur échelle 1-5).">
+          <InfoCircleOutlined style={{ marginLeft: 6 }} />
+        </Tooltip>
+      </h4>
+      <Table
+        size="small"
+        rowKey={(r) => `${r.teacher_id}-${r.competence_code}`}
+        dataSource={profile.gaps}
+        pagination={false}
+        columns={[
+          { title: "Compétence", dataIndex: "competence_nom" },
+          { title: "Actuel", dataIndex: "current_level" },
+          { title: "Requis", dataIndex: "required_level" },
+          {
+            title: "Gap",
+            dataIndex: "gap_value",
+            render: (v: number, r: TeacherGap) => (
+              <Tag color={r.is_critical_gap ? "red" : "default"}>Δ {v}</Tag>
+            ),
+          },
+        ]}
+      />
+
+      <h4 style={{ marginTop: 16 }}>
+        Feedback loop (boucle d'apprentissage)
+        <Tooltip title="Marquer une formation comme terminée déclenche le recalcul complet du profil de risque (formule officielle, pas un -0.1 simplifié).">
+          <InfoCircleOutlined style={{ marginLeft: 6 }} />
+        </Tooltip>
+      </h4>
+      <Select
+        placeholder="Choisir une formation à terminer"
+        style={{ width: "100%", marginBottom: 8 }}
+        options={(profile.recommendations ?? []).map((r) => ({
+          value: r.training_code,
+          label: `${r.training_title} (cible: ${r.target_competency_code})`,
+        }))}
+        onChange={(v) => onTrainingComplete(selectedTeacherId, v)}
+      />
+
+      {profile.alerts.length > 0 && (
+        <>
+          <h4 style={{ marginTop: 16 }}>Alertes actives</h4>
+          {profile.alerts.map((a) => (
+            <Alert
+              key={a.alert_id}
+              type={a.severity === "CRITIQUE" ? "error" : "warning"}
+              message={a.message}
+              showIcon
+              style={{ marginBottom: 8 }}
+            />
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Main Component ─────────────────────────────────────
 
 interface D2FDashboardProps {
-  defaultTeacherId?: string;
+  readonly defaultTeacherId?: string;
 }
 
-export function D2FDashboard({ defaultTeacherId }: D2FDashboardProps) {
+export function D2FDashboard({ defaultTeacherId }: Readonly<D2FDashboardProps>) {
   const [selectedTeacherId, setSelectedTeacherId] = useState<string | undefined>(defaultTeacherId);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [alertFilter, setAlertFilter] = useState<string | undefined>(undefined);
@@ -118,8 +278,6 @@ export function D2FDashboard({ defaultTeacherId }: D2FDashboardProps) {
   const criticalQ = useD2FCritical();
   const alertsQ = useD2FAlerts(alertFilter);
   const recsQ = useD2FRecommendations();
-  const teachersQ = useD2FTeachers({ limit: 100 });
-  const profileQ = useD2FTeacherProfile(selectedTeacherId);
 
   const trainingMutation = useMarkTrainingCompleted();
 
@@ -130,9 +288,14 @@ export function D2FDashboard({ defaultTeacherId }: D2FDashboardProps) {
       dataIndex: "teacher_name",
       key: "name",
       render: (name: string, row) => (
-        <a onClick={() => { setSelectedTeacherId(row.teacher_id); setProfileModalOpen(true); }}>
+        <Button
+          type="link"
+          size="small"
+          style={{ padding: 0, height: "auto" }}
+          onClick={() => { setSelectedTeacherId(row.teacher_id); setProfileModalOpen(true); }}
+        >
           {name}
-        </a>
+        </Button>
       ),
     },
     { title: "Département", dataIndex: "department", key: "dept" },
@@ -148,7 +311,7 @@ export function D2FDashboard({ defaultTeacherId }: D2FDashboardProps) {
       dataIndex: "n_critical_gaps",
       key: "gaps",
       render: (n: number) => (
-        <Tag color={n > 2 ? "red" : n > 0 ? "orange" : "default"}>{n}</Tag>
+        <Tag color={gapTagColor(n)}>{n}</Tag>
       ),
     },
     {
@@ -157,9 +320,9 @@ export function D2FDashboard({ defaultTeacherId }: D2FDashboardProps) {
       key: "top",
       render: (gaps: { competence_nom: string; gap_value: number }[]) => (
         <Space direction="vertical" size={2}>
-          {gaps.slice(0, 2).map((g, i) => (
-            <span key={i} style={{ fontSize: 12 }}>
-              {g.competence_nom} <Tag color={g.gap_value >= 3 ? "red" : "default"}>Δ {g.gap_value}</Tag>
+          {gaps.slice(0, 2).map((g) => (
+            <span key={g.competence_nom} style={{ fontSize: 12 }}>
+              {g.competence_nom} <Tag color={gapTagColor(g.gap_value)}>Δ {g.gap_value}</Tag>
             </span>
           ))}
         </Space>
@@ -224,15 +387,7 @@ export function D2FDashboard({ defaultTeacherId }: D2FDashboardProps) {
     },
   ], []);
 
-  // ── Teacher Selection ────────────────────────────────
-  const teacherOptions = useMemo(() =>
-    (teachersQ.data?.teachers ?? []).map((t: TeacherSummary) => ({
-      value: t.teacher_id,
-      label: `${t.full_name} (${t.risk_level})`,
-    })),
-    [teachersQ.data]
-  );
-
+  // ── At-Risk Table ─────────────────────────────
   // ── Training Completion Handler ─────────────────────
   const handleTrainingComplete = async (teacherId: string, trainingCode: string) => {
     try {
@@ -389,26 +544,15 @@ export function D2FDashboard({ defaultTeacherId }: D2FDashboardProps) {
           </Button>
         }
       >
-        {atRiskQ.isLoading ? (
-          <Skeleton active paragraph={{ rows: 4 }} />
-        ) : atRiskQ.isError ? (
-          <Alert
-            message="Impossible de charger les enseignants à risque"
-            description="Vérifiez que le service FastAPI répond et que la base de données est seedée."
-            type="error"
-            showIcon
-          />
-        ) : (atRiskQ.data?.teachers.length ?? 0) === 0 ? (
-          <Empty description="Aucun enseignant à risque détecté" />
-        ) : (
-          <Table
-            rowKey="teacher_id"
-            size="small"
-            dataSource={atRiskQ.data?.teachers ?? []}
-            columns={atRiskColumns}
-            pagination={{ pageSize: 10 }}
-          />
-        )}
+        <AsyncTable
+          isLoading={atRiskQ.isLoading}
+          isError={atRiskQ.isError}
+          items={atRiskQ.data?.teachers}
+          emptyText="Aucun enseignant à risque détecté"
+          errorMessage="Impossible de charger les enseignants à risque"
+          rowKey="teacher_id"
+          columns={atRiskColumns}
+        />
       </Card>
 
       {/* ── Alerts ──────────────────────────────────── */}
@@ -436,21 +580,15 @@ export function D2FDashboard({ defaultTeacherId }: D2FDashboardProps) {
           />
         }
       >
-        {alertsQ.isLoading ? (
-          <Skeleton active paragraph={{ rows: 3 }} />
-        ) : alertsQ.isError ? (
-          <Alert type="error" message="Échec du chargement des alertes" />
-        ) : (alertsQ.data?.alerts.length ?? 0) === 0 ? (
-          <Empty description="Aucune alerte" />
-        ) : (
-          <Table
-            rowKey="alert_id"
-            size="small"
-            dataSource={alertsQ.data?.alerts ?? []}
-            columns={alertColumns}
-            pagination={{ pageSize: 10 }}
-          />
-        )}
+        <AsyncTable
+          isLoading={alertsQ.isLoading}
+          isError={alertsQ.isError}
+          items={alertsQ.data?.alerts}
+          emptyText="Aucune alerte"
+          errorMessage="Échec du chargement des alertes"
+          rowKey="alert_id"
+          columns={alertColumns}
+        />
       </Card>
 
       {/* ── Recommendations ─────────────────────────── */}
@@ -464,119 +602,24 @@ export function D2FDashboard({ defaultTeacherId }: D2FDashboardProps) {
         }
         style={{ marginBottom: 16 }}
       >
-        {recsQ.isLoading ? (
-          <Skeleton active paragraph={{ rows: 3 }} />
-        ) : recsQ.isError ? (
-          <Alert type="error" message="Échec du chargement des recommandations" />
-        ) : (recsQ.data?.recommendations.length ?? 0) === 0 ? (
-          <Empty description="Aucune recommandation active" />
-        ) : (
-          <Table
-            rowKey="recommendation_id"
-            size="small"
-            dataSource={recsQ.data?.recommendations ?? []}
-            columns={recColumns}
-            pagination={{ pageSize: 10 }}
-          />
-        )}
+        <AsyncTable
+          isLoading={recsQ.isLoading}
+          isError={recsQ.isError}
+          items={recsQ.data?.recommendations}
+          emptyText="Aucune recommandation active"
+          errorMessage="Échec du chargement des recommandations"
+          rowKey="recommendation_id"
+          columns={recColumns}
+        />
       </Card>
 
       {/* ── Teacher Profile Modal (with feedback loop) ── */}
-      <Modal
-        title="Profil enseignant"
+      <TeacherProfileModal
         open={profileModalOpen}
-        onCancel={() => setProfileModalOpen(false)}
-        width={900}
-        footer={null}
-      >
-        {profileQ.isLoading ? (
-          <Skeleton active />
-        ) : profileQ.isError ? (
-          <Alert type="error" message="Échec du chargement du profil" />
-        ) : profileQ.data ? (
-          <div>
-            <Card size="small" style={{ marginBottom: 12 }}>
-              <Space direction="vertical" style={{ width: "100%" }}>
-                <div>
-                  <strong>{profileQ.data.teacher.full_name as string}</strong>
-                  <Tag style={{ marginLeft: 8 }}>
-                    {profileQ.data.teacher.department_code as string}
-                  </Tag>
-                  <Tag>{profileQ.data.teacher.up_code as string}</Tag>
-                </div>
-                <div>
-                  <RiskTag
-                    level={profileQ.data.risk_profile.risk_level}
-                    score={profileQ.data.risk_profile.risk_score}
-                  />
-                  <span style={{ marginLeft: 12 }}>
-                    Gap moyen: {profileQ.data.risk_profile.avg_gap.toFixed(2)}
-                  </span>
-                  <span style={{ marginLeft: 12 }}>
-                    Gaps critiques: {profileQ.data.risk_profile.n_critical_gaps}
-                  </span>
-                </div>
-              </Space>
-            </Card>
-
-            <h4>
-              Compétences
-              <Tooltip title="Liste des compétences suivies avec niveau actuel vs requis. Un gap est critique si ≥ 3 (sur échelle 1-5).">
-                <InfoCircleOutlined style={{ marginLeft: 6 }} />
-              </Tooltip>
-            </h4>
-            <Table
-              size="small"
-              rowKey={(r) => `${r.teacher_id}-${r.competence_code}`}
-              dataSource={profileQ.data.gaps}
-              pagination={false}
-              columns={[
-                { title: "Compétence", dataIndex: "competence_nom" },
-                { title: "Actuel", dataIndex: "current_level" },
-                { title: "Requis", dataIndex: "required_level" },
-                {
-                  title: "Gap",
-                  dataIndex: "gap_value",
-                  render: (v: number, r: TeacherGap) => (
-                    <Tag color={r.is_critical_gap ? "red" : "default"}>Δ {v}</Tag>
-                  ),
-                },
-              ]}
-            />
-
-            <h4 style={{ marginTop: 16 }}>
-              Feedback loop (boucle d'apprentissage)
-              <Tooltip title="Marquer une formation comme terminée déclenche le recalcul complet du profil de risque (formule officielle, pas un -0.1 simplifié).">
-                <InfoCircleOutlined style={{ marginLeft: 6 }} />
-              </Tooltip>
-            </h4>
-            <Select
-              placeholder="Choisir une formation à terminer"
-              style={{ width: "100%", marginBottom: 8 }}
-              options={(profileQ.data.recommendations ?? []).map((r) => ({
-                value: r.training_code,
-                label: `${r.training_title} (cible: ${r.target_competency_code})`,
-              }))}
-              onChange={(v) => selectedTeacherId && handleTrainingComplete(selectedTeacherId, v)}
-            />
-
-            {profileQ.data.alerts.length > 0 && (
-              <>
-                <h4 style={{ marginTop: 16 }}>Alertes actives</h4>
-                {profileQ.data.alerts.map((a) => (
-                  <Alert
-                    key={a.alert_id}
-                    type={a.severity === "CRITIQUE" ? "error" : "warning"}
-                    message={a.message}
-                    showIcon
-                    style={{ marginBottom: 8 }}
-                  />
-                ))}
-              </>
-            )}
-          </div>
-        ) : null}
-      </Modal>
+        teacherId={selectedTeacherId}
+        onClose={() => setProfileModalOpen(false)}
+        onTrainingComplete={handleTrainingComplete}
+      />
     </div>
   );
 }

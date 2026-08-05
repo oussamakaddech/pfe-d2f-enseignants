@@ -151,7 +151,8 @@
 }
 
 /* ── Cartes KPI à dégradé ───────────────────────────────────── */
-.ad-kpi-row { margin-bottom: 18px; }
+.ad-kpi-row { margin-bottom: 18px; margin-bottom: 20px; }
+.ad-kpi-row + .ad-kpi-row { margin-top: -2px; }
 .ad-kpi {
   position: relative;
   overflow: hidden;
@@ -361,8 +362,6 @@
 .ad-drill-tbl tbody tr:last-child td { border-bottom: none; }
 
 /* ── KPI row spacing ────────────────────────────────────────── */
-.ad-kpi-row { margin-bottom: 20px; }
-.ad-kpi-row + .ad-kpi-row { margin-top: -2px; }
 
 /* ── Impression (isole le dashboard) ─────────────────────────── */
 @media print {

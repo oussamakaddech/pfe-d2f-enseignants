@@ -10,7 +10,7 @@
  * Cela garantit la coherence cross-pages et la tracabilite des chiffres.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, Select, Space, Typography, Row, Col } from "antd";
 import { SafetyCertificateOutlined, BulbOutlined } from "@ant-design/icons";
 import D2FDashboard from "@/components/analytics/D2FDashboard";
@@ -70,15 +70,15 @@ export default function D2FOverviewPage() {
 function TeacherSelector({
   onChange,
   value,
-}: {
+}: Readonly<{
   onChange: (id: string | undefined) => void;
   value: string | undefined;
-}) {
+}>) {
   // Liste legere via /api/v1/d2f/teachers
   const [options, setOptions] = useState<Array<{ value: string; label: string }>>([]);
 
   // Fetch on mount (no useQuery to keep this component light)
-  useState(() => {
+  useEffect(() => {
     fetch("/api/analyse/v1/d2f/teachers?limit=100")
       .then((r) => r.json())
       .then((d) => {
@@ -89,8 +89,7 @@ function TeacherSelector({
         setOptions(opts);
       })
       .catch(() => setOptions([]));
-    return null;
-  });
+  }, []);
 
   return (
     <Select

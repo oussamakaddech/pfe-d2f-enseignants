@@ -189,6 +189,7 @@
   background: var(--ac-bg);
   overflow: hidden;
   transition: box-shadow 0.15s ease;
+  animation: ac-fadeIn 0.3s ease both;
 }
 .ac-group:hover {
   box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.1);
@@ -298,9 +299,6 @@
 @keyframes ac-fadeIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
-}
-.ac-group {
-  animation: ac-fadeIn 0.3s ease both;
 }
 .ac-groups .ac-group:nth-child(1) { animation-delay: 0s; }
 .ac-groups .ac-group:nth-child(2) { animation-delay: 0.04s; }

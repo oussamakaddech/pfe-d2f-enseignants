@@ -18,13 +18,13 @@ export function useDebouncedCallback<T extends (...args: unknown[]) => void>(
   callback: T,
   delay: number = 300,
 ): T {
-  const timeoutRef = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [timeoutRef, setTimeoutRef] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   const debouncedCallback = (...args: Parameters<T>) => {
-    if (timeoutRef[0]) {
-      clearTimeout(timeoutRef[0]);
+    if (timeoutRef) {
+      clearTimeout(timeoutRef);
     }
-    timeoutRef[1](setTimeout(() => {
+    setTimeoutRef(setTimeout(() => {
       callback(...args);
     }, delay));
   };

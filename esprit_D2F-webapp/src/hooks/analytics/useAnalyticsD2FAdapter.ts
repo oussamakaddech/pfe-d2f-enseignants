@@ -25,13 +25,15 @@ import type {
 // Forme legacy compatible (sous-ensemble minimal)
 // La page AnalyticsDashboardPage consomme des champs comme data.kpis.*, data.heatmap, etc.
 
+type NiveauRisque = "FAIBLE" | "MODERE" | "ELEVE" | "CRITIQUE";
+
 export interface LegacyAtRiskTeacher {
   enseignant_id: string;
   nom: string;
   departement: string;
   up: string;
   score_risque: number;
-  niveau_risque: "FAIBLE" | "MODERE" | "ELEVE" | "CRITIQUE";
+  niveau_risque: NiveauRisque;
   nb_gaps_critiques: number;
   tendance: string;
   disengagement_signals?: string[];
@@ -168,7 +170,7 @@ export function useDashboard(_opts: unknown = {}) {
     const byMonth = new Map<string, { critical: number; high: number; total: number; weights: number[] }>();
     for (const a of alerts) {
       const raw = a.created_at ?? "";
-      const match = raw.match(/^(\d{4}-\d{2})/);
+      const match = /^(\d{4}-\d{2})/.exec(raw);
       if (!match) continue;
       const mois = match[1];
       const entry = byMonth.get(mois) ?? { critical: 0, high: 0, total: 0, weights: [] };
@@ -290,7 +292,7 @@ export function useDashboard(_opts: unknown = {}) {
         departement: t.department ?? extra?.deptNom ?? "",
         up: t.up_code ?? extra?.up ?? "",
         score_risque: t.risk_score,
-        niveau_risque: t.risk_level as "FAIBLE" | "MODERE" | "ELEVE" | "CRITIQUE",
+        niveau_risque: t.risk_level as NiveauRisque,
         nb_gaps_critiques: t.n_critical_gaps,
         tendance: "STABLE",
         recommendation: "Planifier formation ciblee",
@@ -358,7 +360,7 @@ export function useAtRisk(_opts: unknown = {}) {
       departement: t.department ?? extra?.deptNom ?? "",
       up: t.up_code ?? extra?.up ?? "",
       score_risque: t.risk_score,
-      niveau_risque: t.risk_level as "FAIBLE" | "MODERE" | "ELEVE" | "CRITIQUE",
+      niveau_risque: t.risk_level as NiveauRisque,
       nb_gaps_critiques: t.n_critical_gaps,
       tendance: "STABLE",
       recommendation: "Planifier formation ciblee",
@@ -413,7 +415,7 @@ function mapStatut(raw: string): StatutAlerte {
 }
 function parseAlertId(raw: string | number | undefined, fallback: number): number {
   const s = String(raw ?? "");
-  const digits = s.match(/\d+/);
+  const digits = /\d+/.exec(s);
   if (digits) return Number(digits[0]);
   const n = Number(s);
   return Number.isFinite(n) ? n : fallback;
@@ -423,7 +425,7 @@ function sanitizeDateFormat(dateStr: string | undefined): string {
     return new Date().toISOString();
   }
   // Normaliser les dates YYYY-MM-DD (date-only) → ISO complet
-  const isoMatch = dateStr.match(/^(\d{4}-\d{2}-\d{2})([T\s].*)?$/);
+  const isoMatch = /^(\d{4}-\d{2}-\d{2})([T\s].*)?$/.exec(dateStr);
   if (isoMatch) {
     return `${isoMatch[1]}T00:00:00Z`;
   }

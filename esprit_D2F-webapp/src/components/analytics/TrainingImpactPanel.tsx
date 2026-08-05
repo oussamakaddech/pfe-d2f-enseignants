@@ -1,6 +1,5 @@
 import { Card, Table, Tag, Statistic, Space, Empty, Spin } from "antd";
 import { useTrainingImpact, useTrainingImpactFormations } from "@/hooks/analytics/useAnalyticsQueries";
-import type { FormationImpactRow } from "@/models/analyse/analyticsFeature";
 
 /**
  * Impact institutionnel des formations suivies (F8 — vue consolidée).

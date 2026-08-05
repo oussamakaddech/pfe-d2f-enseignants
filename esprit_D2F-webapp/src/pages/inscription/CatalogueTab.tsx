@@ -6,8 +6,8 @@ import {
 } from "antd";
 import {
   EyeOutlined, UnlockOutlined, LockOutlined, UserAddOutlined,
-  CheckCircleOutlined, TeamOutlined, CalendarOutlined, BookOutlined,
-  ApartmentOutlined, FilterOutlined, ReloadOutlined, AppstoreOutlined,
+  CheckCircleOutlined, TeamOutlined, CalendarOutlined,
+  ApartmentOutlined, ReloadOutlined,
   ThunderboltOutlined, SearchOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -80,9 +80,9 @@ export default function CatalogueTab() {
   const isAdminLike = role === "admin" || role === "cup";
 
   const { data: enseignant } = useEnseignantById(role === "cup" ? identifier : undefined);
-  const { data: parUp, refetch: refetchParUp } = useFormationsParUp((enseignant as EnseignantData | undefined)?.up?.id);
-  const { data: accessibles, refetch: refetchAccessibles } = useFormationsAccessibles(role === "animateur" ? identifier : undefined);
-  const { data: visibles, isLoading: visiblesLoading, refetch } = useFormationsVisibles();
+  const { data: parUp } = useFormationsParUp((enseignant as EnseignantData | undefined)?.up?.id);
+  const { data: accessibles } = useFormationsAccessibles(role === "animateur" ? identifier : undefined);
+  const { data: visibles, isLoading: visiblesLoading } = useFormationsVisibles();
   const { data: all } = useAllFormations();
   const { mutateAsync: updateOuvertes } = useUpdateInscriptionsOuvertes();
   const { mutateAsync: demanderMutation } = useDemanderInscription();
@@ -125,18 +125,6 @@ export default function CatalogueTab() {
   const types = useMemo(() => [...new Set(formationsList.map((f) => f.typeFormation).filter(Boolean))].map((t) => ({ label: t as string, value: t as string })), [formationsList]);
   const ups = useMemo(() => [...new Set(formationsList.map((f) => f.up?.libelle).filter(Boolean))].map((u) => ({ label: u as string, value: u as string })), [formationsList]);
   const depts = useMemo(() => [...new Set(formationsList.map((f) => f.departement?.libelle).filter(Boolean))].map((d) => ({ label: d as string, value: d as string })), [formationsList]);
-
-  const stats = useMemo(() => {
-    const total = formationsList.length;
-    const open = formationsList.filter((f) => f.inscriptionsOuvertes).length;
-    const uniqueTypes = new Set(formationsList.map((f) => f.typeFormation).filter(Boolean)).size;
-    const startingSoon = formationsList.filter((f) => {
-      if (!f.inscriptionsOuvertes) return false;
-      const d = daysUntilStart(f.dateDebut);
-      return d !== null && d >= 0 && d <= 7;
-    }).length;
-    return { total, open, closed: total - open, uniqueTypes, startingSoon };
-  }, [formationsList]);
 
   const handleToggle = async (id: Id) => {
     try {

@@ -4,9 +4,7 @@ import {
   ReloadOutlined,
   ApartmentOutlined,
   AppstoreOutlined,
-  SearchOutlined,
   FilterOutlined,
-  CloseOutlined,
 } from "@ant-design/icons";
 import StructureSearchResultsView, { type SearchResults } from "./StructureSearchResultsView";
 import ViewToolbar from "./consultation/ViewToolbar";
@@ -16,7 +14,7 @@ import { buildFlatSavoirs, DISPLAY_MODE_KEY, type FlatSavoir } from "@/utils/hel
 import { useAllUps } from "@/hooks/formation/useUpCrud";
 import { useAllDepts } from "@/hooks/formation/useDeptCrud";
 import type useStructureData from "@/hooks/competence/useStructureData";
-import type { Domaine, Competence, SousCompetence, Savoir, TreeNode, StructureData } from "@/models/competence";
+import type { Domaine, Competence, SousCompetence, Savoir, StructureData } from "@/models/competence";
 import type { LookupItem } from "@/models/common";
 import { brand, neutral, semantic } from "@/styles/themes/tokens";
 import "@/styles/pages/consultation-tab.css";
@@ -47,10 +45,7 @@ const STAT_DEFS = [
 ];
 
 export default function ConsultationTab({ structure, crud, handleExportExcel }: Readonly<ConsultationTabProps>) {
-  const [displayMode, setDisplayMode] = useState(() => {
-    const saved = localStorage.getItem(DISPLAY_MODE_KEY);
-    return saved === "cards" ? "cards" : "cards";
-  });
+  const [displayMode, setDisplayMode] = useState<string>("cards");
   const [cardsOpenAll, setCardsOpenAll] = useState(false);
   const [justNavigated, setJustNavigated] = useState(false);
   const [drawerPayload, setDrawerPayload] = useState<DrawerPayload | null>(null);

@@ -90,7 +90,7 @@ interface ApiEnvelope<T> {
  */
 function unpack<T>(envelope: ApiEnvelope<T> | T): T {
   const d = (envelope as ApiEnvelope<T>)?.data;
-  return d === undefined || d === null ? (envelope as T) : d;
+  return d ?? (envelope as T);
 }
 
 interface BackendRiskFactor {
@@ -192,7 +192,7 @@ function mapUrgence(level: string | null | undefined): NiveauUrgence {
 function hashId(input: string): number {
   let h = 0;
   for (let i = 0; i < input.length; i += 1) {
-    h = (h * 31 + input.charCodeAt(i)) >>> 0;
+    h = (h * 31 + (input.codePointAt(i) ?? 0)) >>> 0;
   }
   return h;
 }
@@ -333,9 +333,14 @@ function mapHeatmapCell(raw: unknown): HeatmapCell {
   };
 }
 
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? (value as string[]) : [];
+}
+
 function mapTopFormation(raw: unknown): TopFormation {
   const source = (raw ?? {}) as Record<string, unknown>;
   const impact = Number(source.impact_estime ?? source.avg_relevance ?? 0);
+  const competencesCouvertes = asStringArray(source.competences_couvertes);
   return {
     formation_id: Number(source.formation_id ?? hashId(String(source.training_id ?? ""))),
     formation_titre: String(source.formation_titre ?? source.title ?? ""),
@@ -343,8 +348,8 @@ function mapTopFormation(raw: unknown): TopFormation {
     score_moyen: Number(source.score_moyen ?? source.avg_relevance ?? 0),
     proba_reussite_moy: Number(source.proba_reussite_moy ?? source.avg_relevance ?? 0),
     enseignants_cibles: Number(source.enseignants_cibles ?? source.demand_count ?? 0),
-    departements: Array.isArray(source.departements) ? source.departements as string[] : [],
-    competences_couvertes: Array.isArray(source.competences_couvertes) ? source.competences_couvertes as string[] : Array.isArray(source.target_domains) ? source.target_domains as string[] : [],
+    departements: asStringArray(source.departements),
+    competences_couvertes: competencesCouvertes.length > 0 ? competencesCouvertes : asStringArray(source.target_domains),
     impact_estime: clamp01(impact),
   };
 }
@@ -473,11 +478,17 @@ function toBackendStatus(statut: StatutAlerte): string {
   return statut;
 }
 
+function mapCibleType(raw: string | null | undefined): "INDIVIDUEL" | "DEPARTEMENT" | "GLOBAL" {
+  if (raw === "DEPARTEMENT") return "DEPARTEMENT";
+  if (raw === "GLOBAL") return "GLOBAL";
+  return "INDIVIDUEL";
+}
+
 function mapAlert(raw: BackendAlertRow): AlertEvent {
   return {
     id: raw.id ?? hashId(`${raw.alert_type}:${raw.teacher_id ?? ""}`),
     type_alerte: mapAlertType(raw.alert_type),
-    cible_type: raw.target_type === "DEPARTEMENT" ? "DEPARTEMENT" : raw.target_type === "GLOBAL" ? "GLOBAL" : "INDIVIDUEL",
+    cible_type: mapCibleType(raw.target_type),
     enseignant_id: raw.teacher_id ?? null,
     departement_id: raw.department_id ?? null,
     competence_id: raw.competence_id ?? null,

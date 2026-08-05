@@ -282,14 +282,6 @@ export default function AnalyticsDashboardPage() {
     );
   }, [allHeatmap, filters.departement_id]);
 
-  const filteredRiskKpis = useMemo(() => {
-    const list = filteredAtRisk;
-    const nb = list.length;
-    const scoreMoyen = nb ? list.reduce((s, t) => s + t.score_risque, 0) / nb : 0;
-    const gapsCritiques = list.reduce((s, t) => s + t.nb_gaps_critiques, 0);
-    return { nb, scoreMoyen, gapsCritiques };
-  }, [filteredAtRisk]);
-
   // Alertes ouvertes réelles (backend, filtre département appliqué) → résumé AlertCenter.
   const alertOpenTotal = useMemo(() => {
     const sev = alerts.data?.severity_open;
@@ -562,7 +554,7 @@ export default function AnalyticsDashboardPage() {
           <Tag color="red">CRITIQUE ≥ 0,75</Tag>.
         </p>
         <p style={{ fontSize: 13, lineHeight: 1.7 }}>
-          Toutes les données affichées sont issues de la <b>base PostgreSQL réelle</b>
+          Toutes les données affichées sont issues de la <b>base PostgreSQL réelle</b>{" "}
           (schémas <code>formation</code>, <code>competence</code> et <code>analyse</code> :
           skill_gaps, teacher_risk_snapshots, alert_events, recommendations). Aucun jeu de
           données de démonstration n'est utilisé. La heatmap, les enseignants à risque, les

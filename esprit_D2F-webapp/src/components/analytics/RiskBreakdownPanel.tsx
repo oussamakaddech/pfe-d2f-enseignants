@@ -32,14 +32,14 @@ const COLORS: Record<string, string> = {
 };
 
 interface ScoreCellProps {
-  label: string;
-  score: number | null;
-  level: string;
-  tooltip: string;
-  icon: React.ReactNode;
-  suffix?: string;
+  readonly label: string;
+  readonly score: number | null;
+  readonly level: string;
+  readonly tooltip: string;
+  readonly icon: React.ReactNode;
+  readonly suffix?: string;
 }
-function ScoreCell(props: ScoreCellProps) {
+function ScoreCell(props: Readonly<ScoreCellProps>) {
   const color = COLORS[props.level];
   const display = props.score == null ? "-" : Number(props.score).toFixed(3);
   const pct = props.score == null ? 0 : Math.round(Number(props.score) * 100);
@@ -64,6 +64,66 @@ function ScoreCell(props: ScoreCellProps) {
   );
 }
 
+interface MLUnavailableAlertProps {
+  readonly reason: string | null;
+  readonly fallbackMode: boolean;
+}
+function MLUnavailableAlert(props: Readonly<MLUnavailableAlertProps>) {
+  return h(Alert, {
+    type: "info",
+    showIcon: true,
+    message: "Signal ML indisponible : " + (props.reason || "unknown"),
+    description: props.fallbackMode
+      ? "Le dashboard repose uniquement sur le score metier (deterministe). Lancez un re-entrainement pour activer le signal ML."
+      : undefined,
+  });
+}
+
+interface ConvergenceAlertProps {
+  readonly converged: boolean;
+  readonly businessLevel: string;
+  readonly mlLevel: string;
+}
+function ConvergenceAlert(props: Readonly<ConvergenceAlertProps>) {
+  return h(Alert, {
+    type: props.converged ? "success" : "warning",
+    showIcon: true,
+    icon: props.converged ? h(CheckCircleOutlined) : h(WarningOutlined),
+    message: props.converged
+      ? "Convergence metier / ML"
+      : "Divergence : metier=" + props.businessLevel + " vs ML=" + props.mlLevel,
+    description: props.converged
+      ? "Les deux evaluations aboutissent au meme niveau."
+      : "Le dashboard conserve le score metier (deterministe) comme source de verite.",
+  });
+}
+
+interface TopFactorsCardProps {
+  readonly factors: Array<{ feature: string; importance: number }>;
+  readonly modelName: string;
+}
+function TopFactorsCard(props: Readonly<TopFactorsCardProps>) {
+  return h(Card, { size: "small", title: "Top facteurs ML (" + props.modelName + ")" },
+    h(Space, { direction: "vertical", style: { width: "100%" }, size: 4 },
+      props.factors.slice(0, 5).map(function (f) {
+        return h("div", {
+          key: f.feature,
+          style: {
+            display: "flex",
+            justifyContent: "space-between",
+            fontSize: 12,
+          },
+        },
+          h("span", null, f.feature),
+          h("span", { style: { color: "#666" } },
+            "importance " + (Number(f.importance) * 100).toFixed(1) + "%"
+          )
+        );
+      })
+    )
+  );
+}
+
 function useTeacherProfile(teacherId: string) {
   return useQuery({
     queryKey: ["d2f", "teacher", teacherId],
@@ -83,9 +143,9 @@ function useTeacherMLSignal(teacherId: string) {
 }
 
 interface RiskBreakdownPanelProps {
-  teacherId: string;
+  readonly teacherId: string;
 }
-export function RiskBreakdownPanel(props: RiskBreakdownPanelProps) {
+export function RiskBreakdownPanel(props: Readonly<RiskBreakdownPanelProps>) {
   const profileQ = useTeacherProfile(props.teacherId);
   const mlQ = useTeacherMLSignal(props.teacherId);
 
@@ -103,9 +163,9 @@ export function RiskBreakdownPanel(props: RiskBreakdownPanelProps) {
   const businessScore = Number(profileQ.data.risk_profile.risk_score);
   const businessLevel = levelFromScore(businessScore);
   const ml = mlQ.data;
-  const mlScore = ml && ml.available ? ml.predicted_gap_next_3m : null;
+  const mlScore = ml?.available ? ml.predicted_gap_next_3m : null;
   const mlLevel = levelFromScore(mlScore);
-  const converged = !!(ml && ml.available && mlScore !== null && businessLevel === mlLevel);
+  const converged = !!ml?.available && mlScore !== null && businessLevel === mlLevel;
 
   return h(Space, { direction: "vertical", style: { width: "100%" }, size: 12 },
     h("div", { style: { display: "flex", gap: 12, flexWrap: "wrap" } },
@@ -121,56 +181,19 @@ export function RiskBreakdownPanel(props: RiskBreakdownPanelProps) {
         label: "Signal ML",
         score: mlScore,
         level: mlLevel,
-        tooltip: ml && ml.available
+        tooltip: ml?.available
           ? "Prediction ML via " + ml.model_name + ". Anticipe le gap a 3 mois."
           : "Signal ML indisponible. Voir la raison ci-dessous.",
         icon: h(BulbOutlined),
-        suffix: ml && ml.available
+        suffix: ml?.available
           ? "Confiance : " + (ml.confidence || 0).toFixed(2) + " - Modele : " + ml.model_name
           : undefined,
       })
     ),
-    !(ml && ml.available) ? h(Alert, {
-      type: "info",
-      showIcon: true,
-      message: "Signal ML indisponible : " + ((ml && ml.reason) || "unknown"),
-      description: ml && ml.fallback_mode
-        ? "Le dashboard repose uniquement sur le score metier (deterministe). Lancez un re-entrainement pour activer le signal ML."
-        : undefined,
-    }) : null,
-    ml && ml.available && ml.top_factors && ml.top_factors.length > 0 ? h(Card, {
-      size: "small",
-      title: "Top facteurs ML (" + ml.model_name + ")",
-    },
-      h(Space, { direction: "vertical", style: { width: "100%" }, size: 4 },
-        ml.top_factors.slice(0, 5).map(function (f, i) {
-          return h("div", {
-            key: i,
-            style: {
-              display: "flex",
-              justifyContent: "space-between",
-              fontSize: 12,
-            },
-          },
-            h("span", null, f.feature),
-            h("span", { style: { color: "#666" } },
-              "importance " + (Number(f.importance) * 100).toFixed(1) + "%"
-            )
-          );
-        })
-      )
-    ) : null,
-    ml && ml.available ? h(Alert, {
-      type: converged ? "success" : "warning",
-      showIcon: true,
-      icon: converged ? h(CheckCircleOutlined) : h(WarningOutlined),
-      message: converged
-        ? "Convergence metier / ML"
-        : "Divergence : metier=" + businessLevel + " vs ML=" + mlLevel,
-      description: converged
-        ? "Les deux evaluations aboutissent au meme niveau."
-        : "Le dashboard conserve le score metier (deterministe) comme source de verite.",
-    }) : null
+    ml?.available
+      ? h(TopFactorsCard, { factors: ml.top_factors, modelName: ml.model_name })
+      : h(MLUnavailableAlert, { reason: ml?.reason ?? null, fallbackMode: !!ml?.fallback_mode }),
+    ml?.available ? h(ConvergenceAlert, { converged, businessLevel, mlLevel }) : null
   );
 }
 

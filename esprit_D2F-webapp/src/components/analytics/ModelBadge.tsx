@@ -6,9 +6,9 @@ import {
 type Mode = "ML" | "HEURISTIC_FALLBACK" | undefined;
 
 interface Props {
-  modelMode: Mode;
-  modelVersion?: string | null;
-  size?: "small" | "default";
+  readonly modelMode: Mode;
+  readonly modelVersion?: string | null;
+  readonly size?: "small" | "default";
 }
 
 /**

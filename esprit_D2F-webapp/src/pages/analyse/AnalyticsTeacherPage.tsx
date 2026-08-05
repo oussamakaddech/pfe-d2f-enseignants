@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Row, Col, Input, Spin, Empty, Tag } from "antd";
+import { Row, Col, Input, Spin, Empty, Tabs as AntTabs } from "antd";
 import {
   ReloadOutlined, ExperimentOutlined,
   RiseOutlined, FallOutlined, AimOutlined, InfoCircleOutlined,
@@ -22,8 +22,23 @@ import ModelBadge from "@/components/analytics/ModelBadge";
 import TeacherScopePanel from "@/components/analytics/TeacherScopePanel";
 import { riskColor, riskLabel } from "@/utils/analytics/format";
 import type { RiskFactor } from "@/models/analyse/analyticsFeature";
-import { Tabs as AntTabs } from "antd";
 import "./analyticsTeacher.redesign.css";
+
+function trendClass(trend: string): string {
+  if (trend === "AMELIORATION") return "at-trend-up";
+  if (trend === "DEGRADATION") return "at-trend-down";
+  return "at-trend-flat";
+}
+
+function trendIcon(trend: string): React.ReactNode {
+  if (trend === "AMELIORATION") return <RiseOutlined />;
+  if (trend === "DEGRADATION") return <FallOutlined />;
+  return "—";
+}
+
+function tabLabel(base: string, count?: number): string {
+  return count ? `${base} (${count})` : base;
+}
 
 export default function AnalyticsTeacherPage() {
   const { enseignantId = "" } = useParams<{ enseignantId: string }>();
@@ -36,8 +51,6 @@ export default function AnalyticsTeacherPage() {
   const recos = useTeacherRecommendations(enseignantId, competenceId ?? undefined);
   const history = useRiskHistory(enseignantId);
   const scope = useTeacherScopeAnalysis(enseignantId);
-
-  const loading = analyze.isPending || risk.isLoading || gaps.isLoading || recos.isLoading;
 
   const gapStats = useMemo(() => {
     const list = gaps.data?.gaps ?? [];
@@ -62,8 +75,8 @@ export default function AnalyticsTeacherPage() {
   const offset = circumference * (1 - score);
 
   const trend = risk.data?.tendance ?? "STABLE";
-  const trendClass = trend === "AMELIORATION" ? "at-trend-up" : trend === "DEGRADATION" ? "at-trend-down" : "at-trend-flat";
-  const trendIcon = trend === "AMELIORATION" ? <RiseOutlined /> : trend === "DEGRADATION" ? <FallOutlined /> : "—";
+  const trendCls = trendClass(trend);
+  const trendIco = trendIcon(trend);
 
   return (
     <div className="at-root">
@@ -151,8 +164,8 @@ export default function AnalyticsTeacherPage() {
                   )}
                   <div className="at-score-meta-row">
                     Tendance :{" "}
-                    <span className={`at-trend-badge ${trendClass}`}>
-                      {trendIcon} {trend}
+                    <span className={`at-trend-badge ${trendCls}`}>
+                      {trendIco} {trend}
                     </span>
                   </div>
                 </div>
@@ -201,23 +214,24 @@ export default function AnalyticsTeacherPage() {
           items={[
             {
               key: "scope",
-              label: `Analyse contextuelle${scope.data ? ` (${scope.data.gaps.length})` : ""}`,
+              label: tabLabel("Analyse contextuelle", scope.data?.gaps.length),
               children: <TeacherScopePanel data={scope.data} loading={scope.isLoading} />,
             },
             {
               key: "gaps",
-              label: `Gaps de compétences${gapStats.total > 0 ? ` (${gapStats.total})` : ""}`,
+              label: tabLabel("Gaps de compétences", gapStats.total),
               children: (
                 <div>
                   <div className="at-urgence-pills">
                     {(["FAIBLE", "MODEREE", "HAUTE", "CRITIQUE"] as const).map((u) => (
-                      <span
+                      <button
                         key={u}
+                        type="button"
                         className={`at-pill ${urgence === u ? "is-active" : ""}`}
                         onClick={() => setUrgence(urgence === u ? undefined : u)}
                       >
                         {u}
-                      </span>
+                      </button>
                     ))}
                   </div>
                   <GapsTab gaps={gaps} onSelectCompetence={(g) => setCompetenceId(g.competence_id)} />
@@ -226,7 +240,7 @@ export default function AnalyticsTeacherPage() {
             },
             {
               key: "recos",
-              label: `Recommandations${recos.data?.total ? ` (${recos.data.total})` : ""}`,
+              label: tabLabel("Recommandations", recos.data?.total),
               children: (
                 <RecommendationsList recommendations={recos.data?.recommendations ?? []} loading={recos.isLoading} />
               ),
@@ -249,7 +263,7 @@ export default function AnalyticsTeacherPage() {
 }
 
 /* ── Factors panel ──────────────────────────────────────────── */
-function FactorsPanel({ facteurs, loading }: { facteurs: RiskFactor[] | undefined; loading: boolean }) {
+function FactorsPanel({ facteurs, loading }: Readonly<{ facteurs: RiskFactor[] | undefined; loading: boolean }>) {
   if (loading) {
     return (
       <div className="at-factors" style={{ display: "grid", placeItems: "center", minHeight: 200 }}>
@@ -278,9 +292,12 @@ function FactorsPanel({ facteurs, loading }: { facteurs: RiskFactor[] | undefine
         const displayName = isProbaFactor
           ? `Probabilité ${f.nom.replace("_proba", "").toLowerCase()}`
           : f.nom;
+        const rawValue = f.valeur_brute % 1 === 0
+          ? f.valeur_brute
+          : f.valeur_brute.toFixed(2);
         const displayValue = isProbaFactor
           ? `${(f.valeur_brute * 100).toFixed(0)}% (prob.)`
-          : `valeur ${f.valeur_brute % 1 === 0 ? f.valeur_brute : f.valeur_brute.toFixed(2)}`;
+          : `valeur ${rawValue}`;
         return (
           <div key={f.nom} className="at-factor-row">
             <div>
@@ -320,7 +337,7 @@ function FactorsPanel({ facteurs, loading }: { facteurs: RiskFactor[] | undefine
 }
 
 /* ── Panneau Modeles ─────────────────────────────────────────────── */
-function ModelsInfoPanel({ risk }: { risk: ReturnType<typeof useTeacherRisk> }) {
+function ModelsInfoPanel({ risk }: Readonly<{ risk: ReturnType<typeof useTeacherRisk> }>) {
   if (risk.isLoading) {
     return <div style={{ padding: 30, textAlign: "center" }}><Spin /></div>;
   }

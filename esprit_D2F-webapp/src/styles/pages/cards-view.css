@@ -5,6 +5,7 @@
   grid-template-columns: 200px 1fr;
   gap: 16px;
   align-items: start;
+  animation: ctpFadeSlide 0.3s ease forwards;
 }
 
 .ctp-cards-sidebar {
@@ -49,8 +50,7 @@
 
 .ctp-sidebar-item:last-child { border-bottom: none; }
 .ctp-sidebar-item:hover { background: var(--ctp-surface-soft); }
-.ctp-sidebar-item.active { background: var(--ctp-blue-soft); font-weight: 700; }
-
+.ctp-sidebar-item.active { background: linear-gradient(90deg, #eff6ff 0%, #ffffff 100%); font-weight: 600; border-left: 3px solid #3b82f6; }
 .ctp-sidebar-dot {
   width: 9px;
   height: 9px;
@@ -95,11 +95,14 @@
 .ctp-cards-filters > .ant-select { min-width: 130px; }
 
 .ctp-acc-section {
-  background: var(--ctp-surface);
+  background: rgba(255, 255, 255, 0.95);
   border: 1px solid var(--ctp-border);
   border-radius: var(--ctp-r-md);
   margin-bottom: 10px;
   overflow: hidden;
+  backdrop-filter: blur(10px);
+  transform: translateY(0);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .ctp-acc-header {
@@ -114,6 +117,7 @@
   border: none;
   width: 100%;
   text-align: left;
+  position: relative;
 }
 
 .ctp-acc-header:hover { background: var(--ctp-surface-soft); }
@@ -161,9 +165,11 @@
   padding: 9px 11px;
   cursor: pointer;
   background: var(--ctp-surface);
-  transition: border-color var(--ctp-ease), box-shadow var(--ctp-ease);
   text-align: left;
   width: 100%;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
 }
 
 .ctp-savoir-mini:hover {
@@ -188,7 +194,8 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin-bottom: 7px;
-  min-height: 48px;
+  /* height constraint for multi-line ellipsis */
+  min-height: 42px;
 }
 
 .ctp-savoir-mini__footer {
@@ -295,7 +302,7 @@
   border-radius: var(--ctp-r-sm);
   margin-bottom: 10px;
   font-size: 12px;
-  animation: ctpFadeSlide 0.15s ease;
+  animation: ctpPop 0.2s ease;
 }
 
 .ctp-filter-summary__count {
@@ -315,26 +322,9 @@
 
 /* ─── Modern Enhancement ─────────────────── */
 
-.ctp-cards-layout {
-  animation: ctpFadeSlide 0.3s ease forwards;
-}
-
-.ctp-acc-section {
-  backdrop-filter: blur(10px);
-  background: rgba(255, 255, 255, 0.95);
-  transform: translateY(0);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
 .ctp-acc-section:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-}
-
-.ctp-savoir-mini {
-  position: relative;
-  overflow: hidden;
-  transition: all 0.2s ease;
 }
 
 .ctp-savoir-mini::before {
@@ -348,10 +338,6 @@
 
 .ctp-savoir-mini:hover::before {
   opacity: 1;
-}
-
-.ctp-acc-header {
-  position: relative;
 }
 
 .ctp-acc-header::after {
@@ -371,10 +357,6 @@
   transform: scaleX(1);
 }
 
-.ctp-filter-summary {
-  animation: ctpPop 0.2s ease;
-}
-
 .ctp-list-mode-btn {
   padding: 6px 16px;
   border-radius: 999px;
@@ -389,17 +371,6 @@
   background: #3b82f6;
   color: #ffffff;
   border-color: #3b82f6;
-}
-
-.ctp-sidebar-item.active {
-  background: linear-gradient(90deg, #eff6ff 0%, #ffffff 100%);
-  font-weight: 600;
-  border-left: 3px solid #3b82f6;
-}
-
-.ctp-savoir-mini__nom {
-  /* height constraint for multi-line ellipsis */
-  min-height: 42px;
 }
 
 @keyframes ctpFadeSlide {
