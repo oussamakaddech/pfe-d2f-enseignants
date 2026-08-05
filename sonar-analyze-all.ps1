@@ -1,4 +1,4 @@
-$token = "sqa_b6731743421281bc79b5e0ebb4ba59b8c36b4410"
+$token = "sqa_24b89d888de71d49837a3c2d36b3265f43503d83"
 $srcDir = "C:\Users\oussama\Desktop\pfe-d2f-enseignants"
 
 # Create shared Maven repo volume (persists d2f-common-security across containers)
@@ -34,7 +34,7 @@ foreach ($svc in $services) {
         -e "SONAR_TOKEN=$token" `
         -w $workDir `
         maven:3.9-eclipse-temurin-17 `
-        mvn sonar:sonar "-Dsonar.host.url=http://sonarqube:9000" "-Dsonar.token=$token" "-Dsonar.qualitygate.wait=true" 2>&1 | Out-String | ForEach-Object { $_.Replace("`0","") } | Select-String -Pattern "BUILD|ERROR|sonar" | ForEach-Object { $_.Line }
+        mvn org.sonarsource.scanner.maven:sonar-maven-plugin:5.1.0.4751:sonar "-Dsonar.host.url=http://sonarqube:9000" "-Dsonar.token=$token" "-Dsonar.qualitygate.wait=true" 2>&1 | Out-String | ForEach-Object { $_.Replace("`0","") } | Select-String -Pattern "BUILD|ERROR|sonar" | ForEach-Object { $_.Line }
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host "  [$projectKey] SUCCESS" -ForegroundColor Green
