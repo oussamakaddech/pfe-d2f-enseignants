@@ -4,6 +4,8 @@ import static esprit.pfe.serviceanalyse.services.RestTemplateMockHelper.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -15,8 +17,6 @@ import org.springframework.web.client.RestTemplate;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -49,53 +49,22 @@ class AnalysePredictiveServicePrioriteTest {
                 return l;
         }
 
-        @Test
-        void testGetPrioriteOrder_WithHighPriority() {
+        @ParameterizedTest
+        @CsvSource({ "5,haute", "2,moyenne", "1,faible" })
+        void testGetPrioriteOrder_ByCount(int count, String prioriteAttendue) {
                 RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
                         RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
                 RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
                 RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
                 RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
-                RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS, repete(besoin("Java"), 5).toArray());
+                RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS, repete(besoin("Java"), count).toArray());
 
                 Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
                 assertNotNull(result);
                 List<Map<String, Object>> besoins = (List<Map<String, Object>>) result.get("besoinsDetectes");
                 assertFalse(besoins.isEmpty(), "Les besoins doivent être détectés");
-                assertEquals("haute", besoins.get(0).get("priorite"), "La priorité doit être haute pour count >= 5");
-        }
-
-        @Test
-        void testGetPrioriteOrder_WithMediumPriority() {
-                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
-                        RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
-                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
-                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
-                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
-                RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS, repete(besoin("Java"), 2).toArray());
-
-                Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
-                assertNotNull(result);
-                List<Map<String, Object>> besoins = (List<Map<String, Object>>) result.get("besoinsDetectes");
-                assertFalse(besoins.isEmpty(), "Les besoins doivent être détectés");
-                assertEquals("moyenne", besoins.get(0).get("priorite"),
-                                "La priorité doit être moyenne pour 2 <= count < 5");
-        }
-
-        @Test
-        void testGetPrioriteOrder_WithLowPriority() {
-                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
-                        RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
-                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
-                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
-                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
-                RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS, repete(besoin("Java"), 1).toArray());
-
-                Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
-                assertNotNull(result);
-                List<Map<String, Object>> besoins = (List<Map<String, Object>>) result.get("besoinsDetectes");
-                assertFalse(besoins.isEmpty(), "Les besoins doivent être détectés");
-                assertEquals("faible", besoins.get(0).get("priorite"), "La priorité doit être faible pour count < 2");
+                assertEquals(prioriteAttendue, besoins.get(0).get("priorite"),
+                                "La priorité doit être " + prioriteAttendue + " pour count = " + count);
         }
 
         @Test
@@ -122,22 +91,5 @@ class AnalysePredictiveServicePrioriteTest {
                                 "Le deuxième besoin doit avoir une priorité moyenne");
                 assertEquals("faible", besoins.get(2).get("priorite"),
                                 "Le troisième besoin doit avoir une priorité faible");
-        }
-
-        @Test
-        void testGetPrioriteOrder_WithUnknownPriority() {
-                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
-                        RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
-                RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE);
-                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
-                RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
-                RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS, repete(besoin("Java"), 1).toArray());
-
-                Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
-                assertNotNull(result);
-                List<Map<String, Object>> besoins = (List<Map<String, Object>>) result.get("besoinsDetectes");
-                assertFalse(besoins.isEmpty(), "Les besoins doivent être détectés");
-                assertEquals("faible", besoins.get(0).get("priorite"),
-                                "La priorité doit être faible pour un seul besoin");
         }
 }

@@ -15,8 +15,6 @@ import org.springframework.web.client.RestTemplate;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -92,20 +90,6 @@ class AnalysePredictiveServiceDashboardTest {
     }
 
     @Test
-    void testAnalyserTendancesGlobales_WithServiceFailure() {
-        RestTemplateMockHelper.mockEndpointFailure(restTemplate, EVALUATIONS, new RuntimeException("Service down"));
-
-        Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
-        assertNotNull(result, "Le résultat ne doit pas être null");
-        Map<String, Object> stats = (Map<String, Object>) result.get("statistiques");
-        assertNotNull(stats, "Les statistiques ne doivent pas être null");
-        assertEquals(0, stats.get("totalEvaluations"), "Le total des évaluations doit être 0");
-        assertEquals(0.0, stats.get("noteMoyenne"), "La note moyenne doit être 0.0");
-        Map<String, Object> dashboard = (Map<String, Object>) result.get("dashboard");
-        assertNotNull(dashboard, "Le dashboard ne doit pas être null");
-    }
-
-    @Test
     void testAnalyserTendancesGlobales_WithValidEvals() {
         RestTemplateMockHelper.mockEndpoint(restTemplate, EVALUATIONS, eval(3.5, "ens1"), eval(2.5, "ens2"));
 
@@ -121,20 +105,6 @@ class AnalysePredictiveServiceDashboardTest {
 
     @Test
     void testGenererDashboard_WithNullEvals() {
-        RestTemplateMockHelper.mockEndpointFailure(restTemplate, EVALUATIONS, new RuntimeException("Service down"));
-
-        Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
-        assertNotNull(result, "Le résultat ne doit pas être null");
-        Map<String, Object> dashboard = (Map<String, Object>) result.get("dashboard");
-        assertNotNull(dashboard, "Le dashboard ne doit pas être null");
-        assertTrue(((List<?>) dashboard.get("enseignantsARisque")).isEmpty(), "La liste des enseignants à risque doit être vide");
-        assertTrue(((List<?>) dashboard.get("competencesEnDeclin")).isEmpty(), "La liste des compétences en déclin doit être vide");
-        assertTrue(((List<?>) dashboard.get("competencesEnForteDemande")).isEmpty(), "La liste des compétences en forte demande doit être vide");
-        assertEquals(0.0, dashboard.get("tauxCouverture"), "Le taux de couverture doit être 0.0");
-    }
-
-    @Test
-    void testGenererDashboard_WithServiceFailure() {
         RestTemplateMockHelper.mockEndpointFailure(restTemplate, EVALUATIONS, new RuntimeException("Service down"));
 
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();

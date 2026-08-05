@@ -32,6 +32,7 @@ import java.util.List;
 public class PredictiveAnalyticsClient {
 
     private static final String V2_BASE = "/api/v1/analytics";
+    private static final String DEPARTMENT_ID = "department_id";
 
     private final RestTemplate restTemplate;
     private final ResilientCaller resilientCaller;
@@ -76,7 +77,7 @@ public class PredictiveAnalyticsClient {
     public PageDto<TeacherRiskProfileDto> getTeachers(String departmentId, String level, int page, int size, String bearerToken) {
         UriComponentsBuilder b = UriComponentsBuilder.fromHttpUrl(predictiveServiceUrl + V2_BASE + "/teachers")
                 .queryParam("page", page).queryParam("size", size);
-        if (departmentId != null) b.queryParam("department_id", departmentId);
+        if (departmentId != null) b.queryParam(DEPARTMENT_ID, departmentId);
         if (level != null) b.queryParam("level", level);
         return resilientCaller.get(b.toUriString(), bearerToken, restTemplate, new ParameterizedTypeReference<>() {});
     }
@@ -85,14 +86,14 @@ public class PredictiveAnalyticsClient {
         UriComponentsBuilder b = UriComponentsBuilder.fromHttpUrl(predictiveServiceUrl + V2_BASE + "/alerts")
                 .queryParam("page", page).queryParam("size", size);
         if (status != null) b.queryParam("status", status);
-        if (departmentId != null) b.queryParam("department_id", departmentId);
+        if (departmentId != null) b.queryParam(DEPARTMENT_ID, departmentId);
         return resilientCaller.get(b.toUriString(), bearerToken, restTemplate, new ParameterizedTypeReference<>() {});
     }
 
     public PageDto<PriorityActionDto> getPriorityActions(String departmentId, int page, int size, String bearerToken) {
         UriComponentsBuilder b = UriComponentsBuilder.fromHttpUrl(predictiveServiceUrl + V2_BASE + "/actions/priority")
                 .queryParam("page", page).queryParam("size", size);
-        if (departmentId != null) b.queryParam("department_id", departmentId);
+        if (departmentId != null) b.queryParam(DEPARTMENT_ID, departmentId);
         return resilientCaller.get(b.toUriString(), bearerToken, restTemplate, new ParameterizedTypeReference<>() {});
     }
 

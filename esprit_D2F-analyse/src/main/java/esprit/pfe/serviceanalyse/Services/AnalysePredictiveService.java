@@ -24,6 +24,14 @@ public class AnalysePredictiveService {
     private static final String COMPETENCE_NOM = "competenceNom";
     private static final String COMPETENCE_ID = "competenceId";
     private static final String COMPETENCE_CODE = "competenceCode";
+    private static final String COMPETENCE_LABEL = "competenceLabel";
+    private static final String DOMAINE_ID = "domaineId";
+    private static final String DOMAINE_NOM = "domaineNom";
+    private static final String NIVEAU_ACTUEL = "niveauActuel";
+    private static final String NIVEAU_CIBLE = "niveauCible";
+    private static final String NOTE_GLOBALE = "noteGlobale";
+    private static final String CONTENT = "content";
+    private static final String EVALUATIONS_GLOBALES_URL = "/api/v1/evaluations-globales";
     private static final String FORMATION_ID = "formationId";
     private static final String TITRE = "titre";
     private static final String GRAVITE = "gravite";
@@ -93,9 +101,9 @@ public class AnalysePredictiveService {
                     if (aff.get(COMPETENCE_NOM) != null) {
                         competencesPossedees.add(String.valueOf(aff.get(COMPETENCE_NOM)));
                     }
-                    if (aff.get("domaineId") != null) {
-                        Long domaineId = ((Number) aff.get("domaineId")).longValue();
-                        String domaineNom = aff.get("domaineNom") != null ? String.valueOf(aff.get("domaineNom")) : null;
+                    if (aff.get(DOMAINE_ID) != null) {
+                        Long domaineId = ((Number) aff.get(DOMAINE_ID)).longValue();
+                        String domaineNom = aff.get(DOMAINE_NOM) != null ? String.valueOf(aff.get(DOMAINE_NOM)) : null;
                         domainesConcernes.putIfAbsent(domaineId, domaineNom);
                     }
                 }
@@ -125,31 +133,42 @@ public class AnalysePredictiveService {
             String domaineNom = entry.getValue();
             try {
                 String url = competenceServiceUrl + "/api/v1/competences/domaine/" + domaineId;
-                Map<String, Object> page = getForMap(url);
-                List<Map<String, Object>> competences = extractContent(page);
-                if (competences == null) continue;
-                for (Map<String, Object> comp : competences) {
-                    String compNom = comp.get("nom") != null ? String.valueOf(comp.get("nom")) : null;
-                    if (compNom == null || competencesPossedees.contains(compNom)) continue;
-                    Long compId = comp.get("id") != null ? ((Number) comp.get("id")).longValue() : null;
-                    Map<String, Object> gap = new LinkedHashMap<>();
-                    gap.put(COMPETENCE_ID, compId);
-                    gap.put(COMPETENCE_CODE, comp.getOrDefault("code", "N/A"));
-                    gap.put("competenceLabel", compNom);
-                    gap.put("domaineId", domaineId);
-                    gap.put("domaineNom", domaineNom);
-                    gap.put("niveauActuel", 0);
-                    gap.put("niveauCible", niveauCibleParDefaut);
-                    double gapVal = niveauCibleParDefaut;
-                    gap.put("gap", gapVal);
-                    gap.put(GRAVITE, getGraviteValue(gapVal));
-                    gap.put(EXPLICATION, "Compétence manquante dans le domaine " + domaineNom + " — non acquise (niveau 0 / cible: " + niveauCibleParDefaut + ")");
-                    gaps.add(gap);
+                List<Map<String, Object>> competences = extractContent(getForMap(url));
+                if (competences != null) {
+                    ajouterGapsDomaine(competences, competencesPossedees, domaineId, domaineNom, gaps);
                 }
             } catch (Exception e) {
                 log.warn("Impossible de récupérer les compétences du domaine {} : {}", domaineId, e.getMessage());
             }
         }
+    }
+
+    private void ajouterGapsDomaine(List<Map<String, Object>> competences, Set<String> competencesPossedees,
+                                    Long domaineId, String domaineNom, List<Map<String, Object>> gaps) {
+        for (Map<String, Object> comp : competences) {
+            String compNom = comp.get("nom") != null ? String.valueOf(comp.get("nom")) : null;
+            if (compNom == null || competencesPossedees.contains(compNom)) continue;
+            Long compId = comp.get("id") != null ? ((Number) comp.get("id")).longValue() : null;
+            gaps.add(buildGapCompetenceManquante(compId, comp, compNom, domaineId, domaineNom));
+        }
+    }
+
+    private Map<String, Object> buildGapCompetenceManquante(Long compId, Map<String, Object> comp, String compNom,
+                                                            Long domaineId, String domaineNom) {
+        Map<String, Object> gap = new LinkedHashMap<>();
+        gap.put(COMPETENCE_ID, compId);
+        gap.put(COMPETENCE_CODE, comp.getOrDefault("code", "N/A"));
+        gap.put(COMPETENCE_LABEL, compNom);
+        gap.put(DOMAINE_ID, domaineId);
+        gap.put(DOMAINE_NOM, domaineNom);
+        gap.put(NIVEAU_ACTUEL, 0);
+        gap.put(NIVEAU_CIBLE, niveauCibleParDefaut);
+        double gapVal = niveauCibleParDefaut;
+        gap.put("gap", gapVal);
+        gap.put(GRAVITE, getGraviteValue(gapVal));
+        gap.put(EXPLICATION, "Compétence manquante dans le domaine " + domaineNom
+                + " — non acquise (niveau 0 / cible: " + niveauCibleParDefaut + ")");
+        return gap;
     }
 
     @SuppressWarnings("unchecked")
@@ -165,11 +184,11 @@ public class AnalysePredictiveService {
             Map<String, Object> gap = new LinkedHashMap<>();
             gap.put(COMPETENCE_ID, compId);
             gap.put(COMPETENCE_CODE, aff.getOrDefault(COMPETENCE_CODE, "N/A"));
-            gap.put("competenceLabel", compNom);
-            gap.put("domaineId", aff.get("domaineId"));
-            gap.put("domaineNom", aff.get("domaineNom"));
-            gap.put("niveauActuel", niveauActuel);
-            gap.put("niveauCible", niveauCible);
+            gap.put(COMPETENCE_LABEL, compNom);
+            gap.put(DOMAINE_ID, aff.get(DOMAINE_ID));
+            gap.put(DOMAINE_NOM, aff.get(DOMAINE_NOM));
+            gap.put(NIVEAU_ACTUEL, niveauActuel);
+            gap.put(NIVEAU_CIBLE, niveauCible);
             gap.put("gap", gapVal);
             gap.put(GRAVITE, getGraviteValue(gapVal));
             gap.put(EXPLICATION, "Écart de " + gapVal + " niveau(x) — actuel: " + niveauActuel + " / cible: " + niveauCible);
@@ -190,21 +209,21 @@ public class AnalysePredictiveService {
     private List<Map<String, Object>> identifierGapsViaEvaluations() {
         List<Map<String, Object>> gaps = new ArrayList<>();
         try {
-            String evalUrl = evaluationServiceUrl + "/api/v1/evaluations-globales";
+            String evalUrl = evaluationServiceUrl + EVALUATIONS_GLOBALES_URL;
             Map<String, Object> page = getForMap(evalUrl);
             List<Map<String, Object>> evals = extractContent(page);
             if (evals != null) {
                 double avgNote = evals.stream()
-                        .filter(e -> e.get("noteGlobale") != null)
-                        .mapToDouble(e -> ((Number) e.get("noteGlobale")).doubleValue())
+                        .filter(e -> e.get(NOTE_GLOBALE) != null)
+                        .mapToDouble(e -> ((Number) e.get(NOTE_GLOBALE)).doubleValue())
                         .average().orElse(3.0);
                 double gapVal = Math.max(0, 3.0 - avgNote);
                 if (gapVal > 0) {
                     Map<String, Object> gap = new LinkedHashMap<>();
                     gap.put(COMPETENCE_CODE, "EVAL-001");
-                    gap.put("competenceLabel", "Compétence globale (basée évaluations)");
-                    gap.put("niveauActuel", avgNote);
-                    gap.put("niveauCible", 3.0);
+                    gap.put(COMPETENCE_LABEL, "Compétence globale (basée évaluations)");
+                    gap.put(NIVEAU_ACTUEL, avgNote);
+                    gap.put(NIVEAU_CIBLE, 3.0);
                     gap.put("gap", gapVal);
                     gap.put(GRAVITE, gapVal >= 2 ? GRAVITE_ELEVEE : GRAVITE_MOYENNE);
                     gap.put(EXPLICATION, "Note moyenne des évaluations: " + String.format("%.1f", avgNote) + " / cible: 3.0");
@@ -370,12 +389,12 @@ public class AnalysePredictiveService {
         stats.put(TOTAL_EVALUATIONS, 0);
         stats.put(NOTE_MOYENNE, 0.0);
         try {
-            String evalUrl = evaluationServiceUrl + "/api/v1/evaluations-globales";
+            String evalUrl = evaluationServiceUrl + EVALUATIONS_GLOBALES_URL;
             Map<String, Object> page = getForMap(evalUrl);
             List<Map<String, Object>> evals = extractContent(page);
             if (evals != null) {
                 stats.put(TOTAL_EVALUATIONS, evals.size());
-                stats.put(NOTE_MOYENNE, evals.stream().filter(e -> e.get("noteGlobale") != null).mapToDouble(e -> ((Number) e.get("noteGlobale")).doubleValue()).average().orElse(0.0));
+                stats.put(NOTE_MOYENNE, evals.stream().filter(e -> e.get(NOTE_GLOBALE) != null).mapToDouble(e -> ((Number) e.get(NOTE_GLOBALE)).doubleValue()).average().orElse(0.0));
             }
         } catch (Exception e) {
             log.warn("Service evaluation indisponible pour tendances");
@@ -396,12 +415,12 @@ public class AnalysePredictiveService {
         dashboard.put("tauxCouverture", 0.0);
 
         try {
-            String evalUrl = evaluationServiceUrl + "/api/v1/evaluations-globales";
+            String evalUrl = evaluationServiceUrl + EVALUATIONS_GLOBALES_URL;
             Map<String, Object> page = getForMap(evalUrl);
             List<Map<String, Object>> evals = extractContent(page);
             if (evals != null) {
                 Set<String> aRisque = evals.stream()
-                        .filter(e -> e.get("noteGlobale") != null && ((Number) e.get("noteGlobale")).doubleValue() < 2)
+                        .filter(e -> e.get(NOTE_GLOBALE) != null && ((Number) e.get(NOTE_GLOBALE)).doubleValue() < 2)
                         .map(e -> String.valueOf(e.get("enseignantId"))).distinct().collect(Collectors.toSet());
                 dashboard.put("enseignantsARisque", new ArrayList<>(aRisque));
             }
@@ -418,8 +437,8 @@ public class AnalysePredictiveService {
                     + "?page=" + pageable.getPageNumber()
                     + "&size=" + pageable.getPageSize();
             Map<String, Object> response = getForMap(url);
-            if (response != null && response.get("content") instanceof List) {
-                List<Map<String, Object>> items = (List<Map<String, Object>>) response.get("content");
+            if (response != null && response.get(CONTENT) instanceof List) {
+                List<Map<String, Object>> items = (List<Map<String, Object>>) response.get(CONTENT);
                 long total = response.get("totalElements") instanceof Number number
                         ? number.longValue() : items.size();
                 return new PageImpl<>(items, pageable, total);
@@ -447,8 +466,8 @@ public class AnalysePredictiveService {
 
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> extractContent(Map<String, Object> page) {
-        if (page == null) return null;
-        Object content = page.get("content");
+        if (page == null) return Collections.emptyList();
+        Object content = page.get(CONTENT);
         if (content instanceof List) {
             return (List<Map<String, Object>>) content;
         }
@@ -456,7 +475,7 @@ public class AnalysePredictiveService {
         if (page instanceof List) {
             return (List<Map<String, Object>>) (List<?>) page;
         }
-        return null;
+        return Collections.emptyList();
     }
 
     private int parseNiveau(Object niveauObj) {

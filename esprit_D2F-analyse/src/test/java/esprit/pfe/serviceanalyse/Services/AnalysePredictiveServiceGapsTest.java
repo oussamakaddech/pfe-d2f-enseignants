@@ -15,8 +15,6 @@ import org.springframework.web.client.RestTemplate;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -178,5 +176,33 @@ class AnalysePredictiveServiceGapsTest {
         assertNotNull(result);
         List<Map<String, Object>> gaps = (List<Map<String, Object>>) result.get("gaps");
         assertTrue(gaps.isEmpty(), "Aucun gap ne doit être détecté si toutes les notes sont null");
+    }
+
+    @Test
+    void testGapsManquantsDomaine_AjouteCompetenceNonPossedee() {
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_ENSEIGNANT,
+                RestTemplateMockHelper.affectation(1L, "Java", 1L, "DOM", "INITIE"));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, COMPETENCES_DOMAINE,
+                RestTemplateMockHelper.competence(1L, "C1", "Java"),
+                RestTemplateMockHelper.competence(2L, "C2", "Python"),
+                RestTemplateMockHelper.competence(3L, "C3", null));
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATIONS);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, FORMATION_COMPETENCES);
+        RestTemplateMockHelper.mockEndpoint(restTemplate, BESOINS);
+
+        Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
+        assertNotNull(result);
+        List<Map<String, Object>> gaps = (List<Map<String, Object>>) result.get("gaps");
+
+        Map<String, Object> gapPython = gaps.stream()
+                .filter(g -> "Python".equals(g.get("competenceLabel")))
+                .findFirst().orElse(null);
+        assertNotNull(gapPython, "Un gap doit être créé pour la compétence non possédée du domaine");
+        assertEquals(0, gapPython.get("niveauActuel"), "Le niveau actuel du gap manquant doit être 0");
+        assertEquals(1L, ((Number) gapPython.get("domaineId")).longValue(), "Le domaine doit être propagé");
+        assertEquals("C2", gapPython.get("competenceCode"), "Le code de compétence doit être propagé");
+
+        long javaCount = gaps.stream().filter(g -> "Java".equals(g.get("competenceLabel"))).count();
+        assertEquals(1, javaCount, "Java ne doit pas générer de gap manquant (déjà possédée)");
     }
 }

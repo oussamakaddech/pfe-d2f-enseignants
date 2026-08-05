@@ -146,7 +146,7 @@ public class SkillPassportAssembler {
                 .gravite(str(g.get("gravite")))
                 .explication(str(g.get("explication")))
                 .build()
-        ).collect(Collectors.toList());
+        ).toList();
     }
 
     @SuppressWarnings("unchecked")
