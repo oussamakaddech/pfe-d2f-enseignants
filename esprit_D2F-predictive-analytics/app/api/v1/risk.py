@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 
 from app.api.deps import ContainerDependency, resolve_user_teacher
@@ -11,7 +13,7 @@ DECISION_ROLES = ("ADMIN", "CUP", "CHEF_DEPARTEMENT", "ENSEIGNANT")
 
 
 @router.get("")
-def get_risk(teacher_id: str, container: ContainerDependency, user: CurrentUser = Depends(require_roles(*DECISION_ROLES))):
+def get_risk(teacher_id: str, container: ContainerDependency, user: Annotated[CurrentUser, Depends(require_roles(*DECISION_ROLES))]):
     teacher = resolve_teacher_or_404(teacher_id, container.teacher_source)
     user_teacher = resolve_user_teacher(container, user)
     enforce_teacher_access(user, teacher, user_teacher)

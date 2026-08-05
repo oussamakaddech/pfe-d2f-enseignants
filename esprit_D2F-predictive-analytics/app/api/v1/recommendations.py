@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import ContainerDependency, resolve_user_teacher
@@ -15,9 +17,9 @@ DECISION_ROLES = ("ADMIN", "CUP", "CHEF_DEPARTEMENT", "ENSEIGNANT")
 def list_recommendations(
     teacher_id: str,
     container: ContainerDependency,
-    user: CurrentUser = Depends(require_roles(*DECISION_ROLES)),
-    competence_id: int | None = Query(default=None),
-    limit: int = Query(default=5, ge=1, le=20),
+    user: Annotated[CurrentUser, Depends(require_roles(*DECISION_ROLES))],
+    competence_id: Annotated[int | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=20)] = 5,
 ):
     teacher = resolve_teacher_or_404(teacher_id, container.teacher_source)
     user_teacher = resolve_user_teacher(container, user)

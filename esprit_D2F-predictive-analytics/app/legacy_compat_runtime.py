@@ -29,6 +29,7 @@ import types
 
 _ALIASED = False
 _JWT_MIDDLEWARE_REAL: bool | None = None
+JWT_MIDDLEWARE_MODULE = "app.core.jwt_middleware"
 
 
 def _alias(name: str) -> None:
@@ -159,12 +160,12 @@ def _alias_core_jwt_middleware() -> None:
     documente du dev local / tests (voir app_legacy/core/auth.py).
     """
     global _JWT_MIDDLEWARE_REAL
-    if sys.modules.get("app.core.jwt_middleware") is not None:
+    if sys.modules.get(JWT_MIDDLEWARE_MODULE) is not None:
         return
     try:
         import app_legacy.core.jwt_middleware as jwt_middleware
     except RuntimeError:
-        jwt_middleware = types.ModuleType("app.core.jwt_middleware")
+        jwt_middleware = types.ModuleType(JWT_MIDDLEWARE_MODULE)
         jwt_middleware.JWT_AUTH_ENABLED = False
         jwt_middleware.JWT_ALGORITHM = "HS512"
         jwt_middleware.JWT_SECRET = ""
@@ -172,7 +173,7 @@ def _alias_core_jwt_middleware() -> None:
         _JWT_MIDDLEWARE_REAL = False
     else:
         _JWT_MIDDLEWARE_REAL = True
-    sys.modules["app.core.jwt_middleware"] = jwt_middleware
+    sys.modules[JWT_MIDDLEWARE_MODULE] = jwt_middleware
 
 
 def get_legacy_jwt_auth_middleware():

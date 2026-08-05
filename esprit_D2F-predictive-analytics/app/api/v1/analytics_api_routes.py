@@ -5,7 +5,7 @@ un stub vide. `formations-par-up` / `formations-par-departement` restent
 inertes : non consommées par le dashboard CUP actuel (queries désactivées).
 """
 from datetime import date, timedelta
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import text
@@ -77,14 +77,19 @@ def _parse_date(value: str | None, default: date) -> date:
         raise HTTPException(status_code=400, detail=f"Date invalide: {value!r} (attendu yyyy-MM-dd)")
 
 
-@router.get("/formations-par-periode")
+BAD_REQUEST_RESPONSES = {
+    400: {"description": "Paramètres de requête invalides (date, granularité ou plage)"},
+}
+
+
+@router.get("/formations-par-periode", responses=BAD_REQUEST_RESPONSES)
 def formations_par_periode(
     container: ContainerDependency,
-    granularite: str = Query(default="MOIS"),
-    debut: str | None = Query(default=None),
-    fin: str | None = Query(default=None),
-    departement: str | None = Query(default=None),
-    up: str | None = Query(default=None),
+    granularite: Annotated[str, Query()] = "MOIS",
+    debut: Annotated[str | None, Query()] = None,
+    fin: Annotated[str | None, Query()] = None,
+    departement: Annotated[str | None, Query()] = None,
+    up: Annotated[str | None, Query()] = None,
 ) -> dict[str, Any]:
     granul_key = granularite.upper()
     if granul_key not in GRANULARITE_TO_TRUNC:

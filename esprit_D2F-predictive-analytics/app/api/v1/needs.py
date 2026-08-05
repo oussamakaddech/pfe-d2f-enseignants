@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import ContainerDependency, resolve_user_teacher
@@ -35,11 +37,11 @@ def _scope_needs(container, user, page, size, need_type, scope_type):
 @router.get("")
 def list_needs(
     container: ContainerDependency,
-    user: CurrentUser = Depends(require_roles(*DECISION_ROLES)),
-    page: int = Query(default=1, ge=1),
-    size: int = Query(default=20, ge=1, le=100),
-    need_type: str | None = Query(default=None),
-    scope_type: str | None = Query(default=None),
+    user: Annotated[CurrentUser, Depends(require_roles(*DECISION_ROLES))],
+    page: Annotated[int, Query(ge=1)] = 1,
+    size: Annotated[int, Query(ge=1, le=100)] = 20,
+    need_type: Annotated[str | None, Query()] = None,
+    scope_type: Annotated[str | None, Query()] = None,
 ):
     needs, total = _scope_needs(container, user, page, size, need_type, scope_type)
     page_result = paginate(needs, page, size)
@@ -54,7 +56,7 @@ def list_needs(
 def close_need(
     need_id: int,
     container: ContainerDependency,
-    user: CurrentUser = Depends(require_roles("ADMIN", "CUP", "CHEF_DEPARTEMENT")),
+    user: Annotated[CurrentUser, Depends(require_roles("ADMIN", "CUP", "CHEF_DEPARTEMENT"))],
 ):
     closed = container.training_need_repository.close(need_id)
     if closed is None:

@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import ContainerDependency, resolve_user_teacher
@@ -16,10 +18,10 @@ DECISION_ROLES = ("ADMIN", "CUP", "CHEF_DEPARTEMENT", "ENSEIGNANT")
 def list_gaps(
     teacher_id: str,
     container: ContainerDependency,
-    user: CurrentUser = Depends(require_roles(*DECISION_ROLES)),
-    page: int = Query(default=1, ge=1),
-    size: int = Query(default=20, ge=1, le=100),
-    severity: str | None = Query(default=None),
+    user: Annotated[CurrentUser, Depends(require_roles(*DECISION_ROLES))],
+    page: Annotated[int, Query(ge=1)] = 1,
+    size: Annotated[int, Query(ge=1, le=100)] = 20,
+    severity: Annotated[str | None, Query()] = None,
 ):
     teacher = resolve_teacher_or_404(teacher_id, container.teacher_source)
     user_teacher = resolve_user_teacher(container, user)

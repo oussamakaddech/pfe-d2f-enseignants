@@ -17,7 +17,7 @@ class Level(Enum):
         return list(cls)[value - 1]
 
     def _index(self) -> int:
-        return [m for m in Level].index(self)
+        return list(Level).index(self)
 
 
 LEVEL_INT_MAP = {

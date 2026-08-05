@@ -248,71 +248,19 @@ class ArtifactModelPort:
 
         Retourne aussi le niveau requis brut par competence pour recalculer le gap.
         """
-        savs_by_comp: dict[int, list[dict[str, Any]]] = {}
-        for s in bundle["savoirs"]:
-            cid = s["competence_id"]
-            if cid is None:
-                continue
-            savs_by_comp.setdefault(int(cid), []).append(s)
+        savs_by_comp = self._group_savoirs(bundle)
 
         if not savs_by_comp:
             return np.empty((0, len(TEMPORAL_FEATURE_COLS))), [], np.array([])
 
         comp_ids = sorted(savs_by_comp.keys())
-        n = len(comp_ids)
-
-        # Historique temporel par competence : on prend les 4 dernieres acquisitions.
-        # A defaut de 4 points, on propulse en arriere (valeur la plus ancienne).
-        today = date.today()
         max_savoirs = max(len(v) for v in savs_by_comp.values())
+        globals_f = self._global_features(bundle)
 
-        # Features globales (invariantes par competence)
-        nb_completed = len(bundle["completed"])
-        nb_in_prog = len(bundle["in_progress"])
-        taux = float(bundle["attendance"])
-        avg_eval = float(bundle["eval"]["avg_score"]) if bundle["eval"] and bundle["eval"]["avg_score"] is not None else 0.0
-        nb_eval = int(bundle["eval"]["nb"]) if bundle["eval"] and bundle["eval"]["nb"] else 0
-        nb_needs = int(bundle["needs"]["nb"]) if bundle["needs"] and bundle["needs"]["nb"] else 0
-        nb_needs_ok = int(bundle["needs"]["nb_approuves"]) if bundle["needs"] and bundle["needs"]["nb_approuves"] else 0
-        days_since = float(bundle["days_since_last"])
-        months_since = float(bundle["months_since_last"])
-        freq_month = (nb_completed / max(1.0, bundle["avg_days_between"] / 30.0)) if bundle["avg_days_between"] else 0.0
-        engagement = nb_completed * 2 + nb_eval * 1.5 + nb_needs * 1 + taux * 5 + avg_eval * 2
-        is_long_absent = 1.0 if days_since > 180 else 0.0
-        is_stagnant = 1.0 if days_since > 365 else 0.0
-
-        rows: list[list[float]] = []
-        for cid in comp_ids:
-            savs = sorted(savs_by_comp[cid], key=lambda r: r["date_acquisition"] or date.min)
-            levels_hist = [float(self._safe_level_int(s["niveau"])) for s in savs]
-            # 4 points temporels (t-3..t)
-            hist = levels_hist[-4:] if len(levels_hist) >= 4 else ([levels_hist[0]] * (4 - len(levels_hist)) + levels_hist)
-            cur_t3, cur_t2, cur_t1, cur_t = hist
-            lag32 = cur_t2 - cur_t3
-            lag21 = cur_t1 - cur_t2
-            lag1t = cur_t - cur_t1
-            rolling = (cur_t - cur_t3) / 3.0 if len(hist) >= 4 else 0.0
-
-            cur_levels = levels_hist
-            avg_level = float(np.mean(cur_levels)) if cur_levels else 0.0
-            min_level = float(min(cur_levels)) if cur_levels else 0.0
-            max_level = float(max(cur_levels)) if cur_levels else 0.0
-            nb_l5 = float(sum(1 for lv in cur_levels if lv == 5))
-            nb_l1 = float(sum(1 for lv in cur_levels if lv == 1))
-            nb_savoirs = float(len(cur_levels))
-            coverage = nb_savoirs / max_savoirs if max_savoirs else 0.0
-
-            rows.append([
-                cur_t3, cur_t2, cur_t1, cur_t,
-                lag32, lag21, lag1t, rolling,
-                days_since, freq_month, is_long_absent, is_stagnant,
-                avg_level, min_level, max_level, nb_l5, nb_l1,
-                nb_savoirs, float(len(comp_ids)), coverage,
-                float(nb_completed), float(nb_in_prog), taux,
-                float(nb_needs), float(nb_needs_ok), avg_eval, float(nb_eval),
-                months_since, engagement,
-            ])
-
+        rows = [
+            self._competence_feature_row(savs_by_comp[cid], max_savoirs, len(comp_ids), globals_f)
+            for cid in comp_ids
+        ]
         X = np.array(rows, dtype=float)
         # Target brut = niveau requis max par competence (pour recalcul du gap)
         required_by_comp = np.array([
@@ -325,15 +273,94 @@ class ArtifactModelPort:
         return X, comp_ids, required_by_comp
 
     @staticmethod
+    def _group_savoirs(bundle: dict[str, Any]) -> dict[int, list[dict[str, Any]]]:
+        savs_by_comp: dict[int, list[dict[str, Any]]] = {}
+        for s in bundle["savoirs"]:
+            cid = s["competence_id"]
+            if cid is None:
+                continue
+            savs_by_comp.setdefault(int(cid), []).append(s)
+        return savs_by_comp
+
+    @staticmethod
+    def _global_features(bundle: dict[str, Any]) -> dict[str, float]:
+        """Features invariantes par competence (communes a toutes les lignes)."""
+        nb_completed = len(bundle["completed"])
+        nb_in_prog = len(bundle["in_progress"])
+        taux = float(bundle["attendance"])
+        avg_eval = float(bundle["eval"]["avg_score"]) if bundle["eval"] and bundle["eval"]["avg_score"] is not None else 0.0
+        nb_eval = int(bundle["eval"]["nb"]) if bundle["eval"] and bundle["eval"]["nb"] else 0
+        nb_needs = int(bundle["needs"]["nb"]) if bundle["needs"] and bundle["needs"]["nb"] else 0
+        nb_needs_ok = int(bundle["needs"]["nb_approuves"]) if bundle["needs"] and bundle["needs"]["nb_approuves"] else 0
+        days_since = float(bundle["days_since_last"])
+        months_since = float(bundle["months_since_last"])
+        freq_month = (nb_completed / max(1.0, bundle["avg_days_between"] / 30.0)) if bundle["avg_days_between"] else 0.0
+        engagement = nb_completed * 2 + nb_eval * 1.5 + nb_needs * 1 + taux * 5 + avg_eval * 2
+        return {
+            "nb_completed": float(nb_completed),
+            "nb_in_prog": float(nb_in_prog),
+            "taux": taux,
+            "avg_eval": avg_eval,
+            "nb_eval": float(nb_eval),
+            "nb_needs": float(nb_needs),
+            "nb_needs_ok": float(nb_needs_ok),
+            "days_since": days_since,
+            "months_since": months_since,
+            "freq_month": freq_month,
+            "engagement": engagement,
+            "is_long_absent": 1.0 if days_since > 180 else 0.0,
+            "is_stagnant": 1.0 if days_since > 365 else 0.0,
+        }
+
+    def _competence_feature_row(
+        self,
+        savs: list[dict[str, Any]],
+        max_savoirs: int,
+        nb_competences: int,
+        globals_f: dict[str, float],
+    ) -> list[float]:
+        """Une ligne de features par competence (historique temporel + globaux)."""
+        ordered = sorted(savs, key=lambda r: r["date_acquisition"] or date.min)
+        levels_hist = [float(self._safe_level_int(s["niveau"])) for s in ordered]
+        # 4 points temporels (t-3..t) ; a defaut de 4 points, propagation
+        # arriere de la valeur la plus ancienne.
+        hist = levels_hist[-4:] if len(levels_hist) >= 4 else ([levels_hist[0]] * (4 - len(levels_hist)) + levels_hist)
+        cur_t3, cur_t2, cur_t1, cur_t = hist
+        lag32 = cur_t2 - cur_t3
+        lag21 = cur_t1 - cur_t2
+        lag1t = cur_t - cur_t1
+        rolling = (cur_t - cur_t3) / 3.0
+
+        avg_level = float(np.mean(levels_hist))
+        min_level = float(min(levels_hist))
+        max_level = float(max(levels_hist))
+        nb_l5 = float(sum(1 for lv in levels_hist if lv == 5))
+        nb_l1 = float(sum(1 for lv in levels_hist if lv == 1))
+        nb_savoirs = float(len(levels_hist))
+        coverage = nb_savoirs / max_savoirs if max_savoirs else 0.0
+
+        return [
+            cur_t3, cur_t2, cur_t1, cur_t,
+            lag32, lag21, lag1t, rolling,
+            globals_f["days_since"], globals_f["freq_month"],
+            globals_f["is_long_absent"], globals_f["is_stagnant"],
+            avg_level, min_level, max_level, nb_l5, nb_l1,
+            nb_savoirs, float(nb_competences), coverage,
+            globals_f["nb_completed"], globals_f["nb_in_prog"], globals_f["taux"],
+            globals_f["nb_needs"], globals_f["nb_needs_ok"], globals_f["avg_eval"], globals_f["nb_eval"],
+            globals_f["months_since"], globals_f["engagement"],
+        ]
+
+    @staticmethod
     def _normalize(X: np.ndarray, ranges: dict[str, dict[str, float]]) -> np.ndarray:
-        Xn = X.copy()
+        xn = X.copy()
         for i, col in enumerate(TEMPORAL_FEATURE_COLS):
             b = ranges.get(col)
             if not b or b["max"] <= b["min"]:
-                Xn[:, i] = 0.0
+                xn[:, i] = 0.0
             else:
-                Xn[:, i] = np.clip((Xn[:, i] - b["min"]) / (b["max"] - b["min"]), 0.0, 1.0)
-        return Xn
+                xn[:, i] = np.clip((xn[:, i] - b["min"]) / (b["max"] - b["min"]), 0.0, 1.0)
+        return xn
 
     # ------------------------------------------------------------ Predictions
     def _predict_gaps(self, teacher_id: str) -> list[SkillGap]:
@@ -342,8 +369,10 @@ class ArtifactModelPort:
         if X.shape[0] == 0:
             return []
         ranges = (self._metadata or {}).get("feature_ranges", {})
-        Xn = self._normalize(X, ranges)
-        preds = np.clip(self._model.predict(Xn), 0, 5)
+        xn = self._normalize(X, ranges)
+        # Appel au modele pour valider la compatibilite du vecteur de features ;
+        # le niveau courant est lu directement dans X (voir la boucle ci-dessous).
+        _ = np.clip(self._model.predict(xn), 0, 5)
 
         # Recupere les noms/codes des competences
         with self._database.read_connection() as conn:
@@ -409,12 +438,10 @@ class ArtifactModelPort:
             level = RiskLevel.MEDIUM
         else:
             level = RiskLevel.LOW
-        factors = tuple(
-            [
-                RiskFactor(feature="critical_gaps", value=float(critical), contribution=critical * 0.25),
-                RiskFactor(feature="high_gaps", value=float(high), contribution=high * 0.12),
-                RiskFactor(feature="avg_gap_score", value=round(avg_gap, 4), contribution=avg_gap * 0.40),
-            ]
+        factors = (
+            RiskFactor(feature="critical_gaps", value=float(critical), contribution=critical * 0.25),
+            RiskFactor(feature="high_gaps", value=float(high), contribution=high * 0.12),
+            RiskFactor(feature="avg_gap_score", value=round(avg_gap, 4), contribution=avg_gap * 0.40),
         )
         return RiskProfile(teacher_id=teacher_id, risk_score=round(risk_score, 2), risk_level=level, factors=factors)
 
@@ -464,7 +491,6 @@ class ArtifactModelPort:
         gaps = self._predict_gaps(teacher_id)
 
         # Features du classifier (doivent matcher RISK_FEATURES du pipeline)
-        today = date.today()
         streak = self._stagnation_months(bundle)
         n_crit = sum(1 for g in gaps if g.severity == Severity.CRITICAL)
         n_high = sum(1 for g in gaps if g.severity == Severity.HIGH)
@@ -511,7 +537,7 @@ class ArtifactModelPort:
         if n_crit >= 3 and level in {RiskLevel.LOW, RiskLevel.MEDIUM, RiskLevel.HIGH}:
             level = RiskLevel.CRITICAL  # signal brut trop fort pour etre ignore
 
-        factors = list(
+        factors = [
             RiskFactor(
                 feature=f"{lab}_proba",
                 value=round(float(p), 4),
@@ -519,7 +545,7 @@ class ArtifactModelPort:
             )
             for lab, p in zip(classes, proba)
             if float(p) > 0.05
-        )
+        ]
         # Facteurs lisibles par les humains (en plus des probas)
         if "CRITICAL" in classes:
             crit_idx = list(classes).index("CRITICAL")
@@ -586,78 +612,83 @@ class ArtifactModelPort:
         if not self.relevance_available():
             return None
         try:
-            import numpy as np
-            from sqlalchemy import text
-            from datetime import date
-
-            with self._database.read_connection() as conn:
-                fcomps = conn.execute(
-                    text("""
-                        SELECT fc.savoir_id, nsr.niveau
-                        FROM formation.formation_competences fc
-                        LEFT JOIN competence.niveau_savoir_requis nsr ON nsr.savoir_id = fc.savoir_id
-                        WHERE fc.formation_id = :fid AND fc.savoir_id IS NOT NULL
-                    """), {"fid": formation_id}).mappings().all()
-                tl = conn.execute(
-                    text("SELECT savoir_id, niveau FROM competence.enseignant_competences WHERE enseignant_id = :tid"),
-                    {"tid": teacher_id}).mappings().all()
-                fev = conn.execute(
-                    text("SELECT AVG(note) AS n, COUNT(*) AS nb FROM evaluation.evaluation_formateur WHERE formation_id = :fid"),
-                    {"fid": formation_id}).mappings().first()
-                finfo = conn.execute(
-                    text("SELECT date_fin FROM formation.formations WHERE id_formation = :fid"),
-                    {"fid": formation_id}).mappings().first()
-
-            niv_map = {"N1_DEBUTANT": 1, "N2_ELEMENTAIRE": 2, "N3_INTERMEDIAIRE": 3,
-                       "N4_AVANCE": 4, "N5_EXPERT": 5, "DEBUTANT": 1, "INITIE": 2,
-                       "CONFIRME": 3, "AVANCE": 4, "EXPERT": 5,
-                       "1": 1, "2": 2, "3": 3, "4": 4, "5": 5}
-            tmap = {int(r["savoir_id"]): niv_map.get(str(r["niveau"]).upper(), 0) for r in tl}
-
-            nb_cibles = len(fcomps)
-            nb_couverts = 0
-            c_vals = []
-            for r in fcomps:
-                s = int(r["savoir_id"])
-                c = niv_map.get(str(r["niveau"]).upper(), 3) if r["niveau"] else 3
-                c_vals.append(c)
-                if tmap.get(s, 0) >= c:
-                    nb_couverts += 1
-            coverage = nb_couverts / max(1, nb_cibles)
-            avg_t = float(np.mean(c_vals)) if c_vals else 3.0
-            t_levels = [v for v in tmap.values() if v > 0]
-            avg_teacher = float(np.mean(t_levels)) if t_levels else 0.0
-            diff = avg_t - avg_teacher
-
-            # Jours depuis derniere acquisition
-            with self._database.read_connection() as conn:
-                last = conn.execute(
-                    text("""
-                        SELECT MAX(date_acquisition) FROM competence.enseignant_competences
-                        WHERE enseignant_id = :tid AND date_acquisition IS NOT NULL
-                    """), {"tid": teacher_id}).scalar()
-            days_since = float((date.today() - last).days) if last else 365.0
-
-            f_age = 365.0
-            if finfo and finfo["date_fin"]:
-                d = finfo["date_fin"]
-                if hasattr(d, "date"):
-                    d = d.date()
-                f_age = float((date.today() - d).days)
-
-            X = np.array([[
-                float(content_match_heuristic), float(nb_couverts), float(nb_cibles), float(coverage),
-                float(len(t_levels)), 0.0, 0.0,
-                avg_teacher, float(diff), days_since,
-                float(fev["n"]) if fev and fev["n"] is not None else 0.0,
-                f_age, 1.0,
-            ]], dtype=float)
-
+            X = self._relevance_features(teacher_id, formation_id, content_match_heuristic)
             score = float(self._relevance_model.predict(X)[0])
             return float(np.clip(score, 0.0, 1.0))
         except Exception as exc:  # pragma: no cover
             logger.error("score_relevance ML echoue", error=str(exc))
             return None
+
+    def _relevance_features(
+        self,
+        teacher_id: str,
+        formation_id: int,
+        content_match_heuristic: float,
+    ) -> np.ndarray:
+        """Reconstruit le vecteur de features pertinence du couple (teacher, formation)."""
+        with self._database.read_connection() as conn:
+            fcomps = conn.execute(
+                text("""
+                    SELECT fc.savoir_id, nsr.niveau
+                    FROM formation.formation_competences fc
+                    LEFT JOIN competence.niveau_savoir_requis nsr ON nsr.savoir_id = fc.savoir_id
+                    WHERE fc.formation_id = :fid AND fc.savoir_id IS NOT NULL
+                """), {"fid": formation_id}).mappings().all()
+            tl = conn.execute(
+                text("SELECT savoir_id, niveau FROM competence.enseignant_competences WHERE enseignant_id = :tid"),
+                {"tid": teacher_id}).mappings().all()
+            fev = conn.execute(
+                text("SELECT AVG(note) AS n, COUNT(*) AS nb FROM evaluation.evaluation_formateur WHERE formation_id = :fid"),
+                {"fid": formation_id}).mappings().first()
+            finfo = conn.execute(
+                text("SELECT date_fin FROM formation.formations WHERE id_formation = :fid"),
+                {"fid": formation_id}).mappings().first()
+
+        tmap = {int(r["savoir_id"]): NIVEAU_INT.get(str(r["niveau"]).upper(), 0) for r in tl}
+
+        nb_cibles = len(fcomps)
+        nb_couverts = 0
+        c_vals = []
+        for r in fcomps:
+            s = int(r["savoir_id"])
+            c = NIVEAU_INT.get(str(r["niveau"]).upper(), 3) if r["niveau"] else 3
+            c_vals.append(c)
+            if tmap.get(s, 0) >= c:
+                nb_couverts += 1
+        coverage = nb_couverts / max(1, nb_cibles)
+        avg_t = float(np.mean(c_vals)) if c_vals else 3.0
+        t_levels = [v for v in tmap.values() if v > 0]
+        avg_teacher = float(np.mean(t_levels)) if t_levels else 0.0
+        diff = avg_t - avg_teacher
+
+        # Jours depuis derniere acquisition
+        with self._database.read_connection() as conn:
+            last = conn.execute(
+                text("""
+                    SELECT MAX(date_acquisition) FROM competence.enseignant_competences
+                    WHERE enseignant_id = :tid AND date_acquisition IS NOT NULL
+                """), {"tid": teacher_id}).scalar()
+        days_since = float((date.today() - last).days) if last else 365.0
+
+        f_age = self._formation_age(finfo)
+
+        return np.array([[
+            float(content_match_heuristic), float(nb_couverts), float(nb_cibles), float(coverage),
+            float(len(t_levels)), 0.0, 0.0,
+            avg_teacher, float(diff), days_since,
+            float(fev["n"]) if fev and fev["n"] is not None else 0.0,
+            f_age, 1.0,
+        ]], dtype=float)
+
+    @staticmethod
+    def _formation_age(finfo) -> float:
+        f_age = 365.0
+        if finfo and finfo["date_fin"]:
+            d = finfo["date_fin"]
+            if hasattr(d, "date"):
+                d = d.date()
+            f_age = float((date.today() - d).days)
+        return f_age
 
 
 def _safe_eval(row) -> tuple[float, int]:

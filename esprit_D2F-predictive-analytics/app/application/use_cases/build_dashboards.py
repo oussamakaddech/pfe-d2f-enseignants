@@ -35,37 +35,13 @@ class BuildDashboards:
         scored = 0
 
         for teacher_id in teacher_ids:
-            try:
-                gaps = self._gaps_provider(teacher_id)
-            except Exception as exc:
-                logger.warning("gaps indisponibles pour dashboard", teacher_id=teacher_id, error=str(exc))
-                gaps = []
-            for gap in gaps:
-                declining_rows.append(
-                    {
-                        "competence_id": gap.competence_id,
-                        "competence_nom": gap.competence_nom,
-                        "current_avg": gap.current_level,
-                        "previous_avg": gap.target_level - gap.gap_score * gap.target_level,
-                    }
-                )
-                coverage_rows.append(
-                    {
-                        "competence_id": gap.competence_id,
-                        "current_level": int(gap.current_level),
-                        "required_level": int(gap.target_level),
-                        "covered": gap.current_level >= gap.target_level,
-                        "teacher_id": teacher_id,
-                    }
-                )
-                total_score += min(gap.current_level / gap.target_level, 1.0) if gap.target_level else 0.0
+            gaps = self._gaps_provider_safe(teacher_id)
+            for declining, coverage, contribution in self._gap_rows(gaps, teacher_id):
+                declining_rows.append(declining)
+                coverage_rows.append(coverage)
+                total_score += contribution
                 scored += 1
-
-            try:
-                profile = self._risk_provider(teacher_id)
-            except Exception as exc:
-                logger.warning("risque indisponible pour dashboard", teacher_id=teacher_id, error=str(exc))
-                profile = None
+            profile = self._risk_provider_safe(teacher_id)
             if profile is not None and profile.risk_score >= 70:
                 at_risk += 1
 
@@ -86,3 +62,35 @@ class BuildDashboards:
         kpis = summarize_kpis(kpis)
         self._dashboard_repository.save_snapshot(scope, scope_id, kpis)
         return kpis
+
+    def _gaps_provider_safe(self, teacher_id: str) -> list[SkillGap]:
+        try:
+            return self._gaps_provider(teacher_id)
+        except Exception as exc:
+            logger.warning("gaps indisponibles pour dashboard", teacher_id=teacher_id, error=str(exc))
+            return []
+
+    def _risk_provider_safe(self, teacher_id: str) -> RiskProfile | None:
+        try:
+            return self._risk_provider(teacher_id)
+        except Exception as exc:
+            logger.warning("risque indisponible pour dashboard", teacher_id=teacher_id, error=str(exc))
+            return None
+
+    def _gap_rows(self, gaps: list[SkillGap], teacher_id: str):
+        for gap in gaps:
+            declining = {
+                "competence_id": gap.competence_id,
+                "competence_nom": gap.competence_nom,
+                "current_avg": gap.current_level,
+                "previous_avg": gap.target_level - gap.gap_score * gap.target_level,
+            }
+            coverage = {
+                "competence_id": gap.competence_id,
+                "current_level": int(gap.current_level),
+                "required_level": int(gap.target_level),
+                "covered": gap.current_level >= gap.target_level,
+                "teacher_id": teacher_id,
+            }
+            contribution = min(gap.current_level / gap.target_level, 1.0) if gap.target_level else 0.0
+            yield declining, coverage, contribution

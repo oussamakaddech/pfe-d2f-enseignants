@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends
 
@@ -19,7 +20,7 @@ def submit_analysis(
     teacher_id: str,
     container: ContainerDependency,
     background_tasks: BackgroundTasks,
-    user: CurrentUser = Depends(require_roles(*DECISION_ROLES)),
+    user: Annotated[CurrentUser, Depends(require_roles(*DECISION_ROLES))],
 ):
     teacher = resolve_teacher_or_404(teacher_id, container.teacher_source)
     user_teacher = resolve_user_teacher(container, user)
@@ -39,7 +40,7 @@ def submit_analysis(
 def get_analysis(
     teacher_id: str,
     container: ContainerDependency,
-    user: CurrentUser = Depends(require_roles(*DECISION_ROLES)),
+    user: Annotated[CurrentUser, Depends(require_roles(*DECISION_ROLES))],
 ):
     teacher = resolve_teacher_or_404(teacher_id, container.teacher_source)
     user_teacher = resolve_user_teacher(container, user)

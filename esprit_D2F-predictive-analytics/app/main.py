@@ -46,17 +46,9 @@ def create_app() -> FastAPI:
         title="D2F Predictive Analytics Service",
         description="Analyse predictive des competences, risques et besoins de formation des enseignants (ESPRIT).",
         version=settings.app_version,
-        docs_url="/docs" if not settings.debug else "/docs",
+        docs_url="/docs",
         redoc_url="/redoc",
         lifespan=lifespan,
-    )
-
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.cors_origins_list,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
     )
 
     app.include_router(v1_router)
@@ -67,7 +59,7 @@ def create_app() -> FastAPI:
         get_legacy_jwt_auth_middleware,
     )
     # Router legacy complet (predict/detect/recommend/dashboard + d2f_master
-    # + d2f_compat) — exposé sous /api comme dans l'ancien main.py. Il porte
+    # + d2f_compat) exposé sous /api comme dans l'ancien main.py. Il porte
     # /dashboard/in-demand-competencies consommé par le dashboard CUP.
     app.include_router(get_legacy_all_router(), prefix="/api")
     app.include_router(get_legacy_analytics_router(), prefix="/api")
@@ -75,6 +67,16 @@ def create_app() -> FastAPI:
     jwt_auth_middleware = get_legacy_jwt_auth_middleware()
     if jwt_auth_middleware is not None:
         app.add_middleware(jwt_auth_middleware)
+
+    # CORS en dernier => middleware le plus externe : les preflight OPTIONS
+    # sont servis avant toute vérification d'authentification.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins_list,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     register_error_handlers(app)
     return app

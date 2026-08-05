@@ -24,6 +24,8 @@ class NullBroker(MessageBroker):
         logger.info("messagerie desactivee (type=none)")
 
     def stop(self) -> None:
+        # No-op intentionnel : le broker Null n'ouvre aucune connexion,
+        # il n'y a donc rien à arrêter.
         pass
 
     def publish(self, routing_key: str, payload: dict) -> None:

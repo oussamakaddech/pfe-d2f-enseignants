@@ -21,13 +21,13 @@ def _build_health(container, settings: Settings) -> tuple[HealthOut, bool]:
     return health, database == "ok"
 
 
-@router.get("/health", response_model=HealthOut, include_in_schema=True)
+@router.get("/health", include_in_schema=True)
 def health(container: ContainerDependency, settings: Settings = get_settings()) -> HealthOut:
     health_out, _ = _build_health(container, settings)
     return health_out
 
 
-@router.get("/ready", response_model=HealthOut, include_in_schema=True)
+@router.get("/ready", include_in_schema=True)
 def ready(container: ContainerDependency, settings: Settings = get_settings()) -> JSONResponse:
     health_out, ready_ok = _build_health(container, settings)
     return JSONResponse(status_code=200 if ready_ok else 503, content=health_out.model_dump())

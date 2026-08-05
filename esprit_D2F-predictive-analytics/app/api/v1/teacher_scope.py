@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
@@ -22,9 +23,9 @@ DECISION_ROLES = ("ADMIN", "CUP", "CHEF_DEPARTEMENT", "ENSEIGNANT")
 def get_teacher_scope_analysis(
     teacher_id: str,
     container: ContainerDependency,
-    user: CurrentUser = Depends(require_roles(*DECISION_ROLES)),
-    min_gap_score: float = Query(default=0.0, ge=0.0, le=1.0),
-    limit_recommendations: int = Query(default=5, ge=1, le=20),
+    user: Annotated[CurrentUser, Depends(require_roles(*DECISION_ROLES))],
+    min_gap_score: Annotated[float, Query(ge=0.0, le=1.0)] = 0.0,
+    limit_recommendations: Annotated[int, Query(ge=1, le=20)] = 5,
 ):
     """Analyse contextuelle d'un enseignant : affectations/competences ->
     gaps + recommandations filtres par specialite, UP et departement."""

@@ -1,12 +1,17 @@
-from sqlalchemy import text
+﻿from sqlalchemy import text
 
 from app.core.logging import get_logger
 from app.domain.entities.alert import Alert
 
 logger = get_logger("alert_repository")
 
-INSERT_ALERT = """
-    INSERT INTO "analyse".alert_events
+ALERT_EVENTS_TABLE = '"analyse".alert_events'
+SEVERITY_FILTER = "severite = :severite"
+STATUS_FILTER = "statut = :statut"
+DEPARTMENT_FILTER = "departement_id = :departement_id"
+
+INSERT_ALERT = f"""
+    INSERT INTO {ALERT_EVENTS_TABLE}
         (type_alerte, cible_type, enseignant_id, departement_id, competence_id,
          skill_gap_id, severite, titre, message, details_json, statut, created_at, updated_at)
     VALUES
@@ -15,30 +20,30 @@ INSERT_ALERT = """
     RETURNING id, created_at
 """
 
-SELECT_ALERT = """
+SELECT_ALERT = f"""
     SELECT id, type_alerte, cible_type, enseignant_id, departement_id, competence_id,
            skill_gap_id, severite, titre, message, details_json, statut, created_at
-    FROM "analyse".alert_events
+    FROM {ALERT_EVENTS_TABLE}
 """
 
-UPDATE_STATUS = """
-    UPDATE "analyse".alert_events
-    SET statut = :statut,
+UPDATE_STATUS = f"""
+    UPDATE {ALERT_EVENTS_TABLE}
+    SET {STATUS_FILTER},
         traite_par = :traite_par,
         commentaire_traitement = :commentaire_traitement,
         updated_at = now()
     WHERE id = :alert_id
 """
 
-SELECT_OPEN_SINCE = """
+SELECT_OPEN_SINCE = f"""
     SELECT id, type_alerte, cible_type, enseignant_id, departement_id, competence_id,
            skill_gap_id, severite, titre, message, details_json, statut, created_at
-    FROM "analyse".alert_events
+    FROM {ALERT_EVENTS_TABLE}
     WHERE statut = 'NOUVELLE'
       AND created_at < now() - make_interval(days => :cutoff_days)
 """
 
-SEVERITY_BREAKDOWN_SQL = """
+SEVERITY_BREAKDOWN_SQL = f"""
     SELECT
       CASE
         WHEN UPPER(severite) IN ('CRITICAL', 'CRITIQUE') THEN 'CRITICAL'
@@ -46,7 +51,7 @@ SEVERITY_BREAKDOWN_SQL = """
         ELSE 'INFO'
       END AS bucket,
       COUNT(*) AS n
-    FROM "analyse".alert_events
+    FROM {ALERT_EVENTS_TABLE}
 """
 
 
@@ -106,16 +111,16 @@ class SqlAlertRepository:
     def list_alerts(self, page: int, size: int, severity: str | None = None, status: str | None = None, target_type: str | None = None, department_id: str | None = None) -> tuple[list[Alert], int]:
         filters, params = [], {}
         if severity:
-            filters.append("severite = :severite")
+            filters.append(SEVERITY_FILTER)
             params["severite"] = severity.upper()
         if status:
-            filters.append("statut = :statut")
+            filters.append(STATUS_FILTER)
             params["statut"] = status.upper()
         if target_type:
             filters.append("cible_type = :cible_type")
             params["cible_type"] = target_type.upper()
         if department_id:
-            filters.append("departement_id = :departement_id")
+            filters.append(DEPARTMENT_FILTER)
             params["departement_id"] = department_id
         with self._database.read_connection() as connection:
             return self._run(connection, self._build_query(filters), params, page, size)
@@ -123,21 +128,21 @@ class SqlAlertRepository:
     def list_for_teacher(self, teacher_id: str, page: int, size: int, severity: str | None = None, status: str | None = None) -> tuple[list[Alert], int]:
         filters, params = ["enseignant_id = :enseignant_id"], {"enseignant_id": teacher_id}
         if severity:
-            filters.append("severite = :severite")
+            filters.append(SEVERITY_FILTER)
             params["severite"] = severity.upper()
         if status:
-            filters.append("statut = :statut")
+            filters.append(STATUS_FILTER)
             params["statut"] = status.upper()
         with self._database.read_connection() as connection:
             return self._run(connection, self._build_query(filters), params, page, size)
 
     def list_for_department(self, department_id: str, page: int, size: int, severity: str | None = None, status: str | None = None) -> tuple[list[Alert], int]:
-        filters, params = ["departement_id = :departement_id"], {"departement_id": department_id}
+        filters, params = [DEPARTMENT_FILTER], {"departement_id": department_id}
         if severity:
-            filters.append("severite = :severite")
+            filters.append(SEVERITY_FILTER)
             params["severite"] = severity.upper()
         if status:
-            filters.append("statut = :statut")
+            filters.append(STATUS_FILTER)
             params["statut"] = status.upper()
         with self._database.read_connection() as connection:
             return self._run(connection, self._build_query(filters), params, page, size)
@@ -154,10 +159,10 @@ class SqlAlertRepository:
         """Nb d'alertes OUVRES (NOUVELLE/LUE) par bucket de severite, meme scope que la liste."""
         filters, params = ["statut IN ('NOUVELLE', 'LUE')"], {}
         if severity:
-            filters.append("severite = :severite")
+            filters.append(SEVERITY_FILTER)
             params["severite"] = severity.upper()
         if status:
-            filters.append("statut = :statut")
+            filters.append(STATUS_FILTER)
             params["statut"] = status.upper()
         if target_type:
             filters.append("cible_type = :cible_type")
@@ -166,7 +171,7 @@ class SqlAlertRepository:
             filters.append("enseignant_id = :enseignant_id")
             params["enseignant_id"] = teacher_id
         if department_id:
-            filters.append("departement_id = :departement_id")
+            filters.append(DEPARTMENT_FILTER)
             params["departement_id"] = department_id
         with self._database.read_connection() as connection:
             rows = connection.execute(

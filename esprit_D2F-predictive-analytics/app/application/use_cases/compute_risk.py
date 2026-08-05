@@ -75,7 +75,7 @@ class ComputeRisk:
         return (date.today() - last).days / 30.44
 
     def _has_decline(self, history: dict[int, list[tuple[str, int]]]) -> bool:
-        for _, events in history.items():
+        for events in history.values():
             levels = [level for _, level in events]
             if len(levels) >= 2 and levels[-1] < levels[0]:
                 return True

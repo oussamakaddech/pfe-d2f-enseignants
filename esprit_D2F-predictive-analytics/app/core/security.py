@@ -60,7 +60,7 @@ class CurrentUser:
 
 def _extract_bearer(request: Request) -> str:
     authorization = request.headers.get("Authorization", "")
-    match = re.match(r"^Bearer\s+(.+)$", authorization, re.IGNORECASE)
+    match = re.match(r"^Bearer[ \t]+(\S+)$", authorization, re.IGNORECASE)
     if not match:
         raise UnauthorizedError("En-tête Authorization Bearer manquant")
     return match.group(1).strip()

@@ -6,6 +6,8 @@ Retourne :
   - top enseignants a risque (join risk_snapshots + skill_gaps)
   - top formations recommandees (analyse.recommendations joint aux formations)
 """
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 
@@ -150,7 +152,7 @@ ORDER BY nb_enseignants DESC
 @router.get("/impact")
 def get_real_dashboard_impact(
     container: ContainerDependency,
-    user: CurrentUser = Depends(require_roles(*DECISION_ROLES)),
+    user: Annotated[CurrentUser, Depends(require_roles(*DECISION_ROLES))],
 ):
     db = container.database
     with db.read_connection() as conn:

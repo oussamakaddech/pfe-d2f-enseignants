@@ -42,7 +42,6 @@ class RecommendTrainings:
         # Blending ML : si le modele de pertinence est disponible, on mixe
         # 70% heuristique / 30% ML (lisse l'impact des erreurs ML).
         if self._model_port is not None and getattr(self._model_port, "relevance_available", lambda: False)():
-            state_today = date.today()
             enhanced: list[Recommendation] = []
             for rec in recommendations:
                 h_score = content_match(

@@ -1,17 +1,21 @@
 import logging
-import re
 import sys
 
 import structlog
 
-_EMAIL_RE = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
+
+def _redact_email(value: str) -> str:
+    """Redacte une valeur ressemblant a une adresse email (verification lineaire)."""
+    if "@" not in value:
+        return value
+    return "[EMAIL_REDACTED]"
 
 
 def redact_pii(_, __, event_dict: dict) -> dict:
     for key, value in list(event_dict.items()):
         if isinstance(value, str) and key in {"email", "mail", "payload", "token", "password", "authorization"}:
             if key == "mail" or key == "email":
-                event_dict[key] = _EMAIL_RE.sub("[EMAIL_REDACTED]", value)
+                event_dict[key] = _redact_email(value)
             else:
                 event_dict[key] = "[REDACTED]"
     return event_dict

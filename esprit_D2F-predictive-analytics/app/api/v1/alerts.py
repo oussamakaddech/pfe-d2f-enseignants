@@ -1,4 +1,5 @@
 from math import ceil
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
@@ -41,13 +42,13 @@ def _scope_alerts(container, user, page, size, severity, status, target_type, de
 @router.get("")
 def list_alerts(
     container: ContainerDependency,
-    user: CurrentUser = Depends(require_roles(*DECISION_ROLES)),
-    page: int = Query(default=1, ge=1),
-    size: int = Query(default=20, ge=1, le=100),
-    severity: str | None = Query(default=None),
-    status: str | None = Query(default=None),
-    target_type: str | None = Query(default=None),
-    departement_id: str | None = Query(default=None, alias="department_id"),
+    user: Annotated[CurrentUser, Depends(require_roles(*DECISION_ROLES))],
+    page: Annotated[int, Query(ge=1)] = 1,
+    size: Annotated[int, Query(ge=1, le=100)] = 20,
+    severity: Annotated[str | None, Query()] = None,
+    status: Annotated[str | None, Query()] = None,
+    target_type: Annotated[str | None, Query()] = None,
+    departement_id: Annotated[str | None, Query(alias="department_id")] = None,
 ):
     alerts, total, severity_open = _scope_alerts(container, user, page, size, severity, status, target_type, departement_id)
     # Le repository applique déjà LIMIT/OFFSET : on ne re-page pas ici,
@@ -73,7 +74,7 @@ def update_alert_status(
     alert_id: int,
     payload: AlertStatusUpdate,
     container: ContainerDependency,
-    user: CurrentUser = Depends(require_roles("ADMIN", "CUP", "CHEF_DEPARTEMENT")),
+    user: Annotated[CurrentUser, Depends(require_roles("ADMIN", "CUP", "CHEF_DEPARTEMENT"))],
 ):
     updated = container.alert_repository.update_status(alert_id, payload.status, actor=user.username, comment=payload.comment)
     if updated is None:
