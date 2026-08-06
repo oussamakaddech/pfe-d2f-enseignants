@@ -1,6 +1,6 @@
 {
   "model_name": "gradient_boosting_regressor",
-  "trained_at": "2026-08-02T03:24:20.568051",
+  "trained_at": "2026-08-06T03:41:55.514854",
   "n_samples": 18,
   "n_teachers": 12,
   "n_features": 13,
@@ -20,6 +20,22 @@
     "est_meme_departement"
   ],
   "cv_folds": 5,
+  "hyperparameters": {
+    "random_state": 42,
+    "cv": {
+      "type": "KFold",
+      "n_splits": 5,
+      "shuffle": true,
+      "random_state": 42
+    },
+    "model": {
+      "class": "GradientBoostingRegressor",
+      "n_estimators": 150,
+      "max_depth": 3,
+      "learning_rate": 0.08,
+      "subsample": 0.85
+    }
+  },
   "metrics": {
     "cv_rmse": 0.115,
     "baseline_rmse": 0.1069,
@@ -32,6 +48,8 @@
   "data_sources": {
     "real_samples_from_db": 18,
     "synthetic_bootstrap": 0,
-    "strategy": "bootstrap synthetique si < 15 lignes reelles, tracking actif"
+    "synthetic_share_pct": 0.0,
+    "strategy": "bootstrap synthetique si < 15 lignes reelles, tracking actif",
+    "extraction_date": "2026-08-06T03:41:55.514904"
   }
 }

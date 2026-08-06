@@ -10,11 +10,12 @@
  * Cela garantit la coherence cross-pages et la tracabilite des chiffres.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Card, Select, Space, Typography, Row, Col } from "antd";
 import { SafetyCertificateOutlined, BulbOutlined } from "@ant-design/icons";
 import D2FDashboard from "@/components/analytics/D2FDashboard";
 import RiskBreakdownPanel from "@/components/analytics/RiskBreakdownPanel";
+import { useD2FTeachers } from "@/hooks/analyse/useD2FData";
 
 const { Title, Paragraph } = Typography;
 
@@ -74,27 +75,18 @@ function TeacherSelector({
   onChange: (id: string | undefined) => void;
   value: string | undefined;
 }>) {
-  // Liste legere via /api/v1/d2f/teachers
-  const [options, setOptions] = useState<Array<{ value: string; label: string }>>([]);
-
-  // Fetch on mount (no useQuery to keep this component light)
-  useEffect(() => {
-    fetch("/api/analyse/v1/d2f/teachers?limit=100")
-      .then((r) => r.json())
-      .then((d) => {
-        const opts = (d.teachers ?? []).map((t: { teacher_id: string; full_name: string; risk_level: string }) => ({
-          value: t.teacher_id,
-          label: `${t.full_name} (${t.risk_level})`,
-        }));
-        setOptions(opts);
-      })
-      .catch(() => setOptions([]));
-  }, []);
+  // Liste legere via D2FService.listTeachers + hook React Query (pas de fetch direct)
+  const { data, isLoading } = useD2FTeachers({ limit: 100 });
+  const options = (data?.teachers ?? []).map((t) => ({
+    value: t.teacher_id,
+    label: `${t.full_name} (${t.risk_level})`,
+  }));
 
   return (
     <Select
       allowClear
       showSearch
+      loading={isLoading}
       placeholder="Choisir un enseignant (ex: T001)"
       style={{ width: "100%", maxWidth: 480, marginTop: 12 }}
       value={value}

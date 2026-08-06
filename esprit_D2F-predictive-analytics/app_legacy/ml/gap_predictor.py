@@ -30,7 +30,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
+from sklearn.model_selection import KFold, cross_val_score, train_test_split
 
 from app.config import settings
 from app.core.exceptions import InsufficientDataError, ModelNotTrainedError
@@ -82,12 +82,8 @@ def _risk_level(gap: float) -> str:
 
 
 def _discretize_y(y: np.ndarray, n_bins: int = 5) -> np.ndarray:
-    """Discrétise le target en bins pour StratifiedKFold.
-
-    Permet de stratifier la validation croisée sur les classes de gap
-    (faible, modéré, élevé, critique) afin que chaque fold reflète
-    la distribution réelle des difficultés.
-    """
+    """Garde API héritée. NB : ce module est legacy ; les nouveaux pipelines
+    utilisent KFold (régression continue), conformément à l'audit DSI."""
     return np.digitize(y, bins=np.percentile(y, np.linspace(0, 100, n_bins + 1)[1:-1]))
 
 
@@ -315,7 +311,7 @@ class GapPredictor:
 
         model = GradientBoostingRegressor(
             n_estimators=100, max_depth=3, random_state=42, validation_fraction=0.1,
-            n_iter_no_change=10, early_stopping=True,
+            n_iter_no_change=10,
         )
         model.fit(X_train, y_train)
 

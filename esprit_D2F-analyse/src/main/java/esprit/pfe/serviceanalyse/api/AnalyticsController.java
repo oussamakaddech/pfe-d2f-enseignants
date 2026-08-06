@@ -13,6 +13,10 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v2/analytics")
 @RequiredArgsConstructor
+// BFF de pilotage : réservé à ADMIN / CUP / CHEF_DEPARTEMENT (parité guard
+// frontend routes/index.tsx et filtre de la gateway). Toute modification du
+// périmètre doit rester cohérente entre les trois couches.
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')")
 public class AnalyticsController {
 
     private final AnalyticsBffService bffService;

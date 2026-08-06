@@ -1,132 +1,98 @@
-# Model Metrics — D2F Predictive Analytics
+# Model Metrics — D2F Predictive Analytics (état post-audit DSI)
 
-Ce document décrit l'état du modèle ML `gap_predictor` et son pipeline d'entraînement. Il est mis à jour à chaque ré-entraînement réussi.
+Document d'état des artefacts ML au **2026-08-06**, après correction d'audit.
 
-## Vue d'ensemble
+> Historique : la version précédente de ce document décrivait `gap_predictor`
+> avec R²≈1.0 — symptôme de la fuite de cible (current_level/required_level
+> utilisés comme features pour prédire un gap calculé à partir d'eux). Ce
+> modèle a été **supprimé** (voir ci-dessous).
 
-| Champ | Valeur |
-|-------|--------|
-| Nom du modèle | `gap_predictor` (sélection automatique parmi 4 candidats) |
-| Type | Régression (gap = required_level - current_level, borné [0, 5]) |
-| Candidates | GradientBoosting · XGBoost · LightGBM · MLP (sklearn) |
-| Selection | StratifiedKFold (cv_folds=5) sur RMSE |
-| Validation | Hold-out 80/20, random_state=42, balanced sample weights |
-| Persistance | joblib + SHA-256/HMAC sidecar (anti-tampering) |
-| Rollback | Oui, si accuracy_after < accuracy_before - max_drop |
-| Warm start | Oui (GB, XGBoost, LightGBM) |
-| Fallback | Heuristique déterministe (gap = required - current) |
+## Artefacts actuels (data/models)
 
-## Formule déterministe de risque (source de vérité dashboard)
+| Artefact | Statut | Chargé en prod ? | Source de vérité |
+|---|---|---|---|
+| `gap_predictor_temporal.joblib` | Réentraîné (107 lignes réelles datées, 0% synthétique) | **NON — désactivé par audit** (`_gap_model_enabled=False`) | `app/infrastructure/ml/predictor.py` |
+| `risk_classifier.joblib` | Hérité (36 échantillons, CRITICAL=1) | NON — pas de sidecar SHA-256 → refusé (fail-closed) | `pipelines/train_risk_classifier.py` |
+| `relevance_model.joblib` | Hérité | NON — pas de sidecar SHA-256 → refusé (fail-closed) | `pipelines/train_relevance_model.py` |
+| `gap_predictor.joblib` | **SUPPRIMÉ** (corpus 98% synthétique + fuite de cible) | — | voir `docs/THRESHOLDS_AND_RISK_POLICY.md` |
 
-Le score de risque affiché sur le dashboard D2F n'est PAS issu du ML. Il utilise la formule officielle :
+Conséquence opérationnelle : **toute la surface d'API fonctionne sur les
+règles métier déterministes** (gap = required - current ; règle de risque
+par seuils ; blending heuristique des recommandations). C'est un choix
+assumé d'audit : ne pas servir des prédictions ML non prouvées.
 
-```
-risk = 0.40 * critical_gap_factor + 0.25 * coverage_factor + 0.20 * stagnation_factor + 0.15 * regression_factor
-```
+## Métriques du dernier run réel (2026-08-06, corpus 107 lignes réelles datées)
 
-avec seuils `CRITIQUE ≥ 0.75`, `ELEVE ≥ 0.50`, `MODERE ≥ 0.25`, `FAIBLE < 0.25`.
+| Métrique | Valeur | Commentaire |
+|---|---|---|
+| `test_rmse` | 0.7426 | Échelle 0–5 |
+| `test_mae` | 0.4692 | |
+| `test_r2` | **0.6582** | Split temporel strict (test = 20% lignes les plus récentes) |
+| `baseline_rmse` (persistance) | 2.8520 | |
+| `lift_rmse` | +2.1094 | **IC95% bootstrap (1000 réplicas, n=21) : [1.3237, 2.8088] — significatif** (borne basse > 0) |
+| `n_train` / `n_test` | 86 / 21 | **Split temporel strict sur `date_t`** (corpus daté, cutoff 2026-07-22) — plus aucun shuffle |
+| `cv` | KFold(5) | Régression continue — plus aucun StratifiedKFold |
+| Candidates | gradient_boosting (0.7802), xgboost (0.7840) | CV-RMSE |
 
-Le ML sert uniquement à enrichir les prédictions de gap avec une confiance calibrée (features top-importance, RMSE vs baseline). **Si le ML est désactivé (skew, modèle absent), le dashboard reste fonctionnel grâce à la formule déterministe.**
+Source : `data/models/temporal_training_metadata.json` (régénéré, contient
+`data_sources`, `hyperparameters`, `split.type=temporal_strict_*`,
+`feature_ranges`, `lift_rmse_ci95`).
 
-## Métriques courantes
+⚠️ Interprétation : R²=0.66 sur split temporel strict avec 21 lignes de
+test est encourageant, mais le corpus (107 lignes) reste petit : l'IC95%
+du lift exclut 0, à confirmer sur un corpus ≥ 500 lignes datées. Le modèle
+reste désactivé en production tant que `_gap_model_enabled=False`
+(bascule manuelle documentée dans `predictor.py::_load`).
 
-| Métrique | Source | Description |
-|----------|--------|-------------|
-| `test_r2` | Hold-out 20% | R² du modèle sur le test set |
-| `test_rmse` | Hold-out 20% | RMSE du modèle (échelle 0–5) |
-| `cv_rmse` | StratifiedKFold 5 folds | RMSE cross-validé (entraînement) |
-| `baseline_rmse` | Heuristique déterministe | RMSE du baseline (gap = required - current) |
-| `baseline_mae` | Heuristique déterministe | MAE du baseline |
-| `lift_rmse` | Comparaison | baseline_rmse - ml_rmse (positif = ML > baseline) |
-| `lift_mae` | Comparaison | baseline_mae - ml_mae |
-| `n_samples` | Pipeline | Nombre de lignes après merge teacher↔gap |
+## risk_classifier (retraîné le 2026-08-06 — base accessible)
 
-## Interprétation du R²
+- 45 échantillons réels (depuis `"analyse".teacher_risk_snapshots` +
+  `"analyse".skill_gaps`), macro F1 CV = 0.2847 vs baseline 0.2115.
+- **Decision : reject** (seuil 0.45) → artefact supprimé, fallback règle
+  déterministe conservé (≥ 3 gaps critiques → CRITICAL, facteur
+  `critical_gaps_rule` non silencieux).
+- Métadonnées complètes (`data_sources`, `hyperparameters`) écrites dans
+  `data/models/risk_training_metadata.json`.
 
-⚠️ **Le `test_r2` est souvent très proche de 1.0 sur ce dataset.** C'est attendu car `current_level` et `required_level` sont dans les features et déterminent `gap = required - current` par construction. Le ML apprend donc une approximation de la formule déterministe, pas une nouvelle source de signal.
+## relevance_model (retraîné le 2026-08-06 — base accessible)
 
-Conséquence : pour la soutenance, il est important de :
-1. **Ne pas vendre le ML comme révolutionnaire** — il complète le pipeline déterministe.
-2. **Documenter que le dashboard reste sur la formule déterministe**, même si le ML est plus précis.
-3. **Pointer le warning** `R2>=0.99 with n_samples<200` retourné par `model_health()`.
+- ~90 lignes réelles (recommandations + inscriptions + évaluations DB).
+- **Decision : reject** (CV-RMSE=0.1150 > baseline 0.1069) → heuristique
+  conservée (blending 100% heuristique actuellement).
+- Métadonnées complètes dans
+  `data/models/relevance_training_metadata.json`.
 
-## Endpoint /model-health
+## Mécanismes ajoutés par l'audit
 
-`GET /api/v1/predict/model-health` retourne :
+| Mécanisme | Emplacement | Effet |
+|---|---|---|
+| Intégrité fail-closed (SHA-256/HMAC + sidecar obligatoire) | `app/infrastructure/ml/artifact_integrity.py` | Artefact non vérifié → non chargé |
+| Kill-switch global `ML_ENABLED` | `app/core/config.py` (`ml_enabled`) | `false` → aucun artefact chargé |
+| Drift check passif (part synthétique, âge du modèle) | `predictor.status().drift_check` | Alertes exposées via /health et dashboard |
+| Métadonnées `data_sources` + `hyperparameters` | 3 scripts de training | Traçabilité complète du corpus |
+| Garde-fous d'entraînement | `pipelines/train_*` | Refus si corpus < seuils (voir THRESHOLDS_AND_RISK_POLICY.md) |
 
-```json
-{
-  "model_loaded": true,
-  "model_name": "xgboost",
-  "trained_at": "2026-07-21T06:46:26.089209",
-  "n_features_model": 19,
-  "n_features_code": 23,
-  "feature_skew_ok": false,
-  "feature_skew_reason": "n_features mismatch: model trained on 19, code declares 23. Re-train via POST /api/v1/predict/train.",
-  "fallback_mode": true,
-  "fallback_reason": "feature_skew",
-  "metrics": {
-    "test_r2": 1.0,
-    "test_rmse": 0.008,
-    "cv_rmse": 0.008,
-    "n_samples": 80,
-    "baseline_rmse": 0.008,
-    "lift_rmse": 0.0
-  },
-  "candidate_cv_scores": {
-    "gradient_boosting": 0.0261,
-    "xgboost": 0.008,
-    "mlp": 0.2027
-  },
-  "warnings": [
-    "R2=1.000 with n_samples=80 is suspicious: small dataset + near-perfect R2 usually indicates target leakage..."
-  ],
-  "feature_cols": [...],
-  "outlier_report": {...}
-}
-```
+## Endpoint de contrôle
 
-## Procédure de validation
-
-Pour vérifier l'état ML après chaque modification :
-
-```bash
-# Valider toutes les métriques (lecture seule, ne touche pas le modèle)
-python -m pipelines.validate_model_metrics
-
-# Sortie JSON pour intégration CI
-python -m pipelines.validate_model_metrics --json
-
-# Ré-entraîner depuis zéro (avec rollback si régression)
-curl -X POST http://localhost:8000/api/v1/predict/train -H "Authorization: Bearer $TOKEN"
-```
-
-## Validation post-ré-entraînement
-
-Le script `validate_model_metrics.py` exécute 6 vérifications :
-
-| Check | Sévérité | Description |
-|-------|----------|-------------|
-| `feature_skew` | error | n_features_model == n_features_code |
-| `test_r2_range` | warning | test_r2 ≤ 1.0 |
-| `test_rmse_positive` | warning | test_rmse ≥ 0 |
-| `leakage_warning` | warning | R2 ≥ 0.99 + n_samples < 200 = suspect |
-| `outliers` | warning | Aucune valeur hors bornes métier |
-| `baseline_lift` | warning | ML RMSE ≤ 1.2 × baseline RMSE |
-| `fallback_mode` | info | predict() mode nominal ou fallback |
-
-Le verdict final est `PASS` si aucune vérification `error` n'a échoué. Les `warning` n'échouent pas le verdict final mais doivent être documentées.
+- `GET /api/v1/analytics/health` → expose `model.mode` (ML ou
+  HEURISTIC_FALLBACK) et `kill_switch`.
+- `GET /api/v1/analytics/dashboard/kpis` → `kpis["model"]` = status complet
+  (mode, drift_check, warning_critical_class).
 
 ## Historique des runs
 
-À remplir après chaque ré-entraînement réussi.
-
-| Date | Modèle | n_samples | test_r2 | test_rmse | baseline_rmse | lift_rmse | Warnings |
-|------|--------|-----------|---------|-----------|---------------|-----------|----------|
-| 2026-07-21 | xgboost | 80 | 1.0 | 0.008 | 0.008 | 0.0 | R2=1.0 suspect (n<200) |
+| Date | Modèle | n_train/n_test | test_r2 | test_rmse | Decision | Notes |
+|---|---|---|---|---|---|---|
+| 2026-08-06 | gradient_boosting | 86/21 (temporel strict, cutoff 2026-07-22) | 0.6582 | 0.7426 | accept (lift=2.1094, IC95% [1.32, 2.81]) | Reste désactivé en prod par audit |
+| 2026-08-06 | gradient_boosting | 84/21 (séquentiel) | 0.1085 | 0.9671 | accept (lift>0) | Remplacé par le split temporel strict |
+| 2026-07-21 | xgboost (legacy) | — | 1.0 | 0.008 | accept | Fuite de cible — modèle supprimé |
 
 ## Recommandations
 
-1. **Re-train** : si le modèle persisté a un `n_features_model` ≠ `FEATURE_COLS`, lancer `POST /api/v1/predict/train` pour ré-aligner.
-2. **Au-delà de 200 samples** : le warning R2=0.99 se désactive automatiquement, et les métriques deviennent représentatives.
-3. **Pour augmenter la valeur ML** : retirer `current_level` et `required_level` des features (prédire l'évolution future plutôt que la gap courante). Mais cela réduit le rôle du ML à de la prédiction temporelle, pas une amélioration directe du dashboard.
+1. **Ne pas servir de prédiction ML gap tant que** : corpus réel < 500
+   lignes datées, ou `_gap_model_enabled=False`.
+2. **Augmenter le corpus daté** : 107 lignes datées actuellement (split
+   temporel strict désormais possible via `date_t`). Viser ≥ 500 lignes
+   avec plusieurs années d'historique pour stabiliser l'IC du lift.
+3. **Revoir `ML_SYNTHETIC_TOLERANCE_PCT` et les seuils** au premier corpus
+   ≥ 500 enseignants (cf. `docs/THRESHOLDS_AND_RISK_POLICY.md`).

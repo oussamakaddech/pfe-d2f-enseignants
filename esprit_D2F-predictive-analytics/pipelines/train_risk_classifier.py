@@ -40,6 +40,8 @@ from sklearn.metrics import classification_report, confusion_matrix, f1_score
 from sklearn.model_selection import StratifiedKFold, cross_val_predict
 from sqlalchemy import create_engine, text
 
+from app.infrastructure.ml.artifact_integrity import save_with_integrity
+
 BASE_DIR = Path(__file__).parent.parent
 MODELS_DIR = BASE_DIR / "data" / "models"
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
@@ -212,7 +214,7 @@ def main() -> int:
 
     if decision == "accept":
         model.fit(X, y)
-        joblib.dump(model, MODEL_PATH)
+        save_with_integrity(model, MODEL_PATH)
         print(f"[6] Modele sauvegarde : {MODEL_PATH}")
         cm = confusion_matrix(y, preds_cv, labels=LABEL_ORDER).tolist()
         print("    Matrice de confusion (lignes=vrais labels) :")
@@ -233,6 +235,24 @@ def main() -> int:
         "label_distribution": {k: int(v) for k, v in counts.items()},
         "labels": LABEL_ORDER,
         "cv_folds": 5,
+        "hyperparameters": {
+            "random_state": RANDOM_STATE,
+            "cv": {"type": "StratifiedKFold", "n_splits": 5, "shuffle": True, "random_state": RANDOM_STATE},
+            "model": {
+                "class": "RandomForestClassifier",
+                "n_estimators": 200, "max_depth": 5,
+                "class_weight": "balanced_subsample", "min_samples_leaf": 2,
+            },
+            "baseline": {"class": "DummyClassifier", "strategy": "most_frequent"},
+        },
+        "data_sources": {
+            "origin": "analyse.teacher_risk_snapshots + skill_gaps + inscriptions + evaluations + besoins",
+            "real_teachers": int(n_teachers),
+            "synthetic_rows": 0,
+            "synthetic_share_pct": 0.0,
+            "snapshot_strategy": "snapshot le plus ancien par enseignant (garde le plus grand historique)",
+            "extraction_date": pd.Timestamp.now().isoformat(),
+        },
         "metrics": {
             "macro_f1": round(macro_f1, 4),
             "baseline_macro_f1": round(dummy_f1, 4),

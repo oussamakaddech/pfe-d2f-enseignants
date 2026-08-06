@@ -156,7 +156,7 @@ services:
 
   # ── SonarQube (Quality Analysis) ────────────────────────────────────────────
   sonarqube:
-    image: sonarqube:community
+    image: sonarqube:26.6.0.123539-community
     container_name: d2f-sonarqube
     restart: unless-stopped
     profiles:
@@ -243,6 +243,8 @@ services:
       APP_COOKIE_SAMESITE: "Lax"
       APP_SECURITY_DEFAULT_ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       APP_SECURITY_DEFAULT_ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required (do not use "admin")}
+      # V21 Flyway : mot de passe des comptes démo seedés (vide = comptes verrouillés)
+      D2F_SEED_PASSWORD: ${D2F_SEED_PASSWORD:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -557,6 +559,28 @@ services:
       - d2f-network
 
     # ── Predictive Analytics (Python/FastAPI) — MODULE COMPLET ──────────────────
+  # Migrations Flyway du schéma "analyse" (DSI §3.2) : exécutées par un conteneur
+  # dédié avant le démarrage du service — le DDL de boot (init_analyse_schema) est
+  # désormais réservé au mode développement (hors docker).
+  predictive-db-migrate:
+    image: flyway/flyway:10.20.1
+    container_name: d2f-predictive-db-migrate
+    command: -url=jdbc:postgresql://db.dsi.local:5432/d2f
+             -user=${DB_USER_ANALYSE:-app_user_analyse}
+             -password=${DB_PASSWORD_ANALYSE:-${DB_PASSWORD}}
+             -schemas=analyse
+             -defaultSchema=analyse
+             -table=flyway_schema_history_analyse
+             -validateMigrationNaming=true
+             migrate
+    volumes:
+      - ./esprit_D2F-predictive-analytics/db/migration:/flyway/sql:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - d2f-network
+
   # Module complet (esprit_D2F-predictive-analytics) : moteurs + pipeline ML +
   # routes /api/v1/d2f/* et /api/v1/analytics/dashboard/* consommées par le
   # frontend (AnalyticsDashboardPage, AnalysePredictive).
@@ -582,8 +606,8 @@ services:
       CORS_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
       MODELS_DIR: /app/data/models
     depends_on:
-      postgres:
-        condition: service_healthy
+      predictive-db-migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8000/api/v1/analytics/health || exit 1"]
       interval: 30s

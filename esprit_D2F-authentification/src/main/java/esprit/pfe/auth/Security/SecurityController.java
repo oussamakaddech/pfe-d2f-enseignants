@@ -99,6 +99,7 @@ public class SecurityController {
     }
 
     @PostMapping("/request-reset")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<MessageResponse> requestDeviceReset(@RequestParam String username) {
         authService.requestDeviceReset(username);
         return ResponseEntity.ok(new MessageResponse("Device reset request has been sent."));

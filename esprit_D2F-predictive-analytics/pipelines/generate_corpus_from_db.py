@@ -8,6 +8,11 @@ Pour chaque (enseignant, competence) avec suffisamment d'historique (>1 savoir),
 on reconstruit l'historique t-3..t depuis les vraies dates d'acquisition.
 Le target gap_next_3m est estime par la tendance observee sur l'historique
 (extrapolation simple d'un pas de 3 mois, bornee [0,5]).
+
+CORRECTION AUDIT DSI : le corpus exporte desormais une colonne `date_t`
+(date du point le plus recent de l'historique) et est trie chronologiquement
+(plus aucun shuffle) — ce qui permet au pipeline d'entrainement de realiser
+un split TEMPOREL strict (train = avant le seuil, test = apres).
 """
 from __future__ import annotations
 
@@ -171,6 +176,7 @@ def main() -> pd.DataFrame:
             "teacher_id": tid,
             "competence_id": cid,
             "competence_code": f"C{cid}",
+            "date_t": dates[-1].strftime("%Y-%m-%d"),
             "current_level_t3": cur_t3, "current_level_t2": cur_t2,
             "current_level_t1": cur_t1, "current_level_t": cur_t,
             "lag_gap_t3_t2": lag32, "lag_gap_t2_t1": lag21, "lag_gap_t1_t": lag1t,
@@ -204,8 +210,9 @@ def main() -> pd.DataFrame:
     if df.empty:
         raise RuntimeError("Aucune ligne generee — verifier la base")
 
-    # Shuffle + cap a 5000 lignes pour rester raisonnable
-    df = df.sample(frac=1.0, random_state=RANDOM_SEED).reset_index(drop=True)
+    # AUDIT : plus de shuffle — tri chronologique par date_t pour permettre
+    # un split temporel STRICT dans le pipeline d'entrainement.
+    df = df.sort_values("date_t").reset_index(drop=True)
     if len(df) > 5000:
         df = df.head(5000)
 

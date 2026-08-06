@@ -1,31 +1,31 @@
 teacher_id,full_name,department_code,department_nom,up_code,status_metier,date_embauche
-ENS001,Zineb Bouaziz,GL,Genie Logiciel,UP-GL,Enseignant,2024-01-14
-ENS002,Youssef Rachedi,INFO,Informatique,UP-INFO,Enseignant,2025-01-02
-ENS003,Tarik Haddi,RT,Reseaux & Cybersecurite,UP-RT,Attaché d'Enseignement et de Recherche,2025-02-02
-ENS004,Fatima Habbal,GC,Genie Civil,UP-GC,Enseignant,2025-05-30
-ENS005,Mohamed Cherif,WEB,Technologies du Web,UP-WEB,Enseignant,2022-09-30
-ENS006,Younes Benali,SUP,Support Pedagogique,UP-SUP,Attaché d'Enseignement et de Recherche,2024-06-18
-ENS007,Salima Benbouzid,GL,Genie Logiciel,UP-GL,Attaché d'Enseignement et de Recherche,2022-07-10
-ENS008,Yassin Rachedi,INFO,Informatique,UP-INFO,Maître de Conférences,2022-04-11
-ENS009,Salah Tahiri,RT,Reseaux & Cybersecurite,UP-RT,Enseignant,2024-09-07
-ENS010,Salima Habbal,GC,Genie Civil,UP-GC,Maître de Conférences,2024-01-08
-ENS011,Chaima Cherif,WEB,Technologies du Web,UP-WEB,Maître de Conférences,2025-01-02
-ENS012,Mohamed Boukerra,SUP,Support Pedagogique,UP-SUP,Enseignant,2023-07-26
-ENS013,Sami Khalfi,GL,Genie Logiciel,UP-GL,Attaché d'Enseignement et de Recherche,2024-02-05
-ENS014,Adel Haddad,INFO,Informatique,UP-INFO,Attaché d'Enseignement et de Recherche,2023-01-02
-ENS015,Rayan Bouaziz,RT,Reseaux & Cybersecurite,UP-RT,Maître de Conférences,2025-02-19
-ENS016,Rayan Fertahi,GC,Genie Civil,UP-GC,Attaché d'Enseignement et de Recherche,2022-02-10
-ENS017,Hiba Boufadly,WEB,Technologies du Web,UP-WEB,Maître de Conférences,2022-05-05
-ENS018,Nour Errached,SUP,Support Pedagogique,UP-SUP,Enseignant,2025-04-28
-ENS019,Tarik Rachedi,GL,Genie Logiciel,UP-GL,Maître de Conférences,2025-02-17
-ENS020,Sami Rachedi,INFO,Informatique,UP-INFO,Enseignant,2023-06-13
-ENS021,Salah Tazi,RT,Reseaux & Cybersecurite,UP-RT,Attaché d'Enseignement et de Recherche,2023-07-14
-ENS022,Omar Khalfi,GC,Genie Civil,UP-GC,Maître de Conférences,2024-05-27
-ENS023,Tarik Mansouri,WEB,Technologies du Web,UP-WEB,Attaché d'Enseignement et de Recherche,2021-09-30
-ENS024,Zineb El Fassi,SUP,Support Pedagogique,UP-SUP,Attaché d'Enseignement et de Recherche,2022-01-07
-ENS025,Omar Bouya,GL,Genie Logiciel,UP-GL,Attaché d'Enseignement et de Recherche,2024-03-16
-ENS026,Omar Tazi,INFO,Informatique,UP-INFO,Maître de Conférences,2024-01-25
-ENS027,Karim Benbouzid,RT,Reseaux & Cybersecurite,UP-RT,Attaché d'Enseignement et de Recherche,2022-06-16
-ENS028,Youssef Amrani,GC,Genie Civil,UP-GC,Maître de Conférences,2025-04-07
-ENS029,Youssef Benjelloun,WEB,Technologies du Web,UP-WEB,Enseignant,2023-10-23
-ENS030,Dounia Mansouri,SUP,Support Pedagogique,UP-SUP,Enseignant,2024-05-24
+ENS001,ENS_PSEUDO_001_76db6bb91d,GL,Genie Logiciel,UP-GL,Enseignant,2024-01-14
+ENS002,ENS_PSEUDO_002_ccf6be530a,INFO,Informatique,UP-INFO,Enseignant,2025-01-02
+ENS003,ENS_PSEUDO_003_9ff7fc7e79,RT,Reseaux & Cybersecurite,UP-RT,Attaché d'Enseignement et de Recherche,2025-02-02
+ENS004,ENS_PSEUDO_004_16c0df2a49,GC,Genie Civil,UP-GC,Enseignant,2025-05-30
+ENS005,ENS_PSEUDO_005_141e8ea378,WEB,Technologies du Web,UP-WEB,Enseignant,2022-09-30
+ENS006,ENS_PSEUDO_006_e94ba16c15,SUP,Support Pedagogique,UP-SUP,Attaché d'Enseignement et de Recherche,2024-06-18
+ENS007,ENS_PSEUDO_007_eb981bf1c4,GL,Genie Logiciel,UP-GL,Attaché d'Enseignement et de Recherche,2022-07-10
+ENS008,ENS_PSEUDO_008_8c2458502f,INFO,Informatique,UP-INFO,Maître de Conférences,2022-04-11
+ENS009,ENS_PSEUDO_009_0c6fdaa904,RT,Reseaux & Cybersecurite,UP-RT,Enseignant,2024-09-07
+ENS010,ENS_PSEUDO_010_1440b7ae56,GC,Genie Civil,UP-GC,Maître de Conférences,2024-01-08
+ENS011,ENS_PSEUDO_011_3e49e2f08a,WEB,Technologies du Web,UP-WEB,Maître de Conférences,2025-01-02
+ENS012,ENS_PSEUDO_012_a006c367a3,SUP,Support Pedagogique,UP-SUP,Enseignant,2023-07-26
+ENS013,ENS_PSEUDO_013_325a0e2775,GL,Genie Logiciel,UP-GL,Attaché d'Enseignement et de Recherche,2024-02-05
+ENS014,ENS_PSEUDO_014_ae78422bbc,INFO,Informatique,UP-INFO,Attaché d'Enseignement et de Recherche,2023-01-02
+ENS015,ENS_PSEUDO_015_c2abb14723,RT,Reseaux & Cybersecurite,UP-RT,Maître de Conférences,2025-02-19
+ENS016,ENS_PSEUDO_016_f22951a43f,GC,Genie Civil,UP-GC,Attaché d'Enseignement et de Recherche,2022-02-10
+ENS017,ENS_PSEUDO_017_757d5c967f,WEB,Technologies du Web,UP-WEB,Maître de Conférences,2022-05-05
+ENS018,ENS_PSEUDO_018_ad12f056bc,SUP,Support Pedagogique,UP-SUP,Enseignant,2025-04-28
+ENS019,ENS_PSEUDO_019_52eeaac864,GL,Genie Logiciel,UP-GL,Maître de Conférences,2025-02-17
+ENS020,ENS_PSEUDO_020_9f9303562f,INFO,Informatique,UP-INFO,Enseignant,2023-06-13
+ENS021,ENS_PSEUDO_021_005a8af15d,RT,Reseaux & Cybersecurite,UP-RT,Attaché d'Enseignement et de Recherche,2023-07-14
+ENS022,ENS_PSEUDO_022_faeec9b9ef,GC,Genie Civil,UP-GC,Maître de Conférences,2024-05-27
+ENS023,ENS_PSEUDO_023_397a9aa468,WEB,Technologies du Web,UP-WEB,Attaché d'Enseignement et de Recherche,2021-09-30
+ENS024,ENS_PSEUDO_024_321220755d,SUP,Support Pedagogique,UP-SUP,Attaché d'Enseignement et de Recherche,2022-01-07
+ENS025,ENS_PSEUDO_025_94ee3d1577,GL,Genie Logiciel,UP-GL,Attaché d'Enseignement et de Recherche,2024-03-16
+ENS026,ENS_PSEUDO_026_716ef0bb36,INFO,Informatique,UP-INFO,Maître de Conférences,2024-01-25
+ENS027,ENS_PSEUDO_027_142d119ee0,RT,Reseaux & Cybersecurite,UP-RT,Attaché d'Enseignement et de Recherche,2022-06-16
+ENS028,ENS_PSEUDO_028_648e7b307e,GC,Genie Civil,UP-GC,Maître de Conférences,2025-04-07
+ENS029,ENS_PSEUDO_029_fa3367fb54,WEB,Technologies du Web,UP-WEB,Enseignant,2023-10-23
+ENS030,ENS_PSEUDO_030_c6e5081d90,SUP,Support Pedagogique,UP-SUP,Enseignant,2024-05-24

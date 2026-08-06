@@ -11,8 +11,10 @@ import {
   CheckCircleOutlined, WarningOutlined, LineChartOutlined,
   BulbOutlined, InfoCircleOutlined,
 } from "@ant-design/icons";
-import { useQuery } from "@tanstack/react-query";
-import D2FService from "@/services/analyse/D2FService";
+import {
+  useD2FTeacherProfile,
+  useD2FTeacherMLSignal,
+} from "@/hooks/analyse/useD2FData";
 
 const h = React.createElement;
 
@@ -124,30 +126,13 @@ function TopFactorsCard(props: Readonly<TopFactorsCardProps>) {
   );
 }
 
-function useTeacherProfile(teacherId: string) {
-  return useQuery({
-    queryKey: ["d2f", "teacher", teacherId],
-    queryFn: () => D2FService.getTeacherProfile(teacherId),
-    enabled: !!teacherId,
-    staleTime: 60000,
-  });
-}
-
-function useTeacherMLSignal(teacherId: string) {
-  return useQuery({
-    queryKey: ["d2f", "ml-signal", teacherId],
-    queryFn: () => D2FService.getTeacherMLSignal(teacherId),
-    enabled: !!teacherId,
-    staleTime: 60000,
-  });
-}
-
 interface RiskBreakdownPanelProps {
   readonly teacherId: string;
 }
 export function RiskBreakdownPanel(props: Readonly<RiskBreakdownPanelProps>) {
-  const profileQ = useTeacherProfile(props.teacherId);
-  const mlQ = useTeacherMLSignal(props.teacherId);
+  // Hooks centralisés (useD2FData) : cache partagé + invalidation unifiée avec le reste du dashboard.
+  const profileQ = useD2FTeacherProfile(props.teacherId);
+  const mlQ = useD2FTeacherMLSignal(props.teacherId);
 
   if (profileQ.isLoading || mlQ.isLoading) {
     return h(Card, { loading: true, size: "small" });

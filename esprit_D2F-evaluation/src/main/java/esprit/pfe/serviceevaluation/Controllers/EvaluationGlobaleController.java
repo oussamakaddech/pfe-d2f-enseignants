@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +27,7 @@ public class EvaluationGlobaleController {
     @PostMapping
     @PreAuthorize(AuthorizationMatrix.EVALUATION_CREATE)
     public ResponseEntity<EvaluationGlobaleDTO> createEvaluationGlobale(@Valid @RequestBody EvaluationGlobaleDTO evaluation) {
-        return ResponseEntity.ok(evaluationGlobaleService.createEvaluationGlobale(evaluation));
+        return ResponseEntity.status(HttpStatus.CREATED).body(evaluationGlobaleService.createEvaluationGlobale(evaluation));
     }
 
     @GetMapping

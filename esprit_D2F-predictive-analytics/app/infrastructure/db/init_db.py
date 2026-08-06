@@ -148,14 +148,30 @@ ANALYSE_DDL = [
     """,
     """
     CREATE TABLE IF NOT EXISTS "analyse".feature_snapshots (
-        id             BIGSERIAL PRIMARY KEY,
-        teacher_id     VARCHAR(36) NOT NULL,
-        feature_set    VARCHAR(50) NOT NULL,
-        as_of          DATE NOT NULL DEFAULT CURRENT_DATE,
-        payload        JSONB NOT NULL,
-        computed_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+        id                       BIGSERIAL PRIMARY KEY,
+        enseignant_id            VARCHAR(36) NOT NULL,
+        snapshot_date            DATE NOT NULL DEFAULT CURRENT_DATE,
+        nb_savoirs_evalues       INTEGER NOT NULL DEFAULT 0,
+        nb_savoirs_niveau_1      INTEGER NOT NULL DEFAULT 0,
+        nb_savoirs_niveau_2      INTEGER NOT NULL DEFAULT 0,
+        nb_savoirs_niveau_3      INTEGER NOT NULL DEFAULT 0,
+        nb_savoirs_niveau_4      INTEGER NOT NULL DEFAULT 0,
+        nb_savoirs_niveau_5      INTEGER NOT NULL DEFAULT 0,
+        niveau_moyen_competences NUMERIC(4,2) NOT NULL DEFAULT 0,
+        nb_formations_inscrites  INTEGER NOT NULL DEFAULT 0,
+        nb_formations_approuvees INTEGER NOT NULL DEFAULT 0,
+        nb_formations_completees INTEGER NOT NULL DEFAULT 0,
+        taux_completion_formations NUMERIC(5,2) NOT NULL DEFAULT 0,
+        taux_presence_moyen      NUMERIC(5,2) NOT NULL DEFAULT 0,
+        nb_besoins_exprimes      INTEGER NOT NULL DEFAULT 0,
+        nb_besoins_approuves     INTEGER NOT NULL DEFAULT 0,
+        priorite_besoin_max      VARCHAR(20),
+        note_evaluation_moyenne  NUMERIC(4,2),
+        nb_evaluations_soumises  INTEGER NOT NULL DEFAULT 0,
+        nb_certificats_obtenus   INTEGER NOT NULL DEFAULT 0,
+        computed_at              TIMESTAMPTZ NOT NULL DEFAULT now()
     );
-    CREATE INDEX IF NOT EXISTS ix_feature_snapshots_teacher ON "analyse".feature_snapshots (teacher_id, as_of DESC);
+    CREATE INDEX IF NOT EXISTS ix_feature_snapshots_enseignant ON "analyse".feature_snapshots (enseignant_id);
     """,
     """
     CREATE TABLE IF NOT EXISTS "analyse".event_processing (

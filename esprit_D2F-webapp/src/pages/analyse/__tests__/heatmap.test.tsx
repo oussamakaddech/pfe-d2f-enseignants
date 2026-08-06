@@ -30,9 +30,9 @@ const cell: HeatmapCell = {
 };
 
 describe("Heatmap", () => {
-  it("affiche les cellules de la heatmap", () => {
+  it("affiche les cellules de la heatmap (libellé département)", () => {
     render(<Heatmap cells={[cell]} />);
-    expect(screen.getByText("DEPT_INFO")).toBeInTheDocument();
+    expect(screen.getByText("Informatique")).toBeInTheDocument();
     expect(screen.getByText("60%")).toBeInTheDocument();
   });
 

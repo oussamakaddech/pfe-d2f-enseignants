@@ -116,7 +116,7 @@ public class FormationWorkflowController {
     public ResponseEntity<Object> deleteFormation(@PathVariable Long id) {
         try {
             formationWorkflowService.deleteFormationWorkflow(id);
-            return ResponseEntity.ok("Formation supprimee avec succes !");
+            return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {

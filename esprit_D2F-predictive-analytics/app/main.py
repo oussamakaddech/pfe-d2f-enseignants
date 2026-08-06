@@ -24,8 +24,14 @@ def create_app() -> FastAPI:
     async def lifespan(app: FastAPI):
         container.connect()
         try:
-            init_analyse_schema(container.database.engine)
-            logger.info("schema analyse initialise")
+            # DSI §3.2 — le schéma "analyse" est géré par Flyway en production/QA
+            # (conteneur predictive-db-migrate, voir docker-compose.yml).
+            # Le DDL de bootstrap reste disponible en développement local.
+            if settings.app_env == "development":
+                init_analyse_schema(container.database.engine)
+                logger.info("schema analyse initialise (bootstrap dev)")
+            else:
+                logger.info("schema analyse géré par Flyway (env=%s)", settings.app_env)
         except Exception as exc:
             logger.warning("initialisation schema analyse ignoree", error=str(exc))
         app.state.container = container

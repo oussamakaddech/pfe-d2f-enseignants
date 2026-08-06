@@ -69,6 +69,8 @@ class Trend(Enum):
     IMPROVING = "IMPROVING"
     STABLE = "STABLE"
     DECLINING = "DECLINING"
+    WORSENING = "WORSENING"      # Alias métier de DECLINING (prédiction ML en hausse du gap)
+    DECLARED_ML = "DECLARED_ML"  # Marqueur : la valeur sort du modèle ML, pas de l'heuristique
 
 
 class RiskLevel(Enum):

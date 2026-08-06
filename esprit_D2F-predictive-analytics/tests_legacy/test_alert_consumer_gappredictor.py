@@ -2,9 +2,16 @@ from datetime import date, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+import pytest
+
 from app.engines.alert_engine import AlertEngine
 from app.messaging.consumer import AnalyticsEventConsumer
 from app.ml.gap_predictor import GapPredictor
+
+try:
+    from tests_legacy.conftest import DB_REACHABLE
+except ImportError:  # exécution fichier par fichier sans conftest
+    DB_REACHABLE = False
 
 
 def test_alert_engine_rules(monkeypatch):
@@ -29,24 +36,40 @@ def test_alert_engine_rules(monkeypatch):
 
 
 def test_consumer_on_message_triggers(monkeypatch):
+    """Flux actuel : payload validé -> EventProcessingService.process_event
+    -> basic_ack en cas de succès. Le service est mocké (aucune DB requise)."""
+    from types import SimpleNamespace
+
     consumer = AnalyticsEventConsumer()
-    called = {}
+    acked = {}
 
-    def fake_trigger(eid):
-        called["eid"] = eid
+    def fake_process(event):
+        return SimpleNamespace(processed=True, error=None)
 
-    monkeypatch.setattr(consumer, "_trigger_individual_analysis", fake_trigger)
+    monkeypatch.setattr(
+        "app.services.event_processing_service.EventProcessingService",
+        lambda: SimpleNamespace(process_event=fake_process),
+    )
 
     class Channel:
         def basic_ack(self, delivery_tag, requeue=False):
+            acked["tag"] = delivery_tag
+
+        def basic_nack(self, delivery_tag, requeue=False):
             pass
 
     class Method:
         delivery_tag = 1
 
-    payload = '{"event":"EVALUATION_SUBMITTED","enseignantId":"t42"}'
+    # Format de payload actuel (validation via validate_event_payload) :
+    # event_type + teacher_id canonique ENSxxx + champs du schéma.
+    payload = (
+        '{"event_id": "evt-0001", "event_type": "competency.updated", '
+        '"teacher_id": "ENS042", "timestamp": "2026-08-06T00:00:00Z", '
+        '"data": {"competence_id": 1, "current_level": 3}}'
+    )
     consumer._on_message(Channel(), Method(), None, payload)
-    assert called.get("eid") == "t42"
+    assert acked.get("tag") == 1
 
 
 def test_gap_predictor_empty_inputs():
@@ -55,8 +78,9 @@ def test_gap_predictor_empty_inputs():
     assert out["gaps"] == [] and out["avg_predicted_gap"] == 0.0
 
 
+@pytest.mark.skipif(not DB_REACHABLE, reason="base PostgreSQL 7432 inaccessible")
 def test_analytics_gaps_endpoint(client):
-    r = client.get("/api/v1/analytics/gaps/someid")
+    r = client.get("/api/v1/analytics/gaps/ENS042")
     assert r.status_code == 200
     j = r.json()
     assert "gaps" in j and isinstance(j.get("gaps"), list)

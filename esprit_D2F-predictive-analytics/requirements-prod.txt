@@ -13,9 +13,6 @@ alembic==1.14.0
 # Scheduler
 APScheduler==3.10.4
 
-# HTTP client (inter-service calls)
-httpx==0.27.2
-
 # RabbitMQ messaging (optional - disabled by default)
 pika==1.3.2
 

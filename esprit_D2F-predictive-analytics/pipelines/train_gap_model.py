@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.model_selection import KFold, cross_val_score
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -96,10 +96,9 @@ def compute_baseline(y_test: np.ndarray, gap_t: np.ndarray) -> dict[str, float]:
 
 
 def cross_validate_model(model: Any, X: np.ndarray, y: np.ndarray, cv: int = 5) -> float:
-    """Validation croisee StratifiedKFold, retourne RMSE moyen."""
-    y_bins = np.digitize(y, bins=np.percentile(y, np.linspace(0, 100, cv + 1)[1:-1]))
-    skf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=RANDOM_STATE)
-    scores = cross_val_score(model, X, y, cv=skf, scoring="neg_root_mean_squared_error")
+    """Validation croisee KFold (regression — pas de stratification). Retourne RMSE moyen."""
+    kf = KFold(n_splits=cv, shuffle=True, random_state=RANDOM_STATE)
+    scores = cross_val_score(model, X, y, cv=kf, scoring="neg_root_mean_squared_error")
     return float(-scores.mean())
 
 
@@ -130,6 +129,16 @@ def train_gap_model(
     corpus = load_corpus()
     if len(corpus) < n_samples:
         print(f"[WARN] Corpus actuel = {len(corpus)} lignes (cible {n_samples})")
+    # Garde audit : le corpus synthétique (training_corpus.csv, 5000 lignes
+    # générées par random.randint) n'est PAS utilisable pour un modèle métier.
+    # Ce script exige le corpus réel (généré par generate_corpus_from_db.py).
+    if "teacher_id" not in corpus.columns:
+        raise SystemExit("[ERROR] Corpus sans colonne teacher_id — vérifier le fichier d'entrée")
+    if len(corpus) < 50:
+        raise SystemExit(
+            f"[ERROR] Corpus réel insuffisant ({len(corpus)} lignes < 50) : phase de "
+            "collecte de données requise avant tout réentraînement honnête."
+        )
 
     print("[2] Split temporel + construction features...")
     split = build_temporal_split(corpus)

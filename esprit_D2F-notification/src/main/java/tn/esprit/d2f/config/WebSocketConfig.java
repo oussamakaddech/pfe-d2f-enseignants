@@ -1,6 +1,7 @@
 package tn.esprit.d2f.config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -23,12 +24,15 @@ public class WebSocketConfig implements WebSocketConfigurer {
     private final JwtDecoder jwtDecoder;
     private final WebSocketSessionRegistry registry;
 
+    @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
+    private String allowedOriginsRaw;
+
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry webSocketHandlerRegistry) {
         webSocketHandlerRegistry
                 .addHandler(notificationWebSocketHandler(), "/ws/notifications")
                 .addInterceptors(new WebSocketAuthInterceptor(jwtDecoder))
-                .setAllowedOrigins("*");
+                .setAllowedOrigins(allowedOriginsRaw.split(","));
     }
 
     @Bean

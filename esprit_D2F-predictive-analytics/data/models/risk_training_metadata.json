@@ -1,8 +1,8 @@
 {
   "model_name": "random_forest_classifier",
-  "trained_at": "2026-08-02T02:20:37.881115",
-  "n_samples": 36,
-  "n_teachers": 36,
+  "trained_at": "2026-08-06T03:41:46.657899",
+  "n_samples": 45,
+  "n_teachers": 45,
   "n_features": 16,
   "feature_cols": [
     "n_gaps_total",
@@ -23,10 +23,10 @@
     "has_decline"
   ],
   "label_distribution": {
-    "MEDIUM": 26,
-    "HIGH": 6,
+    "MEDIUM": 33,
+    "HIGH": 7,
     "LOW": 3,
-    "CRITICAL": 1
+    "CRITICAL": 2
   },
   "labels": [
     "LOW",
@@ -35,16 +35,44 @@
     "CRITICAL"
   ],
   "cv_folds": 5,
+  "hyperparameters": {
+    "random_state": 42,
+    "cv": {
+      "type": "StratifiedKFold",
+      "n_splits": 5,
+      "shuffle": true,
+      "random_state": 42
+    },
+    "model": {
+      "class": "RandomForestClassifier",
+      "n_estimators": 200,
+      "max_depth": 5,
+      "class_weight": "balanced_subsample",
+      "min_samples_leaf": 2
+    },
+    "baseline": {
+      "class": "DummyClassifier",
+      "strategy": "most_frequent"
+    }
+  },
+  "data_sources": {
+    "origin": "analyse.teacher_risk_snapshots + skill_gaps + inscriptions + evaluations + besoins",
+    "real_teachers": 45,
+    "synthetic_rows": 0,
+    "synthetic_share_pct": 0.0,
+    "snapshot_strategy": "snapshot le plus ancien par enseignant (garde le plus grand historique)",
+    "extraction_date": "2026-08-06T03:41:46.657999"
+  },
   "metrics": {
-    "macro_f1": 0.5242,
-    "baseline_macro_f1": 0.2097,
+    "macro_f1": 0.2847,
+    "baseline_macro_f1": 0.2115,
     "f1_per_class": {
-      "LOW": 0.6667,
-      "MEDIUM": 0.8302,
-      "HIGH": 0.6,
+      "LOW": 0.0,
+      "MEDIUM": 0.8056,
+      "HIGH": 0.3333,
       "CRITICAL": 0.0
     }
   },
-  "decision": "accept",
+  "decision": "reject",
   "notes": "Classifier dedie au niveau de risque. Fallback : regle arbitraire sur gaps si absent."
 }

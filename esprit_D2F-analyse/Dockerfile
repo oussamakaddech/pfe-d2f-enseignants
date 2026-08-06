@@ -45,7 +45,7 @@ LABEL Author="D2F Team"
 LABEL maintainer="D2F Team"
 
 # Create user
-RUN addgroup -g 2009 esprit ; adduser  --ingroup esprit --disabled-password --uid 2009 esprit
+RUN addgroup -g 2003 esprit ; adduser  --ingroup esprit --disabled-password --uid 2003 esprit
 
 # Install curl for HEALTHCHECK
 RUN apk add --no-cache curl

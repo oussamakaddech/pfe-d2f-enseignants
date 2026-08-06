@@ -1,8 +1,6 @@
 {
   "model_name": "gradient_boosting",
-  "n_samples": 5000,
-  "n_train": 3332,
-  "n_test": 1668,
+  "trained_at": "2026-08-06T03:44:59.524764",
   "n_features": 29,
   "feature_cols": [
     "current_level_t3",
@@ -35,50 +33,151 @@
     "months_since_last_training",
     "engagement_score"
   ],
+  "n_samples": 107,
+  "n_train": 86,
+  "n_test": 21,
+  "data_sources": {
+    "synthetic": 0,
+    "real_db": 107,
+    "combined": 107,
+    "real_weight_applied": 1,
+    "synthetic_included": false,
+    "real_share_pct": 100.0,
+    "synthetic_share_pct": 0.0
+  },
+  "hyperparameters": {
+    "random_state": 42,
+    "cv": {
+      "type": "KFold",
+      "n_splits": 5,
+      "shuffle": true,
+      "random_state": 42
+    },
+    "split": {
+      "type": "temporal_ordered_no_shuffle",
+      "train_frac": 0.8,
+      "test_frac": 0.2
+    },
+    "models": {
+      "gradient_boosting": {
+        "alpha": 0.9,
+        "ccp_alpha": 0.0,
+        "criterion": "friedman_mse",
+        "init": null,
+        "learning_rate": 0.08,
+        "loss": "squared_error",
+        "max_depth": 3,
+        "max_features": "sqrt",
+        "max_leaf_nodes": null,
+        "min_impurity_decrease": 0.0,
+        "min_samples_leaf": 5,
+        "min_samples_split": 10,
+        "min_weight_fraction_leaf": 0.0,
+        "n_estimators": 120,
+        "n_iter_no_change": null,
+        "random_state": 42,
+        "subsample": 0.85,
+        "tol": 0.0001,
+        "validation_fraction": 0.1,
+        "verbose": 0,
+        "warm_start": false
+      },
+      "xgboost": {
+        "objective": "reg:squarederror",
+        "base_score": null,
+        "booster": null,
+        "callbacks": null,
+        "colsample_bylevel": null,
+        "colsample_bynode": null,
+        "colsample_bytree": null,
+        "device": null,
+        "early_stopping_rounds": null,
+        "enable_categorical": false,
+        "eval_metric": null,
+        "feature_types": null,
+        "gamma": null,
+        "grow_policy": null,
+        "importance_type": null,
+        "interaction_constraints": null,
+        "learning_rate": 0.08,
+        "max_bin": null,
+        "max_cat_threshold": null,
+        "max_cat_to_onehot": null,
+        "max_delta_step": null,
+        "max_depth": 3,
+        "max_leaves": null,
+        "min_child_weight": 5,
+        "missing": NaN,
+        "monotone_constraints": null,
+        "multi_strategy": null,
+        "n_estimators": 120,
+        "n_jobs": -1,
+        "num_parallel_tree": null,
+        "random_state": 42,
+        "reg_alpha": 0.1,
+        "reg_lambda": 1.0,
+        "sampling_method": null,
+        "scale_pos_weight": null,
+        "subsample": 0.85,
+        "tree_method": null,
+        "validate_parameters": null,
+        "verbosity": 0
+      }
+    }
+  },
   "cv_folds": 5,
+  "split": {
+    "type": "temporal_strict_cutoff_2026-07-22",
+    "note": "corpus dote de date_t (generate_corpus_from_db.py) : split temporel strict au quantile 80% des dates d'acquisition ; fallback sequentiel si date_t absente"
+  },
   "candidate_cv_scores": {
-    "gradient_boosting": 0.9726,
-    "xgboost": 0.9759,
-    "mlp": 0.9935
+    "gradient_boosting": 0.8689,
+    "xgboost": 0.8689
   },
   "metrics": {
-    "test_r2": 0.3145,
-    "test_rmse": 1.0018,
-    "test_mae": 0.8362,
-    "baseline_rmse": 1.7888,
-    "baseline_mae": 1.4086,
-    "lift_rmse": 0.787
+    "test_r2": 0.6582,
+    "test_rmse": 0.7426,
+    "test_mae": 0.4692,
+    "baseline_rmse": 2.852,
+    "baseline_mae": 2.4484,
+    "lift_rmse": 2.1094,
+    "lift_rmse_ci95": [
+      1.3237,
+      2.8088
+    ],
+    "lift_ci95_method": "bootstrap 1000 replicas on test sample (n=21), percentile 2.5-97.5",
+    "lift_significant_95": true
   },
   "feature_importances": {
-    "current_level_t3": 0.047869,
-    "current_level_t2": 0.007778,
-    "current_level_t1": 0.017399,
-    "current_level_t": 0.024023,
-    "lag_gap_t3_t2": 0.005399,
-    "lag_gap_t2_t1": 0.005158,
-    "lag_gap_t1_t": 0.00402,
-    "rolling_tendance": 0.005959,
-    "days_since_last_training": 0.022051,
-    "training_frequency_per_month": 0.005852,
-    "is_long_absent": 0.000621,
-    "is_stagnant": 0.001091,
-    "avg_level": 0.211806,
-    "min_level": 0.101477,
-    "max_level": 0.245051,
-    "nb_level_5": 0.020888,
-    "nb_level_1": 0.17176,
-    "nb_savoirs": 0.002788,
-    "nb_competences": 0.003124,
-    "competency_coverage_rate": 0.002035,
-    "nb_formations_completed": 0.00387,
-    "nb_formations_in_progress": 0.005694,
-    "taux_assiduite": 0.020698,
-    "nb_besoins_exprimes": 0.004989,
-    "nb_besoins_approuves": 0.002853,
-    "avg_eval_score": 0.021543,
-    "nb_evaluations": 0.00272,
-    "months_since_last_training": 0.007632,
-    "engagement_score": 0.02385
+    "current_level_t3": 0.023997,
+    "current_level_t2": 0.020226,
+    "current_level_t1": 0.003937,
+    "current_level_t": 0.283852,
+    "lag_gap_t3_t2": 0.026901,
+    "lag_gap_t2_t1": 0.02142,
+    "lag_gap_t1_t": 0.056388,
+    "rolling_tendance": 0.117792,
+    "days_since_last_training": 0.024212,
+    "training_frequency_per_month": 0.012093,
+    "is_long_absent": 0.004227,
+    "is_stagnant": 0.0,
+    "avg_level": 0.063936,
+    "min_level": 0.063305,
+    "max_level": 0.044724,
+    "nb_level_5": 0.0,
+    "nb_level_1": 0.032622,
+    "nb_savoirs": 0.028291,
+    "nb_competences": 0.05365,
+    "competency_coverage_rate": 0.047064,
+    "nb_formations_completed": 0.006837,
+    "nb_formations_in_progress": 0.0,
+    "taux_assiduite": 0.006283,
+    "nb_besoins_exprimes": 0.0,
+    "nb_besoins_approuves": 0.0,
+    "avg_eval_score": 0.002942,
+    "nb_evaluations": 0.004077,
+    "months_since_last_training": 0.023901,
+    "engagement_score": 0.027323
   },
   "feature_ranges": {
     "current_level_t3": {
@@ -95,7 +194,7 @@
     },
     "current_level_t": {
       "min": 1.0,
-      "max": 5.0
+      "max": 4.0
     },
     "lag_gap_t3_t2": {
       "min": -2.0,
@@ -106,20 +205,20 @@
       "max": 2.0
     },
     "lag_gap_t1_t": {
-      "min": -2.0,
+      "min": -3.0,
       "max": 2.0
     },
     "rolling_tendance": {
-      "min": -0.67,
-      "max": 0.67
+      "min": -1.0,
+      "max": 0.6666666666666666
     },
     "days_since_last_training": {
-      "min": 30.0,
+      "min": 1.0,
       "max": 365.0
     },
     "training_frequency_per_month": {
       "min": 0.0,
-      "max": 0.42
+      "max": 3.0
     },
     "is_long_absent": {
       "min": 0.0,
@@ -127,15 +226,15 @@
     },
     "is_stagnant": {
       "min": 0.0,
-      "max": 1.0
+      "max": 0.0
     },
     "avg_level": {
       "min": 1.0,
-      "max": 5.0
+      "max": 4.5
     },
     "min_level": {
       "min": 1.0,
-      "max": 5.0
+      "max": 4.0
     },
     "max_level": {
       "min": 1.0,
@@ -143,61 +242,61 @@
     },
     "nb_level_5": {
       "min": 0.0,
-      "max": 4.0
+      "max": 1.0
     },
     "nb_level_1": {
       "min": 0.0,
       "max": 4.0
     },
     "nb_savoirs": {
-      "min": 1.0,
-      "max": 3.0
+      "min": 2.0,
+      "max": 6.0
     },
     "nb_competences": {
-      "min": 1.0,
-      "max": 3.0
+      "min": 2.0,
+      "max": 6.0
     },
     "competency_coverage_rate": {
-      "min": 0.5,
+      "min": 0.3333333333333333,
       "max": 1.0
     },
     "nb_formations_completed": {
       "min": 0.0,
-      "max": 5.0
+      "max": 3.0
     },
     "nb_formations_in_progress": {
       "min": 0.0,
-      "max": 3.0
+      "max": 0.0
     },
     "taux_assiduite": {
-      "min": 0.5,
-      "max": 0.95
+      "min": 0.0,
+      "max": 0.9411764705882352
     },
     "nb_besoins_exprimes": {
       "min": 0.0,
-      "max": 4.0
+      "max": 0.0
     },
     "nb_besoins_approuves": {
       "min": 0.0,
-      "max": 2.0
+      "max": 0.0
     },
     "avg_eval_score": {
-      "min": 2.5,
+      "min": 0.0,
       "max": 4.5
     },
     "nb_evaluations": {
-      "min": 1.0,
-      "max": 4.0
+      "min": 0.0,
+      "max": 3.0
     },
     "months_since_last_training": {
-      "min": 1.0,
-      "max": 12.0
+      "min": 0.0328515111695138,
+      "max": 11.990801576872537
     },
     "engagement_score": {
-      "min": 10.17,
-      "max": 33.22
+      "min": 0.0,
+      "max": 21.245098039215687
     }
   },
   "decision": "accept",
-  "trained_at": "2026-08-02T02:00:47.226735"
+  "notes": "Corrigé par audit DSI : corpus exclusivement réel (training_corpus_from_db.csv), split temporel strict sur date_t (quantile 80%), KFold pour régression, seed 42. Le synthétique random.randint n'est pas utilisé (EXCLUDE_SYNTHETIC=True). Lift documenté avec IC 95% par bootstrap (1000 réplicas) sur l'échantillon de test."
 }

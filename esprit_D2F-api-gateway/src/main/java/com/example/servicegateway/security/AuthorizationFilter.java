@@ -63,6 +63,12 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_CHEF_DEPARTEMENT
     );
 
+    /** Pilotage (dashboard/BFF analytics) : ADMIN + CUP + Chef de département.
+     *  Parité guard frontend routes/index.tsx et @PreAuthorize AnalyticsController. */
+    private static final List<String> PILOTAGE_ROLES = List.of(
+        ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT
+    );
+
     /** Admin + CUP + Enseignant + Chef de département + Animateur + D2F + Responsable dossier */
     private static final List<String> NO_FORMATEUR = List.of(
         ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_ANIMATEUR,
@@ -169,8 +175,9 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         if (path.startsWith("/api/certificat/")) return getCertificatRoles(method);
         if (path.startsWith("/api/rice/")) return ADMIN_ONLY;
         if (path.startsWith("/api/analyse/")) return getAnalyseRoles(path);
-        // BFF analyse predictive (vues consolidees de pilotage) : ADMIN/CUP.
-        if (path.startsWith("/api/v1/analyse-predictive/")) return ADMIN_CUP;
+        // BFF analyse predictive (vues consolidees de pilotage) : ADMIN/CUP/Chef de département.
+        if (path.startsWith("/api/v1/analyse-predictive/") || path.startsWith("/api/v2/analytics/"))
+            return PILOTAGE_ROLES;
 
         return ALL_ROLES;
     }

@@ -144,13 +144,15 @@ function toNiveauRisque(raw: string | null | undefined): NiveauRisque {
   return "FAIBLE";
 }
 
-/** Enseignants à risque réels (score 0–1 en base) → format tableau. */
+/** Enseignants à risque réels (score 0–1 en base) → format tableau.
+ *  `departement`/`up` portent les CODES (dept_id/up_id) : identité + filtres ;
+ *  les composants d'affichage passent par formatDepartment()/formatUP(). */
 function toAtRiskTeacher(row: RealDashboardImpact["at_risk_teachers"][number]): AtRiskTeacher {
   return {
     enseignant_id: row.enseignant_id,
     nom: `${row.prenom ?? ""} ${row.nom ?? ""}`.trim() || row.enseignant_id,
-    departement: row.dept_libelle ?? null,
-    up: row.up_libelle ?? null,
+    departement: row.dept_id ?? null,
+    up: row.up_id ?? null,
     score_risque: row.score_risque ?? 0,
     niveau_risque: toNiveauRisque(row.niveau_risque),
     nb_gaps_critiques: row.nb_gaps_critiques ?? 0,
@@ -158,10 +160,13 @@ function toAtRiskTeacher(row: RealDashboardImpact["at_risk_teachers"][number]): 
   };
 }
 
-/** Heatmap réelle (département × compétence) → format UI. */
+/** Heatmap réelle (département × compétence) → format UI.
+ *  `departement` porte le CODE (dept_id) : il sert de clé d'identité et est
+ *  transmis tel quel au drill-down /teachers-by-cell (qui compare avec
+ *  e.dept_id). L'affichage du libellé est fait par formatDepartment(). */
 function toHeatmapCell(row: RealDashboardImpact["heatmap"][number]): HeatmapCell {
   return {
-    departement: row.dept_libelle ?? (row.dept_id ? formatDepartment(row.dept_id) : "Non affecté"),
+    departement: row.dept_id ?? "non_affecte",
     competence_id: row.competence_id,
     competence_nom: row.competence_nom ?? row.competence_code,
     avg_gap: row.avg_gap_score ?? 0,

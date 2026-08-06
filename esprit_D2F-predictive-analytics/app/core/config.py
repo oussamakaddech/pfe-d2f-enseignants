@@ -53,6 +53,9 @@ class Settings(BaseSettings):
 
     models_dir: str = "ml/artifacts"
     gap_model_artifact: str = "gap_predictor.joblib"
+    # Kill-switch global du ML (audit DSI 3.3) : à false, AUCUN artefact ML
+    # n'est chargé ni utilisé — l'API retombe sur les règles métier déterministes.
+    ml_enabled: bool = True
 
     analysis_cache_ttl_hours: int = 24
 

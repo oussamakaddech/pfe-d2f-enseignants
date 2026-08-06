@@ -18,14 +18,17 @@ import java.util.Map;
 public class RabbitMqConfig {
 
     // ── Queue names ──
-    public static final String BESOIN_QUEUE = "BesoinFormationApprovedQueue";
+    // Aligné sur le publisher besoin-formation (rabbitmq.queue.besoin-approuve,
+    // défaut "besoin-formation.approved") — fix audit DSI D13 : la queue
+    // "BesoinFormationApprovedQueue" n'était écoutée par personne.
+    public static final String BESOIN_QUEUE = "besoin-formation.approved";
     public static final String CERTIFICATE_QUEUE = "certificateQueue";
     public static final String EVAL_CREATE_QUEUE = "evaluation.create.queue";
     public static final String EVAL_UPDATE_QUEUE = "evaluation.update.queue";
     public static final String ANALYTICS_QUEUE = "d2f.analytics.trigger";
 
     // ── DLQ names ──
-    public static final String BESOIN_DLQ = "BesoinFormationApprovedQueue.dlq";
+    public static final String BESOIN_DLQ = "besoin-formation.approved.dlq";
     public static final String CERTIFICATE_DLQ = "certificateQueue.dlq";
     public static final String EVAL_CREATE_DLQ = "evaluation.create.queue.dlq";
     public static final String EVAL_UPDATE_DLQ = "evaluation.update.queue.dlq";

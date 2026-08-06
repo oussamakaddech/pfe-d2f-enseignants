@@ -8,6 +8,7 @@ import esprit.pfe.serviceformation.services.FormationCompetenceService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -36,7 +37,7 @@ public class FormationCompetenceController {
     public ResponseEntity<FormationCompetence> addFormationCompetence(
             @PathVariable Long formationId,
             @RequestBody FormationCompetenceRequestDTO fc) {
-        return ResponseEntity.ok(formationCompetenceService.addFormationCompetence(
+        return ResponseEntity.status(HttpStatus.CREATED).body(formationCompetenceService.addFormationCompetence(
                 formationId, ReferentialMapper.toFormationCompetenceEntity(fc)));
     }
 

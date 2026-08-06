@@ -80,7 +80,7 @@ describe('CompetenceService', () => {
     httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 32 } });
     await expect(CompetenceService.savoir.createForCompetence(11, { nomSavoir: 'S' } as Record<string, unknown>)).resolves.toEqual({ id: 32 });
 
-    httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 'node-1' }] });
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { domaines: [{ id: 'node-1' }] } });
     await expect(CompetenceService.structure.getArbreComplet()).resolves.toEqual([{ id: 'node-1' }]);
 
     httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 'node-2' }] });

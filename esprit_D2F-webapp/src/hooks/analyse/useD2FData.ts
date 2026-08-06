@@ -35,6 +35,15 @@ export function useD2FTeacherProfile(teacherId: string | undefined) {
   });
 }
 
+export function useD2FTeacherMLSignal(teacherId: string | undefined) {
+  return useQuery({
+    queryKey: ["d2f", "ml-signal", teacherId],
+    queryFn: () => D2FService.getTeacherMLSignal(teacherId!),
+    enabled: !!teacherId,
+    staleTime: 60_000,
+  });
+}
+
 // ── At-Risk / Critical ─────────────────────────────────
 export function useD2FAtRisk() {
   return useQuery({

@@ -1,9 +1,7 @@
 {
-  "trained_at": "2026-07-29T04:57:16.937070",
-  "n_features": 23,
+  "trained_at": "2026-08-06T03:36:20.181250",
+  "n_features": 21,
   "feature_cols": [
-    "current_level",
-    "required_level",
     "avg_level",
     "min_level",
     "max_level",
@@ -26,48 +24,30 @@
     "is_long_absent",
     "is_stagnant"
   ],
-  "cv_folds": 5,
-  "min_training_samples": 50,
   "model_name": "gradient_boosting",
-  "candidate_cv_scores": {
-    "gradient_boosting": 0.0001,
-    "xgboost": 0.0078,
-    "mlp": 0.011
-  },
-  "feature_importances": {
-    "current_level": 0.05675823905062896,
-    "required_level": 0.0,
-    "avg_level": 0.11374819668672388,
-    "min_level": 0.18710031717257491,
-    "max_level": 0.20238791189143268,
-    "nb_savoirs": 0.0,
-    "nb_competences": 0.0,
-    "nb_level_5": 0.011117791807776792,
-    "nb_level_1": 0.09265511244632905,
-    "competency_coverage_rate": 0.0,
-    "nb_formations_completed": 0.12978277484013756,
-    "nb_formations_in_progress": 0.0,
-    "taux_assiduite": 0.0,
-    "nb_besoins_exprimes": 0.0,
-    "nb_besoins_approuves": 0.0,
-    "avg_eval_score": 0.0,
-    "nb_evaluations": 0.0,
-    "days_since_last_training": 0.0,
-    "engagement_score": 0.12532719855577787,
-    "months_since_last_training": 0.0,
-    "training_frequency_per_month": 0.08112245754861837,
-    "is_long_absent": 0.0,
-    "is_stagnant": 0.0
+  "metrics": {
+    "test_r2": 1.0,
+    "train_r2": 1.0,
+    "n_samples": 80,
+    "n_features": 21,
+    "constant_features_removed": [
+      "required_level",
+      "nb_savoirs",
+      "nb_competences",
+      "competency_coverage_rate",
+      "nb_formations_in_progress",
+      "taux_assiduite",
+      "nb_besoins_exprimes",
+      "nb_besoins_approuves",
+      "avg_eval_score",
+      "nb_evaluations",
+      "days_since_last_training",
+      "months_since_last_training",
+      "is_long_absent",
+      "is_stagnant"
+    ]
   },
   "feature_ranges": {
-    "current_level": {
-      "min": 1.0,
-      "max": 5.0
-    },
-    "required_level": {
-      "min": 5.0,
-      "max": 5.0
-    },
     "avg_level": {
       "min": 1.0,
       "max": 5.0
@@ -153,20 +133,31 @@
       "max": 0.0
     }
   },
-  "metrics": {
-    "test_r2": 1.0,
-    "test_rmse": 0.0,
-    "cv_rmse": 0.0,
-    "n_samples": 80,
-    "baseline_rmse": 0.0,
-    "baseline_mae": 0.0,
-    "lift_rmse": -0.0001,
-    "lift_mae": -0.0001
+  "feature_importances": {
+    "avg_level": 0.10443939983938721,
+    "min_level": 0.23223336940247477,
+    "max_level": 0.08319362002441354,
+    "nb_savoirs": 0.0,
+    "nb_competences": 0.0,
+    "nb_level_5": 0.005183540870581118,
+    "nb_level_1": 0.021651551899024627,
+    "competency_coverage_rate": 0.0,
+    "nb_formations_completed": 0.04881556390871375,
+    "nb_formations_in_progress": 0.0,
+    "taux_assiduite": 0.0,
+    "nb_besoins_exprimes": 0.0,
+    "nb_besoins_approuves": 0.0,
+    "avg_eval_score": 0.0,
+    "nb_evaluations": 0.0,
+    "days_since_last_training": 0.0,
+    "engagement_score": 0.23147123395863017,
+    "months_since_last_training": 0.0,
+    "training_frequency_per_month": 0.2730117200967748,
+    "is_long_absent": 0.0,
+    "is_stagnant": 0.0
   },
-  "outlier_report": {
-    "n_rows": 80,
-    "outlier_columns": [],
-    "outliers": {},
-    "is_clean": true
-  }
+  "sklearn_version": "1.5.2",
+  "python_version": "3.11",
+  "target": "gap (deterministic \u2014 for future targets only)",
+  "warning": "Target leakage prevented: current_level/required_level removed from features"
 }

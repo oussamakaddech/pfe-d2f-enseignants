@@ -204,7 +204,8 @@ def test_predict_gaps_uses_model_and_names():
     port = _port(
         _database=_ScriptedDb(names_script),
         _model=_FakeModel([[1.0], [1.0]]),
-        _metadata={"feature_ranges": {}},
+        # data_sources.synthetic_share_pct <= tolérance (50%) : chemin ML actif
+        _metadata={"feature_ranges": {}, "data_sources": {"synthetic_share_pct": 0.0}},
     )
     port._teacher_feature_bundle = lambda tid: BUNDLE
 
@@ -216,9 +217,32 @@ def test_predict_gaps_uses_model_and_names():
     assert first.competence_nom == "Pedagogie"
     assert first.current_level == 3.0
     assert first.target_level == 3.0
-    assert first.gap_score == 0.0
-    assert first.severity == Severity.LOW
+    # La prédiction ML (1.0) est RÉELLEMENT utilisée (corrigé par audit) :
+    # effective_gap = max(0, 1.0) -> score = 1.0/4 = 0.25 -> MEDIUM,
+    # trend WORSENING car la prédiction dépasse le gap structurel de 0.5.
+    assert first.gap_score == 0.25
+    assert first.severity == Severity.MEDIUM
     assert first.as_of == date.today()
+
+
+def test_predict_gaps_falls_back_when_corpus_synthetic():
+    """Politique fail-closed : sans data_sources déclarée (ou part synthétique
+    > 50%), _predict_gaps retourne None -> l'appelant utilise l'heuristique."""
+    port = _port(
+        _database=_ScriptedDb([]),
+        _model=_FakeModel([[1.0]]),
+        _metadata={"feature_ranges": {}},
+    )
+    port._teacher_feature_bundle = lambda tid: BUNDLE
+    assert port._predict_gaps("T001") is None
+
+    port = _port(
+        _database=_ScriptedDb([]),
+        _model=_FakeModel([[1.0]]),
+        _metadata={"feature_ranges": {}, "data_sources": {"synthetic_share_pct": 100.0}},
+    )
+    port._teacher_feature_bundle = lambda tid: BUNDLE
+    assert port._predict_gaps("T001") is None
 
 
 def test_formation_age_default_when_no_date():

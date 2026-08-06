@@ -39,6 +39,8 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import KFold, cross_val_score
 from sqlalchemy import create_engine, text
 
+from app.infrastructure.ml.artifact_integrity import save_with_integrity
+
 BASE_DIR = Path(__file__).parent.parent
 MODELS_DIR = BASE_DIR / "data" / "models"
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
@@ -246,7 +248,8 @@ def _synthetic_bootstrap(n: int) -> pd.DataFrame:
 
 def main() -> int:
     df = build_dataset()
-    n = len(df)
+    n_real = len(df)
+    n = n_real
     n_teachers = df["teacher_id"].nunique() if n else 0
     print(f"[1] Dataset recommandations : {n} lignes, {n_teachers} enseignants")
 
@@ -284,7 +287,7 @@ def main() -> int:
 
     if decision == "accept":
         model.fit(X, y)
-        joblib.dump(model, MODEL_PATH)
+        save_with_integrity(model, MODEL_PATH)
         importances = dict(zip(RELEVANCE_FEATURES, model.feature_importances_.tolist()))
         print(f"[6] Modele sauvegarde : {MODEL_PATH}")
     else:
@@ -300,6 +303,15 @@ def main() -> int:
         "n_features": len(RELEVANCE_FEATURES),
         "feature_cols": RELEVANCE_FEATURES,
         "cv_folds": 5,
+        "hyperparameters": {
+            "random_state": RANDOM_STATE,
+            "cv": {"type": "KFold", "n_splits": 5, "shuffle": True, "random_state": RANDOM_STATE},
+            "model": {
+                "class": "GradientBoostingRegressor",
+                "n_estimators": 150, "max_depth": 3, "learning_rate": 0.08,
+                "subsample": 0.85,
+            },
+        },
         "metrics": {
             "cv_rmse": round(cv_rmse, 4),
             "baseline_rmse": round(baseline_rmse, 4),
@@ -310,9 +322,11 @@ def main() -> int:
         "decision": decision,
         "notes": "Score de pertinence appris. Fallback : blending 70% heuristique + 30% ML dans RecommendTrainings.",
         "data_sources": {
-            "real_samples_from_db": 18,
-            "synthetic_bootstrap": max(0, n - 18),
+            "real_samples_from_db": int(n_real),
+            "synthetic_bootstrap": max(0, int(n) - n_real),
+            "synthetic_share_pct": round(100 * max(0, int(n) - n_real) / max(1, int(n)), 1),
             "strategy": "bootstrap synthetique si < 15 lignes reelles, tracking actif",
+            "extraction_date": pd.Timestamp.now().isoformat(),
         },
     }
     METADATA_PATH.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")

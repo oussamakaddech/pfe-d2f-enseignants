@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     db_statement_timeout_ms: int = Field(default=15000, alias="DB_STATEMENT_TIMEOUT_MS")
 
     # ── ML Model Paths ───────────────────────────
+    # NOTE (audit DSI) : l'artefact "gap_predictor.joblib" a été SUPPRIMÉ
+    # (corpus 98% synthétique + fuite de cible). Le GapPredictor legacy tourne
+    # en mode fallback déterministe (model=None) ; la production utilise
+    # app/infrastructure/ml/predictor.py (gap_model_enabled=False par défaut).
     models_dir: str = Field(default="data/models", alias="MODELS_DIR")
     gap_model_file: str = Field(default="gap_predictor.joblib", alias="GAP_MODEL_FILE")
     risk_model_file: str = Field(default="risk_detector.joblib", alias="RISK_MODEL_FILE")

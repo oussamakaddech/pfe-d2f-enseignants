@@ -1,1 +1,0 @@
-"""Routers API v1."""

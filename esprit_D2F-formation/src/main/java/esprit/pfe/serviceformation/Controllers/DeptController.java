@@ -61,7 +61,7 @@ public class DeptController {
     @PostMapping
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
     public ResponseEntity<DeptDTO> createDept(@RequestBody DeptDTO deptDTO) {
-        return ResponseEntity.ok(ReferentialMapper.toDeptDTO(deptService.create(ReferentialMapper.toDeptEntity(deptDTO))));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ReferentialMapper.toDeptDTO(deptService.create(ReferentialMapper.toDeptEntity(deptDTO))));
     }
 
     @PutMapping("/{id}")

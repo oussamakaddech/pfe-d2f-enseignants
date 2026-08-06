@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Table, Tag, Tooltip, Segmented } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { HeatmapCell } from "@/models/analyse/analyticsFeature";
+import { formatDepartment } from "@/utils/analytics/format";
 
 interface HeatmapProps {
   readonly cells: HeatmapCell[];
@@ -54,7 +55,13 @@ export default function Heatmap({ cells, loading, onCellClick }: HeatmapProps) {
   cells.forEach((c) => map.set(`${c.departement}|${c.competence_nom}`, c));
 
   const columns: ColumnsType<{ departement: string }> = [
-    { title: "Département", dataIndex: "departement", fixed: "left", width: 150 },
+    {
+      title: "Département",
+      dataIndex: "departement",
+      fixed: "left",
+      width: 150,
+      render: (v: string) => formatDepartment(v),
+    },
     ...competences.map((comp) => ({
       title: comp,
       dataIndex: comp,

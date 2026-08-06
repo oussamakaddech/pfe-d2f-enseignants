@@ -37,7 +37,8 @@ import java.time.ZoneId;
 @Slf4j
 public class BesoinFormationEventListener {
     
-    private static final String QUEUE = "BesoinFormationApprovedQueue";
+    // Aligné sur le publisher besoin-formation (défaut "besoin-formation.approved") — fix audit DSI D13.
+    private static final String QUEUE = "besoin-formation.approved";
     private static final String TAG_SOURCE = "source";
     private static final String VAL_BESOIN_FORMATION = "besoin-formation";
     private static final String VAL_APPROVED = "approved";

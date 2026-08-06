@@ -15,7 +15,7 @@ os.environ.setdefault("JWT_SECRET", "test-jwt-secret-for-pytest-only-" + ("x" * 
 
 from app.main import app
 from app.core.db import get_db
-from tests.conftest import make_mock_db
+from tests_legacy.conftest import make_mock_db
 
 
 # ======================================================================
@@ -418,16 +418,25 @@ class TestAnalyticsAnalyzeEndpoint:
 
             mock_gap = MagicMock()
             mock_gap.niveau_urgence = "HAUTE"
+            mock_gap._d = {
+                "knowledge_difficulty_level": 4,
+                "gap_type": "GAP_NOT_ASSIGNED",
+                "assignment_status": "NOT_ASSIGNED",
+                "current_level": 1,
+                "competency_id": 1,
+                "competency_code": "C1",
+                "competency_name": "Compétence 1",
+            }
             MockGE.return_value.compute_gaps.return_value = [mock_gap]
 
             MockRE.return_value.generate.return_value = ([], [])
             MockAE.return_value.detect_and_save.return_value = []
 
             try:
-                resp = client.post("/api/v1/analytics/analyze/E001")
+                resp = client.post("/api/v1/analytics/analyze/ENS042")
                 assert resp.status_code == 202
                 data = resp.json()
-                assert data["enseignant_id"] == "E001"
+                assert data["enseignant_id"] == "ENS042"
                 assert data["statut"] == "TERMINE"
             finally:
                 app.dependency_overrides.clear()
@@ -439,7 +448,7 @@ class TestAnalyticsAnalyzeEndpoint:
             MockDS.return_value.get_teacher_profile.return_value = [{"departement_id": "GC"}]
             MockDS.return_value.get_competency_levels.side_effect = Exception("DB error")
             try:
-                resp = client.post("/api/v1/analytics/analyze/E001")
+                resp = client.post("/api/v1/analytics/analyze/ENS042")
                 assert resp.status_code == 500
             finally:
                 app.dependency_overrides.clear()
@@ -447,13 +456,13 @@ class TestAnalyticsAnalyzeEndpoint:
 
 class TestAnalyticsGetGapsWithFilters:
     def test_gaps_with_urgence_filter(self, client: TestClient):
-        resp = client.get("/api/v1/analytics/gaps/E001?urgence=CRITIQUE")
+        resp = client.get("/api/v1/analytics/gaps/ENS042?urgence=CRITIQUE")
         assert resp.status_code == 200
 
 
 class TestAnalyticsRecommendationsWithFilter:
     def test_recommendations_with_competence_filter(self, client: TestClient):
-        resp = client.get("/api/v1/analytics/recommendations/E001?competence_id=1")
+        resp = client.get("/api/v1/analytics/recommendations/ENS042?competence_id=1")
         assert resp.status_code == 200
 
 
@@ -650,11 +659,17 @@ class TestMessagingConsumer:
         channel = MagicMock()
         method = MagicMock()
         properties = MagicMock()
-        body = json.dumps({"event": "EVALUATION_SUBMITTED", "enseignantId": "E001"}).encode()
-        with patch.object(consumer, "_trigger_individual_analysis") as mock_trigger:
+        body = json.dumps({
+            "event_id": "evt-0001",
+            "event_type": "competency.updated",
+            "teacher_id": "ENS001",
+            "timestamp": "2026-08-06T00:00:00Z",
+            "data": {"competence_id": 1, "current_level": 3},
+        }).encode()
+        with patch("app.services.event_processing_service.EventProcessingService") as MockService:
+            MockService.return_value.process_event.return_value = MagicMock(processed=True, error=None)
             consumer._on_message(channel, method, properties, body)
-            mock_trigger.assert_called_once_with("E001")
-            channel.basic_ack.assert_called_once()
+        channel.basic_ack.assert_called_once()
 
     def test_consumer_on_message_no_eid(self):
         from app.messaging.consumer import AnalyticsEventConsumer
@@ -662,11 +677,16 @@ class TestMessagingConsumer:
         channel = MagicMock()
         method = MagicMock()
         properties = MagicMock()
-        body = json.dumps({"event": "EVALUATION_SUBMITTED"}).encode()
+        body = json.dumps({
+            "event_id": "evt-0002",
+            "event_type": "competency.updated",
+            "timestamp": "2026-08-06T00:00:00Z",
+            "data": {"competence_id": 1, "current_level": 3},
+        }).encode()
         with patch.object(consumer, "_trigger_individual_analysis") as mock_trigger:
             consumer._on_message(channel, method, properties, body)
             mock_trigger.assert_not_called()
-            channel.basic_ack.assert_called_once()
+            channel.basic_nack.assert_called_once()
 
     def test_consumer_on_message_invalid_json(self):
         from app.messaging.consumer import AnalyticsEventConsumer
@@ -812,10 +832,17 @@ class TestMessagingConsumer:
         channel = MagicMock()
         method = MagicMock()
         properties = MagicMock()
-        body = json.dumps({"event": "INSCRIPTION_APPROVED", "enseignantId": "E002"}).encode()
-        with patch.object(consumer, "_trigger_individual_analysis") as mock_trigger:
+        body = json.dumps({
+            "event_id": "evt-0003",
+            "event_type": "user.updated",
+            "teacher_id": "ENS002",
+            "timestamp": "2026-08-06T00:00:00Z",
+            "data": {"status_metier": "actif"},
+        }).encode()
+        with patch("app.services.event_processing_service.EventProcessingService") as MockService:
+            MockService.return_value.process_event.return_value = MagicMock(processed=True, error=None)
             consumer._on_message(channel, method, properties, body)
-            mock_trigger.assert_called_once_with("E002")
+        channel.basic_ack.assert_called_once()
 
     def test_consumer_on_message_besoin_approved(self):
         from app.messaging.consumer import AnalyticsEventConsumer
@@ -823,10 +850,17 @@ class TestMessagingConsumer:
         channel = MagicMock()
         method = MagicMock()
         properties = MagicMock()
-        body = json.dumps({"event": "BESOIN_APPROVED", "enseignantId": "E003"}).encode()
-        with patch.object(consumer, "_trigger_individual_analysis") as mock_trigger:
+        body = json.dumps({
+            "event_id": "evt-0004",
+            "event_type": "training.completed",
+            "teacher_id": "ENS003",
+            "timestamp": "2026-08-06T00:00:00Z",
+            "data": {"formation_id": 10},
+        }).encode()
+        with patch("app.services.event_processing_service.EventProcessingService") as MockService:
+            MockService.return_value.process_event.return_value = MagicMock(processed=True, error=None)
             consumer._on_message(channel, method, properties, body)
-            mock_trigger.assert_called_once_with("E003")
+        channel.basic_ack.assert_called_once()
 
     def test_consumer_on_message_unknown_event(self):
         from app.messaging.consumer import AnalyticsEventConsumer
@@ -834,11 +868,16 @@ class TestMessagingConsumer:
         channel = MagicMock()
         method = MagicMock()
         properties = MagicMock()
-        body = json.dumps({"event": "UNKNOWN_EVENT", "enseignantId": "E004"}).encode()
+        body = json.dumps({
+            "event_id": "evt-0005",
+            "event_type": "UNKNOWN_EVENT",
+            "teacher_id": "ENS004",
+            "timestamp": "2026-08-06T00:00:00Z",
+        }).encode()
         with patch.object(consumer, "_trigger_individual_analysis") as mock_trigger:
             consumer._on_message(channel, method, properties, body)
             mock_trigger.assert_not_called()
-            channel.basic_ack.assert_called_once()
+            channel.basic_nack.assert_called_once()
 
     def test_consumer_on_message_exception_triggers_nack(self):
         from app.messaging.consumer import AnalyticsEventConsumer
@@ -902,13 +941,14 @@ class TestGapPredictorCheckDrift:
         import pandas as pd
         predictor = GapPredictor()
         predictor.model = MagicMock()
+        predictor.feature_ranges = {}
         predictor.feature_importances = {"avg_level": 0.1}
         df = pd.DataFrame({"avg_level": [1.0]})
         with patch("app.ml.gap_predictor.build_teacher_features", return_value=df), \
              patch("os.path.exists", return_value=False):
             result = predictor.check_drift([], [])
             assert result["drift_detected"] is False
-            assert "No training metadata" in result["message"]
+            assert "No model loaded" in result["message"]
 
 
 class TestGapPredictorPredict:
@@ -925,16 +965,35 @@ class TestGapPredictorPredict:
 
 class TestGapPredictorSaveMetadata:
     def test_save_training_metadata(self, tmp_path):
-        from app.ml.gap_predictor import GapPredictor
-        predictor = GapPredictor()
-        predictor.feature_importances = {"avg_level": 0.5}
-        with patch("app.ml.gap_predictor.settings") as mock_settings:
-            mock_settings.models_dir = str(tmp_path)
-            predictor._save_training_metadata()
-            meta_file = tmp_path / "training_metadata.json"
-            assert meta_file.exists()
-            data = json.loads(meta_file.read_text())
-            assert "feature_importances" in data
+        """L'écriture des métadonnées se fait dans train() (ex-_save_training_metadata)."""
+        from app.ml import gap_predictor as gp_module
+        import pandas as pd
+        import numpy as np
+
+        n = 40
+        cols = gp_module.FEATURE_COLS
+        data = {"enseignant_id": [f"ENS{i:03d}" for i in range(n)]}
+        for c in cols:
+            data[c] = np.linspace(1, 5, n) + (np.arange(n) % 3)
+        df = pd.DataFrame(data)
+        labels = pd.DataFrame({
+            "enseignant_id": [f"ENS{i:03d}" for i in range(n)],
+            "competence_id": [1] * n,
+            "competence_nom": ["C1"] * n,
+            "gap": np.linspace(0, 2, n),
+            "has_gap": [1] * n,
+        })
+        with patch("app.ml.gap_predictor.build_teacher_features", return_value=df), \
+             patch("app.ml.gap_predictor.build_gap_labels", return_value=labels), \
+             patch("app.ml.gap_predictor.save_with_hash", return_value=None), \
+             patch.object(gp_module.settings, "models_dir", str(tmp_path)), \
+             patch.object(gp_module.settings, "min_training_samples", 5):
+            predictor = gp_module.GapPredictor()
+            predictor.train(df, labels, labels)
+        meta_file = tmp_path / "training_metadata.json"
+        assert meta_file.exists()
+        data = json.loads(meta_file.read_text())
+        assert "feature_importances" in data
 
 
 # ======================================================================

@@ -146,12 +146,14 @@ public class AccountController {
 
     @DeleteMapping("/delete/{userId}")
     @PreAuthorize(AuthorizationMatrix.ACCOUNT_DELETE)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteAccount(@PathVariable String userId) {
         this.accountService.deleteAccount(userId);
     }
 
     @DeleteMapping("/permanent-delete/{userId}")
     @PreAuthorize(AuthorizationMatrix.ACCOUNT_DELETE)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void permanentDeleteAccount(@PathVariable String userId) {
         this.accountService.permanentDeleteAccount(userId);
     }

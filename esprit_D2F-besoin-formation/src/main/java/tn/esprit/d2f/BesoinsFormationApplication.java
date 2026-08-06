@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootApplication(scanBasePackages = {"tn.esprit.d2f", "esprit.pfe.auth.security"})
+@SpringBootApplication(scanBasePackages = {"tn.esprit.d2f"})
 @EnableScheduling
 @EnableJpaAuditing(auditorAwareRef = "auditorProvider")
 public class BesoinsFormationApplication {

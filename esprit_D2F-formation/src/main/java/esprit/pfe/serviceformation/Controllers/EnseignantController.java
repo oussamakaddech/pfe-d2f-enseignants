@@ -53,7 +53,7 @@ public class EnseignantController {
     @PostMapping
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
     public ResponseEntity<EnseignantDTO> createEnseignant(@Valid @RequestBody EnseignantRequest request) {
-        return ResponseEntity.ok(enseignantService.toDTO(enseignantService.createEnseignant(request.toEntity())));
+        return ResponseEntity.status(HttpStatus.CREATED).body(enseignantService.toDTO(enseignantService.createEnseignant(request.toEntity())));
     }
 
     /**

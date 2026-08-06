@@ -104,7 +104,7 @@ public class SeanceController {
     public ResponseEntity<Object> deleteSeance(@PathVariable Long id) {
         try {
             seanceService.deleteSeance(id);
-            return ResponseEntity.ok("Séance supprimée avec succès !");
+            return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             // Vérifier si c'est une erreur interne personnalisée
             try {

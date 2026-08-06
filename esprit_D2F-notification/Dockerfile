@@ -43,8 +43,8 @@ FROM eclipse-temurin:17-jre-alpine
 
 LABEL maintainer="seddik bouzayani <seddik.bouzayani@esprit.tn>"
 
-RUN addgroup -g 2009 -S esprit && \
-    adduser -u 2009 -S esprit -G esprit
+RUN addgroup -g 2003 -S esprit && \
+    adduser -u 2003 -S esprit -G esprit
 
 # Copy layered jar from builder
 ARG DEPENDENCY=/opt/build/esprit_D2F-notification/target/dependency
