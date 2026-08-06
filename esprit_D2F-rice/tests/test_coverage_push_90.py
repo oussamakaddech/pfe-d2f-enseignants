@@ -295,6 +295,11 @@ class TestGetClientIp:
 
 
 class TestCleanupStale:
+    def setup_method(self):
+        _counters.clear()
+        import rice.ratelimit as _mod
+        _mod._last_cleanup = 0.0  # force cleanup to run
+
     def test_removes_old_entries(self):
         _counters["stale_ip"] = (1, time.monotonic() - RATE_WINDOW * 3)
         _cleanup_stale()

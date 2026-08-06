@@ -18,7 +18,7 @@ _FUZZY_THRESHOLD = 82
 def _normalize_match_name(fiche_name: str) -> str:
     """Trim common role labels that may trail a teacher name in fiche text."""
     return re.sub(
-        r"^([^,\n]*),[ \t]*(?:intervenant|enseignant|responsable)\b[^\n]*$",
+        r"^([^,\n]*),[ \t]*(?:(?:intervenant|enseignant)(?:e|es|s)?|responsable)\b[^\n]*$",
         r"\1",
         fiche_name,
         flags=re.IGNORECASE,

@@ -144,7 +144,10 @@ def _process_validate_propositions(cur, request: ValidateRequest, errors: List[s
 def _open_validate_connection():
     import rice.db as _db_mod
 
-    conn = _db_mod._get_db_connection()
+    try:
+        conn = _db_mod._get_db_connection()
+    except RuntimeError as exc:
+        raise RuntimeError("Database unreachable") from exc
     cur = conn.cursor()
     return conn, cur
 
@@ -375,6 +378,9 @@ async def match_text(
     Returns matched savoirs, competence, and suggested enseignants.
     Works for all ESPRIT departments: gc, info, ge, telecom, meca, …
     """
+    if not text.strip():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=422, detail="text must not be empty")
     savoir_codes = _match_gc_savoir(text, departement=departement)
     competence = _match_gc_competence(text, departement=departement)
     suggested_ens = _suggest_gc_enseignants(savoir_codes[:5])

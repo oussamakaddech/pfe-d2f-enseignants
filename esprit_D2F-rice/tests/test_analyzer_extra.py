@@ -14,14 +14,6 @@ os.environ.setdefault("DB_PASS", "test")
 os.environ.setdefault("DB_HOST", "localhost")
 os.environ.setdefault("DB_PORT", "5432")
 
-import rice.db as _rice_db
-import rice.referential as _rice_ref
-
-_rice_db._fetch_enseignant_affectations = lambda: {}
-_rice_db._fetch_all_enseignants_info = lambda: {}
-_rice_ref._load_ref_from_db = lambda dept="gc": None
-_rice_ref._fetch_enseignant_affectations = lambda: {}
-
 from rice.analyzer import (
     _get_niveau_from_referentiel,
     _NIVEAU_ORDER,

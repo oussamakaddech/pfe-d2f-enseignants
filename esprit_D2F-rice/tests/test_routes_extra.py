@@ -19,24 +19,10 @@ os.environ.setdefault("APP_ENV", "development")
 os.environ.setdefault("JWT_SECRET", "a" * 64)
 os.environ.setdefault("JWT_AUTH_ENABLED", "false")
 
-import rice.db as _rice_db
-import rice.routes as _rice_routes
-import rice.referential as _rice_ref
-
-_noop_aff = lambda: {}
-_noop_ens = lambda: {}
-
-_rice_db._fetch_enseignant_affectations = _noop_aff
-_rice_db._fetch_all_enseignants_info = _noop_ens
-_rice_routes._fetch_enseignant_affectations = _noop_aff
-_rice_ref._load_ref_from_db = lambda dept="gc": None
-_rice_ref._fetch_enseignant_affectations = _noop_aff
-
 from fastapi import FastAPI, Depends
 from fastapi.testclient import TestClient
 from rice.routes import rice_router, _get_current_user
 
-# Disable auth for test app
 import rice.routes as _rice_routes_mod
 _rice_routes_mod._AUTH_ENABLED = False
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib
 import os
 import sys
 import time
@@ -49,29 +48,31 @@ def test_db_pool_and_put_connection_error(monkeypatch):
 
 
 def test_db_fetch_affectations_and_dept_mapping(monkeypatch):
-    fresh_db = importlib.reload(db)
-    fresh_db._AFFECTATIONS_CACHE = fresh_db._ThreadSafeCache()
+    original_cache = db._AFFECTATIONS_CACHE
+    db._AFFECTATIONS_CACHE = db._ThreadSafeCache()
 
     cur = MagicMock()
     cur.fetchall.return_value = [("E001", ["S1a", "S2a"]), ("E002", None)]
     conn = MagicMock()
     conn.cursor.return_value = cur
 
-    monkeypatch.setattr(fresh_db, "_get_db_connection", lambda: conn)
-    monkeypatch.setattr(fresh_db, "_put_db_connection", lambda c: None)
+    monkeypatch.setattr(db, "_get_db_connection", lambda: conn)
+    monkeypatch.setattr(db, "_put_db_connection", lambda c: None)
 
-    result = fresh_db._fetch_enseignant_affectations()
+    result = db._fetch_enseignant_affectations()
     assert result == {"E001": ["S1a", "S2a"], "E002": []}
 
-    fresh_db._AFFECTATIONS_CACHE.clear()
-    fresh_db._AFFECTATIONS_CACHE.set("all", {"E999": ["S9"]})
-    monkeypatch.setattr(fresh_db, "_get_db_connection", lambda: (_ for _ in ()).throw(Exception("db error")))
-    assert fresh_db._fetch_enseignant_affectations() == {"E999": ["S9"]}
+    db._AFFECTATIONS_CACHE.clear()
+    db._AFFECTATIONS_CACHE.set("all", {"E999": ["S9"]})
+    monkeypatch.setattr(db, "_get_db_connection", lambda: (_ for _ in ()).throw(Exception("db error")))
+    assert db._fetch_enseignant_affectations() == {"E999": ["S9"]}
 
-    assert fresh_db._dept_to_numeric_id("gc") == 1
-    assert fresh_db._dept_to_numeric_id("genie-electrique") == 3
-    assert fresh_db._dept_to_numeric_id("telecom") == 5
-    assert fresh_db._dept_to_numeric_id("unknown") == 1
+    db._AFFECTATIONS_CACHE = original_cache  # restore for other tests
+
+    assert db._dept_to_numeric_id("gc") == 1
+    assert db._dept_to_numeric_id("genie-electrique") == 3
+    assert db._dept_to_numeric_id("telecom") == 5
+    assert db._dept_to_numeric_id("unknown") == 1
 
 
 def test_db_create_enseignant_if_new(monkeypatch):

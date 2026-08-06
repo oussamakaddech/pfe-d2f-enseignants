@@ -6,6 +6,7 @@ import os
 import re
 import logging
 import threading as _threading
+from importlib import import_module as _import_module
 from typing import Any, Dict, List, Tuple
 
 from rice.cache import _ThreadSafeCache
@@ -25,7 +26,7 @@ def _get_db_pool():
     if _DB_POOL is None:
         with _DB_POOL_LOCK:
             if _DB_POOL is None:
-                import psycopg2.pool as _pg_pool
+                _pg_pool = _import_module("psycopg2.pool")
                 _DB_POOL = _pg_pool.ThreadedConnectionPool(
                     1, 10,
                     dbname=os.getenv("DB_NAME", "d2f"),

@@ -780,7 +780,7 @@ _DEPT_SIGNALS_WEIGHTED = [
 
 _UP_TO_DEPT = {
     'UPIL': 'info', 'UPGL': 'info', 'UPSIM': 'info', 'UPGC': 'gc',
-    'UPGE': 'ge', 'UPMECA': 'meca', 'UPTELECOM': 'telecom',
+    'UPGE': 'ge', 'UPMECA': 'meca', 'UPMEMECA': 'meca', 'UPTELECOM': 'telecom',
 }
 
 
@@ -809,7 +809,10 @@ def _detect_by_filename(fname_upper: str) -> Optional[str]:
 
 
 def _detect_by_up_code(combined: str) -> Optional[str]:
-    up_match = re.search(r'^(?:unit[eé][ \t]+p[eé]dagogique|UP)[ \t]*(UP[\-_]?[A-Z]{2,6})', combined, re.IGNORECASE | re.MULTILINE)
+    up_match = re.search(
+        r'^(?:unit[eé][ \t]+p[eé]dagogique|UP)[ \t]*:?[ \t]*[-_]?[ \t]*([A-Z0-9_\-]{2,10})',
+        combined, re.IGNORECASE | re.MULTILINE,
+    )
     if not up_match:
         return None
     up_code = up_match.group(1).upper().replace('-', '').replace('_', '')
@@ -817,22 +820,25 @@ def _detect_by_up_code(combined: str) -> Optional[str]:
 
 
 def _detect_by_ue_code(combined: str) -> Optional[str]:
-    ue_match = re.search(r'^(?:unit[eé][ \t]+d[\x27\u2019]enseignement|UE)[ \t]*([A-Z]{3,6}\w{2,10})', combined, re.IGNORECASE | re.MULTILINE)
+    ue_match = re.search(
+        r'^(?:unit[eé][ \t]+d[\x27\u2019]enseignement|UE)[ \t]*:?[ \t]*([A-Z]{2,6}\w{2,10})',
+        combined, re.IGNORECASE | re.MULTILINE,
+    )
     if not ue_match:
         return None
     ue_code = ue_match.group(1).upper()
-    if ue_code.startswith(('INF', 'DEV', 'WEB', 'SIM')):
+    if ue_code.startswith(('INF', 'DEV', 'WEB', 'SIM', 'GL')):
         return 'info'
     if ue_code.startswith('GC'):
         return 'gc'
-    if ue_code.startswith('GE'):
+    if ue_code.startswith(('GE', 'EL')):
         return 'ge'
     return None
 
 
 def _detect_by_module_code(combined: str) -> Optional[str]:
     meta_code_match = re.search(
-        r"^(?:code(?:[ \t]+(?:module|ue))?|module)[ \t]*([A-Z]{1,5}[-_]?\d{1,4}[A-Z]?)",
+        r"^(?:code(?:[ \t]+(?:module|ue))?|module)[ \t]*:?[ \t]*([A-Z]{1,5}[-_]?\d{1,4}[A-Z]?)",
         combined, re.IGNORECASE | re.MULTILINE,
     )
     if not meta_code_match:
@@ -866,10 +872,10 @@ def _detect_by_keywords(combined: str) -> str:
 
 
 def _build_combined_text(filenames: List[str], contents: List[bytes]) -> str:
-    combined = " ".join(filenames).lower()
+    combined = "\n".join(f.lower() for f in filenames)
     for data in contents:
         try:
-            combined += " " + data[:4096].decode("utf-8", errors="ignore").lower()
+            combined += "\n" + data[:4096].decode("utf-8", errors="ignore").lower()
         except Exception:
             pass
     return combined

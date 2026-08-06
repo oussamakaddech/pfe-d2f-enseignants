@@ -45,7 +45,7 @@ class CompetenceProposition(BaseModel):
     ordre: int = 1
     refCodes: List[str] = []         # aggregated from sous-compétences
     refDomaine: Optional[str] = None # best domain match (e.g. GC-TECH-S, INFO-A)
-    savoirs: List[SavoirProposition] = []
+    savoirs: Optional[List[SavoirProposition]] = []
     sousCompetences: List[SousCompetenceProposition] = []
 
 
@@ -70,7 +70,7 @@ class FicheEnseignantExtrait(BaseModel):
 
 class RiceAnalysisResult(BaseModel):
     propositions: List[DomaineProposition]
-    stats: Dict[str, Any]
+    stats: Dict[str, Any] = Field(default_factory=dict)
     extractedEnseignants: List[FicheEnseignantExtrait] = []  # professors found in fiches
     foundEnseignants: List[EnseignantInfo] = []  # Added this field
 
