@@ -139,7 +139,7 @@ class UpControllerTest {
         mockMvc.perform(post("/api/v1/ups")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"id\":\"U001\",\"libelle\":\"UP Test\"}"))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value("U001"))
                 .andExpect(jsonPath("$.libelle").value("UP Test"));
     }

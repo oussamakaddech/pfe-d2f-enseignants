@@ -133,7 +133,7 @@ class DeptControllerTest {
         mockMvc.perform(post("/api/v1/departements")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"id\":\"D001\",\"libelle\":\"Département Test\"}"))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value("D001"))
                 .andExpect(jsonPath("$.libelle").value("Département Test"));
     }

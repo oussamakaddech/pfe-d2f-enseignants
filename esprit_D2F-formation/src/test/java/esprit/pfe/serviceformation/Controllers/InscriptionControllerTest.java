@@ -61,7 +61,7 @@ class InscriptionControllerTest {
     void testPostInscription() throws Exception {
         mockMvc.perform(post("/api/v1/inscription/inscriptions")
                 .param("formationId", "1")
-                .param("enseignantId", "E1")).andExpect(status().isOk());
+                .param("enseignantId", "E1")).andExpect(status().isCreated());
     }
 
     @Test

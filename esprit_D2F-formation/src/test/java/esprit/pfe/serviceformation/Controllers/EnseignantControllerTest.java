@@ -70,7 +70,7 @@ class EnseignantControllerTest {
         mockMvc.perform(post("/api/v1/enseignants")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"nom\":\"Test\",\"prenom\":\"User\",\"mail\":\"test@esprit.tn\"}"))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
     }
 
     @Test

@@ -119,7 +119,7 @@ class EnseignantControllerEnhancedTest {
                 mockMvc.perform(post("/api/v1/enseignants")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(enseignantJson))
-                                .andExpect(status().isOk());
+                                .andExpect(status().isCreated());
 
                 verify(enseignantService).createEnseignant(any(Enseignant.class));
         }

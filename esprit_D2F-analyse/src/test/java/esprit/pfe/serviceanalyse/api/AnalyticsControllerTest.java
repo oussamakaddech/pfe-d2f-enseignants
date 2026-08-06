@@ -47,7 +47,8 @@ class AnalyticsControllerTest {
     @Test
     void overviewReturnsOkWhenAuthenticated() throws Exception {
         when(bffService.dashboardOverview(any(), any())).thenReturn(sampleOverview());
-        mockMvc.perform(get("/api/v2/analytics/dashboard/overview").with(jwt()))
+        mockMvc.perform(get("/api/v2/analytics/dashboard/overview")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CHEF_DEPARTEMENT"))))
                 .andExpect(status().isOk());
     }
 
@@ -57,7 +58,8 @@ class AnalyticsControllerTest {
                 0.3, 30, RiskLevel.MODERATE, RiskTrend.STABLE, List.of(), 0, List.of(), "act",
                 OffsetDateTime.now(), "v2.0", DataQualityStatus.CALCULATED);
         when(bffService.teacherProfile(eq("T1"), any())).thenReturn(profile);
-        mockMvc.perform(get("/api/v2/analytics/teachers/T1/profile").with(jwt()))
+        mockMvc.perform(get("/api/v2/analytics/teachers/T1/profile")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CHEF_DEPARTEMENT"))))
                 .andExpect(status().isOk());
     }
 
