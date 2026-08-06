@@ -144,7 +144,7 @@ class AccountControllerTest {
     @DisplayName("deleteAccount - should delete account")
     void deleteAccount_ShouldReturnOk() throws Exception {
         mockMvc.perform(delete("/api/v1/account/delete/USER123"))
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent());
         
         verify(accountService).deleteAccount("USER123");
     }
