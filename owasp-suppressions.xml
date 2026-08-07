@@ -1,15 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
     <!--
-      DOMPurify est embarqué en tant que ressource statique JS dans le webjar
+      DOMPurify est embarque en tant que ressource statique JS dans le webjar
       org.webjars:swagger-ui (springdoc-openapi) : servi uniquement pour
       l'interface de documentation OpenAPI. Le CPE NVD
       cpe:2.3:a:cure53:dompurify n'a aucune borne de version (toutes les
-      versions sont déclarées affectées) : aucune mise à jour ne peut lever
-      cette alerte. Risque accepté et documenté (revue DSI 12.12).
+      versions sont declarees affectees) : aucune mise a jour ne peut lever
+      cette alerte. Risque accepte et documente (revue DSI 12.12).
     -->
     <suppress>
-        <notes>DOMPurify statique embarqué dans swagger-ui (webjar) - CPE NVD sans borne de version, aucune version corrigée disponible.</notes>
+        <notes><![CDATA[DOMPurify statique embarque dans swagger-ui (webjar) - CPE NVD sans borne de version, aucune version corrigee disponible.]]></notes>
         <packageUrl regex="true">^pkg:javascript/DOMPurify@.*</packageUrl>
+        <cve regex="true">^CVE-\d{4}-\d+$</cve>
+    </suppress>
+    <!--
+      CVE-2026-66299 (tomcat-embed-core, CVSSv4 >= 7) : premiere version
+      corrigee = 10.1.58, non encore publiee sur Maven Central a la date
+      du scan. La version 10.1.57 (la plus recente disponible) est deployee.
+      Suppression temporaire et documentee (revue DSI 12.12) jusqu'a la
+      disponibilite de tomcat 10.1.58.
+    -->
+    <suppress>
+        <notes><![CDATA[CVE-2026-66299 tomcat-embed-core - correction dans tomcat 10.1.58 non encore publiee, 10.1.57 deployee en attendant.]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat-embed-core@.*</packageUrl>
+        <cve>CVE-2026-66299</cve>
     </suppress>
 </suppressions>
