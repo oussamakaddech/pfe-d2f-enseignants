@@ -267,7 +267,7 @@ jobs:
             exit 1
           fi
           SUPPRESSION=""
-          [ -f owasp-suppressions.xml ] && SUPPRESSION="-DsuppressionFile=owasp-suppressions.xml"
+          [ -f ../owasp-suppressions.xml ] && SUPPRESSION="-DsuppressionFile=../owasp-suppressions.xml"
           mvn -B org.owasp:dependency-check-maven:check \
             -DfailBuildOnCVSS=7 \
             -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
