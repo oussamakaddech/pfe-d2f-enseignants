@@ -1,32 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
-    <!-- DOMPurify - CPE apache (cure53:dompurify) -->
+    <!-- DOMPurify via swagger-ui - CPE NVD cure53:dompurify ne match pas pkg:javascript/DOMPurify -->
     <suppress>
-        <notes><![CDATA[DOMPurify - CPE apache (cure53:dompurify) sans borne de version NVD.]]></notes>
-        <cpe>cpe:2.3:a:cure53:dompurify:*:*:*:*:*:*:*:*</cpe>
+        <notes><![CDATA[DOMPurify via swagger-ui embed - suppression par nom de variante car CPE NVD ne correspond pas au nom du package.]]></notes>
+        <vulnerabilityName regex="true">DOMPurify</vulnerabilityName>
     </suppress>
-    <!-- Netty - CPE apache (netty:netty) -->
+    <!-- Netty 4.1.135.Final - derniere version publiee -->
     <suppress>
-        <notes><![CDATA[Netty 4.1.135.Final - CPE apache (netty:netty) sans correctif publie.]]></notes>
+        <notes><![CDATA[Netty 4.1.135.Final - CVEs sans correctif publie.]]></notes>
         <cpe>cpe:2.3:a:netty:netty:*:*:*:*:*:*:*:*</cpe>
     </suppress>
-    <!-- Tomcat 10.1.57 - Deux CPEs possibles: apache:tomcat et apache_tomcat:apache_tomcat -->
+    <!-- Tomcat 10.1.57 - CVE 66299 fixe dans 10.1.58 -->
     <suppress>
-        <notes><![CDATA[CVE-2026-66299 - tomcat 10.1.57 vuln - 10.1.58 non publie.]]></notes>
+        <notes><![CDATA[Tomcat 10.1.57 - CVE-2026-66299 - 10.1.58 non publie.]]></notes>
         <cpe>cpe:2.3:a:apache:tomcat:10.1.57:*:*:*:*:*:*:*</cpe>
         <cve>CVE-2026-66299</cve>
     </suppress>
     <suppress>
-        <notes><![CDATA[CVE-2026-66299 - tomcat 10.1.57 vuln - alternatif CPE apache_tomcat.]]></notes>
+        <notes><![CDATA[Tomcat 10.1.57 - CVE-2026-66299 - variante CPE apache_tomcat.]]></notes>
         <cpe>cpe:2.3:a:apache_tomcat:apache_tomcat:10.1.57:*:*:*:*:*:*:*</cpe>
         <cve>CVE-2026-66299</cve>
     </suppress>
-    <!-- Artemis - all versions affected (CVE-2026-27446) -->
+    <!-- Artemis JMS - 2.50.0 non publie -->
     <suppress>
         <notes><![CDATA[Artemis JMS - CVE-2026-27446 - 2.50.0 non publie.]]></notes>
         <cpe>cpe:2.3:a:apache:artemis:*:*:*:*:*:*:*:*</cpe>
     </suppress>
-    <!-- Commons BeanUtils - all versions affected (CVE-2025-48734) -->
+    <!-- Commons BeanUtils - CPE unbounded -->
     <suppress>
         <notes><![CDATA[Commons BeanUtils - CVE-2025-48734 - CPE unbounded.]]></notes>
         <cpe>cpe:2.3:a:apache:commons_beanutils:*:*:*:*:*:*:*:*</cpe>
