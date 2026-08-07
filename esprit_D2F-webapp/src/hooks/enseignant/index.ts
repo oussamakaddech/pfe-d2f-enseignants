@@ -1,1 +1,1 @@
-export * from "./useEnseignants";
+export * from './useEnseignants';

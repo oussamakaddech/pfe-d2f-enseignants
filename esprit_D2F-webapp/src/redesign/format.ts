@@ -5,20 +5,23 @@
 // Les métriques non calculables passent par `NA_CALC` (states.ts).
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { NA_CALC } from "@/utils/states";
+import { NA_CALC } from '@/utils/states';
 
 /** Formate un nombre entier (séparateur FR). null/undefined -> NA_CALC. */
 export function fmtInt(value: number | null | undefined, opts?: { fallback?: string }): string {
   if (value == null || Number.isNaN(value)) return opts?.fallback ?? NA_CALC;
-  return Math.round(value).toLocaleString("fr-FR");
+  return Math.round(value).toLocaleString('fr-FR');
 }
 
 /** Formate un pourcentage à partir d'une valeur 0–100. */
-export function fmtPct(value: number | null | undefined, opts?: { digits?: number; withSign?: boolean }): string {
+export function fmtPct(
+  value: number | null | undefined,
+  opts?: { digits?: number; withSign?: boolean },
+): string {
   if (value == null || Number.isNaN(value)) return NA_CALC;
   const d = opts?.digits ?? 0;
   const n = value.toFixed(d);
-  const sign = opts?.withSign && value > 0 ? "+" : "";
+  const sign = opts?.withSign && value > 0 ? '+' : '';
   return `${sign}${n} %`;
 }
 
@@ -42,7 +45,7 @@ export function nonCalculable(reason?: string): { label: string; reason?: string
 /** Construit un badge de tendance cohérent (jamais de "0 %" fantôme). */
 export interface Trend {
   readonly value: number | null; // delta en points ou %
-  readonly direction: "up" | "down" | "stable";
+  readonly direction: 'up' | 'down' | 'stable';
   readonly good: boolean; // true si la direction est favorable
   readonly label?: string;
 }
@@ -53,30 +56,30 @@ export function buildTrend(opts: {
   /** Si true, une hausse est "bonne" (ex: couverture). */
   higherIsBetter: boolean;
   /** Unité d'affichage du delta ("pts" | "%"). */
-  unit?: "pts" | "%";
+  unit?: 'pts' | '%';
   label?: string;
 }): Trend | null {
-  const { current, previous, higherIsBetter, unit = "pts", label } = opts;
+  const { current, previous, higherIsBetter, unit = 'pts', label } = opts;
   if (current == null || previous == null || Number.isNaN(current) || Number.isNaN(previous)) {
     return null; // pas de delta calculable -> on n'affiche rien
   }
   const raw = current - previous;
-  const eps = unit === "%" ? 0.05 : 0.5;
+  const eps = unit === '%' ? 0.05 : 0.5;
   if (Math.abs(raw) < eps) {
-    return { value: 0, direction: "stable", good: true, label };
+    return { value: 0, direction: 'stable', good: true, label };
   }
   const up = raw > 0;
   return {
     value: Math.abs(raw),
-    direction: up ? "up" : "down",
+    direction: up ? 'up' : 'down',
     good: up === higherIsBetter,
     label,
   };
 }
 
 /** Initiales à partir d'un nom complet (RÈGLE #5 : jamais depuis l'id). */
-export function initialsFromName(fullName?: string | null, fallback = "?"): string {
-  const clean = (fullName ?? "").trim();
+export function initialsFromName(fullName?: string | null, fallback = '?'): string {
+  const clean = (fullName ?? '').trim();
   if (!clean) return fallback.slice(0, 2).toUpperCase();
   const parts = clean.split(/\s+/);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
@@ -85,9 +88,9 @@ export function initialsFromName(fullName?: string | null, fallback = "?"): stri
 
 /** Découpe "Prénom Nom" pour l'avatar UserAvatar. */
 export function splitName(fullName?: string | null): { firstName?: string; lastName?: string } {
-  const clean = (fullName ?? "").trim();
+  const clean = (fullName ?? '').trim();
   if (!clean) return {};
   const parts = clean.split(/\s+/);
   if (parts.length === 1) return { firstName: parts[0] };
-  return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
+  return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
 }

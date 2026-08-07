@@ -6,12 +6,25 @@ import WhatIfSimulator from '../WhatIfSimulator';
 import type { WhatIfResponse } from '@/models/analyse';
 
 const response: WhatIfResponse = {
-  enseignant_id: 'ENS001', horizon_mois: 6,
+  enseignant_id: 'ENS001',
+  horizon_mois: 6,
   risk_before: { score: 0.7, niveau: 'ELEVE' },
   risk_after: { score: 0.4, niveau: 'MODERE' },
-  risk_reduction: 0.3, nb_gaps_before: 3, nb_gaps_after: 1, nb_gaps_resolus: 2,
+  risk_reduction: 0.3,
+  nb_gaps_before: 3,
+  nb_gaps_after: 1,
+  nb_gaps_resolus: 2,
   details: [
-    { competence_id: 1, niveau_actuel: 2, niveau_requis: 4, niveau_vise: 4, gap_avant: 2, gap_apres: 0, urgence_apres: 'FAIBLE', resolu: true },
+    {
+      competence_id: 1,
+      niveau_actuel: 2,
+      niveau_requis: 4,
+      niveau_vise: 4,
+      gap_avant: 2,
+      gap_apres: 0,
+      urgence_apres: 'FAIBLE',
+      resolu: true,
+    },
   ],
 };
 

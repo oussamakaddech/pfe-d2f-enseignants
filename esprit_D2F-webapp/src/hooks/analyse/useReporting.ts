@@ -1,18 +1,22 @@
-import { useState, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { message } from "antd";
-import AnalyticsService from "@/services/analyse/AnalyticsService";
+import { useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { message } from 'antd';
+import AnalyticsService from '@/services/analyse/AnalyticsService';
 import type {
-  AnalyticsDepartementResponse, AnalyticsUP,
-  EnseignantsInactifsParams, EnseignantsInactifsResponse,
-  ExportExcelType, ExportPdfType,
-  FormationsParPeriodeParams, FormationsParPeriodeResponse,
-} from "@/models/analyse/reporting";
+  AnalyticsDepartementResponse,
+  AnalyticsUP,
+  EnseignantsInactifsParams,
+  EnseignantsInactifsResponse,
+  ExportExcelType,
+  ExportPdfType,
+  FormationsParPeriodeParams,
+  FormationsParPeriodeResponse,
+} from '@/models/analyse/reporting';
 
 /** Déclenche le téléchargement navigateur d'un Blob. */
 function downloadBlob(blob: Blob, filename: string): void {
   const url = globalThis.URL.createObjectURL(blob);
-  const a = document.createElement("a");
+  const a = document.createElement('a');
   a.href = url;
   a.download = filename;
   document.body.appendChild(a);
@@ -24,7 +28,7 @@ function downloadBlob(blob: Blob, filename: string): void {
 // ── Feature 1 — Enseignants inactifs ─────────────────────────
 export function useEnseignantsInactifs(params: EnseignantsInactifsParams) {
   return useQuery<EnseignantsInactifsResponse>({
-    queryKey: ["analytics", "inactifs", params],
+    queryKey: ['analytics', 'inactifs', params],
     queryFn: () => AnalyticsService.getEnseignantsSansFormation(params),
   });
 }
@@ -32,7 +36,7 @@ export function useEnseignantsInactifs(params: EnseignantsInactifsParams) {
 // ── Feature 2 — Formations par période ───────────────────────
 export function useFormationsParPeriode(params: FormationsParPeriodeParams) {
   return useQuery<FormationsParPeriodeResponse>({
-    queryKey: ["analytics", "par-periode", params],
+    queryKey: ['analytics', 'par-periode', params],
     queryFn: () => AnalyticsService.getFormationsParPeriode(params),
   });
 }
@@ -40,7 +44,7 @@ export function useFormationsParPeriode(params: FormationsParPeriodeParams) {
 // ── Feature 3 — Analyse par UP ───────────────────────────────
 export function useFormationsParUp(opts: { annee?: number; departement?: string } = {}) {
   return useQuery<{ items: AnalyticsUP[] }>({
-    queryKey: ["analytics", "par-up", opts],
+    queryKey: ['analytics', 'par-up', opts],
     queryFn: () => AnalyticsService.getFormationsParUp(opts),
   });
 }
@@ -48,7 +52,7 @@ export function useFormationsParUp(opts: { annee?: number; departement?: string 
 // ── Feature 4 — Analyse par département ───────────────────────
 export function useFormationsParDepartement(opts: { annee?: number } = {}) {
   return useQuery<AnalyticsDepartementResponse>({
-    queryKey: ["analytics", "par-dept", opts],
+    queryKey: ['analytics', 'par-dept', opts],
     queryFn: () => AnalyticsService.getFormationsParDepartement(opts),
   });
 }
@@ -57,20 +61,23 @@ export function useFormationsParDepartement(opts: { annee?: number } = {}) {
 export function useAnalyticsExport() {
   const [exporting, setExporting] = useState(false);
 
-  const exportExcel = useCallback(async (
-    type: ExportExcelType,
-    opts: { mois?: number; annee?: number; departement?: string; up?: string } = {},
-  ) => {
-    setExporting(true);
-    try {
-      const blob = await AnalyticsService.exportExcel(type, opts);
-      downloadBlob(blob, `rapport_${type.toLowerCase()}.xlsx`);
-    } catch {
-      message.error("Échec de l'export Excel.");
-    } finally {
-      setExporting(false);
-    }
-  }, []);
+  const exportExcel = useCallback(
+    async (
+      type: ExportExcelType,
+      opts: { mois?: number; annee?: number; departement?: string; up?: string } = {},
+    ) => {
+      setExporting(true);
+      try {
+        const blob = await AnalyticsService.exportExcel(type, opts);
+        downloadBlob(blob, `rapport_${type.toLowerCase()}.xlsx`);
+      } catch {
+        message.error("Échec de l'export Excel.");
+      } finally {
+        setExporting(false);
+      }
+    },
+    [],
+  );
 
   const exportPdf = useCallback(async (type: ExportPdfType, opts: { annee?: number } = {}) => {
     setExporting(true);

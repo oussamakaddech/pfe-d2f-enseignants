@@ -1,5 +1,10 @@
-import { Card, Row, Col, Statistic, Typography } from "antd";
-import { BarChartOutlined, TeamOutlined, BookOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { Card, Row, Col, Statistic, Typography } from 'antd';
+import {
+  BarChartOutlined,
+  TeamOutlined,
+  BookOutlined,
+  CheckCircleOutlined,
+} from '@ant-design/icons';
 
 const { Title } = Typography;
 

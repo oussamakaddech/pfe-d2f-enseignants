@@ -1,35 +1,66 @@
-import { useState } from "react";
+import { useState } from 'react';
 import {
-  Card, Row, Col, Tag, Statistic, Table, Button, Space,
-  Select, Input, Empty, Spin, Typography, Tooltip, Popconfirm, Badge,
-} from "antd";
+  Card,
+  Row,
+  Col,
+  Tag,
+  Statistic,
+  Table,
+  Button,
+  Space,
+  Select,
+  Input,
+  Empty,
+  Spin,
+  Typography,
+  Tooltip,
+  Popconfirm,
+  Badge,
+} from 'antd';
 import {
-  BellOutlined, CheckCircleOutlined, EyeOutlined,
-  StopOutlined, ExclamationCircleOutlined, AlertOutlined,
-  FilterOutlined, ThunderboltOutlined,
-} from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
-import type { AlertSummary } from "@/models/analyse";
+  BellOutlined,
+  CheckCircleOutlined,
+  EyeOutlined,
+  StopOutlined,
+  ExclamationCircleOutlined,
+  AlertOutlined,
+  FilterOutlined,
+  ThunderboltOutlined,
+} from '@ant-design/icons';
+import type { ColumnsType } from 'antd/es/table';
+import type { AlertSummary } from '@/models/analyse';
 
 const { Text } = Typography;
 
 interface PriorityAlertsPanelProps {
   readonly data: AlertSummary | undefined;
   readonly loading: boolean;
-  readonly onBulkUpdate: (alertIds: number[], statut: string, commentaire?: string) => Promise<void>;
+  readonly onBulkUpdate: (
+    alertIds: number[],
+    statut: string,
+    commentaire?: string,
+  ) => Promise<void>;
 }
 
 const SEVERITY_COLOR: Record<string, string> = {
-  CRITICAL: "#ef4444",
-  WARNING: "#f59e0b",
-  INFO: "#3b82f6",
+  CRITICAL: '#ef4444',
+  WARNING: '#f59e0b',
+  INFO: '#3b82f6',
 };
 
 const STATUT_OPTIONS = [
-  { value: "TRAITEE", label: "✅ Traité", icon: <CheckCircleOutlined style={{ color: "#10b981" }} /> },
-  { value: "LUE", label: "👁 Lu", icon: <EyeOutlined style={{ color: "#3b82f6" }} /> },
-  { value: "IGNOREE", label: "⛔ Ignoré", icon: <StopOutlined style={{ color: "#6b7280" }} /> },
-  { value: "ESCALADEE", label: "⬆ Escaladé", icon: <ExclamationCircleOutlined style={{ color: "#f59e0b" }} /> },
+  {
+    value: 'TRAITEE',
+    label: '✅ Traité',
+    icon: <CheckCircleOutlined style={{ color: '#10b981' }} />,
+  },
+  { value: 'LUE', label: '👁 Lu', icon: <EyeOutlined style={{ color: '#3b82f6' }} /> },
+  { value: 'IGNOREE', label: '⛔ Ignoré', icon: <StopOutlined style={{ color: '#6b7280' }} /> },
+  {
+    value: 'ESCALADEE',
+    label: '⬆ Escaladé',
+    icon: <ExclamationCircleOutlined style={{ color: '#f59e0b' }} />,
+  },
 ];
 
 interface AlertRow {
@@ -43,10 +74,14 @@ interface AlertRow {
   count: number;
 }
 
-export default function PriorityAlertsPanel({ data, loading, onBulkUpdate }: PriorityAlertsPanelProps) {
+export default function PriorityAlertsPanel({
+  data,
+  loading,
+  onBulkUpdate,
+}: PriorityAlertsPanelProps) {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [bulkStatut, setBulkStatut] = useState<string>("TRAITEE");
-  const [bulkComment, setBulkComment] = useState<string>("");
+  const [bulkStatut, setBulkStatut] = useState<string>('TRAITEE');
+  const [bulkComment, setBulkComment] = useState<string>('');
   const [updating, setUpdating] = useState(false);
 
   // Build flat list of alerts from severity + type + status aggregates
@@ -56,7 +91,7 @@ export default function PriorityAlertsPanel({ data, loading, onBulkUpdate }: Pri
   // Primary rows: by severity (most important)
   const severiteRows = data?.by_severite || [];
   severiteRows.forEach((sev) => {
-    const statutLabel = (data?.by_statut || []).map((s) => `${s.key}: ${s.count}`).join(", ");
+    const statutLabel = (data?.by_statut || []).map((s) => `${s.key}: ${s.count}`).join(', ');
 
     alertRows.push({
       key: keyCounter++,
@@ -75,8 +110,8 @@ export default function PriorityAlertsPanel({ data, loading, onBulkUpdate }: Pri
         key: keyCounter++,
         id: keyCounter,
         type: t.key,
-        severite: "-",
-        statut: "-",
+        severite: '-',
+        statut: '-',
         count: t.count,
       });
     }
@@ -88,7 +123,7 @@ export default function PriorityAlertsPanel({ data, loading, onBulkUpdate }: Pri
     try {
       await onBulkUpdate(selectedIds, bulkStatut, bulkComment || undefined);
       setSelectedIds([]);
-      setBulkComment("");
+      setBulkComment('');
     } catch {
       // Error handled by caller
     } finally {
@@ -98,20 +133,20 @@ export default function PriorityAlertsPanel({ data, loading, onBulkUpdate }: Pri
 
   const columns: ColumnsType<AlertRow> = [
     {
-      title: "Type / Sévérité",
-      key: "severite",
+      title: 'Type / Sévérité',
+      key: 'severite',
       render: (_, record) => (
         <Space size={8}>
           <Badge
-            color={SEVERITY_COLOR[record.severite] || "#6b7280"}
+            color={SEVERITY_COLOR[record.severite] || '#6b7280'}
             text={record.type || record.severite}
           />
-          {record.severite !== "-" && (
+          {record.severite !== '-' && (
             <Tag
               color={(() => {
-                if (record.severite === "CRITICAL") return "red";
-                if (record.severite === "WARNING") return "orange";
-                return "blue";
+                if (record.severite === 'CRITICAL') return 'red';
+                if (record.severite === 'WARNING') return 'orange';
+                return 'blue';
               })()}
             >
               {record.severite}
@@ -121,21 +156,23 @@ export default function PriorityAlertsPanel({ data, loading, onBulkUpdate }: Pri
       ),
     },
     {
-      title: "Nombre",
-      dataIndex: "count",
-      align: "center" as const,
+      title: 'Nombre',
+      dataIndex: 'count',
+      align: 'center' as const,
       sorter: (a, b) => a.count - b.count,
       render: (v: number) => (
-        <Text strong style={{ color: v > 5 ? "#ef4444" : undefined }}>
+        <Text strong style={{ color: v > 5 ? '#ef4444' : undefined }}>
           {v}
         </Text>
       ),
     },
     {
-      title: "Statuts",
-      dataIndex: "statut",
+      title: 'Statuts',
+      dataIndex: 'statut',
       render: (v: string) => (
-        <Text type="secondary" style={{ fontSize: 12 }}>{v || "—"}</Text>
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          {v || '—'}
+        </Text>
       ),
     },
   ];
@@ -147,10 +184,10 @@ export default function PriorityAlertsPanel({ data, loading, onBulkUpdate }: Pri
       variant="borderless"
       title={
         <Space>
-          <BellOutlined style={{ color: "#b51200" }} />
+          <BellOutlined style={{ color: '#b51200' }} />
           <span>Alertes Prioritaires</span>
           {data?.nouvelles ? (
-            <Badge count={data.nouvelles} style={{ backgroundColor: "#ef4444" }} />
+            <Badge count={data.nouvelles} style={{ backgroundColor: '#ef4444' }} />
           ) : null}
         </Space>
       }
@@ -205,14 +242,14 @@ export default function PriorityAlertsPanel({ data, loading, onBulkUpdate }: Pri
             <Statistic
               title="Total alertes"
               value={data?.total || 0}
-              prefix={<AlertOutlined style={{ color: "#b51200" }} />}
+              prefix={<AlertOutlined style={{ color: '#b51200' }} />}
             />
           </Col>
           <Col xs={8}>
             <Statistic
               title="Nouvelles"
               value={data?.nouvelles || 0}
-              valueStyle={{ color: (data?.nouvelles || 0) > 0 ? "#ef4444" : "#10b981" }}
+              valueStyle={{ color: (data?.nouvelles || 0) > 0 ? '#ef4444' : '#10b981' }}
               prefix={<BellOutlined />}
             />
           </Col>
@@ -220,7 +257,7 @@ export default function PriorityAlertsPanel({ data, loading, onBulkUpdate }: Pri
             <Statistic
               title="Critiques ouvertes"
               value={data?.critiques_ouvertes || 0}
-              valueStyle={{ color: (data?.critiques_ouvertes || 0) > 0 ? "#ef4444" : "#10b981" }}
+              valueStyle={{ color: (data?.critiques_ouvertes || 0) > 0 ? '#ef4444' : '#10b981' }}
               prefix={<ExclamationCircleOutlined />}
             />
           </Col>
@@ -232,11 +269,11 @@ export default function PriorityAlertsPanel({ data, loading, onBulkUpdate }: Pri
             <Col key={s.key}>
               <Tag
                 color={(() => {
-                  if (s.key === "CRITICAL") return "error";
-                  if (s.key === "WARNING") return "warning";
-                  return "processing";
+                  if (s.key === 'CRITICAL') return 'error';
+                  if (s.key === 'WARNING') return 'warning';
+                  return 'processing';
                 })()}
-                style={{ fontSize: 13, padding: "4px 12px" }}
+                style={{ fontSize: 13, padding: '4px 12px' }}
               >
                 {s.key}: <Text strong>{s.count}</Text>
               </Tag>
@@ -258,10 +295,7 @@ export default function PriorityAlertsPanel({ data, loading, onBulkUpdate }: Pri
             }}
           />
         ) : (
-          <Empty
-            description="Aucune alerte"
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          />
+          <Empty description="Aucune alerte" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         )}
 
         {/* ── Top sources ── */}

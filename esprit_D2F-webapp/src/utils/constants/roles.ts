@@ -1,10 +1,10 @@
 export const ROLES = {
-  ADMIN:               "admin",
-  CUP:                 "CUP",
-  ENSEIGNANT:          "Enseignant",
-  ANIMATEUR:           "Animateur",
-  CHEF_DEPARTEMENT:    "CHEF_DEPARTEMENT",
-  RESPONSABLE_DOSSIER: "ResponsableDossier",
+  ADMIN: 'admin',
+  CUP: 'CUP',
+  ENSEIGNANT: 'Enseignant',
+  ANIMATEUR: 'Animateur',
+  CHEF_DEPARTEMENT: 'CHEF_DEPARTEMENT',
+  RESPONSABLE_DOSSIER: 'ResponsableDossier',
 } as const;
 
 export type UserRole = (typeof ROLES)[keyof typeof ROLES];
@@ -15,10 +15,9 @@ export type UserRole = (typeof ROLES)[keyof typeof ROLES];
  * `normalizeRole` de routes/guards.tsx et sur le backend AuthorizationMatrix.
  */
 export const normalizeRole = (role?: string | null): string =>
-  (typeof role === "string" ? role : "")
+  (typeof role === 'string' ? role : '')
     .toLowerCase()
-    .replace(/^role_?/, "")
-    .replaceAll(/[\s_-]+/g, "");
+    .replace(/^role_?/, '')
+    .replaceAll(/[\s_-]+/g, '');
 
-export const isAdmin = (role?: string | null): boolean =>
-  normalizeRole(role) === "admin";
+export const isAdmin = (role?: string | null): boolean => normalizeRole(role) === 'admin';

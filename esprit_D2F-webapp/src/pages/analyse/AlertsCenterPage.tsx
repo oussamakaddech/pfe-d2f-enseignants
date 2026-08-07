@@ -1,16 +1,16 @@
-import { useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button, Space, Alert } from "antd";
-import { ArrowLeftOutlined, ReloadOutlined } from "@ant-design/icons";
-import { useAlertsSummary, useBulkUpdateAlerts } from "@/hooks/analyse/useAnalysePredictive";
-import PriorityAlertsPanel from "@/components/charts/PriorityAlertsPanel";
-import { AppPageHeader, shadow } from "@/components/common";
+import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button, Space, Alert } from 'antd';
+import { ArrowLeftOutlined, ReloadOutlined } from '@ant-design/icons';
+import { useAlertsSummary, useBulkUpdateAlerts } from '@/hooks/analyse/useAnalysePredictive';
+import PriorityAlertsPanel from '@/components/charts/PriorityAlertsPanel';
+import { AppPageHeader, shadow } from '@/components/common';
 
 const cardStyle = {
-  background: "#fff",
+  background: '#fff',
   boxShadow: shadow.sm,
   borderRadius: 12,
-  border: "1px solid rgba(0,0,0,0.07)",
+  border: '1px solid rgba(0,0,0,0.07)',
 };
 
 export default function AlertsCenterPage() {
@@ -28,7 +28,11 @@ export default function AlertsCenterPage() {
   return (
     <div>
       <AppPageHeader
-        icon={<span role="img" aria-label="alertes">🚨</span>}
+        icon={
+          <span role="img" aria-label="alertes">
+            🚨
+          </span>
+        }
         title="Centre d'alertes"
         subtitle="Consultation et traitement des alertes prioritaires"
         actions={
@@ -36,7 +40,7 @@ export default function AlertsCenterPage() {
             <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isLoading}>
               Rafraîchir
             </Button>
-            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/home")}>
+            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/home')}>
               Retour
             </Button>
           </Space>
@@ -60,11 +64,7 @@ export default function AlertsCenterPage() {
       )}
 
       <div style={{ ...cardStyle, padding: 0 }}>
-        <PriorityAlertsPanel
-          data={data}
-          loading={isLoading}
-          onBulkUpdate={handleBulkUpdate}
-        />
+        <PriorityAlertsPanel data={data} loading={isLoading} onBulkUpdate={handleBulkUpdate} />
       </div>
     </div>
   );

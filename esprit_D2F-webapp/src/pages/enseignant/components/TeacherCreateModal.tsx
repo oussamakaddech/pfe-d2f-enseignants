@@ -1,5 +1,5 @@
-import { Modal, Form, Input, Select } from "antd";
-import type { FormInstance } from "antd";
+import { Modal, Form, Input, Select } from 'antd';
+import type { FormInstance } from 'antd';
 
 const { Option } = Select;
 
@@ -42,7 +42,7 @@ export default function TeacherCreateModal({
 }: Readonly<TeacherCreateModalProps>) {
   const title = extractedTeacher?.nom_complet
     ? `Créer enseignant extrait — ${extractedTeacher.nom_complet}`
-    : "Créer enseignant extrait";
+    : 'Créer enseignant extrait';
 
   return (
     <Modal
@@ -59,19 +59,19 @@ export default function TeacherCreateModal({
       <Form
         form={form}
         layout="vertical"
-        initialValues={{ type: "P", etat: "A", cup: "N", chefDepartement: "N" }}
+        initialValues={{ type: 'P', etat: 'A', cup: 'N', chefDepartement: 'N' }}
       >
         <Form.Item
           name="prenom"
           label="Prénom"
-          rules={[{ required: true, message: "Le prénom est requis" }]}
+          rules={[{ required: true, message: 'Le prénom est requis' }]}
         >
           <Input />
         </Form.Item>
         <Form.Item
           name="nom"
           label="Nom"
-          rules={[{ required: true, message: "Le nom est requis" }]}
+          rules={[{ required: true, message: 'Le nom est requis' }]}
         >
           <Input />
         </Form.Item>
@@ -80,7 +80,7 @@ export default function TeacherCreateModal({
           label="Email"
           rules={[
             { required: true, message: "L'email est requis" },
-            { type: "email", message: "Email invalide" },
+            { type: 'email', message: 'Email invalide' },
           ]}
         >
           <Input />
@@ -88,7 +88,7 @@ export default function TeacherCreateModal({
         <Form.Item
           name="type"
           label="Type"
-          rules={[{ required: true, message: "Le type est requis" }]}
+          rules={[{ required: true, message: 'Le type est requis' }]}
         >
           <Select>
             <Option value="P">Permanent (P)</Option>

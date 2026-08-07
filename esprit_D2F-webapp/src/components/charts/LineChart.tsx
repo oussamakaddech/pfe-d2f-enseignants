@@ -1,8 +1,15 @@
-import { memo, useMemo } from "react";
-import { Line } from "react-chartjs-2";
-import type { ChartOptions } from "chart.js";
+import { memo, useMemo } from 'react';
+import { Line } from 'react-chartjs-2';
+import type { ChartOptions } from 'chart.js';
 
-import { chartPalette, cardTooltip, bottomLegend, subtleGrid, axisTicks, hexToRgba } from "./chartTheme";
+import {
+  chartPalette,
+  cardTooltip,
+  bottomLegend,
+  subtleGrid,
+  axisTicks,
+  hexToRgba,
+} from './chartTheme';
 
 export interface LineSeries {
   label: string;
@@ -28,7 +35,7 @@ const LineChart = memo(function LineChart({
   labels,
   series,
   height = 300,
-  valueSuffix = "",
+  valueSuffix = '',
 }: LineChartProps) {
   const data = useMemo(
     () => ({
@@ -52,19 +59,19 @@ const LineChart = memo(function LineChart({
     [labels, series],
   );
 
-  const options = useMemo<ChartOptions<"line">>(
+  const options = useMemo<ChartOptions<'line'>>(
     () =>
       ({
         responsive: true,
         maintainAspectRatio: false,
-        interaction: { mode: "index", intersect: false },
+        interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: bottomLegend,
           tooltip: {
             ...(cardTooltip as object),
             callbacks: {
               label: (ctx: { dataset: { label?: string }; parsed: { y: number } }) =>
-                ` ${ctx.dataset.label} : ${Number(ctx.parsed.y).toLocaleString("fr-FR")}${valueSuffix}`,
+                ` ${ctx.dataset.label} : ${Number(ctx.parsed.y).toLocaleString('fr-FR')}${valueSuffix}`,
             },
           },
         },
@@ -72,12 +79,12 @@ const LineChart = memo(function LineChart({
           x: { grid: { display: false }, ticks: axisTicks },
           y: { beginAtZero: true, grid: subtleGrid, ticks: axisTicks },
         },
-      }) as ChartOptions<"line">,
+      }) as ChartOptions<'line'>,
     [valueSuffix],
   );
 
   return (
-    <div style={{ position: "relative", width: "100%", height }}>
+    <div style={{ position: 'relative', width: '100%', height }}>
       <Line data={data} options={options} />
     </div>
   );

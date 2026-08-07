@@ -7,7 +7,7 @@ const httpMocks = vi.hoisted(() => ({
   mockDelete: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     get: httpMocks.mockGet,
     post: httpMocks.mockPost,
@@ -16,7 +16,7 @@ vi.mock("@/services/httpClient", () => ({
   },
 }));
 
-vi.mock("@/config/env", () => ({
+vi.mock('@/config/env', () => ({
   config: {
     FORMATION_URL: 'http://api-test.local',
   },
@@ -25,7 +25,9 @@ vi.mock("@/config/env", () => ({
 import FormationCompetenceService from '../FormationCompetenceService';
 
 describe('FormationCompetenceService', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('gets by formation', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 1 }] });
@@ -41,7 +43,9 @@ describe('FormationCompetenceService', () => {
 
   it('updates a formation competence', async () => {
     httpMocks.mockPut.mockResolvedValueOnce({ data: { id: 1, competenceId: 20 } });
-    const result = await FormationCompetenceService.updateFormationCompetence(1, { competenceId: 20 });
+    const result = await FormationCompetenceService.updateFormationCompetence(1, {
+      competenceId: 20,
+    });
     expect(result).toEqual({ id: 1, competenceId: 20 });
   });
 
@@ -53,7 +57,9 @@ describe('FormationCompetenceService', () => {
 
   it('replaces all for formation', async () => {
     httpMocks.mockPut.mockResolvedValueOnce({ data: [{ id: 2 }] });
-    const result = await FormationCompetenceService.replaceAllForFormation(1, [{ competenceId: 30 }]);
+    const result = await FormationCompetenceService.replaceAllForFormation(1, [
+      { competenceId: 30 },
+    ]);
     expect(result).toEqual([{ id: 2 }]);
   });
 
@@ -69,7 +75,3 @@ describe('FormationCompetenceService', () => {
     expect(result).toEqual([{ id: 4 }]);
   });
 });
-
-
-
-

@@ -1,4 +1,4 @@
-import { Button, Space, Typography } from "antd";
+import { Button, Space, Typography } from 'antd';
 import {
   FileTextOutlined,
   LoadingOutlined,
@@ -7,8 +7,8 @@ import {
   RobotOutlined,
   TeamOutlined,
   ThunderboltOutlined,
-} from "@ant-design/icons";
-import type { EnseignantRef } from "./riceTypes";
+} from '@ant-design/icons';
+import type { EnseignantRef } from './riceTypes';
 
 interface LiveStats {
   totalSavoirs: number;
@@ -36,39 +36,48 @@ interface RiceHeroSectionProps {
 const { Text, Title } = Typography;
 
 const METRIC_ICONS = [
-  <FileTextOutlined key="files"  style={{ fontSize: 20 }} />,
-  <TeamOutlined    key="ens"    style={{ fontSize: 20 }} />,
+  <FileTextOutlined key="files" style={{ fontSize: 20 }} />,
+  <TeamOutlined key="ens" style={{ fontSize: 20 }} />,
   <ThunderboltOutlined key="sav" style={{ fontSize: 20 }} />,
-  <RobotOutlined   key="aff"   style={{ fontSize: 20 }} />,
+  <RobotOutlined key="aff" style={{ fontSize: 20 }} />,
 ];
 
 export default function RiceHeroSection({
-  currentDeptLabel, filesCount, currentStep, stepsCount, currentStageTitle,
-  liveStats, allEnseignants, ignoreEnseignants, effectiveEnseignants,
-  analyzing, onAnalyze, onNavigateMatchmaking, onReset,
+  currentDeptLabel,
+  filesCount,
+  currentStep,
+  stepsCount,
+  currentStageTitle,
+  liveStats,
+  allEnseignants,
+  ignoreEnseignants,
+  effectiveEnseignants,
+  analyzing,
+  onAnalyze,
+  onNavigateMatchmaking,
+  onReset,
 }: Readonly<RiceHeroSectionProps>) {
-
   const metrics = [
     {
-      label: "Fichiers",
+      label: 'Fichiers',
       value: filesCount,
       note: (() => {
-        if (!filesCount) return "Aucun chargé";
-        return `${filesCount} prêt${filesCount > 1 ? "s" : ""}`;
+        if (!filesCount) return 'Aucun chargé';
+        return `${filesCount} prêt${filesCount > 1 ? 's' : ''}`;
       })(),
     },
     {
-      label: "Enseignants",
+      label: 'Enseignants',
       value: ignoreEnseignants ? 0 : allEnseignants.length,
-      note: ignoreEnseignants ? "Mode manuel" : "Synchronisé",
+      note: ignoreEnseignants ? 'Mode manuel' : 'Synchronisé',
     },
     {
-      label: "Savoirs",
+      label: 'Savoirs',
       value: liveStats.totalSavoirs,
       note: `${liveStats.totalDomaines} dom. · ${liveStats.totalComp} comp.`,
     },
     {
-      label: "Affectations",
+      label: 'Affectations',
       value: liveStats.enseignantsAssigned,
       note: `${effectiveEnseignants.length} enseignants visibles`,
     },
@@ -88,17 +97,16 @@ export default function RiceHeroSection({
           </Title>
           <div className="rice-hero-chips">
             <span className="rice-chip rice-chip-accent">{currentDeptLabel}</span>
-            <span className="rice-chip">Étape {currentStep + 1}&thinsp;/&thinsp;{stepsCount}</span>
+            <span className="rice-chip">
+              Étape {currentStep + 1}&thinsp;/&thinsp;{stepsCount}
+            </span>
             <span className="rice-chip">{currentStageTitle}</span>
           </div>
         </div>
 
         <div className="rice-hero-actions">
           <Space wrap>
-            <Button
-              icon={<MergeCellsOutlined />}
-              onClick={onNavigateMatchmaking}
-            >
+            <Button icon={<MergeCellsOutlined />} onClick={onNavigateMatchmaking}>
               Matchmaking
             </Button>
             <Button icon={<ReloadOutlined />} onClick={onReset}>
@@ -111,7 +119,7 @@ export default function RiceHeroSection({
               onClick={onAnalyze}
               disabled={filesCount === 0 || analyzing}
             >
-              {analyzing ? "Analyse en cours…" : "Lancer l'analyse"}
+              {analyzing ? 'Analyse en cours…' : "Lancer l'analyse"}
             </Button>
           </Space>
         </div>

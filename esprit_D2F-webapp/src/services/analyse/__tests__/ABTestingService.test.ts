@@ -8,7 +8,7 @@ const httpMocks = vi.hoisted(() => ({
   mockDelete: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     get: httpMocks.mockGet,
     post: httpMocks.mockPost,
@@ -20,7 +20,9 @@ vi.mock("@/services/httpClient", () => ({
 import ABTestingService from '../ABTestingService';
 
 describe('ABTestingService', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   const base = `${config.ANALYSE_URL}/analyse/v1/analytics/ab`;
 
@@ -29,22 +31,47 @@ describe('ABTestingService', () => {
     httpMocks.mockPost.mockResolvedValueOnce({ data: res });
     const out = await ABTestingService.assign({ teacher_id: 't1', experiment_name: 'exp' });
     expect(out).toEqual(res);
-    expect(httpMocks.mockPost).toHaveBeenCalledWith(`${base}/assign`, { teacher_id: 't1', experiment_name: 'exp' });
+    expect(httpMocks.mockPost).toHaveBeenCalledWith(`${base}/assign`, {
+      teacher_id: 't1',
+      experiment_name: 'exp',
+    });
   });
 
   it('records an event', async () => {
     httpMocks.mockPost.mockResolvedValueOnce({ data: { status: 'ok' } });
-    const out = await ABTestingService.recordEvent({ teacher_id: 't1', variant: 'A', event_type: 'shown' });
+    const out = await ABTestingService.recordEvent({
+      teacher_id: 't1',
+      variant: 'A',
+      event_type: 'shown',
+    });
     expect(out).toEqual({ status: 'ok' });
-    expect(httpMocks.mockPost).toHaveBeenCalledWith(`${base}/event`, { teacher_id: 't1', variant: 'A', event_type: 'shown' });
+    expect(httpMocks.mockPost).toHaveBeenCalledWith(`${base}/event`, {
+      teacher_id: 't1',
+      variant: 'A',
+      event_type: 'shown',
+    });
   });
 
   it('gets results for an experiment', async () => {
-    const res = [{ variant: 'A', sample_size: 10, shown: 10, accepted: 5, completed: 3, acceptance_rate: 0.5, completion_rate: 0.3, avg_score: 8, avg_days_to_enroll: 2 }];
+    const res = [
+      {
+        variant: 'A',
+        sample_size: 10,
+        shown: 10,
+        accepted: 5,
+        completed: 3,
+        acceptance_rate: 0.5,
+        completion_rate: 0.3,
+        avg_score: 8,
+        avg_days_to_enroll: 2,
+      },
+    ];
     httpMocks.mockGet.mockResolvedValueOnce({ data: res });
     const out = await ABTestingService.getResults('my exp');
     expect(out).toEqual(res);
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${base}/results/${encodeURIComponent('my exp')}`);
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      `${base}/results/${encodeURIComponent('my exp')}`,
+    );
   });
 
   it('gets the winner for an experiment', async () => {
@@ -52,7 +79,9 @@ describe('ABTestingService', () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: res });
     const out = await ABTestingService.getWinner('my exp');
     expect(out).toEqual(res);
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${base}/winner/${encodeURIComponent('my exp')}`);
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      `${base}/winner/${encodeURIComponent('my exp')}`,
+    );
   });
 
   it('rejects when post fails', async () => {

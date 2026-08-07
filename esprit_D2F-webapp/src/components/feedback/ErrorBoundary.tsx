@@ -1,7 +1,7 @@
-import { Component } from "react";
-import type { ReactNode, ErrorInfo } from "react";
-import { Result, Button } from "antd";
-import { ReloadOutlined } from "@ant-design/icons";
+import { Component } from 'react';
+import type { ReactNode, ErrorInfo } from 'react';
+import { Result, Button } from 'antd';
+import { ReloadOutlined } from '@ant-design/icons';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -38,7 +38,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: "48px 24px" }}>
+        <div style={{ padding: '48px 24px' }}>
           <Result
             status="500"
             title="Oops! Une erreur est survenue"
@@ -58,11 +58,11 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
             ]}
           />
           {import.meta.env.DEV && (
-            <details style={{ marginTop: "24px", whiteSpace: "pre-wrap", textAlign: "left" }}>
+            <details style={{ marginTop: '24px', whiteSpace: 'pre-wrap', textAlign: 'left' }}>
               <summary>Détails de l'erreur (développeur)</summary>
-              <code style={{ fontSize: "12px", color: "#d32f2f" }}>
+              <code style={{ fontSize: '12px', color: '#d32f2f' }}>
                 {this.state.error?.toString()}
-                {"\n\n"}
+                {'\n\n'}
                 {this.state.errorInfo?.componentStack}
               </code>
             </details>
@@ -74,7 +74,3 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
     return this.props.children;
   }
 }
-
-
-
-

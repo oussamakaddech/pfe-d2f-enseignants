@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from 'react';
 import {
   Card,
   Tabs,
@@ -11,7 +11,7 @@ import {
   Tag,
   message,
   Badge,
-} from "antd";
+} from 'antd';
 import {
   CalendarOutlined,
   ImportOutlined,
@@ -22,25 +22,25 @@ import {
   ExportOutlined,
   WarningOutlined,
   CheckCircleOutlined,
-} from "@ant-design/icons";
-import type { AxiosError } from "axios";
-import { useAppNotification } from "@/hooks/ui/useAppNotification";
-import { useAuth } from "@/hooks/auth/useAuth";
-import { isAdmin } from "@/utils/constants/roles";
+} from '@ant-design/icons';
+import type { AxiosError } from 'axios';
+import { useAppNotification } from '@/hooks/ui/useAppNotification';
+import { useAuth } from '@/hooks/auth/useAuth';
+import { isAdmin } from '@/utils/constants/roles';
 import {
   usePreviewImport,
   useImportCalendar,
   useCalendarConflicts,
   useCalendarFormations,
-} from "@/hooks/formation/useCalendar";
+} from '@/hooks/formation/useCalendar';
 import {
   CalendarFileUpload,
   ImportResultSummary,
   ConflictsTable,
   CalendarFormationsTable,
-} from "@/components/calendar";
-import type { ImportReport, ParsedCalendar } from "@/models/calendar";
-import "../../styles/pages/calendrier-gestion.css";
+} from '@/components/calendar';
+import type { ImportReport, ParsedCalendar } from '@/models/calendar';
+import '../../styles/pages/calendrier-gestion.css';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -52,7 +52,7 @@ export default function CalendrierGestionPage() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useType<ParsedCalendar | null>(null);
   const [report, setReport] = useType<ImportReport | null>(null);
-  const [activeTab, setActiveTab] = useState("import");
+  const [activeTab, setActiveTab] = useState('import');
   const [forceImport, setForceImport] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -78,7 +78,7 @@ export default function CalendrierGestionPage() {
         },
       });
     },
-    [previewMutation, setPreview]
+    [previewMutation, setPreview],
   );
 
   const handleImport = useCallback(
@@ -92,13 +92,13 @@ export default function CalendrierGestionPage() {
             setPreview(null);
             formations.refetch();
             conflicts.refetch();
-            message.success("Import terminé avec succès");
+            message.success('Import terminé avec succès');
           },
           onError: (err: unknown) => {
             const axiosErr = err as AxiosError;
             if (axiosErr.response?.status === 409) {
               notification.warning({
-                message: "Conflits détectés",
+                message: 'Conflits détectés',
                 description:
                   "Des doublons ont été trouvés. Utilisez « Forcer l'import » pour ignorer.",
               });
@@ -106,10 +106,10 @@ export default function CalendrierGestionPage() {
             setReport(null);
             setCurrentStep(1);
           },
-        }
+        },
       );
     },
-    [importMutation, notification, formations, conflicts]
+    [importMutation, notification, formations, conflicts],
   );
 
   const handleReset = useCallback(() => {
@@ -123,7 +123,7 @@ export default function CalendrierGestionPage() {
   const tabItems = useMemo(
     () => [
       {
-        key: "import",
+        key: 'import',
         label: (
           <span className="cal-tab-label">
             <ImportOutlined />
@@ -137,7 +137,7 @@ export default function CalendrierGestionPage() {
         ),
       },
       {
-        key: "formations",
+        key: 'formations',
         label: (
           <span className="cal-tab-label">
             <CalendarOutlined />
@@ -149,7 +149,7 @@ export default function CalendrierGestionPage() {
         ),
       },
       {
-        key: "conflicts",
+        key: 'conflicts',
         label: (
           <span className="cal-tab-label">
             <WarningOutlined />
@@ -165,7 +165,7 @@ export default function CalendrierGestionPage() {
         ),
       },
     ],
-    [totalFormations, totalConflicts]
+    [totalFormations, totalConflicts],
   );
 
   return (
@@ -181,14 +181,13 @@ export default function CalendrierGestionPage() {
               Gestion du Calendrier des Ateliers
             </Title>
             <Paragraph className="cal-hero-subtitle">
-              Importez le calendrier Excel des ateliers, détectez les conflits,
-              exportez au format iCalendar (.ics) et envoyez les invitations par
-              e-mail.
+              Importez le calendrier Excel des ateliers, détectez les conflits, exportez au format
+              iCalendar (.ics) et envoyez les invitations par e-mail.
             </Paragraph>
           </div>
           {admin && (
             <div className="cal-hero-badge">
-              <Badge count="Admin" style={{ backgroundColor: "#1677ff" }} />
+              <Badge count="Admin" style={{ backgroundColor: '#1677ff' }} />
             </div>
           )}
         </div>
@@ -201,63 +200,63 @@ export default function CalendrierGestionPage() {
             title={<span className="cal-stat-label">Total Formations</span>}
             value={totalFormations}
             prefix={<CalendarOutlined className="cal-stat-icon cal-stat-icon--formations" />}
-            valueStyle={{ color: "#1677ff" }}
+            valueStyle={{ color: '#1677ff' }}
           />
         </Card>
         <Card className="cal-stat-card cal-stat-card--sessions" variant="borderless">
           <Statistic
             title={<span className="cal-stat-label">Séances Importées</span>}
-            value={report?.sessionsCreated ?? "—"}
+            value={report?.sessionsCreated ?? '—'}
             prefix={<FileExcelOutlined className="cal-stat-icon cal-stat-icon--sessions" />}
-            valueStyle={{ color: "#52c41a" }}
+            valueStyle={{ color: '#52c41a' }}
           />
         </Card>
         <Card className="cal-stat-card cal-stat-card--participants" variant="borderless">
           <Statistic
             title={<span className="cal-stat-label">Participants</span>}
-            value={report?.participantsImported ?? "—"}
+            value={report?.participantsImported ?? '—'}
             prefix={<TeamOutlined className="cal-stat-icon cal-stat-icon--participants" />}
-            valueStyle={{ color: "#722ed1" }}
+            valueStyle={{ color: '#722ed1' }}
           />
         </Card>
         <Card className="cal-stat-card cal-stat-card--status" variant="borderless">
           {(() => {
             let statusIcon: React.ReactNode;
-            if (report?.status === "SUCCESS") {
-              statusIcon = <CheckCircleOutlined style={{ color: "#52c41a" }} />;
-            } else if (report?.status === "PARTIAL") {
-              statusIcon = <WarningOutlined style={{ color: "#fa8c16" }} />;
+            if (report?.status === 'SUCCESS') {
+              statusIcon = <CheckCircleOutlined style={{ color: '#52c41a' }} />;
+            } else if (report?.status === 'PARTIAL') {
+              statusIcon = <WarningOutlined style={{ color: '#fa8c16' }} />;
             } else if (report) {
-              statusIcon = <InfoCircleOutlined style={{ color: "#ff4d4f" }} />;
+              statusIcon = <InfoCircleOutlined style={{ color: '#ff4d4f' }} />;
             } else {
               statusIcon = <span>—</span>;
             }
 
             let statusLabel: string;
             if (!report) {
-              statusLabel = "En attente";
-            } else if (report.status === "SUCCESS") {
-              statusLabel = "Succès";
-            } else if (report.status === "PARTIAL") {
-              statusLabel = "Partiel";
-            } else if (report.status === "FAILED") {
-              statusLabel = "Échoué";
-            } else if (report.status === "DUPLICATE") {
-              statusLabel = "Doublon";
+              statusLabel = 'En attente';
+            } else if (report.status === 'SUCCESS') {
+              statusLabel = 'Succès';
+            } else if (report.status === 'PARTIAL') {
+              statusLabel = 'Partiel';
+            } else if (report.status === 'FAILED') {
+              statusLabel = 'Échoué';
+            } else if (report.status === 'DUPLICATE') {
+              statusLabel = 'Doublon';
             } else {
-              statusLabel = "—";
+              statusLabel = '—';
             }
 
             return (
-          <Statistic
-            title={<span className="cal-stat-label">Statut Import</span>}
-            value={statusIcon as unknown as string}
-            prefix={
-              <Text strong style={{ fontSize: 14 }}>
-                {statusLabel}
-              </Text>
-            }
-          />
+              <Statistic
+                title={<span className="cal-stat-label">Statut Import</span>}
+                value={statusIcon as unknown as string}
+                prefix={
+                  <Text strong style={{ fontSize: 14 }}>
+                    {statusLabel}
+                  </Text>
+                }
+              />
             );
           })()}
         </Card>
@@ -274,7 +273,7 @@ export default function CalendrierGestionPage() {
           />
 
           {/* Import Tab */}
-          {activeTab === "import" && (
+          {activeTab === 'import' && (
             <div className="cal-import-section">
               {!admin && (
                 <Alert
@@ -328,18 +327,18 @@ export default function CalendrierGestionPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {preview.sessions.slice(0, 10).map((s: import("@/models/calendar").ParsedSession, i: number) => (
-                            <tr key={`${s.formationName}-${s.date}-${s.room}`}>
-                              <td>{s.formationName}</td>
-                              <td>
-                                {s.date
-                                  ? new Date(s.date).toLocaleDateString("fr-FR")
-                                  : "—"}
-                              </td>
-                              <td>{s.room || "—"}</td>
-                              <td>—</td>
-                            </tr>
-                          ))}
+                          {preview.sessions
+                            .slice(0, 10)
+                            .map((s: import('@/models/calendar').ParsedSession, i: number) => (
+                              <tr key={`${s.formationName}-${s.date}-${s.room}`}>
+                                <td>{s.formationName}</td>
+                                <td>
+                                  {s.date ? new Date(s.date).toLocaleDateString('fr-FR') : '—'}
+                                </td>
+                                <td>{s.room || '—'}</td>
+                                <td>—</td>
+                              </tr>
+                            ))}
                         </tbody>
                       </table>
                       {preview.sessions.length > 10 && (
@@ -384,9 +383,7 @@ export default function CalendrierGestionPage() {
                 <div className="cal-step-content">
                   <ImportResultSummary report={report} />
                   <div className="cal-result-actions">
-                    <Button onClick={handleReset}>
-                      Nouveau Import
-                    </Button>
+                    <Button onClick={handleReset}>Nouveau Import</Button>
                   </div>
                 </div>
               )}
@@ -394,7 +391,7 @@ export default function CalendrierGestionPage() {
           )}
 
           {/* Formations Tab */}
-          {activeTab === "formations" && (
+          {activeTab === 'formations' && (
             <div className="cal-formations-section">
               <div className="cal-section-header">
                 <Title level={4}>Calendrier des Formations</Title>
@@ -410,15 +407,12 @@ export default function CalendrierGestionPage() {
           )}
 
           {/* Conflicts Tab */}
-          {activeTab === "conflicts" && (
+          {activeTab === 'conflicts' && (
             <div className="cal-conflicts-section">
               <div className="cal-section-header">
                 <Title level={4}>Conflits Détectés</Title>
               </div>
-              <ConflictsTable
-                report={conflicts.data}
-                loading={conflicts.isFetching}
-              />
+              <ConflictsTable report={conflicts.data} loading={conflicts.isFetching} />
             </div>
           )}
         </Card>

@@ -1,12 +1,12 @@
 // Modèles de l'analyse descriptive (features 1-4 + export) du module analytics.
 // Aucun `any` : tous les DTO du backend ReportingEngine sont typés ici.
 
-import type { NiveauRisque } from "./analytics";
+import type { NiveauRisque } from './analytics';
 
-export type Granularite = "SEMAINE" | "MOIS" | "TRIMESTRE" | "ANNEE";
-export type Tendance = "HAUSSE" | "BAISSE" | "STABLE";
-export type ExportExcelType = "INACTIFS" | "PAR_UP" | "PAR_DEPT";
-export type ExportPdfType = "RAPPORT_MENSUEL" | "RAPPORT_ANNUEL";
+export type Granularite = 'SEMAINE' | 'MOIS' | 'TRIMESTRE' | 'ANNEE';
+export type Tendance = 'HAUSSE' | 'BAISSE' | 'STABLE';
+export type ExportExcelType = 'INACTIFS' | 'PAR_UP' | 'PAR_DEPT';
+export type ExportPdfType = 'RAPPORT_MENSUEL' | 'RAPPORT_ANNUEL';
 
 // ── Feature 1 — Enseignants inactifs ─────────────────────────
 export interface EnseignantInactif {

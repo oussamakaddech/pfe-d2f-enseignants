@@ -1,6 +1,6 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
-import type { Bureau, BureauRequest } from "@/models/bureau";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
+import type { Bureau, BureauRequest } from '@/models/bureau';
 
 const API_URL = `${config.FORMATION_URL}/formation/bureaux`;
 
@@ -9,7 +9,7 @@ function normalizeListResponse<T>(payload: unknown): T[] {
     return payload as T[];
   }
 
-  if (payload && typeof payload === "object") {
+  if (payload && typeof payload === 'object') {
     const candidate = payload as { content?: unknown; data?: unknown; items?: unknown };
     if (Array.isArray(candidate.content)) {
       return candidate.content as T[];
@@ -34,13 +34,13 @@ const BureauService = {
     // bureaux sans jamais charger 1000+ enregistrements en un seul appel
     // (conformité DSI §2.2 : pagination obligatoire sur les listes volumineuses).
     const first = await axios.get<{ content: Bureau[]; totalPages: number }>(API_URL, {
-      params: { page: 0, size: PAGE_SIZE, sort: "id,desc" },
+      params: { page: 0, size: PAGE_SIZE, sort: 'id,desc' },
     });
     const all: Bureau[] = [...normalizeListResponse<Bureau>(first.data)];
     const totalPages = first.data?.totalPages ?? 1;
     for (let page = 1; page < totalPages; page += 1) {
       const next = await axios.get<{ content: Bureau[] }>(API_URL, {
-        params: { page, size: PAGE_SIZE, sort: "id,desc" },
+        params: { page, size: PAGE_SIZE, sort: 'id,desc' },
       });
       all.push(...normalizeListResponse<Bureau>(next.data));
     }

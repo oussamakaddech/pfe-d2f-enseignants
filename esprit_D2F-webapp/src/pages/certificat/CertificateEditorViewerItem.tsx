@@ -1,77 +1,77 @@
-import { useEffect, useState } from "react";
-import { Row, Col, Card, Input, Button, Form, Spin } from "antd";
-import { SaveOutlined } from "@ant-design/icons";
-import useAppNotification from "@/hooks/ui/useAppNotification";
-import jsPDF from "jspdf";
-import { useUpdateCertificate } from "@/hooks/certificat/useCertificats";
-import type { Certificate } from "@/models/certificat";
+import { useEffect, useState } from 'react';
+import { Row, Col, Card, Input, Button, Form, Spin } from 'antd';
+import { SaveOutlined } from '@ant-design/icons';
+import useAppNotification from '@/hooks/ui/useAppNotification';
+import jsPDF from 'jspdf';
+import { useUpdateCertificate } from '@/hooks/certificat/useCertificats';
+import type { Certificate } from '@/models/certificat';
 
 interface CertificateEditorViewerItemProps {
   certificate?: Certificate;
   onUpdate?: (cert: Certificate) => void;
 }
 
-export default function CertificateEditorViewerItem({ certificate, onUpdate }: Readonly<CertificateEditorViewerItemProps>) {
+export default function CertificateEditorViewerItem({
+  certificate,
+  onUpdate,
+}: Readonly<CertificateEditorViewerItemProps>) {
   const { message } = useAppNotification();
   const [certData, setCertData] = useState<Certificate | undefined>(certificate);
-  const [pdfUrl, setPdfUrl] = useState("");
+  const [pdfUrl, setPdfUrl] = useState('');
 
-const generatePdfDocument = async (data: Certificate) => {
-  const doc = new jsPDF({
-    orientation: "landscape",
-    unit: "pt",
-    format: "a4",
-  });
-  const w = doc.internal.pageSize.getWidth();
-  const h = doc.internal.pageSize.getHeight();
+  const generatePdfDocument = async (data: Certificate) => {
+    const doc = new jsPDF({
+      orientation: 'landscape',
+      unit: 'pt',
+      format: 'a4',
+    });
+    const w = doc.internal.pageSize.getWidth();
+    const h = doc.internal.pageSize.getHeight();
 
-  const isAttestation =
-    data.typeCertif?.toUpperCase() === "ATTESTATION" ||
-    data.roleEnFormation?.toLowerCase() === "participant";
-  const bgUrl = isAttestation
-    ? "/assets/img/attestation_bg.png"
-    : "/assets/img/certification_bg.png";
+    const isAttestation =
+      data.typeCertif?.toUpperCase() === 'ATTESTATION' ||
+      data.roleEnFormation?.toLowerCase() === 'participant';
+    const bgUrl = isAttestation
+      ? '/assets/img/attestation_bg.png'
+      : '/assets/img/certification_bg.png';
 
-  const img = new Image();
-  img.crossOrigin = "anonymous";
-  await new Promise<void>((res) => {
-    img.onload = () => res();
-    img.onerror = () => res();
-    img.src = bgUrl;
-  });
-  doc.addImage(img, "PNG", 0, 0, w, h);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    await new Promise<void>((res) => {
+      img.onload = () => res();
+      img.onerror = () => res();
+      img.src = bgUrl;
+    });
+    doc.addImage(img, 'PNG', 0, 0, w, h);
 
-  const endDate = data.dateFinFormation ? new Date(data.dateFinFormation).toLocaleDateString() : "";
-  const today = data.dateDebutFormation ? new Date(data.dateDebutFormation).toLocaleDateString() : "";
+    const endDate = data.dateFinFormation
+      ? new Date(data.dateFinFormation).toLocaleDateString()
+      : '';
+    const today = data.dateDebutFormation
+      ? new Date(data.dateDebutFormation).toLocaleDateString()
+      : '';
 
-  doc.setFont("helvetica", "normal").setTextColor("#000");
+    doc.setFont('helvetica', 'normal').setTextColor('#000');
 
-  doc.setFontSize(16);
-  doc.text(
-    `${data.nomEnseignant || ""} ${data.prenomEnseignant || ""}`,
-    450, 255
-  );
+    doc.setFontSize(16);
+    doc.text(`${data.nomEnseignant || ''} ${data.prenomEnseignant || ''}`, 450, 255);
 
-  doc.setFontSize(15);
-  doc.text(
-    data.titreFormation || "",
-    510, 305
-  );
+    doc.setFontSize(15);
+    doc.text(data.titreFormation || '', 510, 305);
 
-  doc.setFontSize(15);
-  doc.text(
-    ` ${today}-${endDate}`,
-    400, 370
-  );
+    doc.setFontSize(15);
+    doc.text(` ${today}-${endDate}`, 400, 370);
 
-  return doc.output("bloburl");
-};
-
+    return doc.output('bloburl');
+  };
 
   // À chaque modification de certData, on régénère l'aperçu
   useEffect(() => {
     if (!certData?.idCertificate) return;
-    if (certData) void generatePdfDocument(certData).then((url: URL | string) => setPdfUrl(url.toString())).catch(() => {});
+    if (certData)
+      void generatePdfDocument(certData)
+        .then((url: URL | string) => setPdfUrl(url.toString()))
+        .catch(() => {});
   }, [certData]);
 
   // Gère la modification dans le formulaire
@@ -88,15 +88,15 @@ const generatePdfDocument = async (data: Certificate) => {
   const handleUpdate = async () => {
     if (!certData?.idCertificate) return;
     try {
-      const { data: updated } =
-        await updateCertificate(
-          { id: certData.idCertificate, data: certData }
-        );
+      const { data: updated } = await updateCertificate({
+        id: certData.idCertificate,
+        data: certData,
+      });
       setCertData(updated);
       onUpdate?.(updated);
-      message.success("Certificat mis à jour !");
+      message.success('Certificat mis à jour !');
     } catch {
-      message.error("Erreur lors de la mise à jour");
+      message.error('Erreur lors de la mise à jour');
     }
   };
 
@@ -105,18 +105,20 @@ const generatePdfDocument = async (data: Certificate) => {
   return (
     <Row gutter={16} style={{ marginBottom: 20 }}>
       <Col span={12}>
-        <Card style={{ height: "100%", overflow: "hidden" }}>
+        <Card style={{ height: '100%', overflow: 'hidden' }}>
           {pdfUrl ? (
             <iframe
               src={pdfUrl}
               title="Visualisation du PDF"
               width="100%"
               height="500"
-              style={{ border: "none" }}
+              style={{ border: 'none' }}
             />
           ) : (
-            <div style={{ textAlign: "center", padding: 40 }}>
-              <Spin tip="Génération du PDF..."><div /></Spin>
+            <div style={{ textAlign: 'center', padding: 40 }}>
+              <Spin tip="Génération du PDF...">
+                <div />
+              </Spin>
             </div>
           )}
         </Card>
@@ -128,83 +130,83 @@ const generatePdfDocument = async (data: Certificate) => {
             <Form.Item label="Titre Formation">
               <Input
                 value={certData.titreFormation}
-                onChange={(e) => handleChange("titreFormation", e.target.value)}
+                onChange={(e) => handleChange('titreFormation', e.target.value)}
               />
             </Form.Item>
             <Form.Item label="Type (CERTIF / ATTESTATION)">
               <Input
                 value={certData.typeCertif}
-                onChange={(e) => handleChange("typeCertif", e.target.value)}
+                onChange={(e) => handleChange('typeCertif', e.target.value)}
               />
             </Form.Item>
             <Form.Item label="Date Début">
               <Input
                 type="date"
-                value={certData.dateDebutFormation?.substring(0, 10) || ""}
-                onChange={(e) => handleChange("dateDebutFormation", e.target.value)}
+                value={certData.dateDebutFormation?.substring(0, 10) || ''}
+                onChange={(e) => handleChange('dateDebutFormation', e.target.value)}
               />
             </Form.Item>
             <Form.Item label="Date Fin">
               <Input
                 type="date"
-                value={certData.dateFinFormation?.substring(0, 10) || ""}
-                onChange={(e) => handleChange("dateFinFormation", e.target.value)}
+                value={certData.dateFinFormation?.substring(0, 10) || ''}
+                onChange={(e) => handleChange('dateFinFormation', e.target.value)}
               />
             </Form.Item>
             <Form.Item label="Nom Enseignant">
               <Input
                 value={certData.nomEnseignant}
-                onChange={(e) => handleChange("nomEnseignant", e.target.value)}
+                onChange={(e) => handleChange('nomEnseignant', e.target.value)}
               />
             </Form.Item>
             <Form.Item label="Prénom Enseignant">
               <Input
                 value={certData.prenomEnseignant}
-                onChange={(e) => handleChange("prenomEnseignant", e.target.value)}
+                onChange={(e) => handleChange('prenomEnseignant', e.target.value)}
               />
             </Form.Item>
             <Form.Item label="Rôle (participant / formateur)">
               <Input
                 value={certData.roleEnFormation}
-                onChange={(e) => handleChange("roleEnFormation", e.target.value)}
+                onChange={(e) => handleChange('roleEnFormation', e.target.value)}
               />
             </Form.Item>
             <Form.Item label="Type (CERTIF / ATTESTATION)">
               <Input
                 value={certData.typeCertif}
-                onChange={(e) => handleChange("typeCertif", e.target.value)}
+                onChange={(e) => handleChange('typeCertif', e.target.value)}
               />
             </Form.Item>
             <Form.Item label="Date Début">
               <Input
                 type="date"
-                value={certData.dateDebutFormation?.substring(0, 10) || ""}
-                onChange={(e) => handleChange("dateDebutFormation", e.target.value)}
+                value={certData.dateDebutFormation?.substring(0, 10) || ''}
+                onChange={(e) => handleChange('dateDebutFormation', e.target.value)}
               />
             </Form.Item>
             <Form.Item label="Date Fin">
               <Input
                 type="date"
-                value={certData.dateFinFormation?.substring(0, 10) || ""}
-                onChange={(e) => handleChange("dateFinFormation", e.target.value)}
+                value={certData.dateFinFormation?.substring(0, 10) || ''}
+                onChange={(e) => handleChange('dateFinFormation', e.target.value)}
               />
             </Form.Item>
             <Form.Item label="Nom Enseignant">
               <Input
                 value={certData.nomEnseignant}
-                onChange={(e) => handleChange("nomEnseignant", e.target.value)}
+                onChange={(e) => handleChange('nomEnseignant', e.target.value)}
               />
             </Form.Item>
             <Form.Item label="Prénom Enseignant">
               <Input
                 value={certData.prenomEnseignant}
-                onChange={(e) => handleChange("prenomEnseignant", e.target.value)}
+                onChange={(e) => handleChange('prenomEnseignant', e.target.value)}
               />
             </Form.Item>
             <Form.Item label="Rôle (participant / formateur)">
               <Input
                 value={certData.roleEnFormation}
-                onChange={(e) => handleChange("roleEnFormation", e.target.value)}
+                onChange={(e) => handleChange('roleEnFormation', e.target.value)}
               />
             </Form.Item>
             <Button
@@ -221,11 +223,3 @@ const generatePdfDocument = async (data: Certificate) => {
     </Row>
   );
 }
-
-
-
-
-
-
-
-

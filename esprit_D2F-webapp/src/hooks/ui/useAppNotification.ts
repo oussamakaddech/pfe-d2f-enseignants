@@ -1,4 +1,4 @@
-import { App } from "antd";
+import { App } from 'antd';
 
 export function useAppNotification() {
   const { message, notification, modal } = App.useApp();
@@ -6,7 +6,3 @@ export function useAppNotification() {
 }
 
 export default useAppNotification;
-
-
-
-

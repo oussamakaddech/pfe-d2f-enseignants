@@ -4,7 +4,7 @@ const httpMocks = vi.hoisted(() => ({
   mockGet: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     get: httpMocks.mockGet,
   },
@@ -13,7 +13,9 @@ vi.mock("@/services/httpClient", () => ({
 import KPIService from '../KPIService';
 
 describe('KPIService', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('gets total formations', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: 10 });
@@ -51,7 +53,9 @@ describe('KPIService', () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: { count: 5, totalHeures: 20 } });
     const result = await KPIService.getCountAndHeures({ domaine: 'IT' });
     expect(result).toEqual({ count: 5, totalHeures: 20 });
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/count-heures'), { params: { domaine: 'IT' } });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/count-heures'), {
+      params: { domaine: 'IT' },
+    });
   });
 
   it('handles 404 gracefully for all scalar endpoints', async () => {
@@ -65,9 +69,14 @@ describe('KPIService', () => {
     await expect(KPIService.getUniqueParticipants('s', 'e')).resolves.toBe(0);
 
     httpMocks.mockGet.mockRejectedValueOnce({ response: { status: 404 } });
-    await expect(KPIService.getFormationsByEtat('s', 'e')).resolves.toEqual(
-      { enregistre: 0, planifie: 0, enCours: 0, acheve: 0, annule: 0, total: 0 }
-    );
+    await expect(KPIService.getFormationsByEtat('s', 'e')).resolves.toEqual({
+      enregistre: 0,
+      planifie: 0,
+      enCours: 0,
+      acheve: 0,
+      annule: 0,
+      total: 0,
+    });
   });
 
   it('throws on non-404 network errors', async () => {
@@ -112,7 +121,13 @@ describe('KPIService', () => {
   it('getCountAndHeures with all filters', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: { count: 2, totalHeures: 10 } });
     const result = await KPIService.getCountAndHeures({
-      domaine: 'GC', upId: '1', deptId: '2', ouverte: true, start: 's', end: 'e', etat: 'planifie',
+      domaine: 'GC',
+      upId: '1',
+      deptId: '2',
+      ouverte: true,
+      start: 's',
+      end: 'e',
+      etat: 'planifie',
     });
     expect(result).toEqual({ count: 2, totalHeures: 10 });
 
@@ -149,7 +164,13 @@ describe('KPIService', () => {
   it('getFormationsByTypeFiltered succeeds with all params, handles 404, and throws', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: { interne: 1, externe: 2, enLigne: 3 } });
     const r = await KPIService.getFormationsByTypeFiltered({
-      domaine: 'GC', upId: '1', deptId: '2', ouverte: true, start: 's', end: 'e', etat: 'planifie',
+      domaine: 'GC',
+      upId: '1',
+      deptId: '2',
+      ouverte: true,
+      start: 's',
+      end: 'e',
+      etat: 'planifie',
     });
     expect(r).toEqual({ interne: 1, externe: 2, enLigne: 3 });
 
@@ -158,7 +179,11 @@ describe('KPIService', () => {
     expect(r2).toEqual({ interne: 0, externe: 0, enLigne: 0 });
 
     httpMocks.mockGet.mockRejectedValueOnce({ isAxiosError: true, response: { status: 404 } });
-    await expect(KPIService.getFormationsByTypeFiltered({})).resolves.toEqual({ interne: 0, externe: 0, enLigne: 0 });
+    await expect(KPIService.getFormationsByTypeFiltered({})).resolves.toEqual({
+      interne: 0,
+      externe: 0,
+      enLigne: 0,
+    });
 
     httpMocks.mockGet.mockRejectedValueOnce(new Error('fail'));
     await expect(KPIService.getFormationsByTypeFiltered({})).rejects.toThrow();
@@ -166,25 +191,31 @@ describe('KPIService', () => {
 
   it('getCountByTrainerTypeWithIds succeeds, handles 404, and throws', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: [{ type: 'interne', count: 5 }] });
-    await expect(KPIService.getCountByTrainerTypeWithIds({ deptId: 1 })).resolves.toEqual([{ type: 'interne', count: 5 }]);
+    await expect(KPIService.getCountByTrainerTypeWithIds({ deptId: 1 })).resolves.toEqual([
+      { type: 'interne', count: 5 },
+    ]);
 
     httpMocks.mockGet.mockResolvedValueOnce({ data: null });
     await expect(KPIService.getCountByTrainerTypeWithIds()).resolves.toEqual({
-      externeOnlyCount: 0, interneOnlyCount: 0, mixteCount: 0,
-      externeOnlyIds: [], interneOnlyIds: [], mixteIds: [],
+      externeOnlyCount: 0,
+      interneOnlyCount: 0,
+      mixteCount: 0,
+      externeOnlyIds: [],
+      interneOnlyIds: [],
+      mixteIds: [],
     });
 
     httpMocks.mockGet.mockRejectedValueOnce({ isAxiosError: true, response: { status: 404 } });
     await expect(KPIService.getCountByTrainerTypeWithIds()).resolves.toEqual({
-      externeOnlyCount: 0, interneOnlyCount: 0, mixteCount: 0,
-      externeOnlyIds: [], interneOnlyIds: [], mixteIds: [],
+      externeOnlyCount: 0,
+      interneOnlyCount: 0,
+      mixteCount: 0,
+      externeOnlyIds: [],
+      interneOnlyIds: [],
+      mixteIds: [],
     });
 
     httpMocks.mockGet.mockRejectedValueOnce(new Error('fail'));
     await expect(KPIService.getCountByTrainerTypeWithIds()).rejects.toThrow();
   });
 });
-
-
-
-

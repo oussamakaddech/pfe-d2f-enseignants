@@ -103,7 +103,3 @@ export interface PrerequisiteRequest {
   prerequisiteId?: Id;
   niveauMinimum?: string;
 }
-
-
-
-

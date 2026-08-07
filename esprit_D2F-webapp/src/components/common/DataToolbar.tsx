@@ -1,6 +1,6 @@
-import { memo } from "react";
-import { Space, Button, Input, Typography } from "antd";
-import { SearchOutlined, ReloadOutlined } from "@ant-design/icons";
+import { memo } from 'react';
+import { Space, Button, Input, Typography } from 'antd';
+import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 
 const { Text } = Typography;
 
@@ -9,7 +9,7 @@ interface DataToolbarAction {
   readonly label: React.ReactNode;
   readonly icon?: React.ReactNode;
   readonly onClick?: () => void;
-  readonly type?: "primary" | "default" | "dashed" | "text" | "link";
+  readonly type?: 'primary' | 'default' | 'dashed' | 'text' | 'link';
   readonly danger?: boolean;
   readonly disabled?: boolean;
   readonly className?: string;
@@ -42,39 +42,41 @@ interface DataToolbarProps {
 const DataToolbar = memo(function DataToolbar({
   title,
   searchValue,
-  searchPlaceholder = "Rechercher...",
+  searchPlaceholder = 'Rechercher...',
   onSearchChange,
   onRefresh,
   loading = false,
   actions = [],
   filters,
   count,
-  countLabel = "résultat(s)",
-  className = "",
+  countLabel = 'résultat(s)',
+  className = '',
 }: DataToolbarProps) {
   return (
     <div
       className={`data-toolbar ${className}`}
       style={{
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
         gap: 12,
-        marginBottom: "var(--space-4)",
-        padding: "14px 20px",
-        background: "var(--bg-card)",
-        borderRadius: "var(--radius-lg)",
-        border: "1px solid var(--border-color)",
-        boxShadow: "var(--shadow-sm)",
+        marginBottom: 'var(--space-4)',
+        padding: '14px 20px',
+        background: 'var(--bg-card)',
+        borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--border-color)',
+        boxShadow: 'var(--shadow-sm)',
       }}
     >
       {/* Left: Title + Count */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginRight: "auto" }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginRight: 'auto' }}>
         {title && (
-          <Text strong style={{ fontSize: "var(--text-base)", color: "var(--text-main)" }}>{title}</Text>
+          <Text strong style={{ fontSize: 'var(--text-base)', color: 'var(--text-main)' }}>
+            {title}
+          </Text>
         )}
         {count !== undefined && (
-          <Text style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+          <Text style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
             {count} {countLabel}
           </Text>
         )}
@@ -82,7 +84,7 @@ const DataToolbar = memo(function DataToolbar({
 
       {/* Center: Filters */}
       {filters && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           {filters}
         </div>
       )}
@@ -91,12 +93,12 @@ const DataToolbar = memo(function DataToolbar({
       <Space size={8}>
         {onSearchChange !== undefined && (
           <Input
-            prefix={<SearchOutlined style={{ color: "var(--neutral-400)" }} />}
+            prefix={<SearchOutlined style={{ color: 'var(--neutral-400)' }} />}
             placeholder={searchPlaceholder}
             value={searchValue}
             onChange={(e) => onSearchChange(e.target.value)}
             allowClear
-            style={{ width: 220, borderRadius: "var(--radius-sm)" }}
+            style={{ width: 220, borderRadius: 'var(--radius-sm)' }}
           />
         )}
         {onRefresh && (
@@ -110,7 +112,7 @@ const DataToolbar = memo(function DataToolbar({
         {actions.map((action) => (
           <Button
             key={action.key}
-            type={action.type || "default"}
+            type={action.type || 'default'}
             icon={action.icon}
             onClick={action.onClick}
             danger={action.danger}
@@ -126,7 +128,3 @@ const DataToolbar = memo(function DataToolbar({
 });
 
 export default DataToolbar;
-
-
-
-

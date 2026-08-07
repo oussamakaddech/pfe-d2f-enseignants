@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
-import { Alert, Button, Input, Popconfirm, Space, Table, Tooltip } from "antd";
-import type { TableColumnsType, TableProps } from "antd";
-import type { Id } from "@/models/common";
+import { useMemo, useState } from 'react';
+import { Alert, Button, Input, Popconfirm, Space, Table, Tooltip } from 'antd';
+import type { TableColumnsType, TableProps } from 'antd';
+import type { Id } from '@/models/common';
 import {
   CheckSquareOutlined,
   CloseOutlined,
@@ -9,8 +9,8 @@ import {
   EditOutlined,
   PlusOutlined,
   SearchOutlined,
-} from "@ant-design/icons";
-import type React from "react";
+} from '@ant-design/icons';
+import type React from 'react';
 
 interface CrudTabProps<T extends object = Record<string, unknown>> {
   columns: TableColumnsType<T>;
@@ -37,11 +37,11 @@ export default function CrudTab<T extends object = Record<string, unknown>>({
   addLabel,
   tableProps = undefined,
   searchable = true,
-  searchPlaceholder = "Rechercher...",
+  searchPlaceholder = 'Rechercher...',
 }: Readonly<CrudTabProps<T>>) {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);
-  const [searchText, setSearchText] = useState("");
+  const [searchText, setSearchText] = useState('');
 
   /* ── Filtrage local instantané ───────────────────────────────────────── */
   const filteredData = useMemo(() => {
@@ -49,7 +49,7 @@ export default function CrudTab<T extends object = Record<string, unknown>>({
     const kw = searchText.trim().toLowerCase();
     return data.filter((row) =>
       Object.values(row as Record<string, unknown>).some(
-        (val) => typeof val === "string" && val.toLowerCase().includes(kw),
+        (val) => typeof val === 'string' && val.toLowerCase().includes(kw),
       ),
     );
   }, [data, searchText, searchable]);
@@ -65,8 +65,11 @@ export default function CrudTab<T extends object = Record<string, unknown>>({
   };
 
   const handleBulkDelete = async () => {
-    if (onBulkDelete) { await onBulkDelete(selectedRowKeys); }
-    else { for (const id of selectedRowKeys) await onDelete(id as Id); }
+    if (onBulkDelete) {
+      await onBulkDelete(selectedRowKeys);
+    } else {
+      for (const id of selectedRowKeys) await onDelete(id as Id);
+    }
     setSelectedRowKeys([]);
     setSelectionMode(false);
   };
@@ -83,18 +86,14 @@ export default function CrudTab<T extends object = Record<string, unknown>>({
     ? {
         selectedRowKeys,
         onChange: (keys: React.Key[]) => setSelectedRowKeys(keys),
-        selections: [
-          Table.SELECTION_ALL,
-          Table.SELECTION_INVERT,
-          Table.SELECTION_NONE,
-        ],
+        selections: [Table.SELECTION_ALL, Table.SELECTION_INVERT, Table.SELECTION_NONE],
       }
     : undefined;
 
   return (
     <div>
       {/* ── Barre d'outils ─────────────────────────────────────────────── */}
-      <Space style={{ marginBottom: 16, width: "100%" }} wrap>
+      <Space style={{ marginBottom: 16, width: '100%' }} wrap>
         <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
           {addLabel}
         </Button>
@@ -102,9 +101,9 @@ export default function CrudTab<T extends object = Record<string, unknown>>({
         <Button
           icon={selectionMode ? <CloseOutlined /> : <CheckSquareOutlined />}
           onClick={toggleSelectionMode}
-          type={selectionMode ? "default" : "dashed"}
+          type={selectionMode ? 'default' : 'dashed'}
         >
-          {selectionMode ? "Annuler la sélection" : "Sélectionner"}
+          {selectionMode ? 'Annuler la sélection' : 'Sélectionner'}
         </Button>
 
         {selectionMode && hasSelection && (
@@ -132,7 +131,7 @@ export default function CrudTab<T extends object = Record<string, unknown>>({
         {/* ── Recherche inline ─────────────────────────────────────────── */}
         {searchable && (
           <Input
-            prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />}
+            prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
             placeholder={searchPlaceholder}
             allowClear
             value={searchText}
@@ -162,7 +161,7 @@ export default function CrudTab<T extends object = Record<string, unknown>>({
               ? `Aucun résultat pour « ${searchText} »`
               : `${filteredData.length} résultat(s) pour « ${searchText} »`
           }
-          type={filteredData.length === 0 ? "warning" : "info"}
+          type={filteredData.length === 0 ? 'warning' : 'info'}
           showIcon
           style={{ marginBottom: 12 }}
         />
@@ -174,24 +173,23 @@ export default function CrudTab<T extends object = Record<string, unknown>>({
         columns={[
           ...columns,
           {
-            title: "Actions",
-            key: "actions",
+            title: 'Actions',
+            key: 'actions',
             width: 120,
             render: (_: unknown, record: T) => (
               <Space>
                 <Tooltip title="Modifier">
-                  <Button
-                    size="small"
-                    icon={<EditOutlined />}
-                    onClick={() => onEdit(record)}
-                  />
+                  <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(record)} />
                 </Tooltip>
                 <Tooltip title="Supprimer">
                   <Popconfirm
                     title="Confirmer la suppression ?"
                     okText="Oui"
                     cancelText="Non"
-                    onConfirm={() => { const id = (record as { id?: Id }).id; if (id != null) onDelete(id); }}
+                    onConfirm={() => {
+                      const id = (record as { id?: Id }).id;
+                      if (id != null) onDelete(id);
+                    }}
                   >
                     <Button size="small" danger icon={<DeleteOutlined />} />
                   </Popconfirm>
@@ -214,4 +212,3 @@ export default function CrudTab<T extends object = Record<string, unknown>>({
     </div>
   );
 }
-

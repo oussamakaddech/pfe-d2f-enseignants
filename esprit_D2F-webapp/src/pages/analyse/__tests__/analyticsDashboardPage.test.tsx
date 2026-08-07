@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   useRealDashboardImpact: vi.fn(),
@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
   useTrainingImpactFormations: vi.fn(),
 }));
 
-vi.mock("@/hooks/analytics/useAnalyticsQueries", () => ({
+vi.mock('@/hooks/analytics/useAnalyticsQueries', () => ({
   useRealDashboardImpact: mocks.useRealDashboardImpact,
   useAlerts: mocks.useAlerts,
   useUpdateAlert: mocks.useUpdateAlert,
@@ -20,19 +20,19 @@ vi.mock("@/hooks/analytics/useAnalyticsQueries", () => ({
   useTrainingImpactFormations: mocks.useTrainingImpactFormations,
 }));
 
-vi.mock("@/hooks/analyse/useAnalysePredictive", () => ({
+vi.mock('@/hooks/analyse/useAnalysePredictive', () => ({
   useSupplyDemand: mocks.useSupplyDemand,
 }));
 
-vi.mock("@/services/analyse/analyticsApi", () => ({
+vi.mock('@/services/analyse/analyticsApi', () => ({
   analyticsApi: { getTeachersByCell: mocks.getTeachersByCell },
 }));
 
-import { render, screen } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
-import { App } from "antd";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import AnalyticsDashboardPage from "@/pages/analyse/AnalyticsDashboardPage";
+import { render, screen } from '@testing-library/react';
+import { BrowserRouter } from 'react-router-dom';
+import { App } from 'antd';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import AnalyticsDashboardPage from '@/pages/analyse/AnalyticsDashboardPage';
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
@@ -61,7 +61,7 @@ const setup = () => {
       at_risk_teachers: [],
       top_formations: [],
       coverage_by_dept: [],
-      data_source: "database",
+      data_source: 'database',
     },
     isLoading: false,
     isFetching: false,
@@ -77,16 +77,16 @@ const setup = () => {
   mocks.getTeachersByCell.mockResolvedValue([]);
 };
 
-describe("AnalyticsDashboardPage", () => {
+describe('AnalyticsDashboardPage', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("affiche le titre du tableau de bord", () => {
+  it('affiche le titre du tableau de bord', () => {
     setup();
     render(<AnalyticsDashboardPage />, { wrapper });
     expect(screen.getByText(/Tableau de bord analytique/i)).toBeInTheDocument();
   });
 
-  it("affiche les KPI globaux (données réelles)", () => {
+  it('affiche les KPI globaux (données réelles)', () => {
     setup();
     render(<AnalyticsDashboardPage />, { wrapper });
     expect(screen.getByText(/Enseignants en base/i)).toBeInTheDocument();

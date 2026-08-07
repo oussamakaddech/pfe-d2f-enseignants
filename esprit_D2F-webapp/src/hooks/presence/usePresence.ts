@@ -1,12 +1,14 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import FormationWorkflowService, { type MesPresence } from "@/services/formation/FormationWorkflowService";
-import type { Formation } from "@/models/formation";
-import type { Id } from "@/models/common";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import FormationWorkflowService, {
+  type MesPresence,
+} from '@/services/formation/FormationWorkflowService';
+import type { Formation } from '@/models/formation';
+import type { Id } from '@/models/common';
 
 const KEYS = {
-  animateur: ["formations", "animateur"] as const,
-  seancePresences: (id: Id) => ["presences", "seance", id] as const,
-  seanceStats: (id: Id) => ["presences", "stats", id] as const,
+  animateur: ['formations', 'animateur'] as const,
+  seancePresences: (id: Id) => ['presences', 'seance', id] as const,
+  seanceStats: (id: Id) => ['presences', 'stats', id] as const,
 };
 
 export function useFormationsByAnimateur(enabled = true) {
@@ -36,10 +38,16 @@ export function useSeancePresenceStats(seanceId: Id | undefined) {
 export function useUpdatePresence() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, isPresent, commentaire }: { id: Id; isPresent: boolean; commentaire?: string }) =>
-      FormationWorkflowService.updatePresence(id, isPresent, commentaire),
-    onSuccess: (_, { id }) =>
-      qc.invalidateQueries({ queryKey: KEYS.seancePresences(id) }),
+    mutationFn: ({
+      id,
+      isPresent,
+      commentaire,
+    }: {
+      id: Id;
+      isPresent: boolean;
+      commentaire?: string;
+    }) => FormationWorkflowService.updatePresence(id, isPresent, commentaire),
+    onSuccess: (_, { id }) => qc.invalidateQueries({ queryKey: KEYS.seancePresences(id) }),
   });
 }
 
@@ -70,12 +78,10 @@ export function useMarkAllPresences() {
 
 export function useAggregatedPresences(seanceIds: Id[]) {
   return useQuery<unknown[][]>({
-    queryKey: ["presences", "aggregated", seanceIds],
+    queryKey: ['presences', 'aggregated', seanceIds],
     queryFn: () =>
       Promise.all(
-        seanceIds.map((id) =>
-          FormationWorkflowService.getPresencesBySeance(id).catch(() => []),
-        ),
+        seanceIds.map((id) => FormationWorkflowService.getPresencesBySeance(id).catch(() => [])),
       ),
     enabled: seanceIds.length > 0,
   });
@@ -83,7 +89,7 @@ export function useAggregatedPresences(seanceIds: Id[]) {
 
 export function useMesPresences() {
   return useQuery<MesPresence[]>({
-    queryKey: ["presences", "mes-presences"],
+    queryKey: ['presences', 'mes-presences'],
     queryFn: () => FormationWorkflowService.getMesPresences(),
   });
 }

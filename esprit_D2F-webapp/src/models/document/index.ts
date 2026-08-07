@@ -1,4 +1,4 @@
-import type { Id } from "../common";
+import type { Id } from '../common';
 
 export interface FormationDocument {
   idDocument: Id;

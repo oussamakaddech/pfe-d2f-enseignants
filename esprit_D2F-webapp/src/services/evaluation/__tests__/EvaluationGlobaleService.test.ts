@@ -7,7 +7,7 @@ const httpMocks = vi.hoisted(() => ({
   mockDelete: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     get: httpMocks.mockGet,
     post: httpMocks.mockPost,
@@ -19,7 +19,9 @@ vi.mock("@/services/httpClient", () => ({
 import EvaluationGlobaleService from '../EvaluationGlobaleService';
 
 describe('EvaluationGlobaleService', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('creates an evaluation globale', async () => {
     httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 1 } });
@@ -62,7 +64,3 @@ describe('EvaluationGlobaleService', () => {
     expect(httpMocks.mockDelete).toHaveBeenCalledOnce();
   });
 });
-
-
-
-

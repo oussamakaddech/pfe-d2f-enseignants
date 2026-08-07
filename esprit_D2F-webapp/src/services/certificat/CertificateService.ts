@@ -1,7 +1,7 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
-import type { Id } from "@/models/common";
-import type { Certificate } from "@/models/certificat";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
+import type { Id } from '@/models/common';
+import type { Certificate } from '@/models/certificat';
 
 const API_URL = `${config.CERTF_URL}/certificat/certificates`;
 const PDF_API_URL = `${config.CERTF_URL}/certificat/certificate-pdfs`;
@@ -18,15 +18,11 @@ const CertificateService = {
     return normalizeContent(response.data as Certificate[] | { content?: Certificate[] });
   },
 
-  createCertificate(
-    certificateData: Partial<Certificate>
-  ) {
+  createCertificate(certificateData: Partial<Certificate>) {
     return axios.post<Certificate>(API_URL, certificateData);
   },
 
-  async getCertificatesByFormation(
-    formationId: Id
-  ): Promise<Certificate[]> {
+  async getCertificatesByFormation(formationId: Id): Promise<Certificate[]> {
     const response = await axios.get<Certificate[]>(`${API_URL}/formation/${formationId}`);
     return normalizeContent(response.data as Certificate[] | { content?: Certificate[] });
   },
@@ -40,10 +36,7 @@ const CertificateService = {
     return normalizeContent(response.data as Certificate[] | { content?: Certificate[] });
   },
 
-  updateCertificate(
-    id: Id,
-    certificateData: Partial<Certificate>
-  ) {
+  updateCertificate(id: Id, certificateData: Partial<Certificate>) {
     return axios.put<Certificate>(`${API_URL}/${id}`, certificateData);
   },
 
@@ -54,7 +47,3 @@ const CertificateService = {
 };
 
 export default CertificateService;
-
-
-
-

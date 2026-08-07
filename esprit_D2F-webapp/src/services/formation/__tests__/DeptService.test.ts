@@ -7,7 +7,7 @@ const httpMocks = vi.hoisted(() => ({
   mockDelete: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     get: httpMocks.mockGet,
     post: httpMocks.mockPost,
@@ -17,7 +17,7 @@ vi.mock("@/services/httpClient", () => ({
   },
 }));
 
-vi.mock("@/services/auth/authHeaders", () => ({
+vi.mock('@/services/auth/authHeaders', () => ({
   optionalAuthHeader: vi.fn(() => ({ Authorization: 'Bearer test' })),
 }));
 
@@ -62,13 +62,18 @@ describe('DeptService', () => {
     await expect(DeptService.getDeptById(2)).resolves.toEqual({ id: 2, nom: 'INFO' });
 
     httpMocks.mockPut.mockResolvedValueOnce({ data: { id: 2, nom: 'INFO2' } });
-    await expect(DeptService.updateDept(2, { nom: 'INFO2' })).resolves.toEqual({ id: 2, nom: 'INFO2' });
+    await expect(DeptService.updateDept(2, { nom: 'INFO2' })).resolves.toEqual({
+      id: 2,
+      nom: 'INFO2',
+    });
 
     httpMocks.mockDelete.mockResolvedValueOnce({});
     await expect(DeptService.deleteDept(2)).resolves.toBeUndefined();
 
     httpMocks.mockPost.mockResolvedValueOnce({ data: { imported: 3 } });
-    await expect(DeptService.importDeptsExcel(new File(['x'], 'dept.xlsx'))).resolves.toEqual({ imported: 3 });
+    await expect(DeptService.importDeptsExcel(new File(['x'], 'dept.xlsx'))).resolves.toEqual({
+      imported: 3,
+    });
   });
 
   it('throws on non-404 error for getAllDepts', async () => {
@@ -92,6 +97,8 @@ describe('DeptService', () => {
     await expect(DeptService.deleteDept(99)).rejects.toThrow('server error');
 
     httpMocks.mockPost.mockRejectedValueOnce(err);
-    await expect(DeptService.importDeptsExcel(new File([''], 'x.xlsx'))).rejects.toThrow('server error');
+    await expect(DeptService.importDeptsExcel(new File([''], 'x.xlsx'))).rejects.toThrow(
+      'server error',
+    );
   });
 });

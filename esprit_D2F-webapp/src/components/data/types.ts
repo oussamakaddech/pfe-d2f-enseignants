@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import type { ColumnType } from "antd/es/table";
+import type { ReactNode } from 'react';
+import type { ColumnType } from 'antd/es/table';
 
 /** Paramètres de requête serveur (page 1-based). */
 export interface PaginationParams {
@@ -7,7 +7,7 @@ export interface PaginationParams {
   size: number;
   search?: string;
   sortBy?: string;
-  sortDir?: "asc" | "desc";
+  sortDir?: 'asc' | 'desc';
   filters?: Record<string, unknown>;
 }
 
@@ -54,11 +54,17 @@ export interface FilterOption {
 
 /** Configuration déclarative des filtres du FilterPanel. */
 export type FilterConfig =
-  | { type: "select"; key: string; label: string; options: FilterOption[]; placeholder?: string }
-  | { type: "multiSelect"; key: string; label: string; options: FilterOption[]; placeholder?: string }
-  | { type: "dateRange"; key: string; label: string }
-  | { type: "rangeSlider"; key: string; label: string; min: number; max: number; unit?: string }
-  | { type: "search"; key: string; label: string; placeholder?: string };
+  | { type: 'select'; key: string; label: string; options: FilterOption[]; placeholder?: string }
+  | {
+      type: 'multiSelect';
+      key: string;
+      label: string;
+      options: FilterOption[];
+      placeholder?: string;
+    }
+  | { type: 'dateRange'; key: string; label: string }
+  | { type: 'rangeSlider'; key: string; label: string; min: number; max: number; unit?: string }
+  | { type: 'search'; key: string; label: string; placeholder?: string };
 
 export type FilterValues = Record<string, unknown>;
 
@@ -71,17 +77,20 @@ export type FilterValues = Record<string, unknown>;
    ──────────────────────────────────────────────────────────────────────── */
 
 function valueAtPath(obj: unknown, path: string): unknown {
-  return path.split(".").reduce<unknown>(
-    (acc, key) => (acc && typeof acc === "object" ? (acc as Record<string, unknown>)[key] : undefined),
-    obj,
-  );
+  return path
+    .split('.')
+    .reduce<unknown>(
+      (acc, key) =>
+        acc && typeof acc === 'object' ? (acc as Record<string, unknown>)[key] : undefined,
+      obj,
+    );
 }
 
 function normalize(s: unknown): string {
-  return String(s ?? "")
+  return String(s ?? '')
     .toLowerCase()
-    .normalize("NFD")
-    .replaceAll(/[\u0300-\u036f]/g, "");
+    .normalize('NFD')
+    .replaceAll(/[\u0300-\u036f]/g, '');
 }
 
 export function makeClientFetchFn<T>(
@@ -105,7 +114,8 @@ export function makeClientFetchFn<T>(
 
     if (params.filters) {
       for (const [key, value] of Object.entries(params.filters)) {
-        if (value === undefined || value === null || (Array.isArray(value) && value.length === 0)) continue;
+        if (value === undefined || value === null || (Array.isArray(value) && value.length === 0))
+          continue;
         const predicate = options.filterPredicates?.[key];
         rows = predicate
           ? rows.filter((row) => predicate(row, value))
@@ -119,13 +129,13 @@ export function makeClientFetchFn<T>(
     }
 
     if (params.sortBy) {
-      const dir = params.sortDir === "desc" ? -1 : 1;
+      const dir = params.sortDir === 'desc' ? -1 : 1;
       const sortBy = params.sortBy;
       rows = [...rows].sort((a, b) => {
         const va = valueAtPath(a, sortBy);
         const vb = valueAtPath(b, sortBy);
-        if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
-        return normalize(va).localeCompare(normalize(vb), "fr") * dir;
+        if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+        return normalize(va).localeCompare(normalize(vb), 'fr') * dir;
       });
     }
 

@@ -1,13 +1,18 @@
-import { Row, Col, Card, Button, Space, Alert, Tag, Descriptions, App } from "antd";
-import { ReloadOutlined, RollbackOutlined, WarningOutlined, MonitorOutlined } from "@ant-design/icons";
+import { Row, Col, Card, Button, Space, Alert, Tag, Descriptions, App } from 'antd';
+import {
+  ReloadOutlined,
+  RollbackOutlined,
+  WarningOutlined,
+  MonitorOutlined,
+} from '@ant-design/icons';
 import {
   useModelStatus,
   useModelDrift,
   useModelRetrain,
   useModelRollback,
-} from "@/hooks/analytics/useAnalyticsQueries";
-import { ModelStatusPanel } from "@/components/analytics";
-import { AppPageHeader } from "@/components/common";
+} from '@/hooks/analytics/useAnalyticsQueries';
+import { ModelStatusPanel } from '@/components/analytics';
+import { AppPageHeader } from '@/components/common';
 
 /**
  * Page de monitoring modèle (ADMIN) : drift, statut, retraining, rollback.
@@ -21,15 +26,16 @@ export default function ModelMonitoringPage() {
 
   const onRetrain = () => {
     retrain.mutate(undefined, {
-      onSuccess: (r) => message.success(`Réentraînement ${r.statut} — accuracy ${r.accuracy_apres ?? "?"}`),
-      onError: () => message.error("Échec du réentraînement"),
+      onSuccess: (r) =>
+        message.success(`Réentraînement ${r.statut} — accuracy ${r.accuracy_apres ?? '?'}`),
+      onError: () => message.error('Échec du réentraînement'),
     });
   };
 
   const onRollback = () => {
     rollback.mutate(undefined, {
       onSuccess: (r) => message.info(`Rollback ${r.statut} — version ${r.ancienne_version}`),
-      onError: () => message.error("Échec du rollback"),
+      onError: () => message.error('Échec du rollback'),
     });
   };
 
@@ -43,7 +49,12 @@ export default function ModelMonitoringPage() {
             <Button icon={<ReloadOutlined />} loading={retrain.isPending} onClick={onRetrain}>
               Réentraîner
             </Button>
-            <Button danger icon={<RollbackOutlined />} loading={rollback.isPending} onClick={onRollback}>
+            <Button
+              danger
+              icon={<RollbackOutlined />}
+              loading={rollback.isPending}
+              onClick={onRollback}
+            >
               Rollback
             </Button>
           </Space>
@@ -69,25 +80,28 @@ export default function ModelMonitoringPage() {
           <Card title="Rapport de dérive" style={{ borderRadius: 12 }}>
             {(() => {
               if (drift.isLoading) return <div>Chargement…</div>;
-              if (drift.data) return (
-                <Descriptions column={1} size="small" bordered>
-                  <Descriptions.Item label="Métrique">{drift.data.metric}</Descriptions.Item>
-                  <Descriptions.Item label="Valeur actuelle">
-                    {drift.data.valeur_actuelle.toFixed(4)}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Seuil">{drift.data.seuil.toFixed(4)}</Descriptions.Item>
-                  <Descriptions.Item label="Jours depuis entraînement">
-                    {drift.data.jours_depuis_entrainement}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Statut">
-                    {drift.data.drift_detected ? (
-                      <Tag color="red">DRIFT</Tag>
-                    ) : (
-                      <Tag color="green">Stable</Tag>
-                    )}
-                  </Descriptions.Item>
-                </Descriptions>
-              );
+              if (drift.data)
+                return (
+                  <Descriptions column={1} size="small" bordered>
+                    <Descriptions.Item label="Métrique">{drift.data.metric}</Descriptions.Item>
+                    <Descriptions.Item label="Valeur actuelle">
+                      {drift.data.valeur_actuelle.toFixed(4)}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Seuil">
+                      {drift.data.seuil.toFixed(4)}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Jours depuis entraînement">
+                      {drift.data.jours_depuis_entrainement}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Statut">
+                      {drift.data.drift_detected ? (
+                        <Tag color="red">DRIFT</Tag>
+                      ) : (
+                        <Tag color="green">Stable</Tag>
+                      )}
+                    </Descriptions.Item>
+                  </Descriptions>
+                );
               return <Alert type="error" message="Rapport de dérive indisponible" />;
             })()}
           </Card>

@@ -2,7 +2,7 @@
  * BesoinInfoStep — Step 0: Contexte (UP, département, type, participants)
  * ─────────────────────────────────────────────────────────────────────── */
 
-import { Form, Select, Button, Tag, Input } from "antd";
+import { Form, Select, Button, Tag, Input } from 'antd';
 import {
   ApartmentOutlined,
   BookOutlined,
@@ -10,30 +10,30 @@ import {
   UserOutlined,
   UploadOutlined,
   DeleteOutlined,
-} from "@ant-design/icons";
-import SectionLabel from "@/components/besoin/SectionLabel";
-import ChoiceCardGroup from "@/components/besoin/ChoiceCardGroup";
-import type { LookupItem } from "@/models/common";
+} from '@ant-design/icons';
+import SectionLabel from '@/components/besoin/SectionLabel';
+import ChoiceCardGroup from '@/components/besoin/ChoiceCardGroup';
+import type { LookupItem } from '@/models/common';
 
 const { Option } = Select;
 const { TextArea } = Input;
 
 const typeOptions = [
   {
-    value: "INDIVIDUEL",
-    label: "Individuel",
-    description: "Une seule personne concernée par cette formation",
+    value: 'INDIVIDUEL',
+    label: 'Individuel',
+    description: 'Une seule personne concernée par cette formation',
     icon: <UserOutlined />,
-    accent: "#2563eb",
-    accentBg: "#eff6ff",
+    accent: '#2563eb',
+    accentBg: '#eff6ff',
   },
   {
-    value: "COLLECTIF",
-    label: "Collectif",
-    description: "Plusieurs participants regroupés sur une même session",
+    value: 'COLLECTIF',
+    label: 'Collectif',
+    description: 'Plusieurs participants regroupés sur une même session',
     icon: <TeamOutlined />,
-    accent: "#7c3aed",
-    accentBg: "#f5f3ff",
+    accent: '#7c3aed',
+    accentBg: '#f5f3ff',
   },
 ];
 
@@ -65,18 +65,44 @@ export default function BesoinInfoStep({
         title="Identification de la demande"
         hint="Précisez l'unité pédagogique et le département concernés"
       />
-      <div className="ant-row" style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-        <div style={{ flex: "1 1 45%" }}>
-          <Form.Item label="Unité Pédagogique (UP)" name="up" rules={[{ required: true, message: "Sélectionnez l'UP" }]}>
-            <Select placeholder="Sélectionner l'UP" size="large" showSearch optionFilterProp="children">
-              {ups.map((u) => <Option key={u.id} value={String(u.id)}>{u.name || u.libelle}</Option>)}
+      <div className="ant-row" style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 45%' }}>
+          <Form.Item
+            label="Unité Pédagogique (UP)"
+            name="up"
+            rules={[{ required: true, message: "Sélectionnez l'UP" }]}
+          >
+            <Select
+              placeholder="Sélectionner l'UP"
+              size="large"
+              showSearch
+              optionFilterProp="children"
+            >
+              {ups.map((u) => (
+                <Option key={u.id} value={String(u.id)}>
+                  {u.name || u.libelle}
+                </Option>
+              ))}
             </Select>
           </Form.Item>
         </div>
-        <div style={{ flex: "1 1 45%" }}>
-          <Form.Item label="Département" name="departement" rules={[{ required: true, message: "Sélectionnez le département" }]}>
-            <Select placeholder="Sélectionner le département" size="large" showSearch optionFilterProp="children">
-              {departements.map((d) => <Option key={d.id} value={String(d.id)}>{d.name || d.libelle}</Option>)}
+        <div style={{ flex: '1 1 45%' }}>
+          <Form.Item
+            label="Département"
+            name="departement"
+            rules={[{ required: true, message: 'Sélectionnez le département' }]}
+          >
+            <Select
+              placeholder="Sélectionner le département"
+              size="large"
+              showSearch
+              optionFilterProp="children"
+            >
+              {departements.map((d) => (
+                <Option key={d.id} value={String(d.id)}>
+                  {d.name || d.libelle}
+                </Option>
+              ))}
             </Select>
           </Form.Item>
         </div>
@@ -87,13 +113,16 @@ export default function BesoinInfoStep({
         title="Nature du besoin"
         hint="Une formation pour un enseignant ou un groupe ?"
       />
-      <Form.Item name="typeBesoin" rules={[{ required: true, message: "Sélectionnez le type de besoin" }]}>
+      <Form.Item
+        name="typeBesoin"
+        rules={[{ required: true, message: 'Sélectionnez le type de besoin' }]}
+      >
         <Form.Item noStyle shouldUpdate={(p, c) => p.typeBesoin !== c.typeBesoin}>
           {({ getFieldValue, setFieldsValue }) => (
             <ChoiceCardGroup
               variant="type"
               options={typeOptions}
-              value={getFieldValue("typeBesoin")}
+              value={getFieldValue('typeBesoin')}
               onChange={(v) => setFieldsValue({ typeBesoin: v })}
             />
           )}
@@ -102,17 +131,25 @@ export default function BesoinInfoStep({
 
       <Form.Item noStyle shouldUpdate={(p, c) => p.typeBesoin !== c.typeBesoin}>
         {({ getFieldValue }) => {
-          const typeBesoin = getFieldValue("typeBesoin");
-          const isIndividuel = typeBesoin === "INDIVIDUEL";
-          const isCollectif  = typeBesoin === "COLLECTIF";
-          const showSection  = canManageParticipants || isIndividuel || isCollectif;
+          const typeBesoin = getFieldValue('typeBesoin');
+          const isIndividuel = typeBesoin === 'INDIVIDUEL';
+          const isCollectif = typeBesoin === 'COLLECTIF';
+          const showSection = canManageParticipants || isIndividuel || isCollectif;
           if (!showSection) return null;
 
           let sectionTitle: string;
           let sectionHint: string;
-          if (canManageParticipants) { sectionTitle = "Liste des participants"; sectionHint = "Optionnel — vous pouvez importer un fichier Excel ou saisir manuellement"; }
-          else if (isCollectif)      { sectionTitle = "Liste des enseignants participants"; sectionHint = "Ajoutez les enseignants qui participeront à cette formation collective"; }
-          else                       { sectionTitle = "Autres enseignants participants"; sectionHint = "Optionnel — ajoutez les enseignants qui participeront avec vous"; }
+          if (canManageParticipants) {
+            sectionTitle = 'Liste des participants';
+            sectionHint =
+              'Optionnel — vous pouvez importer un fichier Excel ou saisir manuellement';
+          } else if (isCollectif) {
+            sectionTitle = 'Liste des enseignants participants';
+            sectionHint = 'Ajoutez les enseignants qui participeront à cette formation collective';
+          } else {
+            sectionTitle = 'Autres enseignants participants';
+            sectionHint = 'Optionnel — ajoutez les enseignants qui participeront avec vous';
+          }
 
           return (
             <>
@@ -120,20 +157,50 @@ export default function BesoinInfoStep({
               <Form.Item name="publicCible">
                 <div className="bf-import-box">
                   <div className="bf-import-box__toolbar">
-                    <Button icon={<UploadOutlined />} onClick={() => participantsFileInputRef.current?.click()} className="bf-btn bf-btn--ghost">
+                    <Button
+                      icon={<UploadOutlined />}
+                      onClick={() => participantsFileInputRef.current?.click()}
+                      className="bf-btn bf-btn--ghost"
+                    >
                       Importer Excel
                     </Button>
-                    <Button danger icon={<DeleteOutlined />} onClick={onClearParticipants} disabled={participantsCount === 0} className="bf-btn bf-btn--ghost">
+                    <Button
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={onClearParticipants}
+                      disabled={participantsCount === 0}
+                      className="bf-btn bf-btn--ghost"
+                    >
                       Vider la liste
                     </Button>
                     <div className="bf-import-box__stats">
-                      <Tag color="blue" className="bf-import-tag">{participantsCount} participant{participantsCount > 1 ? "s" : ""}</Tag>
-                      {lastImportCount > 0 && <Tag color="green" className="bf-import-tag">+{lastImportCount} importé{lastImportCount > 1 ? "s" : ""}</Tag>}
+                      <Tag color="blue" className="bf-import-tag">
+                        {participantsCount} participant{participantsCount > 1 ? 's' : ''}
+                      </Tag>
+                      {lastImportCount > 0 && (
+                        <Tag color="green" className="bf-import-tag">
+                          +{lastImportCount} importé{lastImportCount > 1 ? 's' : ''}
+                        </Tag>
+                      )}
                     </div>
                   </div>
-                  <input ref={participantsFileInputRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={onImportExcel} />
-                  <TextArea rows={5} placeholder="Un participant par ligne — format : Nom Prénom <email>" showCount maxLength={2000} className="bf-import-textarea" />
-                  <div className="bf-import-box__hint">Format attendu : <code>Nom Prénom &lt;email@esprit.tn&gt;</code></div>
+                  <input
+                    ref={participantsFileInputRef}
+                    type="file"
+                    accept=".xlsx,.xls"
+                    style={{ display: 'none' }}
+                    onChange={onImportExcel}
+                  />
+                  <TextArea
+                    rows={5}
+                    placeholder="Un participant par ligne — format : Nom Prénom <email>"
+                    showCount
+                    maxLength={2000}
+                    className="bf-import-textarea"
+                  />
+                  <div className="bf-import-box__hint">
+                    Format attendu : <code>Nom Prénom &lt;email@esprit.tn&gt;</code>
+                  </div>
                 </div>
               </Form.Item>
             </>

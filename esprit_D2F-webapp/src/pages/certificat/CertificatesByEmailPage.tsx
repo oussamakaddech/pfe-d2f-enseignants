@@ -1,16 +1,16 @@
-import { useState } from "react";
-import { Row, Col, Card, Typography, Tag, Empty, Statistic } from "antd";
+import { useState } from 'react';
+import { Row, Col, Card, Typography, Tag, Empty, Statistic } from 'antd';
 import {
   FilePdfOutlined,
   SafetyCertificateOutlined,
   EyeOutlined,
   FileProtectOutlined,
-} from "@ant-design/icons";
-import { useCertificatesByEmail } from "@/hooks/certificat/useCertificats";
-import CertificatePdfViewer, { type CertificatePdfViewerProps } from "./CertificatePdfViewer";
-import type { Certificate as CertificateModel } from "@/models/certificat";
-import { AppPageHeader, brand } from "@/components/common";
-import "@/styles/pages/certificates-by-email-page.css";
+} from '@ant-design/icons';
+import { useCertificatesByEmail } from '@/hooks/certificat/useCertificats';
+import CertificatePdfViewer, { type CertificatePdfViewerProps } from './CertificatePdfViewer';
+import type { Certificate as CertificateModel } from '@/models/certificat';
+import { AppPageHeader, brand } from '@/components/common';
+import '@/styles/pages/certificates-by-email-page.css';
 
 const { Text, Title } = Typography;
 
@@ -52,33 +52,38 @@ function CertificatesByEmailPage() {
         <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
           {certificates.map((cert: CertificateModel) => {
             const isSelected =
-              selectedCertificate &&
-              selectedCertificate.idCertificate === cert.idCertificate;
+              selectedCertificate && selectedCertificate.idCertificate === cert.idCertificate;
 
             return (
               <Col xs={24} sm={12} md={8} lg={6} key={cert.idCertificate}>
                 <button
                   type="button"
                   onClick={() => handleSelectCertificate(cert)}
-                  className={`certs-email-card ${isSelected ? "certs-email-card--selected" : ""}`}
+                  className={`certs-email-card ${isSelected ? 'certs-email-card--selected' : ''}`}
                 >
-                  <div className={`certs-email-icon ${isSelected ? "certs-email-icon--selected" : ""}`}>
+                  <div
+                    className={`certs-email-icon ${isSelected ? 'certs-email-icon--selected' : ''}`}
+                  >
                     <FilePdfOutlined
                       style={{
                         fontSize: 28,
-                        color: isSelected ? "#fff" : "#e53935",
+                        color: isSelected ? '#fff' : '#e53935',
                       }}
                     />
                   </div>
                   <Text
                     strong
-                    className={`certs-email-title ${isSelected ? "certs-email-title--selected" : ""}`}
+                    className={`certs-email-title ${isSelected ? 'certs-email-title--selected' : ''}`}
                   >
-                    {cert.titreFormation || "Certificat"}
+                    {cert.titreFormation || 'Certificat'}
                   </Text>
                   {cert.roleEnFormation && (
                     <Tag
-                      color={cert.roleEnFormation.toLowerCase().includes("animateur") ? "#059669" : "#2563eb"}
+                      color={
+                        cert.roleEnFormation.toLowerCase().includes('animateur')
+                          ? '#059669'
+                          : '#2563eb'
+                      }
                       className="certs-email-role-tag"
                     >
                       {cert.roleEnFormation}
@@ -113,7 +118,9 @@ function CertificatesByEmailPage() {
           }
         >
           <div style={{ height: 600 }}>
-            <CertificatePdfViewer certificate={selectedCertificate as CertificatePdfViewerProps["certificate"]} />
+            <CertificatePdfViewer
+              certificate={selectedCertificate as CertificatePdfViewerProps['certificate']}
+            />
           </div>
         </Card>
       )}
@@ -122,14 +129,3 @@ function CertificatesByEmailPage() {
 }
 
 export default CertificatesByEmailPage;
-
-
-
-
-
-
-
-
-
-
-

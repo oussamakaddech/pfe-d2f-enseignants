@@ -5,4 +5,4 @@
  * Implémentation canonique : `AppLayout`. Cet alias expose le nom attendu
  * par la spec design system sans dupliquer la logique de routage existante.
  */
-export { default } from "./AppLayout";
+export { default } from './AppLayout';

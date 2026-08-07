@@ -7,7 +7,7 @@ const httpMocks = vi.hoisted(() => ({
   mockDelete: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     get: httpMocks.mockGet,
     post: httpMocks.mockPost,
@@ -19,7 +19,9 @@ vi.mock("@/services/httpClient", () => ({
 import SeanceService from '../SeanceService';
 
 describe('SeanceService', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('creates a seance', async () => {
     httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 1, salle: 'A1' } });
@@ -56,7 +58,3 @@ describe('SeanceService', () => {
     expect(result).toEqual([{ id: 1 }, { id: 2 }]);
   });
 });
-
-
-
-

@@ -1,17 +1,22 @@
-import { useNavigate } from "react-router-dom";
-import { Section, Card } from "@/redesign/components/Section";
-import CompactKpi from "@/redesign/components/CompactKpi";
-import { KpiSkeleton, ErrorState } from "@/redesign/components/States";
-import { usePilotageDashboard } from "@/hooks/analyse/usePilotageDashboard";
+import { useNavigate } from 'react-router-dom';
+import { Section, Card } from '@/redesign/components/Section';
+import CompactKpi from '@/redesign/components/CompactKpi';
+import { KpiSkeleton, ErrorState } from '@/redesign/components/States';
+import { usePilotageDashboard } from '@/hooks/analyse/usePilotageDashboard';
 import {
-  RiseOutlined, TeamOutlined, WarningOutlined, NodeIndexOutlined,
-  CheckCircleOutlined, FallOutlined, ArrowRightOutlined,
-} from "@ant-design/icons";
-import { Table, Tag, Alert, List, Progress, Empty } from "antd";
-import "@/redesign/redesign.css";
+  RiseOutlined,
+  TeamOutlined,
+  WarningOutlined,
+  NodeIndexOutlined,
+  CheckCircleOutlined,
+  FallOutlined,
+  ArrowRightOutlined,
+} from '@ant-design/icons';
+import { Table, Tag, Alert, List, Progress, Empty } from 'antd';
+import '@/redesign/redesign.css';
 
-const POS_COLOR: Record<string, string> = { AU_DESSUS: "success", EN_DECA: "error" };
-const SEV_COLOR: Record<string, string> = { INFO: "blue", WARNING: "warning", CRITICAL: "error" };
+const POS_COLOR: Record<string, string> = { AU_DESSUS: 'success', EN_DECA: 'error' };
+const SEV_COLOR: Record<string, string> = { INFO: 'blue', WARNING: 'warning', CRITICAL: 'error' };
 
 /**
  * Synthèse compacte du tableau de bord de pilotage (nouvelles analyses backend).
@@ -29,7 +34,7 @@ export default function PilotageSummary({ horizon = 6 }: { readonly horizon?: nu
         <button
           type="button"
           className="rd-btn rd-btn-ghost"
-          onClick={() => navigate("/home/analytics/pilotage")}
+          onClick={() => navigate('/home/analytics/pilotage')}
         >
           Tableau complet <ArrowRightOutlined />
         </button>
@@ -81,7 +86,11 @@ export default function PilotageSummary({ horizon = 6 }: { readonly horizon?: nu
 
           {/* ── Benchmark + Corrélation ── */}
           <div className="rd-grid-2" style={{ marginTop: 16 }}>
-            <Card title="Benchmark départements" subtitle="Écart vs cohorte" icon={<TeamOutlined />}>
+            <Card
+              title="Benchmark départements"
+              subtitle="Écart vs cohorte"
+              icon={<TeamOutlined />}
+            >
               {data.benchmark_departements.length === 0 ? (
                 <Empty description="Aucune donnée département" />
               ) : (
@@ -91,25 +100,32 @@ export default function PilotageSummary({ horizon = 6 }: { readonly horizon?: nu
                   pagination={false}
                   dataSource={data.benchmark_departements.slice(0, 5)}
                   columns={[
-                    { title: "Département", dataIndex: "departement_id", key: "departement_id" },
+                    { title: 'Département', dataIndex: 'departement_id', key: 'departement_id' },
                     {
-                      title: "Niveau", dataIndex: "niveau_moyen", key: "niveau_moyen",
+                      title: 'Niveau',
+                      dataIndex: 'niveau_moyen',
+                      key: 'niveau_moyen',
                       render: (v: number) => v.toFixed(2),
                     },
                     {
-                      title: "Écart", dataIndex: "ecart_vs_cohorte", key: "ecart_vs_cohorte",
+                      title: 'Écart',
+                      dataIndex: 'ecart_vs_cohorte',
+                      key: 'ecart_vs_cohorte',
                       render: (v: number) => {
-                        const color = v >= 0 ? "success" : "error";
-                        const sign = v >= 0 ? "+" : "";
+                        const color = v >= 0 ? 'success' : 'error';
+                        const sign = v >= 0 ? '+' : '';
                         return (
                           <Tag color={color}>
-                            {sign}{v.toFixed(2)}
+                            {sign}
+                            {v.toFixed(2)}
                           </Tag>
                         );
                       },
                     },
                     {
-                      title: "Position", dataIndex: "position", key: "position",
+                      title: 'Position',
+                      dataIndex: 'position',
+                      key: 'position',
                       render: (p: string) => <Tag color={POS_COLOR[p]}>{p}</Tag>,
                     },
                   ]}
@@ -118,19 +134,23 @@ export default function PilotageSummary({ horizon = 6 }: { readonly horizon?: nu
             </Card>
 
             <Card title="Corrélation besoins ↔ gaps" icon={<NodeIndexOutlined />}>
-              <div style={{ display: "flex", gap: 24, alignItems: "center", marginBottom: 12 }}>
+              <div style={{ display: 'flex', gap: 24, alignItems: 'center', marginBottom: 12 }}>
                 <div>
-                  <div style={{ fontSize: 12, color: "var(--rd-muted)" }}>Coefficient de Pearson</div>
+                  <div style={{ fontSize: 12, color: 'var(--rd-muted)' }}>
+                    Coefficient de Pearson
+                  </div>
                   <div style={{ fontSize: 28, fontWeight: 600 }}>
                     {data.correlation_besoins_gaps.coefficient_pearson == null
-                      ? "—"
+                      ? '—'
                       : data.correlation_besoins_gaps.coefficient_pearson.toFixed(2)}
                   </div>
                 </div>
                 <Tag color="blue">{data.correlation_besoins_gaps.interpretation}</Tag>
               </div>
               <Progress
-                percent={Math.round(Math.abs(data.correlation_besoins_gaps.coefficient_pearson ?? 0) * 100)}
+                percent={Math.round(
+                  Math.abs(data.correlation_besoins_gaps.coefficient_pearson ?? 0) * 100,
+                )}
                 showInfo={false}
                 strokeColor="#1677ff"
               />
@@ -142,7 +162,9 @@ export default function PilotageSummary({ horizon = 6 }: { readonly horizon?: nu
                   renderItem={(a) => (
                     <List.Item>
                       <Tag color={SEV_COLOR[a.severite]}>{a.severite}</Tag>
-                      <span style={{ fontSize: 12.5 }}><strong>{a.titre}</strong> — {a.message}</span>
+                      <span style={{ fontSize: 12.5 }}>
+                        <strong>{a.titre}</strong> — {a.message}
+                      </span>
                     </List.Item>
                   )}
                 />

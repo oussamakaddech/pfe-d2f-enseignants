@@ -1,6 +1,6 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
-import type { EvaluationGlobale } from "@/models/evaluation";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
+import type { EvaluationGlobale } from '@/models/evaluation';
 
 const API_URL = `${config.EVALUATION_URL}/evaluation/evaluations-globales`;
 
@@ -23,12 +23,17 @@ const EvaluationGlobaleService = {
     return response.data;
   },
 
-  async getEvaluationGlobaleByFormationId(formationId: number | string): Promise<EvaluationGlobale> {
+  async getEvaluationGlobaleByFormationId(
+    formationId: number | string,
+  ): Promise<EvaluationGlobale> {
     const response = await axios.get(`${API_URL}/formation/${formationId}`);
     return response.data;
   },
 
-  async updateEvaluationGlobale(id: number | string, data: Record<string, unknown>): Promise<EvaluationGlobale> {
+  async updateEvaluationGlobale(
+    id: number | string,
+    data: Record<string, unknown>,
+  ): Promise<EvaluationGlobale> {
     const response = await axios.put(`${API_URL}/${id}`, data);
     return response.data;
   },

@@ -1,6 +1,6 @@
-import { Form, Input, Modal, Select } from "antd";
-import type { FormInstance } from "antd";
-import type useCompetenceCrud from "@/hooks/competence/useCompetenceCrud";
+import { Form, Input, Modal, Select } from 'antd';
+import type { FormInstance } from 'antd';
+import type useCompetenceCrud from '@/hooks/competence/useCompetenceCrud';
 
 const { Option } = Select;
 
@@ -9,11 +9,14 @@ interface CompetenceFormModalProps {
   compForm: FormInstance;
 }
 
-export default function CompetenceFormModal({ crud, compForm }: Readonly<CompetenceFormModalProps>) {
+export default function CompetenceFormModal({
+  crud,
+  compForm,
+}: Readonly<CompetenceFormModalProps>) {
   return (
     <Modal
       forceRender
-      title={crud.editingComp ? "Modifier la competence" : "Nouvelle competence"}
+      title={crud.editingComp ? 'Modifier la competence' : 'Nouvelle competence'}
       open={crud.compModal}
       onOk={() => crud.handleCompSubmit(compForm)}
       onCancel={() => crud.setCompModal(false)}
@@ -39,9 +42,7 @@ export default function CompetenceFormModal({ crud, compForm }: Readonly<Compete
         <Form.Item
           name="domaineId"
           label="Domaine"
-          rules={[
-            { required: !crud.editingComp, message: "Domaine obligatoire" },
-          ]}
+          rules={[{ required: !crud.editingComp, message: 'Domaine obligatoire' }]}
         >
           <Select
             placeholder="Selectionner un domaine"
@@ -59,15 +60,11 @@ export default function CompetenceFormModal({ crud, compForm }: Readonly<Compete
         <Form.Item
           name="code"
           label="Code"
-          rules={[{ required: true, message: "Code obligatoire" }]}
+          rules={[{ required: true, message: 'Code obligatoire' }]}
         >
           <Input placeholder="ex: INF-01" />
         </Form.Item>
-        <Form.Item
-          name="nom"
-          label="Nom"
-          rules={[{ required: true, message: "Nom obligatoire" }]}
-        >
+        <Form.Item name="nom" label="Nom" rules={[{ required: true, message: 'Nom obligatoire' }]}>
           <Input />
         </Form.Item>
         <Form.Item name="description" label="Description">

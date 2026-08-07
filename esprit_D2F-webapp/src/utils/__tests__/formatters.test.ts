@@ -64,8 +64,12 @@ describe('formatters', () => {
   });
 
   describe('formatRelativeTime', () => {
-    beforeEach(() => { vi.useFakeTimers(); });
-    afterEach(() => { vi.useRealTimers(); });
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
 
     it('returns em dash for null', () => {
       expect(formatRelativeTime(null)).toBe('—');
@@ -202,7 +206,3 @@ describe('formatters', () => {
     });
   });
 });
-
-
-
-

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Empty } from "antd";
+import { useState } from 'react';
+import { Empty } from 'antd';
 
 interface BarItem {
   label: string;
@@ -10,7 +10,7 @@ interface BarItem {
 export default function HorizontalBarChart({
   items,
   maxValue,
-  color = "#6366f1",
+  color = '#6366f1',
   height = 36,
   showValues = true,
   animated = true,
@@ -30,8 +30,16 @@ export default function HorizontalBarChart({
 
   const max = maxValue ?? Math.max(1, ...items.map((i) => i.value));
   const palette = [
-    "#6366f1", "#8b5cf6", "#a78bfa", "#0ea5e9", "#06b6d4",
-    "#10b981", "#f59e0b", "#f97316", "#ef4444", "#ec4899",
+    '#6366f1',
+    '#8b5cf6',
+    '#a78bfa',
+    '#0ea5e9',
+    '#06b6d4',
+    '#10b981',
+    '#f59e0b',
+    '#f97316',
+    '#ef4444',
+    '#ec4899',
   ];
 
   return (
@@ -59,7 +67,7 @@ export default function HorizontalBarChart({
                   width: `${pct}%`,
                   background: `linear-gradient(90deg, ${barColor}, ${barColor}cc)`,
                   height,
-                  boxShadow: isHovered ? `0 0 12px ${barColor}40` : "none",
+                  boxShadow: isHovered ? `0 0 12px ${barColor}40` : 'none',
                   transform: undefined,
                 }}
               />
@@ -68,10 +76,10 @@ export default function HorizontalBarChart({
                   className="hbc-val"
                   style={{
                     opacity: isHovered ? 1 : 0.8,
-                    transform: isHovered ? "scale(1.05)" : "scale(1)",
+                    transform: isHovered ? 'scale(1.05)' : 'scale(1)',
                   }}
                 >
-                  {item.value.toLocaleString("fr-FR")}
+                  {item.value.toLocaleString('fr-FR')}
                 </span>
               )}
             </div>

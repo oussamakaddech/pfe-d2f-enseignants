@@ -10,19 +10,20 @@
  *  - Expose les actions : marquer comme lu, tout marquer lu, supprimer, vider —
  *    chacune synchronisée avec le backend.
  */
-import {
-  createContext, memo, useCallback, useEffect, useMemo, useRef, useState,
-} from "react";
-import { useImmer } from "use-immer";
-import type { ReactNode } from "react";
-import { v4 as uuidv4 } from "uuid";
+import { createContext, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useImmer } from 'use-immer';
+import type { ReactNode } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import type {
-  AppNotification, ConnectionStatus, NotificationPayload, NotificationSocketMessage,
-} from "@/models/notification";
-import { config } from "@/config/env";
-import { createNotificationTransport } from "@/services/notification";
-import { notificationService } from "@/services/notification/notificationService";
-import { useAuth } from "@/hooks/auth";
+  AppNotification,
+  ConnectionStatus,
+  NotificationPayload,
+  NotificationSocketMessage,
+} from '@/models/notification';
+import { config } from '@/config/env';
+import { createNotificationTransport } from '@/services/notification';
+import { notificationService } from '@/services/notification/notificationService';
+import { useAuth } from '@/hooks/auth';
 
 export interface NotificationContextValue {
   notifications: AppNotification[];
@@ -37,7 +38,7 @@ export interface NotificationContextValue {
 
 export const NotificationContext = createContext<NotificationContextValue | undefined>(undefined);
 
-const STORAGE_PREFIX = "d2f_notifications_";
+const STORAGE_PREFIX = 'd2f_notifications_';
 const MAX_NOTIFICATIONS = 100;
 
 interface NotificationProviderProps {
@@ -45,7 +46,7 @@ interface NotificationProviderProps {
 }
 
 function storageKeyFor(userId: string | number | undefined): string {
-  return `${STORAGE_PREFIX}${userId ?? "anonymous"}`;
+  return `${STORAGE_PREFIX}${userId ?? 'anonymous'}`;
 }
 
 function mergeBackendNotifications(draft: AppNotification[], real: AppNotification[]): void {
@@ -94,14 +95,16 @@ function applyIncomingNotification(draft: AppNotification[], msg: NotificationSo
   if (draft.length > MAX_NOTIFICATIONS) draft.length = MAX_NOTIFICATIONS;
 }
 
-const NotificationProvider = memo(function NotificationProvider({ children }: NotificationProviderProps) {
+const NotificationProvider = memo(function NotificationProvider({
+  children,
+}: NotificationProviderProps) {
   const { user } = useAuth();
   const userId = user?.userId;
 
-  const [notifications, setNotifications] = useImmer<AppNotification[]>(
-    () => loadPersisted(userId),
+  const [notifications, setNotifications] = useImmer<AppNotification[]>(() =>
+    loadPersisted(userId),
   );
-  const [status, setStatus] = useState<ConnectionStatus>("connecting");
+  const [status, setStatus] = useState<ConnectionStatus>('connecting');
   const transportRef = useRef<ReturnType<typeof createNotificationTransport> | null>(null);
 
   // Persistance par utilisateur (recherche au changement d'utilisateur).
@@ -120,14 +123,17 @@ const NotificationProvider = memo(function NotificationProvider({ children }: No
   // Chargement initial des VRAIES notifications depuis le backend.
   useEffect(() => {
     let cancelled = false;
-    notificationService.list({ size: MAX_NOTIFICATIONS })
+    notificationService
+      .list({ size: MAX_NOTIFICATIONS })
       .then((real) => {
         if (cancelled) return;
-        setNotifications((draft) => { mergeBackendNotifications(draft, real); });
-        if (!config.NOTIFICATIONS_WS_URL) setStatus("open");
+        setNotifications((draft) => {
+          mergeBackendNotifications(draft, real);
+        });
+        if (!config.NOTIFICATIONS_WS_URL) setStatus('open');
       })
       .catch(() => {
-        if (!config.NOTIFICATIONS_WS_URL) setStatus("closed");
+        if (!config.NOTIFICATIONS_WS_URL) setStatus('closed');
       });
     return () => {
       cancelled = true;
@@ -143,7 +149,7 @@ const NotificationProvider = memo(function NotificationProvider({ children }: No
         });
       },
       onStatus: (s) => setStatus(s),
-      onError: () => setStatus("closed"),
+      onError: () => setStatus('closed'),
     });
     transportRef.current = transport;
     transport.connect();
@@ -153,63 +159,82 @@ const NotificationProvider = memo(function NotificationProvider({ children }: No
     };
   }, [setNotifications]);
 
-  const markAsRead = useCallback((id: string) => {
-    setNotifications((draft) => {
-      const target = draft.find((n) => n.id === id);
-      if (target) target.read = true;
-    });
-    notificationService.markAsRead(id).catch(() => { /* best-effort */ });
-  }, [setNotifications]);
+  const markAsRead = useCallback(
+    (id: string) => {
+      setNotifications((draft) => {
+        const target = draft.find((n) => n.id === id);
+        if (target) target.read = true;
+      });
+      notificationService.markAsRead(id).catch(() => {
+        /* best-effort */
+      });
+    },
+    [setNotifications],
+  );
 
   const markAllAsRead = useCallback(() => {
     setNotifications((draft) => {
-      draft.forEach((n) => { n.read = true; });
+      draft.forEach((n) => {
+        n.read = true;
+      });
     });
-    notificationService.markAllAsRead().catch(() => { /* best-effort */ });
+    notificationService.markAllAsRead().catch(() => {
+      /* best-effort */
+    });
   }, [setNotifications]);
 
-  const remove = useCallback((id: string) => {
-    setNotifications((draft) => {
-      const idx = draft.findIndex((n) => n.id === id);
-      if (idx !== -1) draft.splice(idx, 1);
-    });
-    notificationService.remove(id).catch(() => { /* best-effort */ });
-  }, [setNotifications]);
+  const remove = useCallback(
+    (id: string) => {
+      setNotifications((draft) => {
+        const idx = draft.findIndex((n) => n.id === id);
+        if (idx !== -1) draft.splice(idx, 1);
+      });
+      notificationService.remove(id).catch(() => {
+        /* best-effort */
+      });
+    },
+    [setNotifications],
+  );
 
   const clearAll = useCallback(() => {
     setNotifications([]);
-    notificationService.clearAll().catch(() => { /* best-effort */ });
-  }, [setNotifications]);
-
-  const addNotification = useCallback((payload: NotificationPayload) => {
-    if (payload.recipient) {
-      // Création côté serveur (données réelles) si un destinataire est fourni.
-      notificationService.create(payload).catch(() => {
-        // Fallback local si pas de droits / service indisponible.
-        setNotifications((draft) => {
-          const notification: AppNotification = {
-            id: uuidv4(),
-            read: false,
-            createdAt: payload.createdAt ?? new Date().toISOString(),
-            ...payload,
-          } as AppNotification;
-          draft.unshift(notification);
-          if (draft.length > MAX_NOTIFICATIONS) draft.length = MAX_NOTIFICATIONS;
-        });
-      });
-      return;
-    }
-    setNotifications((draft) => {
-      const notification: AppNotification = {
-        id: uuidv4(),
-        read: false,
-        createdAt: payload.createdAt ?? new Date().toISOString(),
-        ...payload,
-      } as AppNotification;
-      draft.unshift(notification);
-      if (draft.length > MAX_NOTIFICATIONS) draft.length = MAX_NOTIFICATIONS;
+    notificationService.clearAll().catch(() => {
+      /* best-effort */
     });
   }, [setNotifications]);
+
+  const addNotification = useCallback(
+    (payload: NotificationPayload) => {
+      if (payload.recipient) {
+        // Création côté serveur (données réelles) si un destinataire est fourni.
+        notificationService.create(payload).catch(() => {
+          // Fallback local si pas de droits / service indisponible.
+          setNotifications((draft) => {
+            const notification: AppNotification = {
+              id: uuidv4(),
+              read: false,
+              createdAt: payload.createdAt ?? new Date().toISOString(),
+              ...payload,
+            } as AppNotification;
+            draft.unshift(notification);
+            if (draft.length > MAX_NOTIFICATIONS) draft.length = MAX_NOTIFICATIONS;
+          });
+        });
+        return;
+      }
+      setNotifications((draft) => {
+        const notification: AppNotification = {
+          id: uuidv4(),
+          read: false,
+          createdAt: payload.createdAt ?? new Date().toISOString(),
+          ...payload,
+        } as AppNotification;
+        draft.unshift(notification);
+        if (draft.length > MAX_NOTIFICATIONS) draft.length = MAX_NOTIFICATIONS;
+      });
+    },
+    [setNotifications],
+  );
 
   const unreadCount = useMemo(
     () => notifications.reduce((acc, n) => (n.read ? acc : acc + 1), 0),
@@ -218,17 +243,28 @@ const NotificationProvider = memo(function NotificationProvider({ children }: No
 
   const value = useMemo<NotificationContextValue>(
     () => ({
-      notifications, unreadCount, status,
-      markAsRead, markAllAsRead, remove, clearAll, addNotification,
+      notifications,
+      unreadCount,
+      status,
+      markAsRead,
+      markAllAsRead,
+      remove,
+      clearAll,
+      addNotification,
     }),
-    [notifications, unreadCount, status, markAsRead, markAllAsRead, remove, clearAll, addNotification],
+    [
+      notifications,
+      unreadCount,
+      status,
+      markAsRead,
+      markAllAsRead,
+      remove,
+      clearAll,
+      addNotification,
+    ],
   );
 
-  return (
-    <NotificationContext.Provider value={value}>
-      {children}
-    </NotificationContext.Provider>
-  );
+  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 });
 
 export default memo(NotificationProvider);

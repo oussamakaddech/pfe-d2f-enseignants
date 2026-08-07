@@ -16,8 +16,7 @@
   position: relative;
   margin-bottom: 24px;
   padding: 28px 32px;
-  background:
-    linear-gradient(135deg, #ffffff 0%, #f0fdf4 50%, #dcfce7 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 50%, #dcfce7 100%);
   border: 1px solid rgba(16, 185, 129, 0.12);
   border-radius: 20px;
   box-shadow:
@@ -28,7 +27,7 @@
 
 .fc-hero::before,
 .fc-hero::after {
-  content: "";
+  content: '';
   position: absolute;
   border-radius: 50%;
   pointer-events: none;
@@ -127,7 +126,7 @@
 }
 
 .fc-stat-card::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
@@ -136,14 +135,24 @@
   border-radius: 16px 16px 0 0;
 }
 
-.fc-stat-card--total::before { background: linear-gradient(90deg, #10b981, #6ee7b7); }
-.fc-stat-card--open::before  { background: linear-gradient(90deg, #2563eb, #60a5fa); }
-.fc-stat-card--closed::before { background: linear-gradient(90deg, #ef4444, #f87171); }
-.fc-stat-card--types::before  { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
+.fc-stat-card--total::before {
+  background: linear-gradient(90deg, #10b981, #6ee7b7);
+}
+.fc-stat-card--open::before {
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+}
+.fc-stat-card--closed::before {
+  background: linear-gradient(90deg, #ef4444, #f87171);
+}
+.fc-stat-card--types::before {
+  background: linear-gradient(90deg, #7c3aed, #a78bfa);
+}
 
 .fc-stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .fc-stat-icon {
@@ -223,7 +232,9 @@
 
 .formation-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.12),
+    0 4px 8px rgba(0, 0, 0, 0.06);
 }
 
 .formation-card:focus-visible {
@@ -337,30 +348,72 @@
 }
 
 /* ── Icon semantic colors ────────────────────────────────────────────────── */
-.icon-primary  { color: #10b981; }
-.icon-muted    { color: #64748b; }
-.icon-muted:hover { color: #1f2937; }
-.icon-disabled { color: #cbd5e0; cursor: not-allowed; }
-.icon-error    { color: #ef4444; }
-.icon-error:hover { color: #dc2626; background: #fef2f2; }
-.icon-success  { color: #10b981; }
-.icon-success:hover { color: #059669; background: #ecfdf5; }
-.icon-info     { color: #3b82f6; }
-.icon-info:hover { color: #2563eb; background: #eff6ff; }
+.icon-primary {
+  color: #10b981;
+}
+.icon-muted {
+  color: #64748b;
+}
+.icon-muted:hover {
+  color: #1f2937;
+}
+.icon-disabled {
+  color: #cbd5e0;
+  cursor: not-allowed;
+}
+.icon-error {
+  color: #ef4444;
+}
+.icon-error:hover {
+  color: #dc2626;
+  background: #fef2f2;
+}
+.icon-success {
+  color: #10b981;
+}
+.icon-success:hover {
+  color: #059669;
+  background: #ecfdf5;
+}
+.icon-info {
+  color: #3b82f6;
+}
+.icon-info:hover {
+  color: #2563eb;
+  background: #eff6ff;
+}
 
 /* ── Type header gradients ───────────────────────────────────────────────── */
-.type-INTERNE    { background: linear-gradient(135deg, #2563eb, #06b6d4); }
-.type-EXTERNE    { background: linear-gradient(135deg, #7c3aed, #a855f7); }
-.type-EN_LIGNE   { background: linear-gradient(135deg, #0891b2, #2563eb); }
-.type-INTERNE_   { background: linear-gradient(135deg, #2563eb, #06b6d4); }
-.type-EXTERNE_   { background: linear-gradient(135deg, #7c3aed, #a855f7); }
-.type-default    { background: linear-gradient(135deg, #64748b, #94a3b8); }
+.type-INTERNE {
+  background: linear-gradient(135deg, #2563eb, #06b6d4);
+}
+.type-EXTERNE {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+}
+.type-EN_LIGNE {
+  background: linear-gradient(135deg, #0891b2, #2563eb);
+}
+.type-INTERNE_ {
+  background: linear-gradient(135deg, #2563eb, #06b6d4);
+}
+.type-EXTERNE_ {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+}
+.type-default {
+  background: linear-gradient(135deg, #64748b, #94a3b8);
+}
 
 /* ── Badge blink animation for open status ───────────────────────────────── */
 @keyframes softPulse {
-  0%   { opacity: 1; }
-  50%  { opacity: 0.6; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 .blink-open {

@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useRiceEnseignants } from "@/hooks/analyse/useRiceService";
-import type { EnseignantRef } from "@/pages/competence/rice/riceTypes";
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRiceEnseignants } from '@/hooks/analyse/useRiceService';
+import type { EnseignantRef } from '@/pages/competence/rice/riceTypes';
 
 interface MsgApi {
   warning: (msg: string) => void;
@@ -13,7 +13,7 @@ export function useRiceEnseignantsLoader(departement: string, msgApi: MsgApi) {
   const [enseignantsLoadSlow, setEnseignantsLoadSlow] = useState(false);
   const [ignoreEnseignants, setIgnoreEnseignants] = useState(false);
 
-  const riceEnsQuery = useRiceEnseignants(departement === "auto" ? null : departement);
+  const riceEnsQuery = useRiceEnseignants(departement === 'auto' ? null : departement);
   const ensSlowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadEnseignants = useCallback(() => {
@@ -41,7 +41,9 @@ export function useRiceEnseignantsLoader(departement: string, msgApi: MsgApi) {
 
     if (riceEnsQuery.data) {
       if (ensSlowTimerRef.current) clearTimeout(ensSlowTimerRef.current);
-      setAllEnseignants(Array.isArray(riceEnsQuery.data) ? (riceEnsQuery.data as EnseignantRef[]) : []);
+      setAllEnseignants(
+        Array.isArray(riceEnsQuery.data) ? (riceEnsQuery.data as EnseignantRef[]) : [],
+      );
       setEnseignantsLoading(false);
       setEnseignantsLoadSlow(false);
     }
@@ -51,23 +53,34 @@ export function useRiceEnseignantsLoader(departement: string, msgApi: MsgApi) {
       const err = riceEnsQuery.error as { response?: { status?: number } };
       const status = err?.response?.status;
       if (status === 401 || status === 403) {
-        setEnseignantsError("Session expirée. Veuillez vous reconnecter pour charger les enseignants.");
-        msgApi.warning("Session expirée — reconnectez-vous");
+        setEnseignantsError(
+          'Session expirée. Veuillez vous reconnecter pour charger les enseignants.',
+        );
+        msgApi.warning('Session expirée — reconnectez-vous');
       } else {
-        setEnseignantsError("Impossible de charger les enseignants. Vérifiez votre connexion ou contactez l'admin.");
-        msgApi.warning("Enseignants non chargés — affectation manuelle uniquement");
+        setEnseignantsError(
+          "Impossible de charger les enseignants. Vérifiez votre connexion ou contactez l'admin.",
+        );
+        msgApi.warning('Enseignants non chargés — affectation manuelle uniquement');
       }
       setAllEnseignants([]);
       setEnseignantsLoading(false);
       setEnseignantsLoadSlow(false);
     }
 
-    return () => { if (ensSlowTimerRef.current) clearTimeout(ensSlowTimerRef.current); };
+    return () => {
+      if (ensSlowTimerRef.current) clearTimeout(ensSlowTimerRef.current);
+    };
   }, [riceEnsQuery.data, riceEnsQuery.isLoading, riceEnsQuery.error, ignoreEnseignants, msgApi]);
 
   return {
-    allEnseignants, setAllEnseignants,
-    enseignantsLoading, enseignantsError, enseignantsLoadSlow, ignoreEnseignants,
-    loadEnseignants, continueWithoutEnseignants,
+    allEnseignants,
+    setAllEnseignants,
+    enseignantsLoading,
+    enseignantsError,
+    enseignantsLoadSlow,
+    ignoreEnseignants,
+    loadEnseignants,
+    continueWithoutEnseignants,
   };
 }

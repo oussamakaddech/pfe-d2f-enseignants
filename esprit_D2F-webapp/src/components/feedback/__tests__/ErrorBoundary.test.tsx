@@ -12,7 +12,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary>
         <div>ok content</div>
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
     expect(screen.getByText('ok content')).toBeInTheDocument();
   });
@@ -21,7 +21,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary>
         <Boom />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
     expect(screen.getByText(/Une erreur est survenue/i)).toBeInTheDocument();
     expect(screen.getAllByText(/kaboom/i).length).toBeGreaterThan(0);
@@ -36,7 +36,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary>
         <Toggle />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
     expect(screen.getByText(/Une erreur est survenue/i)).toBeInTheDocument();
     shouldThrow = false;

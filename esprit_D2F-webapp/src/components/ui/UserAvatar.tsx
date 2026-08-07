@@ -1,5 +1,5 @@
-import { memo, useMemo } from "react";
-import { Avatar } from "antd";
+import { memo, useMemo } from 'react';
+import { Avatar } from 'antd';
 
 interface UserAvatarProps {
   readonly firstName?: string;
@@ -14,13 +14,13 @@ interface UserAvatarProps {
 
 /** Palette d'arrière-plans dérivée du nom (stable pour une même personne). */
 const AVATAR_COLORS = [
-  "var(--color-primary)",
-  "var(--color-accent)",
-  "var(--color-success)",
-  "var(--color-warning)",
-  "var(--color-info)",
-  "#7c3aed",
-  "var(--color-primary-light)",
+  'var(--color-primary)',
+  'var(--color-accent)',
+  'var(--color-success)',
+  'var(--color-warning)',
+  'var(--color-info)',
+  '#7c3aed',
+  'var(--color-primary-light)',
 ] as const;
 
 function hashString(input: string): number {
@@ -43,25 +43,18 @@ const UserAvatar = memo(function UserAvatar({
   size = 40,
   className,
 }: UserAvatarProps) {
-  const name = `${firstName ?? ""} ${lastName ?? ""}`.trim() || (fallbackText ?? "");
+  const name = `${firstName ?? ''} ${lastName ?? ''}`.trim() || (fallbackText ?? '');
 
   const initials = useMemo(() => {
-    const fromNames = `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase();
+    const fromNames = `${firstName?.[0] ?? ''}${lastName?.[0] ?? ''}`.toUpperCase();
     if (fromNames) return fromNames;
-    return (fallbackText ?? "?").slice(0, 2).toUpperCase();
+    return (fallbackText ?? '?').slice(0, 2).toUpperCase();
   }, [firstName, lastName, fallbackText]);
 
   const background = AVATAR_COLORS[hashString(name || initials) % AVATAR_COLORS.length];
 
   if (photoUrl) {
-    return (
-      <Avatar
-        className={className}
-        size={size}
-        src={photoUrl}
-        alt={name}
-      />
-    );
+    return <Avatar className={className} size={size} src={photoUrl} alt={name} />;
   }
 
   return (

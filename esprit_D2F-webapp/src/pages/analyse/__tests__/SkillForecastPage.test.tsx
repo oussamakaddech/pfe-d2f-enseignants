@@ -4,7 +4,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import SkillForecastPage from '../SkillForecastPage';
 
 vi.mock('@/hooks/analyse/useNewFeatures', () => ({
-  useForecast: vi.fn(() => ({ data: undefined, isLoading: false, isError: false, refetch: vi.fn() })),
+  useForecast: vi.fn(() => ({
+    data: undefined,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  })),
 }));
 
 vi.mock('@/hooks/auth/useAuth', () => ({
@@ -23,7 +28,7 @@ describe('SkillForecastPage', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <SkillForecastPage />
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
     expect(screen.getByText('Prévision des niveaux de compétence')).toBeInTheDocument();
     expect(screen.getByText('Sélectionnez un enseignant')).toBeInTheDocument();

@@ -1,5 +1,5 @@
-import { memo } from "react";
-import { Pagination as AntPagination } from "antd";
+import { memo } from 'react';
+import { Pagination as AntPagination } from 'antd';
 
 interface PaginationProps {
   readonly page: number;
@@ -26,9 +26,9 @@ const Pagination = memo(function Pagination({
   return (
     <div
       style={{
-        display: "flex",
-        justifyContent: "flex-end",
-        padding: "var(--space-3) 0",
+        display: 'flex',
+        justifyContent: 'flex-end',
+        padding: 'var(--space-3) 0',
       }}
     >
       <AntPagination
@@ -41,9 +41,11 @@ const Pagination = memo(function Pagination({
         pageSizeOptions={pageSizeOptions}
         showQuickJumper={total > pageSize * 10}
         showTotal={(t, range) =>
-          t === 0 ? "Aucun résultat" : `Affichage ${range[0]}–${range[1]} sur ${t.toLocaleString("fr-FR")} résultats`
+          t === 0
+            ? 'Aucun résultat'
+            : `Affichage ${range[0]}–${range[1]} sur ${t.toLocaleString('fr-FR')} résultats`
         }
-        locale={{ jump_to: "Aller à", page: "" }}
+        locale={{ jump_to: 'Aller à', page: '' }}
       />
     </div>
   );

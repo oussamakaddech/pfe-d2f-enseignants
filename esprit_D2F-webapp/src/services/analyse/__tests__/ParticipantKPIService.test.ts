@@ -5,7 +5,7 @@ const httpMocks = vi.hoisted(() => ({
   mockPost: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     get: httpMocks.mockGet,
     post: httpMocks.mockPost,
@@ -15,30 +15,43 @@ vi.mock("@/services/httpClient", () => ({
 import ParticipantKPIService from '../ParticipantKPIService';
 
 describe('ParticipantKPIService', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('gets formations participant KPIs and normalizes paginated responses', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: [{ formation: 'Java', presenceRate: 90 }] });
-    const result = await ParticipantKPIService.getFormationsParticipantKPIs('2026-01-01', '2026-12-31');
+    const result = await ParticipantKPIService.getFormationsParticipantKPIs(
+      '2026-01-01',
+      '2026-12-31',
+    );
     expect(result).toEqual([{ formation: 'Java', presenceRate: 90 }]);
 
-    httpMocks.mockGet.mockResolvedValueOnce({ data: { content: [{ formation: 'Python', presenceRate: 80 }] } });
-    await expect(ParticipantKPIService.getFormationsParticipantKPIs('2026-01-01', '2026-12-31')).resolves.toEqual([
-      { formation: 'Python', presenceRate: 80 }
-    ]);
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: { content: [{ formation: 'Python', presenceRate: 80 }] },
+    });
+    await expect(
+      ParticipantKPIService.getFormationsParticipantKPIs('2026-01-01', '2026-12-31'),
+    ).resolves.toEqual([{ formation: 'Python', presenceRate: 80 }]);
 
-    httpMocks.mockGet.mockResolvedValueOnce({ data: { data: [{ formation: 'JS', presenceRate: 70 }] } });
-    await expect(ParticipantKPIService.getFormationsParticipantKPIs('2026-01-01', '2026-12-31')).resolves.toEqual([
-      { formation: 'JS', presenceRate: 70 }
-    ]);
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: { data: [{ formation: 'JS', presenceRate: 70 }] },
+    });
+    await expect(
+      ParticipantKPIService.getFormationsParticipantKPIs('2026-01-01', '2026-12-31'),
+    ).resolves.toEqual([{ formation: 'JS', presenceRate: 70 }]);
 
-    httpMocks.mockGet.mockResolvedValueOnce({ data: { items: [{ formation: 'TS', presenceRate: 60 }] } });
-    await expect(ParticipantKPIService.getFormationsParticipantKPIs('2026-01-01', '2026-12-31')).resolves.toEqual([
-      { formation: 'TS', presenceRate: 60 }
-    ]);
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: { items: [{ formation: 'TS', presenceRate: 60 }] },
+    });
+    await expect(
+      ParticipantKPIService.getFormationsParticipantKPIs('2026-01-01', '2026-12-31'),
+    ).resolves.toEqual([{ formation: 'TS', presenceRate: 60 }]);
 
     httpMocks.mockGet.mockResolvedValueOnce({ data: null });
-    await expect(ParticipantKPIService.getFormationsParticipantKPIs('2026-01-01', '2026-12-31')).resolves.toEqual([]);
+    await expect(
+      ParticipantKPIService.getFormationsParticipantKPIs('2026-01-01', '2026-12-31'),
+    ).resolves.toEqual([]);
   });
 
   it('gets global participant KPI', async () => {
@@ -46,16 +59,14 @@ describe('ParticipantKPIService', () => {
     const result = await ParticipantKPIService.getGlobalParticipantKPI('2026-01-01', '2026-12-31');
     expect(result).toEqual({ globalRate: 85 });
     expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/global'), {
-      params: { startDate: '2026-01-01', endDate: '2026-12-31' }
+      params: { startDate: '2026-01-01', endDate: '2026-12-31' },
     });
   });
 
   it('throws on error', async () => {
     httpMocks.mockGet.mockRejectedValueOnce(new Error('Network error'));
-    await expect(ParticipantKPIService.getGlobalParticipantKPI('2026-01-01', '2026-12-31')).rejects.toThrow('Network error');
+    await expect(
+      ParticipantKPIService.getGlobalParticipantKPI('2026-01-01', '2026-12-31'),
+    ).rejects.toThrow('Network error');
   });
 });
-
-
-
-

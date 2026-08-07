@@ -1,11 +1,11 @@
 import type { Id } from '../common';
 
-export type Priorite = "BASSE" | "MOYENNE" | "HAUTE" | "CRITIQUE";
+export type Priorite = 'BASSE' | 'MOYENNE' | 'HAUTE' | 'CRITIQUE';
 
 export interface BesoinFormation {
   idBesoinFormation?: Id;
   username?: string;
-  typeBesoin?: "INDIVIDUEL" | "COLLECTIF" | "ANIMER_UNE_FORMATION";
+  typeBesoin?: 'INDIVIDUEL' | 'COLLECTIF' | 'ANIMER_UNE_FORMATION';
   titre?: string;
   objectifFormation?: string;
   propositionAnimateur?: string;
@@ -50,7 +50,3 @@ export interface BesoinCompetenceLink {
   savoirNom?: string;
   sousCompetenceId?: number | null;
 }
-
-
-
-

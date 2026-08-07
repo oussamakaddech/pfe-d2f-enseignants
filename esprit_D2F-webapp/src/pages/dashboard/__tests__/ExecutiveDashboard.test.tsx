@@ -11,14 +11,27 @@ const navigate = vi.fn();
 
 const dashboardMocks = vi.hoisted(() => {
   const names = [
-    'DashboardKpiGrid', 'DashboardHealthCard', 'DashboardAlerts', 'DashboardTimelineChart',
-    'DashboardStatusChart', 'DashboardParticipationChart', 'DashboardUpcomingFormations',
-    'DashboardPendingNeeds', 'DashboardTopCompetencies', 'DashboardPredictiveInsights',
-    'DashboardRecentActivity', 'DashboardFormationTypes', 'DashboardTrainerTypes',
-    'DashboardTopPresences', 'DashboardTopAbsences', 'DashboardNonAffected',
+    'DashboardKpiGrid',
+    'DashboardHealthCard',
+    'DashboardAlerts',
+    'DashboardTimelineChart',
+    'DashboardStatusChart',
+    'DashboardParticipationChart',
+    'DashboardUpcomingFormations',
+    'DashboardPendingNeeds',
+    'DashboardTopCompetencies',
+    'DashboardPredictiveInsights',
+    'DashboardRecentActivity',
+    'DashboardFormationTypes',
+    'DashboardTrainerTypes',
+    'DashboardTopPresences',
+    'DashboardTopAbsences',
+    'DashboardNonAffected',
   ];
   const m: Record<string, { default: () => React.ReactElement }> = {};
-  names.forEach((n) => { m[n] = { default: () => <div>{n}</div> }; });
+  names.forEach((n) => {
+    m[n] = { default: () => <div>{n}</div> };
+  });
   return m;
 });
 
@@ -38,15 +51,36 @@ vi.mock('@/hooks/analyse/useReporting', () => ({
 vi.mock('@/components/dashboard/DashboardKpiGrid', () => dashboardMocks.DashboardKpiGrid);
 vi.mock('@/components/dashboard/DashboardHealthCard', () => dashboardMocks.DashboardHealthCard);
 vi.mock('@/components/dashboard/DashboardAlerts', () => dashboardMocks.DashboardAlerts);
-vi.mock('@/components/dashboard/DashboardTimelineChart', () => dashboardMocks.DashboardTimelineChart);
+vi.mock(
+  '@/components/dashboard/DashboardTimelineChart',
+  () => dashboardMocks.DashboardTimelineChart,
+);
 vi.mock('@/components/dashboard/DashboardStatusChart', () => dashboardMocks.DashboardStatusChart);
-vi.mock('@/components/dashboard/DashboardParticipationChart', () => dashboardMocks.DashboardParticipationChart);
-vi.mock('@/components/dashboard/DashboardUpcomingFormations', () => dashboardMocks.DashboardUpcomingFormations);
+vi.mock(
+  '@/components/dashboard/DashboardParticipationChart',
+  () => dashboardMocks.DashboardParticipationChart,
+);
+vi.mock(
+  '@/components/dashboard/DashboardUpcomingFormations',
+  () => dashboardMocks.DashboardUpcomingFormations,
+);
 vi.mock('@/components/dashboard/DashboardPendingNeeds', () => dashboardMocks.DashboardPendingNeeds);
-vi.mock('@/components/dashboard/DashboardTopCompetencies', () => dashboardMocks.DashboardTopCompetencies);
-vi.mock('@/components/dashboard/DashboardPredictiveInsights', () => dashboardMocks.DashboardPredictiveInsights);
-vi.mock('@/components/dashboard/DashboardRecentActivity', () => dashboardMocks.DashboardRecentActivity);
-vi.mock('@/components/dashboard/DashboardFormationTypes', () => dashboardMocks.DashboardFormationTypes);
+vi.mock(
+  '@/components/dashboard/DashboardTopCompetencies',
+  () => dashboardMocks.DashboardTopCompetencies,
+);
+vi.mock(
+  '@/components/dashboard/DashboardPredictiveInsights',
+  () => dashboardMocks.DashboardPredictiveInsights,
+);
+vi.mock(
+  '@/components/dashboard/DashboardRecentActivity',
+  () => dashboardMocks.DashboardRecentActivity,
+);
+vi.mock(
+  '@/components/dashboard/DashboardFormationTypes',
+  () => dashboardMocks.DashboardFormationTypes,
+);
 vi.mock('@/components/dashboard/DashboardTrainerTypes', () => dashboardMocks.DashboardTrainerTypes);
 vi.mock('@/components/dashboard/DashboardTopPresences', () => dashboardMocks.DashboardTopPresences);
 vi.mock('@/components/dashboard/DashboardTopAbsences', () => dashboardMocks.DashboardTopAbsences);
@@ -59,7 +93,7 @@ function renderWith(queryClient: QueryClient, role = 'ADMIN') {
       <BrowserRouter>
         <ExecutiveDashboard role={role} />
       </BrowserRouter>
-    </QueryClientProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -89,7 +123,9 @@ describe('ExecutiveDashboard', () => {
     const exportExcel = vi.fn();
     vi.mocked(useAnalyticsExport).mockReturnValue({ exporting: false, exportExcel } as never);
     renderWith(queryClient, 'ADMIN');
-    const btn = Array.from(document.querySelectorAll('button')).find((b) => b.querySelector('.anticon-download')) as HTMLElement;
+    const btn = Array.from(document.querySelectorAll('button')).find((b) =>
+      b.querySelector('.anticon-download'),
+    ) as HTMLElement;
     expect(btn).toBeTruthy();
     fireEvent.click(btn);
     expect(exportExcel).toHaveBeenCalledWith('PAR_DEPT');
@@ -99,7 +135,9 @@ describe('ExecutiveDashboard', () => {
     const exportExcel = vi.fn();
     vi.mocked(useAnalyticsExport).mockReturnValue({ exporting: false, exportExcel } as never);
     renderWith(queryClient, 'ENSEIGNANT');
-    const btn = Array.from(document.querySelectorAll('button')).find((b) => b.querySelector('.anticon-download')) as HTMLElement;
+    const btn = Array.from(document.querySelectorAll('button')).find((b) =>
+      b.querySelector('.anticon-download'),
+    ) as HTMLElement;
     expect(btn).toBeTruthy();
     fireEvent.click(btn);
     expect(exportExcel).toHaveBeenCalledWith('PAR_UP');
@@ -107,7 +145,9 @@ describe('ExecutiveDashboard', () => {
 
   it('refreshes data via the refresh button', async () => {
     renderWith(queryClient, 'ADMIN');
-    const btn = Array.from(document.querySelectorAll('button')).find((b) => b.querySelector('.anticon-reload')) as HTMLElement;
+    const btn = Array.from(document.querySelectorAll('button')).find((b) =>
+      b.querySelector('.anticon-reload'),
+    ) as HTMLElement;
     expect(btn).toBeTruthy();
     fireEvent.click(btn);
     await waitFor(() => expect(screen.getByText('DashboardKpiGrid')).toBeInTheDocument());

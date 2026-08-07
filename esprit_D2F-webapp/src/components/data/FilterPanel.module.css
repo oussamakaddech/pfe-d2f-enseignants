@@ -35,9 +35,14 @@
   font-weight: var(--font-semibold);
 }
 
-.chevron { font-size: 10px; margin-left: 6px; }
+.chevron {
+  font-size: 10px;
+  margin-left: 6px;
+}
 
-.clear { color: var(--color-text-muted); }
+.clear {
+  color: var(--color-text-muted);
+}
 
 .controls {
   display: flex;
@@ -58,7 +63,9 @@
   color: var(--color-text-secondary);
 }
 
-.sliderBox { width: 240px; }
+.sliderBox {
+  width: 240px;
+}
 
 .sliderLabel {
   font-size: var(--text-xs);
@@ -81,6 +88,10 @@
 
 /* Mobile : panneau pleine largeur, contrôles empilés. */
 @media (max-width: 640px) {
-  .controls { flex-direction: column; }
-  .sliderBox { width: 100%; }
+  .controls {
+    flex-direction: column;
+  }
+  .sliderBox {
+    width: 100%;
+  }
 }

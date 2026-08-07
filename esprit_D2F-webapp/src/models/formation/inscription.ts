@@ -1,6 +1,6 @@
 import type { Id } from '../common';
 
-export type EtatInscription = "PENDING" | "APPROVED" | "REJECTED" | "ANNULE";
+export type EtatInscription = 'PENDING' | 'APPROVED' | 'REJECTED' | 'ANNULE';
 
 export interface Inscription {
   idInscription?: Id;

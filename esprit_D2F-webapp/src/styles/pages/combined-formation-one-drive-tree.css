@@ -6,8 +6,7 @@
   padding: 24px;
   background:
     radial-gradient(1200px 600px at 0% 0%, rgba(99, 102, 241, 0.06), transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, rgba(14, 165, 233, 0.06), transparent 55%),
-    #f8fafc;
+    radial-gradient(900px 500px at 100% 0%, rgba(14, 165, 233, 0.06), transparent 55%), #f8fafc;
 }
 
 /* ── Hero (light, premium) ─────────────────────────────────────────────── */
@@ -18,11 +17,13 @@
   border-radius: 18px !important;
   border: 1px solid #e5e7eb !important;
   background: #ffffff !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 28px rgba(15, 23, 42, 0.05);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 8px 28px rgba(15, 23, 42, 0.05);
 }
 
 .doc-hero::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
@@ -32,13 +33,13 @@
 }
 
 .doc-hero::after {
-  content: "";
+  content: '';
   position: absolute;
   top: -120px;
   right: -120px;
   width: 360px;
   height: 360px;
-  background: radial-gradient(closest-side, rgba(99, 102, 241, 0.10), transparent 70%);
+  background: radial-gradient(closest-side, rgba(99, 102, 241, 0.1), transparent 70%);
   border-radius: 50%;
   pointer-events: none;
 }
@@ -90,7 +91,7 @@
   background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
   color: #ffffff;
   font-size: 22px;
-  box-shadow: 0 8px 18px rgba(99, 102, 241, 0.30);
+  box-shadow: 0 8px 18px rgba(99, 102, 241, 0.3);
 }
 
 .doc-hero-subtitle {
@@ -111,13 +112,16 @@
   min-height: 96px;
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
   border: 1px solid #e5e7eb !important;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
   position: relative;
   overflow: hidden;
 }
 
 .doc-stat-card::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
@@ -127,9 +131,15 @@
   opacity: 0.85;
 }
 
-.doc-stat-card--blue   { --stat-accent: #3b82f6; }
-.doc-stat-card--indigo { --stat-accent: #6366f1; }
-.doc-stat-card--violet { --stat-accent: #8b5cf6; }
+.doc-stat-card--blue {
+  --stat-accent: #3b82f6;
+}
+.doc-stat-card--indigo {
+  --stat-accent: #6366f1;
+}
+.doc-stat-card--violet {
+  --stat-accent: #8b5cf6;
+}
 
 .doc-stat-card:hover {
   transform: translateY(-2px);
@@ -172,9 +182,18 @@
   font-size: 18px;
 }
 
-.doc-stat-card--blue   .ant-statistic-content-prefix { background: rgba(59, 130, 246, 0.12); color: #3b82f6 !important; }
-.doc-stat-card--indigo .ant-statistic-content-prefix { background: rgba(99, 102, 241, 0.12); color: #6366f1 !important; }
-.doc-stat-card--violet .ant-statistic-content-prefix { background: rgba(139, 92, 246, 0.12); color: #8b5cf6 !important; }
+.doc-stat-card--blue .ant-statistic-content-prefix {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6 !important;
+}
+.doc-stat-card--indigo .ant-statistic-content-prefix {
+  background: rgba(99, 102, 241, 0.12);
+  color: #6366f1 !important;
+}
+.doc-stat-card--violet .ant-statistic-content-prefix {
+  background: rgba(139, 92, 246, 0.12);
+  color: #8b5cf6 !important;
+}
 
 /* ── Toolbar card ──────────────────────────────────────────────────────── */
 .doc-toolbar {
@@ -194,7 +213,9 @@
 .doc-toolbar .ant-input-search > .ant-input-affix-wrapper {
   border-radius: 10px !important;
   border-color: #e5e7eb !important;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .doc-toolbar .ant-input-affix-wrapper:hover,
@@ -205,7 +226,7 @@
 .doc-toolbar .ant-input-affix-wrapper-focused,
 .doc-toolbar .ant-picker-focused {
   border-color: #6366f1 !important;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.10) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
 }
 
 .doc-toolbar .ant-input-search .ant-input-search-button {
@@ -216,14 +237,20 @@
 .doc-panel {
   border-radius: 16px !important;
   border: 1px solid #e5e7eb !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), 0 6px 20px rgba(15, 23, 42, 0.05);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.03),
+    0 6px 20px rgba(15, 23, 42, 0.05);
   height: 100%;
   background: #ffffff;
-  transition: box-shadow 0.25s ease, transform 0.25s ease;
+  transition:
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
 }
 
 .doc-panel:hover {
-  box-shadow: 0 4px 8px rgba(15, 23, 42, 0.05), 0 14px 32px rgba(15, 23, 42, 0.08);
+  box-shadow:
+    0 4px 8px rgba(15, 23, 42, 0.05),
+    0 14px 32px rgba(15, 23, 42, 0.08);
 }
 
 .doc-panel .ant-card-head {
@@ -335,7 +362,7 @@
 
 .doc-btn-open:hover {
   background: linear-gradient(135deg, #047857 0%, #065f46 100%) !important;
-  box-shadow: 0 8px 20px rgba(5, 150, 105, 0.40) !important;
+  box-shadow: 0 8px 20px rgba(5, 150, 105, 0.4) !important;
   transform: translateY(-1px);
 }
 
@@ -353,7 +380,7 @@
 }
 
 .doc-formation-item::before {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   top: 12%;
@@ -489,7 +516,9 @@
 }
 
 /* ── Custom empty state ────────────────────────────────────────────────── */
-.doc-panel .ant-empty { display: none; }
+.doc-panel .ant-empty {
+  display: none;
+}
 
 .doc-empty {
   display: flex;
@@ -513,21 +542,21 @@
   font-size: 28px;
   margin-bottom: 14px;
   border: 1px solid #e0e7ff;
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.10);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.1);
 }
 
 .doc-empty-icon--tree {
   background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
   color: #0891b2;
   border-color: #cffafe;
-  box-shadow: 0 6px 16px rgba(8, 145, 178, 0.10);
+  box-shadow: 0 6px 16px rgba(8, 145, 178, 0.1);
 }
 
 .doc-empty-icon--preview {
   background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
   color: #059669;
   border-color: #dcfce7;
-  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.10);
+  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.1);
 }
 
 .doc-empty-title {
@@ -583,7 +612,7 @@
 
 .doc-status-chip--ready::before,
 .doc-status-chip--active::before {
-  content: "";
+  content: '';
   width: 6px;
   height: 6px;
   border-radius: 50%;

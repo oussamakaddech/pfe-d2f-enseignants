@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { Form, Input, Button, Card } from "antd";
-import { LockOutlined } from "@ant-design/icons";
-import { useUpdatePassword } from "@/hooks/auth/useAuthService";
-import { AppPageHeader, shadow, radius } from "@/components/common";
-import useAppNotification from "@/hooks/ui/useAppNotification";
+import { useState } from 'react';
+import { Form, Input, Button, Card } from 'antd';
+import { LockOutlined } from '@ant-design/icons';
+import { useUpdatePassword } from '@/hooks/auth/useAuthService';
+import { AppPageHeader, shadow, radius } from '@/components/common';
+import useAppNotification from '@/hooks/ui/useAppNotification';
 interface UpdatePasswordFormValues {
   newPassword: string;
   confirmation: string;
@@ -19,31 +19,40 @@ export default function UpdatePassword() {
     setLoading(true);
     try {
       await updatePwd({ newPassword: values.newPassword, confirmation: values.confirmation });
-      message.success("Mot de passe mis à jour avec succès !");
+      message.success('Mot de passe mis à jour avec succès !');
       form.resetFields();
     } catch (error: unknown) {
-      message.error((error as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erreur lors de la mise à jour.");
+      message.error(
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          'Erreur lors de la mise à jour.',
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: 520, margin: "0 auto" }}>
+    <div style={{ maxWidth: 520, margin: '0 auto' }}>
       <AppPageHeader
         icon={<LockOutlined />}
         title="Modifier le Mot de Passe"
         subtitle="Mettre à jour votre mot de passe de connexion"
       />
 
-      <Card style={{ borderRadius: radius.lg, boxShadow: shadow.sm, border: "1px solid rgba(0,0,0,0.07)" }}>
+      <Card
+        style={{
+          borderRadius: radius.lg,
+          boxShadow: shadow.sm,
+          border: '1px solid rgba(0,0,0,0.07)',
+        }}
+      >
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
             name="newPassword"
             label="Nouveau mot de passe"
             rules={[
-              { required: true, message: "Le nouveau mot de passe est requis" },
-              { min: 8, message: "Au moins 8 caractères" },
+              { required: true, message: 'Le nouveau mot de passe est requis' },
+              { min: 8, message: 'Au moins 8 caractères' },
             ]}
           >
             <Input.Password prefix={<LockOutlined />} placeholder="Nouveau mot de passe" />
@@ -52,15 +61,15 @@ export default function UpdatePassword() {
           <Form.Item
             name="confirmation"
             label="Confirmer le mot de passe"
-            dependencies={["newPassword"]}
+            dependencies={['newPassword']}
             rules={[
-              { required: true, message: "Veuillez confirmer le mot de passe" },
+              { required: true, message: 'Veuillez confirmer le mot de passe' },
               ({ getFieldValue }) => ({
                 validator(_: unknown, value: string) {
-                  if (!value || getFieldValue("newPassword") === value) {
+                  if (!value || getFieldValue('newPassword') === value) {
                     return Promise.resolve();
                   }
-                  return Promise.reject(new Error("Les mots de passe ne correspondent pas"));
+                  return Promise.reject(new Error('Les mots de passe ne correspondent pas'));
                 },
               }),
             ]}

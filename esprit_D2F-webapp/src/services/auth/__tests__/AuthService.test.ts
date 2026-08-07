@@ -6,7 +6,7 @@ const apiMocks = vi.hoisted(() => ({
   mockGet: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   createApiClient: vi.fn(() => ({
     post: apiMocks.mockPost,
     get: apiMocks.mockGet,
@@ -17,13 +17,7 @@ vi.mock("@/services/httpClient", () => ({
   },
 }));
 
-import {
-  forgotPassword,
-  getProfile,
-  login,
-  resetPassword,
-  signup,
-} from '../AuthService';
+import { forgotPassword, getProfile, login, resetPassword, signup } from '../AuthService';
 
 describe('authService', () => {
   beforeEach(() => {
@@ -49,16 +43,22 @@ describe('authService', () => {
     await expect(forgotPassword('a@b.com')).resolves.toEqual({ sent: true });
 
     apiMocks.mockPost.mockResolvedValueOnce({ data: { reset: true } });
-    await expect(resetPassword({ confirmationKey: 'k', newPassword: 'n' })).resolves.toEqual({ reset: true });
+    await expect(resetPassword({ confirmationKey: 'k', newPassword: 'n' })).resolves.toEqual({
+      reset: true,
+    });
 
     apiMocks.mockGet.mockResolvedValueOnce({ data: { id: 1 } });
     await expect(getProfile()).resolves.toEqual({ id: 1 });
   });
 
   it('refreshToken is sent silently', async () => {
-    apiMocks.mockGet.mockResolvedValueOnce({ data: { userId: 1, role: 'admin', email: 'a@b.com' } });
+    apiMocks.mockGet.mockResolvedValueOnce({
+      data: { userId: 1, role: 'admin', email: 'a@b.com' },
+    });
 
-    await expect(import('../AuthService').then(({ refreshToken }) => refreshToken())).resolves.toEqual({
+    await expect(
+      import('../AuthService').then(({ refreshToken }) => refreshToken()),
+    ).resolves.toEqual({
       userId: 1,
       role: 'admin',
       email: 'a@b.com',
@@ -67,7 +67,3 @@ describe('authService', () => {
     expect(apiMocks.mockGet).toHaveBeenCalledWith(`${authUrl}/refresh`, { meta: { silent: true } });
   });
 });
-
-
-
-

@@ -3,17 +3,17 @@
  */
 
 /** Gravité d'une notification — pilotée par la sémantique de l'UI. */
-export type NotificationSeverity = "info" | "success" | "warning" | "error";
+export type NotificationSeverity = 'info' | 'success' | 'warning' | 'error';
 
 /** Catégorie métier de la notification (centrée sur les parcours D2F). */
 export type NotificationCategory =
-  | "FORMATION"
-  | "EVALUATION"
-  | "CERTIFICAT"
-  | "BESOIN"
-  | "COMPETENCE"
-  | "SYSTEM"
-  | "MESSAGE";
+  | 'FORMATION'
+  | 'EVALUATION'
+  | 'CERTIFICAT'
+  | 'BESOIN'
+  | 'COMPETENCE'
+  | 'SYSTEM'
+  | 'MESSAGE';
 
 /** Une notification affichée dans le centre de notifications. */
 export interface AppNotification {
@@ -36,7 +36,7 @@ export interface AppNotification {
 }
 
 /** État de la connexion temps réel. */
-export type ConnectionStatus = "connecting" | "open" | "closed" | "mock";
+export type ConnectionStatus = 'connecting' | 'open' | 'closed' | 'mock';
 
 /** Contrat d'entrée pour créer/pousser une notification (sans id/état interne). */
 export interface NotificationPayload {
@@ -68,4 +68,4 @@ export interface NotificationSocketMessage {
 }
 
 /** Filtres disponibles dans le centre de notifications. */
-export type NotificationFilter = "all" | "unread";
+export type NotificationFilter = 'all' | 'unread';

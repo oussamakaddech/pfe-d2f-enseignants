@@ -7,11 +7,11 @@
  * SECURITY: JWT is stored in HttpOnly cookie (not localStorage).
  * The browser sends the cookie automatically with `withCredentials: true`.
  */
-import axios, { isAxiosError as axiosIsAxiosError } from "axios";
-import type { AxiosResponse, AxiosError } from "axios";
-import { navigate } from "../utils/helpers/navigation";
-import { config } from "../config/env";
-import { notify } from "../utils/helpers/notifications";
+import axios, { isAxiosError as axiosIsAxiosError } from 'axios';
+import type { AxiosResponse, AxiosError } from 'axios';
+import { navigate } from '../utils/helpers/navigation';
+import { config } from '../config/env';
+import { notify } from '../utils/helpers/notifications';
 
 const NETWORK_ERROR_TOAST_COOLDOWN_MS = 10_000;
 let lastNetworkErrorToastAt = 0;
@@ -27,25 +27,34 @@ function shouldShowNetworkErrorToast(): boolean {
 
 function handle401(error: AxiosError, isFormationApi: boolean): void {
   if (isFormationApi) return;
-  try { globalThis.dispatchEvent(new Event("auth:loggedOut")); } catch { /* ignore */ }
+  try {
+    globalThis.dispatchEvent(new Event('auth:loggedOut'));
+  } catch {
+    /* ignore */
+  }
   const isAlreadyOnLogin =
-    globalThis.location.pathname === "/" ||
-    globalThis.location.pathname.startsWith("/login") ||
-    globalThis.location.pathname.startsWith("/auth");
-  if (!isAlreadyOnLogin) navigate("/", { replace: true });
+    globalThis.location.pathname === '/' ||
+    globalThis.location.pathname.startsWith('/login') ||
+    globalThis.location.pathname.startsWith('/auth');
+  if (!isAlreadyOnLogin) navigate('/', { replace: true });
 }
 
-function notifyUnexpectedError(err: AxiosError, status: number | undefined, serverMsg: string | undefined): void {
+function notifyUnexpectedError(
+  err: AxiosError,
+  status: number | undefined,
+  serverMsg: string | undefined,
+): void {
   if (!err?.response) {
-    if (shouldShowNetworkErrorToast()) notify.error("Pas de connexion au serveur. Vérifiez votre réseau.");
+    if (shouldShowNetworkErrorToast())
+      notify.error('Pas de connexion au serveur. Vérifiez votre réseau.');
   } else if (status && status >= 500) {
-    notify.error(serverMsg || "Erreur serveur. Réessayez dans un instant.");
+    notify.error(serverMsg || 'Erreur serveur. Réessayez dans un instant.');
   } else if (status === 403) {
-    notify.warning(serverMsg || "Accès refusé.");
+    notify.warning(serverMsg || 'Accès refusé.');
   } else if (status === 409) {
-    notify.warning(serverMsg || "Conflit — cette ressource existe déjà ou a déjà été importée.");
+    notify.warning(serverMsg || 'Conflit — cette ressource existe déjà ou a déjà été importée.');
   } else if (status === 422) {
-    notify.warning(serverMsg || "Données invalides ou insuffisantes.");
+    notify.warning(serverMsg || 'Données invalides ou insuffisantes.');
   }
 }
 
@@ -59,7 +68,9 @@ export function createApiClient(baseURL?: string) {
   // client as `axios` can still call `axios.isAxiosError(...)` safely.
   (api as unknown as Record<string, unknown>).isAxiosError = (error: unknown) => {
     try {
-      return axiosIsAxiosError ? axiosIsAxiosError(error as Record<string, unknown>) : (error as Record<string, unknown>)?.isAxiosError === true;
+      return axiosIsAxiosError
+        ? axiosIsAxiosError(error as Record<string, unknown>)
+        : (error as Record<string, unknown>)?.isAxiosError === true;
     } catch {
       return (error as Record<string, unknown>)?.isAxiosError === true;
     }
@@ -71,16 +82,19 @@ export function createApiClient(baseURL?: string) {
     (response: AxiosResponse) => response,
     (error: AxiosError) => {
       const status = error?.response?.status;
-      const urlStr = String(error?.config?.url || "");
-      const isFormationApi = (config?.FORMATION_URL && urlStr.includes(config.FORMATION_URL)) || urlStr.includes("/formation/");
+      const urlStr = String(error?.config?.url || '');
+      const isFormationApi =
+        (config?.FORMATION_URL && urlStr.includes(config.FORMATION_URL)) ||
+        urlStr.includes('/formation/');
 
-      if (status === 401) { handle401(error, isFormationApi); }
-      else if ((error?.config as { meta?: { silent?: boolean } })?.meta?.silent !== true) {
+      if (status === 401) {
+        handle401(error, isFormationApi);
+      } else if ((error?.config as { meta?: { silent?: boolean } })?.meta?.silent !== true) {
         const serverMsg = (error?.response?.data as { message?: string })?.message;
         notifyUnexpectedError(error, status, serverMsg);
       }
       return Promise.reject(error);
-    }
+    },
   );
 
   return api;
@@ -90,7 +104,3 @@ export function createApiClient(baseURL?: string) {
 // (which carries the /api prefix + host). Setting a baseURL would risk
 // doubling the prefix (e.g. /api/api) when the base is relative.
 export const defaultApi = createApiClient();
-
-
-
-

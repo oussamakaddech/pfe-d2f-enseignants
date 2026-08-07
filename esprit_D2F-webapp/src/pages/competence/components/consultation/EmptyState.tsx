@@ -1,32 +1,28 @@
-import {
-  InboxOutlined,
-  SearchOutlined,
-  UnorderedListOutlined,
-} from "@ant-design/icons";
+import { InboxOutlined, SearchOutlined, UnorderedListOutlined } from '@ant-design/icons';
 
 const EMPTY_CONFIGS = {
   noData: {
     icon: InboxOutlined,
-    title: "Aucune donnee disponible",
-    desc: "La structure de competences est vide.",
+    title: 'Aucune donnee disponible',
+    desc: 'La structure de competences est vide.',
     action: null,
   },
   noResults: {
     icon: SearchOutlined,
-    title: "Aucun resultat",
-    desc: "Aucun savoir ne correspond a vos filtres actifs.",
-    action: "Effacer les filtres",
+    title: 'Aucun resultat',
+    desc: 'Aucun savoir ne correspond a vos filtres actifs.',
+    action: 'Effacer les filtres',
   },
   noComp: {
     icon: UnorderedListOutlined,
-    title: "Aucune competence",
-    desc: "Ce domaine ne contient pas encore de competences.",
+    title: 'Aucune competence',
+    desc: 'Ce domaine ne contient pas encore de competences.',
     action: null,
   },
 };
 
 interface EmptyStateProps {
-  type: "noData" | "noResults" | "noComp";
+  type: 'noData' | 'noResults' | 'noComp';
   onClear?: () => void;
 }
 
@@ -36,23 +32,16 @@ export default function EmptyState({ type, onClear }: Readonly<EmptyStateProps>)
 
   return (
     <div className="ctp-empty-state">
-      <div className="ctp-empty-state__icon"><Icon /></div>
+      <div className="ctp-empty-state__icon">
+        <Icon />
+      </div>
       <div className="ctp-empty-state__title">{cfg.title}</div>
       <div className="ctp-empty-state__desc">{cfg.desc}</div>
       {cfg.action && onClear && (
-        <button
-          className="ctp-empty-state__action"
-          onClick={onClear}
-        >
+        <button className="ctp-empty-state__action" onClick={onClear}>
           {cfg.action}
         </button>
       )}
     </div>
   );
 }
-
-
-
-
-
-

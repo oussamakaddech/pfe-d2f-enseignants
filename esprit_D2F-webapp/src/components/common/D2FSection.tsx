@@ -1,7 +1,7 @@
-import { memo } from "react";
-import type { ReactNode } from "react";
-import { Card, Typography } from "antd";
-import { brand, neutral, radius, shadow } from "@/styles/themes/tokens";
+import { memo } from 'react';
+import type { ReactNode } from 'react';
+import { Card, Typography } from 'antd';
+import { brand, neutral, radius, shadow } from '@/styles/themes/tokens';
 
 const { Title, Text } = Typography;
 
@@ -30,7 +30,7 @@ const D2FSection = memo(function D2FSection({
 }: D2FSectionProps) {
   return (
     <Card
-      variant={bordered ? "outlined" : "borderless"}
+      variant={bordered ? 'outlined' : 'borderless'}
       className={className}
       style={{
         borderRadius: radius.lg,
@@ -39,16 +39,14 @@ const D2FSection = memo(function D2FSection({
       }}
       title={
         title ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {icon && (
-              <span style={{ color: iconColor, fontSize: 18 }}>{icon}</span>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {icon && <span style={{ color: iconColor, fontSize: 18 }}>{icon}</span>}
             <div>
               <Title level={5} style={{ margin: 0, fontWeight: 600, color: neutral[900] }}>
                 {title}
               </Title>
               {subtitle && (
-                <Text style={{ fontSize: 12, color: neutral[500], marginTop: 2, display: "block" }}>
+                <Text style={{ fontSize: 12, color: neutral[500], marginTop: 2, display: 'block' }}>
                   {subtitle}
                 </Text>
               )}
@@ -64,7 +62,3 @@ const D2FSection = memo(function D2FSection({
 });
 
 export default D2FSection;
-
-
-
-

@@ -1,7 +1,7 @@
-import { useMemo } from "react";
-import { Avatar, Tag, Progress, Popconfirm, Tooltip, Button } from "antd";
-import { EditOutlined, StopOutlined } from "@ant-design/icons";
-import { avatarColor, getInitials } from "./constants";
+import { useMemo } from 'react';
+import { Avatar, Tag, Progress, Popconfirm, Tooltip, Button } from 'antd';
+import { EditOutlined, StopOutlined } from '@ant-design/icons';
+import { avatarColor, getInitials } from './constants';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Enseignant {
@@ -28,10 +28,10 @@ interface TeacherLoadCardProps {
 
 // ── Progress stroke color ──────────────────────────────────────────────────────
 function loadColor(pct: number): string {
-  if (pct === 0) return "#d9d9d9";
-  if (pct <= 30) return "#52c41a";
-  if (pct <= 60) return "#faad14";
-  return "#ff4d4f";
+  if (pct === 0) return '#d9d9d9';
+  if (pct <= 30) return '#52c41a';
+  if (pct <= 60) return '#faad14';
+  return '#ff4d4f';
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -53,11 +53,13 @@ export default function TeacherLoadCard({
 
   const avatarBg = useMemo(() => avatarColor(teacher.id), [teacher.id]);
   const initials = useMemo(
-    () => getInitials(teacher.nom ?? "", teacher.prenom ?? ""),
+    () => getInitials(teacher.nom ?? '', teacher.prenom ?? ''),
     [teacher.nom, teacher.prenom],
   );
-  const fullName = `${teacher.prenom ?? ""} ${teacher.nom ?? ""}`.trim();
-  const dept = String(teacher.departement ?? teacher.deptLibelle ?? teacher.upLibelle ?? "").toUpperCase();
+  const fullName = `${teacher.prenom ?? ''} ${teacher.nom ?? ''}`.trim();
+  const dept = String(
+    teacher.departement ?? teacher.deptLibelle ?? teacher.upLibelle ?? '',
+  ).toUpperCase();
 
   return (
     <div className="tlc-card">
@@ -68,7 +70,7 @@ export default function TeacherLoadCard({
         </Avatar>
 
         <div className="tlc-info">
-          <div className="tlc-name">{fullName || "—"}</div>
+          <div className="tlc-name">{fullName || '—'}</div>
           <div className="tlc-meta">
             {dept && <span className="tlc-dept">{dept}</span>}
             {teacher.grade && <span className="tlc-grade">{teacher.grade}</span>}
@@ -112,7 +114,7 @@ export default function TeacherLoadCard({
           strokeColor={loadColor(percent)}
           trailColor="#f0f0f0"
           size="small"
-          format={() => `${count} savoir${count > 1 ? "s" : ""}`}
+          format={() => `${count} savoir${count > 1 ? 's' : ''}`}
         />
       </div>
 

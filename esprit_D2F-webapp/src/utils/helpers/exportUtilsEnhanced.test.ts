@@ -9,7 +9,11 @@ vi.mock('xlsx', () => {
       __data: data,
     }),
     book_new: () => ({ SheetNames: [], Sheets: {} }),
-    book_append_sheet: (wb: { SheetNames: string[]; Sheets: Record<string, unknown> }, ws: unknown, name: string) => {
+    book_append_sheet: (
+      wb: { SheetNames: string[]; Sheets: Record<string, unknown> },
+      ws: unknown,
+      name: string,
+    ) => {
       wb.SheetNames.push(name);
       wb.Sheets[name] = ws;
     },
@@ -39,7 +43,14 @@ const crud = {
   competences: [{ id: 10, code: 'C1', nom: 'Comp 1', domaineId: 1 }],
   sousComps: [{ id: 100, code: 'SC1', nom: 'SousComp 1', competenceId: 10, parentId: null }],
   savoirs: [
-    { id: 1000, code: 'S1', nom: 'Savoir 1', type: 'THEORIQUE', niveau: 'N1', sousCompetenceId: 100 },
+    {
+      id: 1000,
+      code: 'S1',
+      nom: 'Savoir 1',
+      type: 'THEORIQUE',
+      niveau: 'N1',
+      sousCompetenceId: 100,
+    },
     { id: 1001, code: 'S2', nom: 'Savoir 2', type: 'PRATIQUE', niveau: 'N2', competenceId: 10 },
   ],
 };
@@ -59,14 +70,20 @@ describe('exportUtilsEnhanced', () => {
     it('builds header and rows with quoting', () => {
       const csv = buildCSVString(
         [{ a: 'x', b: 'y' }],
-        [{ key: 'a', label: 'A' }, { key: 'b', label: 'B' }],
+        [
+          { key: 'a', label: 'A' },
+          { key: 'b', label: 'B' },
+        ],
       );
       expect(csv).toBe('"A","B"\n"x","y"');
     });
     it('escapes double quotes and handles missing values', () => {
       const csv = buildCSVString(
         [{ a: 'he "said"', b: undefined }],
-        [{ key: 'a', label: 'A' }, { key: 'b', label: 'B' }],
+        [
+          { key: 'a', label: 'A' },
+          { key: 'b', label: 'B' },
+        ],
       );
       expect(csv).toBe('"A","B"\n"he ""said""",""');
     });

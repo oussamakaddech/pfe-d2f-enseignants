@@ -1,5 +1,5 @@
-import { Card, Statistic } from "antd";
-import type { ReactNode } from "react";
+import { Card, Statistic } from 'antd';
+import type { ReactNode } from 'react';
 
 interface KpiCardProps {
   readonly title: string;
@@ -18,14 +18,14 @@ export default function KpiCard({
   suffix,
   precision,
   icon,
-  color = "#1677ff",
+  color = '#1677ff',
   loading,
 }: KpiCardProps) {
   return (
-    <Card loading={loading} style={{ borderRadius: 12, height: "100%" }}>
+    <Card loading={loading} style={{ borderRadius: 12, height: '100%' }}>
       <Statistic
         title={
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             {icon}
             {title}
           </span>

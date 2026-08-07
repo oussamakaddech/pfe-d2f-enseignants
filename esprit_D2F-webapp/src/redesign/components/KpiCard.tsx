@@ -1,36 +1,36 @@
-import type { ReactNode, CSSProperties } from "react";
-import { NA_CALC } from "@/utils/states";
-import type { Trend } from "@/redesign/format";
+import type { ReactNode, CSSProperties } from 'react';
+import { NA_CALC } from '@/utils/states';
+import type { Trend } from '@/redesign/format';
 
-type Unit = "int" | "coverage" | "pct" | "custom";
+type Unit = 'int' | 'coverage' | 'pct' | 'custom';
 
 function formatValue(value: number | null, unit: Unit, customText?: string): string {
   if (value == null || Number.isNaN(value)) return NA_CALC;
-  if (unit === "custom") return customText ?? Math.round(value).toLocaleString("fr-FR");
-  if (unit === "int") return Math.round(value).toLocaleString("fr-FR");
+  if (unit === 'custom') return customText ?? Math.round(value).toLocaleString('fr-FR');
+  if (unit === 'int') return Math.round(value).toLocaleString('fr-FR');
   return `${Math.round(value)} %`;
 }
 
-function trendArrow(direction: Trend["direction"]): string {
-  if (direction === "up") return "▲";
-  if (direction === "down") return "▼";
-  return "–";
+function trendArrow(direction: Trend['direction']): string {
+  if (direction === 'up') return '▲';
+  if (direction === 'down') return '▼';
+  return '–';
 }
 
 function buildTrendValueText(trend: Trend, trendLabel?: string): string {
   const hasValue = trend.value != null && trend.value !== 0;
-  const labelSuffix = trendLabel ? ` ${trendLabel}` : "";
-  return hasValue ? ` ${trend.value}${labelSuffix}` : "";
+  const labelSuffix = trendLabel ? ` ${trendLabel}` : '';
+  return hasValue ? ` ${trend.value}${labelSuffix}` : '';
 }
 
 export default function KpiCard({
   label,
   value,
-  unit = "int",
+  unit = 'int',
   customText,
   icon,
-  accent = "#b51200",
-  accentBg = "rgba(181,18,0,0.10)",
+  accent = '#b51200',
+  accentBg = 'rgba(181,18,0,0.10)',
   helper,
   trend,
   trendLabel,
@@ -53,10 +53,10 @@ export default function KpiCard({
   const isNA = value == null;
   const shown = isNA ? NA_CALC : formatValue(value, unit, customText);
 
-  const styleVars = { "--kpi-accent": accent, "--kpi-accent-bg": accentBg } as CSSProperties;
+  const styleVars = { '--kpi-accent': accent, '--kpi-accent-bg': accentBg } as CSSProperties;
 
   const trendNode = trend ? (
-    <span className={`rd-trend ${trend.direction} ${trend.good ? "good" : "bad"}`}>
+    <span className={`rd-trend ${trend.direction} ${trend.good ? 'good' : 'bad'}`}>
       {trendArrow(trend.direction)}
       {buildTrendValueText(trend, trendLabel)}
     </span>
@@ -69,7 +69,11 @@ export default function KpiCard({
         {trendNode}
       </div>
       <div className="rd-kpi-val">
-        {loading ? <span className="rd-skel" style={{ width: 90, height: 30, display: "inline-block" }} /> : (shown ?? "—")}
+        {loading ? (
+          <span className="rd-skel" style={{ width: 90, height: 30, display: 'inline-block' }} />
+        ) : (
+          (shown ?? '—')
+        )}
       </div>
       <div className="rd-kpi-label">{label}</div>
       {helper && <div className="rd-kpi-help">{helper}</div>}

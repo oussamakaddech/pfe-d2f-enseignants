@@ -1,7 +1,14 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
-import type { FormationsByEtat, ParticipantStats, CountHeures, FormationsByType, CountByTrainerTypeWithIds, CountByLabel } from "@/models/analyse/kpi";
-import type { Enseignant } from "@/models/enseignant";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
+import type {
+  FormationsByEtat,
+  ParticipantStats,
+  CountHeures,
+  FormationsByType,
+  CountByTrainerTypeWithIds,
+  CountByLabel,
+} from '@/models/analyse/kpi';
+import type { Enseignant } from '@/models/enseignant';
 
 const API_URL = `${config.FORMATION_URL}/formation/kpi`;
 
@@ -14,7 +21,7 @@ function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; it
     return payload;
   }
 
-  if (payload && typeof payload === "object") {
+  if (payload && typeof payload === 'object') {
     const candidate = payload as { content?: unknown[]; data?: unknown[]; items?: unknown[] };
     if (Array.isArray(candidate.content)) {
       return candidate.content as T[];
@@ -78,7 +85,9 @@ const KPIService = {
       const response = await axios.get(`${API_URL}/formations-by-etat`, {
         params: { start, end },
       });
-      return response.data || { enregistre: 0, planifie: 0, enCours: 0, acheve: 0, annule: 0, total: 0 };
+      return (
+        response.data || { enregistre: 0, planifie: 0, enCours: 0, acheve: 0, annule: 0, total: 0 }
+      );
     } catch (error: unknown) {
       if (isNotFoundError(error)) {
         return { enregistre: 0, planifie: 0, enCours: 0, acheve: 0, annule: 0, total: 0 };
@@ -87,7 +96,12 @@ const KPIService = {
     }
   },
 
-  async getTopParticipants(start: string, end: string, upId: string | null = null, deptId: string | null = null): Promise<ParticipantStats[]> {
+  async getTopParticipants(
+    start: string,
+    end: string,
+    upId: string | null = null,
+    deptId: string | null = null,
+  ): Promise<ParticipantStats[]> {
     try {
       const params: Record<string, unknown> = { start, end };
       if (upId) params.upId = upId;
@@ -103,7 +117,12 @@ const KPIService = {
     }
   },
 
-  async getTopAbsentees(start: string, end: string, upId: string | null = null, deptId: string | null = null): Promise<ParticipantStats[]> {
+  async getTopAbsentees(
+    start: string,
+    end: string,
+    upId: string | null = null,
+    deptId: string | null = null,
+  ): Promise<ParticipantStats[]> {
     try {
       const params: Record<string, unknown> = { start, end };
       if (upId) params.upId = upId;
@@ -207,17 +226,23 @@ const KPIService = {
     }
   },
 
-  async getCountByTrainerTypeWithIds(filters: Record<string, unknown> = {}): Promise<CountByTrainerTypeWithIds> {
+  async getCountByTrainerTypeWithIds(
+    filters: Record<string, unknown> = {},
+  ): Promise<CountByTrainerTypeWithIds> {
     try {
-      const response = await axios.get(`${API_URL}/count-by-trainer-type-with-ids`, { params: filters });
-      return response.data || {
-        externeOnlyCount: 0,
-        interneOnlyCount: 0,
-        mixteCount: 0,
-        externeOnlyIds: [],
-        interneOnlyIds: [],
-        mixteIds: [],
-      };
+      const response = await axios.get(`${API_URL}/count-by-trainer-type-with-ids`, {
+        params: filters,
+      });
+      return (
+        response.data || {
+          externeOnlyCount: 0,
+          interneOnlyCount: 0,
+          mixteCount: 0,
+          externeOnlyIds: [],
+          interneOnlyIds: [],
+          mixteIds: [],
+        }
+      );
     } catch (error: unknown) {
       if (isNotFoundError(error)) {
         return {
@@ -263,7 +288,3 @@ const KPIService = {
 };
 
 export default KPIService;
-
-
-
-

@@ -1,19 +1,19 @@
-import { useMemo } from "react";
-import type { GapHeatmapCell } from "@/models/analyse";
-import { ChartSkeleton } from "../States";
+import { useMemo } from 'react';
+import type { GapHeatmapCell } from '@/models/analyse';
+import { ChartSkeleton } from '../States';
 
 const SEV = [
-  { key: "critique", label: "Critique", color: "#ef4444" },
-  { key: "eleve", label: "Élevé", color: "#f97316" },
-  { key: "modere", label: "Modéré", color: "#f59e0b" },
-  { key: "faible", label: "Faible", color: "#10b981" },
+  { key: 'critique', label: 'Critique', color: '#ef4444' },
+  { key: 'eleve', label: 'Élevé', color: '#f97316' },
+  { key: 'modere', label: 'Modéré', color: '#f59e0b' },
+  { key: 'faible', label: 'Faible', color: '#10b981' },
 ] as const;
 
-function bucket(gap: number): (typeof SEV)[number]["key"] {
-  if (gap >= 2) return "critique";
-  if (gap >= 1) return "eleve";
-  if (gap >= 0.5) return "modere";
-  return "faible";
+function bucket(gap: number): (typeof SEV)[number]['key'] {
+  if (gap >= 2) return 'critique';
+  if (gap >= 1) return 'eleve';
+  if (gap >= 0.5) return 'modere';
+  return 'faible';
 }
 
 export default function GapSeverity({
@@ -33,7 +33,11 @@ export default function GapSeverity({
   if (loading && total === 0) return <ChartSkeleton height={200} />;
   if (total === 0) return <div className="rd-empty">Aucun écart calculé</div>;
 
-  const size = 150, stroke = 24, r = (size - stroke) / 2, cx = size / 2, cy = size / 2;
+  const size = 150,
+    stroke = 24,
+    r = (size - stroke) / 2,
+    cx = size / 2,
+    cy = size / 2;
   const circ = 2 * Math.PI * r;
   let acc = 0;
   const segs = SEV.map((s) => {
@@ -48,13 +52,30 @@ export default function GapSeverity({
   return (
     <div className="rd-sev">
       <div className="rd-sev-donut-wrap">
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label="Répartition des gaps par gravité">
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--rd-surface-3)" strokeWidth={stroke} />
+        <svg
+          width={size}
+          height={size}
+          viewBox={`0 0 ${size} ${size}`}
+          role="img"
+          aria-label="Répartition des gaps par gravité"
+        >
+          <circle
+            cx={cx}
+            cy={cy}
+            r={r}
+            fill="none"
+            stroke="var(--rd-surface-3)"
+            strokeWidth={stroke}
+          />
           {segs.map((s) => (
             <circle
               key={s.key}
-              cx={cx} cy={cy} r={r} fill="none"
-              stroke={s.color} strokeWidth={stroke}
+              cx={cx}
+              cy={cy}
+              r={r}
+              fill="none"
+              stroke={s.color}
+              strokeWidth={stroke}
               strokeDasharray={`${s.dash} ${circ - s.dash}`}
               transform={`rotate(${(s.offset * 180) / Math.PI} ${cx} ${cy})`}
             />
@@ -71,7 +92,9 @@ export default function GapSeverity({
             <span className="rd-dist-legend-dot" style={{ background: s.color }} />
             <span className="rd-dist-legend-label">{s.label}</span>
             <span className="rd-dist-legend-count">{s.count}</span>
-            <span className="rd-dist-legend-pct">{total ? Math.round((s.count / total) * 100) : 0} %</span>
+            <span className="rd-dist-legend-pct">
+              {total ? Math.round((s.count / total) * 100) : 0} %
+            </span>
           </div>
         ))}
       </div>

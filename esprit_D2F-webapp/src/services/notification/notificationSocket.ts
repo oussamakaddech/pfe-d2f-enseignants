@@ -11,12 +11,9 @@
  * Les deux implémentations respectent la même interface `NotificationTransport`,
  * ce qui permet de brancher un vrai serveur sans toucher au contexte React.
  */
-import { v4 as uuidv4 } from "uuid";
-import { secureRandomInt, secureRandomUnit } from "@/utils/secureRandom";
-import type {
-  ConnectionStatus,
-  NotificationSocketMessage,
-} from "@/models/notification";
+import { v4 as uuidv4 } from 'uuid';
+import { secureRandomInt, secureRandomUnit } from '@/utils/secureRandom';
+import type { ConnectionStatus, NotificationSocketMessage } from '@/models/notification';
 
 export interface TransportHandlers {
   onMessage: (msg: NotificationSocketMessage) => void;
@@ -45,7 +42,7 @@ class WebSocketTransport implements NotificationTransport {
 
   connect(): void {
     this.closedByUser = false;
-    this.handlers.onStatus("connecting");
+    this.handlers.onStatus('connecting');
     try {
       this.socket = new WebSocket(this.url);
     } catch (err) {
@@ -56,7 +53,7 @@ class WebSocketTransport implements NotificationTransport {
 
     this.socket.onopen = () => {
       this.backoff = 1_000;
-      this.handlers.onStatus("open");
+      this.handlers.onStatus('open');
     };
 
     this.socket.onmessage = (event: MessageEvent) => {
@@ -74,7 +71,7 @@ class WebSocketTransport implements NotificationTransport {
 
     this.socket.onclose = () => {
       if (!this.closedByUser) {
-        this.handlers.onStatus("closed");
+        this.handlers.onStatus('closed');
         this.scheduleReconnect();
       }
     };
@@ -104,39 +101,60 @@ class WebSocketTransport implements NotificationTransport {
 /** Catalogue de notifications réalistes pour la démo temps réel. */
 const MOCK_POOL: NotificationSocketMessage[] = [
   {
-    type: "FORMATION", severity: "info", title: "Nouvelle formation planifiée",
-    message: "« Intelligence Artificielle appliquée » – 12 oct. 2026, Bloc C.",
-    link: "/home/Formation/Consulter", actor: "CUP",
+    type: 'FORMATION',
+    severity: 'info',
+    title: 'Nouvelle formation planifiée',
+    message: '« Intelligence Artificielle appliquée » – 12 oct. 2026, Bloc C.',
+    link: '/home/Formation/Consulter',
+    actor: 'CUP',
   },
   {
-    type: "EVALUATION", severity: "warning", title: "Évaluation à compléter",
-    message: "Votre évaluation de la formation « Cybersécurité » expire dans 48 h.",
-    link: "/home/Evaluations", actor: "Système",
+    type: 'EVALUATION',
+    severity: 'warning',
+    title: 'Évaluation à compléter',
+    message: 'Votre évaluation de la formation « Cybersécurité » expire dans 48 h.',
+    link: '/home/Evaluations',
+    actor: 'Système',
   },
   {
-    type: "CERTIFICAT", severity: "success", title: "Certificat disponible",
-    message: "Votre certificat « Cloud & DevOps » est prêt au téléchargement.",
-    link: "/home/certificate/MyCertificate", actor: "Système",
+    type: 'CERTIFICAT',
+    severity: 'success',
+    title: 'Certificat disponible',
+    message: 'Votre certificat « Cloud & DevOps » est prêt au téléchargement.',
+    link: '/home/certificate/MyCertificate',
+    actor: 'Système',
   },
   {
-    type: "BESOIN", severity: "info", title: "Besoin validé",
-    message: "Votre besoin en formation « Python avancé » a été validé par votre chef de département.",
-    link: "/home/besoins", actor: "Chef Département",
+    type: 'BESOIN',
+    severity: 'info',
+    title: 'Besoin validé',
+    message:
+      'Votre besoin en formation « Python avancé » a été validé par votre chef de département.',
+    link: '/home/besoins',
+    actor: 'Chef Département',
   },
   {
-    type: "COMPETENCE", severity: "success", title: "Compétence acquise",
-    message: "La compétence « Gestion de projet agile » a été ajoutée à votre Skill Passport.",
-    link: "/home/skill-passport", actor: "Système",
+    type: 'COMPETENCE',
+    severity: 'success',
+    title: 'Compétence acquise',
+    message: 'La compétence « Gestion de projet agile » a été ajoutée à votre Skill Passport.',
+    link: '/home/skill-passport',
+    actor: 'Système',
   },
   {
-    type: "MESSAGE", severity: "info", title: "Nouveau message",
+    type: 'MESSAGE',
+    severity: 'info',
+    title: 'Nouveau message',
     message: "L'animateur de la formation « Data Science » vous a envoyé un message.",
-    link: "/home/Formation", actor: "Animateur",
+    link: '/home/Formation',
+    actor: 'Animateur',
   },
   {
-    type: "SYSTEM", severity: "warning", title: "Maintenance planifiée",
-    message: "La plateforme sera indisponible le dimanche 18 oct. de 02:00 à 04:00.",
-    actor: "Système",
+    type: 'SYSTEM',
+    severity: 'warning',
+    title: 'Maintenance planifiée',
+    message: 'La plateforme sera indisponible le dimanche 18 oct. de 02:00 à 04:00.',
+    actor: 'Système',
   },
 ];
 
@@ -149,7 +167,7 @@ class MockNotificationTransport implements NotificationTransport {
 
   connect(): void {
     this.closed = false;
-    this.handlers.onStatus("mock");
+    this.handlers.onStatus('mock');
     const tick = () => {
       if (this.closed) return;
       const template = MOCK_POOL[secureRandomInt(MOCK_POOL.length)];
@@ -182,7 +200,7 @@ class MockNotificationTransport implements NotificationTransport {
 class RestNotificationTransport implements NotificationTransport {
   constructor(private readonly handlers: TransportHandlers) {}
   connect(): void {
-    this.handlers.onStatus("open");
+    this.handlers.onStatus('open');
   }
   close(): void {
     /* rien à fermer */
@@ -200,7 +218,7 @@ export function createNotificationTransport(
   if (url && url.trim().length > 0) {
     return new WebSocketTransport(url, handlers);
   }
-  if (import.meta.env.VITE_NOTIFICATIONS_DEMO === "true") {
+  if (import.meta.env.VITE_NOTIFICATIONS_DEMO === 'true') {
     return new MockNotificationTransport(handlers);
   }
   return new RestNotificationTransport(handlers);

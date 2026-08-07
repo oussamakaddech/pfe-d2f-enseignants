@@ -1,26 +1,41 @@
-import { memo } from "react";
-import { Modal, Form, Input, Select } from "antd";
-import { MailOutlined, FileTextOutlined } from "@ant-design/icons";
-
-const { TextArea } = Input;
-
+import { memo } from 'react';
+import { Modal, Form, Input, Select } from 'antd';
+import { MailOutlined, FileTextOutlined } from '@ant-design/icons';
+
+const { TextArea } = Input;
+
 interface BesoinMailModalProps {
   open: boolean;
   mailSending: boolean;
   mailRecord: { titre?: string; objectifFormation?: string } | null;
-  cupAccounts: Array<{ email?: string; emailAddress?: string; userName?: string; username?: string }>;
+  cupAccounts: Array<{
+    email?: string;
+    emailAddress?: string;
+    userName?: string;
+    username?: string;
+  }>;
   form: ReturnType<typeof Form.useForm>[0];
   onOk: () => void;
   onCancel: () => void;
-}
-
-const BesoinMailModal = memo(function BesoinMailModal({ open, mailSending, mailRecord, cupAccounts, form, onOk, onCancel }: BesoinMailModalProps) {
+}
+
+const BesoinMailModal = memo(function BesoinMailModal({
+  open,
+  mailSending,
+  mailRecord,
+  cupAccounts,
+  form,
+  onOk,
+  onCancel,
+}: BesoinMailModalProps) {
   return (
     <Modal
       title={
         <span className="bf-modal__title">
-          <span className="bf-modal__title-icon"><MailOutlined /></span>
-          {" "}Demander des informations au CUP
+          <span className="bf-modal__title-icon">
+            <MailOutlined />
+          </span>{' '}
+          Demander des informations au CUP
         </span>
       }
       open={open}
@@ -31,15 +46,17 @@ const BesoinMailModal = memo(function BesoinMailModal({ open, mailSending, mailR
       cancelText="Annuler"
       width={680}
       className="bf-modal bf-modal--mail"
-      okButtonProps={{ className: "bf-btn bf-btn--primary", icon: <MailOutlined /> }}
+      okButtonProps={{ className: 'bf-btn bf-btn--primary', icon: <MailOutlined /> }}
     >
       {mailRecord && (
         <div className="bf-mail-context">
-          <span className="bf-mail-context__icon"><FileTextOutlined /></span>
+          <span className="bf-mail-context__icon">
+            <FileTextOutlined />
+          </span>
           <div>
             <div className="bf-mail-context__label">Besoin concerné</div>
             <div className="bf-mail-context__value">
-              {mailRecord.titre || mailRecord.objectifFormation || "—"}
+              {mailRecord.titre || mailRecord.objectifFormation || '—'}
             </div>
           </div>
         </div>
@@ -49,8 +66,8 @@ const BesoinMailModal = memo(function BesoinMailModal({ open, mailSending, mailR
           label="Destinataire (CUP)"
           name="to"
           rules={[
-            { required: true, message: "Veuillez saisir ou choisir un destinataire" },
-            { type: "email", message: "Adresse e-mail invalide" },
+            { required: true, message: 'Veuillez saisir ou choisir un destinataire' },
+            { type: 'email', message: 'Adresse e-mail invalide' },
           ]}
         >
           {cupAccounts.length > 0 ? (

@@ -1,4 +1,4 @@
-import TeachersDataGrid from "@/pages/enseignant/TeachersDataGrid";
+import TeachersDataGrid from '@/pages/enseignant/TeachersDataGrid';
 
 /**
  * Page dédiée à la gestion / annuaire des enseignants.

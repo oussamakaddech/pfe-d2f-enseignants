@@ -7,7 +7,7 @@
 // dupliquée côté rendu.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import type { RiskLevelKey } from "./risk";
+import type { RiskLevelKey } from './risk';
 
 // ── Enseignant à risque (une seule forme, partagée par les 2 pages) ─────────
 export interface UnifiedRiskTeacher {
@@ -18,7 +18,7 @@ export interface UnifiedRiskTeacher {
   readonly riskScore: number | null;
   readonly riskLevel: RiskLevelKey | null;
   readonly signals: string[]; // libellés FR décodés
-  readonly trend: "PROGRESSION" | "STABLE" | "REGRESSION" | null;
+  readonly trend: 'PROGRESSION' | 'STABLE' | 'REGRESSION' | null;
   readonly criticalGaps: number;
   readonly recommendedAction: string;
   readonly recommendedTraining: string | null;
@@ -72,7 +72,7 @@ export interface SupplyDemandItem {
   readonly criticalCount: number;
   readonly urgency: RiskLevelKey;
   readonly suggestedTraining: string;
-  readonly quadrant: "INVESTIR" | "MAINTENIR" | "SURPLUS" | "SURVEILLER";
+  readonly quadrant: 'INVESTIR' | 'MAINTENIR' | 'SURPLUS' | 'SURVEILLER';
 }
 
 // ── Prévision (historique + projeté + intervalle) ───────────────────────────
@@ -84,7 +84,7 @@ export interface ForecastSeriesPoint {
   readonly isProjection: boolean;
 }
 
-export type ForecastKind = "demand" | "risk";
+export type ForecastKind = 'demand' | 'risk';
 
 export interface ForecastView {
   readonly kind: ForecastKind;
@@ -109,7 +109,7 @@ export interface RiskTrendPoint {
 }
 
 // ── Alerte ─────────────────────────────────────────────────────────────────
-export type AlertSeverity = "CRITICAL" | "WARNING" | "INFO";
+export type AlertSeverity = 'CRITICAL' | 'WARNING' | 'INFO';
 
 export interface UnifiedAlert {
   readonly id: string;

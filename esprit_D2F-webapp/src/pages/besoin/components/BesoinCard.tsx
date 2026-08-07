@@ -1,5 +1,5 @@
-import { Button, Popconfirm, Tooltip, Avatar } from "antd";
-import type React from "react";
+import { Button, Popconfirm, Tooltip, Avatar } from 'antd';
+import type React from 'react';
 import {
   CheckCircleOutlined,
   MailOutlined,
@@ -11,18 +11,18 @@ import {
   ReadOutlined,
   ClockCircleOutlined,
   UserOutlined,
-} from "@ant-design/icons";
-import BesoinPriorityBadge from "./BesoinPriorityBadge";
-import BesoinStatusBadge from "./BesoinStatusBadge";
-import BesoinCardMeta from "./BesoinCardMeta";
+} from '@ant-design/icons';
+import BesoinPriorityBadge from './BesoinPriorityBadge';
+import BesoinStatusBadge from './BesoinStatusBadge';
+import BesoinCardMeta from './BesoinCardMeta';
 
 const TYPE_TONES: Record<string, string> = {
-  INDIVIDUEL: "info",
-  COLLECTIF:  "violet",
+  INDIVIDUEL: 'info',
+  COLLECTIF: 'violet',
 };
 const TYPE_LABELS: Record<string, string> = {
-  INDIVIDUEL: "Individuel",
-  COLLECTIF:  "Collectif",
+  INDIVIDUEL: 'Individuel',
+  COLLECTIF: 'Collectif',
 };
 
 interface BesoinData {
@@ -55,22 +55,28 @@ interface BesoinCardProps {
 }
 
 const initialsOf = (name: string) => {
-  const parts = String(name || "").split(/[\s._-]+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  return (parts[0].charAt(0) + (parts[1]?.charAt(0) || "")).toUpperCase();
+  const parts = String(name || '')
+    .split(/[\s._-]+/)
+    .filter(Boolean);
+  if (parts.length === 0) return '?';
+  return (parts[0].charAt(0) + (parts[1]?.charAt(0) || '')).toUpperCase();
 };
 
 const colorOfName = (str: string) => {
-  const palette = ["#b51200", "#0891b2", "#7c3aed", "#059669", "#d97706", "#2563eb", "#db2777"];
+  const palette = ['#b51200', '#0891b2', '#7c3aed', '#059669', '#d97706', '#2563eb', '#db2777'];
   let h = 0;
-  for (let i = 0; i < (str || "").length; i += 1) h = (h * 31 + (str.codePointAt(i) ?? 0)) >>> 0;
+  for (let i = 0; i < (str || '').length; i += 1) h = (h * 31 + (str.codePointAt(i) ?? 0)) >>> 0;
   return palette[h % palette.length];
 };
 
 const formatDate = (d: string | null | undefined) => {
   if (!d) return null;
   try {
-    return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+    return new Date(d).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
   } catch {
     return String(d);
   }
@@ -104,12 +110,12 @@ export default function BesoinCard({
   onOpen,
 }: Readonly<BesoinCardProps>) {
   const id = besoin.idBesoinFormation ?? besoin.idBesionFormation ?? besoin.id;
-  const priorite = besoin.priorite || "BASSE";
-  const demandeurName = besoin.username || "—";
-  const title = besoin.titre || besoin.objectifFormation || "Sans titre";
+  const priorite = besoin.priorite || 'BASSE';
+  const demandeurName = besoin.username || '—';
+  const title = besoin.titre || besoin.objectifFormation || 'Sans titre';
   const desc = besoin.titre && besoin.objectifFormation ? besoin.objectifFormation : null;
-  const typeTone = TYPE_TONES[besoin.typeBesoin ?? ""] || "info";
-  const typeLabel = TYPE_LABELS[besoin.typeBesoin ?? ""] || besoin.typeBesoin?.replaceAll("_", " ");
+  const typeTone = TYPE_TONES[besoin.typeBesoin ?? ''] || 'info';
+  const typeLabel = TYPE_LABELS[besoin.typeBesoin ?? ''] || besoin.typeBesoin?.replaceAll('_', ' ');
   const recent = isRecent(besoin.dateCreation);
 
   const bRecord = besoin as unknown as Record<string, unknown>;
@@ -118,21 +124,31 @@ export default function BesoinCard({
     fn();
   };
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === " ") {
+    if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       onOpen?.();
     }
   };
 
   const metaItems = [
-    { key: "domaine", label: "Domaine",     value: besoin.theme,                 icon: <ReadOutlined /> },
-    { key: "up",      label: "UP",          value: upLabel && upLabel !== "—" ? upLabel : null,   icon: <ApartmentOutlined /> },
-    { key: "dept",    label: "Département", value: deptLabel && deptLabel !== "—" ? deptLabel : null, icon: <EnvironmentOutlined /> },
-    { key: "period",  label: "Période",     value: periodLabel,                  icon: <CalendarOutlined /> },
+    { key: 'domaine', label: 'Domaine', value: besoin.theme, icon: <ReadOutlined /> },
+    {
+      key: 'up',
+      label: 'UP',
+      value: upLabel && upLabel !== '—' ? upLabel : null,
+      icon: <ApartmentOutlined />,
+    },
+    {
+      key: 'dept',
+      label: 'Département',
+      value: deptLabel && deptLabel !== '—' ? deptLabel : null,
+      icon: <EnvironmentOutlined />,
+    },
+    { key: 'period', label: 'Période', value: periodLabel, icon: <CalendarOutlined /> },
   ];
 
   return (
-    <div className={`bf-card bf-card--prio-${priorite}${recent ? " bf-card--is-new" : ""}`}>
+    <div className={`bf-card bf-card--prio-${priorite}${recent ? ' bf-card--is-new' : ''}`}>
       <button
         type="button"
         className="bf-card__body"
@@ -155,7 +171,9 @@ export default function BesoinCard({
         </header>
 
         {/* Title */}
-        <h3 className="bf-card__title" title={title}>{title}</h3>
+        <h3 className="bf-card__title" title={title}>
+          {title}
+        </h3>
         {desc && <p className="bf-card__desc">{desc}</p>}
 
         {/* Demandeur inline */}
@@ -169,10 +187,12 @@ export default function BesoinCard({
           <div className="bf-card__requester-body">
             <div className="bf-card__requester-name">{demandeurName}</div>
             <div className="bf-card__requester-sub">
-              {formatDate(besoin.dateCreation) || "Date inconnue"}
+              {formatDate(besoin.dateCreation) || 'Date inconnue'}
               {besoin.propositionAnimateur && (
                 <>
-                  <span className="bf-card__sep" aria-hidden="true">•</span>
+                  <span className="bf-card__sep" aria-hidden="true">
+                    •
+                  </span>
                   <UserOutlined style={{ marginRight: 4 }} />
                   {besoin.propositionAnimateur}
                 </>
@@ -211,7 +231,7 @@ export default function BesoinCard({
             onCancel={(e) => e?.stopPropagation()}
             okText="Approuver"
             cancelText="Annuler"
-            okButtonProps={{ className: "bf-btn bf-btn--success" }}
+            okButtonProps={{ className: 'bf-btn bf-btn--success' }}
           >
             <Button
               type="primary"
@@ -246,7 +266,9 @@ export default function BesoinCard({
         <Popconfirm
           title="Supprimer ce besoin ?"
           description="Cette action est irréversible."
-          onConfirm={stopProp(() => { if (id != null) onDelete(id); })}
+          onConfirm={stopProp(() => {
+            if (id != null) onDelete(id);
+          })}
           onCancel={(e) => e?.stopPropagation()}
           okText="Supprimer"
           cancelText="Annuler"
@@ -265,8 +287,3 @@ export default function BesoinCard({
     </div>
   );
 }
-
-
-
-
-

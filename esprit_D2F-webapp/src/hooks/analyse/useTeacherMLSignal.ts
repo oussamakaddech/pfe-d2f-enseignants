@@ -9,13 +9,13 @@
  * `available=false` et `reason` documente pourquoi.
  */
 
-import { useQuery } from "@tanstack/react-query";
-import D2FService from "@/services/analyse/D2FService";
-import type { TeacherMLSignal } from "@/services/analyse/D2FService";
+import { useQuery } from '@tanstack/react-query';
+import D2FService from '@/services/analyse/D2FService';
+import type { TeacherMLSignal } from '@/services/analyse/D2FService';
 
 export function useTeacherMLSignal(teacherId: string | undefined) {
   return useQuery<TeacherMLSignal>({
-    queryKey: ["d2f", "ml-signal", teacherId],
+    queryKey: ['d2f', 'ml-signal', teacherId],
     queryFn: () => D2FService.getTeacherMLSignal(teacherId!),
     enabled: !!teacherId,
     staleTime: 60_000,

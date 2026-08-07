@@ -1,6 +1,6 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
-import type { AnimateurExterne, AnimateurExterneRequest } from "@/models/bureau";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
+import type { AnimateurExterne, AnimateurExterneRequest } from '@/models/bureau';
 
 const bureauUrl = (bureauId: number) =>
   `${config.FORMATION_URL}/formation/bureaux/${bureauId}/animateurs`;
@@ -16,7 +16,11 @@ const AnimateurExterneService = {
     return response.data;
   },
 
-  async update(bureauId: number, id: number, data: AnimateurExterneRequest): Promise<AnimateurExterne> {
+  async update(
+    bureauId: number,
+    id: number,
+    data: AnimateurExterneRequest,
+  ): Promise<AnimateurExterne> {
     const response = await axios.put(`${bureauUrl(bureauId)}/${id}`, data);
     return response.data;
   },

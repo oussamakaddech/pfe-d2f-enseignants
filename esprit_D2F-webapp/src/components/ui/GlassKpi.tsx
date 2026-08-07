@@ -1,5 +1,5 @@
-import { type ReactNode } from "react";
-import { ArrowUpOutlined, ArrowDownOutlined, MinusOutlined } from "@ant-design/icons";
+import { type ReactNode } from 'react';
+import { ArrowUpOutlined, ArrowDownOutlined, MinusOutlined } from '@ant-design/icons';
 
 interface GlassKpiProps {
   readonly label: string;
@@ -18,8 +18,8 @@ export default function GlassKpi({
   label,
   value,
   icon,
-  accent = "#b51200",
-  tint = "rgba(181,18,0,0.10)",
+  accent = '#b51200',
+  tint = 'rgba(181,18,0,0.10)',
   delta,
   deltaGoodWhenUp = false,
   deltaLabel,
@@ -28,15 +28,21 @@ export default function GlassKpi({
   let deltaEl: ReactNode = null;
   if (delta == null) {
     deltaEl = (
-      <span className="glass-kpi-delta flat"><MinusOutlined /> stable</span>
+      <span className="glass-kpi-delta flat">
+        <MinusOutlined /> stable
+      </span>
     );
   } else if (Math.abs(delta) < 1e-9) {
-    deltaEl = <span className="glass-kpi-delta flat"><MinusOutlined /> 0</span>;
+    deltaEl = (
+      <span className="glass-kpi-delta flat">
+        <MinusOutlined /> 0
+      </span>
+    );
   } else {
     const isUp = delta > 0;
     const isGood = isUp === deltaGoodWhenUp;
     deltaEl = (
-      <span className={`glass-kpi-delta ${isGood ? "up" : "down"}`}>
+      <span className={`glass-kpi-delta ${isGood ? 'up' : 'down'}`}>
         {isUp ? <ArrowUpOutlined /> : <ArrowDownOutlined />} {deltaLabel ?? Math.abs(delta)}
       </span>
     );
@@ -45,7 +51,7 @@ export default function GlassKpi({
   return (
     <div
       className="glass-kpi"
-      style={{ ["--kpi-accent" as string]: accent, ["--kpi-tint" as string]: tint }}
+      style={{ ['--kpi-accent' as string]: accent, ['--kpi-tint' as string]: tint }}
       title={hint}
     >
       <div className="glass-kpi-top">

@@ -1,23 +1,29 @@
-import { memo } from "react";
-import { Badge, Tooltip } from "antd";
+import { memo } from 'react';
+import { Badge, Tooltip } from 'antd';
 import {
-  BookOutlined, FileDoneOutlined, FileProtectOutlined, BulbOutlined,
-  ThunderboltOutlined, MessageOutlined, SettingOutlined, CloseOutlined,
-} from "@ant-design/icons";
-import { motion } from "framer-motion";
-import { formatDistanceToNow } from "date-fns";
-import { fr } from "date-fns/locale";
-import type { AppNotification, NotificationCategory } from "@/models/notification";
-import { CATEGORY_META } from "@/models/notification";
+  BookOutlined,
+  FileDoneOutlined,
+  FileProtectOutlined,
+  BulbOutlined,
+  ThunderboltOutlined,
+  MessageOutlined,
+  SettingOutlined,
+  CloseOutlined,
+} from '@ant-design/icons';
+import { motion } from 'framer-motion';
+import { formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import type { AppNotification, NotificationCategory } from '@/models/notification';
+import { CATEGORY_META } from '@/models/notification';
 
 const CATEGORY_ICON: Record<NotificationCategory, typeof BookOutlined> = {
-  FORMATION:   BookOutlined,
-  EVALUATION:  FileDoneOutlined,
-  CERTIFICAT:  FileProtectOutlined,
-  BESOIN:      BulbOutlined,
-  COMPETENCE:  ThunderboltOutlined,
-  MESSAGE:     MessageOutlined,
-  SYSTEM:      SettingOutlined,
+  FORMATION: BookOutlined,
+  EVALUATION: FileDoneOutlined,
+  CERTIFICAT: FileProtectOutlined,
+  BESOIN: BulbOutlined,
+  COMPETENCE: ThunderboltOutlined,
+  MESSAGE: MessageOutlined,
+  SYSTEM: SettingOutlined,
 };
 
 interface NotificationItemProps {
@@ -28,7 +34,10 @@ interface NotificationItemProps {
 }
 
 const NotificationItem = memo(function NotificationItem({
-  notification, onMarkRead, onRemove, onClick,
+  notification,
+  onMarkRead,
+  onRemove,
+  onClick,
 }: NotificationItemProps) {
   const meta = CATEGORY_META[notification.type];
   const Icon = CATEGORY_ICON[notification.type];
@@ -44,12 +53,14 @@ const NotificationItem = memo(function NotificationItem({
       initial={{ opacity: 0, x: 24 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -24, height: 0, marginBottom: 0 }}
-      transition={{ duration: 0.18, ease: "easeOut" }}
-      className={`notif-item ${notification.read ? "is-read" : "is-unread"}`}
+      transition={{ duration: 0.18, ease: 'easeOut' }}
+      className={`notif-item ${notification.read ? 'is-read' : 'is-unread'}`}
       onClick={handleClick}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => { if (e.key === "Enter") handleClick(); }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') handleClick();
+      }}
     >
       <span
         className="notif-item__icon"
@@ -81,7 +92,10 @@ const NotificationItem = memo(function NotificationItem({
           type="button"
           className="notif-item__close"
           aria-label="Supprimer la notification"
-          onClick={(e) => { e.stopPropagation(); onRemove(notification.id); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(notification.id);
+          }}
         >
           <CloseOutlined />
         </button>

@@ -1,24 +1,29 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
-import type { AxiosError } from "axios";
-import FormationCustomService from "@/services/formation/FormationCustomService";
-import FormationReportService from "@/services/formation/FormationReportService";
-import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
-import MailService from "@/services/besoin/MailService";
-import InscriptionService from "@/services/formation/InscriptionService";
-import { getProfile } from "@/services/auth/AccountService";
-import type { Id } from "@/models/common";
-import type { AuthUser } from "@/models/auth";
+import { useQuery, useMutation } from '@tanstack/react-query';
+import type { AxiosError } from 'axios';
+import FormationCustomService from '@/services/formation/FormationCustomService';
+import FormationReportService from '@/services/formation/FormationReportService';
+import FormationWorkflowService from '@/services/formation/FormationWorkflowService';
+import MailService from '@/services/besoin/MailService';
+import InscriptionService from '@/services/formation/InscriptionService';
+import { getProfile } from '@/services/auth/AccountService';
+import type { Id } from '@/models/common';
+import type { AuthUser } from '@/models/auth';
 
 const KEYS = {
-  inscriptions: (formationId: Id) => ["inscriptions", formationId] as const,
+  inscriptions: (formationId: Id) => ['inscriptions', formationId] as const,
   report: (role: string, enseignantId: Id, start: string, end: string) =>
-    ["formation-report", role, enseignantId, start, end] as const,
+    ['formation-report', role, enseignantId, start, end] as const,
 };
 
 export function useGenerateFormationCertificates() {
   return useMutation({
-    mutationFn: ({ formationId, typeCertif = "CERTIF" }: { formationId: Id; typeCertif?: string }) =>
-      FormationCustomService.generateCertificates(formationId as number, typeCertif),
+    mutationFn: ({
+      formationId,
+      typeCertif = 'CERTIF',
+    }: {
+      formationId: Id;
+      typeCertif?: string;
+    }) => FormationCustomService.generateCertificates(formationId as number, typeCertif),
   });
 }
 
@@ -30,7 +35,8 @@ export function useFormationsParRoleEtPeriode(
 ) {
   return useQuery<unknown[]>({
     queryKey: KEYS.report(role, enseignantId!, start, end),
-    queryFn: () => FormationReportService.getFormationsParRoleEtPeriode(role, String(enseignantId), start, end),
+    queryFn: () =>
+      FormationReportService.getFormationsParRoleEtPeriode(role, String(enseignantId), start, end),
     enabled: !!enseignantId && !!start && !!end,
   });
 }
@@ -47,14 +53,24 @@ export function useFormationReportFetch() {
       enseignantId: Id;
       start: string;
       end: string;
-    }) => FormationReportService.getFormationsParRoleEtPeriode(role, String(enseignantId), start, end),
+    }) =>
+      FormationReportService.getFormationsParRoleEtPeriode(role, String(enseignantId), start, end),
   });
 }
 
 export function useSendEmail() {
   return useMutation({
-    mutationFn: ({ to, subject, content, isHtml }: { to: string; subject: string; content: string; isHtml?: boolean }) =>
-      MailService.sendEmail(to, subject, content, isHtml),
+    mutationFn: ({
+      to,
+      subject,
+      content,
+      isHtml,
+    }: {
+      to: string;
+      subject: string;
+      content: string;
+      isHtml?: boolean;
+    }) => MailService.sendEmail(to, subject, content, isHtml),
   });
 }
 
@@ -68,14 +84,14 @@ export function useInscriptionsByFormation(formationId: Id | undefined) {
 
 export function useAllInscriptions() {
   return useQuery<unknown[]>({
-    queryKey: ["inscriptions", "all"],
+    queryKey: ['inscriptions', 'all'],
     queryFn: () => InscriptionService.getAllInscriptions(),
   });
 }
 
 export function useInscriptionsByEnseignant(enseignantId: Id | undefined) {
   return useQuery<unknown[]>({
-    queryKey: ["inscriptions", "enseignant", enseignantId],
+    queryKey: ['inscriptions', 'enseignant', enseignantId],
     queryFn: () => InscriptionService.getInscriptionsByEnseignant(enseignantId!),
     enabled: !!enseignantId,
   });
@@ -83,7 +99,7 @@ export function useInscriptionsByEnseignant(enseignantId: Id | undefined) {
 
 export function useMyInscriptions() {
   return useQuery<unknown[]>({
-    queryKey: ["inscriptions", "mine"],
+    queryKey: ['inscriptions', 'mine'],
     queryFn: () => InscriptionService.getMyInscriptions(),
   });
 }
@@ -118,7 +134,7 @@ export function useAnnulerInscription() {
 
 export function useFormationsAccessibles(enseignantId: Id | undefined) {
   return useQuery<unknown[]>({
-    queryKey: ["formations", "accessibles", enseignantId],
+    queryKey: ['formations', 'accessibles', enseignantId],
     queryFn: () => InscriptionService.getFormationsAccessibles(enseignantId!),
     enabled: !!enseignantId,
   });
@@ -133,7 +149,7 @@ export function useExportFormations() {
 
 export function useProfile() {
   return useQuery<AuthUser, AxiosError>({
-    queryKey: ["profile"],
+    queryKey: ['profile'],
     queryFn: () => getProfile(),
     // Never retry on auth/not-found errors — the httpClient interceptor already
     // dispatches auth:loggedOut on 401, so retrying would just flood the server.

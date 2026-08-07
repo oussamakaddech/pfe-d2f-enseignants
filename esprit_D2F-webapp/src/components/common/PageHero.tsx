@@ -1,9 +1,9 @@
-import { memo } from "react";
-import type { ReactNode } from "react";
-import s from "./PageHero.module.css";
-import { neutral, semantic } from "@/styles/themes/tokens";
+import { memo } from 'react';
+import type { ReactNode } from 'react';
+import s from './PageHero.module.css';
+import { neutral, semantic } from '@/styles/themes/tokens';
 
-export type PageHeroTone = "brand" | "info" | "success" | "warning" | "danger" | "neutral";
+export type PageHeroTone = 'brand' | 'info' | 'success' | 'warning' | 'danger' | 'neutral';
 
 interface PageHeroProps {
   readonly icon: ReactNode;
@@ -18,20 +18,20 @@ interface PageHeroProps {
 }
 
 const TONE_GRADIENT: Record<PageHeroTone, { from: string; to: string; ring: string }> = {
-  brand:   { from: "#fff0ee", to: "#ffddd9", ring: "rgba(181, 18, 0, 0.12)" },
-  info:    { from: "#eff6ff", to: "#dbeafe", ring: "rgba(59, 130, 246, 0.12)" },
-  success: { from: "#ecfdf5", to: "#d1fae5", ring: "rgba(16, 185, 129, 0.16)" },
-  warning: { from: "#fffbeb", to: "#fef3c7", ring: "rgba(245, 158, 11, 0.16)" },
-  danger:  { from: "#fef2f2", to: "#fee2e2", ring: "rgba(239, 68, 68, 0.16)" },
-  neutral: { from: neutral[50], to: neutral[100], ring: "rgba(15, 23, 42, 0.10)" },
+  brand: { from: '#fff0ee', to: '#ffddd9', ring: 'rgba(181, 18, 0, 0.12)' },
+  info: { from: '#eff6ff', to: '#dbeafe', ring: 'rgba(59, 130, 246, 0.12)' },
+  success: { from: '#ecfdf5', to: '#d1fae5', ring: 'rgba(16, 185, 129, 0.16)' },
+  warning: { from: '#fffbeb', to: '#fef3c7', ring: 'rgba(245, 158, 11, 0.16)' },
+  danger: { from: '#fef2f2', to: '#fee2e2', ring: 'rgba(239, 68, 68, 0.16)' },
+  neutral: { from: neutral[50], to: neutral[100], ring: 'rgba(15, 23, 42, 0.10)' },
 };
 
 const TONE_ACCENT: Record<PageHeroTone, string> = {
-  brand:   "#b51200",
-  info:    semantic.info,
+  brand: '#b51200',
+  info: semantic.info,
   success: semantic.success,
   warning: semantic.warning,
-  danger:  semantic.error,
+  danger: semantic.error,
   neutral: neutral[700],
 };
 
@@ -45,7 +45,7 @@ const PageHero = memo(function PageHero({
   icon,
   title,
   subtitle,
-  tone = "brand",
+  tone = 'brand',
   actions,
   badge,
   compact = false,
@@ -56,14 +56,20 @@ const PageHero = memo(function PageHero({
 
   return (
     <div
-      className={`${s.hero} ${compact ? s.compact : ""} ${className ?? ""}`}
+      className={`${s.hero} ${compact ? s.compact : ''} ${className ?? ''}`}
       style={{
         background: `linear-gradient(135deg, #ffffff 0%, ${palette.from} 50%, ${palette.to} 100%)`,
         border: `1px solid ${palette.ring}`,
       }}
     >
-      <div className={s.glowA} style={{ background: `radial-gradient(circle, ${palette.ring}, transparent 70%)` }} />
-      <div className={s.glowB} style={{ background: `radial-gradient(circle, ${palette.ring}, transparent 70%)` }} />
+      <div
+        className={s.glowA}
+        style={{ background: `radial-gradient(circle, ${palette.ring}, transparent 70%)` }}
+      />
+      <div
+        className={s.glowB}
+        style={{ background: `radial-gradient(circle, ${palette.ring}, transparent 70%)` }}
+      />
 
       <div className={s.content}>
         <div className={s.left}>
@@ -71,7 +77,7 @@ const PageHero = memo(function PageHero({
             className={s.iconBox}
             style={{
               background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
-              color: "#fff",
+              color: '#fff',
               boxShadow: `0 8px 20px ${palette.ring}`,
             }}
           >
@@ -85,9 +91,9 @@ const PageHero = memo(function PageHero({
                 className={s.title}
                 style={{
                   background: `linear-gradient(135deg, ${neutral[900]} 0%, ${accent} 90%)`,
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
                 }}
               >
                 {title}

@@ -101,17 +101,18 @@
   min-height: 100vh;
   padding: 22px 24px 46px;
   color: var(--ctp-ink);
-  font-family: "Manrope", "Plus Jakarta Sans", "Segoe UI", sans-serif;
+  font-family: 'Manrope', 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
   background: var(--ctp-surface-soft);
   overflow: hidden;
 }
 
 .ctp::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: linear-gradient(rgba(100, 116, 139, 0.04) 1px, transparent 1px),
+  background-image:
+    linear-gradient(rgba(100, 116, 139, 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(100, 116, 139, 0.04) 1px, transparent 1px);
   background-size: 48px 48px;
 }
@@ -349,7 +350,10 @@
   padding: 16px 14px;
   background: var(--ctp-surface);
   cursor: pointer;
-  transition: transform var(--ctp-ease), box-shadow var(--ctp-ease), border-color var(--ctp-ease);
+  transition:
+    transform var(--ctp-ease),
+    box-shadow var(--ctp-ease),
+    border-color var(--ctp-ease);
   animation: ctpPop 0.2s ease;
   display: flex;
   flex-direction: column;
@@ -359,7 +363,7 @@
 }
 
 .ctp-stat-card::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: auto 0 0 0;
   height: 3px;
@@ -548,7 +552,7 @@
 .ctp-savoir-item__code {
   font-size: 11px;
   color: #64748b;
-  font-family: "Fira Code", Consolas, monospace;
+  font-family: 'Fira Code', Consolas, monospace;
 }
 
 .ctp-savoir-item__path {
@@ -668,7 +672,9 @@
   color: var(--ctp-blue);
   font-size: 12px;
   cursor: pointer;
-  transition: background var(--ctp-ease), color var(--ctp-ease);
+  transition:
+    background var(--ctp-ease),
+    color var(--ctp-ease);
 }
 
 .ctp-empty-state__action:hover {
@@ -704,7 +710,7 @@
   border-radius: 999px;
   font-size: 10px;
   font-weight: 700;
-  font-family: "Fira Code", Consolas, monospace;
+  font-family: 'Fira Code', Consolas, monospace;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }

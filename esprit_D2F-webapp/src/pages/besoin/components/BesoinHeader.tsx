@@ -1,10 +1,5 @@
-import { Breadcrumb, Button, Tooltip } from "antd";
-import {
-  HomeOutlined,
-  PlusOutlined,
-  ReloadOutlined,
-  FileExcelOutlined,
-} from "@ant-design/icons";
+import { Breadcrumb, Button, Tooltip } from 'antd';
+import { HomeOutlined, PlusOutlined, ReloadOutlined, FileExcelOutlined } from '@ant-design/icons';
 
 interface BesoinHeaderProps {
   total: number;
@@ -32,8 +27,15 @@ export default function BesoinHeader({
       <Breadcrumb
         className="bf-breadcrumb"
         items={[
-          { href: "/home", title: <><HomeOutlined /> Accueil</> },
-          { title: "Compétences & IA" },
+          {
+            href: '/home',
+            title: (
+              <>
+                <HomeOutlined /> Accueil
+              </>
+            ),
+          },
+          { title: 'Compétences & IA' },
           { title: <strong>Besoins de Formation</strong> },
         ]}
       />
@@ -45,12 +47,15 @@ export default function BesoinHeader({
             {total > 0 && (
               <span className="bf-header__count">
                 {filteredCount}
-                {filteredCount !== total && <span className="bf-header__count-total"> / {total}</span>}
+                {filteredCount !== total && (
+                  <span className="bf-header__count-total"> / {total}</span>
+                )}
               </span>
             )}
           </h1>
           <p className="bf-header__subtitle">
-            Consultez, approuvez et instruisez les demandes de formation soumises par les unités pédagogiques.
+            Consultez, approuvez et instruisez les demandes de formation soumises par les unités
+            pédagogiques.
           </p>
         </div>
 
@@ -90,9 +95,3 @@ export default function BesoinHeader({
     </header>
   );
 }
-
-
-
-
-
-

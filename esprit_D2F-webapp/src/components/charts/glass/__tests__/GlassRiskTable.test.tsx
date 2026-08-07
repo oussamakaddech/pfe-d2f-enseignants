@@ -5,15 +5,21 @@ import type { TeacherRiskIndicator } from '@/models/analyse';
 
 const sample: TeacherRiskIndicator[] = [
   {
-    teacher_id: 'E00003', teacher_name: 'Marie DUPONT',
-    attrition_risk_score: 0.82, disengagement_signals: ['Absence prolongée de formation'],
-    competency_stagnation_rate: 0.7, training_velocity: 0,
+    teacher_id: 'E00003',
+    teacher_name: 'Marie DUPONT',
+    attrition_risk_score: 0.82,
+    disengagement_signals: ['Absence prolongée de formation'],
+    competency_stagnation_rate: 0.7,
+    training_velocity: 0,
     recommendation: 'Planifier entretien',
   },
   {
-    teacher_id: 'E00004', teacher_name: 'Ahmed BEN ALI',
-    attrition_risk_score: 0.58, disengagement_signals: ['Stagnation des compétences'],
-    competency_stagnation_rate: 0.4, training_velocity: 2,
+    teacher_id: 'E00004',
+    teacher_name: 'Ahmed BEN ALI',
+    attrition_risk_score: 0.58,
+    disengagement_signals: ['Stagnation des compétences'],
+    competency_stagnation_rate: 0.4,
+    training_velocity: 2,
     recommendation: 'Proposer formation',
   },
 ];
@@ -34,23 +40,33 @@ describe('GlassRiskTable', () => {
   });
 
   it('handles zero score', () => {
-    const zeroData: TeacherRiskIndicator[] = [{
-      teacher_id: 'E00005', teacher_name: 'Zero TEST',
-      attrition_risk_score: 0, disengagement_signals: [],
-      competency_stagnation_rate: 0, training_velocity: 0,
-      recommendation: 'OK',
-    }];
+    const zeroData: TeacherRiskIndicator[] = [
+      {
+        teacher_id: 'E00005',
+        teacher_name: 'Zero TEST',
+        attrition_risk_score: 0,
+        disengagement_signals: [],
+        competency_stagnation_rate: 0,
+        training_velocity: 0,
+        recommendation: 'OK',
+      },
+    ];
     render(<GlassRiskTable data={zeroData} />);
     expect(screen.getByText('0%')).toBeInTheDocument();
   });
 
   it('handles score of 1.0 (100%)', () => {
-    const maxData: TeacherRiskIndicator[] = [{
-      teacher_id: 'E00006', teacher_name: 'Max TEST',
-      attrition_risk_score: 1.0, disengagement_signals: [],
-      competency_stagnation_rate: 0, training_velocity: 0,
-      recommendation: 'Planifier entretien',
-    }];
+    const maxData: TeacherRiskIndicator[] = [
+      {
+        teacher_id: 'E00006',
+        teacher_name: 'Max TEST',
+        attrition_risk_score: 1.0,
+        disengagement_signals: [],
+        competency_stagnation_rate: 0,
+        training_velocity: 0,
+        recommendation: 'Planifier entretien',
+      },
+    ];
     render(<GlassRiskTable data={maxData} />);
     expect(screen.getByText('100%')).toBeInTheDocument();
   });

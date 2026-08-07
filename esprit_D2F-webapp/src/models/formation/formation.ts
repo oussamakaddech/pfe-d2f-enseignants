@@ -57,9 +57,5 @@ export interface Formation {
   animateurs?: Personne[];
   participants?: Personne[];
   seances?: Seance[];
-  documents?: import("../document").FormationDocument[];
+  documents?: import('../document').FormationDocument[];
 }
-
-
-
-

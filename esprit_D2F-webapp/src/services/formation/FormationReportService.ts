@@ -1,10 +1,10 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
 const API_URL = `${config.FORMATION_URL}/formation/formation-report`;
 
 function formatDate(date: Date | string): string {
   if (date instanceof Date) {
-    return date.toISOString().split("T")[0];
+    return date.toISOString().split('T')[0];
   }
   return date;
 }
@@ -14,7 +14,7 @@ const FormationReportService = {
     role: string,
     enseignantId: string,
     start: Date | string,
-    end: Date | string
+    end: Date | string,
   ) {
     const params = {
       role,
@@ -24,7 +24,7 @@ const FormationReportService = {
     };
     const response = await axios.get(API_URL, { params });
     return response.data;
-  }
+  },
 };
 
 export default FormationReportService;

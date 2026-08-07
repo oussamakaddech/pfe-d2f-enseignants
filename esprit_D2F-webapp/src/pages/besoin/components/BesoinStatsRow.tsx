@@ -5,10 +5,10 @@ import {
   ArrowUpOutlined,
   MinusOutlined,
   ExclamationCircleOutlined,
-} from "@ant-design/icons";
+} from '@ant-design/icons';
 
 interface StatCardTrend {
-  tone: "up" | "flat" | "warn";
+  tone: 'up' | 'flat' | 'warn';
   icon?: React.ReactNode;
   label: string;
 }
@@ -18,7 +18,7 @@ interface StatCardProps {
   label: string;
   value: string | number;
   hint?: string;
-  variant: "info" | "success" | "warning";
+  variant: 'info' | 'success' | 'warning';
   progress?: number;
   trend?: StatCardTrend;
 }
@@ -46,12 +46,8 @@ function StatCard({ icon, label, value, hint, variant, progress, trend }: Readon
           )}
         </div>
         {hint && <div className="bf-stat__hint">{hint}</div>}
-        {typeof progress === "number" && (
-          <progress
-            className="bf-stat__progress"
-            value={progress}
-            max={100}
-          >
+        {typeof progress === 'number' && (
+          <progress className="bf-stat__progress" value={progress} max={100}>
             <div
               className="bf-stat__progress-bar"
               style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
@@ -63,9 +59,13 @@ function StatCard({ icon, label, value, hint, variant, progress, trend }: Readon
   );
 }
 
-export default function BesoinStatsRow({ total, approved, pending }: Readonly<BesoinStatsRowProps>) {
+export default function BesoinStatsRow({
+  total,
+  approved,
+  pending,
+}: Readonly<BesoinStatsRowProps>) {
   const tauxApprobation = total === 0 ? 0 : Math.round((approved * 100) / total);
-  const tauxAttente     = total === 0 ? 0 : Math.round((pending  * 100) / total);
+  const tauxAttente = total === 0 ? 0 : Math.round((pending * 100) / total);
   return (
     <section className="bf-stats" aria-label="Indicateurs clés">
       <StatCard
@@ -77,8 +77,8 @@ export default function BesoinStatsRow({ total, approved, pending }: Readonly<Be
         progress={total === 0 ? 0 : 100}
         trend={
           total > 0
-            ? { tone: "up", icon: <ArrowUpOutlined />, label: "Actif" }
-            : { tone: "flat", icon: <MinusOutlined />, label: "Aucun" }
+            ? { tone: 'up', icon: <ArrowUpOutlined />, label: 'Actif' }
+            : { tone: 'flat', icon: <MinusOutlined />, label: 'Aucun' }
         }
       />
       <StatCard
@@ -90,8 +90,8 @@ export default function BesoinStatsRow({ total, approved, pending }: Readonly<Be
         progress={tauxApprobation}
         trend={
           tauxApprobation >= 75
-            ? { tone: "up", icon: <ArrowUpOutlined />, label: "Bonne dynamique" }
-            : { tone: "flat", icon: <MinusOutlined />, label: "En cours" }
+            ? { tone: 'up', icon: <ArrowUpOutlined />, label: 'Bonne dynamique' }
+            : { tone: 'flat', icon: <MinusOutlined />, label: 'En cours' }
         }
       />
       <StatCard
@@ -99,20 +99,14 @@ export default function BesoinStatsRow({ total, approved, pending }: Readonly<Be
         icon={<ClockCircleOutlined />}
         label="En attente d'instruction"
         value={pending}
-        hint={pending > 0 ? "Action requise" : "À jour"}
+        hint={pending > 0 ? 'Action requise' : 'À jour'}
         progress={tauxAttente}
         trend={
           pending > 0
-            ? { tone: "warn", icon: <ExclamationCircleOutlined />, label: "À traiter" }
-            : { tone: "up", icon: <ArrowUpOutlined />, label: "À jour" }
+            ? { tone: 'warn', icon: <ExclamationCircleOutlined />, label: 'À traiter' }
+            : { tone: 'up', icon: <ArrowUpOutlined />, label: 'À jour' }
         }
       />
     </section>
   );
 }
-
-
-
-
-
-

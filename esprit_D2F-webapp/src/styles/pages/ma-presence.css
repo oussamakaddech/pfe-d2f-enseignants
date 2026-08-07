@@ -22,13 +22,15 @@
   border: 1px solid var(--border-color-soft);
   flex: 1;
   min-width: 150px;
-  transition: transform 0.18s var(--ease-in-out), box-shadow 0.18s;
+  transition:
+    transform 0.18s var(--ease-in-out),
+    box-shadow 0.18s;
   position: relative;
   overflow: hidden;
 }
 
 .mp-stat-card::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
@@ -41,10 +43,18 @@
   box-shadow: 0 6px 16px -8px rgba(15, 23, 42, 0.18);
 }
 
-.mp-stat-total::before  { background: #3b82f6; }
-.mp-stat-present::before { background: #10b981; }
-.mp-stat-absent::before  { background: #ef4444; }
-.mp-stat-taux::before    { background: #8b5cf6; }
+.mp-stat-total::before {
+  background: #3b82f6;
+}
+.mp-stat-present::before {
+  background: #10b981;
+}
+.mp-stat-absent::before {
+  background: #ef4444;
+}
+.mp-stat-taux::before {
+  background: #8b5cf6;
+}
 
 .mp-stat-icon {
   width: 40px;
@@ -57,10 +67,22 @@
   flex-shrink: 0;
 }
 
-.mp-stat-total .mp-stat-icon  { background: var(--color-info-bg);    color: var(--color-info); }
-.mp-stat-present .mp-stat-icon { background: var(--color-success-bg); color: var(--color-success); }
-.mp-stat-absent .mp-stat-icon  { background: var(--color-error-bg);   color: var(--color-error); }
-.mp-stat-taux .mp-stat-icon    { background: #f5f3ff;                 color: #7c3aed; }
+.mp-stat-total .mp-stat-icon {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+.mp-stat-present .mp-stat-icon {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+.mp-stat-absent .mp-stat-icon {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+.mp-stat-taux .mp-stat-icon {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
 
 .mp-stat-value {
   font-size: 24px;
@@ -116,7 +138,11 @@
 }
 
 .mp-table .ant-table-tbody > tr:hover > td {
-  background: linear-gradient(90deg, rgba(181, 18, 0, 0.03) 0%, rgba(181, 18, 0, 0.01) 100%) !important;
+  background: linear-gradient(
+    90deg,
+    rgba(181, 18, 0, 0.03) 0%,
+    rgba(181, 18, 0, 0.01) 100%
+  ) !important;
 }
 
 /* ── Detail table (expanded row) ─────────────────────────────────────── */

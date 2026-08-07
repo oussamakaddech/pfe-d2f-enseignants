@@ -1,6 +1,6 @@
-import { Table, Tag, Empty } from "antd";
-import type { ColumnsType } from "antd/es/table";
-import type { ImportRowError } from "@/models/calendar";
+import { Table, Tag, Empty } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import type { ImportRowError } from '@/models/calendar';
 
 interface Props {
   errors: ImportRowError[];
@@ -14,35 +14,35 @@ export default function ImportErrorsTable({ errors }: Readonly<Props>) {
 
   const columns: ColumnsType<ImportRowError> = [
     {
-      title: "Ligne",
-      dataIndex: "row",
+      title: 'Ligne',
+      dataIndex: 'row',
       width: 90,
       sorter: (a, b) => a.row - b.row,
     },
     {
-      title: "Champ",
-      dataIndex: "field",
+      title: 'Champ',
+      dataIndex: 'field',
       width: 140,
     },
     {
-      title: "Gravité",
-      dataIndex: "severity",
+      title: 'Gravité',
+      dataIndex: 'severity',
       width: 130,
       filters: [
-        { text: "Erreur", value: "ERROR" },
-        { text: "Avertissement", value: "WARNING" },
+        { text: 'Erreur', value: 'ERROR' },
+        { text: 'Avertissement', value: 'WARNING' },
       ],
       onFilter: (value, record) => record.severity === value,
       render: (severity: string) =>
-        severity === "ERROR" ? (
+        severity === 'ERROR' ? (
           <Tag color="error">Erreur</Tag>
         ) : (
           <Tag color="warning">Avertissement</Tag>
         ),
     },
     {
-      title: "Message",
-      dataIndex: "message",
+      title: 'Message',
+      dataIndex: 'message',
     },
   ];
 

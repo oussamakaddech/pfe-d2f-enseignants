@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
-import type { RiskDistribution } from "@/redesign/contract";
-import { RISK_COLORS, RISK_LABELS, type RiskLevelKey } from "@/redesign/risk";
-import { ChartSkeleton, EmptyState } from "./States";
+import { useMemo, useState } from 'react';
+import type { RiskDistribution } from '@/redesign/contract';
+import { RISK_COLORS, RISK_LABELS, type RiskLevelKey } from '@/redesign/risk';
+import { ChartSkeleton, EmptyState } from './States';
 
-const LEVEL_ORDER: RiskLevelKey[] = ["CRITIQUE", "ELEVE", "MODERE", "FAIBLE"];
+const LEVEL_ORDER: RiskLevelKey[] = ['CRITIQUE', 'ELEVE', 'MODERE', 'FAIBLE'];
 const DONUT_SIZE = 168;
 const DONUT_STROKE = 26;
 const SEG_GAP = 0.018; // ~1.8% du périmètre, espace entre segments
@@ -48,7 +48,7 @@ export default function RiskDistributionChart({
           return (
             <div
               key={l}
-              className={`rd-dist-legend-item ${isHovered ? "hovered" : ""}`}
+              className={`rd-dist-legend-item ${isHovered ? 'hovered' : ''}`}
               onMouseEnter={() => setHoveredLevel(l)}
               onMouseLeave={() => setHoveredLevel(null)}
             >
@@ -116,13 +116,27 @@ function DonutSVG({
   }, [levels, byLevel, total, circumference]);
 
   return (
-    <svg width={DONUT_SIZE} height={DONUT_SIZE} viewBox={`0 0 ${DONUT_SIZE} ${DONUT_SIZE}`} role="img" aria-label="Répartition du risque" className="rd-dist-donut">
+    <svg
+      width={DONUT_SIZE}
+      height={DONUT_SIZE}
+      viewBox={`0 0 ${DONUT_SIZE} ${DONUT_SIZE}`}
+      role="img"
+      aria-label="Répartition du risque"
+      className="rd-dist-donut"
+    >
       <defs>
         <filter id="rd-donut-shadow" x="-20%" y="-20%" width="140%" height="140%">
           <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#0f172a" floodOpacity="0.12" />
         </filter>
       </defs>
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--rd-surface-3)" strokeWidth={DONUT_STROKE} />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill="none"
+        stroke="var(--rd-surface-3)"
+        strokeWidth={DONUT_STROKE}
+      />
       {segments.map((seg, i) => (
         <circle
           key={seg.level}
@@ -138,7 +152,7 @@ function DonutSVG({
           opacity={hoveredLevel != null && hoveredLevel !== seg.level ? 0.35 : 1}
           filter="url(#rd-donut-shadow)"
           style={{
-            transition: "opacity 0.2s ease, stroke-dasharray 0.6s cubic-bezier(0.22,1,0.36,1)",
+            transition: 'opacity 0.2s ease, stroke-dasharray 0.6s cubic-bezier(0.22,1,0.36,1)',
             animation: `rd-donut-pop 0.5s ${0.06 * i}s cubic-bezier(0.22,1,0.36,1) both`,
           }}
         />

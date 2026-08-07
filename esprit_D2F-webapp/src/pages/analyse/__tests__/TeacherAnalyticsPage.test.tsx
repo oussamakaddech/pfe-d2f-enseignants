@@ -6,10 +6,19 @@ import TeacherAnalyticsPage from '../TeacherAnalyticsPage';
 
 vi.mock('@/hooks/analyse/useAnalytics', () => ({
   useAnalytics: vi.fn(() => ({
-    loading: false, analysing: false, gaps: null, recommendations: null,
-    trainingPath: null, analyseResult: null, error: null,
-    runAnalysis: vi.fn(), fetchGaps: vi.fn(), fetchRecommendations: vi.fn(),
-    fetchTrainingPath: vi.fn(), updateRecoStatus: vi.fn(), updatingReco: false,
+    loading: false,
+    analysing: false,
+    gaps: null,
+    recommendations: null,
+    trainingPath: null,
+    analyseResult: null,
+    error: null,
+    runAnalysis: vi.fn(),
+    fetchGaps: vi.fn(),
+    fetchRecommendations: vi.fn(),
+    fetchTrainingPath: vi.fn(),
+    updateRecoStatus: vi.fn(),
+    updatingReco: false,
   })),
 }));
 
@@ -33,7 +42,7 @@ describe('TeacherAnalyticsPage', () => {
         <BrowserRouter>
           <TeacherAnalyticsPage />
         </BrowserRouter>
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
     expect(screen.getByText('Analyse Individuelle Enseignant')).toBeInTheDocument();
     expect(screen.getByText('Identifiant enseignant')).toBeInTheDocument();

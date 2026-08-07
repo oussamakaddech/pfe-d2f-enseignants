@@ -5,7 +5,7 @@ const httpMocks = vi.hoisted(() => ({
   mockPost: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     get: httpMocks.mockGet,
     post: httpMocks.mockPost,
@@ -15,7 +15,9 @@ vi.mock("@/services/httpClient", () => ({
 import EvaluationFormateurService from '../EvaluationFormateurService';
 
 describe('EvaluationFormateurService', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('lists enriched evaluations by formation', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 1, note: 4 }] });
@@ -25,11 +27,9 @@ describe('EvaluationFormateurService', () => {
 
   it('updates evaluations in bulk', async () => {
     httpMocks.mockPost.mockResolvedValueOnce({ data: { updated: 3 } });
-    const result = await EvaluationFormateurService.updateEvaluationsBulkByFormation(1, [{ id: 1, note: 5 }]);
+    const result = await EvaluationFormateurService.updateEvaluationsBulkByFormation(1, [
+      { id: 1, note: 5 },
+    ]);
     expect(result).toEqual({ updated: 3 });
   });
 });
-
-
-
-

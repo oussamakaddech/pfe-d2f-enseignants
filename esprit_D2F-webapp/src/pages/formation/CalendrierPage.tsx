@@ -1,10 +1,9 @@
-
-import { useState, useMemo } from "react";
-import { Calendar, dateFnsLocalizer, type View } from "react-big-calendar";
-import { format, parse, startOfWeek, getDay } from "date-fns";
-import { fr } from "date-fns/locale/fr";
-import "react-big-calendar/lib/css/react-big-calendar.css";
-import { Modal, Button, Steps, Spin, Space, Tooltip } from "antd";
+import { useState, useMemo } from 'react';
+import { Calendar, dateFnsLocalizer, type View } from 'react-big-calendar';
+import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { fr } from 'date-fns/locale/fr';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+import { Modal, Button, Steps, Spin, Space, Tooltip } from 'antd';
 import {
   LeftOutlined,
   RightOutlined,
@@ -14,16 +13,16 @@ import {
   ClockCircleOutlined,
   CheckCircleOutlined,
   TeamOutlined,
-} from "@ant-design/icons";
-import useAppNotification from "@/hooks/ui/useAppNotification";
-import "@/styles/pages/calendrier.css";
-import type { Formation, Seance } from "@/models/formation";
+} from '@ant-design/icons';
+import useAppNotification from '@/hooks/ui/useAppNotification';
+import '@/styles/pages/calendrier.css';
+import type { Formation, Seance } from '@/models/formation';
 
-import FormationWorkflowForm from "@/pages/formation/FormationWorkflowForm";
-import { useAllFormations } from "@/hooks/formation";
-import EventDetails from "@/pages/presence/EventDetails";
-import MailForm from "@/pages/besoin/MailForm";
-import DocumentCreateForm from "@/pages/documentFormation/DocumentCreateForm";
+import FormationWorkflowForm from '@/pages/formation/FormationWorkflowForm';
+import { useAllFormations } from '@/hooks/formation';
+import EventDetails from '@/pages/presence/EventDetails';
+import MailForm from '@/pages/besoin/MailForm';
+import DocumentCreateForm from '@/pages/documentFormation/DocumentCreateForm';
 
 const locales = { fr };
 const localizer = dateFnsLocalizer({
@@ -60,25 +59,25 @@ export default function CalendrierPage() {
   const [docsAdded, setDocsAdded] = useState(false);
   // état calendrier
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [currentView, setCurrentView] = useState<View>("month");
+  const [currentView, setCurrentView] = useState<View>('month');
   // editable session state for EventDetails
-  const [editedDateSeance, setEditedDateSeance] = useState("");
-  const [editedHeureDebut, setEditedHeureDebut] = useState("");
-  const [editedHeureFin, setEditedHeureFin] = useState("");
-  const [editedSalle, setEditedSalle] = useState("");
-  const [editedParticipants, setEditedParticipants] = useState("");
+  const [editedDateSeance, setEditedDateSeance] = useState('');
+  const [editedHeureDebut, setEditedHeureDebut] = useState('');
+  const [editedHeureFin, setEditedHeureFin] = useState('');
+  const [editedSalle, setEditedSalle] = useState('');
+  const [editedParticipants, setEditedParticipants] = useState('');
 
   const { data: formations = [], isLoading, refetch: refetchFormations } = useAllFormations();
 
   const steps = [
-    { key: "form", title: "Créer la formation" },
-    { key: "docs", title: "Ajouter les documents" },
-    { key: "mail", title: "Envoyer l'e-mail" },
+    { key: 'form', title: 'Créer la formation' },
+    { key: 'docs', title: 'Ajouter les documents' },
+    { key: 'mail', title: "Envoyer l'e-mail" },
   ];
 
-  const showAlert = (msg: string, severity = "info") => {
-    if (severity === "error") message.error(msg);
-    else if (severity === "success") message.success(msg);
+  const showAlert = (msg: string, severity = 'info') => {
+    if (severity === 'error') message.error(msg);
+    else if (severity === 'success') message.success(msg);
     else message.info(msg);
   };
 
@@ -110,7 +109,7 @@ export default function CalendrierPage() {
 
   const handleSelectSlot = (slotInfo: { start: Date }) => {
     setSelectedEvent(null);
-    setSelectedDate(format(slotInfo.start, "yyyy-MM-dd"));
+    setSelectedDate(format(slotInfo.start, 'yyyy-MM-dd'));
     setShowModal(true);
     setShowWizard(true);
     setWizardStep(0);
@@ -122,11 +121,11 @@ export default function CalendrierPage() {
     setShowWizard(false);
     setSelectedEvent(event);
     setSelectedDate(null);
-    setEditedDateSeance(event.details.seance?.dateSeance ?? "");
-    setEditedHeureDebut(event.details.seance?.heureDebut ?? "");
-    setEditedHeureFin(event.details.seance?.heureFin ?? "");
-    setEditedSalle(event.details.seance?.salle ?? "");
-    setEditedParticipants("");
+    setEditedDateSeance(event.details.seance?.dateSeance ?? '');
+    setEditedHeureDebut(event.details.seance?.heureDebut ?? '');
+    setEditedHeureFin(event.details.seance?.heureFin ?? '');
+    setEditedSalle(event.details.seance?.salle ?? '');
+    setEditedParticipants('');
     setShowModal(true);
   };
 
@@ -146,26 +145,32 @@ export default function CalendrierPage() {
     setCreatedFormation(newFormation);
     setWizardStep(1);
     void refetchFormations();
-    showAlert("Formation créée, ajoutez des documents", "info");
+    showAlert('Formation créée, ajoutez des documents', 'info');
   };
 
   const onDocumentCreatedWizard = () => {
     setDocsAdded(true);
-    showAlert("Document ajouté", "success");
+    showAlert('Document ajouté', 'success');
   };
 
   const onEmailSent = () => {
-    showAlert("E-mail envoyé ! Vous pouvez en envoyer un autre.", "success");
+    showAlert('E-mail envoyé ! Vous pouvez en envoyer un autre.', 'success');
   };
 
   const getStatusClass = (etat: string | undefined) => {
     switch (etat) {
-      case "ENREGISTRE": return "cal-event--enregistre";
-      case "PLANIFIE":   return "cal-event--planifie";
-      case "EN_COURS":   return "cal-event--encours";
-      case "ACHEVE":     return "cal-event--acheve";
-      case "ANNULE":     return "cal-event--annule";
-      default:           return "cal-event--default";
+      case 'ENREGISTRE':
+        return 'cal-event--enregistre';
+      case 'PLANIFIE':
+        return 'cal-event--planifie';
+      case 'EN_COURS':
+        return 'cal-event--encours';
+      case 'ACHEVE':
+        return 'cal-event--acheve';
+      case 'ANNULE':
+        return 'cal-event--annule';
+      default:
+        return 'cal-event--default';
     }
   };
 
@@ -174,7 +179,7 @@ export default function CalendrierPage() {
     return {
       className: getStatusClass(etat),
       style: {
-        color: "#fff",
+        color: '#fff',
       },
     };
   };
@@ -182,9 +187,11 @@ export default function CalendrierPage() {
   // Stats
   const stats = useMemo(() => {
     const total = events.length;
-    const planifie = events.filter(e => e.details?.formation?.etatFormation === "PLANIFIE").length;
-    const enCours = events.filter(e => e.details?.formation?.etatFormation === "EN_COURS").length;
-    const acheve = events.filter(e => e.details?.formation?.etatFormation === "ACHEVE").length;
+    const planifie = events.filter(
+      (e) => e.details?.formation?.etatFormation === 'PLANIFIE',
+    ).length;
+    const enCours = events.filter((e) => e.details?.formation?.etatFormation === 'EN_COURS').length;
+    const acheve = events.filter((e) => e.details?.formation?.etatFormation === 'ACHEVE').length;
     return { total, planifie, enCours, acheve };
   }, [events]);
 
@@ -198,10 +205,12 @@ export default function CalendrierPage() {
               <h2 className="cal-hero-title">Calendrier des Formations</h2>
               <span className="cal-hero-badge">
                 {stats.total}
-                <span className="cal-hero-badge-total">séance{stats.total === 1 ? "" : "s"}</span>
+                <span className="cal-hero-badge-total">séance{stats.total === 1 ? '' : 's'}</span>
               </span>
             </div>
-            <div className="cal-hero-subtitle">Planification et suivi des sessions de formation</div>
+            <div className="cal-hero-subtitle">
+              Planification et suivi des sessions de formation
+            </div>
           </div>
           <div className="d-flex-c gap-8">
             <Tooltip title="Créer une nouvelle formation en cliquant sur une date du calendrier">
@@ -211,7 +220,7 @@ export default function CalendrierPage() {
                 className="cal-btn-create"
                 onClick={() => {
                   setSelectedEvent(null);
-                  setSelectedDate(format(new Date(), "yyyy-MM-dd"));
+                  setSelectedDate(format(new Date(), 'yyyy-MM-dd'));
                   setShowModal(true);
                   setShowWizard(true);
                   setWizardStep(0);
@@ -229,32 +238,40 @@ export default function CalendrierPage() {
       {/* Stats */}
       <div className="cal-stats">
         <div className="cal-stat-card cal-stat-card--total">
-          <div className="cal-stat-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>
+          <div className="cal-stat-icon" style={{ background: '#eff6ff', color: '#2563eb' }}>
             <AppstoreOutlined />
           </div>
           <div className="cal-stat-label">Total Séances</div>
-          <div className="cal-stat-value" style={{ color: "#2563eb" }}>{stats.total}</div>
+          <div className="cal-stat-value" style={{ color: '#2563eb' }}>
+            {stats.total}
+          </div>
         </div>
         <div className="cal-stat-card cal-stat-card--planifie">
-          <div className="cal-stat-icon" style={{ background: "#cffafe", color: "#06b6d4" }}>
+          <div className="cal-stat-icon" style={{ background: '#cffafe', color: '#06b6d4' }}>
             <ClockCircleOutlined />
           </div>
           <div className="cal-stat-label">Planifiées</div>
-          <div className="cal-stat-value" style={{ color: "#06b6d4" }}>{stats.planifie}</div>
+          <div className="cal-stat-value" style={{ color: '#06b6d4' }}>
+            {stats.planifie}
+          </div>
         </div>
         <div className="cal-stat-card cal-stat-card--cours">
-          <div className="cal-stat-icon" style={{ background: "#d1fae5", color: "#059669" }}>
+          <div className="cal-stat-icon" style={{ background: '#d1fae5', color: '#059669' }}>
             <TeamOutlined />
           </div>
           <div className="cal-stat-label">En Cours</div>
-          <div className="cal-stat-value" style={{ color: "#059669" }}>{stats.enCours}</div>
+          <div className="cal-stat-value" style={{ color: '#059669' }}>
+            {stats.enCours}
+          </div>
         </div>
         <div className="cal-stat-card cal-stat-card--acheve">
-          <div className="cal-stat-icon" style={{ background: "#f1f5f9", color: "#475569" }}>
+          <div className="cal-stat-icon" style={{ background: '#f1f5f9', color: '#475569' }}>
             <CheckCircleOutlined />
           </div>
           <div className="cal-stat-label">Achevées</div>
-          <div className="cal-stat-value" style={{ color: "#475569" }}>{stats.acheve}</div>
+          <div className="cal-stat-value" style={{ color: '#475569' }}>
+            {stats.acheve}
+          </div>
         </div>
       </div>
 
@@ -268,19 +285,24 @@ export default function CalendrierPage() {
       <div className="cal-legend">
         <span className="cal-legend-label">Légende :</span>
         <span className="cal-legend-tag cal-legend-tag--enregistre">
-          <span className="cal-legend-dot cal-legend-dot--enregistre" />Enregistré
+          <span className="cal-legend-dot cal-legend-dot--enregistre" />
+          Enregistré
         </span>
         <span className="cal-legend-tag cal-legend-tag--planifie">
-          <span className="cal-legend-dot cal-legend-dot--planifie" />Planifié
+          <span className="cal-legend-dot cal-legend-dot--planifie" />
+          Planifié
         </span>
         <span className="cal-legend-tag cal-legend-tag--encours">
-          <span className="cal-legend-dot cal-legend-dot--encours" />En cours
+          <span className="cal-legend-dot cal-legend-dot--encours" />
+          En cours
         </span>
         <span className="cal-legend-tag cal-legend-tag--acheve">
-          <span className="cal-legend-dot cal-legend-dot--acheve" />Achevé
+          <span className="cal-legend-dot cal-legend-dot--acheve" />
+          Achevé
         </span>
         <span className="cal-legend-tag cal-legend-tag--annule">
-          <span className="cal-legend-dot cal-legend-dot--annule" />Annulé
+          <span className="cal-legend-dot cal-legend-dot--annule" />
+          Annulé
         </span>
       </div>
 
@@ -298,19 +320,19 @@ export default function CalendrierPage() {
           onNavigate={handleNavigate}
           onView={handleViewChange}
           view={currentView}
-          views={["month", "week", "day"]}
+          views={['month', 'week', 'day']}
           eventPropGetter={eventStyleGetter}
-          style={{ height: "100%" }}
+          style={{ height: '100%' }}
           popup
           messages={{
             today: "Aujourd'hui",
-            previous: "Précédent",
-            next: "Suivant",
-            month: "Mois",
-            week: "Semaine",
-            day: "Jour",
-            agenda: "Agenda",
-            noEventsInRange: "Aucune formation sur cette période.",
+            previous: 'Précédent',
+            next: 'Suivant',
+            month: 'Mois',
+            week: 'Semaine',
+            day: 'Jour',
+            agenda: 'Agenda',
+            noEventsInRange: 'Aucune formation sur cette période.',
           }}
         />
       </div>
@@ -322,11 +344,11 @@ export default function CalendrierPage() {
         className="cal-modal"
         title={(() => {
           if (showWizard) return steps[wizardStep].title;
-          if (!selectedEvent) return "Créer une Formation";
-          return selectedEvent.details.seance ? "Détails de la Séance" : "Détails de la Formation";
+          if (!selectedEvent) return 'Créer une Formation';
+          return selectedEvent.details.seance ? 'Détails de la Séance' : 'Détails de la Formation';
         })()}
         width={680}
-        styles={{ body: { maxHeight: "72vh", overflowY: "auto", padding: "16px 24px" } }}
+        styles={{ body: { maxHeight: '72vh', overflowY: 'auto', padding: '16px 24px' } }}
         footer={
           showWizard ? (
             <Space>
@@ -377,66 +399,61 @@ export default function CalendrierPage() {
         }
       >
         {(() => {
-          if (showWizard) return (
-          <>
-            <Steps
-              current={wizardStep}
-              items={steps}
-              className="mb-24"
-            />
+          if (showWizard)
+            return (
+              <>
+                <Steps current={wizardStep} items={steps} className="mb-24" />
 
-            {wizardStep === 0 && (
-              <FormationWorkflowForm
-                initialDate={selectedDate ?? undefined}
-                onFormationCreated={onFormationCreatedWizard}
-              />
-            )}
+                {wizardStep === 0 && (
+                  <FormationWorkflowForm
+                    initialDate={selectedDate ?? undefined}
+                    onFormationCreated={onFormationCreatedWizard}
+                  />
+                )}
 
-            {wizardStep === 1 && createdFormation?.idFormation != null && (
-              <DocumentCreateForm
-                formationId={createdFormation.idFormation}
-                onDocumentCreated={onDocumentCreatedWizard}
-                onCancel={handleClose}
-              />
-            )}
+                {wizardStep === 1 && createdFormation?.idFormation != null && (
+                  <DocumentCreateForm
+                    formationId={createdFormation.idFormation}
+                    onDocumentCreated={onDocumentCreatedWizard}
+                    onCancel={handleClose}
+                  />
+                )}
 
-            {wizardStep === 2 && createdFormation != null && (
-              <MailForm
-                formation={createdFormation}
-                onSendSuccess={onEmailSent}
-              />
-            )}
-          </>
-          );
-          if (selectedEvent) return (
-          <div style={{ position: "relative" }}>
-            {isLoading && (
-              <div className="text-center p-24">
-                <Spin size="large" />
+                {wizardStep === 2 && createdFormation != null && (
+                  <MailForm formation={createdFormation} onSendSuccess={onEmailSent} />
+                )}
+              </>
+            );
+          if (selectedEvent)
+            return (
+              <div style={{ position: 'relative' }}>
+                {isLoading && (
+                  <div className="text-center p-24">
+                    <Spin size="large" />
+                  </div>
+                )}
+                <div style={{ opacity: isLoading ? 0.5 : 1 }}>
+                  <EventDetails
+                    selectedEvent={selectedEvent}
+                    editedDateSeance={editedDateSeance}
+                    setEditedDateSeance={setEditedDateSeance}
+                    editedHeureDebut={editedHeureDebut}
+                    setEditedHeureDebut={setEditedHeureDebut}
+                    editedHeureFin={editedHeureFin}
+                    setEditedHeureFin={setEditedHeureFin}
+                    editedSalle={editedSalle}
+                    setEditedSalle={setEditedSalle}
+                    editedParticipants={editedParticipants}
+                    setEditedParticipants={setEditedParticipants}
+                  />
+                </div>
               </div>
-            )}
-            <div style={{ opacity: isLoading ? 0.5 : 1 }}>
-              <EventDetails
-                selectedEvent={selectedEvent}
-                editedDateSeance={editedDateSeance}
-                setEditedDateSeance={setEditedDateSeance}
-                editedHeureDebut={editedHeureDebut}
-                setEditedHeureDebut={setEditedHeureDebut}
-                editedHeureFin={editedHeureFin}
-                setEditedHeureFin={setEditedHeureFin}
-                editedSalle={editedSalle}
-                setEditedSalle={setEditedSalle}
-                editedParticipants={editedParticipants}
-                setEditedParticipants={setEditedParticipants}
-              />
-            </div>
-          </div>
-          );
+            );
           return (
-          <FormationWorkflowForm
-            initialDate={selectedDate ?? undefined}
-            onFormationCreated={onFormationCreatedWizard}
-          />
+            <FormationWorkflowForm
+              initialDate={selectedDate ?? undefined}
+              onFormationCreated={onFormationCreatedWizard}
+            />
           );
         })()}
       </Modal>

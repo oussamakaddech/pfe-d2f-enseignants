@@ -1,11 +1,11 @@
-import { memo } from "react";
-import { Tag, Progress } from "antd";
-import { FallOutlined, RiseOutlined, WarningOutlined } from "@ant-design/icons";
+import { memo } from 'react';
+import { Tag, Progress } from 'antd';
+import { FallOutlined, RiseOutlined, WarningOutlined } from '@ant-design/icons';
 import type {
   DecliningCompetency,
   InDemandCompetency,
   TeacherRiskIndicator,
-} from "@/models/analyse";
+} from '@/models/analyse';
 
 interface Props {
   declining: DecliningCompetency[];
@@ -68,7 +68,9 @@ const DashboardKpis = memo(function DashboardKpis({
         </div>
         <div className="analyse-kpi-value">
           {atRiskCount}
-          <span style={{ fontSize: 15, fontWeight: 600, color: "var(--neutral-400)", marginLeft: 6 }}>
+          <span
+            style={{ fontSize: 15, fontWeight: 600, color: 'var(--neutral-400)', marginLeft: 6 }}
+          >
             / {riskIndicators.length}
           </span>
         </div>

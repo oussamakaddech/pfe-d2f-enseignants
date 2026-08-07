@@ -1,12 +1,12 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import CertificateService from "@/services/certificat/CertificateService";
-import type { Certificate } from "@/models/certificat";
-import type { Id } from "@/models/common";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import CertificateService from '@/services/certificat/CertificateService';
+import type { Certificate } from '@/models/certificat';
+import type { Id } from '@/models/common';
 
 const KEYS = {
-  all: ["certificates"] as const,
-  byFormation: (id: Id) => ["certificates", "formation", id] as const,
-  byEmail: ["certificates", "email"] as const,
+  all: ['certificates'] as const,
+  byFormation: (id: Id) => ['certificates', 'formation', id] as const,
+  byEmail: ['certificates', 'email'] as const,
 };
 
 export function useAllCertificates() {
@@ -34,8 +34,7 @@ export function useCertificatesByEmail() {
 export function useCreateCertificate() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: Partial<Certificate>) =>
-      CertificateService.createCertificate(data),
+    mutationFn: (data: Partial<Certificate>) => CertificateService.createCertificate(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.all }),
   });
 }
@@ -60,8 +59,7 @@ export function useDeliverCertificate() {
 export function useGenerateCertificates() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (formationId: Id) =>
-      CertificateService.generateCertificates(formationId),
+    mutationFn: (formationId: Id) => CertificateService.generateCertificates(formationId),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.all }),
   });
 }

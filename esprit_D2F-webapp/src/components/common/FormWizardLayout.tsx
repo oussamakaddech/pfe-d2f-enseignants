@@ -1,5 +1,5 @@
-import { memo } from "react";
-import { Steps, Card } from "antd";
+import { memo } from 'react';
+import { Steps, Card } from 'antd';
 
 interface FormWizardLayoutProps {
   /** Étape active */
@@ -25,7 +25,7 @@ const FormWizardLayout = memo(function FormWizardLayout({
   steps,
   children,
   footer,
-  className = "",
+  className = '',
 }: FormWizardLayoutProps) {
   return (
     <div className={`form-wizard-layout ${className}`}>
@@ -33,27 +33,24 @@ const FormWizardLayout = memo(function FormWizardLayout({
       <div
         style={{
           marginBottom: 28,
-          padding: "18px 24px",
-          background: "linear-gradient(135deg, #f7fafc 0%, #f0f4f8 100%)",
+          padding: '18px 24px',
+          background: 'linear-gradient(135deg, #f7fafc 0%, #f0f4f8 100%)',
           borderRadius: 16,
-          border: "1px solid rgba(0,0,0,0.05)",
+          border: '1px solid rgba(0,0,0,0.05)',
         }}
       >
-        <Steps
-          current={currentStep}
-          items={steps.map((s) => ({ title: s.title, icon: s.icon }))}
-        />
+        <Steps current={currentStep} items={steps.map((s) => ({ title: s.title, icon: s.icon }))} />
       </div>
 
       {/* Content */}
       <Card
         style={{
           borderRadius: 16,
-          boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
-          border: "1px solid rgba(0,0,0,0.06)",
-          overflow: "hidden",
+          boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
+          border: '1px solid rgba(0,0,0,0.06)',
+          overflow: 'hidden',
         }}
-        styles={{ body: { padding: "28px 32px" } }}
+        styles={{ body: { padding: '28px 32px' } }}
       >
         {children}
 
@@ -61,12 +58,12 @@ const FormWizardLayout = memo(function FormWizardLayout({
         {footer && (
           <div
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
               marginTop: 36,
               paddingTop: 24,
-              borderTop: "1px solid rgba(0,0,0,0.06)",
+              borderTop: '1px solid rgba(0,0,0,0.06)',
             }}
           >
             {footer}
@@ -78,7 +75,3 @@ const FormWizardLayout = memo(function FormWizardLayout({
 });
 
 export default FormWizardLayout;
-
-
-
-

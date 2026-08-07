@@ -4,20 +4,22 @@ const httpMocks = vi.hoisted(() => ({
   mockPost: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     post: httpMocks.mockPost,
   },
 }));
 
-vi.mock("@/services/auth/authHeaders", () => ({
+vi.mock('@/services/auth/authHeaders', () => ({
   optionalAuthHeader: vi.fn(() => ({ Authorization: 'Bearer test' })),
 }));
 
 import MailService from '../MailService';
 
 describe('MailService', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('sends an email', async () => {
     httpMocks.mockPost.mockResolvedValueOnce({ data: 'E-mail envoyé à test@test.com' });
@@ -31,7 +33,3 @@ describe('MailService', () => {
     await expect(MailService.sendEmail('a@b.com', 'S', 'C')).rejects.toThrow('SMTP error');
   });
 });
-
-
-
-

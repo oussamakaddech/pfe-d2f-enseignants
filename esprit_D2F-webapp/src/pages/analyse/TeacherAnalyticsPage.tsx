@@ -1,48 +1,78 @@
-import { useState, useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useState, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
 import {
-  Card, Row, Col, AutoComplete, Input, Button, Tabs, Space, Typography,
-  Spin, Alert, Empty, Modal, Statistic, Badge,
-} from "antd";
+  Card,
+  Row,
+  Col,
+  AutoComplete,
+  Input,
+  Button,
+  Tabs,
+  Space,
+  Typography,
+  Spin,
+  Alert,
+  Empty,
+  Modal,
+  Statistic,
+  Badge,
+} from 'antd';
 import {
-  SearchOutlined, ThunderboltOutlined, UserOutlined,
-  BookOutlined, RiseOutlined,
-} from "@ant-design/icons";
-import { useAnalytics } from "@/hooks/analyse/useAnalytics";
-import { useTeacherSearch, formatTeacherLabel, getTeacherId } from "@/hooks/formation/useTeacherSearch";
-import type { UnifiedProfile } from "@/services/formation/UnifiedProfileService";
-import SkillGapCard from "@/components/charts/SkillGapCard";
-import RecommendationCard from "@/components/charts/RecommendationCard";
-import GroupedRecommendations from "@/components/charts/GroupedRecommendations";
-import WhatIfSimulator from "@/components/charts/WhatIfSimulator";
-import TrainingPathTimeline from "@/components/charts/TrainingPathTimeline";
-import RiskBreakdownPanel from "@/components/analytics/RiskBreakdownPanel";
-import type { SkillGap } from "@/models/analyse";
-import { AppPageHeader, brand, shadow } from "@/components/common";
-import "@/styles/pages/teacher-analytics-page.css";
+  SearchOutlined,
+  ThunderboltOutlined,
+  UserOutlined,
+  BookOutlined,
+  RiseOutlined,
+} from '@ant-design/icons';
+import { useAnalytics } from '@/hooks/analyse/useAnalytics';
+import {
+  useTeacherSearch,
+  formatTeacherLabel,
+  getTeacherId,
+} from '@/hooks/formation/useTeacherSearch';
+import type { UnifiedProfile } from '@/services/formation/UnifiedProfileService';
+import SkillGapCard from '@/components/charts/SkillGapCard';
+import RecommendationCard from '@/components/charts/RecommendationCard';
+import GroupedRecommendations from '@/components/charts/GroupedRecommendations';
+import WhatIfSimulator from '@/components/charts/WhatIfSimulator';
+import TrainingPathTimeline from '@/components/charts/TrainingPathTimeline';
+import RiskBreakdownPanel from '@/components/analytics/RiskBreakdownPanel';
+import type { SkillGap } from '@/models/analyse';
+import { AppPageHeader, brand, shadow } from '@/components/common';
+import '@/styles/pages/teacher-analytics-page.css';
 
 const { Text } = Typography;
 
 const cardStyle = {
-  background: "#fff",
+  background: '#fff',
   boxShadow: shadow.sm,
   borderRadius: 12,
-  border: "1px solid rgba(0,0,0,0.07)",
+  border: '1px solid rgba(0,0,0,0.07)',
 };
 
 export default function TeacherAnalyticsPage() {
   const { enseignantId: paramId } = useParams<{ enseignantId?: string }>();
-  const [inputId, setInputId] = useState(paramId ?? "");
-  const [activeId, setActiveId] = useState(paramId ?? "");
+  const [inputId, setInputId] = useState(paramId ?? '');
+  const [activeId, setActiveId] = useState(paramId ?? '');
   const [selectedGap, setSelectedGap] = useState<SkillGap | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { data: searchResults, isLoading: searchLoading } = useTeacherSearch(searchTerm);
 
   const {
-    loading, analysing, gaps, recommendations, trainingPath, analyseResult, error,
-    runAnalysis, fetchGaps, fetchRecommendations, fetchTrainingPath,
-    updateRecoStatus, updatingReco,
+    loading,
+    analysing,
+    gaps,
+    recommendations,
+    trainingPath,
+    analyseResult,
+    error,
+    runAnalysis,
+    fetchGaps,
+    fetchRecommendations,
+    fetchTrainingPath,
+    updateRecoStatus,
+    updatingReco,
   } = useAnalytics(activeId);
 
   const autoCompleteOptions = useMemo(() => {
@@ -57,7 +87,7 @@ export default function TeacherAnalyticsPage() {
   function handleSelect(value: string, option: { profile?: UnifiedProfile }) {
     setInputId(value);
     setActiveId(value);
-    setSearchTerm("");
+    setSearchTerm('');
     fetchGaps(undefined, 0);
     fetchRecommendations(undefined, 0);
   }
@@ -89,7 +119,7 @@ export default function TeacherAnalyticsPage() {
 
   const tabItems = [
     {
-      key: "gaps",
+      key: 'gaps',
       label: (
         <Space>
           <ThunderboltOutlined />
@@ -101,7 +131,7 @@ export default function TeacherAnalyticsPage() {
         <Spin spinning={loading}>
           {gaps?.gaps?.length ? (
             <Row gutter={[16, 16]}>
-              {gaps.gaps.map(gap => (
+              {gaps.gaps.map((gap) => (
                 <Col key={gap.id} xs={24} sm={12} lg={8}>
                   <SkillGapCard gap={gap} onClick={handleGapClick} />
                 </Col>
@@ -109,7 +139,11 @@ export default function TeacherAnalyticsPage() {
             </Row>
           ) : (
             <Empty
-              description={activeId ? "Aucun gap détecté — lancez une analyse" : "Entrez un identifiant enseignant"}
+              description={
+                activeId
+                  ? 'Aucun gap détecté — lancez une analyse'
+                  : 'Entrez un identifiant enseignant'
+              }
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
           )}
@@ -117,7 +151,7 @@ export default function TeacherAnalyticsPage() {
       ),
     },
     {
-      key: "reco",
+      key: 'reco',
       label: (
         <Space>
           <BookOutlined />
@@ -135,7 +169,9 @@ export default function TeacherAnalyticsPage() {
                     recommendation={r}
                     rank={i + 1}
                     showBreakdown
-                    onStatusChange={(id, statut) => updateRecoStatus({ recommendationId: id, statut })}
+                    onStatusChange={(id, statut) =>
+                      updateRecoStatus({ recommendationId: id, statut })
+                    }
                     updating={updatingReco}
                   />
                 </Col>
@@ -143,7 +179,9 @@ export default function TeacherAnalyticsPage() {
             </Row>
           ) : (
             <Empty
-              description={activeId ? "Aucune recommandation disponible" : "Entrez un identifiant enseignant"}
+              description={
+                activeId ? 'Aucune recommandation disponible' : 'Entrez un identifiant enseignant'
+              }
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
           )}
@@ -151,7 +189,7 @@ export default function TeacherAnalyticsPage() {
       ),
     },
     {
-      key: "reco-plus",
+      key: 'reco-plus',
       label: (
         <Space>
           <RiseOutlined />
@@ -159,7 +197,7 @@ export default function TeacherAnalyticsPage() {
         </Space>
       ),
       children: (
-        <Space direction="vertical" style={{ width: "100%" }} size={16}>
+        <Space direction="vertical" style={{ width: '100%' }} size={16}>
           <GroupedRecommendations enseignantId={activeId} />
           <WhatIfSimulator enseignantId={activeId} />
         </Space>
@@ -168,9 +206,9 @@ export default function TeacherAnalyticsPage() {
   ];
 
   const notFoundContent = (() => {
-    if (searchLoading) return "Chargement…";
-    if (searchTerm.length >= 2) return "Aucun enseignant trouvé";
-    return "Tapez au moins 2 caractères";
+    if (searchLoading) return 'Chargement…';
+    if (searchTerm.length >= 2) return 'Aucun enseignant trouvé';
+    return 'Tapez au moins 2 caractères';
   })();
 
   return (
@@ -185,7 +223,9 @@ export default function TeacherAnalyticsPage() {
       <Card style={{ ...cardStyle, marginBottom: 24 }}>
         <Row gutter={[16, 16]} align="middle">
           <Col xs={24} md={12}>
-            <Text strong style={{ display: "block", marginBottom: 6 }}>Identifiant enseignant</Text>
+            <Text strong style={{ display: 'block', marginBottom: 6 }}>
+              Identifiant enseignant
+            </Text>
             <AutoComplete
               size="large"
               placeholder="Rechercher un enseignant (nom, email, ID)…"
@@ -229,7 +269,13 @@ export default function TeacherAnalyticsPage() {
       </Card>
 
       {error && (
-        <Alert message={error} type="error" showIcon closable style={{ marginBottom: 16, borderRadius: 8 }} />
+        <Alert
+          message={error}
+          type="error"
+          showIcon
+          closable
+          style={{ marginBottom: 16, borderRadius: 8 }}
+        />
       )}
 
       {/* Résumé analyse */}
@@ -237,36 +283,48 @@ export default function TeacherAnalyticsPage() {
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           <Col xs={12} sm={6}>
             <Card style={cardStyle} size="small">
-              <Statistic title="Gaps détectés" value={analyseResult.nb_gaps_detectes}
-                valueStyle={{ color: "#f59e0b" }} />
-           </Card>
-         </Col>
+              <Statistic
+                title="Gaps détectés"
+                value={analyseResult.nb_gaps_detectes}
+                valueStyle={{ color: '#f59e0b' }}
+              />
+            </Card>
+          </Col>
           <Col xs={12} sm={6}>
             <Card style={cardStyle} size="small">
-              <Statistic title="Gaps critiques" value={analyseResult.nb_gaps_critiques}
-                valueStyle={{ color: "#ef4444" }} />
-           </Card>
-         </Col>
+              <Statistic
+                title="Gaps critiques"
+                value={analyseResult.nb_gaps_critiques}
+                valueStyle={{ color: '#ef4444' }}
+              />
+            </Card>
+          </Col>
           <Col xs={12} sm={6}>
             <Card style={cardStyle} size="small">
-              <Statistic title="Recommandations" value={analyseResult.nb_recommendations}
-                valueStyle={{ color: "#10b981" }} />
-           </Card>
-         </Col>
+              <Statistic
+                title="Recommandations"
+                value={analyseResult.nb_recommendations}
+                valueStyle={{ color: '#10b981' }}
+              />
+            </Card>
+          </Col>
           <Col xs={12} sm={6}>
             <Card style={cardStyle} size="small">
-              <Statistic title="Alertes générées" value={analyseResult.nb_alertes_generees}
-                valueStyle={{ color: "#8b5cf6" }} />
-           </Card>
-         </Col>
-       </Row>
+              <Statistic
+                title="Alertes générées"
+                value={analyseResult.nb_alertes_generees}
+                valueStyle={{ color: '#8b5cf6' }}
+              />
+            </Card>
+          </Col>
+        </Row>
       )}
 
       {/* Decomposition Score metier vs Signal ML (consomme API ml-signal) */}
       {activeId && (
         <Card style={{ ...cardStyle, marginBottom: 24 }} title="Decomposition du risque">
           <RiskBreakdownPanel teacherId={activeId} />
-       </Card>
+        </Card>
       )}
 
       <Card style={cardStyle}>
@@ -302,7 +360,3 @@ export default function TeacherAnalyticsPage() {
     </div>
   );
 }
-
-
-
-

@@ -1,16 +1,6 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  Card,
-  Form,
-  Select,
-  Button,
-  Alert,
-  Descriptions,
-  Tag,
-  Space,
-  Typography,
-} from "antd";
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, Form, Select, Button, Alert, Descriptions, Tag, Space, Typography } from 'antd';
 import {
   CalendarOutlined,
   TeamOutlined,
@@ -20,14 +10,19 @@ import {
   WarningOutlined,
   CheckCircleOutlined,
   BookOutlined,
-} from "@ant-design/icons";
-import dayjs from "dayjs";
+} from '@ant-design/icons';
+import dayjs from 'dayjs';
 
-import { PageHero, PageLoader, EmptyStateStandard } from "@/components/common";
-import { useProfile, useFormationsAccessibles, useInscriptionsByEnseignant, useDemanderInscription } from "@/hooks/formation/useFormationExtras";
-import { useEnseignantById } from "@/hooks/enseignant/useEnseignants";
-import useAppNotification from "@/hooks/ui/useAppNotification";
-import type { Id } from "@/models/common";
+import { PageHero, PageLoader, EmptyStateStandard } from '@/components/common';
+import {
+  useProfile,
+  useFormationsAccessibles,
+  useInscriptionsByEnseignant,
+  useDemanderInscription,
+} from '@/hooks/formation/useFormationExtras';
+import { useEnseignantById } from '@/hooks/enseignant/useEnseignants';
+import useAppNotification from '@/hooks/ui/useAppNotification';
+import type { Id } from '@/models/common';
 
 const { Text } = Typography;
 
@@ -68,9 +63,9 @@ function rangesOverlap(aStart?: string, aEnd?: string, bStart?: string, bEnd?: s
 }
 
 function fmt(date?: string): string {
-  if (!date) return "—";
+  if (!date) return '—';
   const d = dayjs(date);
-  return d.isValid() ? d.format("DD/MM/YYYY") : "—";
+  return d.isValid() ? d.format('DD/MM/YYYY') : '—';
 }
 
 export default function InscriptionForm() {
@@ -104,7 +99,7 @@ export default function InscriptionForm() {
     [existingRaw],
   );
 
-  const selectedId = Form.useWatch("formationId", form);
+  const selectedId = Form.useWatch('formationId', form);
   const selected = useMemo(
     () => accessibles.find((f) => String(f.idFormation) === String(selectedId)),
     [accessibles, selectedId],
@@ -115,7 +110,7 @@ export default function InscriptionForm() {
   const alreadyRequested = useMemo(() => {
     const map = new Map<string, { titre?: string; etat?: string }>();
     existing.forEach((e) => {
-      if (e.formationId && e.etat && e.etat !== "REJECTED") {
+      if (e.formationId && e.etat && e.etat !== 'REJECTED') {
         map.set(String(e.formationId), { titre: e.titreFormation, etat: e.etat });
       }
     });
@@ -154,7 +149,7 @@ export default function InscriptionForm() {
   }
   if (profileError || !identifier) {
     return (
-      <div style={{ maxWidth: 760, margin: "0 auto" }}>
+      <div style={{ maxWidth: 760, margin: '0 auto' }}>
         <PageHero
           tone="danger"
           icon={<SendOutlined />}
@@ -167,7 +162,7 @@ export default function InscriptionForm() {
           message="Profil enseignant introuvable"
           description="Impossible de récupérer votre profil. Veuillez vous reconnecter ou contacter l'administrateur."
           action={
-            <Button size="small" type="primary" onClick={() => navigate("/login")}>
+            <Button size="small" type="primary" onClick={() => navigate('/login')}>
               Se reconnecter
             </Button>
           }
@@ -177,14 +172,14 @@ export default function InscriptionForm() {
   }
 
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto" }}>
+    <div style={{ maxWidth: 760, margin: '0 auto' }}>
       <PageHero
         tone="brand"
         icon={<SendOutlined />}
         title="S'inscrire à une formation"
         subtitle="Choisissez une formation ouverte aux inscriptions et envoyez votre demande."
         actions={
-          <Button icon={<BookOutlined />} onClick={() => navigate("/home/ListeFormation")}>
+          <Button icon={<BookOutlined />} onClick={() => navigate('/home/ListeFormation')}>
             Voir le catalogue
           </Button>
         }
@@ -200,7 +195,7 @@ export default function InscriptionForm() {
             message="Demande envoyée"
             description="Votre demande a été transmise. Vous pouvez suivre son statut dans « Mes Inscriptions »."
             action={
-              <Button size="small" type="link" onClick={() => navigate("/home/ListeFormation")}>
+              <Button size="small" type="link" onClick={() => navigate('/home/ListeFormation')}>
                 Mes Inscriptions
               </Button>
             }
@@ -215,10 +210,10 @@ export default function InscriptionForm() {
             showIcon
             icon={<CheckCircleOutlined />}
             style={{ marginBottom: 20 }}
-            message={`Vous avez déjà ${alreadyRequested.size} demande${alreadyRequested.size === 1 ? "" : "s"} en cours ou approuvée${alreadyRequested.size === 1 ? "" : "s"}`}
+            message={`Vous avez déjà ${alreadyRequested.size} demande${alreadyRequested.size === 1 ? '' : 's'} en cours ou approuvée${alreadyRequested.size === 1 ? '' : 's'}`}
             description="Les formations concernées sont désactivées dans la liste ci-dessous. Vous pouvez suivre leur statut dans « Mes Inscriptions »."
             action={
-              <Button size="small" type="link" onClick={() => navigate("/home/MesInscriptions")}>
+              <Button size="small" type="link" onClick={() => navigate('/home/MesInscriptions')}>
                 Voir mes inscriptions
               </Button>
             }
@@ -235,7 +230,7 @@ export default function InscriptionForm() {
             <Form.Item
               name="formationId"
               label="Formation"
-              rules={[{ required: true, message: "Veuillez sélectionner une formation" }]}
+              rules={[{ required: true, message: 'Veuillez sélectionner une formation' }]}
             >
               <Select
                 placeholder="Sélectionner une formation"
@@ -244,13 +239,11 @@ export default function InscriptionForm() {
                 optionFilterProp="label"
                 options={accessibles.map((f) => {
                   const requested = alreadyRequested.get(String(f.idFormation));
-                  const baseLabel = `${f.titreFormation ?? "Formation"} (${fmt(f.dateDebut)} → ${fmt(f.dateFin)})`;
-                  const statusWord = requested?.etat === "APPROVED" ? "approuvée" : "en attente";
+                  const baseLabel = `${f.titreFormation ?? 'Formation'} (${fmt(f.dateDebut)} → ${fmt(f.dateFin)})`;
+                  const statusWord = requested?.etat === 'APPROVED' ? 'approuvée' : 'en attente';
                   return {
                     value: f.idFormation as Id,
-                    label: requested
-                      ? `${baseLabel} — déjà demandée (${statusWord})`
-                      : baseLabel,
+                    label: requested ? `${baseLabel} — déjà demandée (${statusWord})` : baseLabel,
                     disabled: !!requested,
                   };
                 })}
@@ -265,21 +258,47 @@ export default function InscriptionForm() {
                 style={{ marginBottom: 20 }}
                 styles={{ label: { width: 180, fontWeight: 600 } }}
               >
-                <Descriptions.Item label="Titre">{selected.titreFormation || "—"}</Descriptions.Item>
-                <Descriptions.Item label="Type">
-                  <Tag color="blue">{selected.typeFormation || "—"}</Tag>
+                <Descriptions.Item label="Titre">
+                  {selected.titreFormation || '—'}
                 </Descriptions.Item>
-                <Descriptions.Item label={<><CalendarOutlined /> Période</>}>
+                <Descriptions.Item label="Type">
+                  <Tag color="blue">{selected.typeFormation || '—'}</Tag>
+                </Descriptions.Item>
+                <Descriptions.Item
+                  label={
+                    <>
+                      <CalendarOutlined /> Période
+                    </>
+                  }
+                >
                   {fmt(selected.dateDebut)} → {fmt(selected.dateFin)}
                 </Descriptions.Item>
-                <Descriptions.Item label={<><ClockCircleOutlined /> Charge horaire</>}>
-                  {selected.chargeHoraireGlobal == null ? "—" : `${selected.chargeHoraireGlobal} h`}
+                <Descriptions.Item
+                  label={
+                    <>
+                      <ClockCircleOutlined /> Charge horaire
+                    </>
+                  }
+                >
+                  {selected.chargeHoraireGlobal == null ? '—' : `${selected.chargeHoraireGlobal} h`}
                 </Descriptions.Item>
-                <Descriptions.Item label={<><TeamOutlined /> UP</>}>
-                  {selected.up?.libelle || "—"}
+                <Descriptions.Item
+                  label={
+                    <>
+                      <TeamOutlined /> UP
+                    </>
+                  }
+                >
+                  {selected.up?.libelle || '—'}
                 </Descriptions.Item>
-                <Descriptions.Item label={<><ApartmentOutlined /> Département</>}>
-                  {selected.departement?.libelle || "—"}
+                <Descriptions.Item
+                  label={
+                    <>
+                      <ApartmentOutlined /> Département
+                    </>
+                  }
+                >
+                  {selected.departement?.libelle || '—'}
                 </Descriptions.Item>
               </Descriptions>
             )}
@@ -293,12 +312,14 @@ export default function InscriptionForm() {
                 message="Chevauchement de dates détecté"
                 description={
                   <div>
-                    <Text>Cette formation chevauche une (ou plusieurs) inscription(s) existante(s) :</Text>
-                    <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
+                    <Text>
+                      Cette formation chevauche une (ou plusieurs) inscription(s) existante(s) :
+                    </Text>
+                    <ul style={{ margin: '8px 0 0', paddingLeft: 18 }}>
                       {conflicts.map((c) => (
                         <li key={String(c.formationId)}>
-                          <strong>{c.titreFormation || `Formation #${c.formationId}`}</strong>{" "}
-                          ({fmt(c.dateDebut)} → {fmt(c.dateFin)})
+                          <strong>{c.titreFormation || `Formation #${c.formationId}`}</strong> (
+                          {fmt(c.dateDebut)} → {fmt(c.dateFin)})
                         </li>
                       ))}
                     </ul>

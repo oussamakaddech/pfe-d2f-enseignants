@@ -1,5 +1,5 @@
-import { memo } from "react";
-import { Card, Skeleton } from "antd";
+import { memo } from 'react';
+import { Card, Skeleton } from 'antd';
 
 interface PageSectionCardProps {
   readonly title?: React.ReactNode;
@@ -21,7 +21,7 @@ const PageSectionCard = memo(function PageSectionCard({
   title,
   extra,
   children,
-  className = "",
+  className = '',
   style,
   loading = false,
   noPadding = false,
@@ -30,10 +30,10 @@ const PageSectionCard = memo(function PageSectionCard({
     <Card
       className={`page-section-card ${className}`}
       style={{
-        borderRadius: "var(--radius-lg)",
-        border: "1px solid var(--border-color)",
-        boxShadow: "var(--shadow-sm)",
-        overflow: "hidden",
+        borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--border-color)',
+        boxShadow: 'var(--shadow-sm)',
+        overflow: 'hidden',
         ...style,
       }}
       styles={{
@@ -41,20 +41,18 @@ const PageSectionCard = memo(function PageSectionCard({
           padding: noPadding ? 0 : 24,
         },
       }}
-      title={title ? <span style={{ fontWeight: 600, fontSize: "var(--text-md)", color: "var(--text-main)" }}>{title}</span> : undefined}
+      title={
+        title ? (
+          <span style={{ fontWeight: 600, fontSize: 'var(--text-md)', color: 'var(--text-main)' }}>
+            {title}
+          </span>
+        ) : undefined
+      }
       extra={extra}
     >
-      {loading ? (
-        <Skeleton active paragraph={{ rows: 4 }} />
-      ) : (
-        children
-      )}
+      {loading ? <Skeleton active paragraph={{ rows: 4 }} /> : children}
     </Card>
   );
 });
 
 export default PageSectionCard;
-
-
-
-

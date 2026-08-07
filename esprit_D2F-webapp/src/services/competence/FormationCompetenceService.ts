@@ -1,6 +1,6 @@
-import { defaultApi as api } from "@/services/httpClient";
-import { config } from "@/config/env";
-import type { FormationCompetence } from "@/models/formation";
+import { defaultApi as api } from '@/services/httpClient';
+import { config } from '@/config/env';
+import type { FormationCompetence } from '@/models/formation';
 
 const API_URL = `${config.FORMATION_URL}/formation/formation-competences`;
 
@@ -10,12 +10,18 @@ const FormationCompetenceService = {
     return response.data;
   },
 
-  async addFormationCompetence(formationId: number | string, fc: Record<string, unknown>): Promise<FormationCompetence> {
+  async addFormationCompetence(
+    formationId: number | string,
+    fc: Record<string, unknown>,
+  ): Promise<FormationCompetence> {
     const response = await api.post(`${API_URL}/formation/${formationId}`, fc);
     return response.data;
   },
 
-  async updateFormationCompetence(id: number | string, fc: Record<string, unknown>): Promise<FormationCompetence> {
+  async updateFormationCompetence(
+    id: number | string,
+    fc: Record<string, unknown>,
+  ): Promise<FormationCompetence> {
     const response = await api.put(`${API_URL}/${id}`, fc);
     return response.data;
   },
@@ -24,7 +30,10 @@ const FormationCompetenceService = {
     await api.delete(`${API_URL}/${id}`);
   },
 
-  async replaceAllForFormation(formationId: number | string, newLinks: Record<string, unknown>[]): Promise<FormationCompetence[]> {
+  async replaceAllForFormation(
+    formationId: number | string,
+    newLinks: Record<string, unknown>[],
+  ): Promise<FormationCompetence[]> {
     const response = await api.put(`${API_URL}/formation/${formationId}/replace-all`, newLinks);
     return response.data;
   },
@@ -41,6 +50,3 @@ const FormationCompetenceService = {
 };
 
 export default FormationCompetenceService;
-
-
-

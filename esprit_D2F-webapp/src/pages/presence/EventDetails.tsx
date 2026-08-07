@@ -1,19 +1,7 @@
-
-import { format } from "date-fns";
-import type { Id } from "@/models/common";
-import "@/styles/pages/event-details.css";
-import {
-  Card,
-  Row,
-  Col,
-  Tag,
-  Typography,
-  Divider,
-  Avatar,
-  Space,
-  Input,
-  Alert,
-} from "antd";
+import { format } from 'date-fns';
+import type { Id } from '@/models/common';
+import '@/styles/pages/event-details.css';
+import { Card, Row, Col, Tag, Typography, Divider, Avatar, Space, Input, Alert } from 'antd';
 import {
   CalendarOutlined,
   ClockCircleOutlined,
@@ -21,15 +9,36 @@ import {
   UserOutlined,
   InfoCircleOutlined,
   ScheduleOutlined,
-} from "@ant-design/icons";
+} from '@ant-design/icons';
 
 const { Text } = Typography;
 
-interface SeanceAnimateur { id?: Id; nom?: string; prenom?: string }
-interface SeanceParticipant { id?: Id; nom?: string; prenom?: string }
-interface SeanceDetails { idSeance?: Id; animateurs?: SeanceAnimateur[]; participants?: SeanceParticipant[] }
-interface FormationEvent { titreFormation?: string; typeFormation?: string; dateDebut?: string; dateFin?: string; organismeRefExterne?: string; etatFormation?: string }
-interface SelectedEvent { details?: { formation?: FormationEvent; seance?: SeanceDetails } }
+interface SeanceAnimateur {
+  id?: Id;
+  nom?: string;
+  prenom?: string;
+}
+interface SeanceParticipant {
+  id?: Id;
+  nom?: string;
+  prenom?: string;
+}
+interface SeanceDetails {
+  idSeance?: Id;
+  animateurs?: SeanceAnimateur[];
+  participants?: SeanceParticipant[];
+}
+interface FormationEvent {
+  titreFormation?: string;
+  typeFormation?: string;
+  dateDebut?: string;
+  dateFin?: string;
+  organismeRefExterne?: string;
+  etatFormation?: string;
+}
+interface SelectedEvent {
+  details?: { formation?: FormationEvent; seance?: SeanceDetails };
+}
 
 interface EventDetailsProps {
   readonly selectedEvent: SelectedEvent | null;
@@ -65,63 +74,80 @@ const EventDetails = ({
 
   const getEtatTagColor = (etat: string) => {
     const colors: Record<string, string> = {
-      ENREGISTRE: "warning",
-      PLANIFIE: "processing",
-      EN_COURS: "success",
-      ACHEVE: "default",
-      ANNULE: "error",
+      ENREGISTRE: 'warning',
+      PLANIFIE: 'processing',
+      EN_COURS: 'success',
+      ACHEVE: 'default',
+      ANNULE: 'error',
     };
-    return colors[etat] || "default";
+    return colors[etat] || 'default';
   };
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto" }}>
+    <div style={{ maxWidth: 900, margin: '0 auto' }}>
       <Card
         style={{ marginBottom: 24 }}
         title={
           <Space>
-            <Avatar style={{ backgroundColor: "#1976d2" }} icon={<ScheduleOutlined />} />
+            <Avatar style={{ backgroundColor: '#1976d2' }} icon={<ScheduleOutlined />} />
             <Text strong>📌 Informations sur la Formation</Text>
           </Space>
         }
       >
         <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
           <Col xs={24} sm={16}>
-            <Text type="secondary" style={{ display: "block", marginBottom: 4 }}>Formation</Text>
-            <Input readOnly value={formation?.titreFormation || ""} />
+            <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
+              Formation
+            </Text>
+            <Input readOnly value={formation?.titreFormation || ''} />
           </Col>
           <Col xs={24} sm={8}>
-            <Text type="secondary" style={{ display: "block", marginBottom: 4 }}>Type</Text>
-            <Input readOnly value={formation?.typeFormation || "N/A"} />
+            <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
+              Type
+            </Text>
+            <Input readOnly value={formation?.typeFormation || 'N/A'} />
           </Col>
         </Row>
 
         <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
           <Col xs={24} sm={12}>
-            <Text type="secondary" style={{ display: "block", marginBottom: 4 }}>Début</Text>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
+              Début
+            </Text>
             <Input
               readOnly
-              value={formation?.dateDebut ? format(new Date(formation.dateDebut), "dd/MM/yyyy") : ""}
+              value={
+                formation?.dateDebut ? format(new Date(formation.dateDebut), 'dd/MM/yyyy') : ''
+              }
             />
           </Col>
           <Col xs={24} sm={12}>
-            <Text type="secondary" style={{ display: "block", marginBottom: 4 }}>Fin</Text>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
+              Fin
+            </Text>
             <Input
               readOnly
-              value={formation?.dateFin ? format(new Date(formation.dateFin), "dd/MM/yyyy") : ""}
+              value={formation?.dateFin ? format(new Date(formation.dateFin), 'dd/MM/yyyy') : ''}
             />
           </Col>
         </Row>
 
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12}>
-            <Text type="secondary" style={{ display: "block", marginBottom: 4 }}>Organisme</Text>
-            <Input readOnly value={formation?.organismeRefExterne || "N/A"} />
+            <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
+              Organisme
+            </Text>
+            <Input readOnly value={formation?.organismeRefExterne || 'N/A'} />
           </Col>
           <Col xs={24} sm={12}>
-            <Text type="secondary" style={{ display: "block", marginBottom: 4 }}>État</Text>
-            <Tag color={getEtatTagColor(formation?.etatFormation || "N/A")} style={{ fontSize: 14, padding: "4px 12px" }}>
-              {formation?.etatFormation || "N/A"}
+            <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
+              État
+            </Text>
+            <Tag
+              color={getEtatTagColor(formation?.etatFormation || 'N/A')}
+              style={{ fontSize: 14, padding: '4px 12px' }}
+            >
+              {formation?.etatFormation || 'N/A'}
             </Tag>
           </Col>
         </Row>
@@ -135,14 +161,16 @@ const EventDetails = ({
             style={{ marginBottom: 24 }}
             title={
               <Space>
-                <Avatar style={{ backgroundColor: "#388e3c" }} icon={<CalendarOutlined />} />
+                <Avatar style={{ backgroundColor: '#388e3c' }} icon={<CalendarOutlined />} />
                 <Text strong>📅 Informations sur la Séance</Text>
               </Space>
             }
           >
             <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
               <Col xs={24} sm={12}>
-                <Text type="secondary" style={{ display: "block", marginBottom: 4 }}>Date de séance</Text>
+                <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
+                  Date de séance
+                </Text>
                 <Input
                   type="date"
                   value={editedDateSeance}
@@ -150,7 +178,9 @@ const EventDetails = ({
                 />
               </Col>
               <Col xs={24} sm={12}>
-                <Text type="secondary" style={{ display: "block", marginBottom: 4 }}>Salle</Text>
+                <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
+                  Salle
+                </Text>
                 <Input
                   value={editedSalle}
                   onChange={(e) => setEditedSalle?.(e.target.value)}
@@ -162,7 +192,9 @@ const EventDetails = ({
 
             <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
               <Col xs={24} sm={12}>
-                <Text type="secondary" style={{ display: "block", marginBottom: 4 }}>Heure début</Text>
+                <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
+                  Heure début
+                </Text>
                 <Input
                   type="time"
                   value={editedHeureDebut}
@@ -171,7 +203,9 @@ const EventDetails = ({
                 />
               </Col>
               <Col xs={24} sm={12}>
-                <Text type="secondary" style={{ display: "block", marginBottom: 4 }}>Heure fin</Text>
+                <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
+                  Heure fin
+                </Text>
                 <Input
                   type="time"
                   value={editedHeureFin}
@@ -182,7 +216,7 @@ const EventDetails = ({
             </Row>
 
             <div style={{ marginBottom: 16 }}>
-              <Text type="secondary" style={{ display: "block", marginBottom: 4 }}>
+              <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
                 Participants (IDs séparés par des virgules)
               </Text>
               <Input.TextArea
@@ -195,7 +229,9 @@ const EventDetails = ({
 
             {seance?.animateurs && seance.animateurs.length > 0 && (
               <div style={{ marginBottom: 16 }}>
-                <Text strong style={{ display: "block", marginBottom: 8 }}>👥 Animateurs</Text>
+                <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                  👥 Animateurs
+                </Text>
                 <Space wrap>
                   {seance.animateurs.map((a: SeanceAnimateur) => (
                     <Tag key={a.id} icon={<UserOutlined />} color="blue">
@@ -208,7 +244,9 @@ const EventDetails = ({
 
             {seance?.participants && seance.participants.length > 0 && (
               <div>
-                <Text strong style={{ display: "block", marginBottom: 8 }}>👤 Participants Enregistrés</Text>
+                <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                  👤 Participants Enregistrés
+                </Text>
                 <Space wrap>
                   {seance.participants.map((p: SeanceParticipant) => (
                     <Tag key={p.id} icon={<UserOutlined />} color="green">
@@ -236,11 +274,3 @@ const EventDetails = ({
 };
 
 export default EventDetails;
-
-
-
-
-
-
-
-

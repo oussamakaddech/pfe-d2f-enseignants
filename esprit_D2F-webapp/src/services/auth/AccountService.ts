@@ -1,5 +1,5 @@
-import { defaultApi as api } from "@/services/httpClient";
-import { config } from "@/config/env";
+import { defaultApi as api } from '@/services/httpClient';
+import { config } from '@/config/env';
 import type {
   AuthUser,
   EditProfileRequest,
@@ -7,7 +7,7 @@ import type {
   UpdatePasswordRequest,
   UpdatePasswordResponse,
   AccountActionResponse,
-} from "@/models/auth";
+} from '@/models/auth';
 
 const API_URL = `${config.URL_ACCOUNT}/account`;
 
@@ -16,10 +16,7 @@ const API_URL = `${config.URL_ACCOUNT}/account`;
  * Endpoint protégé (ACCOUNT_CREATE). À NE PAS confondre avec l'auto-inscription
  * publique (AuthService.signup) qui force toujours le rôle ENSEIGNANT.
  */
-export async function createAccount(
-  request: SignupRequest,
-  role?: string
-): Promise<AuthUser> {
+export async function createAccount(request: SignupRequest, role?: string): Promise<AuthUser> {
   const params = role ? { role } : {};
   const response = await api.post<AuthUser>(`${API_URL}/create-account`, request, { params });
   return response.data;
@@ -42,8 +39,8 @@ function normalizeUserDTO(dto: UserDTOFromBackend): AuthUser {
   return {
     userId: dto.id,
     username: dto.userName,
-    role: (dto.role ?? "") as AuthUser["role"],
-    email: dto.email ?? "",
+    role: (dto.role ?? '') as AuthUser['role'],
+    email: dto.email ?? '',
     // keep extra fields for ListAccounts mapping
     ...dto,
   } as AuthUser;
@@ -52,7 +49,7 @@ function normalizeUserDTO(dto: UserDTOFromBackend): AuthUser {
 export async function getAllAccounts(includeDeleted = false): Promise<AuthUser[]> {
   const response = await api.get<UserDTOFromBackend[] | { content: UserDTOFromBackend[] }>(
     `${API_URL}/list-accounts`,
-    { params: { size: 500, page: 0, includeDeleted } }
+    { params: { size: 500, page: 0, includeDeleted } },
   );
   const data = response.data;
   if (!data) return [];
@@ -65,15 +62,13 @@ export async function getProfile(): Promise<AuthUser> {
   return response.data;
 }
 
-export async function editProfile(
-  editProfileRequest: EditProfileRequest
-): Promise<AuthUser> {
+export async function editProfile(editProfileRequest: EditProfileRequest): Promise<AuthUser> {
   const response = await api.post<AuthUser>(`${API_URL}/edit-profile`, editProfileRequest);
   return response.data;
 }
 
 export async function updatePassword(
-  request: UpdatePasswordRequest
+  request: UpdatePasswordRequest,
 ): Promise<UpdatePasswordResponse> {
   const res = await api.post(`${API_URL}/update-password`, request);
   return res.data;
@@ -104,14 +99,12 @@ export async function permanentDeleteAccount(userId: string): Promise<AccountAct
 export async function updateAccount(
   userId: string,
   editProfileRequest: EditProfileRequest,
-  role?: string
+  role?: string,
 ): Promise<AuthUser> {
   const params = role ? { role } : {};
-  const response = await api.put<AuthUser>(
-    `${API_URL}/update/${userId}`,
-    editProfileRequest,
-    { params }
-  );
+  const response = await api.put<AuthUser>(`${API_URL}/update/${userId}`, editProfileRequest, {
+    params,
+  });
   return response.data;
 }
 
@@ -127,7 +120,3 @@ export default {
   updateAccount,
   createAccount,
 };
-
-
-
-

@@ -1,114 +1,199 @@
-import { useEffect, useReducer, useRef, useMemo, useState, useCallback } from "react";
+import { useEffect, useReducer, useRef, useMemo, useState, useCallback } from 'react';
 import {
-  Row, Col, Input, Button, Spin, Layout, Form, Modal, Badge, Space, Pagination, Avatar, Select,
-} from "antd";
+  Row,
+  Col,
+  Input,
+  Button,
+  Spin,
+  Layout,
+  Form,
+  Modal,
+  Badge,
+  Space,
+  Pagination,
+  Avatar,
+  Select,
+} from 'antd';
 import {
-  PlusOutlined, SaveOutlined, CheckCircleOutlined, ClockCircleOutlined,
-  UserOutlined, FilterOutlined,
-} from "@ant-design/icons";
+  PlusOutlined,
+  SaveOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  UserOutlined,
+  FilterOutlined,
+} from '@ant-design/icons';
 import {
-  useRiceSavoirs, useRiceEnseignants, useRiceEnseignantAffectations,
-  useRiceRemoveAssignment, useRiceAssignCompetence,
-  useRiceCreateEnseignant, useRiceUpdateEnseignant, useRiceDeactivateEnseignant,
-} from "@/hooks/analyse/useRiceService";
-import SavoirMatchCard from "./SavoirMatchCard";
-import TeacherLoadCard from "./TeacherLoadCard";
-import { DEPARTMENT_OPTIONS, avatarColor, getInitials } from "./constants";
-import useAppNotification from "@/hooks/ui/useAppNotification";
-import "@/styles/pages/matchmaking-page.css";
+  useRiceSavoirs,
+  useRiceEnseignants,
+  useRiceEnseignantAffectations,
+  useRiceRemoveAssignment,
+  useRiceAssignCompetence,
+  useRiceCreateEnseignant,
+  useRiceUpdateEnseignant,
+  useRiceDeactivateEnseignant,
+} from '@/hooks/analyse/useRiceService';
+import SavoirMatchCard from './SavoirMatchCard';
+import TeacherLoadCard from './TeacherLoadCard';
+import { DEPARTMENT_OPTIONS, avatarColor, getInitials } from './constants';
+import useAppNotification from '@/hooks/ui/useAppNotification';
+import '@/styles/pages/matchmaking-page.css';
 
 const { Header, Content, Footer } = Layout;
 const { Option } = Select;
-const DEFAULT_ASSIGN_LEVEL = "N2_ELEMENTAIRE";
+const DEFAULT_ASSIGN_LEVEL = 'N2_ELEMENTAIRE';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
-interface Savoir { id: number | string; code?: string; nom?: string; type?: string; niveau?: string | number; domaine?: string; [key: string]: unknown }
-interface Enseignant { id: number | string; nom?: string; prenom?: string; departement?: string; grade?: string; etat?: string; [key: string]: unknown }
-interface PendingItem { savoirId: number | string; enseignantId: number | string }
+interface Savoir {
+  id: number | string;
+  code?: string;
+  nom?: string;
+  type?: string;
+  niveau?: string | number;
+  domaine?: string;
+  [key: string]: unknown;
+}
+interface Enseignant {
+  id: number | string;
+  nom?: string;
+  prenom?: string;
+  departement?: string;
+  grade?: string;
+  etat?: string;
+  [key: string]: unknown;
+}
+interface PendingItem {
+  savoirId: number | string;
+  enseignantId: number | string;
+}
 interface MatchState {
   savoirs: Savoir[];
   enseignants: Enseignant[];
   assignments: Map<number | string, Set<number | string>>;
   assignmentIds: Map<string, number | string>;
   pendingChanges: { add: PendingItem[]; remove: PendingItem[] };
-  filters: { departement: string | null; domaine: string; type: string; statut: string; search: string };
+  filters: {
+    departement: string | null;
+    domaine: string;
+    type: string;
+    statut: string;
+    search: string;
+  };
   loading: { savoirs: boolean; enseignants: boolean; saving: boolean };
   error: unknown;
 }
 type MatchAction =
-  | { type: "SET_LOADING"; key: string; value: boolean }
-  | { type: "SET_SAVOIRS"; savoirs: Savoir[] }
-  | { type: "SET_ENSEIGNANTS"; enseignants: Enseignant[] }
-  | { type: "SET_ASSIGNMENTS"; assignments: Map<number | string, Set<number | string>> }
-  | { type: "SET_ASSIGNMENT_IDS"; assignmentIds: Map<string, number | string> }
-  | { type: "ASSIGN_CHANGE"; savoirId: number | string; newSet: (number | string)[] }
-  | { type: "CLEAR_PENDING" }
-  | { type: "SAVE_START" }
-  | { type: "SAVE_SUCCESS" }
-  | { type: "SET_ERROR"; error: unknown }
-  | { type: "CREATE_TEACHER"; teacher: Enseignant }
-  | { type: "UPDATE_TEACHER"; teacher: Enseignant }
-  | { type: "DEACTIVATE_TEACHER"; id: number | string }
-  | { type: "SET_FILTER"; filters: Partial<MatchState["filters"]> };
+  | { type: 'SET_LOADING'; key: string; value: boolean }
+  | { type: 'SET_SAVOIRS'; savoirs: Savoir[] }
+  | { type: 'SET_ENSEIGNANTS'; enseignants: Enseignant[] }
+  | { type: 'SET_ASSIGNMENTS'; assignments: Map<number | string, Set<number | string>> }
+  | { type: 'SET_ASSIGNMENT_IDS'; assignmentIds: Map<string, number | string> }
+  | { type: 'ASSIGN_CHANGE'; savoirId: number | string; newSet: (number | string)[] }
+  | { type: 'CLEAR_PENDING' }
+  | { type: 'SAVE_START' }
+  | { type: 'SAVE_SUCCESS' }
+  | { type: 'SET_ERROR'; error: unknown }
+  | { type: 'CREATE_TEACHER'; teacher: Enseignant }
+  | { type: 'UPDATE_TEACHER'; teacher: Enseignant }
+  | { type: 'DEACTIVATE_TEACHER'; id: number | string }
+  | { type: 'SET_FILTER'; filters: Partial<MatchState['filters']> };
 
 const normalizeNiveau = (value: unknown): string => {
-  const mapping: Record<number, string> = { 1: "N1_DEBUTANT", 2: "N2_ELEMENTAIRE", 3: "N3_INTERMEDIAIRE", 4: "N4_AVANCE", 5: "N5_EXPERT" };
-  if (typeof value === "string" && /^N[1-5]_[A-Z_]+$/.test(value)) return value;
+  const mapping: Record<number, string> = {
+    1: 'N1_DEBUTANT',
+    2: 'N2_ELEMENTAIRE',
+    3: 'N3_INTERMEDIAIRE',
+    4: 'N4_AVANCE',
+    5: 'N5_EXPERT',
+  };
+  if (typeof value === 'string' && /^N[1-5]_[A-Z_]+$/.test(value)) return value;
   return mapping[Number(value)] || DEFAULT_ASSIGN_LEVEL;
 };
 
 const initialState: MatchState = {
-  savoirs: [], enseignants: [],
-  assignments: new Map(), assignmentIds: new Map(),
+  savoirs: [],
+  enseignants: [],
+  assignments: new Map(),
+  assignmentIds: new Map(),
   pendingChanges: { add: [], remove: [] },
-  filters: { departement: null, domaine: "all", type: "all", statut: "all", search: "" },
+  filters: { departement: null, domaine: 'all', type: 'all', statut: 'all', search: '' },
   loading: { savoirs: false, enseignants: false, saving: false },
   error: null,
 };
 
 function reducer(state: MatchState, action: MatchAction): MatchState {
   switch (action.type) {
-    case "SET_LOADING":
+    case 'SET_LOADING':
       return { ...state, loading: { ...state.loading, [action.key]: action.value } };
-    case "SET_SAVOIRS":
+    case 'SET_SAVOIRS':
       return { ...state, savoirs: action.savoirs };
-    case "SET_ENSEIGNANTS":
+    case 'SET_ENSEIGNANTS':
       return { ...state, enseignants: action.enseignants };
-    case "SET_ASSIGNMENTS":
+    case 'SET_ASSIGNMENTS':
       return { ...state, assignments: action.assignments };
-    case "SET_ASSIGNMENT_IDS":
+    case 'SET_ASSIGNMENT_IDS':
       return { ...state, assignmentIds: action.assignmentIds };
-    case "ASSIGN_CHANGE": {
+    case 'ASSIGN_CHANGE': {
       const { savoirId, newSet } = action;
       const assignments = new Map(state.assignments);
       assignments.set(savoirId, new Set(newSet));
       const prev = state.assignments.get(savoirId) || new Set();
-      const added = newSet.filter((id) => !prev.has(id)).map((enseignantId) => ({ savoirId, enseignantId }));
-      const removed = [...prev].filter((id) => !newSet.includes(id)).map((enseignantId) => ({ savoirId, enseignantId }));
-      return { ...state, assignments, pendingChanges: { add: [...state.pendingChanges.add, ...added], remove: [...state.pendingChanges.remove, ...removed] } };
+      const added = newSet
+        .filter((id) => !prev.has(id))
+        .map((enseignantId) => ({ savoirId, enseignantId }));
+      const removed = [...prev]
+        .filter((id) => !newSet.includes(id))
+        .map((enseignantId) => ({ savoirId, enseignantId }));
+      return {
+        ...state,
+        assignments,
+        pendingChanges: {
+          add: [...state.pendingChanges.add, ...added],
+          remove: [...state.pendingChanges.remove, ...removed],
+        },
+      };
     }
-    case "CLEAR_PENDING":
+    case 'CLEAR_PENDING':
       return { ...state, pendingChanges: { add: [], remove: [] } };
-    case "SAVE_START":
+    case 'SAVE_START':
       return { ...state, loading: { ...state.loading, saving: true } };
-    case "SAVE_SUCCESS":
-      return { ...state, loading: { ...state.loading, saving: false }, pendingChanges: { add: [], remove: [] } };
-    case "SET_ERROR":
+    case 'SAVE_SUCCESS':
+      return {
+        ...state,
+        loading: { ...state.loading, saving: false },
+        pendingChanges: { add: [], remove: [] },
+      };
+    case 'SET_ERROR':
       return { ...state, error: action.error, loading: { ...state.loading, saving: false } };
-    case "CREATE_TEACHER":
+    case 'CREATE_TEACHER':
       return { ...state, enseignants: [action.teacher, ...state.enseignants] };
-    case "UPDATE_TEACHER":
-      return { ...state, enseignants: state.enseignants.map((e) => (e.id === action.teacher.id ? action.teacher : e)) };
-    case "DEACTIVATE_TEACHER": {
+    case 'UPDATE_TEACHER':
+      return {
+        ...state,
+        enseignants: state.enseignants.map((e) =>
+          e.id === action.teacher.id ? action.teacher : e,
+        ),
+      };
+    case 'DEACTIVATE_TEACHER': {
       const id = action.id;
       const assignments = new Map(state.assignments);
       const extraRemoves: PendingItem[] = [];
       for (const [sId, setOf] of assignments.entries()) {
-        if (setOf.has(id)) { setOf.delete(id); extraRemoves.push({ savoirId: sId, enseignantId: id }); }
+        if (setOf.has(id)) {
+          setOf.delete(id);
+          extraRemoves.push({ savoirId: sId, enseignantId: id });
+        }
       }
-      return { ...state, enseignants: state.enseignants.map((e) => (e.id === id ? { ...e, etat: "I" } : e)), assignments, pendingChanges: { add: [...state.pendingChanges.add], remove: [...state.pendingChanges.remove, ...extraRemoves] } };
+      return {
+        ...state,
+        enseignants: state.enseignants.map((e) => (e.id === id ? { ...e, etat: 'I' } : e)),
+        assignments,
+        pendingChanges: {
+          add: [...state.pendingChanges.add],
+          remove: [...state.pendingChanges.remove, ...extraRemoves],
+        },
+      };
     }
-    case "SET_FILTER":
+    case 'SET_FILTER':
       return { ...state, filters: { ...state.filters, ...action.filters } };
     default:
       return state;
@@ -145,18 +230,21 @@ function MatchmakingPage() {
   const { data: affectationsData } = useRiceEnseignantAffectations();
 
   const hydrateFromHooks = useCallback(() => {
-    dispatch({ type: "SET_SAVOIRS", savoirs: savoirsData as Savoir[] });
-    dispatch({ type: "SET_ENSEIGNANTS", enseignants: enseignantsData as Enseignant[] });
+    dispatch({ type: 'SET_SAVOIRS', savoirs: savoirsData as Savoir[] });
+    dispatch({ type: 'SET_ENSEIGNANTS', enseignants: enseignantsData as Enseignant[] });
 
     const assignments = new Map<number | string, Set<number | string>>();
     const assignmentIds = new Map<string, number | string>();
 
     let affectationList: Record<string, unknown>[];
-    if (Array.isArray(affectationsData)) affectationList = affectationsData as unknown as Record<string, unknown>[];
+    if (Array.isArray(affectationsData))
+      affectationList = affectationsData as unknown as Record<string, unknown>[];
     else {
       const affSource = (affectationsData ?? {}) as Record<string, unknown>;
-      if (Array.isArray(affSource.content)) affectationList = affSource.content as Record<string, unknown>[];
-      else if (Array.isArray(affSource.data)) affectationList = affSource.data as Record<string, unknown>[];
+      if (Array.isArray(affSource.content))
+        affectationList = affSource.content as Record<string, unknown>[];
+      else if (Array.isArray(affSource.data))
+        affectationList = affSource.data as Record<string, unknown>[];
       else affectationList = [];
     }
 
@@ -172,11 +260,13 @@ function MatchmakingPage() {
       });
     }
 
-    dispatch({ type: "SET_ASSIGNMENTS", assignments });
-    dispatch({ type: "SET_ASSIGNMENT_IDS", assignmentIds });
+    dispatch({ type: 'SET_ASSIGNMENTS', assignments });
+    dispatch({ type: 'SET_ASSIGNMENT_IDS', assignmentIds });
   }, [savoirsData, enseignantsData, affectationsData]);
 
-  useEffect(() => { hydrateFromHooks(); }, [hydrateFromHooks]);
+  useEffect(() => {
+    hydrateFromHooks();
+  }, [hydrateFromHooks]);
 
   // ── Domaine options (dynamic) ──────────────────────────────────────────────
   const domaineOptions = useMemo(() => {
@@ -188,15 +278,18 @@ function MatchmakingPage() {
   const filteredSavoirs = useMemo(() => {
     let list = state.savoirs;
     const f = state.filters;
-    if (f.domaine !== "all") list = list.filter((s) => s.domaine === f.domaine);
-    if (f.type !== "all") list = list.filter((s) => (s.type || s.type_savoir) === f.type);
-    if (f.statut !== "all") {
-      if (f.statut === "assigned") list = list.filter((s) => (state.assignments.get(s.id) || new Set()).size > 0);
+    if (f.domaine !== 'all') list = list.filter((s) => s.domaine === f.domaine);
+    if (f.type !== 'all') list = list.filter((s) => (s.type || s.type_savoir) === f.type);
+    if (f.statut !== 'all') {
+      if (f.statut === 'assigned')
+        list = list.filter((s) => (state.assignments.get(s.id) || new Set()).size > 0);
       else list = list.filter((s) => (state.assignments.get(s.id) || new Set()).size === 0);
     }
     if (f.search) {
       const q = f.search.toLowerCase();
-      list = list.filter((s) => `${String(s.code || "")} ${String(s.nom || "")}`.toLowerCase().includes(q));
+      list = list.filter((s) =>
+        `${String(s.code || '')} ${String(s.nom || '')}`.toLowerCase().includes(q),
+      );
     }
     return list;
   }, [state.savoirs, state.filters, state.assignments]);
@@ -215,58 +308,92 @@ function MatchmakingPage() {
   );
 
   // ── Handlers ──────────────────────────────────────────────────────────────
-  const handleAssignChange = useCallback((savoirId: number | string, newIds: (number | string)[]) => {
-    dispatch({ type: "ASSIGN_CHANGE", savoirId, newSet: newIds });
-  }, []);
+  const handleAssignChange = useCallback(
+    (savoirId: number | string, newIds: (number | string)[]) => {
+      dispatch({ type: 'ASSIGN_CHANGE', savoirId, newSet: newIds });
+    },
+    [],
+  );
 
-  const handleUnassign = useCallback((savoirId: number | string, enseignantId: number | string) => {
-    const prev = state.assignments.get(savoirId) || new Set();
-    dispatch({ type: "ASSIGN_CHANGE", savoirId, newSet: [...prev].filter((id) => id !== enseignantId) });
-  }, [state.assignments]);
+  const handleUnassign = useCallback(
+    (savoirId: number | string, enseignantId: number | string) => {
+      const prev = state.assignments.get(savoirId) || new Set();
+      dispatch({
+        type: 'ASSIGN_CHANGE',
+        savoirId,
+        newSet: [...prev].filter((id) => id !== enseignantId),
+      });
+    },
+    [state.assignments],
+  );
 
   const scrollToSavoir = useCallback((savoirId: number | string) => {
     const el = savoirRefs.current[String(savoirId)];
-    el?.scrollIntoView({ behavior: "smooth", block: "center" });
-    el?.classList?.add("match-highlight");
-    setTimeout(() => el?.classList?.remove("match-highlight"), 1400);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el?.classList?.add('match-highlight');
+    setTimeout(() => el?.classList?.remove('match-highlight'), 1400);
   }, []);
 
   const handleSave = async () => {
     const key = (p: PendingItem) => `${String(p.savoirId)}|${String(p.enseignantId)}`;
     const norm = (p: PendingItem) => ({
-      savoirId: typeof p.savoirId === "string" && /^\d+$/.test(p.savoirId) ? Number(p.savoirId) : p.savoirId,
-      enseignantId: typeof p.enseignantId === "string" && /^\d+$/.test(p.enseignantId) ? Number(p.enseignantId) : p.enseignantId,
+      savoirId:
+        typeof p.savoirId === 'string' && /^\d+$/.test(p.savoirId)
+          ? Number(p.savoirId)
+          : p.savoirId,
+      enseignantId:
+        typeof p.enseignantId === 'string' && /^\d+$/.test(p.enseignantId)
+          ? Number(p.enseignantId)
+          : p.enseignantId,
     });
 
     const adds = new Map<string, PendingItem>();
     const removes = new Map<string, PendingItem>();
-    state.pendingChanges.add.forEach((p) => { if (p.savoirId != null && p.enseignantId != null) adds.set(key(p), norm(p)); });
-    state.pendingChanges.remove.forEach((p) => { if (p.savoirId != null && p.enseignantId != null) removes.set(key(p), norm(p)); });
-    for (const k of Array.from(adds.keys())) { if (removes.has(k)) { adds.delete(k); removes.delete(k); } }
+    state.pendingChanges.add.forEach((p) => {
+      if (p.savoirId != null && p.enseignantId != null) adds.set(key(p), norm(p));
+    });
+    state.pendingChanges.remove.forEach((p) => {
+      if (p.savoirId != null && p.enseignantId != null) removes.set(key(p), norm(p));
+    });
+    for (const k of Array.from(adds.keys())) {
+      if (removes.has(k)) {
+        adds.delete(k);
+        removes.delete(k);
+      }
+    }
 
     const payload = { add: Array.from(adds.values()), remove: Array.from(removes.values()) };
     if (payload.add.length === 0 && payload.remove.length === 0) {
-      msgApi.info("Aucune modification à sauvegarder");
-      dispatch({ type: "CLEAR_PENDING" });
+      msgApi.info('Aucune modification à sauvegarder');
+      dispatch({ type: 'CLEAR_PENDING' });
       return;
     }
 
-    dispatch({ type: "SAVE_START" });
+    dispatch({ type: 'SAVE_START' });
     try {
       for (const item of payload.remove) {
-        const ecId = state.assignmentIds.get(`${String(item.savoirId)}|${String(item.enseignantId)}`);
-        if (ecId == null) throw new Error(`Affectation introuvable: savoir ${item.savoirId}, enseignant ${item.enseignantId}`);
+        const ecId = state.assignmentIds.get(
+          `${String(item.savoirId)}|${String(item.enseignantId)}`,
+        );
+        if (ecId == null)
+          throw new Error(
+            `Affectation introuvable: savoir ${item.savoirId}, enseignant ${item.enseignantId}`,
+          );
         await removeAssignment.mutateAsync(ecId);
       }
       for (const item of payload.add) {
         const savoir = state.savoirs.find((s) => String(s.id) === String(item.savoirId));
-        await assignCompetence.mutateAsync({ enseignantId: String(item.enseignantId), savoirId: Number(item.savoirId), niveau: normalizeNiveau(savoir?.niveau) });
+        await assignCompetence.mutateAsync({
+          enseignantId: String(item.enseignantId),
+          savoirId: Number(item.savoirId),
+          niveau: normalizeNiveau(savoir?.niveau),
+        });
       }
-      dispatch({ type: "SAVE_SUCCESS" });
+      dispatch({ type: 'SAVE_SUCCESS' });
       msgApi.success(`${payload.add.length + payload.remove.length} affectation(s) sauvegardée(s)`);
       hydrateFromHooks();
     } catch (err: unknown) {
-      dispatch({ type: "SET_ERROR", error: err });
+      dispatch({ type: 'SET_ERROR', error: err });
       const e = err as Record<string, unknown>;
       const msg = (e?.response as Record<string, unknown>)?.data ?? e?.message ?? String(err);
       msgApi.error(`Erreur lors de la sauvegarde: ${String(msg)}`);
@@ -276,8 +403,8 @@ function MatchmakingPage() {
   const handleCreateTeacher = async (values: Record<string, unknown>) => {
     try {
       const created = await createEnseignantHook.mutateAsync(values);
-      dispatch({ type: "CREATE_TEACHER", teacher: created as Enseignant });
-      msgApi.success("Enseignant créé");
+      dispatch({ type: 'CREATE_TEACHER', teacher: created as Enseignant });
+      msgApi.success('Enseignant créé');
     } catch (err: unknown) {
       const e = err as Record<string, unknown>;
       msgApi.error(`Erreur: ${(e?.response as Record<string, unknown>)?.data ?? e?.message}`);
@@ -287,8 +414,8 @@ function MatchmakingPage() {
   const handleUpdateTeacher = async (id: number | string, values: Record<string, unknown>) => {
     try {
       const updated = await updateEnseignantHook.mutateAsync({ id, data: values });
-      dispatch({ type: "UPDATE_TEACHER", teacher: updated as Enseignant });
-      msgApi.success("Enseignant mis à jour");
+      dispatch({ type: 'UPDATE_TEACHER', teacher: updated as Enseignant });
+      msgApi.success('Enseignant mis à jour');
     } catch (err: unknown) {
       const e = err as Record<string, unknown>;
       msgApi.error(`Erreur: ${(e?.response as Record<string, unknown>)?.data ?? e?.message}`);
@@ -298,18 +425,28 @@ function MatchmakingPage() {
   const handleDeactivateTeacher = async (id: number | string) => {
     try {
       await deactivateEnseignantHook.mutateAsync(id);
-      dispatch({ type: "DEACTIVATE_TEACHER", id });
-      msgApi.success("Enseignant désactivé");
+      dispatch({ type: 'DEACTIVATE_TEACHER', id });
+      msgApi.success('Enseignant désactivé');
     } catch (err: unknown) {
       const e = err as Record<string, unknown>;
       msgApi.error(`Erreur: ${(e?.response as Record<string, unknown>)?.data ?? e?.message}`);
     }
   };
 
-  const openCreateModal = () => { setEditingTeacher(null); teacherForm.resetFields(); setTeacherModalVisible(true); };
+  const openCreateModal = () => {
+    setEditingTeacher(null);
+    teacherForm.resetFields();
+    setTeacherModalVisible(true);
+  };
   const openEditModal = (teacher: Enseignant) => {
     setEditingTeacher(teacher);
-    teacherForm.setFieldsValue({ prenom: teacher.prenom, nom: teacher.nom, email: teacher.email, departement: teacher.departement, grade: teacher.grade });
+    teacherForm.setFieldsValue({
+      prenom: teacher.prenom,
+      nom: teacher.nom,
+      email: teacher.email,
+      departement: teacher.departement,
+      grade: teacher.grade,
+    });
     setTeacherModalVisible(true);
   };
   const submitTeacher = async () => {
@@ -318,10 +455,12 @@ function MatchmakingPage() {
       if (editingTeacher) await handleUpdateTeacher(editingTeacher.id, vals);
       else await handleCreateTeacher(vals);
       setTeacherModalVisible(false);
-    } catch { /* validation error */ }
+    } catch {
+      /* validation error */
+    }
   };
 
-  const activeTeachers = state.enseignants.filter((t) => t.etat !== "I");
+  const activeTeachers = state.enseignants.filter((t) => t.etat !== 'I');
 
   return (
     <Layout className="mm-layout">
@@ -331,7 +470,7 @@ function MatchmakingPage() {
           <FilterOutlined className="mm-toolbar__icon" />
           <Select
             value={state.filters.departement}
-            onChange={(v) => dispatch({ type: "SET_FILTER", filters: { departement: v ?? null } })}
+            onChange={(v) => dispatch({ type: 'SET_FILTER', filters: { departement: v ?? null } })}
             style={{ width: 170 }}
             allowClear
             placeholder="Département"
@@ -341,15 +480,25 @@ function MatchmakingPage() {
           />
           <Select
             value={state.filters.domaine}
-            onChange={(v) => { dispatch({ type: "SET_FILTER", filters: { domaine: v } }); setPage(1); }}
+            onChange={(v) => {
+              dispatch({ type: 'SET_FILTER', filters: { domaine: v } });
+              setPage(1);
+            }}
             style={{ width: 160 }}
           >
             <Option value="all">Tous domaines</Option>
-            {domaineOptions.map((d) => <Option key={d} value={d}>{d}</Option>)}
+            {domaineOptions.map((d) => (
+              <Option key={d} value={d}>
+                {d}
+              </Option>
+            ))}
           </Select>
           <Select
             value={state.filters.type}
-            onChange={(v) => { dispatch({ type: "SET_FILTER", filters: { type: v } }); setPage(1); }}
+            onChange={(v) => {
+              dispatch({ type: 'SET_FILTER', filters: { type: v } });
+              setPage(1);
+            }}
             style={{ width: 140 }}
           >
             <Option value="all">Tous types</Option>
@@ -358,7 +507,10 @@ function MatchmakingPage() {
           </Select>
           <Select
             value={state.filters.statut}
-            onChange={(v) => { dispatch({ type: "SET_FILTER", filters: { statut: v } }); setPage(1); }}
+            onChange={(v) => {
+              dispatch({ type: 'SET_FILTER', filters: { statut: v } });
+              setPage(1);
+            }}
             style={{ width: 150 }}
           >
             <Option value="all">Tous statuts</Option>
@@ -368,8 +520,13 @@ function MatchmakingPage() {
         </div>
         <Input.Search
           placeholder="Code / nom du savoir..."
-          onSearch={(q) => { dispatch({ type: "SET_FILTER", filters: { search: q } }); setPage(1); }}
-          onChange={(e) => !e.target.value && dispatch({ type: "SET_FILTER", filters: { search: "" } })}
+          onSearch={(q) => {
+            dispatch({ type: 'SET_FILTER', filters: { search: q } });
+            setPage(1);
+          }}
+          onChange={(e) =>
+            !e.target.value && dispatch({ type: 'SET_FILTER', filters: { search: '' } })
+          }
           style={{ width: 280 }}
           allowClear
         />
@@ -387,27 +544,36 @@ function MatchmakingPage() {
         </span>
         <span className="mm-stat">
           <UserOutlined className="mm-stat__icon" />
-          <strong>{activeTeachers.length}</strong> enseignant{activeTeachers.length > 1 ? "s" : ""}
+          <strong>{activeTeachers.length}</strong> enseignant{activeTeachers.length > 1 ? 's' : ''}
         </span>
-        <span className="mm-stat mm-stat--total">{total} savoir{total > 1 ? "s" : ""} affichés</span>
+        <span className="mm-stat mm-stat--total">
+          {total} savoir{total > 1 ? 's' : ''} affichés
+        </span>
       </div>
 
       {/* ── Content ── */}
       <Content className="mm-content">
-        <Row gutter={0} style={{ height: "100%" }}>
+        <Row gutter={0} style={{ height: '100%' }}>
           {/* Left — Savoirs */}
           <Col span={13} className="mm-col mm-col--savoirs">
             <div className="mm-col-head">
               <span className="mm-col-head__title">Savoirs</span>
-              <Badge count={total} style={{ background: "#4f46e5" }} />
+              <Badge count={total} style={{ background: '#4f46e5' }} />
             </div>
 
             {state.loading.savoirs ? (
-              <div className="mm-loading"><Spin tip="Chargement…" /></div>
+              <div className="mm-loading">
+                <Spin tip="Chargement…" />
+              </div>
             ) : (
               <div className="mm-savoir-list">
                 {pageItems.map((s) => (
-                  <div key={s.id} ref={(el) => { savoirRefs.current[String(s.id)] = el; }}>
+                  <div
+                    key={s.id}
+                    ref={(el) => {
+                      savoirRefs.current[String(s.id)] = el;
+                    }}
+                  >
                     <SavoirMatchCard
                       savoir={s}
                       assignedTeacherIds={[...(state.assignments.get(s.id) || new Set())]}
@@ -424,7 +590,9 @@ function MatchmakingPage() {
                       current={page}
                       pageSize={pageSize}
                       total={total}
-                      onChange={(p) => { setPage(p); }}
+                      onChange={(p) => {
+                        setPage(p);
+                      }}
                       showTotal={(n, r) => `${r[0]}-${r[1]} sur ${n}`}
                       size="small"
                     />
@@ -438,14 +606,22 @@ function MatchmakingPage() {
           <Col span={11} className="mm-col mm-col--teachers">
             <div className="mm-col-head">
               <span className="mm-col-head__title">Enseignants</span>
-              <Badge count={activeTeachers.length} style={{ background: "#059669" }} />
-              <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreateModal} className="mm-add-btn">
+              <Badge count={activeTeachers.length} style={{ background: '#059669' }} />
+              <Button
+                type="primary"
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={openCreateModal}
+                className="mm-add-btn"
+              >
                 Créer
               </Button>
             </div>
 
             {state.loading.enseignants ? (
-              <div className="mm-loading"><Spin tip="Chargement…" /></div>
+              <div className="mm-loading">
+                <Spin tip="Chargement…" />
+              </div>
             ) : (
               <div className="mm-teacher-list">
                 {activeTeachers.length === 0 && (
@@ -485,7 +661,7 @@ function MatchmakingPage() {
           {pendingCount > 0 ? (
             <span className="mm-savebar__pending">
               <span className="mm-savebar__dot" />
-              {pendingCount} modification{pendingCount > 1 ? "s" : ""} en attente
+              {pendingCount} modification{pendingCount > 1 ? 's' : ''} en attente
             </span>
           ) : (
             <span className="mm-savebar__clean">Aucune modification non sauvegardée</span>
@@ -493,7 +669,7 @@ function MatchmakingPage() {
         </div>
         <Space>
           {pendingCount > 0 && (
-            <Button size="small" onClick={() => dispatch({ type: "CLEAR_PENDING" })}>
+            <Button size="small" onClick={() => dispatch({ type: 'CLEAR_PENDING' })}>
               Annuler les changements
             </Button>
           )}
@@ -516,38 +692,61 @@ function MatchmakingPage() {
       <Modal
         title={
           <Space>
-            <Avatar size={28} style={{ background: editingTeacher ? avatarColor(editingTeacher.id) : "#4f46e5" }}>
-              {editingTeacher ? getInitials(editingTeacher.nom ?? "", editingTeacher.prenom ?? "") : <PlusOutlined />}
+            <Avatar
+              size={28}
+              style={{ background: editingTeacher ? avatarColor(editingTeacher.id) : '#4f46e5' }}
+            >
+              {editingTeacher ? (
+                getInitials(editingTeacher.nom ?? '', editingTeacher.prenom ?? '')
+              ) : (
+                <PlusOutlined />
+              )}
             </Avatar>
-            {editingTeacher ? `Modifier — ${editingTeacher.prenom} ${editingTeacher.nom}` : "Créer un enseignant"}
+            {editingTeacher
+              ? `Modifier — ${editingTeacher.prenom} ${editingTeacher.nom}`
+              : 'Créer un enseignant'}
           </Space>
         }
         open={teacherModalVisible}
         onOk={submitTeacher}
         onCancel={() => setTeacherModalVisible(false)}
-        okText={editingTeacher ? "Enregistrer" : "Créer"}
+        okText={editingTeacher ? 'Enregistrer' : 'Créer'}
         width={480}
       >
         <Form form={teacherForm} layout="vertical" style={{ marginTop: 16 }}>
           <Row gutter={12}>
             <Col span={12}>
-              <Form.Item name="prenom" label="Prénom" rules={[{ required: true, message: "Requis" }]}>
+              <Form.Item
+                name="prenom"
+                label="Prénom"
+                rules={[{ required: true, message: 'Requis' }]}
+              >
                 <Input placeholder="Prénom" />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="nom" label="Nom" rules={[{ required: true, message: "Requis" }]}>
+              <Form.Item name="nom" label="Nom" rules={[{ required: true, message: 'Requis' }]}>
                 <Input placeholder="Nom" />
               </Form.Item>
             </Col>
           </Row>
-          <Form.Item name="email" label="Email" rules={[{ type: "email", message: "Email invalide" }]}>
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[{ type: 'email', message: 'Email invalide' }]}
+          >
             <Input placeholder="prenom.nom@esprit.tn" />
           </Form.Item>
           <Row gutter={12}>
             <Col span={12}>
               <Form.Item name="departement" label="Département">
-                <Select options={DEPARTMENT_OPTIONS} optionFilterProp="labelText" showSearch allowClear placeholder="Département" />
+                <Select
+                  options={DEPARTMENT_OPTIONS}
+                  optionFilterProp="labelText"
+                  showSearch
+                  allowClear
+                  placeholder="Département"
+                />
               </Form.Item>
             </Col>
             <Col span={12}>

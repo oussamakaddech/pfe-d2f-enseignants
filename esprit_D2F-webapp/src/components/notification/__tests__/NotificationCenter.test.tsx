@@ -18,8 +18,13 @@ vi.mock('../NotificationItem', () => ({
 import { useNotifications } from '@/hooks/notification';
 
 const notif: AppNotification = {
-  id: 'N1', type: 'FORMATION', severity: 'info', title: 'Nouvelle formation',
-  message: 'msg', read: false, createdAt: new Date().toISOString(),
+  id: 'N1',
+  type: 'FORMATION',
+  severity: 'info',
+  title: 'Nouvelle formation',
+  message: 'msg',
+  read: false,
+  createdAt: new Date().toISOString(),
 };
 
 const base: NotificationContextValue = {
@@ -34,11 +39,14 @@ const base: NotificationContextValue = {
 };
 
 function setup(overrides: Partial<NotificationContextValue> = {}) {
-  vi.mocked(useNotifications).mockReturnValue({ ...base, ...overrides } as NotificationContextValue);
+  vi.mocked(useNotifications).mockReturnValue({
+    ...base,
+    ...overrides,
+  } as NotificationContextValue);
   return render(
     <BrowserRouter>
       <NotificationCenter />
-    </BrowserRouter>
+    </BrowserRouter>,
   );
 }
 
@@ -60,7 +68,9 @@ describe('NotificationCenter', () => {
     setup({ markAllAsRead });
     fireEvent.click(screen.getByRole('button', { name: /Notifications/i }));
     const header = await screen.findByText('Notifications');
-    const btn = header.closest('.notif-panel__header')!.querySelector('button:not(.ant-btn-dangerous)')!;
+    const btn = header
+      .closest('.notif-panel__header')!
+      .querySelector('button:not(.ant-btn-dangerous)')!;
     fireEvent.click(btn);
     expect(markAllAsRead).toHaveBeenCalled();
   });

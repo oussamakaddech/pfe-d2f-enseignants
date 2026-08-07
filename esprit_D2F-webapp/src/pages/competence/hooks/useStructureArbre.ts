@@ -1,9 +1,13 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { Form } from "antd";
-import { useStructureApi, useNiveauDefinitionApi, useSavoirApi } from "@/hooks/competence/useCompetenceService";
-import useAppNotification from "@/hooks/ui/useAppNotification";
-import type { TreeNode, NiveauDefinition } from "@/models/competence";
-import type { SearchResults } from "../components/StructureSearchResultsView";
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { Form } from 'antd';
+import {
+  useStructureApi,
+  useNiveauDefinitionApi,
+  useSavoirApi,
+} from '@/hooks/competence/useCompetenceService';
+import useAppNotification from '@/hooks/ui/useAppNotification';
+import type { TreeNode, NiveauDefinition } from '@/models/competence';
+import type { SearchResults } from '../components/StructureSearchResultsView';
 
 export function useStructureArbre() {
   const { message } = useAppNotification();
@@ -14,17 +18,21 @@ export function useStructureArbre() {
   const [loading, setLoading] = useState(true);
   const [structure, setStructure] = useState<TreeNode[] | null>(null);
   const [searchResults, setSearchResults] = useState<SearchResults | null>(null);
-  const [searchKeyword, setSearchKeyword] = useState("");
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedDomaine, setSelectedDomaine] = useState<number | string | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("tree");
+  const [activeTab, setActiveTab] = useState('tree');
 
   const [filterUpId, setFilterUpId] = useState<string | null>(null);
   const [filterDeptId, setFilterDeptId] = useState<string | null>(null);
 
   // Niveau definitions modal
   const [niveauModalVisible, setNiveauModalVisible] = useState(false);
-  const [niveauTarget, setNiveauTarget] = useState<{ type: string; id: number; nom: string } | null>(null);
+  const [niveauTarget, setNiveauTarget] = useState<{
+    type: string;
+    id: number;
+    nom: string;
+  } | null>(null);
   const [niveauData, setNiveauData] = useState<NiveauDefinition[]>([]);
   const [niveauLoading, setNiveauLoading] = useState(false);
   const [addNiveauForm] = Form.useForm();
@@ -36,7 +44,7 @@ export function useStructureArbre() {
       const data = await structureApi.getArbreComplet(filterUpId, filterDeptId);
       setStructure(data);
     } catch {
-      message.error("Erreur lors du chargement de la structure");
+      message.error('Erreur lors du chargement de la structure');
     } finally {
       setLoading(false);
     }
@@ -72,14 +80,14 @@ export function useStructureArbre() {
           data = await structureApi.rechercheGlobale(keyword.trim());
         }
         setSearchResults(data);
-        setActiveTab("search");
+        setActiveTab('search');
       } catch {
-        message.error("Erreur de recherche");
+        message.error('Erreur de recherche');
       } finally {
         setSearchLoading(false);
       }
     },
-    [structureApi, message]
+    [structureApi, message],
   );
 
   useEffect(() => {
@@ -112,11 +120,11 @@ export function useStructureArbre() {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       doSearch(value, selectedDomaine);
     },
-    [selectedDomaine, doSearch]
+    [selectedDomaine, doSearch],
   );
 
   const handleClearSearch = useCallback(() => {
-    setSearchKeyword("");
+    setSearchKeyword('');
     setSearchResults(null);
   }, []);
 
@@ -129,19 +137,19 @@ export function useStructureArbre() {
       setNiveauLoading(true);
       try {
         let data;
-        if (type === "competence") {
+        if (type === 'competence') {
           data = await niveauDefApi.getByCompetence(id);
         } else {
           data = await niveauDefApi.getBySousCompetence(id);
         }
         setNiveauData(data);
       } catch {
-        message.error("Erreur lors du chargement des niveaux");
+        message.error('Erreur lors du chargement des niveaux');
       } finally {
         setNiveauLoading(false);
       }
     },
-    [niveauDefApi, message]
+    [niveauDefApi, message],
   );
 
   const handleAddNiveauSavoir = useCallback(
@@ -152,13 +160,13 @@ export function useStructureArbre() {
           savoirId: values.savoirId,
           description: values.description,
         };
-        if (niveauTarget?.type === "competence") {
+        if (niveauTarget?.type === 'competence') {
           request.competenceId = niveauTarget.id;
         } else {
           request.sousCompetenceId = niveauTarget?.id;
         }
         await niveauDefApi.add(request);
-        message.success("Savoir requis ajouté au niveau");
+        message.success('Savoir requis ajouté au niveau');
         addNiveauForm.resetFields();
         if (niveauTarget) {
           openNiveauModal(niveauTarget.type, niveauTarget.id, niveauTarget.nom);
@@ -168,22 +176,22 @@ export function useStructureArbre() {
         message.error(axiosErr.response?.data?.message || "Erreur lors de l'ajout");
       }
     },
-    [niveauTarget, addNiveauForm, openNiveauModal, niveauDefApi, message]
+    [niveauTarget, addNiveauForm, openNiveauModal, niveauDefApi, message],
   );
 
   const handleRemoveNiveauSavoir = useCallback(
     async (id: number) => {
       try {
         await niveauDefApi.remove(id);
-        message.success("Savoir requis supprimé du niveau");
+        message.success('Savoir requis supprimé du niveau');
         if (niveauTarget) {
           openNiveauModal(niveauTarget.type, niveauTarget.id, niveauTarget.nom);
         }
       } catch {
-        message.error("Erreur lors de la suppression");
+        message.error('Erreur lors de la suppression');
       }
     },
-    [niveauTarget, openNiveauModal, niveauDefApi, message]
+    [niveauTarget, openNiveauModal, niveauDefApi, message],
   );
 
   // ── Tree node builders ────────────────────────────────────────────────────

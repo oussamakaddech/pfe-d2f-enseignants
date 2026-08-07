@@ -1,4 +1,10 @@
-export default function HealthGauge({ score, color = "#10b981" }: { readonly score: number; readonly color?: string }) {
+export default function HealthGauge({
+  score,
+  color = '#10b981',
+}: {
+  readonly score: number;
+  readonly color?: string;
+}) {
   const size = 132;
   const stroke = 12;
   const r = (size - stroke) / 2;
@@ -23,12 +29,27 @@ export default function HealthGauge({ score, color = "#10b981" }: { readonly sco
         strokeLinecap="round"
         strokeDasharray={`${dash} ${circumference - dash}`}
         transform={`rotate(${rotate} ${cx} ${cy})`}
-        style={{ transition: "stroke-dasharray 0.8s cubic-bezier(0.22,1,0.36,1)" }}
+        style={{ transition: 'stroke-dasharray 0.8s cubic-bezier(0.22,1,0.36,1)' }}
       />
-      <text x={cx} y={cy - 2} textAnchor="middle" fontSize="30" fontWeight="800" fill="var(--rd-text)" style={{ fontFamily: "Inter, sans-serif" }}>
+      <text
+        x={cx}
+        y={cy - 2}
+        textAnchor="middle"
+        fontSize="30"
+        fontWeight="800"
+        fill="var(--rd-text)"
+        style={{ fontFamily: 'Inter, sans-serif' }}
+      >
         {score}
       </text>
-      <text x={cx} y={cy + 20} textAnchor="middle" fontSize="12" fill="var(--rd-text-3)" style={{ fontFamily: "Inter, sans-serif" }}>
+      <text
+        x={cx}
+        y={cy + 20}
+        textAnchor="middle"
+        fontSize="12"
+        fill="var(--rd-text-3)"
+        style={{ fontFamily: 'Inter, sans-serif' }}
+      >
         / 100
       </text>
     </svg>

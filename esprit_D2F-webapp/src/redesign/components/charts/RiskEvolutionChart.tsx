@@ -1,9 +1,13 @@
-import { useRef, useState, type MouseEvent } from "react";
-import type { RiskEvolutionPoint } from "@/models/analyse";
-import { ChartSkeleton } from "../States";
+import { useRef, useState, type MouseEvent } from 'react';
+import type { RiskEvolutionPoint } from '@/models/analyse';
+import { ChartSkeleton } from '../States';
 
-const W = 600, H = 230, padX = 40, padY = 22;
-const innerW = W - padX * 2, innerH = H - padY * 2;
+const W = 600,
+  H = 230,
+  padX = 40,
+  padY = 22;
+const innerW = W - padX * 2,
+  innerH = H - padY * 2;
 
 export default function RiskEvolutionChart({
   points,
@@ -23,9 +27,9 @@ export default function RiskEvolutionChart({
   const xOf = (i: number) => padX + i * stepX;
   const yOf = (v: number) => padY + innerH - (v / max) * innerH;
 
-  const seriesPath = (key: "critical" | "high") =>
-    points.map((p, i) => `${i === 0 ? "M" : "L"} ${xOf(i)} ${yOf(p[key]).toFixed(1)}`).join(" ");
-  const areaPath = (key: "critical" | "high") =>
+  const seriesPath = (key: 'critical' | 'high') =>
+    points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xOf(i)} ${yOf(p[key]).toFixed(1)}`).join(' ');
+  const areaPath = (key: 'critical' | 'high') =>
     `${seriesPath(key)} L ${xOf(points.length - 1)} ${H - padY} L ${xOf(0)} ${H - padY} Z`;
 
   const ticks = [0, max / 2, max];
@@ -66,15 +70,36 @@ export default function RiskEvolutionChart({
           const y = yOf(t);
           return (
             <g key={t}>
-              <line x1={padX} y1={y} x2={W - padX} y2={y} stroke="var(--rd-border)" strokeWidth={1} />
-              <text x={padX - 7} y={y + 3} textAnchor="end" className="rd-axis-label">{Math.round(t)}</text>
+              <line
+                x1={padX}
+                y1={y}
+                x2={W - padX}
+                y2={y}
+                stroke="var(--rd-border)"
+                strokeWidth={1}
+              />
+              <text x={padX - 7} y={y + 3} textAnchor="end" className="rd-axis-label">
+                {Math.round(t)}
+              </text>
             </g>
           );
         })}
-        <path d={areaPath("critical")} fill="url(#rd-evo-crit)" />
-        <path d={areaPath("high")} fill="url(#rd-evo-high)" />
-        <path d={seriesPath("critical")} fill="none" stroke="#ef4444" strokeWidth={2.5} strokeLinejoin="round" />
-        <path d={seriesPath("high")} fill="none" stroke="#f97316" strokeWidth={2.5} strokeLinejoin="round" />
+        <path d={areaPath('critical')} fill="url(#rd-evo-crit)" />
+        <path d={areaPath('high')} fill="url(#rd-evo-high)" />
+        <path
+          d={seriesPath('critical')}
+          fill="none"
+          stroke="#ef4444"
+          strokeWidth={2.5}
+          strokeLinejoin="round"
+        />
+        <path
+          d={seriesPath('high')}
+          fill="none"
+          stroke="#f97316"
+          strokeWidth={2.5}
+          strokeLinejoin="round"
+        />
         {points.map((p, i) => (
           <g key={p.month}>
             <circle cx={xOf(i)} cy={yOf(p.critical)} r={3} fill="#ef4444" />
@@ -83,14 +108,43 @@ export default function RiskEvolutionChart({
         ))}
         {hover != null && (
           <>
-            <line className="rd-chart-hoverline" x1={xOf(hover)} y1={padY} x2={xOf(hover)} y2={H - padY} />
-            <circle cx={xOf(hover)} cy={yOf(points[hover].critical)} r={5} fill="#ef4444" stroke="#fff" strokeWidth={2} />
-            <circle cx={xOf(hover)} cy={yOf(points[hover].high)} r={5} fill="#f97316" stroke="#fff" strokeWidth={2} />
+            <line
+              className="rd-chart-hoverline"
+              x1={xOf(hover)}
+              y1={padY}
+              x2={xOf(hover)}
+              y2={H - padY}
+            />
+            <circle
+              cx={xOf(hover)}
+              cy={yOf(points[hover].critical)}
+              r={5}
+              fill="#ef4444"
+              stroke="#fff"
+              strokeWidth={2}
+            />
+            <circle
+              cx={xOf(hover)}
+              cy={yOf(points[hover].high)}
+              r={5}
+              fill="#f97316"
+              stroke="#fff"
+              strokeWidth={2}
+            />
           </>
         )}
         {points.map((p, i) => (
-          <text key={`t${p.month}`} x={xOf(i)} y={H - 4} textAnchor="middle" fontSize="9" fill="var(--rd-text-3)"
-            style={{ display: i % labelEvery === 0 || i === points.length - 1 ? undefined : "none" }}>
+          <text
+            key={`t${p.month}`}
+            x={xOf(i)}
+            y={H - 4}
+            textAnchor="middle"
+            fontSize="9"
+            fill="var(--rd-text-3)"
+            style={{
+              display: i % labelEvery === 0 || i === points.length - 1 ? undefined : 'none',
+            }}
+          >
             {p.month}
           </text>
         ))}
@@ -99,14 +153,46 @@ export default function RiskEvolutionChart({
       {hover != null && (
         <div className="rd-chart-tip" style={{ left: `${(xOf(hover) / W) * 100}%`, top: 4 }}>
           <div className="t-date">{points[hover].month}</div>
-          <div className="t-row"><span className="t-k"><span style={{ width: 8, height: 8, borderRadius: 2, background: "#ef4444", display: "inline-block" }} /> Critiques</span><span className="t-v">{points[hover].critical}</span></div>
-          <div className="t-row"><span className="t-k"><span style={{ width: 8, height: 8, borderRadius: 2, background: "#f97316", display: "inline-block" }} /> Élevés</span><span className="t-v">{points[hover].high}</span></div>
+          <div className="t-row">
+            <span className="t-k">
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 2,
+                  background: '#ef4444',
+                  display: 'inline-block',
+                }}
+              />{' '}
+              Critiques
+            </span>
+            <span className="t-v">{points[hover].critical}</span>
+          </div>
+          <div className="t-row">
+            <span className="t-k">
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 2,
+                  background: '#f97316',
+                  display: 'inline-block',
+                }}
+              />{' '}
+              Élevés
+            </span>
+            <span className="t-v">{points[hover].high}</span>
+          </div>
         </div>
       )}
 
       <div className="rd-chart-legend">
-        <span className="rd-legend-item"><span className="rd-legend-swatch" style={{ background: "#ef4444" }} /> Risque critique</span>
-        <span className="rd-legend-item"><span className="rd-legend-swatch" style={{ background: "#f97316" }} /> Risque élevé</span>
+        <span className="rd-legend-item">
+          <span className="rd-legend-swatch" style={{ background: '#ef4444' }} /> Risque critique
+        </span>
+        <span className="rd-legend-item">
+          <span className="rd-legend-swatch" style={{ background: '#f97316' }} /> Risque élevé
+        </span>
       </div>
     </div>
   );

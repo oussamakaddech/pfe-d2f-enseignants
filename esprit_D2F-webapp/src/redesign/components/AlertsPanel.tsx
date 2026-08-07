@@ -1,23 +1,23 @@
-import type { AlertSummary } from "@/models/analyse";
-import { ListSkeleton, EmptyState } from "./States";
-import dayjs from "dayjs";
-import "dayjs/locale/fr";
+import type { AlertSummary } from '@/models/analyse';
+import { ListSkeleton, EmptyState } from './States';
+import dayjs from 'dayjs';
+import 'dayjs/locale/fr';
 
-dayjs.locale("fr");
+dayjs.locale('fr');
 
 const SEV_CONFIG: Record<string, { color: string; bg: string; icon: string; label: string }> = {
-  CRITICAL: { color: "#ef4444", bg: "rgba(239,68,68,0.10)", icon: "🔴", label: "Critique" },
-  WARNING: { color: "#f59e0b", bg: "rgba(245,158,11,0.10)", icon: "🟠", label: "Avertissement" },
-  INFO: { color: "#3b82f6", bg: "rgba(59,130,246,0.10)", icon: "🔵", label: "Information" },
+  CRITICAL: { color: '#ef4444', bg: 'rgba(239,68,68,0.10)', icon: '🔴', label: 'Critique' },
+  WARNING: { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', icon: '🟠', label: 'Avertissement' },
+  INFO: { color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', icon: '🔵', label: 'Information' },
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  GAP_CRITIQUE: "Écart critique",
-  STAGNATION: "Stagnation",
-  REGRESSION: "Régression",
-  TENDANCE_DEPARTEMENT: "Tendance département",
-  COMPLETION_FAIBLE: "Complétion faible",
-  BESOIN_NON_COUVERT: "Besoin non couvert",
+  GAP_CRITIQUE: 'Écart critique',
+  STAGNATION: 'Stagnation',
+  REGRESSION: 'Régression',
+  TENDANCE_DEPARTEMENT: 'Tendance département',
+  COMPLETION_FAIBLE: 'Complétion faible',
+  BESOIN_NON_COUVERT: 'Besoin non couvert',
 };
 
 export default function AlertsPanel({
@@ -31,13 +31,16 @@ export default function AlertsPanel({
   if (!alerts) return <EmptyState description="Aucune donnée d'alertes" />;
 
   const items = [
-    ...((alerts.by_severite ?? []).map((s) => ({
+    ...(alerts.by_severite ?? []).map((s) => ({
       severity: s.key,
       count: s.count,
-    }))),
+    })),
   ].sort((a, b) => {
     const order = { CRITICAL: 0, WARNING: 1, INFO: 2 };
-    return (order[a.severity as keyof typeof order] ?? 3) - (order[b.severity as keyof typeof order] ?? 3);
+    return (
+      (order[a.severity as keyof typeof order] ?? 3) -
+      (order[b.severity as keyof typeof order] ?? 3)
+    );
   });
 
   const maxCount = Math.max(1, ...items.map((i) => i.count));
@@ -46,15 +49,21 @@ export default function AlertsPanel({
     <div className="rd-alerts">
       <div className="rd-alerts-summary-row">
         <div className="rd-alerts-stat">
-          <div className="rd-alerts-stat-val" style={{ color: "var(--rd-text)" }}>{alerts.total}</div>
+          <div className="rd-alerts-stat-val" style={{ color: 'var(--rd-text)' }}>
+            {alerts.total}
+          </div>
           <div className="rd-alerts-stat-lbl">Total</div>
         </div>
         <div className="rd-alerts-stat">
-          <div className="rd-alerts-stat-val" style={{ color: "#f59e0b" }}>{alerts.nouvelles}</div>
+          <div className="rd-alerts-stat-val" style={{ color: '#f59e0b' }}>
+            {alerts.nouvelles}
+          </div>
           <div className="rd-alerts-stat-lbl">Nouvelles</div>
         </div>
         <div className="rd-alerts-stat">
-          <div className="rd-alerts-stat-val" style={{ color: "#ef4444" }}>{alerts.critiques_ouvertes}</div>
+          <div className="rd-alerts-stat-val" style={{ color: '#ef4444' }}>
+            {alerts.critiques_ouvertes}
+          </div>
           <div className="rd-alerts-stat-lbl">Critiques ouvertes</div>
         </div>
       </div>
@@ -86,7 +95,9 @@ export default function AlertsPanel({
           {alerts.top_competences.slice(0, 5).map((c, i) => (
             <div key={c.competence_id} className="rd-alerts-top-item">
               <span className="rd-rank">{i + 1}</span>
-              <span className="rd-alerts-top-label">{c.competence_nom ?? `Compétence #${c.competence_id}`}</span>
+              <span className="rd-alerts-top-label">
+                {c.competence_nom ?? `Compétence #${c.competence_id}`}
+              </span>
               <span className="rd-alerts-top-count">{c.count} alertes</span>
             </div>
           ))}
@@ -114,16 +125,27 @@ export default function AlertsPanel({
               const maxTrend = Math.max(1, ...alerts.trend_30j.map((t) => t.total));
               const h = (p.total / maxTrend) * 48;
               return (
-                <div key={p.date} className="rd-alerts-trend-bar" title={`${dayjs(p.date).format("DD MMM")} : ${p.total} total, ${p.critiques} critiques`}>
-                  <div className="rd-alerts-trend-crit" style={{ height: `${(p.critiques / maxTrend) * 48}px` }} />
+                <div
+                  key={p.date}
+                  className="rd-alerts-trend-bar"
+                  title={`${dayjs(p.date).format('DD MMM')} : ${p.total} total, ${p.critiques} critiques`}
+                >
+                  <div
+                    className="rd-alerts-trend-crit"
+                    style={{ height: `${(p.critiques / maxTrend) * 48}px` }}
+                  />
                   <div className="rd-alerts-trend-total" style={{ height: `${h}px` }} />
                 </div>
               );
             })}
           </div>
           <div className="rd-chart-legend" style={{ marginTop: 8 }}>
-            <span className="rd-legend-item"><span className="rd-legend-swatch" style={{ background: "#ef4444" }} /> Critiques</span>
-            <span className="rd-legend-item"><span className="rd-legend-swatch" style={{ background: "#94a3b8" }} /> Total</span>
+            <span className="rd-legend-item">
+              <span className="rd-legend-swatch" style={{ background: '#ef4444' }} /> Critiques
+            </span>
+            <span className="rd-legend-item">
+              <span className="rd-legend-swatch" style={{ background: '#94a3b8' }} /> Total
+            </span>
           </div>
         </div>
       )}

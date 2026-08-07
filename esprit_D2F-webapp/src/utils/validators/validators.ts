@@ -30,15 +30,10 @@ export const isRequired = (value: unknown): boolean => {
 /**
  * Vérifie le format d'une adresse email.
  */
-export const isValidEmail = (email = ""): boolean => {
-  const atIndex = email.indexOf("@");
-  const dotIndex = email.lastIndexOf(".");
-  return (
-    atIndex > 0 &&
-    dotIndex > atIndex + 1 &&
-    dotIndex < email.length - 1 &&
-    !/\s/.test(email)
-  );
+export const isValidEmail = (email = ''): boolean => {
+  const atIndex = email.indexOf('@');
+  const dotIndex = email.lastIndexOf('.');
+  return atIndex > 0 && dotIndex > atIndex + 1 && dotIndex < email.length - 1 && !/\s/.test(email);
 };
 
 /**
@@ -65,13 +60,13 @@ export const isValidPhone = (phone: string): boolean => {
  * Vérifie la longueur minimale d'une chaîne.
  */
 export const minLength = (value: unknown, min: number): boolean =>
-  String(value ?? "").trim().length >= min;
+  String(value ?? '').trim().length >= min;
 
 /**
  * Vérifie la longueur maximale d'une chaîne.
  */
 export const maxLength = (value: unknown, max: number): boolean =>
-  String(value ?? "").trim().length <= max;
+  String(value ?? '').trim().length <= max;
 
 /**
  * Vérifie qu'une valeur est un nombre positif.
@@ -104,7 +99,7 @@ export const isValidUrl = (url: string): boolean => {
   if (!url) return false;
   try {
     const parsed = new URL(url);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
   } catch {
     return false;
   }
@@ -114,8 +109,7 @@ export const isValidUrl = (url: string): boolean => {
  * Vérifie qu'un code respecte le format attendu (lettres, chiffres, tirets).
  * Ex : "INF-01", "GC-SC-02"
  */
-export const isValidCode = (code: string): boolean =>
-  /^[A-Za-z0-9_-]{1,50}$/.test(code ?? "");
+export const isValidCode = (code: string): boolean => /^[A-Za-z0-9_-]{1,50}$/.test(code ?? '');
 
 // =============================================================================
 // RÈGLES ANT DESIGN — utilisables directement dans Form.Item rules={[...]}
@@ -124,7 +118,7 @@ export const isValidCode = (code: string): boolean =>
 /**
  * Règle : champ obligatoire.
  */
-export const requiredRule = (message = "Ce champ est obligatoire"): Rule => ({
+export const requiredRule = (message = 'Ce champ est obligatoire'): Rule => ({
   required: true,
   message,
 });
@@ -132,8 +126,8 @@ export const requiredRule = (message = "Ce champ est obligatoire"): Rule => ({
 /**
  * Règle : email valide.
  */
-export const emailRule = (message = "Adresse email invalide"): Rule => ({
-  type: "email",
+export const emailRule = (message = 'Adresse email invalide'): Rule => ({
+  type: 'email',
   message,
 });
 
@@ -156,7 +150,7 @@ export const maxLengthRule = (max: number, message?: string): Rule => ({
 /**
  * Règle : nombre positif.
  */
-export const positiveNumberRule = (message = "La valeur doit être un nombre positif"): Rule => ({
+export const positiveNumberRule = (message = 'La valeur doit être un nombre positif'): Rule => ({
   validator(_, value) {
     if (!value || isPositiveNumber(value)) return Promise.resolve();
     return Promise.reject(new Error(message));
@@ -166,7 +160,9 @@ export const positiveNumberRule = (message = "La valeur doit être un nombre pos
 /**
  * Règle : format de code valide (lettres, chiffres, tirets, underscores).
  */
-export const codeFormatRule = (message = "Format invalide (lettres, chiffres, tirets uniquement)"): Rule => ({
+export const codeFormatRule = (
+  message = 'Format invalide (lettres, chiffres, tirets uniquement)',
+): Rule => ({
   validator(_, value) {
     if (!value || isValidCode(value)) return Promise.resolve();
     return Promise.reject(new Error(message));
@@ -181,7 +177,7 @@ export const rangeRule = (min: number, max: number, message?: string): Rule => (
     const num = Number(value);
     if (!value || (num >= min && num <= max)) return Promise.resolve();
     return Promise.reject(
-      new Error(message ?? `La valeur doit être comprise entre ${min} et ${max}`)
+      new Error(message ?? `La valeur doit être comprise entre ${min} et ${max}`),
     );
   },
 });
@@ -190,7 +186,7 @@ export const rangeRule = (min: number, max: number, message?: string): Rule => (
  * Règle : pas d'espaces en début/fin.
  */
 export const noLeadingTrailingSpacesRule = (
-  message = "Pas d'espaces en début ou en fin de chaîne"
+  message = "Pas d'espaces en début ou en fin de chaîne",
 ): Rule => ({
   validator(_, value) {
     if (!value || String(value) === String(value).trim()) return Promise.resolve();
@@ -203,8 +199,8 @@ export const noLeadingTrailingSpacesRule = (
  */
 export const confirmPasswordRule = (
   getFieldValue: (fieldName: string) => unknown,
-  fieldName = "password",
-  message = "Les mots de passe ne correspondent pas"
+  fieldName = 'password',
+  message = 'Les mots de passe ne correspondent pas',
 ): Rule => ({
   validator(_, value) {
     if (!value || getFieldValue(fieldName) === value) return Promise.resolve();
@@ -219,7 +215,7 @@ export const confirmPasswordRule = (
 /**
  * Règles standard pour un champ "nom" (obligatoire, 2–100 chars, pas d'espaces parasites).
  */
-export const nomRules = (label = "Ce champ"): Rule[] => [
+export const nomRules = (label = 'Ce champ'): Rule[] => [
   requiredRule(`${label} est obligatoire`),
   minLengthRule(2, `${label} doit contenir au moins 2 caractères`),
   maxLengthRule(100, `${label} ne peut pas dépasser 100 caractères`),
@@ -230,8 +226,8 @@ export const nomRules = (label = "Ce champ"): Rule[] => [
  * Règles standard pour un champ "code" (obligatoire + format alphanumérique).
  */
 export const codeRules = (): Rule[] => [
-  requiredRule("Le code est obligatoire"),
-  maxLengthRule(50, "Le code ne peut pas dépasser 50 caractères"),
+  requiredRule('Le code est obligatoire'),
+  maxLengthRule(50, 'Le code ne peut pas dépasser 50 caractères'),
   codeFormatRule(),
 ];
 
@@ -239,7 +235,7 @@ export const codeRules = (): Rule[] => [
  * Règles standard pour un champ "description" (optionnel, max 500 chars).
  */
 export const descriptionRules = (): Rule[] => [
-  maxLengthRule(500, "La description ne peut pas dépasser 500 caractères"),
+  maxLengthRule(500, 'La description ne peut pas dépasser 500 caractères'),
 ];
 
 /**

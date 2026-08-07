@@ -3,7 +3,9 @@
   margin-bottom: 24px;
   padding: 26px 30px;
   border-radius: 20px;
-  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 4px 24px rgba(15, 23, 42, 0.04),
+    0 1px 3px rgba(0, 0, 0, 0.04);
   overflow: hidden;
 }
 
@@ -15,7 +17,7 @@
 
 .glowA,
 .glowB {
-  content: "";
+  content: '';
   position: absolute;
   border-radius: 50%;
   pointer-events: none;

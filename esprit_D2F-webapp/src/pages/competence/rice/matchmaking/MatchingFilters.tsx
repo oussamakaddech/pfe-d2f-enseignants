@@ -1,25 +1,30 @@
-import { Select, Input } from "antd";
-import { FilterOutlined } from "@ant-design/icons";
-import { DEPARTMENT_OPTIONS } from "../constants";
-import type { MatchState, MatchAction } from "../../hooks/useMatchmaking";
+import { Select, Input } from 'antd';
+import { FilterOutlined } from '@ant-design/icons';
+import { DEPARTMENT_OPTIONS } from '../constants';
+import type { MatchState, MatchAction } from '../../hooks/useMatchmaking';
 
 const { Option } = Select;
 
 interface MatchingFiltersProps {
-  filters: MatchState["filters"];
+  filters: MatchState['filters'];
   domaineOptions: string[];
   dispatch: React.Dispatch<MatchAction>;
   onPageReset: () => void;
 }
 
-export function MatchingFilters({ filters, domaineOptions, dispatch, onPageReset }: Readonly<MatchingFiltersProps>) {
+export function MatchingFilters({
+  filters,
+  domaineOptions,
+  dispatch,
+  onPageReset,
+}: Readonly<MatchingFiltersProps>) {
   return (
     <>
       <div className="mm-toolbar__left">
         <FilterOutlined className="mm-toolbar__icon" />
         <Select
           value={filters.departement}
-          onChange={(v) => dispatch({ type: "SET_FILTER", filters: { departement: v ?? null } })}
+          onChange={(v) => dispatch({ type: 'SET_FILTER', filters: { departement: v ?? null } })}
           style={{ width: 170 }}
           allowClear
           placeholder="Département"
@@ -29,15 +34,25 @@ export function MatchingFilters({ filters, domaineOptions, dispatch, onPageReset
         />
         <Select
           value={filters.domaine}
-          onChange={(v) => { dispatch({ type: "SET_FILTER", filters: { domaine: v } }); onPageReset(); }}
+          onChange={(v) => {
+            dispatch({ type: 'SET_FILTER', filters: { domaine: v } });
+            onPageReset();
+          }}
           style={{ width: 160 }}
         >
           <Option value="all">Tous domaines</Option>
-          {domaineOptions.map((d) => <Option key={d} value={d}>{d}</Option>)}
+          {domaineOptions.map((d) => (
+            <Option key={d} value={d}>
+              {d}
+            </Option>
+          ))}
         </Select>
         <Select
           value={filters.type}
-          onChange={(v) => { dispatch({ type: "SET_FILTER", filters: { type: v } }); onPageReset(); }}
+          onChange={(v) => {
+            dispatch({ type: 'SET_FILTER', filters: { type: v } });
+            onPageReset();
+          }}
           style={{ width: 140 }}
         >
           <Option value="all">Tous types</Option>
@@ -46,7 +61,10 @@ export function MatchingFilters({ filters, domaineOptions, dispatch, onPageReset
         </Select>
         <Select
           value={filters.statut}
-          onChange={(v) => { dispatch({ type: "SET_FILTER", filters: { statut: v } }); onPageReset(); }}
+          onChange={(v) => {
+            dispatch({ type: 'SET_FILTER', filters: { statut: v } });
+            onPageReset();
+          }}
           style={{ width: 150 }}
         >
           <Option value="all">Tous statuts</Option>
@@ -56,8 +74,13 @@ export function MatchingFilters({ filters, domaineOptions, dispatch, onPageReset
       </div>
       <Input.Search
         placeholder="Code / nom du savoir..."
-        onSearch={(q) => { dispatch({ type: "SET_FILTER", filters: { search: q } }); onPageReset(); }}
-        onChange={(e) => !e.target.value && dispatch({ type: "SET_FILTER", filters: { search: "" } })}
+        onSearch={(q) => {
+          dispatch({ type: 'SET_FILTER', filters: { search: q } });
+          onPageReset();
+        }}
+        onChange={(e) =>
+          !e.target.value && dispatch({ type: 'SET_FILTER', filters: { search: '' } })
+        }
         style={{ width: 280 }}
         allowClear
       />

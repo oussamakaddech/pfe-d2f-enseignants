@@ -1,14 +1,17 @@
-import type { ReactElement } from "react";
-import { Alert, Button, Typography } from "antd";
+import type { ReactElement } from 'react';
+import { Alert, Button, Typography } from 'antd';
 import {
   ApiOutlined,
   CheckCircleOutlined,
   LoadingOutlined,
   TeamOutlined,
   WarningOutlined,
-} from "@ant-design/icons";
+} from '@ant-design/icons';
 
-interface StepItem { title: string; description?: string; }
+interface StepItem {
+  title: string;
+  description?: string;
+}
 
 interface RiceSidePanelProps {
   ignoreEnseignants: boolean;
@@ -24,23 +27,28 @@ interface RiceSidePanelProps {
 
 const { Text } = Typography;
 
-const STEP_ICONS = ["📤", "🤖", "🔍", "📊"];
+const STEP_ICONS = ['📤', '🤖', '🔍', '📊'];
 
 export default function RiceSidePanel({
-  ignoreEnseignants, enseignantsCount, currentDeptLabel,
-  enseignantsLoading, enseignantsError, steps, currentStep,
-  onReload, onContinueWithout,
+  ignoreEnseignants,
+  enseignantsCount,
+  currentDeptLabel,
+  enseignantsLoading,
+  enseignantsError,
+  steps,
+  currentStep,
+  onReload,
+  onContinueWithout,
 }: Readonly<RiceSidePanelProps>) {
-
   let syncStatus: string;
-  if (enseignantsLoading) syncStatus = "Chargement…";
-  else if (enseignantsError) syncStatus = "Erreur";
-  else syncStatus = "Active";
+  if (enseignantsLoading) syncStatus = 'Chargement…';
+  else if (enseignantsError) syncStatus = 'Erreur';
+  else syncStatus = 'Active';
 
   let syncIcon: ReactElement;
-  if (enseignantsLoading) syncIcon = <LoadingOutlined style={{ color: "#f59e0b" }} />;
-  else if (enseignantsError) syncIcon = <WarningOutlined style={{ color: "#ef4444" }} />;
-  else syncIcon = <CheckCircleOutlined style={{ color: "#10b981" }} />;
+  if (enseignantsLoading) syncIcon = <LoadingOutlined style={{ color: '#f59e0b' }} />;
+  else if (enseignantsError) syncIcon = <WarningOutlined style={{ color: '#ef4444' }} />;
+  else syncIcon = <CheckCircleOutlined style={{ color: '#10b981' }} />;
 
   return (
     <aside className="rice-workbench-aside">
@@ -48,7 +56,7 @@ export default function RiceSidePanel({
       <div className="rice-side-card ant-card ant-card-bordered">
         <div className="ant-card-head">
           <div className="ant-card-head-title">
-            <ApiOutlined style={{ marginRight: 6, color: "#2563eb" }} />
+            <ApiOutlined style={{ marginRight: 6, color: '#2563eb' }} />
             Connecteur backend
           </div>
         </div>
@@ -67,7 +75,15 @@ export default function RiceSidePanel({
             </div>
             <div className="rice-side-stat">
               <Text type="secondary">Synchronisation</Text>
-              <span style={{ display: "flex", alignItems: "center", gap: 4, fontWeight: 600, fontSize: 12 }}>
+              <span
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontWeight: 600,
+                  fontSize: 12,
+                }}
+              >
                 {syncIcon} {syncStatus}
               </span>
             </div>
@@ -102,23 +118,26 @@ export default function RiceSidePanel({
         <div className="ant-card-body">
           <div className="rice-journey-list">
             {steps.map((step, index) => {
-              const isDone   = index < currentStep;
+              const isDone = index < currentStep;
               const isActive = index === currentStep;
               return (
                 <div
                   key={step.title}
-                  className={`rice-journey-item${isActive ? " active" : ""}${isDone ? " done" : ""}`}
+                  className={`rice-journey-item${isActive ? ' active' : ''}${isDone ? ' done' : ''}`}
                 >
                   <span className="rice-journey-index">
-                    {isDone ? "✓" : STEP_ICONS[index] ?? index + 1}
+                    {isDone ? '✓' : (STEP_ICONS[index] ?? index + 1)}
                   </span>
                   <div>
                     <strong>{step.title}</strong>
-                    <div>{step.description ?? (() => {
-                      if (isActive) return "En cours";
-                      if (isDone) return "Terminé";
-                      return "En attente";
-                    })()}</div>
+                    <div>
+                      {step.description ??
+                        (() => {
+                          if (isActive) return 'En cours';
+                          if (isDone) return 'Terminé';
+                          return 'En attente';
+                        })()}
+                    </div>
                   </div>
                 </div>
               );

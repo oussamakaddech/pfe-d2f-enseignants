@@ -20,7 +20,7 @@
 }
 
 .home-hero::before {
-  content: "";
+  content: '';
   position: absolute;
   top: -40px;
   right: -40px;
@@ -32,7 +32,7 @@
 }
 
 .home-hero::after {
-  content: "";
+  content: '';
   position: absolute;
   bottom: -60px;
   right: 80px;
@@ -45,7 +45,7 @@
 
 .home-hero-tag {
   background: rgba(255, 255, 255, 0.18) !important;
-  border: 1px solid rgba(255, 255, 255, 0.30) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
   color: var(--text-on-dark) !important;
   border-radius: var(--radius-full) !important;
   padding: 2px 16px !important;
@@ -65,7 +65,7 @@
 }
 
 .home-hero-subtitle {
-  color: rgba(255, 255, 255, 0.80) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
   font-size: var(--text-md) !important;
 }
 
@@ -88,9 +88,10 @@
   align-items: center;
   justify-content: center;
   gap: 14px;
-  transition: box-shadow 0.25s var(--ease-in-out),
-              transform 0.25s var(--ease-in-out),
-              border-color 0.25s var(--ease-in-out);
+  transition:
+    box-shadow 0.25s var(--ease-in-out),
+    transform 0.25s var(--ease-in-out),
+    border-color 0.25s var(--ease-in-out);
   user-select: none;
   box-shadow: var(--shadow-xs);
 }

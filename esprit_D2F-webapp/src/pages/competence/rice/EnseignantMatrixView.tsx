@@ -1,9 +1,7 @@
-import { useMemo, useState } from "react";
-import {
-  Checkbox, Pagination, Select, Space, Switch, Table, Tag, Tooltip, Typography,
-} from "antd";
-import type { TableColumnsType } from "antd";
-import { cloneDeep, matchSuggestedEnseignants } from "./constants";
+import { useMemo, useState } from 'react';
+import { Checkbox, Pagination, Select, Space, Switch, Table, Tag, Tooltip, Typography } from 'antd';
+import type { TableColumnsType } from 'antd';
+import { cloneDeep, matchSuggestedEnseignants } from './constants';
 
 const { Text } = Typography;
 
@@ -50,7 +48,14 @@ interface TreeDomaine extends Record<string, unknown> {
   competences?: TreeComp[];
 }
 
-const addSousCompRows = (rows: FlatSavoirRow[], di: number, ci: number, sc: TreeSousComp, sci: number, domaineNom: string) => {
+const addSousCompRows = (
+  rows: FlatSavoirRow[],
+  di: number,
+  ci: number,
+  sc: TreeSousComp,
+  sci: number,
+  domaineNom: string,
+) => {
   (sc.savoirs ?? []).forEach((s, si) => {
     rows.push({ di, ci, sci, si, domaineNom, ...s });
   });
@@ -61,37 +66,36 @@ const flatten = (tree: TreeDomaine[]): FlatSavoirRow[] => {
   (tree ?? []).forEach((d, di) => {
     (d.competences ?? []).forEach((c, ci) => {
       (c.savoirs ?? []).forEach((s, si) => {
-        rows.push({ di, ci, sci: -1, si, domaineNom: d.nom ?? "", ...s });
+        rows.push({ di, ci, sci: -1, si, domaineNom: d.nom ?? '', ...s });
       });
       (c.sousCompetences ?? []).forEach((sc, sci) => {
-        addSousCompRows(rows, di, ci, sc, sci, d.nom ?? "");
+        addSousCompRows(rows, di, ci, sc, sci, d.nom ?? '');
       });
     });
   });
   return rows;
 };
 
-const getSavoirByRow = (next: TreeDomaine[], row: FlatSavoirRow): TreeSavoir | undefined => (
+const getSavoirByRow = (next: TreeDomaine[], row: FlatSavoirRow): TreeSavoir | undefined =>
   row.sci === -1
     ? next?.[row.di]?.competences?.[row.ci]?.savoirs?.[row.si]
-    : next?.[row.di]?.competences?.[row.ci]?.sousCompetences?.[row.sci]?.savoirs?.[row.si]
-);
+    : next?.[row.di]?.competences?.[row.ci]?.sousCompetences?.[row.sci]?.savoirs?.[row.si];
 
 const rowClassName = (row: FlatSavoirRow) => {
   const n = (row.enseignantsSuggeres ?? []).length;
-  if (n === 0) return "ens-matrix-row-uncovered";
-  if (n > 3) return "ens-matrix-row-over";
-  return "";
+  if (n === 0) return 'ens-matrix-row-uncovered';
+  if (n > 3) return 'ens-matrix-row-over';
+  return '';
 };
 
 const getSourceClass = (row: FlatSavoirRow, tid: string, allEnseignants: EnseignantRef[]) => {
   const checked = (row.enseignantsSuggeres ?? []).includes(tid);
-  if (!checked) return "";
+  if (!checked) return '';
   const { suggested } = matchSuggestedEnseignants(row, allEnseignants);
-  const source = suggested.find((s) => String(s.id ?? s.enseignantId) === tid)?.source ?? "manual";
-  if (source === "ai") return "source-ai";
-  if (source === "module_match") return "source-module";
-  return "source-manual";
+  const source = suggested.find((s) => String(s.id ?? s.enseignantId) === tid)?.source ?? 'manual';
+  if (source === 'ai') return 'source-ai';
+  if (source === 'module_match') return 'source-module';
+  return 'source-manual';
 };
 
 const buildTeacherColumn = (
@@ -107,12 +111,19 @@ const buildTeacherColumn = (
   return {
     title: (
       <Tooltip title={`${fullName} (${load} savoirs)`}>
-        <span>{String(fullName || "?").split(" ").map((x) => x[0]).join("").slice(0, 2).toUpperCase()}</span>
+        <span>
+          {String(fullName || '?')
+            .split(' ')
+            .map((x) => x[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase()}
+        </span>
       </Tooltip>
     ),
     key: `t-${tid}`,
     width: 58,
-    className: "ens-matrix-cell",
+    className: 'ens-matrix-cell',
     render: (_: unknown, row: FlatSavoirRow) => {
       const checked = (row.enseignantsSuggeres ?? []).includes(tid);
       const sourceClass = getSourceClass(row, tid, allEnseignants);
@@ -131,7 +142,11 @@ interface EnseignantMatrixViewProps {
   allEnseignants: EnseignantRef[];
 }
 
-export default function EnseignantMatrixView({ tree, setTree, allEnseignants }: Readonly<EnseignantMatrixViewProps>) {
+export default function EnseignantMatrixView({
+  tree,
+  setTree,
+  allEnseignants,
+}: Readonly<EnseignantMatrixViewProps>) {
   const allSavoirs = useMemo(() => flatten(tree), [tree]);
   const [domainFilter, setDomainFilter] = useState<string[]>([]);
   const [onlyUncovered, setOnlyUncovered] = useState(false);
@@ -163,7 +178,10 @@ export default function EnseignantMatrixView({ tree, setTree, allEnseignants }: 
       const aUn = (a.enseignantsSuggeres ?? []).length === 0 ? 0 : 1;
       const bUn = (b.enseignantsSuggeres ?? []).length === 0 ? 0 : 1;
       if (aUn !== bUn) return aUn - bUn;
-      return (a.domaineNom || "").localeCompare(b.domaineNom || "") || ((a.nom as string) || "").localeCompare((b.nom as string) || "");
+      return (
+        (a.domaineNom || '').localeCompare(b.domaineNom || '') ||
+        ((a.nom as string) || '').localeCompare((b.nom as string) || '')
+      );
     });
   }, [allSavoirs, domainFilter, onlyUncovered]);
 
@@ -184,26 +202,26 @@ export default function EnseignantMatrixView({ tree, setTree, allEnseignants }: 
 
   const columns: TableColumnsType<FlatSavoirRow> = [
     {
-      title: "Savoir",
-      dataIndex: "nom",
-      key: "nom",
+      title: 'Savoir',
+      dataIndex: 'nom',
+      key: 'nom',
       width: 380,
       render: (_: unknown, row) => (
         <Space>
           <Tooltip title={row.nom as string}>
             <Text
               style={{
-                display: "inline-block",
+                display: 'inline-block',
                 maxWidth: 260,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
               }}
             >
               {row.nom as string}
             </Text>
           </Tooltip>
-          <Tag color={row.type === "PRATIQUE" ? "volcano" : "purple"}>{row.type as string}</Tag>
+          <Tag color={row.type === 'PRATIQUE' ? 'volcano' : 'purple'}>{row.type as string}</Tag>
           <Tag>{row.niveau as string}</Tag>
         </Space>
       ),
@@ -237,11 +255,11 @@ export default function EnseignantMatrixView({ tree, setTree, allEnseignants }: 
         size="small"
         pagination={false}
         rowClassName={rowClassName}
-        scroll={{ x: "max-content" }}
+        scroll={{ x: 'max-content' }}
       />
 
       {filteredRows.length > pageSize && (
-        <div style={{ marginTop: 12, textAlign: "right" }}>
+        <div style={{ marginTop: 12, textAlign: 'right' }}>
           <Pagination
             current={page}
             pageSize={pageSize}

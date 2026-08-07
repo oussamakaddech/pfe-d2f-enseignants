@@ -1,8 +1,8 @@
-import { Skeleton, Tooltip } from "antd";
-import { ArrowUpOutlined, ArrowDownOutlined } from "@ant-design/icons";
-import type { ReactNode, ElementType } from "react";
-import { neutral } from "@/styles/themes/tokens";
-import styles from "./StatCard.module.css";
+import { Skeleton, Tooltip } from 'antd';
+import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
+import type { ReactNode, ElementType } from 'react';
+import { neutral } from '@/styles/themes/tokens';
+import styles from './StatCard.module.css';
 
 interface StatCardProps {
   readonly icon: ReactNode;
@@ -19,19 +19,22 @@ interface StatCardProps {
 
 export default function StatCard({
   icon,
-  iconColor = "#b51200",
+  iconColor = '#b51200',
   label,
   value,
   unit,
   subtext,
   trend,
-  accentColor = "#b51200",
+  accentColor = '#b51200',
   loading = false,
   onClick,
 }: StatCardProps) {
   if (loading) {
     return (
-      <div className={`${styles.card} d2f-stat-card`} style={{ borderTop: `3px solid ${accentColor}` }}>
+      <div
+        className={`${styles.card} d2f-stat-card`}
+        style={{ borderTop: `3px solid ${accentColor}` }}
+      >
         <Skeleton active paragraph={{ rows: 2 }} title={false} />
       </div>
     );
@@ -40,15 +43,15 @@ export default function StatCard({
   const trendUp = trend && trend.value > 0;
   const trendDown = trend && trend.value < 0;
   let trendColor: string = neutral[500];
-  if (trendUp) trendColor = "#10b981";
-  else if (trendDown) trendColor = "#ef4444";
+  if (trendUp) trendColor = '#10b981';
+  else if (trendDown) trendColor = '#ef4444';
 
   const interactive = !!onClick;
-  const Tag = (interactive ? "button" : "div") as ElementType;
+  const Tag = (interactive ? 'button' : 'div') as ElementType;
   return (
     <Tag
-      type={interactive ? "button" : undefined}
-      className={`${styles.card} d2f-stat-card d2f-hover-lift${interactive ? " d2f-stat-card-clickable" : ""}`}
+      type={interactive ? 'button' : undefined}
+      className={`${styles.card} d2f-stat-card d2f-hover-lift${interactive ? ' d2f-stat-card-clickable' : ''}`}
       style={{ borderTop: `3px solid ${accentColor}` }}
       onClick={onClick}
     >
@@ -80,26 +83,14 @@ export default function StatCard({
         )}
       </div>
 
-      <div className={styles.label}>
-        {label}
-      </div>
+      <div className={styles.label}>{label}</div>
 
       <div className={styles.valueRow}>
-        <span className={styles.value}>
-          {value}
-        </span>
-        {unit && (
-          <span className={styles.unit}>{unit}</span>
-        )}
+        <span className={styles.value}>{value}</span>
+        {unit && <span className={styles.unit}>{unit}</span>}
       </div>
 
-      {subtext && (
-        <div className={styles.subtext}>{subtext}</div>
-      )}
+      {subtext && <div className={styles.subtext}>{subtext}</div>}
     </Tag>
   );
 }
-
-
-
-

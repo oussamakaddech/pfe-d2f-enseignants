@@ -1,5 +1,5 @@
-import { Input, Modal, Space, Typography } from "antd";
-import { UserAddOutlined } from "@ant-design/icons";
+import { Input, Modal, Space, Typography } from 'antd';
+import { UserAddOutlined } from '@ant-design/icons';
 
 interface CreateEnseignantModalProps {
   open: boolean;
@@ -13,11 +13,20 @@ interface CreateEnseignantModalProps {
 const { Text } = Typography;
 
 export default function CreateEnseignantModal({
-  open, data, saving, onChangeData, onConfirm, onCancel,
+  open,
+  data,
+  saving,
+  onChangeData,
+  onConfirm,
+  onCancel,
 }: Readonly<CreateEnseignantModalProps>) {
   return (
     <Modal
-      title={<Space><UserAddOutlined /> Créer un nouvel enseignant</Space>}
+      title={
+        <Space>
+          <UserAddOutlined /> Créer un nouvel enseignant
+        </Space>
+      }
       open={open}
       onCancel={onCancel}
       onOk={onConfirm}
@@ -26,7 +35,7 @@ export default function CreateEnseignantModal({
       confirmLoading={saving}
       destroyOnHidden
     >
-      <Space direction="vertical" style={{ width: "100%" }} size="middle">
+      <Space direction="vertical" style={{ width: '100%' }} size="middle">
         <div>
           <Text strong>Prénom</Text>
           <Input

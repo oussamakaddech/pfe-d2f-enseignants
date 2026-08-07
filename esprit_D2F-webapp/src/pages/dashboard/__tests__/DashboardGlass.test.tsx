@@ -15,14 +15,18 @@ vi.mock('@/hooks/auth/useAuth', () => ({
 
 vi.mock('@/hooks/dashboard/useDashboardData', () => ({
   useGlobalDashboard: vi.fn(() => ({
-    data: null, isLoading: false, isError: false, refetch: vi.fn(),
+    data: null,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
     dataUpdatedAt: Date.now(),
   })),
 }));
 
 vi.mock('@/hooks/analyse/useAnalysePredictive', () => ({
   useOverview: vi.fn(() => ({
-    data: null, isLoading: false,
+    data: null,
+    isLoading: false,
   })),
 }));
 

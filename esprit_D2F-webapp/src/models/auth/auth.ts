@@ -10,8 +10,8 @@
 //   - CHEF_DEPARTEMENT  : scope « son département » (lecture + besoins + eval).
 //   - ResponsableDossier: scope « dossier de formation » (CRUD documents).
 // (Le rôle FORMATEUR a été consolidé dans ANIMATEUR — cf. migration V19.)
-export type { UserRole } from "@/utils/constants/roles";
-import type { UserRole } from "@/utils/constants/roles";
+export type { UserRole } from '@/utils/constants/roles';
+import type { UserRole } from '@/utils/constants/roles';
 
 export interface AuthUser {
   id?: string | number;
@@ -87,7 +87,3 @@ export interface AuthContextValue {
   login: (userData: AuthUser) => void;
   logout: () => void;
 }
-
-
-
-

@@ -1,14 +1,14 @@
 /* ─────────────────────────────────────────────────────────────────────────
  * BesoinCompetencesStep — Step 3: Référentiel RICE competences selection
  * ─────────────────────────────────────────────────────────────────────── */
-import { Select, Input, Button, Spin, Empty } from "antd";
-import { NodeIndexOutlined, PlusOutlined, MinusCircleOutlined } from "@ant-design/icons";
-import SectionLabel from "@/components/besoin/SectionLabel";
-import type { BesoinCompetenceLink } from "@/models/besoin";
+import { Select, Input, Button, Spin, Empty } from 'antd';
+import { NodeIndexOutlined, PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import SectionLabel from '@/components/besoin/SectionLabel';
+import type { BesoinCompetenceLink } from '@/models/besoin';
 
-type ReferentielDomaine    = { id?: string | number; nom?: string };
+type ReferentielDomaine = { id?: string | number; nom?: string };
 type ReferentielCompetence = { id?: string | number; nom?: string; domaineId?: string | number };
-type ReferentielSavoir     = { id?: string | number; nom?: string; type?: string };
+type ReferentielSavoir = { id?: string | number; nom?: string; type?: string };
 
 interface BesoinCompetencesStepProps {
   compLoaded: boolean;
@@ -44,7 +44,7 @@ export default function BesoinCompetencesStep({
       />
 
       {!compLoaded && (
-        <div style={{ textAlign: "center", padding: "32px 0" }}>
+        <div style={{ textAlign: 'center', padding: '32px 0' }}>
           <Spin tip="Chargement du référentiel…" />
         </div>
       )}
@@ -55,30 +55,59 @@ export default function BesoinCompetencesStep({
 
       {compLoaded && (compDomaines.length > 0 || compCompetences.length > 0) && (
         <>
-          <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: 8,
+              marginBottom: 12,
+              flexWrap: 'wrap',
+              alignItems: 'center',
+            }}
+          >
             <Input
               allowClear
               placeholder="Rechercher une compétence…"
-              prefix={<NodeIndexOutlined style={{ color: "#999" }} />}
+              prefix={<NodeIndexOutlined style={{ color: '#999' }} />}
               value={compSearch}
               onChange={(e) => setCompSearch(e.target.value)}
               style={{ maxWidth: 320 }}
             />
             {compSearch && (
-              <span style={{ fontSize: 12, color: "#888" }}>
-                {compCompetences.filter((c) => c.nom?.toLowerCase().includes(compSearch.trim().toLowerCase())).length} résultat(s)
+              <span style={{ fontSize: 12, color: '#888' }}>
+                {
+                  compCompetences.filter((c) =>
+                    c.nom?.toLowerCase().includes(compSearch.trim().toLowerCase()),
+                  ).length
+                }{' '}
+                résultat(s)
               </span>
             )}
           </div>
 
           {selectedCompLinks.length === 0 ? (
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Aucune compétence sélectionnée — cliquez sur « Ajouter » pour en associer" />
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="Aucune compétence sélectionnée — cliquez sur « Ajouter » pour en associer"
+            />
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 12 }}>
               {selectedCompLinks.map((link, idx) => (
-                <div key={`comp-${link.competenceId ?? idx}`} style={{ display: "flex", gap: 8, alignItems: "flex-start", background: "#fafafa", border: "1px solid #f0f0f0", borderRadius: 8, padding: "12px 14px" }}>
-                  <span style={{ minWidth: 22, fontWeight: 600, color: "#999", paddingTop: 4 }}>{idx + 1}</span>
-                  <div style={{ flex: 1, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div
+                  key={`comp-${link.competenceId ?? idx}`}
+                  style={{
+                    display: 'flex',
+                    gap: 8,
+                    alignItems: 'flex-start',
+                    background: '#fafafa',
+                    border: '1px solid #f0f0f0',
+                    borderRadius: 8,
+                    padding: '12px 14px',
+                  }}
+                >
+                  <span style={{ minWidth: 22, fontWeight: 600, color: '#999', paddingTop: 4 }}>
+                    {idx + 1}
+                  </span>
+                  <div style={{ flex: 1, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <Select
                       placeholder="Domaine (filtre)"
                       allowClear
@@ -86,7 +115,12 @@ export default function BesoinCompetencesStep({
                       value={link.domaineId}
                       onChange={(val) => {
                         const u = [...selectedCompLinks];
-                        u[idx] = { ...u[idx], domaineId: val ?? null, competenceId: null, savoirId: null };
+                        u[idx] = {
+                          ...u[idx],
+                          domaineId: val ?? null,
+                          competenceId: null,
+                          savoirId: null,
+                        };
                         setSelectedCompLinks(u);
                         const ns: Record<number, ReferentielSavoir[]> = { ...rowSavoirs };
                         ns[idx] = [];
@@ -101,11 +135,16 @@ export default function BesoinCompetencesStep({
                       allowClear
                       style={{ minWidth: 220 }}
                       value={link.competenceId}
-                      onChange={(val) => onCompetenceChange(idx, compCompetences.find((c) => c.id === val) || null)}
+                      onChange={(val) =>
+                        onCompetenceChange(idx, compCompetences.find((c) => c.id === val) || null)
+                      }
                       options={compCompetences
                         .filter((c) => {
                           const kw = compSearch.trim().toLowerCase();
-                          return (!link.domaineId || c.domaineId === link.domaineId) && (!kw || c.nom?.toLowerCase().includes(kw));
+                          return (
+                            (!link.domaineId || c.domaineId === link.domaineId) &&
+                            (!kw || c.nom?.toLowerCase().includes(kw))
+                          );
                         })
                         .map((c) => ({ value: c.id, label: c.nom }))}
                       showSearch
@@ -121,12 +160,18 @@ export default function BesoinCompetencesStep({
                         const u = [...selectedCompLinks];
                         u[idx] = {
                           ...u[idx],
-                          savoirId:  val ?? null,
-                          savoirNom: (Array.isArray(rowSavoirs[idx]) ? rowSavoirs[idx] : []).find((s) => s.id === val)?.nom || "",
+                          savoirId: val ?? null,
+                          savoirNom:
+                            (Array.isArray(rowSavoirs[idx]) ? rowSavoirs[idx] : []).find(
+                              (s) => s.id === val,
+                            )?.nom || '',
                         };
                         setSelectedCompLinks(u);
                       }}
-                      options={(Array.isArray(rowSavoirs[idx]) ? rowSavoirs[idx] : []).map((s) => ({ value: s.id, label: `${s.nom} (${s.type || ""})` }))}
+                      options={(Array.isArray(rowSavoirs[idx]) ? rowSavoirs[idx] : []).map((s) => ({
+                        value: s.id,
+                        label: `${s.nom} (${s.type || ''})`,
+                      }))}
                       showSearch
                       optionFilterProp="label"
                     />
@@ -135,7 +180,9 @@ export default function BesoinCompetencesStep({
                     type="text"
                     danger
                     icon={<MinusCircleOutlined />}
-                    onClick={() => setSelectedCompLinks(selectedCompLinks.filter((_, i) => i !== idx))}
+                    onClick={() =>
+                      setSelectedCompLinks(selectedCompLinks.filter((_, i) => i !== idx))
+                    }
                   />
                 </div>
               ))}
@@ -144,7 +191,12 @@ export default function BesoinCompetencesStep({
 
           <Button
             icon={<PlusOutlined />}
-            onClick={() => setSelectedCompLinks([...selectedCompLinks, { domaineId: null, competenceId: null, savoirId: null }])}
+            onClick={() =>
+              setSelectedCompLinks([
+                ...selectedCompLinks,
+                { domaineId: null, competenceId: null, savoirId: null },
+              ])
+            }
             style={{ marginTop: 4 }}
           >
             Ajouter une compétence

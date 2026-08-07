@@ -1,6 +1,6 @@
-import { useState } from "react";
-import useAppNotification from "@/hooks/ui/useAppNotification";
-import { signup } from "@/services/auth/AuthService";
+import { useState } from 'react';
+import useAppNotification from '@/hooks/ui/useAppNotification';
+import { signup } from '@/services/auth/AuthService';
 
 export interface RegisterFormValues {
   username: string;
@@ -33,11 +33,13 @@ export function useRegister() {
         email: values.email,
       });
 
-      message.success("Inscription réussie ! Un email de confirmation vous a été envoyé.");
+      message.success('Inscription réussie ! Un email de confirmation vous a été envoyé.');
       return true;
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
-      message.error(axiosErr.response?.data?.message || "Une erreur est survenue pendant l'inscription.");
+      message.error(
+        axiosErr.response?.data?.message || "Une erreur est survenue pendant l'inscription.",
+      );
       return false;
     } finally {
       setLoading(false);

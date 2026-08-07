@@ -1,5 +1,5 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { useMemo } from "react";
+import { useParams, useNavigate } from 'react-router-dom';
+import { useMemo } from 'react';
 import {
   Card,
   Descriptions,
@@ -12,7 +12,7 @@ import {
   Button,
   Space,
   Timeline,
-} from "antd";
+} from 'antd';
 import {
   InfoCircleOutlined,
   ArrowLeftOutlined,
@@ -26,27 +26,31 @@ import {
   BarChartOutlined,
   AimOutlined,
   UserAddOutlined,
-} from "@ant-design/icons";
-import dayjs from "dayjs";
-import { useFormationById } from "@/hooks/formation/useFormations";
-import { useProfile, useInscriptionsByEnseignant, useDemanderInscription } from "@/hooks/formation/useFormationExtras";
-import { useEnseignantById } from "@/hooks/enseignant/useEnseignants";
-import { ROLES } from "@/utils/constants/roles";
-import { PageLoader } from "@/components/common";
-import useAppNotification from "@/hooks/ui/useAppNotification";
-import FormationParticipantsPanel from "./FormationParticipantsPanel";
-import type { Formation } from "@/models/formation";
-import type { Id } from "@/models/common";
-import "@/styles/pages/fiche-formation.css";
+} from '@ant-design/icons';
+import dayjs from 'dayjs';
+import { useFormationById } from '@/hooks/formation/useFormations';
+import {
+  useProfile,
+  useInscriptionsByEnseignant,
+  useDemanderInscription,
+} from '@/hooks/formation/useFormationExtras';
+import { useEnseignantById } from '@/hooks/enseignant/useEnseignants';
+import { ROLES } from '@/utils/constants/roles';
+import { PageLoader } from '@/components/common';
+import useAppNotification from '@/hooks/ui/useAppNotification';
+import FormationParticipantsPanel from './FormationParticipantsPanel';
+import type { Formation } from '@/models/formation';
+import type { Id } from '@/models/common';
+import '@/styles/pages/fiche-formation.css';
 
 const PERIOD_OPTIONS = [
-  { value: "P1", label: "Période 1" },
-  { value: "P2", label: "Période 2" },
-  { value: "P3", label: "Période 3" },
-  { value: "P4", label: "Période 4" },
-  { value: "SUMMER", label: "Session d'Été" },
-  { value: "WINTER", label: "Session d'Hiver" },
-  { value: "OTHER", label: "Autre" },
+  { value: 'P1', label: 'Période 1' },
+  { value: 'P2', label: 'Période 2' },
+  { value: 'P3', label: 'Période 3' },
+  { value: 'P4', label: 'Période 4' },
+  { value: 'SUMMER', label: "Session d'Été" },
+  { value: 'WINTER', label: "Session d'Hiver" },
+  { value: 'OTHER', label: 'Autre' },
 ];
 
 const { Title, Paragraph, Text } = Typography;
@@ -57,26 +61,33 @@ export default function FicheFormation() {
   const { message: msgApi } = useAppNotification();
   const { data: formation, isLoading: loading, error } = useFormationById(id);
   const { data: profile } = useProfile();
-  const role = String(profile?.role ?? "").toLowerCase();
+  const role = String(profile?.role ?? '').toLowerCase();
   // Admin / CUP : accès à la liste des participants + statistiques.
   const canViewParticipants =
-    role === ROLES.ADMIN.toLowerCase() ||
-    role === ROLES.CUP.toLowerCase();
+    role === ROLES.ADMIN.toLowerCase() || role === ROLES.CUP.toLowerCase();
 
   // ── Inscription contextualisée (D8) ───────────────────────────────────
-  const isTeacher = role === ROLES.ENSEIGNANT.toLowerCase() || role === ROLES.ANIMATEUR.toLowerCase();
+  const isTeacher =
+    role === ROLES.ENSEIGNANT.toLowerCase() || role === ROLES.ANIMATEUR.toLowerCase();
   const identifier = profile?.emailAddress || profile?.email || profile?.id;
   const { data: enseignantSelf } = useEnseignantById(isTeacher ? identifier : undefined);
   const enseignantCode = (enseignantSelf as { id?: Id } | undefined)?.id;
-  const { data: myInscriptionsRaw } = useInscriptionsByEnseignant(isTeacher ? enseignantCode : undefined);
+  const { data: myInscriptionsRaw } = useInscriptionsByEnseignant(
+    isTeacher ? enseignantCode : undefined,
+  );
   const demanderMut = useDemanderInscription();
 
   const myInscriptions = useMemo(
-    () => (Array.isArray(myInscriptionsRaw) ? myInscriptionsRaw as Array<{ formationId?: string; etat?: string }> : []),
+    () =>
+      Array.isArray(myInscriptionsRaw)
+        ? (myInscriptionsRaw as Array<{ formationId?: string; etat?: string }>)
+        : [],
     [myInscriptionsRaw],
   );
   const myInscriptionForThis = useMemo(
-    () => myInscriptions.find((i) => String(i.formationId) === String(id) && i.etat !== "REJECTED") ?? null,
+    () =>
+      myInscriptions.find((i) => String(i.formationId) === String(id) && i.etat !== 'REJECTED') ??
+      null,
     [myInscriptions, id],
   );
 
@@ -99,7 +110,7 @@ export default function FicheFormation() {
       <Alert
         type="error"
         message="Erreur"
-        description={error?.message || "Erreur de chargement"}
+        description={error?.message || 'Erreur de chargement'}
         showIcon
         className="fiche-error"
       />
@@ -129,17 +140,22 @@ export default function FicheFormation() {
     customPeriodLabel,
   } = formation || ({} as Formation);
 
-  const typeColor = {
-    INTERNE: "blue",
-    EXTERNE: "purple",
-  }[String(typeFormation)?.toUpperCase()] || "default";
+  const typeColor =
+    {
+      INTERNE: 'blue',
+      EXTERNE: 'purple',
+    }[String(typeFormation)?.toUpperCase()] || 'default';
 
   return (
     <div className="fiche-page">
       {/* Header */}
       <Row justify="space-between" align="middle" className="fiche-header-row">
         <Col>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} className="fiche-back-btn">
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate(-1)}
+            className="fiche-back-btn"
+          >
             Retour
           </Button>
           <Title level={3} className="fiche-header-title">
@@ -150,13 +166,13 @@ export default function FicheFormation() {
         <Col>
           <Space wrap>
             <Tag color={typeColor} className="fiche-type-tag">
-              {typeFormation || "—"}
+              {typeFormation || '—'}
             </Tag>
             <Badge
-              status={inscriptionsOuvertes ? "success" : "error"}
+              status={inscriptionsOuvertes ? 'success' : 'error'}
               text={
-                <Tag color={inscriptionsOuvertes ? "success" : "error"}>
-                  {inscriptionsOuvertes ? "Inscriptions ouvertes" : "Inscriptions fermées"}
+                <Tag color={inscriptionsOuvertes ? 'success' : 'error'}>
+                  {inscriptionsOuvertes ? 'Inscriptions ouvertes' : 'Inscriptions fermées'}
                 </Tag>
               }
             />
@@ -173,12 +189,12 @@ export default function FicheFormation() {
             {isTeacher && myInscriptionForThis && (
               <Tag
                 icon={<CheckCircleOutlined />}
-                color={myInscriptionForThis.etat === "APPROVED" ? "success" : "warning"}
-                style={{ fontWeight: 600, padding: "4px 12px", borderRadius: 16 }}
+                color={myInscriptionForThis.etat === 'APPROVED' ? 'success' : 'warning'}
+                style={{ fontWeight: 600, padding: '4px 12px', borderRadius: 16 }}
               >
-                {myInscriptionForThis.etat === "APPROVED"
-                  ? "Demande approuvée"
-                  : "Demande en attente"}
+                {myInscriptionForThis.etat === 'APPROVED'
+                  ? 'Demande approuvée'
+                  : 'Demande en attente'}
               </Tag>
             )}
           </Space>
@@ -197,29 +213,80 @@ export default function FicheFormation() {
             }
             className="fiche-card fiche-card-full"
           >
-            <Descriptions column={1} size="middle" layout="horizontal" styles={{ label: { fontWeight: 600, width: 160 } }}>
-              <Descriptions.Item label={<Space><CalendarOutlined /> Dates</Space>}>
+            <Descriptions
+              column={1}
+              size="middle"
+              layout="horizontal"
+              styles={{ label: { fontWeight: 600, width: 160 } }}
+            >
+              <Descriptions.Item
+                label={
+                  <Space>
+                    <CalendarOutlined /> Dates
+                  </Space>
+                }
+              >
                 <Text strong>
-                  {dayjs(dateDebut).format("DD/MM/YYYY")} → {dayjs(dateFin).format("DD/MM/YYYY")}
+                  {dayjs(dateDebut).format('DD/MM/YYYY')} → {dayjs(dateFin).format('DD/MM/YYYY')}
                 </Text>
               </Descriptions.Item>
-              <Descriptions.Item label={<Space><CalendarOutlined /> Période</Space>}>
-                {periodCode === "OTHER" ? (customPeriodLabel || "Autre") : (PERIOD_OPTIONS.find(o => o.value === periodCode)?.label || periodeFormation || "—")}
+              <Descriptions.Item
+                label={
+                  <Space>
+                    <CalendarOutlined /> Période
+                  </Space>
+                }
+              >
+                {periodCode === 'OTHER'
+                  ? customPeriodLabel || 'Autre'
+                  : PERIOD_OPTIONS.find((o) => o.value === periodCode)?.label ||
+                    periodeFormation ||
+                    '—'}
               </Descriptions.Item>
-              <Descriptions.Item label={<Space><ClockCircleOutlined /> Durée</Space>}>
+              <Descriptions.Item
+                label={
+                  <Space>
+                    <ClockCircleOutlined /> Durée
+                  </Space>
+                }
+              >
                 <Tag color="processing">{chargeHoraireGlobal} heures</Tag>
               </Descriptions.Item>
-              <Descriptions.Item label={<Space><ApartmentOutlined /> Département</Space>}>
-                {departement1?.libelle || "—"}
+              <Descriptions.Item
+                label={
+                  <Space>
+                    <ApartmentOutlined /> Département
+                  </Space>
+                }
+              >
+                {departement1?.libelle || '—'}
               </Descriptions.Item>
-              <Descriptions.Item label={<Space><TeamOutlined /> UP</Space>}>
-                {up1?.libelle || "—"}
+              <Descriptions.Item
+                label={
+                  <Space>
+                    <TeamOutlined /> UP
+                  </Space>
+                }
+              >
+                {up1?.libelle || '—'}
               </Descriptions.Item>
-              <Descriptions.Item label={<Space><AimOutlined /> Domaine</Space>}>
-                {domaine || "—"}
+              <Descriptions.Item
+                label={
+                  <Space>
+                    <AimOutlined /> Domaine
+                  </Space>
+                }
+              >
+                {domaine || '—'}
               </Descriptions.Item>
-              <Descriptions.Item label={<Space><TeamOutlined /> Public cible</Space>}>
-                {populationCible || "—"}
+              <Descriptions.Item
+                label={
+                  <Space>
+                    <TeamOutlined /> Public cible
+                  </Space>
+                }
+              >
+                {populationCible || '—'}
               </Descriptions.Item>
             </Descriptions>
           </Card>
@@ -242,9 +309,7 @@ export default function FicheFormation() {
                   <AimOutlined className="fiche-section-icon" />
                   Objectifs généraux
                 </Title>
-                <Paragraph className="fiche-block fiche-block-primary">
-                  {objectifs}
-                </Paragraph>
+                <Paragraph className="fiche-block fiche-block-primary">{objectifs}</Paragraph>
               </>
             )}
 
@@ -254,9 +319,7 @@ export default function FicheFormation() {
                   <CheckCircleOutlined className="fiche-section-icon" />
                   Objectifs pédagogiques
                 </Title>
-                <Paragraph className="fiche-block fiche-block-success">
-                  {objectifsPedago}
-                </Paragraph>
+                <Paragraph className="fiche-block fiche-block-success">{objectifsPedago}</Paragraph>
               </>
             )}
 
@@ -266,9 +329,7 @@ export default function FicheFormation() {
                   <InfoCircleOutlined className="fiche-section-icon" />
                   Prérequis
                 </Title>
-                <Paragraph className="fiche-block fiche-block-info">
-                  {prerequis}
-                </Paragraph>
+                <Paragraph className="fiche-block fiche-block-info">{prerequis}</Paragraph>
               </>
             )}
 
@@ -278,9 +339,7 @@ export default function FicheFormation() {
                   <CheckCircleOutlined className="fiche-section-icon" />
                   Acquis attendus
                 </Title>
-                <Paragraph className="fiche-block fiche-block-purple">
-                  {acquis}
-                </Paragraph>
+                <Paragraph className="fiche-block fiche-block-purple">{acquis}</Paragraph>
               </>
             )}
 
@@ -290,9 +349,7 @@ export default function FicheFormation() {
                   <BarChartOutlined className="fiche-section-icon" />
                   Méthodes d&apos;évaluation
                 </Title>
-                <Paragraph className="fiche-block fiche-block-warning">
-                  {evalMethods}
-                </Paragraph>
+                <Paragraph className="fiche-block fiche-block-warning">{evalMethods}</Paragraph>
               </>
             )}
 
@@ -302,9 +359,7 @@ export default function FicheFormation() {
                   <BarChartOutlined className="fiche-section-icon" />
                   Indicateurs de réussite
                 </Title>
-                <Paragraph className="fiche-block fiche-block-teal">
-                  {indicateurs}
-                </Paragraph>
+                <Paragraph className="fiche-block fiche-block-teal">{indicateurs}</Paragraph>
               </>
             )}
           </Card>
@@ -321,16 +376,18 @@ export default function FicheFormation() {
           title={
             <Space>
               <CalendarOutlined className="fiche-card-icon" />
-              <span className="fiche-card-title-text">Programme des séances ({seances.length})</span>
+              <span className="fiche-card-title-text">
+                Programme des séances ({seances.length})
+              </span>
             </Space>
           }
         >
           <Timeline
             mode="left"
-            items={seances.map((s: typeof seances[number], i: number) => ({
+            items={seances.map((s: (typeof seances)[number], i: number) => ({
               label: (
                 <Text type="secondary">
-                  {dayjs(s.dateSeance).format("DD/MM/YYYY")}
+                  {dayjs(s.dateSeance).format('DD/MM/YYYY')}
                   <br />
                   {s.heureDebut?.slice(0, 5)} - {s.heureFin?.slice(0, 5)}
                 </Text>
@@ -338,11 +395,15 @@ export default function FicheFormation() {
               children: (
                 <div>
                   <Text strong>Séance {i + 1}</Text>
-                  {s.titreSeance && <div><Text type="secondary">{s.titreSeance}</Text></div>}
+                  {s.titreSeance && (
+                    <div>
+                      <Text type="secondary">{s.titreSeance}</Text>
+                    </div>
+                  )}
                   {s.salle && <Tag>{s.salle}</Tag>}
                 </div>
               ),
-              color: i === 0 ? "var(--primary-500)" : "gray",
+              color: i === 0 ? 'var(--primary-500)' : 'gray',
             }))}
           />
         </Card>
@@ -350,7 +411,3 @@ export default function FicheFormation() {
     </div>
   );
 }
-
-
-
-

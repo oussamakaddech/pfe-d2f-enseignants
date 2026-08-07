@@ -1,27 +1,38 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
 import type {
-  AnalyseResult, DashboardData,
-  GapsResponse, HealthStatus, RecommendationsResponse,
-  TeacherRiskProfile, TrainingPath,
-  GroupedRecommendationsResponse, RecoGroupBy,
-  WhatIfAction, WhatIfResponse,
-  SkillForecast, PeerBenchmark,
-  AnomalyDetectionResult, DepartmentAnomalyResult,
+  AnalyseResult,
+  DashboardData,
+  GapsResponse,
+  HealthStatus,
+  RecommendationsResponse,
+  TeacherRiskProfile,
+  TrainingPath,
+  GroupedRecommendationsResponse,
+  RecoGroupBy,
+  WhatIfAction,
+  WhatIfResponse,
+  SkillForecast,
+  PeerBenchmark,
+  AnomalyDetectionResult,
+  DepartmentAnomalyResult,
   PilotageDashboard,
-} from "@/models/analyse";
+} from '@/models/analyse';
 import type {
-  AnalyticsDepartementResponse, AnalyticsUP,
-  EnseignantsInactifsParams, EnseignantsInactifsResponse,
-  ExportExcelType, ExportPdfType,
-  FormationsParPeriodeParams, FormationsParPeriodeResponse,
-} from "@/models/analyse/reporting";
+  AnalyticsDepartementResponse,
+  AnalyticsUP,
+  EnseignantsInactifsParams,
+  EnseignantsInactifsResponse,
+  ExportExcelType,
+  ExportPdfType,
+  FormationsParPeriodeParams,
+  FormationsParPeriodeResponse,
+} from '@/models/analyse/reporting';
 
 // Gateway: /api/analyse/** → /api/v1/** sur le service
 const BASE = `${config.ANALYSE_URL}/analyse/v1/analytics`;
 
 const AnalyticsService = {
-
   // ── Pipeline d'analyse ────────────────────────────────
 
   async analyzeEnseignant(enseignantId: string): Promise<AnalyseResult> {
@@ -30,7 +41,9 @@ const AnalyticsService = {
   },
 
   async triggerBatchAnalysis(): Promise<{ message: string; nb_queued: number }> {
-    const res = await axios.post<{ message: string; nb_queued: number }>(`${BASE}/trigger-batch-analysis`);
+    const res = await axios.post<{ message: string; nb_queued: number }>(
+      `${BASE}/trigger-batch-analysis`,
+    );
     return res.data;
   },
 
@@ -38,7 +51,7 @@ const AnalyticsService = {
 
   async getGaps(
     enseignantId: string,
-    opts: { urgence?: string; page?: number; size?: number } = {}
+    opts: { urgence?: string; page?: number; size?: number } = {},
   ): Promise<GapsResponse> {
     const res = await axios.get<GapsResponse>(`${BASE}/gaps/${enseignantId}`, {
       params: { urgence: opts.urgence, page: opts.page ?? 0, size: opts.size ?? 20 },
@@ -50,11 +63,11 @@ const AnalyticsService = {
 
   async getGroupedRecommendations(
     enseignantId: string,
-    groupBy: RecoGroupBy = "competence",
+    groupBy: RecoGroupBy = 'competence',
   ): Promise<GroupedRecommendationsResponse> {
     const res = await axios.get<GroupedRecommendationsResponse>(
       `${BASE}/recommendations/${enseignantId}/grouped`,
-      { params: { group_by: groupBy } }
+      { params: { group_by: groupBy } },
     );
     return res.data;
   },
@@ -64,20 +77,19 @@ const AnalyticsService = {
     plan: WhatIfAction[];
     horizon_mois?: number;
   }): Promise<WhatIfResponse> {
-    const res = await axios.post<WhatIfResponse>(
-      `${BASE}/simulate/what-if`,
-      payload
-    );
+    const res = await axios.post<WhatIfResponse>(`${BASE}/simulate/what-if`, payload);
     return res.data;
   },
 
   async getRecommendations(
     enseignantId: string,
-    opts: { competence_id?: number; page?: number; size?: number } = {}
+    opts: { competence_id?: number; page?: number; size?: number } = {},
   ): Promise<RecommendationsResponse> {
     const res = await axios.get<RecommendationsResponse>(
       `${BASE}/recommendations/${enseignantId}`,
-      { params: { competence_id: opts.competence_id, page: opts.page ?? 0, size: opts.size ?? 20 } }
+      {
+        params: { competence_id: opts.competence_id, page: opts.page ?? 0, size: opts.size ?? 20 },
+      },
     );
     return res.data;
   },
@@ -86,7 +98,7 @@ const AnalyticsService = {
 
   async getTrainingPath(enseignantId: string, competenceId: number): Promise<TrainingPath> {
     const res = await axios.get<TrainingPath>(
-      `${BASE}/training-path/${enseignantId}/${competenceId}`
+      `${BASE}/training-path/${enseignantId}/${competenceId}`,
     );
     return res.data;
   },
@@ -98,16 +110,17 @@ const AnalyticsService = {
     return res.data;
   },
 
-  async getCompetencesDeclining(): Promise<DashboardData["competences_en_declin"]> {
-    const res = await axios.get<DashboardData["competences_en_declin"]>(`${BASE}/dashboard/competences-declining`);
+  async getCompetencesDeclining(): Promise<DashboardData['competences_en_declin']> {
+    const res = await axios.get<DashboardData['competences_en_declin']>(
+      `${BASE}/dashboard/competences-declining`,
+    );
     return res.data;
   },
 
   async getTeachersAtRisk(seuil = 0.5): Promise<TeacherRiskProfile[]> {
-    const res = await axios.get<TeacherRiskProfile[]>(
-      `${BASE}/dashboard/teachers-at-risk`,
-      { params: { seuil } }
-    );
+    const res = await axios.get<TeacherRiskProfile[]>(`${BASE}/dashboard/teachers-at-risk`, {
+      params: { seuil },
+    });
     return res.data;
   },
 
@@ -115,7 +128,7 @@ const AnalyticsService = {
 
   async updateRecommendationStatus(
     recommendationId: number,
-    statut: "ACCEPTEE" | "IGNOREE",
+    statut: 'ACCEPTEE' | 'IGNOREE',
   ): Promise<{ id: number; statut: string; formation_titre: string }> {
     const res = await axios.patch<{ id: number; statut: string; formation_titre: string }>(
       `${BASE}/recommendations/${recommendationId}/status`,
@@ -128,57 +141,50 @@ const AnalyticsService = {
   // ── Reporting descriptif (features 1-4) ───────────────
 
   async getEnseignantsSansFormation(
-    params: EnseignantsInactifsParams = {}
+    params: EnseignantsInactifsParams = {},
   ): Promise<EnseignantsInactifsResponse> {
-    const res = await axios.get<EnseignantsInactifsResponse>(
-      `${BASE}/enseignants-sans-formation`,
-      {
-        params: {
-          mois: params.mois,
-          departement: params.departement,
-          up: params.up,
-          page: params.page ?? 0,
-          size: params.size ?? 20,
-        },
-      }
-    );
+    const res = await axios.get<EnseignantsInactifsResponse>(`${BASE}/enseignants-sans-formation`, {
+      params: {
+        mois: params.mois,
+        departement: params.departement,
+        up: params.up,
+        page: params.page ?? 0,
+        size: params.size ?? 20,
+      },
+    });
     return res.data;
   },
 
   async getFormationsParPeriode(
-    params: FormationsParPeriodeParams = {}
+    params: FormationsParPeriodeParams = {},
   ): Promise<FormationsParPeriodeResponse> {
-    const res = await axios.get<FormationsParPeriodeResponse>(
-      `${BASE}/formations-par-periode`,
-      {
-        params: {
-          granularite: params.granularite ?? "MOIS",
-          debut: params.debut,
-          fin: params.fin,
-          departement: params.departement,
-          up: params.up,
-        },
-      }
-    );
+    const res = await axios.get<FormationsParPeriodeResponse>(`${BASE}/formations-par-periode`, {
+      params: {
+        granularite: params.granularite ?? 'MOIS',
+        debut: params.debut,
+        fin: params.fin,
+        departement: params.departement,
+        up: params.up,
+      },
+    });
     return res.data;
   },
 
   async getFormationsParUp(
-    opts: { annee?: number; departement?: string } = {}
+    opts: { annee?: number; departement?: string } = {},
   ): Promise<{ items: AnalyticsUP[] }> {
-    const res = await axios.get<{ items: AnalyticsUP[] }>(
-      `${BASE}/formations-par-up`,
-      { params: { annee: opts.annee, departement: opts.departement } }
-    );
+    const res = await axios.get<{ items: AnalyticsUP[] }>(`${BASE}/formations-par-up`, {
+      params: { annee: opts.annee, departement: opts.departement },
+    });
     return res.data;
   },
 
   async getFormationsParDepartement(
-    opts: { annee?: number } = {}
+    opts: { annee?: number } = {},
   ): Promise<AnalyticsDepartementResponse> {
     const res = await axios.get<AnalyticsDepartementResponse>(
       `${BASE}/formations-par-departement`,
-      { params: { annee: opts.annee } }
+      { params: { annee: opts.annee } },
     );
     return res.data;
   },
@@ -187,11 +193,11 @@ const AnalyticsService = {
 
   async exportExcel(
     type: ExportExcelType,
-    opts: { mois?: number; annee?: number; departement?: string; up?: string } = {}
+    opts: { mois?: number; annee?: number; departement?: string; up?: string } = {},
   ): Promise<Blob> {
     const res = await axios.get<Blob>(`${BASE}/export/excel`, {
       params: { type, ...opts },
-      responseType: "blob",
+      responseType: 'blob',
     });
     return res.data;
   },
@@ -199,7 +205,7 @@ const AnalyticsService = {
   async exportPdf(type: ExportPdfType, opts: { annee?: number } = {}): Promise<Blob> {
     const res = await axios.get<Blob>(`${BASE}/export/pdf`, {
       params: { type, ...opts },
-      responseType: "blob",
+      responseType: 'blob',
     });
     return res.data;
   },
@@ -209,7 +215,7 @@ const AnalyticsService = {
   // 1) Prévision temporelle des niveaux de compétence
   async getForecast(
     enseignantId: string,
-    opts: { horizonMois?: number; competenceId?: number } = {}
+    opts: { horizonMois?: number; competenceId?: number } = {},
   ): Promise<SkillForecast> {
     const res = await axios.get<SkillForecast>(`${BASE}/forecast/${enseignantId}`, {
       params: {
@@ -221,10 +227,7 @@ const AnalyticsService = {
   },
 
   // 2) Benchmark vs pairs (département / UP)
-  async getBenchmark(
-    enseignantId: string,
-    opts: { parUp?: boolean } = {}
-  ): Promise<PeerBenchmark> {
+  async getBenchmark(enseignantId: string, opts: { parUp?: boolean } = {}): Promise<PeerBenchmark> {
     const res = await axios.get<PeerBenchmark>(`${BASE}/benchmark/${enseignantId}`, {
       params: { par_up: opts.parUp ?? false },
     });
@@ -233,27 +236,21 @@ const AnalyticsService = {
 
   // 3) Détection d'anomalies (enseignant)
   async detectAnomalies(enseignantId: string): Promise<AnomalyDetectionResult> {
-    const res = await axios.post<AnomalyDetectionResult>(
-      `${BASE}/anomalies/${enseignantId}`
-    );
+    const res = await axios.post<AnomalyDetectionResult>(`${BASE}/anomalies/${enseignantId}`);
     return res.data;
   },
 
   // 3b) Détection d'anomalies (département)
-  async detectAnomaliesDepartment(
-    departementId: string
-  ): Promise<DepartmentAnomalyResult> {
+  async detectAnomaliesDepartment(departementId: string): Promise<DepartmentAnomalyResult> {
     const res = await axios.post<DepartmentAnomalyResult>(
-      `${BASE}/anomalies/department/${departementId}`
+      `${BASE}/anomalies/department/${departementId}`,
     );
     return res.data;
   },
 
   // ── Dashboard de pilotage (PFE) ───────────────────────
 
-  async getPilotageDashboard(
-    opts: { horizonMois?: number } = {}
-  ): Promise<PilotageDashboard> {
+  async getPilotageDashboard(opts: { horizonMois?: number } = {}): Promise<PilotageDashboard> {
     const res = await axios.get<PilotageDashboard>(`${BASE}/pilotage`, {
       params: { horizon_mois: opts.horizonMois },
     });
@@ -269,7 +266,3 @@ const AnalyticsService = {
 };
 
 export default AnalyticsService;
-
-
-
-

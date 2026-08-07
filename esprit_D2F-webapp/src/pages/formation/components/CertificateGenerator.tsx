@@ -1,8 +1,8 @@
-import React from "react";
-import { Button, Drawer, Select, DatePicker, Space, Table } from "antd";
-import type { Dayjs } from "dayjs";
+import React from 'react';
+import { Button, Drawer, Select, DatePicker, Space, Table } from 'antd';
+import type { Dayjs } from 'dayjs';
 
-import type { EnseignantRef } from "../CompletedFormations";
+import type { EnseignantRef } from '../CompletedFormations';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -51,10 +51,10 @@ export function CertificateGenerator({
   onCreateCertificate,
 }: Readonly<CertificateGeneratorProps>) {
   const ensColumns = [
-    { title: "ID", dataIndex: "id", key: "id" },
-    { title: "Nom", dataIndex: "nom", key: "nom" },
-    { title: "Prénom", dataIndex: "prenom", key: "prenom" },
-    { title: "Email", dataIndex: "mail", key: "mail" },
+    { title: 'ID', dataIndex: 'id', key: 'id' },
+    { title: 'Nom', dataIndex: 'nom', key: 'nom' },
+    { title: 'Prénom', dataIndex: 'prenom', key: 'prenom' },
+    { title: 'Email', dataIndex: 'mail', key: 'mail' },
   ];
 
   return (
@@ -83,16 +83,16 @@ export function CertificateGenerator({
           <iframe
             src={pdfUrl}
             title="PDF Tableau"
-            style={{ width: "100%", height: "80vh", border: "none" }}
+            style={{ width: '100%', height: '80vh', border: 'none' }}
           />
         ) : (
-          <Space direction="vertical" size="large" style={{ width: "100%" }}>
+          <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <Table
-              title={() => "Sélectionnez le formateur"}
+              title={() => 'Sélectionnez le formateur'}
               dataSource={enseignants}
               columns={ensColumns}
               rowSelection={{
-                type: "radio",
+                type: 'radio',
                 selectedRowKeys: selectedEns ? [selectedEns.id as React.Key] : [],
                 onChange: (_: React.Key[], rows: EnseignantRef[]) => onSelectEns(rows[0] ?? null),
               }}
@@ -110,7 +110,11 @@ export function CertificateGenerator({
             </Space>
             <Space>
               <span>Période :</span>
-              <RangePicker onChange={(dates) => onPeriodChange(dates?.filter((d): d is Dayjs => d !== null) ?? [])} />
+              <RangePicker
+                onChange={(dates) =>
+                  onPeriodChange(dates?.filter((d): d is Dayjs => d !== null) ?? [])
+                }
+              />
             </Space>
           </Space>
         )}
@@ -124,11 +128,7 @@ export function CertificateGenerator({
         footer={
           <div className="completed-drawer-footer">
             <Button onClick={onCloseNewCertDrawer}>Annuler</Button>
-            <Button
-              type="primary"
-              disabled={!selectedNewCertEns}
-              onClick={onCreateCertificate}
-            >
+            <Button type="primary" disabled={!selectedNewCertEns} onClick={onCreateCertificate}>
               Créer certificat
             </Button>
           </div>
@@ -139,9 +139,10 @@ export function CertificateGenerator({
           dataSource={newCertEnseignants}
           columns={ensColumns}
           rowSelection={{
-            type: "radio",
+            type: 'radio',
             selectedRowKeys: selectedNewCertEns ? [selectedNewCertEns.id as React.Key] : [],
-            onChange: (_: React.Key[], rows: EnseignantRef[]) => onSelectNewCertEns(rows[0] ?? null),
+            onChange: (_: React.Key[], rows: EnseignantRef[]) =>
+              onSelectNewCertEns(rows[0] ?? null),
           }}
           loading={loadingNewCertEns}
           pagination={{ pageSize: 5 }}

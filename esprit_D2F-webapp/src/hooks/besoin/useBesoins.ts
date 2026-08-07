@@ -1,16 +1,16 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import BesoinFormationService from "@/services/besoin/BesoinFormationService";
-import BesoinCompetenceService from "@/services/besoin/BesoinCompetenceService";
-import type { BesoinCompetenceLink, BesoinFormation } from "@/models/besoin";
-import type { Id } from "@/models/common";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import BesoinFormationService from '@/services/besoin/BesoinFormationService';
+import BesoinCompetenceService from '@/services/besoin/BesoinCompetenceService';
+import type { BesoinCompetenceLink, BesoinFormation } from '@/models/besoin';
+import type { Id } from '@/models/common';
 
 const KEYS = {
-  all: ["besoins"] as const,
-  mine: ["besoins", "mine"] as const,
-  approved: ["besoins", "approved"] as const,
-  byUp: (up: string) => ["besoins", "up", up] as const,
-  byDept: (dept: string) => ["besoins", "dept", dept] as const,
-  competences: (id: Id) => ["besoins-competences", id] as const,
+  all: ['besoins'] as const,
+  mine: ['besoins', 'mine'] as const,
+  approved: ['besoins', 'approved'] as const,
+  byUp: (up: string) => ['besoins', 'up', up] as const,
+  byDept: (dept: string) => ['besoins', 'dept', dept] as const,
+  competences: (id: Id) => ['besoins-competences', id] as const,
 };
 
 export function useBesoins(enabled = true) {
@@ -38,7 +38,7 @@ export function useApprovedBesoins() {
 
 export function useBesoinsByUp(up: string | undefined) {
   return useQuery<BesoinFormation[]>({
-    queryKey: KEYS.byUp(up ?? ""),
+    queryKey: KEYS.byUp(up ?? ''),
     queryFn: () => BesoinFormationService.getBesoinsByUp(up!),
     enabled: !!up,
   });
@@ -46,7 +46,7 @@ export function useBesoinsByUp(up: string | undefined) {
 
 export function useBesoinsByDepartement(dept: string | undefined) {
   return useQuery<BesoinFormation[]>({
-    queryKey: KEYS.byDept(dept ?? ""),
+    queryKey: KEYS.byDept(dept ?? ''),
     queryFn: () => BesoinFormationService.getBesoinsByDepartement(dept!),
     enabled: !!dept,
   });
@@ -55,8 +55,7 @@ export function useBesoinsByDepartement(dept: string | undefined) {
 export function useAddBesoin() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: Partial<BesoinFormation>) =>
-      BesoinFormationService.addBesoinFormation(data),
+    mutationFn: (data: Partial<BesoinFormation>) => BesoinFormationService.addBesoinFormation(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.all }),
   });
 }
@@ -64,8 +63,13 @@ export function useAddBesoin() {
 export function useModifyBesoin() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ besoin, commentaire }: { besoin: Partial<BesoinFormation>; commentaire: string }) =>
-      BesoinFormationService.modifyBesoinFormation(besoin, commentaire),
+    mutationFn: ({
+      besoin,
+      commentaire,
+    }: {
+      besoin: Partial<BesoinFormation>;
+      commentaire: string;
+    }) => BesoinFormationService.modifyBesoinFormation(besoin, commentaire),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.all }),
   });
 }
@@ -99,7 +103,6 @@ export function useReplaceBesoinCompetences() {
   return useMutation({
     mutationFn: ({ besoinId, links }: { besoinId: number; links: BesoinCompetenceLink[] }) =>
       BesoinCompetenceService.replaceAll(besoinId, links),
-    onSuccess: (_, { besoinId }) =>
-      qc.invalidateQueries({ queryKey: KEYS.competences(besoinId) }),
+    onSuccess: (_, { besoinId }) => qc.invalidateQueries({ queryKey: KEYS.competences(besoinId) }),
   });
 }

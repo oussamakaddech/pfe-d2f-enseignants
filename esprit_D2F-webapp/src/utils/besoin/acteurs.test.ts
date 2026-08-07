@@ -25,7 +25,9 @@ describe('acteurs', () => {
 
   describe('buildActeurValue', () => {
     it('appends email in angle brackets', () => {
-      expect(buildActeurValue({ nom: 'Doe', prenom: 'John', mail: 'j@x.com' })).toBe('Doe John <j@x.com>');
+      expect(buildActeurValue({ nom: 'Doe', prenom: 'John', mail: 'j@x.com' })).toBe(
+        'Doe John <j@x.com>',
+      );
     });
     it('returns name only when no mail', () => {
       expect(buildActeurValue({ nom: 'Doe', prenom: 'John' })).toBe('Doe John');

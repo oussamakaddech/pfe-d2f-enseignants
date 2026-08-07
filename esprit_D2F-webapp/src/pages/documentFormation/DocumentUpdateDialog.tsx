@@ -1,6 +1,6 @@
-import { Modal } from "antd";
-import UpdateDocumentForm from "./UpdateDocumentForm";
-import type { FormationDocument } from "@/models/document";
+import { Modal } from 'antd';
+import UpdateDocumentForm from './UpdateDocumentForm';
+import type { FormationDocument } from '@/models/document';
 
 interface DocumentUpdateDialogProps {
   open: boolean;
@@ -9,7 +9,12 @@ interface DocumentUpdateDialogProps {
   onUpdated: (doc: FormationDocument | null) => void;
 }
 
-const DocumentUpdateDialog = ({ open, onClose, documentData, onUpdated }: DocumentUpdateDialogProps) => {
+const DocumentUpdateDialog = ({
+  open,
+  onClose,
+  documentData,
+  onUpdated,
+}: DocumentUpdateDialogProps) => {
   return (
     <Modal
       title={`Modifier le document : ${documentData.nomDocument}`}
@@ -24,7 +29,3 @@ const DocumentUpdateDialog = ({ open, onClose, documentData, onUpdated }: Docume
 };
 
 export default DocumentUpdateDialog;
-
-
-
-

@@ -2,11 +2,11 @@
 // Provides all mutation helpers (rename, delete, toggle type/niveau, assign,
 // merge, etc.) and derived memos (allSavoirsFlat, liveStats, treeFilteredIndices).
 
-import { useState, useCallback, useMemo } from "react";
-import { useImmer } from "use-immer";
-import type { MessageInstance } from "antd/es/message/interface";
-import { cloneDeep } from "@/pages/competence/rice/constants";
-import { secureRandomId } from "@/utils/secureRandom";
+import { useState, useCallback, useMemo } from 'react';
+import { useImmer } from 'use-immer';
+import type { MessageInstance } from 'antd/es/message/interface';
+import { cloneDeep } from '@/pages/competence/rice/constants';
+import { secureRandomId } from '@/utils/secureRandom';
 import type {
   RiceDomaine,
   RiceCompetence,
@@ -17,10 +17,16 @@ import type {
   RiceMergeRef,
   RiceTreePath,
   EnseignantId,
-} from "@/models/competence";
+} from '@/models/competence';
 
 // ── low-level accessor ────────────────────────────────────────────────────────
-const getSavoir = (t: RiceDomaine[], di: number, ci: number, sci: number, si: number): RiceSavoir => {
+const getSavoir = (
+  t: RiceDomaine[],
+  di: number,
+  ci: number,
+  sci: number,
+  si: number,
+): RiceSavoir => {
   const comp = t[di].competences![ci];
   if (sci === -1) return comp.savoirs![si];
   return comp.sousCompetences![sci].savoirs![si];
@@ -40,41 +46,45 @@ const pushSavoirFlat = (args: {
   const { list, s, si, d, di, c, ci, sc, sci } = args;
   list.push({
     ...s,
-    di, ci, sci, si,
+    di,
+    ci,
+    sci,
+    si,
     domaineCode: d.code,
     domaineNom: d.nom,
     competenceCode: c.code,
     competenceNom: c.nom,
     sousCompetenceCode: sc?.code ?? null,
     sousCompetenceNom: sc?.nom ?? null,
-    label: sc
-      ? `${d.nom} › ${c.nom} › ${sc.nom} › ${s.nom}`
-      : `${d.nom} › ${c.nom} › ${s.nom}`,
+    label: sc ? `${d.nom} › ${c.nom} › ${sc.nom} › ${s.nom}` : `${d.nom} › ${c.nom} › ${s.nom}`,
   });
 };
 
 const savoirMatchesQuery = (s: RiceSavoir, q: string) =>
-  s.nom.toLowerCase().includes(q) || (s.code ?? "").toLowerCase().includes(q);
+  s.nom.toLowerCase().includes(q) || (s.code ?? '').toLowerCase().includes(q);
 
 type TreeUpdater = (t: RiceDomaine[]) => void;
 
 export function useRiceTree(msgApi: MessageInstance) {
   // ── core tree state ───────────────────────────────────────────────────────
   const [tree, setTree] = useImmer<RiceDomaine[]>([]);
-  const [treeSearch, setTreeSearch] = useState("");
+  const [treeSearch, setTreeSearch] = useState('');
   const [editingNom, setEditingNom] = useState<RiceEditingNom | null>(null);
   const [mergeModal, setMergeModal] = useState(false);
   const [mergeSrc, setMergeSrc] = useState<RiceMergeRef | null>(null);
   const [mergeDst, setMergeDst] = useState<RiceMergeRef | null>(null);
 
   // ── generic updater (cloneDeep for immer compatibility) ───────────────────
-  const updateTree = useCallback((updater: TreeUpdater) => {
-    setTree((prev) => {
-      const next = cloneDeep(prev) as RiceDomaine[];
-      updater(next);
-      return next;
-    });
-  }, [setTree]);
+  const updateTree = useCallback(
+    (updater: TreeUpdater) => {
+      setTree((prev) => {
+        const next = cloneDeep(prev) as RiceDomaine[];
+        updater(next);
+        return next;
+      });
+    },
+    [setTree],
+  );
 
   // ── rename ────────────────────────────────────────────────────────────────
   const startRename = useCallback(
@@ -106,71 +116,101 @@ export function useRiceTree(msgApi: MessageInstance) {
   );
   const deleteSC = useCallback(
     (di: number, ci: number, sci: number) =>
-      updateTree((t) => { t[di].competences![ci].sousCompetences!.splice(sci, 1); }),
+      updateTree((t) => {
+        t[di].competences![ci].sousCompetences!.splice(sci, 1);
+      }),
     [updateTree],
   );
   const deleteComp = useCallback(
-    (di: number, ci: number) => updateTree((t) => { t[di].competences!.splice(ci, 1); }),
+    (di: number, ci: number) =>
+      updateTree((t) => {
+        t[di].competences!.splice(ci, 1);
+      }),
     [updateTree],
   );
   const deleteDomaine = useCallback(
-    (di: number) => updateTree((t) => { t.splice(di, 1); }),
+    (di: number) =>
+      updateTree((t) => {
+        t.splice(di, 1);
+      }),
     [updateTree],
   );
 
   // ── create (add) ──────────────────────────────────────────────────────────
-  const addDomaine = useCallback((domaine?: Partial<RiceDomaine>) => {
-    const d = domaine ?? { code: "NEW", nom: "Nouvel Domaine" };
-    updateTree((t) => {
-      const idx = t.push({ nom: "Nouvel Domaine", ...d, competences: [] }) - 1;
-      setEditingNom({ path: [idx], value: d.nom ?? "" });
-    });
-  }, [updateTree, setEditingNom]);
+  const addDomaine = useCallback(
+    (domaine?: Partial<RiceDomaine>) => {
+      const d = domaine ?? { code: 'NEW', nom: 'Nouvel Domaine' };
+      updateTree((t) => {
+        const idx = t.push({ nom: 'Nouvel Domaine', ...d, competences: [] }) - 1;
+        setEditingNom({ path: [idx], value: d.nom ?? '' });
+      });
+    },
+    [updateTree, setEditingNom],
+  );
 
-  const addCompetence = useCallback((di: number, competence?: Partial<RiceCompetence>) => {
-    const c = competence ?? { code: "NEW_C", nom: "Nouvelle compétence" };
-    updateTree((t) => {
-      const comps = t[di].competences ?? (t[di].competences = []);
-      const ci = comps.push({ nom: "Nouvelle compétence", ...c, sousCompetences: [], savoirs: [] }) - 1;
-      setEditingNom({ path: [di, ci], value: c.nom ?? "" });
-    });
-  }, [updateTree, setEditingNom]);
+  const addCompetence = useCallback(
+    (di: number, competence?: Partial<RiceCompetence>) => {
+      const c = competence ?? { code: 'NEW_C', nom: 'Nouvelle compétence' };
+      updateTree((t) => {
+        const comps = t[di].competences ?? (t[di].competences = []);
+        const ci =
+          comps.push({ nom: 'Nouvelle compétence', ...c, sousCompetences: [], savoirs: [] }) - 1;
+        setEditingNom({ path: [di, ci], value: c.nom ?? '' });
+      });
+    },
+    [updateTree, setEditingNom],
+  );
 
-  const addSousCompetence = useCallback((di: number, ci: number, sousComp?: Partial<RiceSousCompetence>) => {
-    const sc = sousComp ?? { code: "NEW_SC", nom: "Nouvelle sous-comp" };
-    updateTree((t) => {
-      const comp = t[di].competences![ci];
-      const scs = comp.sousCompetences ?? (comp.sousCompetences = []);
-      const sci = scs.push({ nom: "Nouvelle sous-comp", ...sc, savoirs: [] }) - 1;
-      setEditingNom({ path: [di, ci, sci], value: sc.nom ?? "" });
-    });
-  }, [updateTree, setEditingNom]);
+  const addSousCompetence = useCallback(
+    (di: number, ci: number, sousComp?: Partial<RiceSousCompetence>) => {
+      const sc = sousComp ?? { code: 'NEW_SC', nom: 'Nouvelle sous-comp' };
+      updateTree((t) => {
+        const comp = t[di].competences![ci];
+        const scs = comp.sousCompetences ?? (comp.sousCompetences = []);
+        const sci = scs.push({ nom: 'Nouvelle sous-comp', ...sc, savoirs: [] }) - 1;
+        setEditingNom({ path: [di, ci, sci], value: sc.nom ?? '' });
+      });
+    },
+    [updateTree, setEditingNom],
+  );
 
   // ── create (add savoir) ────────────────────────────────────────────────────
-  const addSavoir = useCallback((di: number, ci: number, sci = -1, savoir?: Partial<RiceSavoir>) => {
-    const s = savoir ?? { code: null, nom: "Nouveau savoir", type: "THEORIQUE", niveau: null, enseignantsSuggeres: [] };
-    updateTree((t) => {
-      const target = sci === -1 ? t[di].competences![ci] : t[di].competences![ci].sousCompetences![sci];
-      const list = target.savoirs ?? (target.savoirs = []);
-          const tmpId = `tmp-${Date.now()}-${secureRandomId()}`;
-      const si = list.push({ nom: "Nouveau savoir", ...s, tmpId }) - 1;
-      setEditingNom({ path: [di, ci, sci, si], value: s.nom ?? "" });
-    });
-  }, [updateTree, setEditingNom]);
+  const addSavoir = useCallback(
+    (di: number, ci: number, sci = -1, savoir?: Partial<RiceSavoir>) => {
+      const s = savoir ?? {
+        code: null,
+        nom: 'Nouveau savoir',
+        type: 'THEORIQUE',
+        niveau: null,
+        enseignantsSuggeres: [],
+      };
+      updateTree((t) => {
+        const target =
+          sci === -1 ? t[di].competences![ci] : t[di].competences![ci].sousCompetences![sci];
+        const list = target.savoirs ?? (target.savoirs = []);
+        const tmpId = `tmp-${Date.now()}-${secureRandomId()}`;
+        const si = list.push({ nom: 'Nouveau savoir', ...s, tmpId }) - 1;
+        setEditingNom({ path: [di, ci, sci, si], value: s.nom ?? '' });
+      });
+    },
+    [updateTree, setEditingNom],
+  );
 
   // ── type / niveau ─────────────────────────────────────────────────────────
   const toggleType = useCallback(
     (di: number, ci: number, sci: number, si: number) =>
       updateTree((t) => {
         const s = getSavoir(t, di, ci, sci, si);
-        s.type = s.type === "THEORIQUE" ? "PRATIQUE" : "THEORIQUE";
+        s.type = s.type === 'THEORIQUE' ? 'PRATIQUE' : 'THEORIQUE';
       }),
     [updateTree],
   );
 
   const setNiveau = useCallback(
     (di: number, ci: number, sci: number, si: number, niveau: string) =>
-      updateTree((t) => { getSavoir(t, di, ci, sci, si).niveau = niveau; }),
+      updateTree((t) => {
+        getSavoir(t, di, ci, sci, si).niveau = niveau;
+      }),
     [updateTree],
   );
 
@@ -190,7 +230,9 @@ export function useRiceTree(msgApi: MessageInstance) {
 
   const setEnseignants = useCallback(
     (di: number, ci: number, sci: number, si: number, ids: EnseignantId[]) =>
-      updateTree((t) => { getSavoir(t, di, ci, sci, si).enseignantsSuggeres = ids; }),
+      updateTree((t) => {
+        getSavoir(t, di, ci, sci, si).enseignantsSuggeres = ids;
+      }),
     [updateTree],
   );
 
@@ -199,18 +241,22 @@ export function useRiceTree(msgApi: MessageInstance) {
     updateTree((t) => {
       for (const d of t)
         for (const c of d.competences ?? []) {
-          for (const s of c.savoirs ?? [])
-            s.enseignantsSuggeres = [];
+          for (const s of c.savoirs ?? []) s.enseignantsSuggeres = [];
           for (const sc of c.sousCompetences ?? [])
-            for (const s of sc.savoirs ?? [])
-              s.enseignantsSuggeres = [];
+            for (const s of sc.savoirs ?? []) s.enseignantsSuggeres = [];
         }
     });
-    msgApi.success("Toutes les affectations ont été supprimées — glissez les savoirs manuellement.");
+    msgApi.success(
+      'Toutes les affectations ont été supprimées — glissez les savoirs manuellement.',
+    );
   }, [updateTree, msgApi]);
 
   // ── remap enseignant ID in tree (called after identifing an ext_ teacher) ─
-  const replaceIdInArray = (ids: EnseignantId[] | undefined, from: EnseignantId, to: EnseignantId): void => {
+  const replaceIdInArray = (
+    ids: EnseignantId[] | undefined,
+    from: EnseignantId,
+    to: EnseignantId,
+  ): void => {
     if (!ids) return;
     const idx = ids.indexOf(from);
     if (idx !== -1) ids[idx] = to;
@@ -223,7 +269,8 @@ export function useRiceTree(msgApi: MessageInstance) {
           for (const c of d.competences ?? []) {
             for (const s of c.savoirs ?? []) replaceIdInArray(s.enseignantsSuggeres, extId, realId);
             for (const sc of c.sousCompetences ?? [])
-              for (const s of sc.savoirs ?? []) replaceIdInArray(s.enseignantsSuggeres, extId, realId);
+              for (const s of sc.savoirs ?? [])
+                replaceIdInArray(s.enseignantsSuggeres, extId, realId);
           }
       });
     },
@@ -253,7 +300,7 @@ export function useRiceTree(msgApi: MessageInstance) {
     setMergeModal(false);
     setMergeSrc(null);
     setMergeDst(null);
-    msgApi.success("Savoirs fusionnés avec succès");
+    msgApi.success('Savoirs fusionnés avec succès');
   }, [mergeSrc, mergeDst, updateTree, msgApi]);
 
   // ── derived: flat savoir list ──────────────────────────────────────────────
@@ -274,16 +321,20 @@ export function useRiceTree(msgApi: MessageInstance) {
   // ── derived: live stats ────────────────────────────────────────────────────
   const liveStats = useMemo(() => {
     const totalSavoirs = allSavoirsFlat.length;
-    const assignedEns = new Set(
-      allSavoirsFlat.flatMap((s) => s.enseignantsSuggeres ?? []),
-    );
+    const assignedEns = new Set(allSavoirsFlat.flatMap((s) => s.enseignantsSuggeres ?? []));
     const totalDomaines = tree.length;
     const totalComp = tree.reduce((a, d) => a + (d.competences?.length ?? 0), 0);
     const totalSC = tree.reduce(
       (a, d) => a + (d.competences ?? []).reduce((b, c) => b + (c.sousCompetences?.length ?? 0), 0),
       0,
     );
-    return { totalDomaines, totalComp, totalSC, totalSavoirs, enseignantsAssigned: assignedEns.size };
+    return {
+      totalDomaines,
+      totalComp,
+      totalSC,
+      totalSavoirs,
+      enseignantsAssigned: assignedEns.size,
+    };
   }, [tree, allSavoirsFlat]);
 
   // ── derived: tree filter indices ──────────────────────────────────────────
@@ -294,24 +345,33 @@ export function useRiceTree(msgApi: MessageInstance) {
     const visibleCi = new Set<string>();
     const visibleSci = new Set<string>();
     tree.forEach((d, di) => {
-      const mD = d.nom.toLowerCase().includes(q) || (d.code ?? "").toLowerCase().includes(q);
+      const mD = d.nom.toLowerCase().includes(q) || (d.code ?? '').toLowerCase().includes(q);
       (d.competences ?? []).forEach((c, ci) => {
-        const mC = c.nom.toLowerCase().includes(q) || (c.code ?? "").toLowerCase().includes(q);
+        const mC = c.nom.toLowerCase().includes(q) || (c.code ?? '').toLowerCase().includes(q);
         let hasDirectSav = false;
         for (const s of c.savoirs ?? [])
-          if (savoirMatchesQuery(s, q)) { hasDirectSav = true; break; }
+          if (savoirMatchesQuery(s, q)) {
+            hasDirectSav = true;
+            break;
+          }
         for (const [sci, sc] of (c.sousCompetences ?? []).entries()) {
-          const mSc = sc.nom.toLowerCase().includes(q) || (sc.code ?? "").toLowerCase().includes(q);
+          const mSc = sc.nom.toLowerCase().includes(q) || (sc.code ?? '').toLowerCase().includes(q);
           let hasSav = false;
           for (const s of sc.savoirs ?? [])
-            if (savoirMatchesQuery(s, q)) { hasSav = true; break; }
+            if (savoirMatchesQuery(s, q)) {
+              hasSav = true;
+              break;
+            }
           if (mD || mC || mSc || hasSav || hasDirectSav) {
             visibleDi.add(di);
             visibleCi.add(`${di}-${ci}`);
             visibleSci.add(`${di}-${ci}-${sci}`);
           }
         }
-        if (mD || mC || hasDirectSav) { visibleDi.add(di); visibleCi.add(`${di}-${ci}`); }
+        if (mD || mC || hasDirectSav) {
+          visibleDi.add(di);
+          visibleCi.add(`${di}-${ci}`);
+        }
       });
       if (mD) visibleDi.add(di);
     });
@@ -320,25 +380,46 @@ export function useRiceTree(msgApi: MessageInstance) {
 
   return {
     // state
-    tree, setTree, treeSearch, setTreeSearch,
-    editingNom, setEditingNom,
-    mergeModal, setMergeModal,
-    mergeSrc, setMergeSrc,
-    mergeDst, setMergeDst,
+    tree,
+    setTree,
+    treeSearch,
+    setTreeSearch,
+    editingNom,
+    setEditingNom,
+    mergeModal,
+    setMergeModal,
+    mergeSrc,
+    setMergeSrc,
+    mergeDst,
+    setMergeDst,
     // tree utilities
     updateTree,
     // create
-    addDomaine, addCompetence, addSousCompetence, addSavoir,
+    addDomaine,
+    addCompetence,
+    addSousCompetence,
+    addSavoir,
     // rename
-    startRename, commitRename,
+    startRename,
+    commitRename,
     // delete
-    deleteSavoir, deleteSC, deleteComp, deleteDomaine,
+    deleteSavoir,
+    deleteSC,
+    deleteComp,
+    deleteDomaine,
     // modify
-    toggleType, setNiveau, toggleEnsAssign, setEnseignants,
-    clearAllAssignments, remapInTree,
+    toggleType,
+    setNiveau,
+    toggleEnsAssign,
+    setEnseignants,
+    clearAllAssignments,
+    remapInTree,
     // merge
-    openMerge, confirmMerge,
+    openMerge,
+    confirmMerge,
     // derived
-    allSavoirsFlat, liveStats, treeFilteredIndices,
+    allSavoirsFlat,
+    liveStats,
+    treeFilteredIndices,
   };
 }

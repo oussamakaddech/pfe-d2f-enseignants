@@ -5,7 +5,7 @@ const httpMocks = vi.hoisted(() => ({
   mockPut: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     get: httpMocks.mockGet,
     put: httpMocks.mockPut,
@@ -15,7 +15,9 @@ vi.mock("@/services/httpClient", () => ({
 import BesoinCompetenceService from '../BesoinCompetenceService';
 
 describe('BesoinCompetenceService', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('gets competences by besoin id', async () => {
     const links = [{ id: 1, competenceId: 10, besoinId: 5 }];
@@ -28,7 +30,10 @@ describe('BesoinCompetenceService', () => {
   });
 
   it('replaces all competences for a besoin', async () => {
-    const links = [{ id: 1, competenceId: 10, besoinId: 5 }, { id: 2, competenceId: 11, besoinId: 5 }];
+    const links = [
+      { id: 1, competenceId: 10, besoinId: 5 },
+      { id: 2, competenceId: 11, besoinId: 5 },
+    ];
     httpMocks.mockPut.mockResolvedValueOnce({ data: links });
 
     const result = await BesoinCompetenceService.replaceAll(5, links as never);
@@ -36,7 +41,7 @@ describe('BesoinCompetenceService', () => {
     expect(result).toEqual(links);
     expect(httpMocks.mockPut).toHaveBeenCalledWith(
       expect.stringContaining('/5/competences'),
-      links
+      links,
     );
   });
 });

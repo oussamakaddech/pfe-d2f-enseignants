@@ -1,6 +1,6 @@
-import { AppstoreOutlined } from "@ant-design/icons";
-import { Segmented } from "antd";
-import ExportMenu from "./ExportMenu";
+import { AppstoreOutlined } from '@ant-design/icons';
+import { Segmented } from 'antd';
+import ExportMenu from './ExportMenu';
 
 interface ViewToolbarProps {
   displayMode: string;
@@ -11,14 +11,28 @@ interface ViewToolbarProps {
   stats: Record<string, number> | undefined;
 }
 
-export default function ViewToolbar({ displayMode, setDisplayMode, handleExportExcel, crud, structure, stats }: Readonly<ViewToolbarProps>) {
+export default function ViewToolbar({
+  displayMode,
+  setDisplayMode,
+  handleExportExcel,
+  crud,
+  structure,
+  stats,
+}: Readonly<ViewToolbarProps>) {
   return (
     <div className="ctp-toolbar ctp-section">
       <Segmented
         value={displayMode}
         onChange={setDisplayMode}
         options={[
-          { value: "cards", label: <span><AppstoreOutlined /> Par competence</span> },
+          {
+            value: 'cards',
+            label: (
+              <span>
+                <AppstoreOutlined /> Par competence
+              </span>
+            ),
+          },
         ]}
       />
 
@@ -33,9 +47,3 @@ export default function ViewToolbar({ displayMode, setDisplayMode, handleExportE
     </div>
   );
 }
-
-
-
-
-
-

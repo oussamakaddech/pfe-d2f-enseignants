@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Empty } from "antd";
+import { useState } from 'react';
+import { Empty } from 'antd';
 
 interface Segment {
   label: string;
@@ -37,11 +37,13 @@ export default function StackedProgress({
             key={`${item.label}-${idx}`}
             className="sp-row"
             onMouseEnter={() => undefined}
-            onMouseLeave={() => { setHoveredSeg(null); }}
+            onMouseLeave={() => {
+              setHoveredSeg(null);
+            }}
           >
             <div className="sp-head">
               <span className="sp-label">{item.label}</span>
-              <span className="sp-total">{total.toLocaleString("fr-FR")}</span>
+              <span className="sp-total">{total.toLocaleString('fr-FR')}</span>
             </div>
             <div className="sp-track" style={{ height }}>
               {item.segments.map((seg) => {
@@ -55,7 +57,7 @@ export default function StackedProgress({
                       width: `${pct}%`,
                       background: seg.color,
                       opacity: isSegHovered ? 1 : 0.85,
-                      filter: isSegHovered ? "brightness(1.1)" : "none",
+                      filter: isSegHovered ? 'brightness(1.1)' : 'none',
                     }}
                     onMouseEnter={() => setHoveredSeg(`${idx}-${seg.label}`)}
                     onMouseLeave={() => setHoveredSeg(null)}

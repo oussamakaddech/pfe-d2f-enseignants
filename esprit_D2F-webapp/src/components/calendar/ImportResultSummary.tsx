@@ -1,4 +1,4 @@
-import { Card, Col, Row, Statistic, Tag, Alert, Divider, Typography } from "antd";
+import { Card, Col, Row, Statistic, Tag, Alert, Divider, Typography } from 'antd';
 import {
   ReadOutlined,
   CalendarOutlined,
@@ -6,17 +6,17 @@ import {
   WarningOutlined,
   StopOutlined,
   DisconnectOutlined,
-} from "@ant-design/icons";
-import type { ImportReport, ImportStatus } from "@/models/calendar";
-import ImportErrorsTable from "./ImportErrorsTable";
+} from '@ant-design/icons';
+import type { ImportReport, ImportStatus } from '@/models/calendar';
+import ImportErrorsTable from './ImportErrorsTable';
 
 const { Text } = Typography;
 
 const STATUS_META: Record<ImportStatus, { color: string; label: string }> = {
-  SUCCESS: { color: "success", label: "Import réussi" },
-  PARTIAL: { color: "warning", label: "Import partiel" },
-  FAILED: { color: "error", label: "Import échoué" },
-  DUPLICATE: { color: "default", label: "Fichier déjà importé" },
+  SUCCESS: { color: 'success', label: 'Import réussi' },
+  PARTIAL: { color: 'warning', label: 'Import partiel' },
+  FAILED: { color: 'error', label: 'Import échoué' },
+  DUPLICATE: { color: 'default', label: 'Fichier déjà importé' },
 };
 
 interface Props {
@@ -31,12 +31,13 @@ export default function ImportResultSummary({ report }: Readonly<Props>) {
     <Card
       title={
         <span>
-          Résultat de l'import {report.fileName ? <Text type="secondary">— {report.fileName}</Text> : null}
+          Résultat de l'import{' '}
+          {report.fileName ? <Text type="secondary">— {report.fileName}</Text> : null}
         </span>
       }
       extra={<Tag color={meta.color}>{meta.label}</Tag>}
     >
-      {report.status === "DUPLICATE" && (
+      {report.status === 'DUPLICATE' && (
         <Alert
           type="info"
           showIcon
@@ -52,20 +53,28 @@ export default function ImportResultSummary({ report }: Readonly<Props>) {
 
       <Row gutter={[16, 16]}>
         <Col xs={12} md={8} lg={4}>
-          <Statistic title="Formations" value={report.formationsCreated} prefix={<ReadOutlined />} />
+          <Statistic
+            title="Formations"
+            value={report.formationsCreated}
+            prefix={<ReadOutlined />}
+          />
         </Col>
         <Col xs={12} md={8} lg={4}>
           <Statistic title="Séances" value={report.sessionsCreated} prefix={<CalendarOutlined />} />
         </Col>
         <Col xs={12} md={8} lg={4}>
-          <Statistic title="Participants" value={report.participantsImported} prefix={<TeamOutlined />} />
+          <Statistic
+            title="Participants"
+            value={report.participantsImported}
+            prefix={<TeamOutlined />}
+          />
         </Col>
         <Col xs={12} md={8} lg={4}>
           <Statistic
             title="Non rattachés"
             value={report.participantsUnmatched}
             prefix={<DisconnectOutlined />}
-            valueStyle={report.participantsUnmatched > 0 ? { color: "#d46b08" } : undefined}
+            valueStyle={report.participantsUnmatched > 0 ? { color: '#d46b08' } : undefined}
           />
         </Col>
         <Col xs={12} md={8} lg={4}>
@@ -73,7 +82,7 @@ export default function ImportResultSummary({ report }: Readonly<Props>) {
             title="Lignes ignorées"
             value={report.rowsSkipped}
             prefix={<StopOutlined />}
-            valueStyle={report.rowsSkipped > 0 ? { color: "#d46b08" } : undefined}
+            valueStyle={report.rowsSkipped > 0 ? { color: '#d46b08' } : undefined}
           />
         </Col>
         <Col xs={12} md={8} lg={4}>
@@ -81,7 +90,7 @@ export default function ImportResultSummary({ report }: Readonly<Props>) {
             title="Conflits"
             value={report.conflictsDetected}
             prefix={<WarningOutlined />}
-            valueStyle={report.conflictsDetected > 0 ? { color: "#cf1322" } : undefined}
+            valueStyle={report.conflictsDetected > 0 ? { color: '#cf1322' } : undefined}
           />
         </Col>
       </Row>

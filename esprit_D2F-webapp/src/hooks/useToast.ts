@@ -1,5 +1,5 @@
-import { useMemo, type ReactNode } from "react";
-import { App } from "antd";
+import { useMemo, type ReactNode } from 'react';
+import { App } from 'antd';
 
 export interface ToastOptions {
   /** Description secondaire sous le titre. */
@@ -24,21 +24,21 @@ export function useToast() {
 
   return useMemo(() => {
     const fire =
-      (type: "success" | "error" | "warning" | "info") =>
+      (type: 'success' | 'error' | 'warning' | 'info') =>
       (message: ReactNode, options?: ToastOptions) => {
         notification[type]({
           message,
           description: options?.description,
-          placement: "bottomRight",
+          placement: 'bottomRight',
           duration: options?.duration ?? 4,
         });
       };
 
     return {
-      success: fire("success"),
-      error: fire("error"),
-      warning: fire("warning"),
-      info: fire("info"),
+      success: fire('success'),
+      error: fire('error'),
+      warning: fire('warning'),
+      info: fire('info'),
     };
   }, [notification]);
 }

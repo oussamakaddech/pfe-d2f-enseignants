@@ -5,13 +5,13 @@
  * Loading/error states handled centrally via React Query.
  */
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import D2FService from "@/services/analyse/D2FService";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import D2FService from '@/services/analyse/D2FService';
 
 // ── KPI Dashboard ──────────────────────────────────────
 export function useD2FKPIs() {
   return useQuery({
-    queryKey: ["d2f", "kpis"],
+    queryKey: ['d2f', 'kpis'],
     queryFn: () => D2FService.getKPIs(),
     staleTime: 60_000,
   });
@@ -20,7 +20,7 @@ export function useD2FKPIs() {
 // ── Teachers ───────────────────────────────────────────
 export function useD2FTeachers(opts: { risk_level?: string; limit?: number } = {}) {
   return useQuery({
-    queryKey: ["d2f", "teachers", opts],
+    queryKey: ['d2f', 'teachers', opts],
     queryFn: () => D2FService.listTeachers(opts),
     staleTime: 60_000,
   });
@@ -28,7 +28,7 @@ export function useD2FTeachers(opts: { risk_level?: string; limit?: number } = {
 
 export function useD2FTeacherProfile(teacherId: string | undefined) {
   return useQuery({
-    queryKey: ["d2f", "teacher", teacherId],
+    queryKey: ['d2f', 'teacher', teacherId],
     queryFn: () => D2FService.getTeacherProfile(teacherId!),
     enabled: !!teacherId,
     staleTime: 30_000,
@@ -37,7 +37,7 @@ export function useD2FTeacherProfile(teacherId: string | undefined) {
 
 export function useD2FTeacherMLSignal(teacherId: string | undefined) {
   return useQuery({
-    queryKey: ["d2f", "ml-signal", teacherId],
+    queryKey: ['d2f', 'ml-signal', teacherId],
     queryFn: () => D2FService.getTeacherMLSignal(teacherId!),
     enabled: !!teacherId,
     staleTime: 60_000,
@@ -47,7 +47,7 @@ export function useD2FTeacherMLSignal(teacherId: string | undefined) {
 // ── At-Risk / Critical ─────────────────────────────────
 export function useD2FAtRisk() {
   return useQuery({
-    queryKey: ["d2f", "at-risk"],
+    queryKey: ['d2f', 'at-risk'],
     queryFn: () => D2FService.getAtRiskTeachers(),
     staleTime: 60_000,
   });
@@ -55,7 +55,7 @@ export function useD2FAtRisk() {
 
 export function useD2FCritical() {
   return useQuery({
-    queryKey: ["d2f", "critical"],
+    queryKey: ['d2f', 'critical'],
     queryFn: () => D2FService.getCriticalTeachers(),
     staleTime: 60_000,
   });
@@ -64,7 +64,7 @@ export function useD2FCritical() {
 // ── Alerts ─────────────────────────────────────────────
 export function useD2FAlerts(status?: string) {
   return useQuery({
-    queryKey: ["d2f", "alerts", status],
+    queryKey: ['d2f', 'alerts', status],
     queryFn: () => D2FService.listAlerts(status),
     staleTime: 30_000,
   });
@@ -73,7 +73,7 @@ export function useD2FAlerts(status?: string) {
 // ── Recommendations ────────────────────────────────────
 export function useD2FRecommendations(priority?: string) {
   return useQuery({
-    queryKey: ["d2f", "recommendations", priority],
+    queryKey: ['d2f', 'recommendations', priority],
     queryFn: () => D2FService.listRecommendations(priority),
     staleTime: 30_000,
   });
@@ -87,10 +87,10 @@ export function useMarkTrainingCompleted() {
       D2FService.markTrainingCompleted(teacherId, trainingCode),
     onSuccess: (_, vars) => {
       // Invalidate all queries affected by risk recompute
-      qc.invalidateQueries({ queryKey: ["d2f", "kpis"] });
-      qc.invalidateQueries({ queryKey: ["d2f", "at-risk"] });
-      qc.invalidateQueries({ queryKey: ["d2f", "critical"] });
-      qc.invalidateQueries({ queryKey: ["d2f", "teacher", vars.teacherId] });
+      qc.invalidateQueries({ queryKey: ['d2f', 'kpis'] });
+      qc.invalidateQueries({ queryKey: ['d2f', 'at-risk'] });
+      qc.invalidateQueries({ queryKey: ['d2f', 'critical'] });
+      qc.invalidateQueries({ queryKey: ['d2f', 'teacher', vars.teacherId] });
     },
   });
 }
@@ -98,7 +98,7 @@ export function useMarkTrainingCompleted() {
 // ── Heatmap (competence x departement) ────────────────
 export function useD2FHeatmap() {
   return useQuery({
-    queryKey: ["d2f", "heatmap"],
+    queryKey: ['d2f', 'heatmap'],
     queryFn: () => D2FService.getHeatmap(),
     staleTime: 60_000,
   });
@@ -107,7 +107,7 @@ export function useD2FHeatmap() {
 // ── Top Formations recommandees ────────────────
 export function useD2FTopFormations(limit: number = 10) {
   return useQuery({
-    queryKey: ["d2f", "top-formations", limit],
+    queryKey: ['d2f', 'top-formations', limit],
     queryFn: () => D2FService.getTopFormations(limit),
     staleTime: 60_000,
   });
@@ -116,7 +116,7 @@ export function useD2FTopFormations(limit: number = 10) {
 // ── Plan d'action prioritaire ────────────────
 export function useD2FPlanActions() {
   return useQuery({
-    queryKey: ["d2f", "plan-actions"],
+    queryKey: ['d2f', 'plan-actions'],
     queryFn: () => D2FService.getPlanActions(),
     staleTime: 60_000,
   });
@@ -125,7 +125,7 @@ export function useD2FPlanActions() {
 // ── Stats additionnelles (regression, stagnation, alertes critiques) ────────────────
 export function useD2FStats() {
   return useQuery({
-    queryKey: ["d2f", "stats"],
+    queryKey: ['d2f', 'stats'],
     queryFn: () => D2FService.getStats(),
     staleTime: 60_000,
   });

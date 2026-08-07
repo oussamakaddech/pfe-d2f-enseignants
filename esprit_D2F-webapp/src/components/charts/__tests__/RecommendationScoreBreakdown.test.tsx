@@ -4,11 +4,26 @@ import RecommendationScoreBreakdown from '../RecommendationScoreBreakdown';
 import type { Recommendation } from '@/models/analyse';
 
 const reco: Recommendation = {
-  id: 1, formation_id: 10, formation_titre: 'Formation Python', formation_type: 'INTERNE',
-  competence_id: 1, score_global: 0.8, score_pertinence: 0.9, score_reussite: 0.7,
-  score_disponibilite: 0.6, probabilite_reussite: 0.85, rang_dans_parcours: 1,
-  justification: 'utile', statut: 'PROPOSEE',
-  facteurs_score: { pertinence: 0.9, reussite: 0.7, disponibilite: 0.6, pairs: 0.4, confiance: 0.88 },
+  id: 1,
+  formation_id: 10,
+  formation_titre: 'Formation Python',
+  formation_type: 'INTERNE',
+  competence_id: 1,
+  score_global: 0.8,
+  score_pertinence: 0.9,
+  score_reussite: 0.7,
+  score_disponibilite: 0.6,
+  probabilite_reussite: 0.85,
+  rang_dans_parcours: 1,
+  justification: 'utile',
+  statut: 'PROPOSEE',
+  facteurs_score: {
+    pertinence: 0.9,
+    reussite: 0.7,
+    disponibilite: 0.6,
+    pairs: 0.4,
+    confiance: 0.88,
+  },
 };
 
 describe('RecommendationScoreBreakdown', () => {

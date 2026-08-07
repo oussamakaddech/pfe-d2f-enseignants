@@ -1,19 +1,10 @@
-import { useState, useEffect } from "react";
-import {
-  Card,
-  Table,
-  Button,
-  Input,
-  InputNumber,
-  Checkbox,
-  Typography,
-  Space,
-} from "antd";
-import type { TableColumnsType } from "antd";
-import { DownloadOutlined, SaveOutlined } from "@ant-design/icons";
-import useAppNotification from "@/hooks/ui/useAppNotification";
-import { writeExcel, exportDateLabel, isoDate } from "utils/helpers/excelExport";
-import { useEvaluationsGlobales, useUpdateEvaluationsBulkFlat } from "@/hooks/evaluation";
+import { useState, useEffect } from 'react';
+import { Card, Table, Button, Input, InputNumber, Checkbox, Typography, Space } from 'antd';
+import type { TableColumnsType } from 'antd';
+import { DownloadOutlined, SaveOutlined } from '@ant-design/icons';
+import useAppNotification from '@/hooks/ui/useAppNotification';
+import { writeExcel, exportDateLabel, isoDate } from 'utils/helpers/excelExport';
+import { useEvaluationsGlobales, useUpdateEvaluationsBulkFlat } from '@/hooks/evaluation';
 
 interface EvaluationRow {
   idEvalParticipant?: string | number;
@@ -58,49 +49,61 @@ const EvaluationListEnriched = () => {
       enseignantId: e.enseignantId,
       formationId: e.formationId,
     }));
-    void bulkUpdateMut.mutateAsync({ evaluations: dtos })
-      .then(() => message.success("Mise à jour en masse effectuée avec succès"))
+    void bulkUpdateMut
+      .mutateAsync({ evaluations: dtos })
+      .then(() => message.success('Mise à jour en masse effectuée avec succès'))
       .catch(() => {
-        message.error("Erreur lors de la mise à jour en masse");
+        message.error('Erreur lors de la mise à jour en masse');
       });
   };
 
   const exportExcel = () => {
     const rows = evaluations.map((e) => ({
-      Nom:          e.nom,
-      Prénom:       e.prenom,
-      Email:        e.mail,
-      Note:         e.note,
-      Satisfaisant: e.satisfaisant ? "Oui" : "Non",
-      Commentaire:  e.commentaire || "",
+      Nom: e.nom,
+      Prénom: e.prenom,
+      Email: e.mail,
+      Note: e.note,
+      Satisfaisant: e.satisfaisant ? 'Oui' : 'Non',
+      Commentaire: e.commentaire || '',
     }));
     writeExcel(
-      [{ name: "Évaluations", rows, title: "Évaluations Enrichies — Esprit", subtitle: exportDateLabel() }],
-      `evaluations_enriched_${isoDate()}.xlsx`
+      [
+        {
+          name: 'Évaluations',
+          rows,
+          title: 'Évaluations Enrichies — Esprit',
+          subtitle: exportDateLabel(),
+        },
+      ],
+      `evaluations_enriched_${isoDate()}.xlsx`,
     );
   };
 
   const columns: TableColumnsType<EvaluationRow> = [
     {
-      title: "Enseignant",
-      dataIndex: "nom",
-      key: "nom",
+      title: 'Enseignant',
+      dataIndex: 'nom',
+      key: 'nom',
       render: (_: unknown, row: EvaluationRow) => (
         <div>
-          <div>{row.nom} {row.prenom}</div>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>({row.mail})</Typography.Text>
+          <div>
+            {row.nom} {row.prenom}
+          </div>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            ({row.mail})
+          </Typography.Text>
         </div>
       ),
     },
     {
-      title: "Note",
-      dataIndex: "note",
-      key: "note",
+      title: 'Note',
+      dataIndex: 'note',
+      key: 'note',
       width: 100,
       render: (_: unknown, row: EvaluationRow, idx: number) => (
         <InputNumber
           value={row.note ?? undefined}
-          onChange={(val) => handleChange(idx, "note", val)}
+          onChange={(val) => handleChange(idx, 'note', val)}
           min={0}
           max={20}
           style={{ width: 80 }}
@@ -108,25 +111,25 @@ const EvaluationListEnriched = () => {
       ),
     },
     {
-      title: "Satisfaisant",
-      dataIndex: "satisfaisant",
-      key: "satisfaisant",
+      title: 'Satisfaisant',
+      dataIndex: 'satisfaisant',
+      key: 'satisfaisant',
       width: 120,
       render: (_: unknown, row: EvaluationRow, idx: number) => (
         <Checkbox
           checked={row.satisfaisant}
-          onChange={(e) => handleCheckboxChange(idx, "satisfaisant", e.target.checked)}
+          onChange={(e) => handleCheckboxChange(idx, 'satisfaisant', e.target.checked)}
         />
       ),
     },
     {
-      title: "Commentaire",
-      dataIndex: "commentaire",
-      key: "commentaire",
+      title: 'Commentaire',
+      dataIndex: 'commentaire',
+      key: 'commentaire',
       render: (_: unknown, row: EvaluationRow, idx: number) => (
         <Input
           value={row.commentaire}
-          onChange={(e) => handleChange(idx, "commentaire", e.target.value)}
+          onChange={(e) => handleChange(idx, 'commentaire', e.target.value)}
         />
       ),
     },
@@ -134,8 +137,17 @@ const EvaluationListEnriched = () => {
 
   return (
     <Card style={{ marginTop: 16, padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <Typography.Title level={5} style={{ margin: 0 }}>Évaluations enrichies</Typography.Title>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 16,
+        }}
+      >
+        <Typography.Title level={5} style={{ margin: 0 }}>
+          Évaluations enrichies
+        </Typography.Title>
         <Space>
           <Button icon={<DownloadOutlined />} onClick={exportExcel}>
             Exporter Excel

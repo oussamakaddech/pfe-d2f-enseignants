@@ -10,14 +10,9 @@ vi.mock('xlsx', () => ({
   },
 }));
 
-import {
-  parseEmailsFromExcel,
-  getPersonEmailList,
-  filterExistingByEmails,
-} from './actorImport';
+import { parseEmailsFromExcel, getPersonEmailList, filterExistingByEmails } from './actorImport';
 
-const makeFile = () =>
-  ({ arrayBuffer: async () => new ArrayBuffer(8) }) as unknown as File;
+const makeFile = () => ({ arrayBuffer: async () => new ArrayBuffer(8) }) as unknown as File;
 
 const setSheet = (aoa: unknown[][]) => {
   readMock.mockReturnValue({ SheetNames: ['s'], Sheets: { s: {} } });
@@ -37,7 +32,10 @@ describe('actorImport', () => {
     });
 
     it('returns rows with no emails when no email column', async () => {
-      setSheet([['name', 'age'], ['Bob', 30]]);
+      setSheet([
+        ['name', 'age'],
+        ['Bob', 30],
+      ]);
       const res = await parseEmailsFromExcel(makeFile());
       expect(res.emails).toEqual([]);
       expect(res.rows).toBe(1);
@@ -66,9 +64,9 @@ describe('actorImport', () => {
 
   describe('getPersonEmailList', () => {
     it('reads mail or email field, lowercased', () => {
-      expect(
-        getPersonEmailList([{ mail: 'A@X.com' }, { email: 'B@Y.com' }, { mail: '' }]),
-      ).toEqual(['a@x.com', 'b@y.com']);
+      expect(getPersonEmailList([{ mail: 'A@X.com' }, { email: 'B@Y.com' }, { mail: '' }])).toEqual(
+        ['a@x.com', 'b@y.com'],
+      );
     });
     it('returns empty for empty list', () => {
       expect(getPersonEmailList([])).toEqual([]);
@@ -87,7 +85,9 @@ describe('actorImport', () => {
       expect(missing).toEqual(['c@x.com']);
     });
     it('handles empty emails', () => {
-      const pool = [{ id: 1, mail: 'a@x.com' }] as unknown as Parameters<typeof filterExistingByEmails>[0];
+      const pool = [{ id: 1, mail: 'a@x.com' }] as unknown as Parameters<
+        typeof filterExistingByEmails
+      >[0];
       const { matched, missing } = filterExistingByEmails(pool, []);
       expect(matched).toEqual([]);
       expect(missing).toEqual([]);

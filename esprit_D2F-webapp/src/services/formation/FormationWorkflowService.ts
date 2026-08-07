@@ -1,9 +1,9 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import type { AxiosResponse } from "axios";
-import { config } from "@/config/env";
-import type { Id } from "@/models/common";
-import type { Formation } from "@/models/formation";
-import type { Presence, PresenceStats } from "@/models/presence";
+import { defaultApi as axios } from '@/services/httpClient';
+import type { AxiosResponse } from 'axios';
+import { config } from '@/config/env';
+import type { Id } from '@/models/common';
+import type { Formation } from '@/models/formation';
+import type { Presence, PresenceStats } from '@/models/presence';
 
 export interface MesPresence {
   idParticipation?: number;
@@ -30,7 +30,7 @@ function normalizeListResponse(payload: unknown): Formation[] {
     return payload as Formation[];
   }
 
-  if (payload && typeof payload === "object") {
+  if (payload && typeof payload === 'object') {
     const candidate = payload as {
       content?: unknown;
       data?: unknown;
@@ -52,16 +52,14 @@ function normalizeListResponse(payload: unknown): Formation[] {
 }
 
 const FormationWorkflowService = {
-  async createFormationWorkflow(
-    formationData: FormationWorkflowPayload
-  ): Promise<Formation> {
+  async createFormationWorkflow(formationData: FormationWorkflowPayload): Promise<Formation> {
     const response = await axios.post<Formation>(API_URL, formationData);
     return response.data;
   },
 
   async updateFormationWorkflow(
     id: Id,
-    formationData: FormationWorkflowPayload
+    formationData: FormationWorkflowPayload,
   ): Promise<Formation> {
     const response = await axios.put<Formation>(`${API_URL}/${id}`, formationData);
     return response.data;
@@ -82,11 +80,7 @@ const FormationWorkflowService = {
     return normalizeListResponse(response.data);
   },
 
-  async updatePresence(
-    id: Id,
-    isPresent: boolean,
-    commentaire?: string
-  ): Promise<Presence> {
+  async updatePresence(id: Id, isPresent: boolean, commentaire?: string): Promise<Presence> {
     const response = await axios.put<Presence>(`${API_URL}/presence/${id}`, null, {
       params: { present: isPresent, commentaire },
     });
@@ -100,12 +94,11 @@ const FormationWorkflowService = {
 
   async batchUpdatePresences(
     seanceId: Id,
-    updates: Array<{ idParticipation: number | string; present: boolean; commentaire?: string }>
+    updates: Array<{ idParticipation: number | string; present: boolean; commentaire?: string }>,
   ): Promise<Presence[]> {
-    const response = await axios.put<Presence[]>(
-      `${API_URL}/seances/${seanceId}/presences/batch`,
-      { updates }
-    );
+    const response = await axios.put<Presence[]>(`${API_URL}/seances/${seanceId}/presences/batch`, {
+      updates,
+    });
     return response.data;
   },
 
@@ -113,7 +106,7 @@ const FormationWorkflowService = {
     const response = await axios.put<Presence[]>(
       `${API_URL}/seances/${seanceId}/presences/mark-all`,
       null,
-      { params: { present } }
+      { params: { present } },
     );
     return response.data;
   },
@@ -147,9 +140,11 @@ const FormationWorkflowService = {
     return FormationWorkflowService.getAllFormationWithDocuments();
   },
 
-  async getFormationsForCalendar(enseignantId: Id): Promise<{ asAnimateur: Formation[]; asParticipant: Formation[] }> {
+  async getFormationsForCalendar(
+    enseignantId: Id,
+  ): Promise<{ asAnimateur: Formation[]; asParticipant: Formation[] }> {
     const response = await axios.get<{ asAnimateur: Formation[]; asParticipant: Formation[] }>(
-      `${API_URL}/enseignants/${enseignantId}/calendar`
+      `${API_URL}/enseignants/${enseignantId}/calendar`,
     );
     const data = response.data ?? {};
     return {
@@ -159,11 +154,9 @@ const FormationWorkflowService = {
   },
 
   async updateInscriptionsOuvertes(id: Id, ouvert: boolean): Promise<Formation> {
-    const response = await axios.put<Formation>(
-      `${API_URL}/${id}/inscriptions-ouvertes`,
-      null,
-      { params: { ouvert } }
-    );
+    const response = await axios.put<Formation>(`${API_URL}/${id}/inscriptions-ouvertes`, null, {
+      params: { ouvert },
+    });
     return response.data;
   },
 
@@ -184,12 +177,9 @@ const FormationWorkflowService = {
     return normalizeListResponse(response.data);
   },
 
-  async exportFormations(
-    start: string,
-    end: string
-  ): Promise<AxiosResponse<Blob>> {
+  async exportFormations(start: string, end: string): Promise<AxiosResponse<Blob>> {
     return axios.get<Blob>(`${API_URL}/export/excel`, {
-      responseType: "blob",
+      responseType: 'blob',
       params: { start, end },
     });
   },
@@ -202,7 +192,3 @@ const FormationWorkflowService = {
 };
 
 export default FormationWorkflowService;
-
-
-
-

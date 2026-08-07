@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
-import type { HeatmapCell } from "@/redesign/contract";
-import { ChartSkeleton } from "../States";
+import { useMemo, useState } from 'react';
+import type { HeatmapCell } from '@/redesign/contract';
+import { ChartSkeleton } from '../States';
 
 interface CompetenceGap {
   competenceId: number;
@@ -11,19 +11,19 @@ interface CompetenceGap {
 
 /** Couleur selon la position RELATIVE de l'écart dans le jeu de données courant. */
 function relativeColor(ratio: number): string {
-  if (ratio >= 0.85) return "#ef4444"; // critique
-  if (ratio >= 0.7) return "#f97316"; // fort
-  if (ratio >= 0.5) return "#f59e0b"; // élevé
-  if (ratio >= 0.25) return "#84cc16"; // modéré
-  return "#10b981"; // faible
+  if (ratio >= 0.85) return '#ef4444'; // critique
+  if (ratio >= 0.7) return '#f97316'; // fort
+  if (ratio >= 0.5) return '#f59e0b'; // élevé
+  if (ratio >= 0.25) return '#84cc16'; // modéré
+  return '#10b981'; // faible
 }
 
 function severityLabel(ratio: number): string {
-  if (ratio >= 0.85) return "Critique";
-  if (ratio >= 0.7) return "Fort";
-  if (ratio >= 0.5) return "Élevé";
-  if (ratio >= 0.25) return "Modéré";
-  return "Faible";
+  if (ratio >= 0.85) return 'Critique';
+  if (ratio >= 0.7) return 'Fort';
+  if (ratio >= 0.5) return 'Élevé';
+  if (ratio >= 0.25) return 'Modéré';
+  return 'Faible';
 }
 
 export default function TopGapCompetencies({
@@ -33,7 +33,7 @@ export default function TopGapCompetencies({
   readonly cells: HeatmapCell[];
   readonly loading: boolean;
 }) {
-  const [dept, setDept] = useState<string>("all");
+  const [dept, setDept] = useState<string>('all');
 
   const depts = useMemo(
     () => Array.from(new Set(cells.map((c) => c.department))).sort((a, b) => a.localeCompare(b)),
@@ -41,10 +41,15 @@ export default function TopGapCompetencies({
   );
 
   const rows = useMemo<CompetenceGap[]>(() => {
-    const filtered = dept === "all" ? cells : cells.filter((c) => c.department === dept);
+    const filtered = dept === 'all' ? cells : cells.filter((c) => c.department === dept);
     const byComp = new Map<number, { name: string; sum: number; n: number; teachers: number }>();
     for (const c of filtered) {
-      const cur = byComp.get(c.competenceId) ?? { name: c.competenceName, sum: 0, n: 0, teachers: 0 };
+      const cur = byComp.get(c.competenceId) ?? {
+        name: c.competenceName,
+        sum: 0,
+        n: 0,
+        teachers: 0,
+      };
       cur.sum += c.avgGap;
       cur.n += 1;
       cur.teachers += c.teachersCount;
@@ -72,7 +77,9 @@ export default function TopGapCompetencies({
         <select id="rd-topgap-dept" value={dept} onChange={(e) => setDept(e.target.value)}>
           <option value="all">Tous les départements</option>
           {depts.map((d) => (
-            <option key={d} value={d}>{d}</option>
+            <option key={d} value={d}>
+              {d}
+            </option>
           ))}
         </select>
       </div>
@@ -84,7 +91,7 @@ export default function TopGapCompetencies({
           return (
             <div key={r.competenceId} className="rd-topgap-row">
               <div className="rd-topgap-name" title={r.competenceName}>
-                <span className={`rd-rank ${i === 0 ? "top" : ""}`}>{i + 1}</span>
+                <span className={`rd-rank ${i === 0 ? 'top' : ''}`}>{i + 1}</span>
                 <span className="rd-topgap-name-text">{r.competenceName}</span>
               </div>
               <div className="rd-topgap-barwrap">

@@ -6,61 +6,61 @@
 
 // ── Brand (Rouge — aligné sur src/styles/tokens.css) ────────────────────────
 export const brand = {
-  50:  "#fff0ee",
-  100: "#ffddd9",
-  200: "#ffb3ab",
-  500: "#b51200",  // couleur principale
-  600: "#9a0f00",  // hover
-  700: "#7a0000",  // pressed
-  900: "#3d0000",
+  50: '#fff0ee',
+  100: '#ffddd9',
+  200: '#ffb3ab',
+  500: '#b51200', // couleur principale
+  600: '#9a0f00', // hover
+  700: '#7a0000', // pressed
+  900: '#3d0000',
 } as const;
 
 // ── Accent (Electric Blue — CTAs) ────────────────────────────────────────────
 export const accent = {
-  500: "#00b4d8",
-  600: "#0096b7",
+  500: '#00b4d8',
+  600: '#0096b7',
 } as const;
 
 // ── Neutrals ─────────────────────────────────────────────────────────────────
 export const neutral = {
-  0:   "#ffffff",
-  50:  "#f7fafc",
-  100: "#f0f4f8",
-  200: "#e2e8f0",
-  300: "#cbd5e0",
-  400: "#a0aec0",
-  500: "#718096",
-  600: "#5a6373",
-  700: "#4a5568",
-  800: "#2d3748",
-  900: "#1a202c",
+  0: '#ffffff',
+  50: '#f7fafc',
+  100: '#f0f4f8',
+  200: '#e2e8f0',
+  300: '#cbd5e0',
+  400: '#a0aec0',
+  500: '#718096',
+  600: '#5a6373',
+  700: '#4a5568',
+  800: '#2d3748',
+  900: '#1a202c',
 } as const;
 
 // ── Semantic ─────────────────────────────────────────────────────────────────
 export const semantic = {
-  success:       "#10b981",
-  successBg:     "#ecfdf5",
-  successBorder: "#a7f3d0",
-  warning:       "#f59e0b",
-  warningBg:     "#fffbeb",
-  warningBorder: "#fde68a",
-  error:         "#ef4444",
-  errorBg:       "#fef2f2",
-  errorBorder:   "#fecaca",
-  info:          "#3b82f6",
-  infoBg:        "#eff6ff",
-  infoBorder:    "#bfdbfe",
+  success: '#10b981',
+  successBg: '#ecfdf5',
+  successBorder: '#a7f3d0',
+  warning: '#f59e0b',
+  warningBg: '#fffbeb',
+  warningBorder: '#fde68a',
+  error: '#ef4444',
+  errorBg: '#fef2f2',
+  errorBorder: '#fecaca',
+  info: '#3b82f6',
+  infoBg: '#eff6ff',
+  infoBorder: '#bfdbfe',
 } as const;
 
 // ── Statuts de formation ──────────────────────────────────────────────────────
-export type FormationStatus = "ENREGISTRE" | "PLANIFIE" | "EN_COURS" | "ACHEVE" | "ANNULE";
+export type FormationStatus = 'ENREGISTRE' | 'PLANIFIE' | 'EN_COURS' | 'ACHEVE' | 'ANNULE';
 
 export const statusColors: Record<FormationStatus, { color: string; bg: string; label: string }> = {
-  ENREGISTRE: { color: "#6b7280", bg: "#f9fafb",        label: "Enregistré"  },
-  PLANIFIE:   { color: semantic.info,    bg: semantic.infoBg,    label: "Planifié"    },
-  EN_COURS:   { color: semantic.warning, bg: semantic.warningBg, label: "En cours"    },
-  ACHEVE:     { color: semantic.success, bg: semantic.successBg, label: "Achevé"      },
-  ANNULE:     { color: semantic.error,   bg: semantic.errorBg,   label: "Annulé"      },
+  ENREGISTRE: { color: '#6b7280', bg: '#f9fafb', label: 'Enregistré' },
+  PLANIFIE: { color: semantic.info, bg: semantic.infoBg, label: 'Planifié' },
+  EN_COURS: { color: semantic.warning, bg: semantic.warningBg, label: 'En cours' },
+  ACHEVE: { color: semantic.success, bg: semantic.successBg, label: 'Achevé' },
+  ANNULE: { color: semantic.error, bg: semantic.errorBg, label: 'Annulé' },
 };
 
 // ── Rôles utilisateur ─────────────────────────────────────────────────────────
@@ -69,153 +69,156 @@ export const statusColors: Record<FormationStatus, { color: string; bg: string; 
 // clé (différentes casses coexistent dans le backend : "admin" / "ADMIN",
 // "cup" / "CUP", etc.) — d'où le `Record<string, …>` large.
 export const roleColors: Record<string, { color: string; bg: string; label: string }> = {
-  admin:              { color: "#7c3aed", bg: "#f5f3ff", label: "Administrateur"   },
-  ADMIN:              { color: "#7c3aed", bg: "#f5f3ff", label: "Administrateur"   },
-  cup:                { color: brand[500], bg: brand[50], label: "CUP"             },
-  CUP:                { color: brand[500], bg: brand[50], label: "CUP"             },
-  enseignant:         { color: "#2563eb", bg: "#eff6ff", label: "Enseignant"       },
-  ENSEIGNANT:         { color: "#2563eb", bg: "#eff6ff", label: "Enseignant"       },
-  animateur:          { color: "#059669", bg: "#ecfdf5", label: "Animateur"        },
-  ANIMATEUR:          { color: "#059669", bg: "#ecfdf5", label: "Animateur"        },
+  admin: { color: '#7c3aed', bg: '#f5f3ff', label: 'Administrateur' },
+  ADMIN: { color: '#7c3aed', bg: '#f5f3ff', label: 'Administrateur' },
+  cup: { color: brand[500], bg: brand[50], label: 'CUP' },
+  CUP: { color: brand[500], bg: brand[50], label: 'CUP' },
+  enseignant: { color: '#2563eb', bg: '#eff6ff', label: 'Enseignant' },
+  ENSEIGNANT: { color: '#2563eb', bg: '#eff6ff', label: 'Enseignant' },
+  animateur: { color: '#059669', bg: '#ecfdf5', label: 'Animateur' },
+  ANIMATEUR: { color: '#059669', bg: '#ecfdf5', label: 'Animateur' },
   // Animateur / Formateur : rôle consolidé, on accepte les deux casses
   // (cf. migration V19 — FORMATEUR fusionné dans ANIMATEUR).
-  Formateur:          { color: "#059669", bg: "#ecfdf5", label: "Animateur"        },
-  FORMATEUR:          { color: "#059669", bg: "#ecfdf5", label: "Animateur"        },
+  Formateur: { color: '#059669', bg: '#ecfdf5', label: 'Animateur' },
+  FORMATEUR: { color: '#059669', bg: '#ecfdf5', label: 'Animateur' },
 
-  chefdepartement:    { color: "#0891b2", bg: "#ecfeff", label: "Chef de Dépt."    },
-  CHEF_DEPARTEMENT:   { color: "#0891b2", bg: "#ecfeff", label: "Chef de Dépt."    },
-  responsabledossier: { color: "#6366f1", bg: "#eef2ff", label: "Resp. Dossier"    },
-  RESPONSABLE_DOSSIER:{ color: "#6366f1", bg: "#eef2ff", label: "Resp. Dossier"    },
+  chefdepartement: { color: '#0891b2', bg: '#ecfeff', label: 'Chef de Dépt.' },
+  CHEF_DEPARTEMENT: { color: '#0891b2', bg: '#ecfeff', label: 'Chef de Dépt.' },
+  responsabledossier: { color: '#6366f1', bg: '#eef2ff', label: 'Resp. Dossier' },
+  RESPONSABLE_DOSSIER: { color: '#6366f1', bg: '#eef2ff', label: 'Resp. Dossier' },
 };
 
 // ── Spacing ───────────────────────────────────────────────────────────────────
 export const space = {
-  1:  4,  2:  8,  3:  12, 4:  16,
-  5:  20, 6:  24, 8:  32, 10: 40,
-  12: 48, 16: 64,
+  1: 4,
+  2: 8,
+  3: 12,
+  4: 16,
+  5: 20,
+  6: 24,
+  8: 32,
+  10: 40,
+  12: 48,
+  16: 64,
 } as const;
 
 // ── Border radius ─────────────────────────────────────────────────────────────
 export const radius = {
-  xs:   4,
-  sm:   8,
-  md:   12,
-  lg:   16,
-  xl:   20,
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
   full: 9999,
 } as const;
 
 // ── Shadows ───────────────────────────────────────────────────────────────────
 export const shadow = {
-  xs: "0 1px 2px rgba(0,0,0,0.05)",
-  sm: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05)",
-  md: "0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.05)",
-  lg: "0 10px 30px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.06)",
+  xs: '0 1px 2px rgba(0,0,0,0.05)',
+  sm: '0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05)',
+  md: '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.05)',
+  lg: '0 10px 30px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.06)',
 } as const;
 
 // ── Ant Design ConfigProvider theme ──────────────────────────────────────────
 export const antdThemeToken = {
-  colorPrimary:      brand[500],
+  colorPrimary: brand[500],
   colorPrimaryHover: brand[600],
-  colorError:        semantic.error,
-  colorWarning:      semantic.warning,
-  colorSuccess:      semantic.success,
-  colorInfo:         semantic.info,
-  colorTextBase:     neutral[800],
+  colorError: semantic.error,
+  colorWarning: semantic.warning,
+  colorSuccess: semantic.success,
+  colorInfo: semantic.info,
+  colorTextBase: neutral[800],
   colorTextSecondary: neutral[600],
-  colorBgContainer:  neutral[0],
-  colorBgLayout:     neutral[50],
-  colorBorder:       "rgba(0,0,0,0.10)",
+  colorBgContainer: neutral[0],
+  colorBgLayout: neutral[50],
+  colorBorder: 'rgba(0,0,0,0.10)',
 
-  borderRadius:   radius.sm,
+  borderRadius: radius.sm,
   borderRadiusLG: radius.md,
   borderRadiusSM: radius.xs,
 
   fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-  fontSize:   14,
+  fontSize: 14,
 
-  boxShadow:          shadow.sm,
+  boxShadow: shadow.sm,
   boxShadowSecondary: shadow.md,
 
   motion: true,
-  motionDurationMid:  "0.18s",
-  motionDurationSlow: "0.28s",
+  motionDurationMid: '0.18s',
+  motionDurationSlow: '0.28s',
 } as const;
 
 export const antdComponentTokens = {
   Card: {
-    borderRadiusLG:    radius.lg,
+    borderRadiusLG: radius.lg,
     boxShadowTertiary: shadow.sm,
-    paddingLG:         24,
+    paddingLG: 24,
   },
   Button: {
-    borderRadius:      radius.sm,
-    fontWeight:        500,
-    paddingInline:     16,
-    controlHeight:     36,
-    controlHeightLG:   42,
+    borderRadius: radius.sm,
+    fontWeight: 500,
+    paddingInline: 16,
+    controlHeight: 36,
+    controlHeightLG: 42,
   },
   Table: {
-    borderRadius:      radius.md,
-    headerBg:          neutral[100],
-    headerColor:       neutral[700],
-    rowHoverBg:        brand[50],
-    cellPaddingBlock:  10,
+    borderRadius: radius.md,
+    headerBg: neutral[100],
+    headerColor: neutral[700],
+    rowHoverBg: brand[50],
+    cellPaddingBlock: 10,
     cellPaddingInline: 14,
   },
   Menu: {
-    borderRadius:       radius.sm,
-    itemHeight:         44,
-    subMenuItemBg:      neutral[50],
-    itemActiveBg:       brand[50],
-    itemSelectedBg:     brand[500],
-    itemSelectedColor:  neutral[0],
+    borderRadius: radius.sm,
+    itemHeight: 44,
+    subMenuItemBg: neutral[50],
+    itemActiveBg: brand[50],
+    itemSelectedBg: brand[500],
+    itemSelectedColor: neutral[0],
   },
   Input: {
-    borderRadius:       radius.sm,
-    colorBgContainer:   neutral[0],
-    paddingBlock:       7,
+    borderRadius: radius.sm,
+    colorBgContainer: neutral[0],
+    paddingBlock: 7,
   },
   Select: {
-    borderRadius:       radius.sm,
+    borderRadius: radius.sm,
   },
   Modal: {
-    borderRadiusLG:     radius.lg,
-    titleFontSize:      16,
-    titleLineHeight:    1.4,
+    borderRadiusLG: radius.lg,
+    titleFontSize: 16,
+    titleLineHeight: 1.4,
   },
   Drawer: {
-    borderRadiusLG:     radius.lg,
+    borderRadiusLG: radius.lg,
   },
   Tag: {
-    borderRadius:       radius.full,
-    fontSizeSM:         12,
+    borderRadius: radius.full,
+    fontSizeSM: 12,
   },
   Alert: {
-    borderRadius:       radius.md,
+    borderRadius: radius.md,
   },
   Steps: {
-    iconSize:           32,
-    titleLineHeight:    1.4,
+    iconSize: 32,
+    titleLineHeight: 1.4,
   },
   Badge: {
-    borderRadius:       radius.full,
+    borderRadius: radius.full,
   },
   Tabs: {
-    borderRadius:       radius.sm,
-    inkBarColor:        brand[500],
-    itemActiveColor:    brand[500],
-    itemSelectedColor:  brand[500],
+    borderRadius: radius.sm,
+    inkBarColor: brand[500],
+    itemActiveColor: brand[500],
+    itemSelectedColor: brand[500],
   },
   Pagination: {
-    borderRadius:       radius.sm,
+    borderRadius: radius.sm,
   },
   Tooltip: {
-    borderRadius:       radius.sm,
-    colorBgDefault:     neutral[900],
+    borderRadius: radius.sm,
+    colorBgDefault: neutral[900],
   },
 } as const;
-
-
-
-

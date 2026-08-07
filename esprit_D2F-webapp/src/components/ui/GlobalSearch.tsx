@@ -1,19 +1,19 @@
-import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Input, Modal, Tag } from "antd";
-import { BookOutlined, ReadOutlined, SearchOutlined, UserOutlined } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Input, Modal, Tag } from 'antd';
+import { BookOutlined, ReadOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 
-import EnseignantService from "@/services/formation/EnseignantService";
-import FormationService from "@/services/formation/FormationService";
-import CompetenceService from "@/services/competence/CompetenceService";
-import { useAuth } from "@/hooks/auth";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import EmptyState from "@/components/common/EmptyState";
-import Skeleton from "./Skeleton";
-import styles from "./GlobalSearch.module.css";
+import EnseignantService from '@/services/formation/EnseignantService';
+import FormationService from '@/services/formation/FormationService';
+import CompetenceService from '@/services/competence/CompetenceService';
+import { useAuth } from '@/hooks/auth';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import EmptyState from '@/components/common/EmptyState';
+import Skeleton from './Skeleton';
+import styles from './GlobalSearch.module.css';
 
-const RECENT_KEY = "d2f.globalSearch.recent";
+const RECENT_KEY = 'd2f.globalSearch.recent';
 const MAX_PER_GROUP = 6;
 
 interface SearchHit {
@@ -24,10 +24,10 @@ interface SearchHit {
 }
 
 function normalize(s: unknown): string {
-  return String(s ?? "")
+  return String(s ?? '')
     .toLowerCase()
-    .normalize("NFD")
-    .replaceAll(/[\u0300-\u036f]/g, "");
+    .normalize('NFD')
+    .replaceAll(/[\u0300-\u036f]/g, '');
 }
 
 /** Surligne la portion correspondante (insensible aux accents/casse). */
@@ -45,7 +45,7 @@ function Highlight({ text, query }: { readonly text: string; readonly query: str
 
 function loadRecent(): string[] {
   try {
-    return JSON.parse(sessionStorage.getItem(RECENT_KEY) ?? "[]") as string[];
+    return JSON.parse(sessionStorage.getItem(RECENT_KEY) ?? '[]') as string[];
   } catch {
     return [];
   }
@@ -63,43 +63,48 @@ function pushRecent(term: string) {
  */
 const GlobalSearch = memo(function GlobalSearch() {
   const [open, setOpen] = useState(false);
-  const [queryText, setQueryText] = useState("");
+  const [queryText, setQueryText] = useState('');
   const query = useDebouncedValue(queryText.trim(), 300);
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const role = normalize(user?.role);
-  const canSeeEnseignants = ["admin", "cup", "chefdepartement", "chef_departement"].includes(role);
+  const canSeeEnseignants = ['admin', 'cup', 'chefdepartement', 'chef_departement'].includes(role);
   const canSeeCompetences = canSeeEnseignants;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setOpen((o) => !o);
       }
     };
-    globalThis.addEventListener("keydown", onKey);
-    return () => globalThis.removeEventListener("keydown", onKey);
+    globalThis.addEventListener('keydown', onKey);
+    return () => globalThis.removeEventListener('keydown', onKey);
   }, []);
 
   const enseignantsQuery = useQuery({
-    queryKey: ["globalSearch", "enseignants"],
+    queryKey: ['globalSearch', 'enseignants'],
     queryFn: () => EnseignantService.getAllEnseignants(),
     enabled: open && canSeeEnseignants,
   });
   const formationsQuery = useQuery({
-    queryKey: ["globalSearch", "formations"],
+    queryKey: ['globalSearch', 'formations'],
     queryFn: () => FormationService.getAllFormations(),
     enabled: open,
   });
   const competencesQuery = useQuery({
-    queryKey: ["globalSearch", "competences"],
+    queryKey: ['globalSearch', 'competences'],
     queryFn: () => CompetenceService.competence.getAll(),
     enabled: open && canSeeCompetences,
   });
 
-  const groups = useMemo((): { key: string; title: string; icon: ReactNode; hits: SearchHit[] }[] => {
+  const groups = useMemo((): {
+    key: string;
+    title: string;
+    icon: ReactNode;
+    hits: SearchHit[];
+  }[] => {
     if (!query) return [];
     const q = normalize(query);
     const matches = (...fields: unknown[]) => fields.some((f) => normalize(f).includes(q));
@@ -109,8 +114,8 @@ const GlobalSearch = memo(function GlobalSearch() {
       .slice(0, MAX_PER_GROUP)
       .map((e) => ({
         id: `e-${e.id}`,
-        title: `${e.prenom ?? ""} ${e.nom ?? ""}`.trim() || (e.email ?? "Enseignant"),
-        meta: [e.departement, e.unitePedagogique].filter(Boolean).join(" · "),
+        title: `${e.prenom ?? ''} ${e.nom ?? ''}`.trim() || (e.email ?? 'Enseignant'),
+        meta: [e.departement, e.unitePedagogique].filter(Boolean).join(' · '),
         path: `/home/competences/enseignant/${e.id}`,
       }));
 
@@ -119,8 +124,8 @@ const GlobalSearch = memo(function GlobalSearch() {
       .slice(0, MAX_PER_GROUP)
       .map((f) => ({
         id: `f-${f.idFormation}`,
-        title: f.titreFormation ?? "Formation",
-        meta: [f.typeFormation, f.etatFormation].filter(Boolean).join(" · "),
+        title: f.titreFormation ?? 'Formation',
+        meta: [f.typeFormation, f.etatFormation].filter(Boolean).join(' · '),
         path: `/home/ListeFormation/${f.idFormation}`,
       }));
 
@@ -129,15 +134,15 @@ const GlobalSearch = memo(function GlobalSearch() {
       .slice(0, MAX_PER_GROUP)
       .map((c) => ({
         id: `c-${c.id}`,
-        title: c.nomCompetence ?? c.nom ?? c.code ?? "Compétence",
+        title: c.nomCompetence ?? c.nom ?? c.code ?? 'Compétence',
         meta: c.domaineNom,
-        path: "/home/competences",
+        path: '/home/competences',
       }));
 
     return [
-      { key: "enseignants", title: "Enseignants", icon: <UserOutlined />, hits: enseignants },
-      { key: "formations", title: "Formations", icon: <ReadOutlined />, hits: formations },
-      { key: "competences", title: "Compétences", icon: <BookOutlined />, hits: competences },
+      { key: 'enseignants', title: 'Enseignants', icon: <UserOutlined />, hits: enseignants },
+      { key: 'formations', title: 'Formations', icon: <ReadOutlined />, hits: formations },
+      { key: 'competences', title: 'Compétences', icon: <BookOutlined />, hits: competences },
     ].filter((g) => g.hits.length > 0);
   }, [query, enseignantsQuery.data, formationsQuery.data, competencesQuery.data]);
 
@@ -147,7 +152,7 @@ const GlobalSearch = memo(function GlobalSearch() {
 
   const close = useCallback(() => {
     setOpen(false);
-    setQueryText("");
+    setQueryText('');
   }, []);
 
   const go = (hit: SearchHit) => {
@@ -160,17 +165,29 @@ const GlobalSearch = memo(function GlobalSearch() {
 
   return (
     <>
-      <button type="button" className={styles.trigger} onClick={() => setOpen(true)} aria-label="Recherche globale">
+      <button
+        type="button"
+        className={styles.trigger}
+        onClick={() => setOpen(true)}
+        aria-label="Recherche globale"
+      >
         <SearchOutlined />
         <span>Rechercher…</span>
         <kbd className={styles.kbd}>Ctrl K</kbd>
       </button>
 
-      <Modal open={open} onCancel={close} footer={null} closable={false} width={640} destroyOnHidden>
+      <Modal
+        open={open}
+        onCancel={close}
+        footer={null}
+        closable={false}
+        width={640}
+        destroyOnHidden
+      >
         <Input
           autoFocus
           size="large"
-          prefix={<SearchOutlined style={{ color: "var(--color-text-muted)" }} />}
+          prefix={<SearchOutlined style={{ color: 'var(--color-text-muted)' }} />}
           placeholder="Rechercher un enseignant, une formation, une compétence…"
           value={queryText}
           onChange={(e) => setQueryText(e.target.value)}
@@ -183,7 +200,7 @@ const GlobalSearch = memo(function GlobalSearch() {
             <div className={styles.recentTitle}>Recherches récentes</div>
             <div className={styles.recentRow}>
               {recent.map((t) => (
-                <Tag key={t} style={{ cursor: "pointer" }} onClick={() => setQueryText(t)}>
+                <Tag key={t} style={{ cursor: 'pointer' }} onClick={() => setQueryText(t)}>
                   {t}
                 </Tag>
               ))}
@@ -206,9 +223,17 @@ const GlobalSearch = memo(function GlobalSearch() {
           <div className={styles.results}>
             {groups.map((g) => (
               <div key={g.key} className={styles.group}>
-                <div className={styles.groupTitle}>{g.icon}{g.title}</div>
+                <div className={styles.groupTitle}>
+                  {g.icon}
+                  {g.title}
+                </div>
                 {g.hits.map((hit) => (
-                  <button key={hit.id} type="button" className={styles.item} onClick={() => go(hit)}>
+                  <button
+                    key={hit.id}
+                    type="button"
+                    className={styles.item}
+                    onClick={() => go(hit)}
+                  >
                     <span className={styles.itemTitle}>
                       <Highlight text={hit.title} query={query} />
                     </span>

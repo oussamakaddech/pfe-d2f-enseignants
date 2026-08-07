@@ -1,10 +1,8 @@
-import { Card, Col, Row, Statistic, Table, Tag, Alert, Empty, Spin } from "antd";
-import {
-  usePilotage,
-} from "@/hooks/analytics/useAnalyticsQueries";
-import { TrainingImpactPanel } from "@/components/analytics";
-import type { AlertEvent } from "@/models/analyse/analyticsFeature";
-import { AppPageHeader } from "@/components/common";
+import { Card, Col, Row, Statistic, Table, Tag, Alert, Empty, Spin } from 'antd';
+import { usePilotage } from '@/hooks/analytics/useAnalyticsQueries';
+import { TrainingImpactPanel } from '@/components/analytics';
+import type { AlertEvent } from '@/models/analyse/analyticsFeature';
+import { AppPageHeader } from '@/components/common';
 
 /** Page de prévision institutionnelle (F9) — consomme GET /pilotage. */
 export default function ForecastPage() {
@@ -19,16 +17,20 @@ export default function ForecastPage() {
       />
 
       {isError && <Alert type="error" showIcon message="Échec du chargement de la prévision." />}
-      {isLoading && <Spin style={{ display: "block", margin: "32px auto" }} />}
+      {isLoading && <Spin style={{ display: 'block', margin: '32px auto' }} />}
 
       {data && (
         <>
           <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
             <Col xs={12} md={6}>
-              <Card><Statistic title="Horizon (mois)" value={data.forecast_kpis.horizon_mois} /></Card>
+              <Card>
+                <Statistic title="Horizon (mois)" value={data.forecast_kpis.horizon_mois} />
+              </Card>
             </Col>
             <Col xs={12} md={6}>
-              <Card><Statistic title="Enseignants suivis" value={data.forecast_kpis.nb_enseignants} /></Card>
+              <Card>
+                <Statistic title="Enseignants suivis" value={data.forecast_kpis.nb_enseignants} />
+              </Card>
             </Col>
             <Col xs={12} md={6}>
               <Card>
@@ -44,42 +46,55 @@ export default function ForecastPage() {
                 <Statistic
                   title="Compétences en régression"
                   value={data.forecast_kpis.nb_competences_regression}
-                  valueStyle={{ color: "#c8102e" }}
+                  valueStyle={{ color: '#c8102e' }}
                 />
               </Card>
             </Col>
           </Row>
 
-          <Card title="Impact des formations suivies (historique réel)" style={{ marginBottom: 16, borderRadius: 12 }}>
+          <Card
+            title="Impact des formations suivies (historique réel)"
+            style={{ marginBottom: 16, borderRadius: 12 }}
+          >
             <TrainingImpactPanel />
           </Card>
 
-          <Card title="Positionnement des départements" style={{ marginBottom: 16, borderRadius: 12 }}>
+          <Card
+            title="Positionnement des départements"
+            style={{ marginBottom: 16, borderRadius: 12 }}
+          >
             <Table
               rowKey="departement_id"
               dataSource={data.benchmark_departements}
               pagination={false}
               size="small"
               columns={[
-                { title: "Département", dataIndex: "departement_id" },
+                { title: 'Département', dataIndex: 'departement_id' },
                 {
-                  title: "Niveau moyen",
-                  dataIndex: "niveau_moyen",
+                  title: 'Niveau moyen',
+                  dataIndex: 'niveau_moyen',
                   render: (v: number) => `${Math.round(v * 100)}%`,
                 },
                 {
-                  title: "Écart vs cohorte",
-                  dataIndex: "ecart_vs_cohorte",
+                  title: 'Écart vs cohorte',
+                  dataIndex: 'ecart_vs_cohorte',
                   render: (v: number) => {
-                    const sign = v > 0 ? "+" : "";
-                    return <Tag color={v >= 0 ? "green" : "red"}>{sign}{Math.round(v * 100)} pts</Tag>;
+                    const sign = v > 0 ? '+' : '';
+                    return (
+                      <Tag color={v >= 0 ? 'green' : 'red'}>
+                        {sign}
+                        {Math.round(v * 100)} pts
+                      </Tag>
+                    );
                   },
                 },
-                { title: "Enseignants", dataIndex: "nb_enseignants" },
+                { title: 'Enseignants', dataIndex: 'nb_enseignants' },
                 {
-                  title: "Position",
-                  dataIndex: "position",
-                  render: (p: string) => <Tag color={p === "AU_DESSUS" ? "green" : "orange"}>{p}</Tag>,
+                  title: 'Position',
+                  dataIndex: 'position',
+                  render: (p: string) => (
+                    <Tag color={p === 'AU_DESSUS' ? 'green' : 'orange'}>{p}</Tag>
+                  ),
                 },
               ]}
             />
@@ -91,13 +106,15 @@ export default function ForecastPage() {
                 <Statistic
                   title="Nouvelles anomalies (30 j)"
                   value={data.anomalies_live.nb_nouvelles}
-                  valueStyle={{ color: "#c8102e" }}
+                  valueStyle={{ color: '#c8102e' }}
                 />
                 {data.anomalies_live.alertes?.length ? (
                   <div style={{ marginTop: 8 }}>
-                {data.anomalies_live.alertes.slice(0, 5).map((a: AlertEvent) => (
-                  <Tag key={a.id} color="red">{a.type_alerte}</Tag>
-                ))}
+                    {data.anomalies_live.alertes.slice(0, 5).map((a: AlertEvent) => (
+                      <Tag key={a.id} color="red">
+                        {a.type_alerte}
+                      </Tag>
+                    ))}
                   </div>
                 ) : (
                   <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Aucune anomalie" />
@@ -124,5 +141,5 @@ export default function ForecastPage() {
 }
 
 function TypographyParagraph({ children }: { readonly children: React.ReactNode }) {
-  return <p style={{ marginTop: 8, fontSize: 13, color: "#64748b" }}>{children}</p>;
+  return <p style={{ marginTop: 8, fontSize: 13, color: '#64748b' }}>{children}</p>;
 }

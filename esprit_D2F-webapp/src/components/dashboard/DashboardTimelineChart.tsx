@@ -1,10 +1,14 @@
-import { memo } from "react";
-import ChartCard from "@/components/charts/ChartCard";
-import LineChart from "@/components/charts/LineChart";
-import { useFormationsTimeline } from "@/hooks/dashboard/useDashboardData";
-import type { DashboardScope } from "@/models/dashboard";
+import { memo } from 'react';
+import ChartCard from '@/components/charts/ChartCard';
+import LineChart from '@/components/charts/LineChart';
+import { useFormationsTimeline } from '@/hooks/dashboard/useDashboardData';
+import type { DashboardScope } from '@/models/dashboard';
 
-const DashboardTimelineChart = memo(function DashboardTimelineChart({ scope }: { readonly scope: DashboardScope }) {
+const DashboardTimelineChart = memo(function DashboardTimelineChart({
+  scope,
+}: {
+  readonly scope: DashboardScope;
+}) {
   const { data, isLoading } = useFormationsTimeline(scope);
   const periodes = data?.periodes ?? [];
   const labels = periodes.map((p) => p.label);
@@ -21,8 +25,17 @@ const DashboardTimelineChart = memo(function DashboardTimelineChart({ scope }: {
       <LineChart
         labels={labels}
         series={[
-          { label: "Formations", data: periodes.map((p) => p.nombreFormations), color: "#b51200", filled: true },
-          { label: "Participants", data: periodes.map((p) => p.nombreParticipants), color: "#00b4d8" },
+          {
+            label: 'Formations',
+            data: periodes.map((p) => p.nombreFormations),
+            color: '#b51200',
+            filled: true,
+          },
+          {
+            label: 'Participants',
+            data: periodes.map((p) => p.nombreParticipants),
+            color: '#00b4d8',
+          },
         ]}
         height={300}
       />

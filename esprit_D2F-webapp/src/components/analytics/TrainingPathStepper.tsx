@@ -1,5 +1,5 @@
-import { Steps, Tag, Typography, Empty, Progress } from "antd";
-import type { TrainingPath } from "@/models/analyse/analyticsFeature";
+import { Steps, Tag, Typography, Empty, Progress } from 'antd';
+import type { TrainingPath } from '@/models/analyse/analyticsFeature';
 
 interface TrainingPathStepperProps {
   readonly path: TrainingPath | undefined;
@@ -13,7 +13,7 @@ export default function TrainingPathStepper({ path, loading }: TrainingPathStepp
 
   return (
     <div>
-      <div style={{ marginBottom: 12, display: "flex", gap: 8, alignItems: "center" }}>
+      <div style={{ marginBottom: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
         <Tag color="blue">
           N{path.niveau_depart} → N{path.niveau_vise}
         </Tag>
@@ -31,16 +31,14 @@ export default function TrainingPathStepper({ path, loading }: TrainingPathStepp
         items={path.items.map((it) => ({
           title: (
             <span>
-              {it.formation_titre}{" "}
-              {it.deja_suivie && <Tag color="default">déjà suivie</Tag>}
+              {it.formation_titre} {it.deja_suivie && <Tag color="default">déjà suivie</Tag>}
               {!it.prerequis_satisfaits && <Tag color="red">prérequis manquants</Tag>}
             </span>
           ),
           description: (
             <div>
               <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-                {it.formation_type} · {it.duree_heures} h · N{it.niveau_avant} → N
-                {it.niveau_apres}
+                {it.formation_type} · {it.duree_heures} h · N{it.niveau_avant} → N{it.niveau_apres}
               </Typography.Text>
               <div>
                 <Progress

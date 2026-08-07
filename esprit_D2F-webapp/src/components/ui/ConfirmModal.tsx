@@ -1,6 +1,6 @@
-import { memo, useState, type ReactNode } from "react";
-import { Modal, Typography } from "antd";
-import { ExclamationCircleFilled } from "@ant-design/icons";
+import { memo, useState, type ReactNode } from 'react';
+import { Modal, Typography } from 'antd';
+import { ExclamationCircleFilled } from '@ant-design/icons';
 
 const { Text } = Typography;
 
@@ -32,11 +32,11 @@ interface ConfirmModalProps {
  */
 const ConfirmModal = memo(function ConfirmModal({
   open,
-  title = "Confirmer la suppression",
+  title = 'Confirmer la suppression',
   entityName,
   description,
-  confirmLabel = "Confirmer la suppression",
-  cancelLabel = "Annuler",
+  confirmLabel = 'Confirmer la suppression',
+  cancelLabel = 'Annuler',
   danger = true,
   onConfirm,
   onCancel,
@@ -56,14 +56,16 @@ const ConfirmModal = memo(function ConfirmModal({
     <Modal
       open={open}
       title={
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-          <ExclamationCircleFilled style={{ color: danger ? "var(--color-danger)" : "var(--color-warning)" }} />
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+          <ExclamationCircleFilled
+            style={{ color: danger ? 'var(--color-danger)' : 'var(--color-warning)' }}
+          />
           {title}
         </span>
       }
       okText={confirmLabel}
       cancelText={cancelLabel}
-      okButtonProps={{ danger, type: "primary", loading: submitting }}
+      okButtonProps={{ danger, type: 'primary', loading: submitting }}
       onOk={handleOk}
       onCancel={onCancel}
       confirmLoading={submitting}
@@ -75,11 +77,11 @@ const ConfirmModal = memo(function ConfirmModal({
           Cette action est irréversible
           {entityName ? (
             <>
-              {" : "}
+              {' : '}
               <Text strong>« {entityName} »</Text> sera définitivement supprimé(e).
             </>
           ) : (
-            "."
+            '.'
           )}
         </Text>
       )}

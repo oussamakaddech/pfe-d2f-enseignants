@@ -1,13 +1,13 @@
-import { useContext, useEffect, ReactNode } from "react";
-import { Navigate, Outlet } from "react-router-dom";
-import { AuthContext } from "@/context/AuthContext";
-import { notify } from "@/utils/helpers/notifications";
+import { useContext, useEffect, ReactNode } from 'react';
+import { Navigate, Outlet } from 'react-router-dom';
+import { AuthContext } from '@/context/AuthContext';
+import { notify } from '@/utils/helpers/notifications';
 
 const normalizeRole = (value: unknown): string =>
-  (typeof value === "string" ? value : "")
+  (typeof value === 'string' ? value : '')
     .toLowerCase()
-    .replace(/^role_?/, "")
-    .replaceAll(/[\s_-]+/g, "");
+    .replace(/^role_?/, '')
+    .replaceAll(/[\s_-]+/g, '');
 
 /**
  * Frontend Authorization Matrix.
@@ -111,7 +111,9 @@ interface RoleGuardProps {
 
 function ForbiddenRedirect() {
   useEffect(() => {
-    notify.warning("Accès refusé. Vous n'avez pas les droits nécessaires pour accéder à cette page.");
+    notify.warning(
+      "Accès refusé. Vous n'avez pas les droits nécessaires pour accéder à cette page.",
+    );
   }, []);
   return <Navigate to="/403" replace />;
 }
@@ -139,7 +141,7 @@ export const useHasRole = (requiredRoles: string[]): boolean => {
 
 export const useHasPermission = (
   module: keyof typeof FRONTEND_PERMISSIONS,
-  action: string
+  action: string,
 ): boolean => {
   const auth = useContext(AuthContext);
   if (!auth?.user) return false;
@@ -154,7 +156,7 @@ export const useHasPermission = (
 export const useUserRole = (): string | null => {
   const auth = useContext(AuthContext);
   if (!auth?.user) return null;
-  return typeof auth.user.role === "string" ? auth.user.role : null;
+  return typeof auth.user.role === 'string' ? auth.user.role : null;
 };
 
 interface PermissionGuardProps {
@@ -180,10 +182,6 @@ interface ConditionalRenderProps {
   fallback?: ReactNode;
 }
 
-export const ConditionalRender = ({
-  show,
-  children,
-  fallback = null,
-}: ConditionalRenderProps) => {
+export const ConditionalRender = ({ show, children, fallback = null }: ConditionalRenderProps) => {
   return show ? <>{children}</> : <>{fallback}</>;
 };

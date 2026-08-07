@@ -5,15 +5,21 @@ import type { TeacherRiskIndicator } from '@/models/analyse';
 
 const sample: TeacherRiskIndicator[] = [
   {
-    teacher_id: 'ENS001', teacher_name: 'Alice DUPONT',
-    attrition_risk_score: 0.85, disengagement_signals: ['Absence prolongée'],
-    competency_stagnation_rate: 0.7, training_velocity: 0,
+    teacher_id: 'ENS001',
+    teacher_name: 'Alice DUPONT',
+    attrition_risk_score: 0.85,
+    disengagement_signals: ['Absence prolongée'],
+    competency_stagnation_rate: 0.7,
+    training_velocity: 0,
     recommendation: 'Planifier entretien',
   },
   {
-    teacher_id: 'ENS002', teacher_name: 'Bob MARTIN',
-    attrition_risk_score: 0.3, disengagement_signals: [],
-    competency_stagnation_rate: 0.2, training_velocity: 5,
+    teacher_id: 'ENS002',
+    teacher_name: 'Bob MARTIN',
+    attrition_risk_score: 0.3,
+    disengagement_signals: [],
+    competency_stagnation_rate: 0.2,
+    training_velocity: 5,
     recommendation: 'OK',
   },
 ];
@@ -44,13 +50,11 @@ describe('RiskTable', () => {
 
   it('renders Action column and calls onAnalyze with teacher_id when provided', () => {
     const onAnalyze = vi.fn();
-    const { container } = render(
-      <RiskTable data={sample} threshold={0.7} onAnalyze={onAnalyze} />
-    );
+    const { container } = render(<RiskTable data={sample} threshold={0.7} onAnalyze={onAnalyze} />);
     const buttons = container.querySelectorAll('button');
     // First action button corresponds to the first sorted row (highest risk = Alice 0.85)
-    const actionButtons = Array.from(buttons).filter(
-      (b) => b.getAttribute('class')?.includes('ant-btn-icon-only')
+    const actionButtons = Array.from(buttons).filter((b) =>
+      b.getAttribute('class')?.includes('ant-btn-icon-only'),
     );
     expect(actionButtons).toHaveLength(2);
     fireEvent.click(actionButtons[0]);

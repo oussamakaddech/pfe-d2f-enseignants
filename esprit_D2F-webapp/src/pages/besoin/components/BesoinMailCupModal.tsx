@@ -1,13 +1,18 @@
 /* ─────────────────────────────────────────────────────────────────────────
  * BesoinMailCupModal — Modal to send info request email to CUP
  * ─────────────────────────────────────────────────────────────────────── */
-import { Modal, Form, Input, Select } from "antd";
-import { MailOutlined, FileTextOutlined } from "@ant-design/icons";
-import type { FormInstance } from "antd";
+import { Modal, Form, Input, Select } from 'antd';
+import { MailOutlined, FileTextOutlined } from '@ant-design/icons';
+import type { FormInstance } from 'antd';
 
 const { TextArea } = Input;
 
-interface CupAccount { email?: string; emailAddress?: string; userName?: string; username?: string }
+interface CupAccount {
+  email?: string;
+  emailAddress?: string;
+  userName?: string;
+  username?: string;
+}
 
 interface BesoinMailCupModalProps {
   open: boolean;
@@ -28,7 +33,7 @@ export function buildFormationNeedHtmlEmail(
   cupName?: string,
 ): string {
   // FIX-S6: personalized greeting for the CUP recipient
-  const greeting = cupName ? `Bonjour ${cupName},` : "Bonjour,";
+  const greeting = cupName ? `Bonjour ${cupName},` : 'Bonjour,';
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -64,14 +69,14 @@ export function buildFormationNeedHtmlEmail(
       <div class="intro">Dans le cadre de l'instruction du besoin de formation ci-dessous, nous sollicitons votre éclairage en tant que CUP afin de compléter les informations manquantes avant approbation.</div>
       <div class="section-title">Récapitulatif du Besoin</div>
       <div class="info-grid">
-        <div class="info-item"><div class="info-label">Titre</div><div class="info-value">${record.titre || record.objectifFormation || "—"}</div></div>
-        <div class="info-item"><div class="info-label">Demandeur</div><div class="info-value">${record.username || "—"}</div></div>
-        <div class="info-item"><div class="info-label">Type</div><div class="info-value">${record.typeBesoin || "—"}</div></div>
-        <div class="info-item"><div class="info-label">Priorité</div><div class="info-value">${record.priorite || "—"}</div></div>
+        <div class="info-item"><div class="info-label">Titre</div><div class="info-value">${record.titre || record.objectifFormation || '—'}</div></div>
+        <div class="info-item"><div class="info-label">Demandeur</div><div class="info-value">${record.username || '—'}</div></div>
+        <div class="info-item"><div class="info-label">Type</div><div class="info-value">${record.typeBesoin || '—'}</div></div>
+        <div class="info-item"><div class="info-label">Priorité</div><div class="info-value">${record.priorite || '—'}</div></div>
         <div class="info-item"><div class="info-label">UP</div><div class="info-value">${upLabel}</div></div>
         <div class="info-item"><div class="info-label">Département</div><div class="info-value">${deptLabel}</div></div>
         <div class="info-item"><div class="info-label">Période</div><div class="info-value">${periodLabel}</div></div>
-        <div class="info-item"><div class="info-label">Objectif</div><div class="info-value">${record.objectifFormation || "—"}</div></div>
+        <div class="info-item"><div class="info-label">Objectif</div><div class="info-value">${record.objectifFormation || '—'}</div></div>
       </div>
       <div class="section-title">Vos Précisions Requises</div>
       <div class="questions-section">
@@ -103,7 +108,14 @@ export default function BesoinMailCupModal({
 
   return (
     <Modal
-      title={<span className="bf-modal__title"><span className="bf-modal__title-icon"><MailOutlined /></span>{" "}Demander des informations au CUP</span>}
+      title={
+        <span className="bf-modal__title">
+          <span className="bf-modal__title-icon">
+            <MailOutlined />
+          </span>{' '}
+          Demander des informations au CUP
+        </span>
+      }
       open={open}
       onOk={handleOk}
       onCancel={onCancel}
@@ -112,14 +124,18 @@ export default function BesoinMailCupModal({
       cancelText="Annuler"
       width={680}
       className="bf-modal bf-modal--mail"
-      okButtonProps={{ className: "bf-btn bf-btn--primary", icon: <MailOutlined /> }}
+      okButtonProps={{ className: 'bf-btn bf-btn--primary', icon: <MailOutlined /> }}
     >
       {mailRecord && (
         <div className="bf-mail-context">
-          <span className="bf-mail-context__icon"><FileTextOutlined /></span>
+          <span className="bf-mail-context__icon">
+            <FileTextOutlined />
+          </span>
           <div>
             <div className="bf-mail-context__label">Besoin concerné</div>
-            <div className="bf-mail-context__value">{String(mailRecord.titre || mailRecord.objectifFormation || "—")}</div>
+            <div className="bf-mail-context__value">
+              {String(mailRecord.titre || mailRecord.objectifFormation || '—')}
+            </div>
           </div>
         </div>
       )}
@@ -127,7 +143,10 @@ export default function BesoinMailCupModal({
         <Form.Item
           label="Destinataire (CUP)"
           name="to"
-          rules={[{ required: true, message: "Veuillez saisir ou choisir un destinataire" }, { type: "email", message: "Adresse e-mail invalide" }]}
+          rules={[
+            { required: true, message: 'Veuillez saisir ou choisir un destinataire' },
+            { type: 'email', message: 'Adresse e-mail invalide' },
+          ]}
         >
           {cupAccounts.length > 0 ? (
             <Select
@@ -136,7 +155,7 @@ export default function BesoinMailCupModal({
               size="large"
               optionFilterProp="label"
               options={cupAccounts.map((c) => {
-                const mail = c.email || c.emailAddress || "";
+                const mail = c.email || c.emailAddress || '';
                 const name = c.userName || c.username || mail;
                 return { value: mail, label: `${name} <${mail}>` };
               })}

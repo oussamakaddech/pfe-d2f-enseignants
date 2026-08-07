@@ -1,10 +1,10 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import DocumentService from "@/services/formation/DocumentService";
-import type { Id } from "@/models/common";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import DocumentService from '@/services/formation/DocumentService';
+import type { Id } from '@/models/common';
 
 const KEYS = {
-  all: ["documents"] as const,
-  one: (id: Id) => ["documents", id] as const,
+  all: ['documents'] as const,
+  one: (id: Id) => ['documents', id] as const,
 };
 
 type DocumentPayload = {

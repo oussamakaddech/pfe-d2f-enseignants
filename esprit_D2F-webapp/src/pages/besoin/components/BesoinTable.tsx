@@ -1,25 +1,20 @@
 /* ─────────────────────────────────────────────────────────────────────────
  * BesoinTable — Ant Design Table with columns for the list view
  * ─────────────────────────────────────────────────────────────────────── */
-import { Table, Tag, Button, Tooltip, Popconfirm, Space } from "antd";
-import {
-  EditOutlined,
-  DeleteOutlined,
-  CheckCircleOutlined,
-  MailOutlined,
-} from "@ant-design/icons";
-import BesoinPriorityBadge from "./BesoinPriorityBadge";
-import BesoinStatusBadge   from "./BesoinStatusBadge";
+import { Table, Tag, Button, Tooltip, Popconfirm, Space } from 'antd';
+import { EditOutlined, DeleteOutlined, CheckCircleOutlined, MailOutlined } from '@ant-design/icons';
+import BesoinPriorityBadge from './BesoinPriorityBadge';
+import BesoinStatusBadge from './BesoinStatusBadge';
 
 interface BesoinTableProps {
   data: Record<string, unknown>[];
   loading: boolean;
   approvingId: string | number | null;
   getBesoinId: (r: Record<string, unknown>) => unknown;
-  onApprove:   (r: Record<string, unknown>) => void;
-  onOpenMail:  (r: Record<string, unknown>) => void;
-  onEdit:      (r: Record<string, unknown>) => void;
-  onDelete:    (id: unknown) => void;
+  onApprove: (r: Record<string, unknown>) => void;
+  onOpenMail: (r: Record<string, unknown>) => void;
+  onEdit: (r: Record<string, unknown>) => void;
+  onDelete: (id: unknown) => void;
 }
 
 export default function BesoinTable({
@@ -34,31 +29,31 @@ export default function BesoinTable({
 }: Readonly<BesoinTableProps>) {
   const columns = [
     {
-      title: "Formation",
-      key: "formation",
+      title: 'Formation',
+      key: 'formation',
       render: (_: unknown, r: Record<string, unknown>) => (
         <div>
-          <div className="bf-table__title">{String(r.titre || r.objectifFormation || "—")}</div>
+          <div className="bf-table__title">{String(r.titre || r.objectifFormation || '—')}</div>
           {!!r.theme && <div className="bf-table__sub">{String(r.theme)}</div>}
         </div>
       ),
       sorter: (a: Record<string, unknown>, b: Record<string, unknown>) =>
-        String(a.titre || "").localeCompare(String(b.titre || "")),
+        String(a.titre || '').localeCompare(String(b.titre || '')),
     },
     {
-      title: "Demandeur",
-      dataIndex: "username",
+      title: 'Demandeur',
+      dataIndex: 'username',
       width: 140,
     },
     {
-      title: "Type",
-      dataIndex: "typeBesoin",
+      title: 'Type',
+      dataIndex: 'typeBesoin',
       width: 110,
-      render: (t: string) => (t ? <Tag>{t}</Tag> : "—"),
+      render: (t: string) => (t ? <Tag>{t}</Tag> : '—'),
     },
     {
-      title: "Priorité",
-      dataIndex: "priorite",
+      title: 'Priorité',
+      dataIndex: 'priorite',
       width: 120,
       render: (p: string) => <BesoinPriorityBadge value={p} size="sm" />,
       sorter: (a: Record<string, unknown>, b: Record<string, unknown>) => {
@@ -67,42 +62,76 @@ export default function BesoinTable({
       },
     },
     {
-      title: "Date",
-      dataIndex: "dateCreation",
+      title: 'Date',
+      dataIndex: 'dateCreation',
       width: 120,
-      render: (d: string) => (d ? new Date(d).toLocaleDateString("fr-FR") : "—"),
+      render: (d: string) => (d ? new Date(d).toLocaleDateString('fr-FR') : '—'),
     },
     {
-      title: "Statut",
-      key: "statut",
+      title: 'Statut',
+      key: 'statut',
       width: 130,
-      render: (_: unknown, r: Record<string, unknown>) => <BesoinStatusBadge approved={!!r.approuveAdmin} />,
+      render: (_: unknown, r: Record<string, unknown>) => (
+        <BesoinStatusBadge approved={!!r.approuveAdmin} />
+      ),
     },
     {
-      title: "Actions",
-      key: "actions",
+      title: 'Actions',
+      key: 'actions',
       width: 200,
-      fixed: "right" as const,
+      fixed: 'right' as const,
       render: (_: unknown, r: Record<string, unknown>) => {
         const id = getBesoinId(r);
         return (
           <Space size={4}>
             {!r.approuveAdmin && (
-              <Popconfirm title="Approuver ce besoin ?" onConfirm={() => onApprove(r)} okText="Oui" cancelText="Non">
+              <Popconfirm
+                title="Approuver ce besoin ?"
+                onConfirm={() => onApprove(r)}
+                okText="Oui"
+                cancelText="Non"
+              >
                 <Tooltip title="Approuver">
-                  <Button type="primary" size="small" icon={<CheckCircleOutlined />} loading={approvingId === id} className="bf-btn bf-btn--success" />
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<CheckCircleOutlined />}
+                    loading={approvingId === id}
+                    className="bf-btn bf-btn--success"
+                  />
                 </Tooltip>
               </Popconfirm>
             )}
             <Tooltip title="Email CUP">
-              <Button size="small" icon={<MailOutlined />} onClick={() => onOpenMail(r)} className="bf-iconbtn bf-iconbtn--mail" />
+              <Button
+                size="small"
+                icon={<MailOutlined />}
+                onClick={() => onOpenMail(r)}
+                className="bf-iconbtn bf-iconbtn--mail"
+              />
             </Tooltip>
             <Tooltip title="Modifier">
-              <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(r)} className="bf-iconbtn" />
+              <Button
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => onEdit(r)}
+                className="bf-iconbtn"
+              />
             </Tooltip>
-            <Popconfirm title="Supprimer ?" onConfirm={() => onDelete(id)} okText="Oui" cancelText="Non" okButtonProps={{ danger: true }}>
+            <Popconfirm
+              title="Supprimer ?"
+              onConfirm={() => onDelete(id)}
+              okText="Oui"
+              cancelText="Non"
+              okButtonProps={{ danger: true }}
+            >
               <Tooltip title="Supprimer">
-                <Button danger size="small" icon={<DeleteOutlined />} className="bf-iconbtn bf-iconbtn--danger" />
+                <Button
+                  danger
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  className="bf-iconbtn bf-iconbtn--danger"
+                />
               </Tooltip>
             </Popconfirm>
           </Space>

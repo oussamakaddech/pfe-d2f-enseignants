@@ -1,5 +1,5 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
 
 const BASE = `${config.FORMATION_URL}/api/v1/unified-profiles`;
 
@@ -32,11 +32,9 @@ export interface UnifiedProfilePage {
   size: number;
 }
 
-function normalizeListResponse<T>(
-  payload: T[] | { content?: T[]; data?: T[]; items?: T[] },
-): T[] {
+function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; items?: T[] }): T[] {
   if (Array.isArray(payload)) return payload;
-  if (payload && typeof payload === "object") {
+  if (payload && typeof payload === 'object') {
     const candidate = payload as { content?: unknown[]; data?: unknown[]; items?: unknown[] };
     if (Array.isArray(candidate.content)) return candidate.content as T[];
     if (Array.isArray(candidate.data)) return candidate.data as T[];
@@ -57,7 +55,7 @@ const UnifiedProfileService = {
     });
     const data = res.data;
     if (Array.isArray(data)) return data as UnifiedProfile[];
-    if (data && typeof data === "object") {
+    if (data && typeof data === 'object') {
       const page = data as UnifiedProfilePage;
       if (Array.isArray(page.content)) return page.content;
       return normalizeListResponse<UnifiedProfile>(data);

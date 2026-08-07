@@ -1,8 +1,8 @@
-import { memo } from "react";
-import type { ReactNode } from "react";
-import { Typography } from "antd";
-import { brand, neutral } from "@/styles/themes/tokens";
-import s from "./D2FPageHeader.module.css";
+import { memo } from 'react';
+import type { ReactNode } from 'react';
+import { Typography } from 'antd';
+import { brand, neutral } from '@/styles/themes/tokens';
+import s from './D2FPageHeader.module.css';
 
 const { Title, Text } = Typography;
 
@@ -26,7 +26,7 @@ const D2FPageHeader = memo(function D2FPageHeader({
   divider = true,
 }: D2FPageHeaderProps) {
   return (
-    <div className={`${s.header} ${divider ? s.headerDivider : ""}`}>
+    <div className={`${s.header} ${divider ? s.headerDivider : ''}`}>
       <div className={s.headerRow}>
         <div className={s.leftSection}>
           <div
@@ -52,18 +52,10 @@ const D2FPageHeader = memo(function D2FPageHeader({
             )}
           </div>
         </div>
-        {actions && (
-          <div className={s.actionsSection}>
-            {actions}
-          </div>
-        )}
+        {actions && <div className={s.actionsSection}>{actions}</div>}
       </div>
     </div>
   );
 });
 
 export default D2FPageHeader;
-
-
-
-

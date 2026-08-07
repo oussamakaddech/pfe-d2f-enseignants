@@ -1,17 +1,15 @@
-import { memo } from "react";
-import { useNavigate } from "react-router-dom";
-import { Segmented, Button, Space, Tooltip } from "antd";
-import {
-  ReloadOutlined, DownloadOutlined, BookOutlined,
-} from "@ant-design/icons";
-import { RANGE_PRESETS } from "@/pages/dashboard/dashboardRanges";
-import type { DashboardRangeKey, DashboardScope } from "@/models/dashboard";
+import { memo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Segmented, Button, Space, Tooltip } from 'antd';
+import { ReloadOutlined, DownloadOutlined, BookOutlined } from '@ant-design/icons';
+import { RANGE_PRESETS } from '@/pages/dashboard/dashboardRanges';
+import type { DashboardRangeKey, DashboardScope } from '@/models/dashboard';
 
 const SUBTITLE: Record<string, string> = {
-  admin: "Vue globale de la plateforme D2F",
-  cup: "Vue de suivi de votre département / UP",
-  enseignant: "Vue personnalisée de votre développement",
-  animateur: "Vue de vos formations et participations",
+  admin: 'Vue globale de la plateforme D2F',
+  cup: 'Vue de suivi de votre département / UP',
+  enseignant: 'Vue personnalisée de votre développement',
+  animateur: 'Vue de vos formations et participations',
 };
 
 interface DashboardHeaderProps {
@@ -24,7 +22,12 @@ interface DashboardHeaderProps {
 }
 
 const DashboardHeader = memo(function DashboardHeader({
-  scope, onRangeChange, onRefresh, onExport, refreshing, exporting,
+  scope,
+  onRangeChange,
+  onRefresh,
+  onExport,
+  refreshing,
+  exporting,
 }: DashboardHeaderProps) {
   const navigate = useNavigate();
   return (
@@ -37,7 +40,7 @@ const DashboardHeader = memo(function DashboardHeader({
       <div className="dash-header-controls">
         <Segmented
           options={RANGE_PRESETS.map((p) => ({ label: p.label, value: p.key }))}
-          value={scope.rangeKey === "custom" ? "annee" : scope.rangeKey}
+          value={scope.rangeKey === 'custom' ? 'annee' : scope.rangeKey}
           onChange={(v) => onRangeChange(v)}
         />
         <Space size={8}>
@@ -50,7 +53,7 @@ const DashboardHeader = memo(function DashboardHeader({
             </Tooltip>
           )}
           <Tooltip title="Formations">
-            <Button icon={<BookOutlined />} onClick={() => navigate("/home/Formation")} />
+            <Button icon={<BookOutlined />} onClick={() => navigate('/home/Formation')} />
           </Tooltip>
         </Space>
       </div>

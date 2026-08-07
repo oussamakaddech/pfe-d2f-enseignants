@@ -1,11 +1,11 @@
-import type { FormInstance } from "antd";
-import type useCompetenceCrud from "@/hooks/competence/useCompetenceCrud";
-import type useStructureData from "@/hooks/competence/useStructureData";
-import DomaineModal from "./modals/DomaineModal";
-import CompetenceFormModal from "./modals/CompetenceFormModal";
-import SousCompetenceFormModal from "./modals/SousCompetenceFormModal";
-import SavoirFormModal from "./modals/SavoirFormModal";
-import NiveauDefinitionModal from "./modals/NiveauDefinitionModal";
+import type { FormInstance } from 'antd';
+import type useCompetenceCrud from '@/hooks/competence/useCompetenceCrud';
+import type useStructureData from '@/hooks/competence/useStructureData';
+import DomaineModal from './modals/DomaineModal';
+import CompetenceFormModal from './modals/CompetenceFormModal';
+import SousCompetenceFormModal from './modals/SousCompetenceFormModal';
+import SavoirFormModal from './modals/SavoirFormModal';
+import NiveauDefinitionModal from './modals/NiveauDefinitionModal';
 
 interface CompetenceModalsProps {
   crud: ReturnType<typeof useCompetenceCrud>;
@@ -36,9 +36,3 @@ export default function CompetenceModals({
     </>
   );
 }
-
-
-
-
-
-

@@ -1,5 +1,5 @@
-import { config } from "@/config/env";
-import { defaultApi as axios } from "@/services/httpClient";
+import { config } from '@/config/env';
+import { defaultApi as axios } from '@/services/httpClient';
 
 const API_URL = `${config.FORMATION_URL}/formation/ups`;
 
@@ -12,7 +12,7 @@ function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; it
     return payload;
   }
 
-  if (payload && typeof payload === "object") {
+  if (payload && typeof payload === 'object') {
     const candidate = payload as { content?: unknown[]; data?: unknown[]; items?: unknown[] };
     if (Array.isArray(candidate.content)) {
       return candidate.content as T[];
@@ -62,9 +62,9 @@ const UpService = {
 
   async importUpsExcel(file: File) {
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append('file', file);
     const response = await axios.post(`${API_URL}/import-excel`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
   },

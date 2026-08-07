@@ -28,7 +28,3 @@ export interface RiceAssignmentResult {
   added: number;
   removed: number;
 }
-
-
-
-

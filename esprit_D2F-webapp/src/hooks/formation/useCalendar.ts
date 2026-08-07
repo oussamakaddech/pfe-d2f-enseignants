@@ -2,8 +2,8 @@
  * Hooks react-query pour la fonctionnalité Calendrier des ateliers.
  * Sépare la logique métier (appels API, cache, invalidation) de l'UI.
  */
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import CalendarService from "@/services/formation/CalendarService";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import CalendarService from '@/services/formation/CalendarService';
 import type {
   CalendarFormation,
   CalendarFormationFilters,
@@ -13,13 +13,13 @@ import type {
   ImportReport,
   ParsedCalendar,
   SendInvitationsResult,
-} from "@/models/calendar";
+} from '@/models/calendar';
 
 const KEYS = {
-  formations: (filters: CalendarFormationFilters) => ["calendar", "formations", filters] as const,
+  formations: (filters: CalendarFormationFilters) => ['calendar', 'formations', filters] as const,
   participants: (id: number, page: number, size: number) =>
-    ["calendar", "participants", id, page, size] as const,
-  conflicts: ["calendar", "conflicts"] as const,
+    ['calendar', 'participants', id, page, size] as const,
+  conflicts: ['calendar', 'conflicts'] as const,
 };
 
 /** Aperçu (parsing sans persistance). */
@@ -35,7 +35,7 @@ export function useImportCalendar() {
   return useMutation<ImportReport, unknown, { file: File; force?: boolean }>({
     mutationFn: ({ file, force }) => CalendarService.importCalendar(file, force),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["calendar"] });
+      queryClient.invalidateQueries({ queryKey: ['calendar'] });
     },
   });
 }

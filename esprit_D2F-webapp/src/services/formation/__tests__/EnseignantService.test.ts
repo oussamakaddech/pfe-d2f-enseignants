@@ -7,7 +7,7 @@ const httpMocks = vi.hoisted(() => ({
   mockDelete: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     get: httpMocks.mockGet,
     post: httpMocks.mockPost,
@@ -16,14 +16,16 @@ vi.mock("@/services/httpClient", () => ({
   },
 }));
 
-vi.mock("@/services/auth/authHeaders", () => ({
+vi.mock('@/services/auth/authHeaders', () => ({
   requireAuthHeader: vi.fn(() => ({ Authorization: 'Bearer test' })),
 }));
 
 import EnseignantService from '../EnseignantService';
 
 describe('EnseignantService', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('creates an enseignant', async () => {
     httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 'E1', nom: 'Dupont' } });
@@ -33,12 +35,15 @@ describe('EnseignantService', () => {
 
   it('creates an enseignant with account', async () => {
     httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 'E2', nom: 'Martin' } });
-    const result = await EnseignantService.createEnseignantWithAccount({ nom: 'Martin', email: 'martin@esprit.tn' }, 'ENSEIGNANT');
+    const result = await EnseignantService.createEnseignantWithAccount(
+      { nom: 'Martin', email: 'martin@esprit.tn' },
+      'ENSEIGNANT',
+    );
     expect(result).toEqual({ id: 'E2', nom: 'Martin' });
     expect(httpMocks.mockPost).toHaveBeenCalledWith(
       expect.stringContaining('/with-account'),
       expect.any(Object),
-      { params: { role: 'ENSEIGNANT' } }
+      { params: { role: 'ENSEIGNANT' } },
     );
   });
 
@@ -101,10 +106,8 @@ describe('EnseignantService', () => {
 
   it('throws on upload error', async () => {
     httpMocks.mockPost.mockRejectedValueOnce(new Error('upload fail'));
-    await expect(EnseignantService.uploadEnseignants(new File(['x'], 'f.xlsx'))).rejects.toThrow('upload fail');
+    await expect(EnseignantService.uploadEnseignants(new File(['x'], 'f.xlsx'))).rejects.toThrow(
+      'upload fail',
+    );
   });
 });
-
-
-
-

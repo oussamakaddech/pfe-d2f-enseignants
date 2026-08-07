@@ -1,14 +1,14 @@
-import { InboxOutlined, FileExcelOutlined, DeleteOutlined } from "@ant-design/icons";
-import { Upload, Typography, Space, Button } from "antd";
-import type { UploadProps } from "antd";
-import useAppNotification from "@/hooks/ui/useAppNotification";
+import { InboxOutlined, FileExcelOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Upload, Typography, Space, Button } from 'antd';
+import type { UploadProps } from 'antd';
+import useAppNotification from '@/hooks/ui/useAppNotification';
 
 const { Dragger } = Upload;
 const { Text } = Typography;
 
 /** Limite alignée sur le défaut backend (calendar.import.max-file-size-bytes = 10 Mo). */
 const MAX_SIZE_BYTES = 10 * 1024 * 1024;
-const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 interface Props {
   file: File | null;
@@ -26,14 +26,13 @@ export default function CalendarFileUpload({ file, onFileChange, disabled }: Rea
   const { message } = useAppNotification();
 
   const validate = (candidate: File): boolean => {
-    const isXlsx =
-      candidate.type === XLSX_MIME || candidate.name.toLowerCase().endsWith(".xlsx");
+    const isXlsx = candidate.type === XLSX_MIME || candidate.name.toLowerCase().endsWith('.xlsx');
     if (!isXlsx) {
-      message.error("Seuls les fichiers Excel .xlsx sont acceptés.");
+      message.error('Seuls les fichiers Excel .xlsx sont acceptés.');
       return false;
     }
     if (candidate.size === 0) {
-      message.error("Le fichier est vide.");
+      message.error('Le fichier est vide.');
       return false;
     }
     if (candidate.size > MAX_SIZE_BYTES) {
@@ -45,7 +44,7 @@ export default function CalendarFileUpload({ file, onFileChange, disabled }: Rea
 
   const draggerProps: UploadProps = {
     multiple: false,
-    accept: ".xlsx",
+    accept: '.xlsx',
     showUploadList: false,
     disabled,
     beforeUpload: (candidate) => {
@@ -61,15 +60,15 @@ export default function CalendarFileUpload({ file, onFileChange, disabled }: Rea
       <Space
         align="center"
         style={{
-          justifyContent: "space-between",
-          width: "100%",
+          justifyContent: 'space-between',
+          width: '100%',
           padding: 16,
-          border: "1px dashed #d9d9d9",
+          border: '1px dashed #d9d9d9',
           borderRadius: 8,
         }}
       >
         <Space>
-          <FileExcelOutlined style={{ fontSize: 24, color: "#1D6F42" }} />
+          <FileExcelOutlined style={{ fontSize: 24, color: '#1D6F42' }} />
           <div>
             <Text strong>{file.name}</Text>
             <br />

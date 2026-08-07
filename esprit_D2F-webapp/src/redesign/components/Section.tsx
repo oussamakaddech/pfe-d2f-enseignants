@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode } from 'react';
 
 export function Section({
   title,
@@ -15,7 +15,15 @@ export function Section({
 }) {
   return (
     <section className="rd-section" id={id}>
-      <div className="rd-section-head" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+      <div
+        className="rd-section-head"
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
         <div>
           <h2 className="rd-section-title">{title}</h2>
           {subtitle && <p className="rd-section-sub">{subtitle}</p>}
@@ -35,7 +43,7 @@ export function Card({
   iconBg,
   extra,
   children,
-  className = "",
+  className = '',
   interactive = false,
   onClick,
   loading = false,
@@ -54,7 +62,12 @@ export function Card({
 }) {
   if (interactive) {
     return (
-      <button className={`rd-card interactive ${className}`} onClick={onClick} tabIndex={0} style={{ textAlign: "left", width: "100%", cursor: "pointer" }}>
+      <button
+        className={`rd-card interactive ${className}`}
+        onClick={onClick}
+        tabIndex={0}
+        style={{ textAlign: 'left', width: '100%', cursor: 'pointer' }}
+      >
         {(title || extra) && (
           <div className="rd-card-head">
             <div>

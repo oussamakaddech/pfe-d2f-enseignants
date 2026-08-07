@@ -1,13 +1,13 @@
-import { useState } from "react";
-import { Card, Select, Space } from "antd";
-import { HeatMapOutlined } from "@ant-design/icons";
-import { useHeatmap } from "@/hooks/analytics/useAnalyticsQueries";
-import { Heatmap } from "@/components/analytics";
-import { AppPageHeader } from "@/components/common";
+import { useState } from 'react';
+import { Card, Select, Space } from 'antd';
+import { HeatMapOutlined } from '@ant-design/icons';
+import { useHeatmap } from '@/hooks/analytics/useAnalyticsQueries';
+import { Heatmap } from '@/components/analytics';
+import { AppPageHeader } from '@/components/common';
 
 /** Page Heatmap des gaps (département × compétence). */
 export default function HeatmapPage() {
-  const [dept, setDept] = useState("");
+  const [dept, setDept] = useState('');
   const heatmap = useHeatmap(dept ? { departement_id: dept } : undefined);
 
   return (
@@ -22,7 +22,10 @@ export default function HeatmapPage() {
               placeholder="Département"
               style={{ width: 200 }}
               onChange={(v) => setDept(v)}
-              options={[{ value: "INF", label: "Informatique" }, { value: "MATH", label: "Mathématiques" }]}
+              options={[
+                { value: 'INF', label: 'Informatique' },
+                { value: 'MATH', label: 'Mathématiques' },
+              ]}
             />
           </Space>
         }

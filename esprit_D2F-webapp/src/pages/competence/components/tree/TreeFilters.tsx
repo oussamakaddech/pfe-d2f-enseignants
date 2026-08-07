@@ -1,6 +1,6 @@
-import React from "react";
-import { Row, Col, Space, Tag, Typography, Input, Select } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import React from 'react';
+import { Row, Col, Space, Tag, Typography, Input, Select } from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
 
 const { Search } = Input;
 const { Option } = Select;
@@ -45,26 +45,28 @@ export default function TreeFilters({
 }: Readonly<TreeFiltersProps>) {
   const upOptions = React.useMemo(
     () => [...new Set(domaines.map((d) => d.upId).filter(Boolean) as string[])],
-    [domaines]
+    [domaines],
   );
   const deptOptions = React.useMemo(
     () => [...new Set(domaines.map((d) => d.departementId).filter(Boolean) as string[])],
-    [domaines]
+    [domaines],
   );
 
   return (
-    <Space style={{ marginBottom: 16, width: "100%" }} direction="vertical">
+    <Space style={{ marginBottom: 16, width: '100%' }} direction="vertical">
       <Row gutter={16}>
         <Col span={8}>
           <Select
             allowClear
             placeholder="Filtrer par UP"
-            style={{ width: "100%" }}
+            style={{ width: '100%' }}
             value={selectedUp}
             onChange={onUpChange}
           >
             {upOptions.map((u) => (
-              <Option key={u} value={u}>{u}</Option>
+              <Option key={u} value={u}>
+                {u}
+              </Option>
             ))}
           </Select>
         </Col>
@@ -72,12 +74,14 @@ export default function TreeFilters({
           <Select
             allowClear
             placeholder="Filtrer par département"
-            style={{ width: "100%" }}
+            style={{ width: '100%' }}
             value={selectedDept}
             onChange={onDeptChange}
           >
             {deptOptions.map((d) => (
-              <Option key={d} value={d}>{d}</Option>
+              <Option key={d} value={d}>
+                {d}
+              </Option>
             ))}
           </Select>
         </Col>
@@ -85,7 +89,7 @@ export default function TreeFilters({
           <Select
             allowClear
             placeholder="Filtrer par domaine"
-            style={{ width: "100%" }}
+            style={{ width: '100%' }}
             value={selectedDomaine}
             onChange={onDomaineChange}
           >
@@ -102,7 +106,7 @@ export default function TreeFilters({
         <Col span={24}>
           <Search
             placeholder="Rechercher par mot-clé, code, description..."
-            enterButton={searchLoading ? "Recherche..." : "Rechercher"}
+            enterButton={searchLoading ? 'Recherche...' : 'Rechercher'}
             loading={searchLoading}
             value={searchKeyword}
             onChange={(e) => onSearchChange(e.target.value)}
@@ -121,13 +125,19 @@ export default function TreeFilters({
 
       {(selectedUp || selectedDept || selectedDomaine) && (
         <Space size={4}>
-          <SearchOutlined style={{ color: "#1890ff" }} />
-          <Text type="secondary" style={{ fontSize: 12 }}>Filtres actifs :</Text>
+          <SearchOutlined style={{ color: '#1890ff' }} />
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            Filtres actifs :
+          </Text>
           {selectedUp && (
-            <Tag color="blue" closable onClose={() => onUpChange(null)}>UP : {selectedUp}</Tag>
+            <Tag color="blue" closable onClose={() => onUpChange(null)}>
+              UP : {selectedUp}
+            </Tag>
           )}
           {selectedDept && (
-            <Tag color="green" closable onClose={() => onDeptChange(null)}>Dépt : {selectedDept}</Tag>
+            <Tag color="green" closable onClose={() => onDeptChange(null)}>
+              Dépt : {selectedDept}
+            </Tag>
           )}
           {selectedDomaine && (
             <Tag color="purple" closable onClose={() => onDomaineChange(null)}>

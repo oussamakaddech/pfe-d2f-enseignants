@@ -1,8 +1,8 @@
-import { List, Spin, Button, Space, Tag, Typography } from "antd";
-import { CalendarOutlined, EditOutlined, FileTextOutlined, InboxOutlined } from "@ant-design/icons";
-import type { Formation } from "./docUtils";
-import { formatDate } from "./docUtils";
-import { DocEmpty } from "./DocEmpty";
+import { List, Spin, Button, Space, Tag, Typography } from 'antd';
+import { CalendarOutlined, EditOutlined, FileTextOutlined, InboxOutlined } from '@ant-design/icons';
+import type { Formation } from './docUtils';
+import { formatDate } from './docUtils';
+import { DocEmpty } from './DocEmpty';
 
 const { Text } = Typography;
 
@@ -28,24 +28,20 @@ export function FormationListPanel({
           size="small"
           dataSource={formations}
           renderItem={(formation) => {
-            const isSelected =
-              selectedFormation?.idFormation === formation.idFormation;
+            const isSelected = selectedFormation?.idFormation === formation.idFormation;
             const docCount = formation.documents?.length ?? 0;
 
             return (
               <List.Item
                 key={String(formation.idFormation)}
                 onClick={() => onSelect(formation)}
-                className={`doc-formation-item${isSelected ? " doc-formation-item--selected" : ""}`}
+                className={`doc-formation-item${isSelected ? ' doc-formation-item--selected' : ''}`}
               >
-                <Space direction="vertical" size={8} style={{ width: "100%" }}>
-                  <Space
-                    align="start"
-                    style={{ width: "100%", justifyContent: "space-between" }}
-                  >
+                <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                  <Space align="start" style={{ width: '100%', justifyContent: 'space-between' }}>
                     <div>
                       <Text strong className="doc-formation-title">
-                        {formation.titreFormation || "Formation sans titre"}
+                        {formation.titreFormation || 'Formation sans titre'}
                       </Text>
                       <br />
                       <Text className="doc-formation-date">
@@ -65,15 +61,12 @@ export function FormationListPanel({
 
                   <Space wrap size={8}>
                     <Tag color="blue" bordered={false}>
-                      {formation.up1?.libelle || "UP inconnue"}
+                      {formation.up1?.libelle || 'UP inconnue'}
                     </Tag>
                     <Tag color="green" bordered={false}>
-                      {formation.departement1?.libelle || "Département inconnu"}
+                      {formation.departement1?.libelle || 'Département inconnu'}
                     </Tag>
-                    <Tag
-                      color={docCount > 0 ? "geekblue" : "default"}
-                      bordered={false}
-                    >
+                    <Tag color={docCount > 0 ? 'geekblue' : 'default'} bordered={false}>
                       <FileTextOutlined style={{ marginInlineEnd: 4 }} />
                       {docCount} document(s)
                     </Tag>

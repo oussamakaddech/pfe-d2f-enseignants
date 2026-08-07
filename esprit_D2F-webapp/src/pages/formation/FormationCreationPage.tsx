@@ -1,6 +1,6 @@
-import { useLocation, useNavigate, Link } from "react-router-dom";
-import { Tag, Breadcrumb, Button } from "antd";
-import useAppNotification from "@/hooks/ui/useAppNotification";
+import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { Tag, Breadcrumb, Button } from 'antd';
+import useAppNotification from '@/hooks/ui/useAppNotification';
 import {
   BookOutlined,
   HomeOutlined,
@@ -8,9 +8,9 @@ import {
   AppstoreOutlined,
   PlusCircleOutlined,
   QuestionCircleOutlined,
-} from "@ant-design/icons";
-import FormationWorkflowForm from "./FormationWorkflowForm";
-import "@/styles/pages/formation-creation-page.css";
+} from '@ant-design/icons';
+import FormationWorkflowForm from './FormationWorkflowForm';
+import '@/styles/pages/formation-creation-page.css';
 
 export default function FormationCreationPage() {
   const { message: msgApi } = useAppNotification();
@@ -19,7 +19,7 @@ export default function FormationCreationPage() {
   const besoinInfo = location.state?.besoinInfo || null;
 
   const handleCreated = () => {
-    msgApi.success("Formation créée avec succès !");
+    msgApi.success('Formation créée avec succès !');
   };
 
   return (
@@ -35,12 +35,16 @@ export default function FormationCreationPage() {
             items={[
               {
                 title: (
-                  <Link to="/home"><HomeOutlined /> Accueil</Link>
+                  <Link to="/home">
+                    <HomeOutlined /> Accueil
+                  </Link>
                 ),
               },
               {
                 title: (
-                  <Link to="/home/Formation"><AppstoreOutlined /> Formations</Link>
+                  <Link to="/home/Formation">
+                    <AppstoreOutlined /> Formations
+                  </Link>
                 ),
               },
               {
@@ -67,7 +71,7 @@ export default function FormationCreationPage() {
                 </p>
                 {besoinInfo && (
                   <Tag color="processing" className="creation-tag-besoin">
-                    Lié au besoin : {besoinInfo.titre || besoinInfo.objectifFormation || "Besoin"}
+                    Lié au besoin : {besoinInfo.titre || besoinInfo.objectifFormation || 'Besoin'}
                   </Tag>
                 )}
               </div>
@@ -108,14 +112,3 @@ export default function FormationCreationPage() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-

@@ -1,9 +1,8 @@
-
-import { useAllUps } from "@/hooks/formation/useUpCrud";
-import { useAllDepts } from "@/hooks/formation/useDeptCrud";
-import { Form, Input, Modal, Select, Switch } from "antd";
-import type { FormInstance } from "antd";
-import type useCompetenceCrud from "@/hooks/competence/useCompetenceCrud";
+import { useAllUps } from '@/hooks/formation/useUpCrud';
+import { useAllDepts } from '@/hooks/formation/useDeptCrud';
+import { Form, Input, Modal, Select, Switch } from 'antd';
+import type { FormInstance } from 'antd';
+import type useCompetenceCrud from '@/hooks/competence/useCompetenceCrud';
 
 const { Option } = Select;
 
@@ -26,7 +25,7 @@ export default function DomaineModal({ crud, domaineForm }: Readonly<DomaineModa
   return (
     <Modal
       forceRender
-      title={crud.editingDomaine ? "Modifier le domaine" : "Nouveau domaine"}
+      title={crud.editingDomaine ? 'Modifier le domaine' : 'Nouveau domaine'}
       open={crud.domaineModal}
       onOk={() => crud.handleDomaineSubmit(domaineForm)}
       onCancel={() => crud.setDomaineModal(false)}
@@ -41,25 +40,17 @@ export default function DomaineModal({ crud, domaineForm }: Readonly<DomaineModa
         <Form.Item
           name="code"
           label="Code"
-          rules={[{ required: true, message: "Code obligatoire" }]}
+          rules={[{ required: true, message: 'Code obligatoire' }]}
         >
           <Input placeholder="ex: DOM-001" />
         </Form.Item>
-        <Form.Item
-          name="nom"
-          label="Nom"
-          rules={[{ required: true, message: "Nom obligatoire" }]}
-        >
+        <Form.Item name="nom" label="Nom" rules={[{ required: true, message: 'Nom obligatoire' }]}>
           <Input placeholder="ex: Informatique" />
         </Form.Item>
         <Form.Item name="description" label="Description">
           <Input.TextArea rows={3} placeholder="Description du domaine" />
         </Form.Item>
-        <Form.Item
-          name="upId"
-          label="UP"
-          rules={[{ required: true, message: "UP obligatoire" }]}
-        >
+        <Form.Item name="upId" label="UP" rules={[{ required: true, message: 'UP obligatoire' }]}>
           <Select
             placeholder="Selectionner une UP"
             showSearch
@@ -76,7 +67,7 @@ export default function DomaineModal({ crud, domaineForm }: Readonly<DomaineModa
         <Form.Item
           name="departementId"
           label="Departement"
-          rules={[{ required: true, message: "Departement obligatoire" }]}
+          rules={[{ required: true, message: 'Departement obligatoire' }]}
         >
           <Select
             placeholder="Selectionner un departement"

@@ -9,7 +9,9 @@
 @import './base/animations.css';
 
 /* Base element styles from index.css */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -38,21 +40,40 @@ body {
 }
 
 /* Headings */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   margin: 0;
   color: var(--text-main);
   font-weight: var(--font-bold);
   line-height: var(--line-tight);
 }
 
-h1 { font-size: var(--text-5xl); }
-h2 { font-size: var(--text-4xl); }
-h3 { font-size: var(--text-3xl); }
-h4 { font-size: var(--text-2xl); }
-h5 { font-size: var(--text-lg); }
-h6 { font-size: var(--text-base); }
+h1 {
+  font-size: var(--text-5xl);
+}
+h2 {
+  font-size: var(--text-4xl);
+}
+h3 {
+  font-size: var(--text-3xl);
+}
+h4 {
+  font-size: var(--text-2xl);
+}
+h5 {
+  font-size: var(--text-lg);
+}
+h6 {
+  font-size: var(--text-base);
+}
 
-p, ul, ol {
+p,
+ul,
+ol {
   margin: 0;
 }
 
@@ -72,7 +93,9 @@ button {
   font-family: var(--font-family);
 }
 
-input, textarea, select {
+input,
+textarea,
+select {
   font-family: var(--font-family);
 }
 
@@ -88,38 +111,113 @@ a:focus-visible {
 }
 
 /* ── Utility classes for inline style replacements ───────────────────────── */
-.d-flex    { display: flex; }
-.d-flex-c  { display: flex; align-items: center; }
-.d-flex-sb { display: flex; align-items: center; justify-content: space-between; }
-.d-flex-w  { display: flex; align-items: center; flex-wrap: wrap; }
-.gap-4  { gap: 4px; }
-.gap-8  { gap: 8px; }
-.gap-12 { gap: 12px; }
-.gap-16 { gap: 16px; }
-.gap-20 { gap: 20px; }
-.gap-24 { gap: 24px; }
-.mb-8   { margin-bottom: 8px; }
-.mb-16  { margin-bottom: 16px; }
-.mb-20  { margin-bottom: 20px; }
-.mb-24  { margin-bottom: 24px; }
-.mt-20  { margin-top: 20px; }
-.mr-4   { margin-right: 4px; }
-.mr-6   { margin-right: 6px; }
-.p-24   { padding: 24px; }
-.w-full { width: 100%; }
-.text-center { text-align: center; }
-.text-xs     { font-size: var(--text-xs); }
-.text-sm     { font-size: var(--text-sm); }
-.text-base   { font-size: var(--text-base); }
-.text-lg     { font-size: var(--text-lg); }
-.fw-600      { font-weight: 600; }
-.fw-700      { font-weight: 700; }
-.rounded-8   { border-radius: 8px; }
-.rounded-12  { border-radius: 12px; }
-.rounded-14  { border-radius: 14px; }
-.color-danger  { color: #ef4444; }
-.color-success { color: #10b981; }
-.color-warning { color: #f59e0b; }
-.color-info    { color: #3b82f6; }
-.color-muted   { color: var(--text-muted); }
-.bg-white      { background-color: #fff; }
+.d-flex {
+  display: flex;
+}
+.d-flex-c {
+  display: flex;
+  align-items: center;
+}
+.d-flex-sb {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.d-flex-w {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.gap-4 {
+  gap: 4px;
+}
+.gap-8 {
+  gap: 8px;
+}
+.gap-12 {
+  gap: 12px;
+}
+.gap-16 {
+  gap: 16px;
+}
+.gap-20 {
+  gap: 20px;
+}
+.gap-24 {
+  gap: 24px;
+}
+.mb-8 {
+  margin-bottom: 8px;
+}
+.mb-16 {
+  margin-bottom: 16px;
+}
+.mb-20 {
+  margin-bottom: 20px;
+}
+.mb-24 {
+  margin-bottom: 24px;
+}
+.mt-20 {
+  margin-top: 20px;
+}
+.mr-4 {
+  margin-right: 4px;
+}
+.mr-6 {
+  margin-right: 6px;
+}
+.p-24 {
+  padding: 24px;
+}
+.w-full {
+  width: 100%;
+}
+.text-center {
+  text-align: center;
+}
+.text-xs {
+  font-size: var(--text-xs);
+}
+.text-sm {
+  font-size: var(--text-sm);
+}
+.text-base {
+  font-size: var(--text-base);
+}
+.text-lg {
+  font-size: var(--text-lg);
+}
+.fw-600 {
+  font-weight: 600;
+}
+.fw-700 {
+  font-weight: 700;
+}
+.rounded-8 {
+  border-radius: 8px;
+}
+.rounded-12 {
+  border-radius: 12px;
+}
+.rounded-14 {
+  border-radius: 14px;
+}
+.color-danger {
+  color: #ef4444;
+}
+.color-success {
+  color: #10b981;
+}
+.color-warning {
+  color: #f59e0b;
+}
+.color-info {
+  color: #3b82f6;
+}
+.color-muted {
+  color: var(--text-muted);
+}
+.bg-white {
+  background-color: #fff;
+}

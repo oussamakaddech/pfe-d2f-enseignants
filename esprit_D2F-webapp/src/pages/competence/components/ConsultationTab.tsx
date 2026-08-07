@@ -1,23 +1,33 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Select, Spin, Button, Typography, Tag, Input } from "antd";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Select, Spin, Button, Typography, Tag, Input } from 'antd';
 import {
   ReloadOutlined,
   ApartmentOutlined,
   AppstoreOutlined,
   FilterOutlined,
-} from "@ant-design/icons";
-import StructureSearchResultsView, { type SearchResults } from "./StructureSearchResultsView";
-import ViewToolbar from "./consultation/ViewToolbar";
-import CardsView from "./consultation/CardsView";
-import SavoirDetailDrawer, { type DrawerPayload } from "./consultation/SavoirDetailDrawer";
-import { buildFlatSavoirs, DISPLAY_MODE_KEY, type FlatSavoir } from "@/utils/helpers/consultationViewUtils";
-import { useAllUps } from "@/hooks/formation/useUpCrud";
-import { useAllDepts } from "@/hooks/formation/useDeptCrud";
-import type useStructureData from "@/hooks/competence/useStructureData";
-import type { Domaine, Competence, SousCompetence, Savoir, StructureData } from "@/models/competence";
-import type { LookupItem } from "@/models/common";
-import { brand, neutral, semantic } from "@/styles/themes/tokens";
-import "@/styles/pages/consultation-tab.css";
+} from '@ant-design/icons';
+import StructureSearchResultsView, { type SearchResults } from './StructureSearchResultsView';
+import ViewToolbar from './consultation/ViewToolbar';
+import CardsView from './consultation/CardsView';
+import SavoirDetailDrawer, { type DrawerPayload } from './consultation/SavoirDetailDrawer';
+import {
+  buildFlatSavoirs,
+  DISPLAY_MODE_KEY,
+  type FlatSavoir,
+} from '@/utils/helpers/consultationViewUtils';
+import { useAllUps } from '@/hooks/formation/useUpCrud';
+import { useAllDepts } from '@/hooks/formation/useDeptCrud';
+import type useStructureData from '@/hooks/competence/useStructureData';
+import type {
+  Domaine,
+  Competence,
+  SousCompetence,
+  Savoir,
+  StructureData,
+} from '@/models/competence';
+import type { LookupItem } from '@/models/common';
+import { brand, neutral, semantic } from '@/styles/themes/tokens';
+import '@/styles/pages/consultation-tab.css';
 
 const { Title, Text, Paragraph } = Typography;
 const { Search } = Input;
@@ -36,16 +46,62 @@ interface ConsultationTabProps {
 }
 
 const STAT_DEFS = [
-  { key: "domaines", statKey: "totalDomaines", label: "Domaines", icon: <AppstoreOutlined />, color: brand[500], bg: brand[50] },
-  { key: "competences", statKey: "totalCompetences", label: "Compétences", icon: <ApartmentOutlined />, color: semantic.info, bg: semantic.infoBg },
-  { key: "sousCompetences", statKey: "totalSousCompetences", label: "Sous-comp.", icon: <ApartmentOutlined />, color: semantic.warning, bg: semantic.warningBg },
-  { key: "savoirs", statKey: "totalSavoirs", label: "Savoirs", icon: <ApartmentOutlined />, color: semantic.success, bg: semantic.successBg },
-  { key: "theoriques", statKey: "totalSavoirsTheoriques", label: "Théoriques", icon: <ApartmentOutlined />, color: "#7c3aed", bg: "#f5f3ff" },
-  { key: "pratiques", statKey: "totalSavoirsPratiques", label: "Pratiques", icon: <ApartmentOutlined />, color: "#0891b2", bg: "#ecfeff" },
+  {
+    key: 'domaines',
+    statKey: 'totalDomaines',
+    label: 'Domaines',
+    icon: <AppstoreOutlined />,
+    color: brand[500],
+    bg: brand[50],
+  },
+  {
+    key: 'competences',
+    statKey: 'totalCompetences',
+    label: 'Compétences',
+    icon: <ApartmentOutlined />,
+    color: semantic.info,
+    bg: semantic.infoBg,
+  },
+  {
+    key: 'sousCompetences',
+    statKey: 'totalSousCompetences',
+    label: 'Sous-comp.',
+    icon: <ApartmentOutlined />,
+    color: semantic.warning,
+    bg: semantic.warningBg,
+  },
+  {
+    key: 'savoirs',
+    statKey: 'totalSavoirs',
+    label: 'Savoirs',
+    icon: <ApartmentOutlined />,
+    color: semantic.success,
+    bg: semantic.successBg,
+  },
+  {
+    key: 'theoriques',
+    statKey: 'totalSavoirsTheoriques',
+    label: 'Théoriques',
+    icon: <ApartmentOutlined />,
+    color: '#7c3aed',
+    bg: '#f5f3ff',
+  },
+  {
+    key: 'pratiques',
+    statKey: 'totalSavoirsPratiques',
+    label: 'Pratiques',
+    icon: <ApartmentOutlined />,
+    color: '#0891b2',
+    bg: '#ecfeff',
+  },
 ];
 
-export default function ConsultationTab({ structure, crud, handleExportExcel }: Readonly<ConsultationTabProps>) {
-  const [displayMode, setDisplayMode] = useState<string>("cards");
+export default function ConsultationTab({
+  structure,
+  crud,
+  handleExportExcel,
+}: Readonly<ConsultationTabProps>) {
+  const [displayMode, setDisplayMode] = useState<string>('cards');
   const [cardsOpenAll, setCardsOpenAll] = useState(false);
   const [justNavigated, setJustNavigated] = useState(false);
   const [drawerPayload, setDrawerPayload] = useState<DrawerPayload | null>(null);
@@ -57,41 +113,54 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
   const [selectedDeptId, setSelectedDeptId] = useState<number | null>(null);
   const [selectedDomaineId, setSelectedDomaineId] = useState<number | null>(null);
 
-  const handleFilterChange = useCallback((upId: number | null, deptId: number | null, domaineId: number | null) => {
-    setSelectedUpId(upId);
-    setSelectedDeptId(deptId);
-    setSelectedDomaineId(domaineId);
-    structure.applyFilter?.(upId, deptId);
-    structure.setSelectedDomaine?.(domaineId);
-  }, [structure]);
+  const handleFilterChange = useCallback(
+    (upId: number | null, deptId: number | null, domaineId: number | null) => {
+      setSelectedUpId(upId);
+      setSelectedDeptId(deptId);
+      setSelectedDomaineId(domaineId);
+      structure.applyFilter?.(upId, deptId);
+      structure.setSelectedDomaine?.(domaineId);
+    },
+    [structure],
+  );
 
-  const handleSearchChange = useCallback((val: string) => {
-    structure.setSearchKeyword?.(val);
-  }, [structure]);
+  const handleSearchChange = useCallback(
+    (val: string) => {
+      structure.setSearchKeyword?.(val);
+    },
+    [structure],
+  );
 
-  const handleSearchExecute = useCallback((val: string) => {
-    structure.handleSearch?.(val);
-  }, [structure]);
+  const handleSearchExecute = useCallback(
+    (val: string) => {
+      structure.handleSearch?.(val);
+    },
+    [structure],
+  );
 
   const handleSearchClear = useCallback(() => {
     structure.handleClearSearch?.();
-    structure.setSearchKeyword?.("");
+    structure.setSearchKeyword?.('');
   }, [structure]);
 
-  const stats = useMemo(() => ({
-    totalDomaines: crud.domaines?.length ?? 0,
-    totalCompetences: crud.competences?.length ?? 0,
-    totalSousCompetences: crud.sousComps?.length ?? 0,
-    totalSavoirs: crud.savoirs?.length ?? 0,
-    totalSavoirsTheoriques: crud.savoirs?.filter((s) => s.type === "THEORIQUE").length ?? 0,
-    totalSavoirsPratiques: crud.savoirs?.filter((s) => s.type === "PRATIQUE").length ?? 0,
-  }), [crud]);
+  const stats = useMemo(
+    () => ({
+      totalDomaines: crud.domaines?.length ?? 0,
+      totalCompetences: crud.competences?.length ?? 0,
+      totalSousCompetences: crud.sousComps?.length ?? 0,
+      totalSavoirs: crud.savoirs?.length ?? 0,
+      totalSavoirsTheoriques: crud.savoirs?.filter((s) => s.type === 'THEORIQUE').length ?? 0,
+      totalSavoirsPratiques: crud.savoirs?.filter((s) => s.type === 'PRATIQUE').length ?? 0,
+    }),
+    [crud],
+  );
 
   const flatSavoirs = useMemo(() => buildFlatSavoirs(crud) as unknown as FlatSavoir[], [crud]);
 
   const isSearchLoading = structure.searchLoading;
   const hasSearchResults = !isSearchLoading && !!structure.searchResults;
-  const isStructureLoading = !isSearchLoading && !structure.searchResults && structure.structureLoading;
+  const isStructureLoading =
+    !isSearchLoading && !structure.searchResults && structure.structureLoading;
   const showContent = !isSearchLoading && !structure.searchResults && !structure.structureLoading;
 
   useEffect(() => {
@@ -100,23 +169,27 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
 
   const scrollToContent = useCallback(() => {
     setTimeout(() => {
-      contentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   }, []);
 
-  const handleStatClick = useCallback((key: string) => {
-    setDisplayMode("cards");
-    setCardsOpenAll(true);
-    setJustNavigated(true);
-    setTimeout(() => setJustNavigated(false), 800);
-    scrollToContent();
-  }, [scrollToContent]);
+  const handleStatClick = useCallback(
+    (key: string) => {
+      setDisplayMode('cards');
+      setCardsOpenAll(true);
+      setJustNavigated(true);
+      setTimeout(() => setJustNavigated(false), 800);
+      scrollToContent();
+    },
+    [scrollToContent],
+  );
 
   const openSingleSavoir = useCallback((savoir: FlatSavoir) => {
-    setDrawerPayload({ mode: "single", savoir: savoir || null });
+    setDrawerPayload({ mode: 'single', savoir: savoir || null });
   }, []);
 
-  const activeFilterCount = (selectedUpId ? 1 : 0) + (selectedDeptId ? 1 : 0) + (selectedDomaineId ? 1 : 0);
+  const activeFilterCount =
+    (selectedUpId ? 1 : 0) + (selectedDeptId ? 1 : 0) + (selectedDomaineId ? 1 : 0);
 
   const clearAllFilters = useCallback(() => {
     handleFilterChange(null, null, null);
@@ -137,7 +210,9 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
             <ApartmentOutlined />
           </div>
           <div>
-            <Title level={2} className="ctp-header__title">Arborescence des Compétences</Title>
+            <Title level={2} className="ctp-header__title">
+              Arborescence des Compétences
+            </Title>
             <Paragraph className="ctp-header__subtitle">
               Domaines → Compétences → Sous-compétences → Savoirs
             </Paragraph>
@@ -162,13 +237,15 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
           <button
             key={def.key}
             className="ctp-stat-card"
-            style={{ "--ctp-stat-accent": def.color } as React.CSSProperties}
+            style={{ '--ctp-stat-accent': def.color } as React.CSSProperties}
             onClick={() => handleStatClick(def.key)}
           >
             <div className="ctp-stat-card__icon" style={{ background: def.bg, color: def.color }}>
               {def.icon}
             </div>
-            <div className="ctp-stat-card__value">{stats[def.statKey as keyof typeof stats] ?? 0}</div>
+            <div className="ctp-stat-card__value">
+              {stats[def.statKey as keyof typeof stats] ?? 0}
+            </div>
             <div className="ctp-stat-card__label">{def.label}</div>
           </button>
         ))}
@@ -178,7 +255,9 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
       <div className="ctp-filters-bar">
         <div className="ctp-filters-bar__left">
           <FilterOutlined style={{ color: neutral[500], fontSize: 14 }} />
-          <Text type="secondary" style={{ fontSize: 13, fontWeight: 600 }}>Filtres</Text>
+          <Text type="secondary" style={{ fontSize: 13, fontWeight: 600 }}>
+            Filtres
+          </Text>
         </div>
         <div className="ctp-filters-bar__controls">
           <Select
@@ -192,7 +271,9 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
             size="middle"
           >
             {(ups as LookupItem[]).map((u) => (
-              <Select.Option key={String(u.id)} value={u.id}>{u.name || u.libelle}</Select.Option>
+              <Select.Option key={String(u.id)} value={u.id}>
+                {u.name || u.libelle}
+              </Select.Option>
             ))}
           </Select>
           <Select
@@ -206,7 +287,9 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
             size="middle"
           >
             {(depts as LookupItem[]).map((d) => (
-              <Select.Option key={String(d.id)} value={d.id}>{d.name || d.libelle}</Select.Option>
+              <Select.Option key={String(d.id)} value={d.id}>
+                {d.name || d.libelle}
+              </Select.Option>
             ))}
           </Select>
           <Select
@@ -220,7 +303,9 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
             size="middle"
           >
             {domaineOptions.map((d) => (
-              <Select.Option key={String(d.id)} value={d.id}>{d.nom}</Select.Option>
+              <Select.Option key={String(d.id)} value={d.id}>
+                {d.nom}
+              </Select.Option>
             ))}
           </Select>
           <Search
@@ -233,12 +318,9 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
             size="middle"
           />
           {activeFilterCount > 0 && (
-            <Tag
-              closable
-              onClose={clearAllFilters}
-              style={{ borderRadius: 6, fontWeight: 600 }}
-            >
-              {activeFilterCount} filtre{activeFilterCount > 1 ? "s" : ""} actif{activeFilterCount > 1 ? "s" : ""}
+            <Tag closable onClose={clearAllFilters} style={{ borderRadius: 6, fontWeight: 600 }}>
+              {activeFilterCount} filtre{activeFilterCount > 1 ? 's' : ''} actif
+              {activeFilterCount > 1 ? 's' : ''}
             </Tag>
           )}
         </div>
@@ -252,7 +334,9 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
         </div>
       )}
 
-      {hasSearchResults && <StructureSearchResultsView results={structure.searchResults as unknown as SearchResults} />}
+      {hasSearchResults && (
+        <StructureSearchResultsView results={structure.searchResults as unknown as SearchResults} />
+      )}
 
       {isStructureLoading && (
         <div className="ctp-empty-box">
@@ -264,7 +348,7 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
 
       {showContent && (
         <>
-          <div ref={contentRef} className={justNavigated ? "ctp-content-highlight" : ""}>
+          <div ref={contentRef} className={justNavigated ? 'ctp-content-highlight' : ''}>
             <ViewToolbar
               displayMode={displayMode}
               setDisplayMode={setDisplayMode}
@@ -274,7 +358,7 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
               stats={stats}
             />
 
-            {displayMode === "cards" && (
+            {displayMode === 'cards' && (
               <CardsView
                 crud={crud}
                 selectedDomaine={structure.selectedDomaine}
@@ -286,7 +370,11 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
             )}
           </div>
 
-          <SavoirDetailDrawer payload={drawerPayload} open={Boolean(drawerPayload)} onClose={() => setDrawerPayload(null)} />
+          <SavoirDetailDrawer
+            payload={drawerPayload}
+            open={Boolean(drawerPayload)}
+            onClose={() => setDrawerPayload(null)}
+          />
         </>
       )}
     </div>

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useCreateFormation } from "@/hooks/formation/useFormations";
+import { useState } from 'react';
+import { useCreateFormation } from '@/hooks/formation/useFormations';
 
 interface FormationFormProps {
   initialDate?: Date;
@@ -7,12 +7,12 @@ interface FormationFormProps {
 }
 
 function FormationForm({ initialDate, onFormationCreated }: Readonly<FormationFormProps>) {
-  const [titreFormation, setTitreFormation] = useState("");
+  const [titreFormation, setTitreFormation] = useState('');
   const [dateDebut, setDateDebut] = useState(
-    initialDate ? initialDate.toISOString().split("T")[0] : ""
+    initialDate ? initialDate.toISOString().split('T')[0] : '',
   );
   const [dateFin, setDateFin] = useState(
-    initialDate ? initialDate.toISOString().split("T")[0] : ""
+    initialDate ? initialDate.toISOString().split('T')[0] : '',
   );
 
   const { mutateAsync: createFormation } = useCreateFormation();
@@ -65,19 +65,11 @@ function FormationForm({ initialDate, onFormationCreated }: Readonly<FormationFo
         />
       </div>
 
-      <button type="submit" className="btn btn-primary">Créer la formation</button>
+      <button type="submit" className="btn btn-primary">
+        Créer la formation
+      </button>
     </form>
   );
 }
 
-
-
 export default FormationForm;
-
-
-
-
-
-
-
-

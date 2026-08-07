@@ -7,7 +7,7 @@ const httpMocks = vi.hoisted(() => ({
   mockDelete: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     get: httpMocks.mockGet,
     post: httpMocks.mockPost,
@@ -16,10 +16,12 @@ vi.mock("@/services/httpClient", () => ({
   },
 }));
 
-import UpService from "@/services/api/UploadService";
+import UpService from '@/services/api/UploadService';
 
 describe('UpService', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('creates an UP', async () => {
     httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 1, libelle: 'UP1' } });
@@ -61,7 +63,7 @@ describe('UpService', () => {
     expect(httpMocks.mockPost).toHaveBeenCalledWith(
       expect.stringContaining('/import-excel'),
       expect.any(FormData),
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 
@@ -84,7 +86,3 @@ describe('UpService', () => {
     await expect(UpService.getAllUps()).rejects.toThrow('Network error');
   });
 });
-
-
-
-

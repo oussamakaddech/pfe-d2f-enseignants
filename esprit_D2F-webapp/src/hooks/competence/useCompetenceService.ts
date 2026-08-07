@@ -1,5 +1,11 @@
-import CompetenceService from "@/services/competence/CompetenceService";
-export type { TreeNode, NiveauDefinition, EnseignantCompetence, AssignRequest, PrerequisiteRequest } from "@/models/competence";
+import CompetenceService from '@/services/competence/CompetenceService';
+export type {
+  TreeNode,
+  NiveauDefinition,
+  EnseignantCompetence,
+  AssignRequest,
+  PrerequisiteRequest,
+} from '@/models/competence';
 
 export function useCompetenceDomaineApi() {
   return CompetenceService.domaine;
@@ -32,4 +38,3 @@ export function useStructureApi() {
 export function usePrerequisiteApi() {
   return CompetenceService.prerequisite;
 }
-

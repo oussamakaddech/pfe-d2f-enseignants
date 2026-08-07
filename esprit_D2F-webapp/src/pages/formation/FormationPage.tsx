@@ -1,14 +1,14 @@
-import { useNavigate } from "react-router-dom";
-import { Row, Col, Typography, Badge } from "antd";
+import { useNavigate } from 'react-router-dom';
+import { Row, Col, Typography, Badge } from 'antd';
 import {
   PlusCircleOutlined,
   SearchOutlined,
   FormOutlined,
   FolderOpenOutlined,
   ArrowRightOutlined,
-} from "@ant-design/icons";
-import AppPageHeader from "@/components/common/AppPageHeader";
-import "@/styles/pages/formation-page.css";
+} from '@ant-design/icons';
+import AppPageHeader from '@/components/common/AppPageHeader';
+import '@/styles/pages/formation-page.css';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -17,37 +17,37 @@ export default function FormationPage() {
 
   const cards = [
     {
-      title: "Nouvelle Formation",
+      title: 'Nouvelle Formation',
       description:
-        "Planifiez et créez une nouvelle formation : définissez le titre, les dates, les séances, les animateurs et les participants.",
+        'Planifiez et créez une nouvelle formation : définissez le titre, les dates, les séances, les animateurs et les participants.',
       icon: <PlusCircleOutlined />,
-      path: "/home/Formation/Creer",
-      color: "var(--primary-500)",
-      gradient: "var(--btn-primary-gradient)",
-      bg: "var(--primary-50)",
-      badge: "Nouveau",
+      path: '/home/Formation/Creer',
+      color: 'var(--primary-500)',
+      gradient: 'var(--btn-primary-gradient)',
+      bg: 'var(--primary-50)',
+      badge: 'Nouveau',
     },
     {
-      title: "Catalogue",
+      title: 'Catalogue',
       description:
-        "Recherchez, filtrez et consultez la liste des formations existantes. Modifiez, supprimez ou exportez les données.",
+        'Recherchez, filtrez et consultez la liste des formations existantes. Modifiez, supprimez ou exportez les données.',
       icon: <SearchOutlined />,
-      path: "/home/Formation/Consulter",
-      color: "var(--color-info)",
-      gradient: "linear-gradient(135deg, var(--color-info) 0%, #1d4ed8 100%)",
-      bg: "var(--color-info-bg)",
-      badge: "Consulter",
+      path: '/home/Formation/Consulter',
+      color: 'var(--color-info)',
+      gradient: 'linear-gradient(135deg, var(--color-info) 0%, #1d4ed8 100%)',
+      bg: 'var(--color-info-bg)',
+      badge: 'Consulter',
     },
     {
-      title: "Gestion Documentaire",
+      title: 'Gestion Documentaire',
       description:
         "Parcourez l'arborescence des dossiers et documents de chaque formation sur OneDrive.",
       icon: <FolderOpenOutlined />,
-      path: "/home/File",
-      color: "var(--color-success)",
-      gradient: "var(--btn-success-gradient)",
-      bg: "var(--color-success-bg)",
-      badge: "Explorer",
+      path: '/home/File',
+      color: 'var(--color-success)',
+      gradient: 'var(--btn-success-gradient)',
+      bg: 'var(--color-success-bg)',
+      badge: 'Explorer',
     },
   ];
 
@@ -67,13 +67,8 @@ export default function FormationPage() {
               className="formation-action-card"
               onClick={() => navigate(c.path)}
             >
-              <div
-                className="formation-action-card-icon"
-                style={{ background: c.gradient }}
-              >
-                <span style={{ fontSize: 36, color: "var(--text-on-dark)" }}>
-                  {c.icon}
-                </span>
+              <div className="formation-action-card-icon" style={{ background: c.gradient }}>
+                <span style={{ fontSize: 36, color: 'var(--text-on-dark)' }}>{c.icon}</span>
               </div>
               <Badge
                 count={c.badge}
@@ -86,16 +81,9 @@ export default function FormationPage() {
               <Title level={4} className="formation-action-title">
                 {c.title}
               </Title>
-              <Paragraph className="formation-action-desc">
-                {c.description}
-              </Paragraph>
-              <div
-                className="formation-action-card-btn"
-                style={{ color: c.color }}
-              >
-                <Text style={{ color: c.color, fontWeight: 600, fontSize: 13 }}>
-                  Accéder
-                </Text>
+              <Paragraph className="formation-action-desc">{c.description}</Paragraph>
+              <div className="formation-action-card-btn" style={{ color: c.color }}>
+                <Text style={{ color: c.color, fontWeight: 600, fontSize: 13 }}>Accéder</Text>
                 <ArrowRightOutlined style={{ fontSize: 12 }} />
               </div>
             </button>
@@ -105,10 +93,3 @@ export default function FormationPage() {
     </div>
   );
 }
-
-
-
-
-
-
-

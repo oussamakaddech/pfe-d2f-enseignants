@@ -16,9 +16,15 @@
   flex-wrap: wrap;
 }
 
-.toolbarSpacer { flex: 1; }
+.toolbarSpacer {
+  flex: 1;
+}
 
-.search { max-width: 320px; min-width: 200px; flex: 1; }
+.search {
+  max-width: 320px;
+  min-width: 200px;
+  flex: 1;
+}
 
 .bulkBar {
   display: flex;
@@ -55,6 +61,10 @@
 
 /* Responsive < 640px : la table défile horizontalement (scroll x). */
 @media (max-width: 640px) {
-  .wrapper { padding: var(--space-3); }
-  .search { max-width: 100%; }
+  .wrapper {
+    padding: var(--space-3);
+  }
+  .search {
+    max-width: 100%;
+  }
 }

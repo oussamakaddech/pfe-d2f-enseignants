@@ -26,7 +26,3 @@ export const navigate = (to: string, options?: { replace?: boolean }) => {
 export const resetNavigate = () => {
   _navigate = null;
 };
-
-
-
-

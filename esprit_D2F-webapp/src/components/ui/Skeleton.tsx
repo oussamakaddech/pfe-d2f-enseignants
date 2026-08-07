@@ -1,7 +1,7 @@
-import { memo } from "react";
-import styles from "./Skeleton.module.css";
+import { memo } from 'react';
+import styles from './Skeleton.module.css';
 
-type SkeletonVariant = "table" | "card" | "chart" | "kpi" | "text" | "avatar";
+type SkeletonVariant = 'table' | 'card' | 'chart' | 'kpi' | 'text' | 'avatar';
 
 interface SkeletonProps {
   readonly variant?: SkeletonVariant;
@@ -32,18 +32,18 @@ interface SkeletonProps {
  *   <Skeleton variant="avatar" size={40} />
  */
 const Skeleton = memo(function Skeleton({
-  variant = "text",
+  variant = 'text',
   rows = 8,
   columns = 5,
   count = 4,
   lines = 3,
   height = 300,
   size = 40,
-  className = "",
+  className = '',
 }: SkeletonProps) {
   const sh = styles.shimmer;
 
-  if (variant === "table") {
+  if (variant === 'table') {
     return (
       <output aria-label="Chargement des données" className={`${styles.table} ${className}`}>
         <div className={`${sh} ${styles.tableHeader}`} />
@@ -62,14 +62,14 @@ const Skeleton = memo(function Skeleton({
     );
   }
 
-  if (variant === "card") {
+  if (variant === 'card') {
     return (
       <output aria-label="Chargement" className={`${styles.cardGrid} ${className}`}>
         {Array.from({ length: count }, (_, i) => (
           <div key={i} className={styles.card}>
             <div className={`${sh} ${styles.cardTitle}`} />
             <div className={`${sh} ${styles.cardLine}`} />
-            <div className={`${sh} ${styles.cardLine}`} style={{ width: "80%" }} />
+            <div className={`${sh} ${styles.cardLine}`} style={{ width: '80%' }} />
             <div className={`${sh} ${styles.cardFooter}`} />
           </div>
         ))}
@@ -77,17 +77,17 @@ const Skeleton = memo(function Skeleton({
     );
   }
 
-  if (variant === "chart") {
+  if (variant === 'chart') {
     return (
       <output
         aria-label="Chargement du graphique"
         className={`${sh} ${className}`}
-        style={{ display: "block", width: "100%", height, borderRadius: "var(--radius-md)" }}
+        style={{ display: 'block', width: '100%', height, borderRadius: 'var(--radius-md)' }}
       />
     );
   }
 
-  if (variant === "kpi") {
+  if (variant === 'kpi') {
     return (
       <output aria-label="Chargement des indicateurs" className={`${styles.kpiGrid} ${className}`}>
         {Array.from({ length: count }, (_, i) => (
@@ -101,11 +101,15 @@ const Skeleton = memo(function Skeleton({
     );
   }
 
-  if (variant === "avatar") {
+  if (variant === 'avatar') {
     return (
       <output aria-label="Chargement" className={`${styles.avatarRow} ${className}`}>
         {Array.from({ length: count }, (_, i) => (
-          <div key={i} className={`${sh} ${styles.avatarCircle}`} style={{ width: size, height: size }} />
+          <div
+            key={i}
+            className={`${sh} ${styles.avatarCircle}`}
+            style={{ width: size, height: size }}
+          />
         ))}
       </output>
     );
@@ -118,7 +122,7 @@ const Skeleton = memo(function Skeleton({
         <div
           key={i}
           className={`${sh} ${styles.textLine}`}
-          style={{ width: i === lines - 1 ? "62%" : "100%" }}
+          style={{ width: i === lines - 1 ? '62%' : '100%' }}
         />
       ))}
     </output>

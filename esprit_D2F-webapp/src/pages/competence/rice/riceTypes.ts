@@ -1,4 +1,4 @@
-import type { RiceDomaine } from "@/models/competence";
+import type { RiceDomaine } from '@/models/competence';
 
 export interface EnseignantRef extends Record<string, unknown> {
   id?: string | number;
