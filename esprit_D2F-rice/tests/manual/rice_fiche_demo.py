@@ -1,11 +1,14 @@
 """
-test_rice_fiche.py
+rice_fiche_demo.py
 ──────────────────
-Standalone integration test for rice_analyzer:
+Standalone integration demo for rice_analyzer (manual tool, not collected by
+pytest):
   - Extracts text + tables from a real PDF fiche
   - Runs _extract_metadata (table-based NER + regex fallback)
   - Runs the full analyze_files pipeline
   - Prints results without needing a running server or database
+
+Run it with: python tests/manual/rice_fiche_demo.py
 """
 
 from __future__ import annotations
@@ -18,8 +21,8 @@ from pathlib import Path
 
 # ── Add the rice service directory to path ────────────────────────────────────
 HERE = Path(__file__).parent
-ROOT = HERE.parent
-sys.path.insert(0, str(HERE))
+ROOT = HERE.parent.parent
+sys.path.insert(0, str(ROOT))
 
 # Patch env so _get_db_connection never tries to reach a live DB in this test
 os.environ.setdefault("DB_HOST", "127.0.0.1")
@@ -34,10 +37,9 @@ from rice_analyzer import (
     _extract_metadata,
     analyze_files,
     EnseignantInfo,
-    _PDF_OK,
     _SEMANTIC_OK,
-    _FUZZY_OK,
 )
+from rice.nlp import _PDF_OK, _FUZZY_OK
 
 # Helpers
 

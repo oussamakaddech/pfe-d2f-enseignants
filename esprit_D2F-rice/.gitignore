@@ -5,6 +5,7 @@ __pycache__/
 .env.prod
 .venv/
 venv/
+.deps310/
 *.egg-info/
 dist/
 build/

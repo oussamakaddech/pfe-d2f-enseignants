@@ -1,5 +1,6 @@
 import re
 import json
+import sys
 
 def parse_referentiel(file_path):
     with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
@@ -88,4 +89,4 @@ if __name__ == "__main__":
     result = parse_referentiel("exemple_web.txt")
     with open("referentiel_extracted.json", "w", encoding="utf-8") as f:
         json.dump(result, f, indent=4, ensure_ascii=False)
-    print("Succes: Fichier referentiel_extracted.json genere.")
+    sys.stdout.write("Succes: Fichier referentiel_extracted.json genere.\n")
