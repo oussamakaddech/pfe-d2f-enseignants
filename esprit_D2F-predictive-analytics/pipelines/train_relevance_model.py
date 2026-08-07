@@ -1,4 +1,4 @@
-"""Modele de pertinence appris pour le scoring des recommandations.
+﻿"""Modele de pertinence appris pour le scoring des recommandations.
 
 Objectif : remplacer la formule fixe `0.7*content + 0.2*quality + 0.1*recency`
 par un modele appris sur les vraies interactions enseignant-formation.
@@ -26,6 +26,7 @@ Fallback : si artefact absent -> ranking_service heuristique classique.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sys
 from pathlib import Path
@@ -40,6 +41,9 @@ from sklearn.model_selection import KFold, cross_val_score
 from sqlalchemy import create_engine, text
 
 from app.infrastructure.ml.artifact_integrity import save_with_integrity
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).parent.parent
 MODELS_DIR = BASE_DIR / "data" / "models"
@@ -251,27 +255,27 @@ def main() -> int:
     n_real = len(df)
     n = n_real
     n_teachers = df["teacher_id"].nunique() if n else 0
-    print(f"[1] Dataset recommandations : {n} lignes, {n_teachers} enseignants")
+    logger.info(f"[1] Dataset recommandations : {n} lignes, {n_teachers} enseignants")
 
     # Trop peu de donnees reelles : on complete avec un corpus synthetique transparent,
     # marquee 'source=synthetique_bootstrap' pour garder la traçabilite.
     if n < MIN_SAMPLES:
-        print(f"[INFO] {n} lignes reelles < seuil {MIN_SAMPLES} -> completion synthetique bootstrap")
+        logger.info(f"[INFO] {n} lignes reelles < seuil {MIN_SAMPLES} -> completion synthetique bootstrap")
         synth = _synthetic_bootstrap(TARGET_MIXED - n)
         df = pd.concat([df, synth], ignore_index=True)
         n = len(df)
         n_teachers = df["teacher_id"].nunique()
-        print(f"    corpus combine : {n} lignes (reel + synthetique), {n_teachers} enseignants")
+        logger.info(f"    corpus combine : {n} lignes (reel + synthetique), {n_teachers} enseignants")
 
     X = df[RELEVANCE_FEATURES].astype(float)
     y = df["label"].astype(float)
-    print(f"[2] Feature means :\n{X.mean().round(3).to_string()}")
-    print(f"    Label mean={y.mean():.3f} min={y.min():.3f} max={y.max():.3f}")
+    logger.info(f"[2] Feature means :\n{X.mean().round(3).to_string()}")
+    logger.info(f"    Label mean={y.mean():.3f} min={y.min():.3f} max={y.max():.3f}")
 
     # Baseline : prediction = label moyen
     baseline_rmse = float(np.sqrt(mean_squared_error(y, np.full(len(y), y.mean()))))
     baseline_mae = float(mean_absolute_error(y, np.full(len(y), y.mean())))
-    print(f"[3] Baseline RMSE={baseline_rmse:.4f} MAE={baseline_mae:.4f}")
+    logger.info(f"[3] Baseline RMSE={baseline_rmse:.4f} MAE={baseline_mae:.4f}")
 
     model = GradientBoostingRegressor(
         n_estimators=150, max_depth=3, learning_rate=0.08,
@@ -280,20 +284,20 @@ def main() -> int:
     kf = KFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
     cv_scores = cross_val_score(model, X, y, cv=kf, scoring="neg_root_mean_squared_error")
     cv_rmse = float(-cv_scores.mean())
-    print(f"[4] GradientBoosting CV-RMSE={cv_rmse:.4f}")
+    logger.info(f"[4] GradientBoosting CV-RMSE={cv_rmse:.4f}")
 
     decision = "accept" if cv_rmse < baseline_rmse * 0.995 else "reject"
-    print(f"[5] Decision : {decision} (rmse={cv_rmse:.4f} vs baseline={baseline_rmse:.4f})")
+    logger.info(f"[5] Decision : {decision} (rmse={cv_rmse:.4f} vs baseline={baseline_rmse:.4f})")
 
     if decision == "accept":
         model.fit(X, y)
         save_with_integrity(model, MODEL_PATH)
         importances = dict(zip(RELEVANCE_FEATURES, model.feature_importances_.tolist()))
-        print(f"[6] Modele sauvegarde : {MODEL_PATH}")
+        logger.info(f"[6] Modele sauvegarde : {MODEL_PATH}")
     else:
         if MODEL_PATH.exists(): MODEL_PATH.unlink()
         importances = {}
-        print("[6] Modele rejete, heuristique conservee")
+        logger.info("[6] Modele rejete, heuristique conservee")
 
     metadata = {
         "model_name": "gradient_boosting_regressor",
@@ -330,7 +334,7 @@ def main() -> int:
         },
     }
     METADATA_PATH.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"[7] Metadata : {METADATA_PATH}")
+    logger.info(f"[7] Metadata : {METADATA_PATH}")
     return 0 if decision == "accept" else 1
 
 

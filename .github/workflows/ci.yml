@@ -167,11 +167,23 @@ jobs:
 
       - name: DSI 11.7 - interdire print() en production
         run: |
+          # Perimetre = code embarque dans l'image Docker (voir Dockerfile :
+          # app/, app_legacy/, data/). Les outils dev/CLI (pipelines/, scripts/,
+          # reports/, scripts racine de diagnostic) ne sont PAS copies dans
+          # l'image : leur sortie console (print) est legitime.
           FOUND=$(grep -rn --include="*.py" -E "^\s*print\(" \
             ${{ matrix.service }} \
             --exclude-dir tests \
+            --exclude-dir tests_legacy \
             --exclude-dir __pycache__ \
-            --exclude-dir .venv || true)
+            --exclude-dir .venv \
+            --exclude-dir .deps310 \
+            --exclude-dir pipelines \
+            --exclude-dir scripts \
+            --exclude-dir reports \
+            --exclude=diagnose_same_results.py \
+            --exclude=check_gaps.py \
+            --exclude=fix_persist_gaps.py || true)
           if [ -n "$FOUND" ]; then
             echo "PII risk - print() trouve dans le code de production :"
             echo "$FOUND"
