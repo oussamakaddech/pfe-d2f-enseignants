@@ -58,15 +58,97 @@
         <notes><![CDATA[Netty CVEs - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
         <cve>CVE-2026-44891</cve>
     </suppress>
+    <!-- Netty CVE-2026-59898, CVE-2026-59899, CVE-2026-59919, CVE-2026-59920, CVE-2026-59921 - 4.1.135 derniere version publiee -->
+    <suppress>
+        <notes><![CDATA[Netty CVEs supplémentaires - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-59898</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Netty CVEs supplémentaires - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-59899</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Netty CVEs supplémentaires - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-59919</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Netty CVEs supplémentaires - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-59920</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Netty CVEs supplémentaires - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-59921</cve>
+    </suppress>
     <!-- Artemis JMS - 2.50.0 non publie -->
     <suppress>
         <notes><![CDATA[Artemis JMS - CVE-2026-27446 - 2.50.0 non publie.]]></notes>
         <cve>CVE-2026-27446</cve>
     </suppress>
-    <!-- Commons BeanUtils - CPE unbounded -->
     <suppress>
-        <notes><![CDATA[Commons BeanUtils - CVE-2025-48734 - CPE unbounded.]]></notes>
-        <cve>CVE-2025-48734</cve>
+        <notes><![CDATA[Artemis JMS - CVE-2026-40914, CVE-2026-32642 - derniere version 2.40.0 - risques acceptes.]]></notes>
+        <cve>CVE-2026-40914</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Artemis JMS - CVE-2026-40914, CVE-2026-32642 - derniere version 2.40.0 - risques acceptes.]]></notes>
+        <cve>CVE-2026-32642</cve>
+    </suppress>
+    <!-- Commons Lang3 CVE - 3.17.0 derniere version publiee -->
+    <suppress>
+        <notes><![CDATA[Commons Lang3 - CVE-2025-48924 - 3.17.0 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2025-48924</cve>
+    </suppress>
+    <!-- DOMPurify (via swagger-ui) CVEs - swagger-ui 5.32.2 uses DOMPurify 3.3.2 -->
+    <suppress>
+        <notes><![CDATA[DOMPurify CVEs - utilise par swagger-ui 5.32.2 - risques acceptes.]]></notes>
+        <cve>CVE-2026-49978</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[DOMPurify CVEs - utilise par swagger-ui 5.32.2 - risques acceptes.]]></notes>
+        <cve>CVE-2026-49458</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[DOMPurify CVEs - utilise par swagger-ui 5.32.2 - risques acceptes.]]></notes>
+        <cve>CVE-2026-49459</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[DOMPurify CVEs - utilise par swagger-ui 5.32.2 - risques acceptes.]]></notes>
+        <cve>CVE-2026-41240</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[DOMPurify CVEs - utilise par swagger-ui 5.32.2 - risques acceptes.]]></notes>
+        <cve>CVE-2026-65898</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[DOMPurify CVEs - utilise par swagger-ui 5.32.2 - risques acceptes.]]></notes>
+        <cve>CVE-2026-65899</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[DOMPurify CVEs - utilise par swagger-ui 5.32.2 - risques acceptes.]]></notes>
+        <cve>CVE-2026-65900</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[DOMPurify CVEs - utilise par swagger-ui 5.32.2 - risques acceptes.]]></notes>
+        <cve>CVE-2026-65901</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[DOMPurify CVEs - utilise par swagger-ui 5.32.2 - risques acceptes.]]></notes>
+        <cve>CVE-2026-65902</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[DOMPurify CVEs - utilise par swagger-ui 5.32.2 - risques acceptes.]]></notes>
+        <cve>CVE-2026-65903</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[DOMPurify CVEs - utilise par swagger-ui 5.32.2 - risques acceptes.]]></notes>
+        <cve>CVE-2026-66010</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[DOMPurify CVEs - utilise par swagger-ui 5.32.2 - risques acceptes.]]></notes>
+        <cve>CVE-2026-41238</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[DOMPurify CVEs - utilise par swagger-ui 5.32.2 - risques acceptes.]]></notes>
+        <cve>CVE-2026-41239</cve>
     </suppress>
     <!-- Android JSON (Vaadin) -->
     <suppress>
