@@ -1,42 +1,76 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
-    <!-- DOMPurify via swagger-ui - suppression par packageUrl regex -->
+    <!-- Tomcat CVE-2026-66299 - attente 10.1.58 -->
     <suppress>
-        <notes><![CDATA[DOMPurify embed dans swagger-ui - suppression par packageUrl.]]></notes>
-        <packageUrl regex="true">pkg:javascript/DOMPurify@.*</packageUrl>
-    </suppress>
-    <!-- Netty - CVE multiples sans correctif -->
-    <suppress>
-        <notes><![CDATA[Netty 4.1.135.Final - CVEs critiques sans correctif publie.]]></notes>
-        <vulnerabilityName regex="true">CVE-2026-5682</vulnerabilityName>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[Netty CVE-2026-5585, CVE-2026-599.]]></notes>
-        <vulnerabilityName regex="true">CVE-2026-5585</vulnerabilityName>
-    </suppress>
-    <!-- Tomcat 10.1.57 - CVEs -->
-    <suppress>
-        <notes><![CDATA[Tomcat 10.1.57 - CVE-2026-66299 non corrige dans 10.1.57.]]></notes>
+        <notes><![CDATA[CVE tomcat non fixe dans 10.1.57 - attente 10.1.58.]]></notes>
         <cve>CVE-2026-66299</cve>
     </suppress>
-    <!-- Artemis JMS -->
+    <!-- Netty CVEs - 4.1.135 derniere version publiee, risque accepte -->
+    <suppress>
+        <notes><![CDATA[Netty CVEs - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-56820</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Netty CVEs - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-56819</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Netty CVEs - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-56817</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Netty CVEs - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-56745</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Netty CVEs - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-55833</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Netty CVEs - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-55831</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Netty CVEs - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-56822</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Netty CVEs - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-56821</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Netty CVEs - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-56816</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Netty CVEs - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-59901</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Netty CVEs - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-59900</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Netty CVEs - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-55851</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Netty CVEs - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-44891</cve>
+    </suppress>
+    <!-- Artemis JMS - 2.50.0 non publie -->
     <suppress>
         <notes><![CDATA[Artemis JMS - CVE-2026-27446 - 2.50.0 non publie.]]></notes>
-        <cpe>cpe:2.3:a:apache:artemis:*:*:*:*:*:*:*:*</cpe>
+        <cve>CVE-2026-27446</cve>
     </suppress>
-    <!-- Commons BeanUtils -->
+    <!-- Commons BeanUtils - CPE unbounded -->
     <suppress>
-        <notes><![CDATA[Commons BeanUtils - CVE-2025-48734.]]></notes>
-        <cpe>cpe:2.3:a:apache:commons_beanutils:*:*:*:*:*:*:*:*</cpe>
+        <notes><![CDATA[Commons BeanUtils - CVE-2025-48734 - CPE unbounded.]]></notes>
+        <cve>CVE-2025-48734</cve>
     </suppress>
     <!-- Android JSON (Vaadin) -->
     <suppress>
         <notes><![CDATA[Android JSON Vaadin - CVE-2008-0986.]]></notes>
-        <vulnerabilityName>CVE-2008-0986</vulnerabilityName>
-    </suppress>
-    <!-- Commons Lang3 -->
-    <suppress>
-        <notes><![CDATA[Commons Lang3 CVE-2025-48924 - risque faible (util bibliotheque).]]></notes>
-        <vulnerabilityName>CVE-2025-48924</vulnerabilityName>
+        <cve>CVE-2008-0986</cve>
     </suppress>
 </suppressions>
