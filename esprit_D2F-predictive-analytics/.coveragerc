@@ -1,2 +1,18 @@
 [run]
 relative_files = True
+branch = True
+omit =
+    app_legacy/*
+    tests_legacy/*
+    scripts/*
+    pipelines/*
+    qa/*
+    db/*
+    init_db/*
+    check_gaps.py
+    diagnose_same_results.py
+    fix_persist_gaps.py
+
+[report]
+exclude_lines =
+    pragma: no cover

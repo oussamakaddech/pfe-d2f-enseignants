@@ -28,14 +28,14 @@ class EvaluationGlobaleControllerTest {
     private EvaluationGlobaleController controller;
 
     @Test
-    void createEvaluationGlobale_shouldReturnOk() {
+    void createEvaluationGlobale_shouldReturnCreated() {
         EvaluationGlobaleDTO dto = new EvaluationGlobaleDTO();
         dto.setFormationId(1L);
         when(service.createEvaluationGlobale(any())).thenReturn(dto);
 
         var response = controller.createEvaluationGlobale(dto);
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(1L, response.getBody().getFormationId());
     }
