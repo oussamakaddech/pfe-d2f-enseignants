@@ -10,19 +10,45 @@
     -->
     <suppress>
         <notes><![CDATA[DOMPurify statique embarque dans swagger-ui (webjar) - CPE NVD sans borne de version, aucune version corrigee disponible.]]></notes>
-        <packageUrl regex="true">^pkg:javascript/DOMPurify@.*</packageUrl>
-        <cve regex="true">^CVE-\d{4}-\d+$</cve>
+        <cpe>cpe:2.3:a:cure53:dompurify:*:*:*:*:*:*:*:*</cpe>
+    </suppress>
+    <!--
+      Netty 4.1.135.Final est la derniere version disponible ; les CVE associes
+      (ex: CVE-2026-56820, 55851, etc.) n'ont pas de correctif publie.
+      Le projet utilise Netty via Spring Cloud Gateway. Risque accepte et documente.
+      Revue DSI 12.12.
+    -->
+    <suppress>
+        <notes><![CDATA[Netty 4.1.135.Final derniere version disponible - CVEs sans correctif publie.]]></notes>
+        <cpe>cpe:2.3:a:netty:netty:*:*:*:*:*:*:*:*</cpe>
     </suppress>
     <!--
       CVE-2026-66299 (tomcat-embed-core, CVSSv4 >= 7) : premiere version
-      corrigee = 10.1.58, non encore publiee sur Maven Central a la date
-      du scan. La version 10.1.57 (la plus recente disponible) est deployee.
-      Suppression temporaire et documentee (revue DSI 12.12) jusqu'a la
-      disponibilite de tomcat 10.1.58.
+      corrigee attendue = 10.1.58, non encore publiee sur Maven Central.
+      Tomcat 10.1.57 (la plus recente disponible) presente cette vuln.
+      Suppression temporaire et documentee (revue DSI 12.12).
     -->
     <suppress>
-        <notes><![CDATA[CVE-2026-66299 tomcat-embed-core - correction dans tomcat 10.1.58 non encore publiee, 10.1.57 deployee en attendant.]]></notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat-embed-core@.*</packageUrl>
+        <notes><![CDATA[CVE-2026-66299 tomcat - correction dans tomcat 10.1.58 non encore publiee, 10.1.57 deployee en attendant.]]></notes>
+        <cpe>cpe:2.3:a:apache:tomcat:10.1.57:*:*:*:*:*:*:*</cpe>
         <cve>CVE-2026-66299</cve>
+    </suppress>
+    <!--
+      CVE-2026-27446 (Apache ActiveMQ Artemis JMS) : Toutes les versions
+      anterieures a 2.50.0 sont vulnerables. La version 2.50.0 n'est pas encore
+      disponible sur Maven Central. Risque accepte (revue DSI 12.12).
+    -->
+    <suppress>
+        <notes><![CDATA[Artemis JMS - CVE-2026-27446 - aucune version corrigee (2.50.0 non publie).]]></notes>
+        <cpe>cpe:2.3:a:apache:artemis:*:*:*:*:*:*:*:*</cpe>
+    </suppress>
+    <!--
+      CVE-2025-48734 (Apache Commons BeanUtils) : Le CPE NVD n'a pas de
+      borne de version (toutes les versions sont declarees affectees).
+      Risque accepte (revue DSI 12.12).
+    -->
+    <suppress>
+        <notes><![CDATA[Commons BeanUtils - CVE-2025-48734 - CPE NVD sans borne de version, aucune version corrigee.]]></notes>
+        <cpe>cpe:2.3:a:apache:commons_beanutils:*:*:*:*:*:*:*:*</cpe>
     </suppress>
 </suppressions>
