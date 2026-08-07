@@ -250,10 +250,15 @@ jobs:
       - name: OWASP Dependency Check
         working-directory: ${{ matrix.service }}
         run: |
+          if [ -z "${{ secrets.NVD_API_KEY }}" ]; then
+            echo "::error::Secret NVD_API_KEY manquant - OWASP dependency-check (DSI 12.12) ne peut pas mettre a jour la base NVD. Configurez le secret dans Settings > Secrets and variables > Actions."
+            exit 1
+          fi
           SUPPRESSION=""
           [ -f owasp-suppressions.xml ] && SUPPRESSION="-DsuppressionFile=owasp-suppressions.xml"
           mvn -B org.owasp:dependency-check-maven:check \
             -DfailBuildOnCVSS=7 \
+            -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
             -DassemblyAnalyzerEnabled=false \
             $SUPPRESSION \
             -Dformats=HTML,JSON
