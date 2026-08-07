@@ -269,7 +269,7 @@ jobs:
           SUPPRESSION=""
           curl -sL https://raw.githubusercontent.com/oussamakaddech/pfe-d2f-enseignants/oussama/owasp-suppressions.xml -o owasp-suppressions.xml 2>/dev/null || true
           [ -f owasp-suppressions.xml ] && SUPPRESSION="-DsuppressionFile=owasp-suppressions.xml"
-mvn -B org.owasp:dependency-check-maven:check \
+          mvn -B org.owasp:dependency-check-maven:check \
             -DfailBuildOnCVSS=7 \
             -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
             -DassemblyAnalyzerEnabled=false \
