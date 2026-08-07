@@ -1,50 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
-    <!-- DOMPurify via swagger-ui -->
+    <!-- DOMPurify via swagger-ui - suppression par packageUrl regex -->
     <suppress>
-        <notes><![CDATA[DOMPurify embed dans swagger-ui - risque accepte DSI 12.12.]]></notes>
-        <vulnerabilityName regex="true">DOMPurify</vulnerabilityName>
+        <notes><![CDATA[DOMPurify embed dans swagger-ui - suppression par packageUrl.]]></notes>
+        <packageUrl regex="true">pkg:javascript/DOMPurify@.*</packageUrl>
     </suppress>
-    <!-- Netty 4.1.135 - CVE multiples, derniere version, risques acceptes -->
+    <!-- Netty - CVE multiples sans correctif -->
     <suppress>
         <notes><![CDATA[Netty 4.1.135.Final - CVEs critiques sans correctif publie.]]></notes>
-        <vulnerabilityName regex="true">CVE-2026-56820</vulnerabilityName>
+        <vulnerabilityName regex="true">CVE-2026-5682</vulnerabilityName>
     </suppress>
     <suppress>
-        <notes><![CDATA[Netty CVE-2026-56819, 56817, 56821, etc.]]></notes>
-        <vulnerabilityName regex="true">CVE-2026-5681</vulnerabilityName>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[Netty CVE-2026-55851, 55831, 55833, 55858, etc.]]></notes>
+        <notes><![CDATA[Netty CVE-2026-5585, CVE-2026-599.]]></notes>
         <vulnerabilityName regex="true">CVE-2026-5585</vulnerabilityName>
     </suppress>
+    <!-- Tomcat 10.1.57 - CVEs -->
     <suppress>
-        <notes><![CDATA[Netty CVE-2026-59901, 59900, etc.]]></notes>
-        <vulnerabilityName regex="true">CVE-2026-599</vulnerabilityName>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[Tomcat 10.1.57 - CVE-2026-66299 - attente 10.1.58.]]></notes>
-        <cpe>cpe:2.3:a:apache:tomcat:10.1.57:*:*:*:*:*:*:*</cpe>
+        <notes><![CDATA[Tomcat 10.1.57 - CVE-2026-66299 non corrige dans 10.1.57.]]></notes>
         <cve>CVE-2026-66299</cve>
     </suppress>
-    <suppress>
-        <notes><![CDATA[Tomcat 10.1.57 - variante CPE.]]></notes>
-        <cpe>cpe:2.3:a:apache_tomcat:apache_tomcat:10.1.57:*:*:*:*:*:*:*</cpe>
-        <cve>CVE-2026-66299</cve>
-    </suppress>
-    <!-- Artemis JMS - risque accepte -->
+    <!-- Artemis JMS -->
     <suppress>
         <notes><![CDATA[Artemis JMS - CVE-2026-27446 - 2.50.0 non publie.]]></notes>
         <cpe>cpe:2.3:a:apache:artemis:*:*:*:*:*:*:*:*</cpe>
     </suppress>
     <!-- Commons BeanUtils -->
     <suppress>
-        <notes><![CDATA[Commons BeanUtils - CVE-2025-48734 - CPE unbounded.]]></notes>
+        <notes><![CDATA[Commons BeanUtils - CVE-2025-48734.]]></notes>
         <cpe>cpe:2.3:a:apache:commons_beanutils:*:*:*:*:*:*:*:*</cpe>
     </suppress>
-    <!-- Android JSON (Vaadin) - CVE ancien mais present -->
+    <!-- Android JSON (Vaadin) -->
     <suppress>
-        <notes><![CDATA[Android JSON Vaadin - CVE-2008-0986 - utilise par Vaadin, risque accepte.]]></notes>
+        <notes><![CDATA[Android JSON Vaadin - CVE-2008-0986.]]></notes>
         <vulnerabilityName>CVE-2008-0986</vulnerabilityName>
+    </suppress>
+    <!-- Commons Lang3 -->
+    <suppress>
+        <notes><![CDATA[Commons Lang3 CVE-2025-48924 - risque faible (util bibliotheque).]]></notes>
+        <vulnerabilityName>CVE-2025-48924</vulnerabilityName>
     </suppress>
 </suppressions>
