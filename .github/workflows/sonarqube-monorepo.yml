@@ -64,12 +64,7 @@ jobs:
 
       - name: Build and Analyze
         working-directory: ${{ matrix.module }}
-        run: |
-          mvn clean verify sonar:sonar \
-            -Dsonar.projectKey=${{ matrix.projectKey }} \
-            -Dsonar.qualitygate.wait=true \
-            -Dsonar.host.url=${{ env.SONAR_HOST_URL }} \
-            -Dsonar.login=${{ env.SONAR_TOKEN }}
+        run: mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=${{ matrix.projectKey }} -Dsonar.qualitygate.wait=true -Dsonar.host.url=${{ env.SONAR_HOST_URL }} -Dsonar.login=${{ env.SONAR_TOKEN }}
 
   # 2. Analyse du Frontend (React / Vite)
   webapp-analysis:
@@ -94,7 +89,7 @@ jobs:
 
       - name: Run tests with coverage
         working-directory: esprit_D2F-webapp
-        run: npm run test:coverage || true # Ne pas bloquer si les tests échouent ici, laisser Sonar décider
+        run: npm run test:coverage; if ($LASTEXITCODE -ne 0) { Write-Host 'Tests failed - continuing for Sonar' }
 
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@v2
@@ -142,8 +137,7 @@ jobs:
 
       - name: Run tests with coverage
         working-directory: ${{ matrix.module }}
-        run: |
-          pytest --cov=. --cov-report=xml || true
+        run: pytest --cov=. --cov-report=xml; if ($LASTEXITCODE -ne 0) { Write-Host 'Tests failed - continuing for Sonar' }
 
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@v2
