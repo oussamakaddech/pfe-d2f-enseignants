@@ -72,7 +72,7 @@ def _check_rate(ip: str) -> Tuple[bool, int, int]:
 # ── Periodic cleanup of stale entries ────────────────────────────────────────
 
 _CLEANUP_INTERVAL = 300  # every 5 min
-_last_cleanup: float = 0.0
+_last_cleanup: float = float("-inf")
 
 
 def _cleanup_stale() -> None:

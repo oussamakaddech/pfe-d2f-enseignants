@@ -121,7 +121,7 @@ class TestCleanupStale:
     def setup_method(self):
         _counters.clear()
         import rice.ratelimit as _mod
-        _mod._last_cleanup = 0.0  # force cleanup to run
+        _mod._last_cleanup = float("-inf")  # force cleanup to run
 
     def test_removes_old_entries(self):
         # Add an entry with an old window start
