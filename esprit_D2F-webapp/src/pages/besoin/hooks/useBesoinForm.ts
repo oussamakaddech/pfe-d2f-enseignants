@@ -34,7 +34,7 @@ function getErrorMessage(err: unknown): string {
     "Erreur lors de l'ajout du besoin"
   );
 }
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 
 type DayjsLike = { format: (f: string) => string };
 

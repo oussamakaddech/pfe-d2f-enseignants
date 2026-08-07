@@ -197,7 +197,7 @@ function DataTableInner<T extends object>({
     try {
       setExporting(true);
       const all = await fetchFn({ ...params, page: 1, size: 100_000 });
-      const XLSX = await import('xlsx');
+      const XLSX = await import('xlsx-js-style');
       const exportableCols = columns.filter((c) => c.dataIndex !== undefined);
       const sheetRows = all.content.map((row) => {
         const out: Record<string, unknown> = {};

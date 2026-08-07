@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { getFilteredCrud } from './consultationViewUtils';
 
 type CellWithStyle = XLSX.CellObject & { s?: Record<string, unknown> };

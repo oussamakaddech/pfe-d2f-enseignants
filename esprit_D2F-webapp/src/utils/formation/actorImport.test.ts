@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const readMock = vi.fn();
 const sheetToJsonMock = vi.fn();
 
-vi.mock('xlsx', () => ({
+vi.mock('xlsx-js-style', () => ({
   read: (...args: unknown[]) => readMock(...args),
   utils: {
     sheet_to_json: (...args: unknown[]) => sheetToJsonMock(...args),

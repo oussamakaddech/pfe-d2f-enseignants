@@ -26,7 +26,7 @@ function normalizeHeader(h: string): string {
 }
 
 export async function parseEmailsFromExcel(file: File): Promise<ExcelParseResult> {
-  const XLSX = await import('xlsx');
+  const XLSX = await import('xlsx-js-style');
   const buffer = await file.arrayBuffer();
   const data = new Uint8Array(buffer);
   const wb = XLSX.read(data, { type: 'array' });

@@ -8,7 +8,7 @@ import BesoinFormationService from '@/services/besoin/BesoinFormationService';
 import DeptService from '@/services/formation/DeptService';
 import UpService from '@/services/api/UploadService';
 
-vi.mock('xlsx', () => ({
+vi.mock('xlsx-js-style', () => ({
   utils: { book_new: {}, sheet_to_json: [], json_to_sheet: {} },
   writeFile: vi.fn(),
   read: () => ({ SheetNames: [], Sheets: {} }),

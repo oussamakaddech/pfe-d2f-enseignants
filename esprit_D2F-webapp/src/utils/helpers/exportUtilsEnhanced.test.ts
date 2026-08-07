@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const writeFileMock = vi.fn();
 
-vi.mock('xlsx', () => {
+vi.mock('xlsx-js-style', () => {
   const utils = {
     json_to_sheet: (data: Record<string, unknown>[]) => ({
       '!ref': 'A1:A1',

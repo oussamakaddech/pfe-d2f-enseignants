@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Button, Form, Input, Modal, Popconfirm, Select, Space, Table, Tabs, Tag } from 'antd';
 import { ApartmentOutlined } from '@ant-design/icons';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 import { AppPageHeader } from '@/components/common';
 import '@/styles/pages/competence-page.css';
