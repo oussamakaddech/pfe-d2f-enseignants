@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import io
 import os
+import posixpath
 import re
 import unicodedata
 import logging
@@ -240,8 +241,8 @@ def _secure_filename(filename: str) -> str:
     """
     # Remove null bytes and control chars
     name = re.sub(r'[\x00-\x1f]', '', filename)
-    # Take only the base name (strip any directory components)
-    name = os.path.basename(name.replace("..", ""))
+    # Take only the base name (strip any directory components, POSIX + Windows)
+    name = posixpath.basename(name.replace("..", "").replace("\\", "/"))
     # Remove remaining problematic characters
     name = re.sub(r'[<>:"|?*]', '_', name)
     return name.strip() or "unnamed_file"

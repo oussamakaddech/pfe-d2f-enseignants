@@ -15,6 +15,7 @@ through it before reaching the application.
 from __future__ import annotations
 
 import os
+import posixpath
 from typing import Iterable, Optional, Sequence
 
 # Limits (overridable via environment variables for ops flexibility).
@@ -54,7 +55,9 @@ def sanitize_filename(filename: Optional[str], index: int = 0) -> str:
     """Strip path components, fall back to deterministic name if invalid."""
     if not filename:
         return f"file_{index}"
-    cleaned = os.path.basename(filename.replace("..", ""))
+    if ".." in filename or "\x00" in filename:
+        return f"file_{index}"
+    cleaned = posixpath.basename(filename.replace("\\", "/"))
     if not cleaned or _has_path_traversal(cleaned):
         return f"file_{index}"
     return cleaned[:MAX_FILENAME_LENGTH]
