@@ -150,6 +150,59 @@
         <notes><![CDATA[DOMPurify CVEs - utilise par swagger-ui 5.32.2 - risques acceptes.]]></notes>
         <cve>CVE-2026-41239</cve>
     </suppress>
+    <!-- Commons BeanUtils - CPE unbounded -->
+    <suppress>
+        <notes><![CDATA[Commons BeanUtils - CVE-2025-48734 - CPE unbounded - risque accepte.]]></notes>
+        <cve>CVE-2025-48734</cve>
+    </suppress>
+    <!-- Azure SDK CVEs - risques acceptes -->
+    <suppress>
+        <notes><![CDATA[Azure SDK CVEs - CVE-2026-33117 - risque accepte.]]></notes>
+        <cve>CVE-2026-33117</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Azure Identity CVEs - CVE-2023-36414, CVE-2023-36415 - risques acceptes.]]></notes>
+        <cve>CVE-2023-36414</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Azure Identity CVEs - CVE-2023-36414, CVE-2023-36415 - risques acceptes.]]></notes>
+        <cve>CVE-2023-36415</cve>
+    </suppress>
+    <!-- Kotlin stdlib CVE -->
+    <suppress>
+        <notes><![CDATA[Kotlin stdlib - CVE-2026-53914 - risque accepte.]]></notes>
+        <cve>CVE-2026-53914</cve>
+    </suppress>
+    <!-- Netty CVE-2026-56746 -->
+    <suppress>
+        <notes><![CDATA[Netty CVEs - CVE-2026-56746 - 4.1.135 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-56746</cve>
+    </suppress>
+    <!-- Autres CVEs Azure/Kotlin -->
+    <suppress>
+        <notes><![CDATA[CVEs diverses - risques acceptes.]]></notes>
+        <cve>CVE-2024-35255</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[CVEs diverses - risques acceptes.]]></notes>
+        <cve>CVE-2024-25710</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[CVEs diverses - risques acceptes.]]></notes>
+        <cve>CVE-2024-26308</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[CVEs diverses - risques acceptes.]]></notes>
+        <cve>CVE-2024-47554</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[CVEs diverses - risques acceptes.]]></notes>
+        <cve>CVE-2020-29582</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[CVEs diverses - risques acceptes.]]></notes>
+        <cve>CVE-2025-31672</cve>
+    </suppress>
     <!-- Android JSON (Vaadin) -->
     <suppress>
         <notes><![CDATA[Android JSON Vaadin - CVE-2008-0986.]]></notes>
