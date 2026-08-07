@@ -318,7 +318,7 @@ jobs:
 
       - name: Generate ephemeral SonarQube token
         id: sonar-token
-        shell: pwsh
+        shell: powershell
         env:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
           SONAR_USER: ${{ secrets.SONAR_USER || 'admin' }}
@@ -332,7 +332,7 @@ jobs:
           echo "sonar-token=$token" >> $env:GITHUB_OUTPUT
 
       - name: Clean duplicate / obsolete projects
-        shell: pwsh
+        shell: powershell
         env:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
           SONAR_TOKEN: ${{ steps.sonar-token.outputs.sonar-token }}
@@ -371,7 +371,7 @@ jobs:
 
       - name: Revoke ephemeral token
         if: always()
-        shell: pwsh
+        shell: powershell
         env:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
           SONAR_TOKEN: ${{ steps.sonar-token.outputs.sonar-token }}
