@@ -357,6 +357,20 @@ describe('AnalysePredictiveService', () => {
     );
   });
 
+  it('analyserTendancesGlobales normalises department to departement', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: {
+        declining_competencies: [],
+        in_demand_competencies: [],
+        teacher_risk_indicators: [
+          { teacher_name: 'T1', attrition_risk_score: 0.9, department: 'INFO' },
+        ],
+      },
+    });
+    const result = await AnalysePredictiveService.analyserTendancesGlobales();
+    expect((result.rawRiskIndicators[0] as Record<string, unknown>).departement).toBe('INFO');
+  });
+
   it('getTrainingNeedsForecast calls correct endpoint with params', async () => {
     const payload = {
       method: 'ewma+linear',
