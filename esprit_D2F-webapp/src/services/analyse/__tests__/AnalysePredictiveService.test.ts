@@ -368,7 +368,9 @@ describe('AnalysePredictiveService', () => {
       },
     });
     const result = await AnalysePredictiveService.analyserTendancesGlobales();
-    expect((result.rawRiskIndicators[0] as unknown as Record<string, unknown>).departement).toBe('INFO');
+    expect((result.rawRiskIndicators[0] as unknown as Record<string, unknown>).departement).toBe(
+      'INFO',
+    );
   });
 
   it('getTrainingNeedsForecast calls correct endpoint with params', async () => {
