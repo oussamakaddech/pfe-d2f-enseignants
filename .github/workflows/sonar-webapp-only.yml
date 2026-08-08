@@ -1,6 +1,9 @@
 name: SonarQube Webapp Only
 
 on:
+  push:
+    branches:
+      - oussama
   workflow_dispatch:
 
 permissions:
