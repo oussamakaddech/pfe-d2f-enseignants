@@ -2,11 +2,6 @@ name: SonarQube Webapp Only
 
 on:
   workflow_dispatch:
-    inputs:
-      module:
-        description: 'Module à scanner'
-        required: false
-        default: 'webapp'
 
 permissions:
   contents: read
