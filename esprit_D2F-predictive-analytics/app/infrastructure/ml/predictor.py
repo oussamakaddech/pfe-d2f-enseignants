@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 from sqlalchemy import text
@@ -442,7 +442,7 @@ class ArtifactModelPort:
         return xn
 
     # ------------------------------------------------------------ Predictions
-    def _predict_gaps(self, teacher_id: str) -> list[SkillGap]:
+    def _predict_gaps(self, teacher_id: str) -> Optional[list[SkillGap]]:
         """Calcule SkillGap par compétence. Deux chemins, jamais mélangés :
 
         1) ML actif : la metadata du modèle déclare une part synthétique

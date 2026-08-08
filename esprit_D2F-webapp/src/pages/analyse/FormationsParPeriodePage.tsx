@@ -91,6 +91,7 @@ function PeriodeChart({
               marginRight: 6,
             }}
           />
+          {' '}
           Formations
         </span>
         <span>
@@ -103,6 +104,7 @@ function PeriodeChart({
               marginRight: 6,
             }}
           />
+          {' '}
           Participants
         </span>
       </Space>

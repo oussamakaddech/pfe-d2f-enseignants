@@ -286,22 +286,27 @@ export default function CalendrierPage() {
         <span className="cal-legend-label">Légende :</span>
         <span className="cal-legend-tag cal-legend-tag--enregistre">
           <span className="cal-legend-dot cal-legend-dot--enregistre" />
+          {' '}
           Enregistré
         </span>
         <span className="cal-legend-tag cal-legend-tag--planifie">
           <span className="cal-legend-dot cal-legend-dot--planifie" />
+          {' '}
           Planifié
         </span>
         <span className="cal-legend-tag cal-legend-tag--encours">
           <span className="cal-legend-dot cal-legend-dot--encours" />
+          {' '}
           En cours
         </span>
         <span className="cal-legend-tag cal-legend-tag--acheve">
           <span className="cal-legend-dot cal-legend-dot--acheve" />
+          {' '}
           Achevé
         </span>
         <span className="cal-legend-tag cal-legend-tag--annule">
           <span className="cal-legend-dot cal-legend-dot--annule" />
+          {' '}
           Annulé
         </span>
       </div>
