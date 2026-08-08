@@ -126,19 +126,13 @@ const DemandForecastChart = memo(function DemandForecastChart({
       </svg>
       <div className="analyse-forecast-legend">
         <span>
-          <i style={{ background: HIST_COLOR }} />
-          {' '}
-          Historique
+          <i style={{ background: HIST_COLOR }} /> Historique
         </span>
         <span>
-          <i style={{ background: FC_COLOR }} />
-          {' '}
-          Projection
+          <i style={{ background: FC_COLOR }} /> Projection
         </span>
         <span>
-          <i style={{ background: 'rgba(0, 180, 216, 0.25)' }} />
-          {' '}
-          Intervalle de confiance
+          <i style={{ background: 'rgba(0, 180, 216, 0.25)' }} /> Intervalle de confiance
         </span>
       </div>
     </div>

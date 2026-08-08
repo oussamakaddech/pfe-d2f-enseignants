@@ -288,7 +288,12 @@ const AnalysePredictiveService = {
       // heuristique au lieu d'un 503. Le backend ne renvoie jamais 503 car il
       // dégrade gracieusement vers l'heuristique — on détecte donc ici.
       if (isHeuristic && autoTrain) {
-        const trained = await autoTrainAndRetry(this, enseignantId, competenceCible, recommendations);
+        const trained = await autoTrainAndRetry(
+          this,
+          enseignantId,
+          competenceCible,
+          recommendations,
+        );
         if (trained) return trained;
       }
 

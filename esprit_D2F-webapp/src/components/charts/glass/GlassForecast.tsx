@@ -99,8 +99,7 @@ export default function GlassForecast({ data, height = 240 }: GlassForecastProps
               display: 'inline-block',
               borderRadius: 2,
             }}
-          />
-          {' '}
+          />{' '}
           Historique
         </span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -112,8 +111,7 @@ export default function GlassForecast({ data, height = 240 }: GlassForecastProps
               display: 'inline-block',
               borderRadius: 2,
             }}
-          />
-          {' '}
+          />{' '}
           Projection
         </span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -125,8 +123,7 @@ export default function GlassForecast({ data, height = 240 }: GlassForecastProps
               display: 'inline-block',
               borderRadius: 2,
             }}
-          />
-          {' '}
+          />{' '}
           Intervalle de confiance
         </span>
       </div>

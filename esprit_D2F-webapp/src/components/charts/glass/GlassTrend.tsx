@@ -117,8 +117,7 @@ export default function GlassTrend({ data, height = 220 }: GlassTrendProps) {
               display: 'inline-block',
               borderRadius: 2,
             }}
-          />
-          {' '}
+          />{' '}
           Critique
         </span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -130,8 +129,7 @@ export default function GlassTrend({ data, height = 220 }: GlassTrendProps) {
               display: 'inline-block',
               borderRadius: 2,
             }}
-          />
-          {' '}
+          />{' '}
           Élevé
         </span>
       </div>
