@@ -96,7 +96,9 @@ jobs:
         env:
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
-        run: sonar-scanner -Dsonar.projectKey=d2f_webapp -Dsonar.host.url=$env:SONAR_HOST_URL -Dsonar.login=$env:SONAR_TOKEN -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info -Dsonar.qualitygate.wait=true
+        run: |
+          $scanner = (Get-ChildItem "$env:USERPROFILE\.sonar\native-sonar-scanner" -Recurse -Filter 'sonar-scanner.bat' | Sort-Object FullName -Descending | Select-Object -First 1).FullName
+          & $scanner "-Dsonar.projectKey=d2f_webapp" "-Dsonar.host.url=$env:SONAR_HOST_URL" "-Dsonar.login=$env:SONAR_TOKEN" "-Dsonar.javascript.lcov.reportPaths=coverage/lcov.info" "-Dsonar.qualitygate.wait=true"
 
   # 3. Analyse des modules Python (AI / Analytics)
   python-analysis:
@@ -139,4 +141,6 @@ jobs:
         env:
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
-        run: sonar-scanner -Dsonar.projectKey=${{ matrix.projectKey }} -Dsonar.host.url=$env:SONAR_HOST_URL -Dsonar.login=$env:SONAR_TOKEN -Dsonar.python.coverage.reportPaths=coverage.xml -Dsonar.qualitygate.wait=true
+        run: |
+          $scanner = (Get-ChildItem "$env:USERPROFILE\.sonar\native-sonar-scanner" -Recurse -Filter 'sonar-scanner.bat' | Sort-Object FullName -Descending | Select-Object -First 1).FullName
+          & $scanner "-Dsonar.projectKey=${{ matrix.projectKey }}" "-Dsonar.host.url=$env:SONAR_HOST_URL" "-Dsonar.login=$env:SONAR_TOKEN" "-Dsonar.python.coverage.reportPaths=coverage.xml" "-Dsonar.qualitygate.wait=true"
