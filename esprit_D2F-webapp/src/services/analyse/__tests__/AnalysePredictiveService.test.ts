@@ -203,6 +203,139 @@ describe('AnalysePredictiveService', () => {
     ).rejects.toThrow(/403/);
   });
 
+  it('analyserEnseignant auto-trains and retries when result is heuristic and autoTrain=true', async () => {
+    httpMocks.mockPost
+      .mockResolvedValueOnce({
+        data: {
+          gaps: [
+            {
+              competency_id: 1,
+              competency_name: 'A',
+              current_level: 1,
+              required_level: 3,
+              predicted_gap: 1.0,
+              confidence: 0.5,
+            },
+          ],
+          overall_risk_score: 0.3,
+          explanation: { method: 'heuristic', model_trained: false },
+        },
+      })
+      .mockResolvedValueOnce({ data: { status: 'trained', metrics: { cv_rmse: 0.5 } } })
+      .mockResolvedValueOnce({
+        data: {
+          gaps: [
+            {
+              competency_id: 1,
+              competency_name: 'A',
+              current_level: 1,
+              required_level: 3,
+              predicted_gap: 0.4,
+              confidence: 0.9,
+            },
+          ],
+          overall_risk_score: 0.2,
+          explanation: { method: 'ml', model_trained: true },
+        },
+      });
+    const result = await AnalysePredictiveService.analyserEnseignant('E1', undefined, {
+      autoTrain: true,
+    });
+    expect(result.isHeuristic).toBe(false);
+    expect(result.modelNeedsTraining).toBe(false);
+  });
+
+  it('analyserEnseignant keeps heuristic result when auto-train reports not ready', async () => {
+    httpMocks.mockPost
+      .mockResolvedValueOnce({
+        data: {
+          gaps: [
+            {
+              competency_id: 1,
+              competency_name: 'A',
+              current_level: 1,
+              required_level: 3,
+              predicted_gap: 1.0,
+            },
+          ],
+          overall_risk_score: 0.3,
+          explanation: { method: 'heuristic' },
+        },
+      })
+      .mockResolvedValueOnce({ data: { status: 'training' } });
+    const result = await AnalysePredictiveService.analyserEnseignant('E1', undefined, {
+      autoTrain: true,
+    });
+    expect(result.isHeuristic).toBe(true);
+  });
+
+  it('analyserEnseignant keeps heuristic result when auto-train throws', async () => {
+    httpMocks.mockPost
+      .mockResolvedValueOnce({
+        data: {
+          gaps: [
+            {
+              competency_id: 1,
+              competency_name: 'A',
+              current_level: 1,
+              required_level: 3,
+              predicted_gap: 1.0,
+            },
+          ],
+          overall_risk_score: 0.3,
+          explanation: { method: 'heuristic' },
+        },
+      })
+      .mockRejectedValueOnce(new Error('train failed'));
+    const result = await AnalysePredictiveService.analyserEnseignant('E1', undefined, {
+      autoTrain: true,
+    });
+    expect(result.isHeuristic).toBe(true);
+  });
+
+  it('analyserEnseignant ignores competenceCible without digits', async () => {
+    httpMocks.mockPost.mockResolvedValueOnce({
+      data: {
+        gaps: [
+          {
+            competency_id: 1,
+            competency_name: 'A',
+            current_level: 1,
+            required_level: 3,
+            predicted_gap: 0.5,
+          },
+        ],
+        overall_risk_score: 0.1,
+      },
+    });
+    const result = await AnalysePredictiveService.analyserEnseignant('E1', 'CompetenceSansChiffre');
+    expect(result.recommandationsFormations).toHaveLength(0);
+  });
+
+  it('analyserEnseignant keeps recommendations empty when recommendPath fails', async () => {
+    httpMocks.mockPost
+      .mockResolvedValueOnce({ data: { gaps: [], overall_risk_score: 0 } })
+      .mockRejectedValueOnce(new Error('path failed'));
+    const result = await AnalysePredictiveService.analyserEnseignant('E1', 'Java-1');
+    expect(result.recommandationsFormations).toHaveLength(0);
+  });
+
+  it('analyserEnseignant surfaces generic error when retry after auto-train fails', async () => {
+    const err503 = Object.assign(new Error('503'), { response: { status: 503 } });
+    httpMocks.mockPost
+      .mockRejectedValueOnce(err503)
+      .mockResolvedValueOnce({ data: { status: 'trained' } })
+      .mockRejectedValueOnce(new Error('retry failed'));
+    await expect(
+      AnalysePredictiveService.analyserEnseignant('E1', undefined, { autoTrain: true }),
+    ).rejects.toThrow(/échoué/);
+  });
+
+  it('analyserEnseignant rethrows non-503 errors as-is', async () => {
+    httpMocks.mockPost.mockRejectedValueOnce(new Error('boom'));
+    await expect(AnalysePredictiveService.analyserEnseignant('E1')).rejects.toThrow('boom');
+  });
+
   it('analyserTendancesGlobales processes dashboard data', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({
       data: {
