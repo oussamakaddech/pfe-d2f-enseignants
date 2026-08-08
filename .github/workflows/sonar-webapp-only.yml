@@ -1,0 +1,50 @@
+name: SonarQube Webapp Only
+
+on:
+  workflow_dispatch:
+    inputs:
+      module:
+        description: 'Module à scanner'
+        required: false
+        default: 'webapp'
+
+permissions:
+  contents: read
+
+env:
+  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+jobs:
+  webapp-analysis:
+    name: Sonar Webapp • esprit_D2F-webapp
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: esprit_D2F-webapp/package-lock.json
+
+      - name: Install dependencies
+        working-directory: esprit_D2F-webapp
+        run: npm ci --legacy-peer-deps
+
+      - name: Run tests with coverage
+        working-directory: esprit_D2F-webapp
+        run: npm run test:coverage; if ($LASTEXITCODE -ne 0) { Write-Host 'Tests failed - continuing for Sonar' }
+
+      - name: SonarQube Scan
+        working-directory: esprit_D2F-webapp
+        env:
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
+        run: |
+          $scanner = (Get-ChildItem "$env:USERPROFILE\.sonar\native-sonar-scanner" -Recurse -Filter 'sonar-scanner.bat' | Sort-Object FullName -Descending | Select-Object -First 1).FullName
+          & $scanner "-Dsonar.projectKey=d2f_webapp" "-Dsonar.host.url=$env:SONAR_HOST_URL" "-Dsonar.token=$env:SONAR_TOKEN" "-Dsonar.javascript.lcov.reportPaths=coverage/lcov.info" "-Dsonar.qualitygate.wait=true"
