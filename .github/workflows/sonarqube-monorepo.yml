@@ -64,7 +64,7 @@ jobs:
 
       - name: Build and Analyze
         working-directory: ${{ matrix.module }}
-        run: mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=${{ matrix.projectKey }} -Dsonar.qualitygate.wait=true -Dsonar.host.url=${{ env.SONAR_HOST_URL }} -Dsonar.login=${{ env.SONAR_TOKEN }}
+        run: mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar "-Dsonar.projectKey=${{ matrix.projectKey }}" "-Dsonar.qualitygate.wait=true" "-Dsonar.host.url=${{ env.SONAR_HOST_URL }}" "-Dsonar.token=${{ env.SONAR_TOKEN }}"
 
   # 2. Analyse du Frontend (React / Vite)
   webapp-analysis:
@@ -98,7 +98,7 @@ jobs:
           SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
         run: |
           $scanner = (Get-ChildItem "$env:USERPROFILE\.sonar\native-sonar-scanner" -Recurse -Filter 'sonar-scanner.bat' | Sort-Object FullName -Descending | Select-Object -First 1).FullName
-          & $scanner "-Dsonar.projectKey=d2f_webapp" "-Dsonar.host.url=$env:SONAR_HOST_URL" "-Dsonar.login=$env:SONAR_TOKEN" "-Dsonar.javascript.lcov.reportPaths=coverage/lcov.info" "-Dsonar.qualitygate.wait=true"
+          & $scanner "-Dsonar.projectKey=d2f_webapp" "-Dsonar.host.url=$env:SONAR_HOST_URL" "-Dsonar.token=$env:SONAR_TOKEN" "-Dsonar.javascript.lcov.reportPaths=coverage/lcov.info" "-Dsonar.qualitygate.wait=true"
 
   # 3. Analyse des modules Python (AI / Analytics)
   python-analysis:
@@ -143,4 +143,4 @@ jobs:
           SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
         run: |
           $scanner = (Get-ChildItem "$env:USERPROFILE\.sonar\native-sonar-scanner" -Recurse -Filter 'sonar-scanner.bat' | Sort-Object FullName -Descending | Select-Object -First 1).FullName
-          & $scanner "-Dsonar.projectKey=${{ matrix.projectKey }}" "-Dsonar.host.url=$env:SONAR_HOST_URL" "-Dsonar.login=$env:SONAR_TOKEN" "-Dsonar.python.coverage.reportPaths=coverage.xml" "-Dsonar.qualitygate.wait=true"
+          & $scanner "-Dsonar.projectKey=${{ matrix.projectKey }}" "-Dsonar.host.url=$env:SONAR_HOST_URL" "-Dsonar.token=$env:SONAR_TOKEN" "-Dsonar.python.coverage.reportPaths=coverage.xml" "-Dsonar.qualitygate.wait=true"

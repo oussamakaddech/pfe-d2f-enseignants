@@ -431,7 +431,7 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=${{ matrix.projectKey }} -Dsonar.host.url=$env:SONAR_HOST_URL -Dsonar.token=$env:SONAR_TOKEN -Dsonar.qualitygate.wait=true -Dsonar.qualitygate.timeout=300 -Dsonar.qualitygate.grade=A
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar "-Dsonar.projectKey=${{ matrix.projectKey }}" "-Dsonar.host.url=$env:SONAR_HOST_URL" "-Dsonar.token=$env:SONAR_TOKEN" "-Dsonar.qualitygate.wait=true" "-Dsonar.qualitygate.timeout=300" "-Dsonar.qualitygate.grade=A"
 
       # --- Webapp : npm + Vitest + sonar-scanner ---
       - name: Setup Node
@@ -455,7 +455,9 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        run: sonar-scanner -Dsonar.projectKey=${{ matrix.projectKey }} -Dsonar.host.url=$env:SONAR_HOST_URL -Dsonar.login=$env:SONAR_TOKEN -Dsonar.qualitygate.wait=true -Dsonar.qualitygate.timeout=300 -Dsonar.qualitygate.grade=A
+        run: |
+          $scanner = (Get-ChildItem "$env:USERPROFILE\.sonar\native-sonar-scanner" -Recurse -Filter 'sonar-scanner.bat' | Sort-Object FullName -Descending | Select-Object -First 1).FullName
+          & $scanner "-Dsonar.projectKey=${{ matrix.projectKey }}" "-Dsonar.host.url=$env:SONAR_HOST_URL" "-Dsonar.token=$env:SONAR_TOKEN" "-Dsonar.qualitygate.wait=true" "-Dsonar.qualitygate.timeout=300" "-Dsonar.qualitygate.grade=A"
 
       # --- Python : pytest + cov + sonar-scanner ---
       - name: Setup Python
@@ -486,7 +488,9 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        run: sonar-scanner -Dsonar.projectKey=${{ matrix.projectKey }} -Dsonar.host.url=$env:SONAR_HOST_URL -Dsonar.login=$env:SONAR_TOKEN -Dsonar.qualitygate.wait=true -Dsonar.qualitygate.timeout=300 -Dsonar.qualitygate.grade=A
+        run: |
+          $scanner = (Get-ChildItem "$env:USERPROFILE\.sonar\native-sonar-scanner" -Recurse -Filter 'sonar-scanner.bat' | Sort-Object FullName -Descending | Select-Object -First 1).FullName
+          & $scanner "-Dsonar.projectKey=${{ matrix.projectKey }}" "-Dsonar.host.url=$env:SONAR_HOST_URL" "-Dsonar.token=$env:SONAR_TOKEN" "-Dsonar.python.coverage.reportPaths=coverage.xml" "-Dsonar.qualitygate.wait=true" "-Dsonar.qualitygate.timeout=300" "-Dsonar.qualitygate.grade=A"
 
   # -- Build & Push Docker (apres tous les quality gates) -----------------------
   build-docker:
