@@ -92,16 +92,11 @@ jobs:
         run: npm run test:coverage; if ($LASTEXITCODE -ne 0) { Write-Host 'Tests failed - continuing for Sonar' }
 
       - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@v2
+        working-directory: esprit_D2F-webapp
         env:
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
-        with:
-          projectBaseDir: esprit_D2F-webapp
-          args: >
-            -Dsonar.projectKey=d2f_webapp
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-            -Dsonar.qualitygate.wait=true
+        run: sonar-scanner -Dsonar.projectKey=d2f_webapp -Dsonar.host.url=$env:SONAR_HOST_URL -Dsonar.login=$env:SONAR_TOKEN -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info -Dsonar.qualitygate.wait=true
 
   # 3. Analyse des modules Python (AI / Analytics)
   python-analysis:
@@ -140,13 +135,8 @@ jobs:
         run: pytest --cov=. --cov-report=xml; if ($LASTEXITCODE -ne 0) { Write-Host 'Tests failed - continuing for Sonar' }
 
       - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@v2
+        working-directory: ${{ matrix.module }}
         env:
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
-        with:
-          projectBaseDir: ${{ matrix.module }}
-          args: >
-            -Dsonar.projectKey=${{ matrix.projectKey }}
-            -Dsonar.python.coverage.reportPaths=coverage.xml
-            -Dsonar.qualitygate.wait=true
+        run: sonar-scanner -Dsonar.projectKey=${{ matrix.projectKey }} -Dsonar.host.url=$env:SONAR_HOST_URL -Dsonar.login=$env:SONAR_TOKEN -Dsonar.python.coverage.reportPaths=coverage.xml -Dsonar.qualitygate.wait=true
