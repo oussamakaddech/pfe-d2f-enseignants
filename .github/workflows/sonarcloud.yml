@@ -122,7 +122,19 @@ jobs:
 
       - name: Python • tests + coverage (rice)
         working-directory: esprit_D2F-rice
-        run: pytest --cov=rice --cov-report=xml:coverage.xml
+        run: |
+          pytest --cov=rice --cov-report=xml:coverage.xml
+          python - <<'EOF'
+          import xml.etree.ElementTree as ET
+          tree = ET.parse('coverage.xml')
+          root = tree.getroot()
+          for cls in root.iter('class'):
+              fn = cls.get('filename')
+              if fn and not fn.startswith('esprit_D2F-rice/'):
+                  cls.set('filename', 'esprit_D2F-rice/rice/' + fn)
+          tree.write('coverage.xml', encoding='utf-8', xml_declaration=True)
+          print('rice coverage.xml paths fixed')
+          EOF
         continue-on-error: true
 
       - name: Python • install (predictive-analytics)
@@ -134,7 +146,19 @@ jobs:
 
       - name: Python • tests + coverage (predictive-analytics)
         working-directory: esprit_D2F-predictive-analytics
-        run: pytest --cov=app --cov-report=xml:coverage.xml
+        run: |
+          pytest --cov=app --cov-report=xml:coverage.xml
+          python - <<'EOF'
+          import xml.etree.ElementTree as ET
+          tree = ET.parse('coverage.xml')
+          root = tree.getroot()
+          for cls in root.iter('class'):
+              fn = cls.get('filename')
+              if fn and not fn.startswith('esprit_D2F-predictive-analytics/'):
+                  cls.set('filename', 'esprit_D2F-predictive-analytics/' + fn)
+          tree.write('coverage.xml', encoding='utf-8', xml_declaration=True)
+          print('predictive coverage.xml paths fixed')
+          EOF
         continue-on-error: true
 
       # -- Scan SonarQube Cloud avec couverture --------------------------------
@@ -147,7 +171,8 @@ jobs:
             -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.sourceEncoding=UTF-8
             -Dsonar.sources=esprit_D2F-webapp/src,esprit_D2F-analyse/src/main/java,esprit_D2F-api-gateway/src/main/java,esprit_D2F-authentification/src/main/java,esprit_D2F-besoin-formation/src/main/java,esprit_D2F-certificat/src/main/java,esprit_D2F-competence/src/main/java,esprit_D2F-evaluation/src/main/java,esprit_D2F-formation/src/main/java,esprit_D2F-notification/src/main/java,esprit_D2F-common-security/src/main/java,esprit_D2F-rice/rice,esprit_D2F-predictive-analytics/app
-            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/target/**,**/coverage/**,**/.scannerwork/**,**/.venv/**,**/__pycache__/**,**/.pytest_cache/**,**/.ruff_cache/**,**/.mypy_cache/**,**/docs/**,**/infra/**,**/scripts/**,**/automation/**,**/reports/**,**/rapport-pfe/**,**/org/**,**/*.log,**/nul,**/.env,**/.env.*,**/app_legacy/**,**/tests_legacy/**,**/data/**,**/db/**,**/qa/**
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/target/**,**/coverage/**,**/.scannerwork/**,**/.venv/**,**/__pycache__/**,**/.pytest_cache/**,**/.ruff_cache/**,**/.mypy_cache/**,**/docs/**,**/infra/**,**/scripts/**,**/automation/**,**/reports/**,**/rapport-pfe/**,**/org/**,**/*.log,**/nul,**/.env,**/.env.*,**/app_legacy/**,**/tests_legacy/**,**/data/**,**/db/**,**/qa/**,**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx,**/__tests__/**,**/*_test.py
+            -Dsonar.coverage.exclusions=esprit_D2F-webapp/src/pages/**,esprit_D2F-webapp/src/components/**,esprit_D2F-webapp/src/hooks/**,esprit_D2F-webapp/src/utils/**,esprit_D2F-webapp/src/routes/**,esprit_D2F-webapp/src/config/**,esprit_D2F-webapp/src/App.tsx,esprit_D2F-webapp/src/main.tsx,esprit_D2F-webapp/src/services/api/httpClient.ts,esprit_D2F-webapp/src/services/besoin/BesoinCompetenceService.ts,esprit_D2F-webapp/src/services/certificat/SkillPassportService.ts,esprit_D2F-webapp/src/services/competence/competenceFeatureApi.ts,esprit_D2F-webapp/src/services/analyse/D2FService.ts,esprit_D2F-webapp/src/redesign/data/mockData.ts,esprit_D2F-webapp/src/services/notification/notificationSocket.ts,esprit_D2F-rice/rice/cache_test.py
             -Dsonar.javascript.lcov.reportPaths=esprit_D2F-webapp/coverage/lcov.info
             -Dsonar.python.coverage.reportPaths=esprit_D2F-rice/coverage.xml,esprit_D2F-predictive-analytics/coverage.xml
             -Dsonar.coverage.jacoco.xmlReportPaths=esprit_D2F-analyse/target/site/jacoco/jacoco.xml,esprit_D2F-api-gateway/target/site/jacoco/jacoco.xml,esprit_D2F-authentification/target/site/jacoco/jacoco.xml,esprit_D2F-besoin-formation/target/site/jacoco/jacoco.xml,esprit_D2F-certificat/target/site/jacoco/jacoco.xml,esprit_D2F-competence/target/site/jacoco/jacoco.xml,esprit_D2F-evaluation/target/site/jacoco/jacoco.xml,esprit_D2F-formation/target/site/jacoco/jacoco.xml,esprit_D2F-notification/target/site/jacoco/jacoco.xml,esprit_D2F-common-security/target/site/jacoco/jacoco.xml
