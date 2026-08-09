@@ -26,7 +26,8 @@
 - Branches analyzed: `main` (LONG) + `oussama` (SHORT, analyzed via workflow).
 - **Autoscan DISABLED** (`sonar.autoscan.enabled=false`) — was blocking CI scans with `EXECUTION FAILURE` exit 3 ("Automatic Analysis is enabled"). Disabled via `POST https://sonarcloud.io/api/autoscan/activation?enable=false&projectKey=oussamakaddech_pfe-d2f-enseignants`.
 - The old GitHub check **"SonarCloud Code Analysis"** (app `sonarqubecloud`, autoscan) is now stale/fail on PR #1 — IGNORE it; it won't regenerate. The relevant check is the workflow **"SonarQube Cloud • Branch Analysis"** (pass).
-- Cloud QG on PR #1 was ERROR: `new_coverage=0` (no coverage uploaded), `new_reliability_rating=3`, `new_security_rating=2`. Not blocking (no branch protection on `main`).
+- Cloud QG on PR #1: ratings now ALL A (`new_reliability_rating=1`, `new_security_rating=1`, `new_maintainability_rating=1`, hotspots reviewed 100, dup 2.3). **0 bugs/vulns open** after commit `0973f026`. Only remaining ERROR: `new_coverage=43.3` (req ≥ 80).
+- Cloud QG fixes shipped in `0973f026`: TS S8959 debug removed + S8985 waitFor side-effects (BesoinForm.test.tsx), Java S2259 NPE guard (NotificationServiceImpl.java), Python S2583 redundant condition (nlp.py), 5× S5145 sanitized user-data logging via `_sanitize_log` (referential.py). Runs `31293545755`+`31293543970` = success.
 - API note: non-main branch measures return 403 on free plan ("Organization is not allowed to access data from non main branches") — use dashboard web or PR params instead.
 
 ### Workflows (.github/workflows)
