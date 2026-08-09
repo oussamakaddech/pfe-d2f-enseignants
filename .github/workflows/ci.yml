@@ -480,7 +480,7 @@ jobs:
         if: matrix.type == 'python'
         working-directory: ${{ matrix.module }}
         run: |
-          python -m pytest --cov=. --cov-report=xml --junit-xml=junit-results.xml || true
+          python -m pytest --cov=. --cov-report=xml --junit-xml=junit-results.xml; if ($LASTEXITCODE -ne 0) { Write-Host "pytest exited $LASTEXITCODE - continuing for coverage report" }
 
       - name: Sonar scan Python (sonar-scanner)
         if: matrix.type == 'python'
