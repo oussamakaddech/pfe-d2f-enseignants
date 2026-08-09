@@ -1,6 +1,8 @@
 name: SonarQube Cloud
 
-# Analyse la branche oussama (et main) vers SonarQube Cloud (sonarcloud.io)
+# Analyse la branche oussama (et main/develop) vers SonarQube Cloud (sonarcloud.io).
+# Exécute les tests (webapp / Java / Python) puis scanne avec la couverture
+# (lcov / jacoco.xml / coverage.xml) uploadée vers le cloud.
 # Utilise le token SONARCLOUD_TOKEN (token cloud, distinct du SONAR_TOKEN local).
 # Le check "SonarCloud Code Analysis" de l'app GitHub SonarQube Cloud reste séparé
 # et analyse les PRs automatiquement.
@@ -29,6 +31,113 @@ jobs:
         with:
           fetch-depth: 0
 
+      # -- Tests Webapp (coverage lcov) -----------------------------------------
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: esprit_D2F-webapp/package-lock.json
+
+      - name: Webapp • install
+        working-directory: esprit_D2F-webapp
+        run: npm ci --legacy-peer-deps
+        continue-on-error: true
+
+      - name: Webapp • tests with coverage
+        working-directory: esprit_D2F-webapp
+        run: npm run test:coverage
+        continue-on-error: true
+
+      # -- Tests Java (coverage jacoco) ------------------------------------------
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Java • install common-security
+        working-directory: esprit_D2F-common-security
+        run: mvn -B clean install -DskipTests
+        continue-on-error: true
+
+      - name: Java • tests + jacoco (analyse)
+        working-directory: esprit_D2F-analyse
+        run: mvn -B clean verify
+        continue-on-error: true
+
+      - name: Java • tests + jacoco (api-gateway)
+        working-directory: esprit_D2F-api-gateway
+        run: mvn -B clean verify
+        continue-on-error: true
+
+      - name: Java • tests + jacoco (authentification)
+        working-directory: esprit_D2F-authentification
+        run: mvn -B clean verify
+        continue-on-error: true
+
+      - name: Java • tests + jacoco (besoin-formation)
+        working-directory: esprit_D2F-besoin-formation
+        run: mvn -B clean verify
+        continue-on-error: true
+
+      - name: Java • tests + jacoco (certificat)
+        working-directory: esprit_D2F-certificat
+        run: mvn -B clean verify
+        continue-on-error: true
+
+      - name: Java • tests + jacoco (competence)
+        working-directory: esprit_D2F-competence
+        run: mvn -B clean verify
+        continue-on-error: true
+
+      - name: Java • tests + jacoco (evaluation)
+        working-directory: esprit_D2F-evaluation
+        run: mvn -B clean verify
+        continue-on-error: true
+
+      - name: Java • tests + jacoco (formation)
+        working-directory: esprit_D2F-formation
+        run: mvn -B clean verify
+        continue-on-error: true
+
+      - name: Java • tests + jacoco (notification)
+        working-directory: esprit_D2F-notification
+        run: mvn -B clean verify
+        continue-on-error: true
+
+      # -- Tests Python (coverage.xml) ------------------------------------------
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Python • install (rice)
+        working-directory: esprit_D2F-rice
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest pytest-cov
+        continue-on-error: true
+
+      - name: Python • tests + coverage (rice)
+        working-directory: esprit_D2F-rice
+        run: pytest --cov=rice --cov-report=xml:coverage.xml
+        continue-on-error: true
+
+      - name: Python • install (predictive-analytics)
+        working-directory: esprit_D2F-predictive-analytics
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest pytest-cov
+        continue-on-error: true
+
+      - name: Python • tests + coverage (predictive-analytics)
+        working-directory: esprit_D2F-predictive-analytics
+        run: pytest --cov=app --cov-report=xml:coverage.xml
+        continue-on-error: true
+
+      # -- Scan SonarQube Cloud avec couverture --------------------------------
       - name: SonarQube Cloud Scan
         uses: sonarsource/sonarqube-scan-action@v5
         with:
@@ -39,5 +148,9 @@ jobs:
             -Dsonar.sourceEncoding=UTF-8
             -Dsonar.sources=esprit_D2F-webapp/src,esprit_D2F-analyse/src/main/java,esprit_D2F-api-gateway/src/main/java,esprit_D2F-authentification/src/main/java,esprit_D2F-besoin-formation/src/main/java,esprit_D2F-certificat/src/main/java,esprit_D2F-competence/src/main/java,esprit_D2F-evaluation/src/main/java,esprit_D2F-formation/src/main/java,esprit_D2F-notification/src/main/java,esprit_D2F-common-security/src/main/java,esprit_D2F-rice/rice,esprit_D2F-predictive-analytics/app
             -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/target/**,**/coverage/**,**/.scannerwork/**,**/.venv/**,**/__pycache__/**,**/.pytest_cache/**,**/.ruff_cache/**,**/.mypy_cache/**,**/docs/**,**/infra/**,**/scripts/**,**/automation/**,**/reports/**,**/rapport-pfe/**,**/org/**,**/*.log,**/nul,**/.env,**/.env.*,**/app_legacy/**,**/tests_legacy/**,**/data/**,**/db/**,**/qa/**
+            -Dsonar.javascript.lcov.reportPaths=esprit_D2F-webapp/coverage/lcov.info
+            -Dsonar.python.coverage.reportPaths=esprit_D2F-rice/coverage.xml,esprit_D2F-predictive-analytics/coverage.xml
+            -Dsonar.coverage.jacoco.xmlReportPaths=esprit_D2F-analyse/target/site/jacoco/jacoco.xml,esprit_D2F-api-gateway/target/site/jacoco/jacoco.xml,esprit_D2F-authentification/target/site/jacoco/jacoco.xml,esprit_D2F-besoin-formation/target/site/jacoco/jacoco.xml,esprit_D2F-certificat/target/site/jacoco/jacoco.xml,esprit_D2F-competence/target/site/jacoco/jacoco.xml,esprit_D2F-evaluation/target/site/jacoco/jacoco.xml,esprit_D2F-formation/target/site/jacoco/jacoco.xml,esprit_D2F-notification/target/site/jacoco/jacoco.xml,esprit_D2F-common-security/target/site/jacoco/jacoco.xml
+            -Dsonar.java.binaries=esprit_D2F-analyse/target/classes,esprit_D2F-api-gateway/target/classes,esprit_D2F-authentification/target/classes,esprit_D2F-besoin-formation/target/classes,esprit_D2F-certificat/target/classes,esprit_D2F-competence/target/classes,esprit_D2F-evaluation/target/classes,esprit_D2F-formation/target/classes,esprit_D2F-notification/target/classes,esprit_D2F-common-security/target/classes
         env:
           SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
