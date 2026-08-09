@@ -42,7 +42,11 @@ public class NotificationServiceImpl implements INotificationService {
     public NotificationResponse create(NotificationRequest request) {
         Notification entity = mapper.toEntity(request);
         Notification saved = repository.save(entity);
-        NotificationResponse response = NotificationResponse.from(saved, request.meta());
+        if (saved == null) {
+            throw new IllegalStateException("La notification n'a pas pu être persistée");
+        }
+        Map<String, Object> meta = request.meta() == null ? Map.of() : request.meta();
+        NotificationResponse response = NotificationResponse.from(saved, meta);
         log.info("[notification] créée pour {} — {} : {}", saved.getRecipient(), saved.getType(), saved.getTitle());
         webSocketService.pushToUser(saved.getRecipient(), response);
         return response;

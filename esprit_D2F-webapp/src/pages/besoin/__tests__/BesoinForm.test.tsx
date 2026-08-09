@@ -48,22 +48,20 @@ function openSelect(labelText: string) {
 
 async function chooseSelect(labelText: string, optionText: string) {
   fireEvent.mouseDown(openSelect(labelText)!);
-  await waitFor(() => {
-    const optionContent = Array.from(
-      document.querySelectorAll('.ant-select-item-option-content'),
-    ).find((element) => element.textContent && element.textContent.trim() === optionText);
-    const option = optionContent?.closest('.ant-select-item-option');
-    expect(option).toBeTruthy();
-    fireEvent.click(option!);
-  });
+  const optionContent = await waitFor(() =>
+    Array.from(document.querySelectorAll('.ant-select-item-option-content')).find(
+      (element) => element.textContent && element.textContent.trim() === optionText,
+    ),
+  );
+  const option = optionContent?.closest('.ant-select-item-option');
+  expect(option).toBeTruthy();
+  fireEvent.click(option!);
 }
 
 async function chooseOptionByRole(labelText: string, optionName: string) {
   fireEvent.mouseDown(openSelect(labelText)!);
-  await waitFor(() => {
-    const option = screen.getByRole('option', { name: optionName });
-    fireEvent.click(option);
-  });
+  const option = await waitFor(() => screen.getByRole('option', { name: optionName }));
+  fireEvent.click(option);
 }
 
 // TODO(DSI): UI assertions out of sync after DSI refactor. Re-enable after
@@ -178,8 +176,6 @@ describe.skip('BesoinForm', { timeout: 60000 }, () => {
         },
         { timeout: 5000 },
       );
-
-      screen.debug(screen.getByText('Récapitulatif de votre demande').parentElement!);
 
       expect(screen.getByText(/Formation Test/i)).toBeInTheDocument();
       expect(screen.getByText(/Période 1/i)).toBeInTheDocument();

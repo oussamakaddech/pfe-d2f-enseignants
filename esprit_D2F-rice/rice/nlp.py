@@ -1746,8 +1746,7 @@ def _extract_block_type(block: str) -> Optional[str]:
     type_match = re.search(r"\b(cours\s+int[e\u00e9]gr[e\u00e9]|TP|TD|APP|Projet|Labo)\b", block[start:], re.IGNORECASE)
     if not type_match:
         return None
-    m = type_match
-    return m.group(1).strip() if m else None
+    return type_match.group(1).strip()
 
 
 def _extract_block_duree(block: str) -> Optional[str]:
