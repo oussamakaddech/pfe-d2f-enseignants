@@ -1,0 +1,42 @@
+name: SonarQube Cloud
+
+# Analyse la branche oussama (et main) vers SonarQube Cloud (sonarcloud.io)
+# Utilise le token SONARCLOUD_TOKEN (token cloud, distinct du SONAR_TOKEN local).
+# Le check "SonarCloud Code Analysis" de l'app GitHub SonarQube Cloud reste séparé
+# et analyse les PRs automatiquement.
+
+on:
+  push:
+    branches:
+      - oussama
+      - main
+      - develop
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  sonarqube-cloud:
+    name: SonarQube Cloud • Branch Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SonarQube Cloud Scan
+        uses: sonarsource/sonarqube-scan-action@v5
+        with:
+          args: >
+            -Dsonar.organization=oussamakaddech
+            -Dsonar.projectKey=oussamakaddech_pfe-d2f-enseignants
+            -Dsonar.host.url=https://sonarcloud.io
+            -Dsonar.sourceEncoding=UTF-8
+            -Dsonar.sources=esprit_D2F-webapp/src,esprit_D2F-analyse/src/main/java,esprit_D2F-api-gateway/src/main/java,esprit_D2F-authentification/src/main/java,esprit_D2F-besoin-formation/src/main/java,esprit_D2F-certificat/src/main/java,esprit_D2F-competence/src/main/java,esprit_D2F-evaluation/src/main/java,esprit_D2F-formation/src/main/java,esprit_D2F-notification/src/main/java,esprit_D2F-common-security/src/main/java,esprit_D2F-rice/rice,esprit_D2F-predictive-analytics/app
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/target/**,**/coverage/**,**/.scannerwork/**,**/.venv/**,**/__pycache__/**,**/.pytest_cache/**,**/.ruff_cache/**,**/.mypy_cache/**,**/docs/**,**/infra/**,**/scripts/**,**/automation/**,**/reports/**,**/rapport-pfe/**,**/org/**,**/*.log,**/nul,**/.env,**/.env.*,**/app_legacy/**,**/tests_legacy/**,**/data/**,**/db/**,**/qa/**
+        env:
+          SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
