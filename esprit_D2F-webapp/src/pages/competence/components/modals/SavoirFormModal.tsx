@@ -1,10 +1,7 @@
-import { Form, Input, Modal, Radio, Select, Space } from "antd";
-import type { FormInstance } from "antd";
-import type useCompetenceCrud from "@/hooks/competence/useCompetenceCrud";
-import {
-  NIVEAU_SAVOIR_OPTIONS,
-  TYPE_SAVOIR_OPTIONS,
-} from "@/utils/constants/competenceOptions";
+import { Form, Input, Modal, Radio, Select, Space } from 'antd';
+import type { FormInstance } from 'antd';
+import type useCompetenceCrud from '@/hooks/competence/useCompetenceCrud';
+import { NIVEAU_SAVOIR_OPTIONS, TYPE_SAVOIR_OPTIONS } from '@/utils/constants/competenceOptions';
 
 const { Option } = Select;
 
@@ -17,14 +14,14 @@ export default function SavoirFormModal({ crud, savoirForm }: Readonly<SavoirFor
   return (
     <Modal
       forceRender
-      title={crud.editingSavoir ? "Modifier le savoir" : "Nouveau savoir"}
+      title={crud.editingSavoir ? 'Modifier le savoir' : 'Nouveau savoir'}
       open={crud.savoirModal}
       onOk={() => crud.handleSavoirSubmit(savoirForm)}
       onCancel={() => crud.setSavoirModal(false)}
       afterClose={() => {
         savoirForm.resetFields();
         crud.setEditingSavoir(null);
-        crud.setSavoirMode("sc");
+        crud.setSavoirMode('sc');
       }}
       okText="Enregistrer"
       cancelText="Annuler"
@@ -38,23 +35,23 @@ export default function SavoirFormModal({ crud, savoirForm }: Readonly<SavoirFor
             changedValues.sousCompetenceId !== undefined ||
             changedValues.competenceId !== undefined
           ) {
-            const scId = savoirForm.getFieldValue("sousCompetenceId");
-            const compId = savoirForm.getFieldValue("competenceId");
-            let newPrefix = "";
-            if (crud.savoirMode === "sc" && scId) {
+            const scId = savoirForm.getFieldValue('sousCompetenceId');
+            const compId = savoirForm.getFieldValue('competenceId');
+            let newPrefix = '';
+            if (crud.savoirMode === 'sc' && scId) {
               const sousComp = crud.leafSousComps?.find((sc) => sc.id === scId);
               if (sousComp?.code) {
                 newPrefix = `${sousComp.code}-`;
               }
-            } else if (crud.savoirMode === "direct" && compId) {
+            } else if (crud.savoirMode === 'direct' && compId) {
               const comp = crud.competences?.find((c) => c.id === compId);
               if (comp?.code) {
                 newPrefix = `${comp.code}-`;
               }
             }
-            const currentPrefix = savoirForm.getFieldValue("codePrefix") || "";
+            const currentPrefix = savoirForm.getFieldValue('codePrefix') || '';
             if (currentPrefix !== newPrefix) {
-              savoirForm.setFieldValue("codePrefix", newPrefix);
+              savoirForm.setFieldValue('codePrefix', newPrefix);
             }
           }
         }}
@@ -65,8 +62,8 @@ export default function SavoirFormModal({ crud, savoirForm }: Readonly<SavoirFor
             onChange={(e) => {
               const mode = e.target.value;
               crud.setSavoirMode(mode);
-              if (mode === "sc") savoirForm.setFieldValue("competenceId", null);
-              else savoirForm.setFieldValue("sousCompetenceId", null);
+              if (mode === 'sc') savoirForm.setFieldValue('competenceId', null);
+              else savoirForm.setFieldValue('sousCompetenceId', null);
             }}
             disabled={!!crud.editingSavoir}
           >
@@ -74,13 +71,11 @@ export default function SavoirFormModal({ crud, savoirForm }: Readonly<SavoirFor
             <Radio.Button value="direct">Direct sur competence</Radio.Button>
           </Radio.Group>
         </Form.Item>
-        {crud.savoirMode === "sc" ? (
+        {crud.savoirMode === 'sc' ? (
           <Form.Item
             name="sousCompetenceId"
             label="Competence fille"
-            rules={[
-              { required: !crud.editingSavoir, message: "Competence fille obligatoire" },
-            ]}
+            rules={[{ required: !crud.editingSavoir, message: 'Competence fille obligatoire' }]}
           >
             <Select
               placeholder="Selectionner une competence fille"
@@ -99,9 +94,7 @@ export default function SavoirFormModal({ crud, savoirForm }: Readonly<SavoirFor
           <Form.Item
             name="competenceId"
             label="Competence mere"
-            rules={[
-              { required: !crud.editingSavoir, message: "Competence mere obligatoire" },
-            ]}
+            rules={[{ required: !crud.editingSavoir, message: 'Competence mere obligatoire' }]}
           >
             <Select
               placeholder="Selectionner une competence mere"
@@ -118,31 +111,33 @@ export default function SavoirFormModal({ crud, savoirForm }: Readonly<SavoirFor
           </Form.Item>
         )}
         <Form.Item label="Code" required>
-          <Space.Compact style={{ width: "100%" }}>
-            <Form.Item name="codePrefix" noStyle style={{ flex: "0 0 60%" }}>
+          <Space.Compact style={{ width: '100%' }}>
+            <Form.Item name="codePrefix" noStyle style={{ flex: '0 0 60%' }}>
               <Input
                 readOnly
                 style={{
-                  width: "100%",
-                  backgroundColor: "#f5f5f5",
-                  color: "#888",
-                  cursor: "not-allowed",
+                  width: '100%',
+                  backgroundColor: '#f5f5f5',
+                  color: '#888',
+                  cursor: 'not-allowed',
                 }}
               />
             </Form.Item>
             <Form.Item
               name="codeSuffix"
               noStyle
-              style={{ flex: "0 0 40%" }}
+              style={{ flex: '0 0 40%' }}
               rules={[
-                { required: true, message: "Completez le code" },
-                { pattern: /^[A-Z0-9_]+$/, message: "Majuscules, chiffres et _ uniquement" },
+                { required: true, message: 'Completez le code' },
+                { pattern: /^[A-Z0-9_]+$/, message: 'Majuscules, chiffres et _ uniquement' },
                 {
                   validator: (_, value) => {
-                    const prefix = savoirForm.getFieldValue("codePrefix") || "";
-                    const suffix = value || "";
+                    const prefix = savoirForm.getFieldValue('codePrefix') || '';
+                    const suffix = value || '';
                     if (`${prefix}${suffix}`.length > 100) {
-                      return Promise.reject(new Error("Le code ne doit pas depasser 100 caracteres"));
+                      return Promise.reject(
+                        new Error('Le code ne doit pas depasser 100 caracteres'),
+                      );
                     }
                     return Promise.resolve();
                   },
@@ -152,34 +147,46 @@ export default function SavoirFormModal({ crud, savoirForm }: Readonly<SavoirFor
               <Input
                 placeholder="ex: S1"
                 maxLength={100}
-                style={{ width: "100%" }}
+                style={{ width: '100%' }}
                 onChange={(e) => {
-                  const sanitized = (e.target.value || "")
+                  const sanitized = (e.target.value || '')
                     .toUpperCase()
-                    .replaceAll(/[^A-Z0-9_]/g, "");
-                  savoirForm.setFieldValue("codeSuffix", sanitized);
+                    .replaceAll(/[^A-Z0-9_]/g, '');
+                  savoirForm.setFieldValue('codeSuffix', sanitized);
                 }}
               />
             </Form.Item>
           </Space.Compact>
         </Form.Item>
-        <Form.Item name="nom" label="Nom" rules={[{ required: true, message: "Nom obligatoire" }]}>
+        <Form.Item name="nom" label="Nom" rules={[{ required: true, message: 'Nom obligatoire' }]}>
           <Input />
         </Form.Item>
         <Form.Item name="description" label="Description">
           <Input.TextArea rows={2} />
         </Form.Item>
-        <Form.Item name="type" label="Type" rules={[{ required: true, message: "Type obligatoire" }]}>
+        <Form.Item
+          name="type"
+          label="Type"
+          rules={[{ required: true, message: 'Type obligatoire' }]}
+        >
           <Select placeholder="Type de savoir">
             {TYPE_SAVOIR_OPTIONS.map((t) => (
-              <Option key={t} value={t}>{t}</Option>
+              <Option key={t} value={t}>
+                {t}
+              </Option>
             ))}
           </Select>
         </Form.Item>
-        <Form.Item name="niveau" label="Niveau" rules={[{ required: true, message: "Niveau obligatoire" }]}>
+        <Form.Item
+          name="niveau"
+          label="Niveau"
+          rules={[{ required: true, message: 'Niveau obligatoire' }]}
+        >
           <Select placeholder="Niveau de complexite">
             {NIVEAU_SAVOIR_OPTIONS.map((n) => (
-              <Option key={n.value} value={n.value}>{n.label}</Option>
+              <Option key={n.value} value={n.value}>
+                {n.label}
+              </Option>
             ))}
           </Select>
         </Form.Item>

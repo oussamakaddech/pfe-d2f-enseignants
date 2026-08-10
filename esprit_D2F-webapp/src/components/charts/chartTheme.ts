@@ -3,13 +3,13 @@
  * Le canvas ne lit pas les CSS custom properties → on consomme le miroir
  * TypeScript des tokens (src/styles/theme.ts).
  */
-import type { TooltipOptions, LegendOptions } from "chart.js";
-import { colors } from "@/styles/theme";
+import type { TooltipOptions, LegendOptions } from 'chart.js';
+import { colors } from '@/styles/theme';
 
-export { colors, chartPalette } from "@/styles/theme";
+export { colors, chartPalette } from '@/styles/theme';
 
 export function hexToRgba(hex: string, alpha: number): string {
-  const h = hex.replace("#", "");
+  const h = hex.replace('#', '');
   const r = Number.parseInt(h.slice(0, 2), 16);
   const g = Number.parseInt(h.slice(2, 4), 16);
   const b = Number.parseInt(h.slice(4, 6), 16);
@@ -18,26 +18,26 @@ export function hexToRgba(hex: string, alpha: number): string {
 
 /** Tooltip « carte » : fond blanc, ombre, texte sombre — au lieu du noir natif. */
 export const cardTooltip: Partial<TooltipOptions<never>> = {
-  backgroundColor: "#ffffff",
+  backgroundColor: '#ffffff',
   titleColor: colors.textPrimary,
   bodyColor: colors.textSecondary,
   borderColor: colors.border,
   borderWidth: 1,
   padding: 12,
   cornerRadius: 10,
-  titleFont: { family: "Inter", size: 13, weight: 600 },
-  bodyFont: { family: "Inter", size: 12 },
+  titleFont: { family: 'Inter', size: 13, weight: 600 },
+  bodyFont: { family: 'Inter', size: 12 },
   displayColors: true,
   boxPadding: 4,
 } as Partial<TooltipOptions<never>>;
 
 export const bottomLegend: Partial<LegendOptions<never>> = {
-  position: "bottom",
+  position: 'bottom',
   labels: {
-    font: { family: "Inter", size: 12 },
+    font: { family: 'Inter', size: 12 },
     color: colors.textSecondary,
     usePointStyle: true,
-    pointStyle: "rectRounded",
+    pointStyle: 'rectRounded',
     padding: 16,
   },
 } as Partial<LegendOptions<never>>;
@@ -49,7 +49,7 @@ export const subtleGrid = {
 };
 
 export const axisTicks = {
-  font: { family: "Inter", size: 11 },
+  font: { family: 'Inter', size: 11 },
   color: colors.textMuted,
 };
 

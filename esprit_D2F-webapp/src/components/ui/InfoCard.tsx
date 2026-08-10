@@ -1,7 +1,7 @@
-import { memo, type ReactNode } from "react";
-import styles from "./InfoCard.module.css";
+import { memo, type ReactNode } from 'react';
+import styles from './InfoCard.module.css';
 
-type InfoCardVariant = "default" | "compact" | "highlighted";
+type InfoCardVariant = 'default' | 'compact' | 'highlighted';
 
 interface InfoCardProps {
   readonly title: string;
@@ -25,18 +25,22 @@ const InfoCard = memo(function InfoCard({
   badge,
   children,
   footer,
-  variant = "default",
-  className = "",
+  variant = 'default',
+  className = '',
 }: InfoCardProps) {
   const variantClass = [
-    variant === "compact" ? styles.compact : "",
-    variant === "highlighted" ? styles.highlighted : "",
-  ].join(" ");
+    variant === 'compact' ? styles.compact : '',
+    variant === 'highlighted' ? styles.highlighted : '',
+  ].join(' ');
 
   return (
     <section className={`${styles.card} ${variantClass} ${className}`}>
       <header className={styles.header}>
-        {icon && <span className={styles.iconBox} aria-hidden="true">{icon}</span>}
+        {icon && (
+          <span className={styles.iconBox} aria-hidden="true">
+            {icon}
+          </span>
+        )}
         <h3 className={styles.title}>{title}</h3>
         {badge}
       </header>

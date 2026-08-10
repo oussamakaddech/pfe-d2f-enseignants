@@ -1,7 +1,7 @@
-import { Alert, Button, Card, Empty, Popconfirm, Space, Tag, Tooltip, Typography } from "antd";
-import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
-import type { Id } from "@/models/common";
-import type { Savoir } from "@/models/competence";
+import { Alert, Button, Card, Empty, Popconfirm, Space, Tag, Tooltip, Typography } from 'antd';
+import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import type { Id } from '@/models/common';
+import type { Savoir } from '@/models/competence';
 
 const { Text } = Typography;
 
@@ -47,7 +47,14 @@ interface SousCompNodeProps {
   onDelete: (id: Id) => void;
 }
 
-function SousCompNode({ node, depth, onAddChild, onAddSavoir, onEdit, onDelete }: Readonly<SousCompNodeProps>) {
+function SousCompNode({
+  node,
+  depth,
+  onAddChild,
+  onAddSavoir,
+  onEdit,
+  onDelete,
+}: Readonly<SousCompNodeProps>) {
   const enfants = node.enfants ?? [];
   const isLeaf = enfants.length === 0;
   const hasSavoirs = (node.savoirs?.length ?? 0) > 0;
@@ -58,10 +65,25 @@ function SousCompNode({ node, depth, onAddChild, onAddSavoir, onEdit, onDelete }
         <Text strong>{node.nom}</Text>
         <Tag>{node.code}</Tag>
         <Tag color="cyan">{node.savoirs?.length ?? 0} savoir(s)</Tag>
-        {isLeaf ? <Tag color="green">Feuille</Tag> : <Tag color="geekblue">{enfants.length} enfant(s)</Tag>}
+        {isLeaf ? (
+          <Tag color="green">Feuille</Tag>
+        ) : (
+          <Tag color="geekblue">{enfants.length} enfant(s)</Tag>
+        )}
 
-        <Tooltip title={hasSavoirs ? "Impossible d'ajouter un enfant: ce noeud contient des savoirs" : "Ajouter une sous-compétence"}>
-          <Button size="small" icon={<PlusOutlined />} disabled={hasSavoirs} onClick={() => onAddChild(node)} />
+        <Tooltip
+          title={
+            hasSavoirs
+              ? "Impossible d'ajouter un enfant: ce noeud contient des savoirs"
+              : 'Ajouter une sous-compétence'
+          }
+        >
+          <Button
+            size="small"
+            icon={<PlusOutlined />}
+            disabled={hasSavoirs}
+            onClick={() => onAddChild(node)}
+          />
         </Tooltip>
 
         {isLeaf && (
@@ -75,14 +97,29 @@ function SousCompNode({ node, depth, onAddChild, onAddSavoir, onEdit, onDelete }
         </Tooltip>
 
         <Tooltip title="Supprimer">
-          <Popconfirm title="Confirmer la suppression ?" okText="Oui" cancelText="Non" onConfirm={() => { if (node.id != null) onDelete(node.id); }}>
+          <Popconfirm
+            title="Confirmer la suppression ?"
+            okText="Oui"
+            cancelText="Non"
+            onConfirm={() => {
+              if (node.id != null) onDelete(node.id);
+            }}
+          >
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Tooltip>
       </Space>
 
       {enfants.map((child) => (
-        <SousCompNode key={String(child.id)} node={child} depth={depth + 1} onAddChild={onAddChild} onAddSavoir={onAddSavoir} onEdit={onEdit} onDelete={onDelete} />
+        <SousCompNode
+          key={String(child.id)}
+          node={child}
+          depth={depth + 1}
+          onAddChild={onAddChild}
+          onAddSavoir={onAddSavoir}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
       ))}
     </div>
   );
@@ -131,7 +168,12 @@ export default function CompetenceExpandedRow({
     <Card size="small" style={{ margin: 8 }}>
       <Space style={{ marginBottom: 12 }} wrap>
         <Text strong>Sous-compétences de {competence.nom}</Text>
-        <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => onAddRoot(competence)}>
+        <Button
+          size="small"
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => onAddRoot(competence)}
+        >
           Ajouter une sous-compétence
         </Button>
       </Space>
@@ -150,11 +192,18 @@ export default function CompetenceExpandedRow({
       ) : (
         <div style={{ opacity: loading ? 0.6 : 1 }}>
           {roots.map((root) => (
-            <SousCompNode key={String(root.id)} node={root} depth={0} onAddChild={onAddChild} onAddSavoir={onAddSavoir} onEdit={onEdit} onDelete={onDelete} />
+            <SousCompNode
+              key={String(root.id)}
+              node={root}
+              depth={0}
+              onAddChild={onAddChild}
+              onAddSavoir={onAddSavoir}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
           ))}
         </div>
       )}
     </Card>
   );
 }
-

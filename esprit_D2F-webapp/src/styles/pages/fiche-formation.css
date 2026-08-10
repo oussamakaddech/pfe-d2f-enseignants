@@ -69,12 +69,24 @@
   margin-bottom: 4px;
 }
 
-.fiche-block-primary  { background: var(--primary-50); }
-.fiche-block-success  { background: var(--color-success-bg); }
-.fiche-block-info     { background: var(--color-info-bg); }
-.fiche-block-warning  { background: var(--color-warning-bg); }
-.fiche-block-purple   { background: #f9f0ff; }
-.fiche-block-teal     { background: #e6fffb; }
+.fiche-block-primary {
+  background: var(--primary-50);
+}
+.fiche-block-success {
+  background: var(--color-success-bg);
+}
+.fiche-block-info {
+  background: var(--color-info-bg);
+}
+.fiche-block-warning {
+  background: var(--color-warning-bg);
+}
+.fiche-block-purple {
+  background: #f9f0ff;
+}
+.fiche-block-teal {
+  background: #e6fffb;
+}
 
 /* ── Card header icon ────────────────────────────────────────────────────── */
 .fiche-card-icon {

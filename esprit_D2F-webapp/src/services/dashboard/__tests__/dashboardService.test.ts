@@ -25,11 +25,19 @@ describe('dashboardService.computeHealthScore', () => {
 
   it('derives the pending-needs and at-risk factors', () => {
     const full = computeHealthScore({
-      presence: 90, coverage: 90, participation: 90,
-      pendingNeeds: 0, atRisk: 0, totalTeachers: 100,
+      presence: 90,
+      coverage: 90,
+      participation: 90,
+      pendingNeeds: 0,
+      atRisk: 0,
+      totalTeachers: 100,
     });
     expect(full.factors.map((f) => f.key)).toEqual([
-      'presence', 'coverage', 'participation', 'pending', 'atrisk',
+      'presence',
+      'coverage',
+      'participation',
+      'pending',
+      'atrisk',
     ]);
     expect(full.score).toBeGreaterThan(75);
     expect(full.level).toBe('healthy');

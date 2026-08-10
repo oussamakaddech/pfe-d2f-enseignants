@@ -5,7 +5,10 @@ import type { AlertSummary } from '@/models/analyse';
 
 const data: AlertSummary = {
   by_type: [{ key: 'GAP_CRITIQUE', count: 3 }],
-  by_severite: [{ key: 'CRITICAL', count: 2 }, { key: 'WARNING', count: 4 }],
+  by_severite: [
+    { key: 'CRITICAL', count: 2 },
+    { key: 'WARNING', count: 4 },
+  ],
   by_statut: [{ key: 'LUE', count: 1 }],
   total: 6,
   nouvelles: 2,
@@ -41,7 +44,13 @@ describe('PriorityAlertsPanel', () => {
   });
 
   it('shows empty state when no alert rows', () => {
-    render(<PriorityAlertsPanel data={{ ...data, by_severite: [], by_type: [] }} loading={false} onBulkUpdate={vi.fn()} />);
+    render(
+      <PriorityAlertsPanel
+        data={{ ...data, by_severite: [], by_type: [] }}
+        loading={false}
+        onBulkUpdate={vi.fn()}
+      />,
+    );
     expect(screen.getByText(/Aucune alerte/i)).toBeInTheDocument();
   });
 

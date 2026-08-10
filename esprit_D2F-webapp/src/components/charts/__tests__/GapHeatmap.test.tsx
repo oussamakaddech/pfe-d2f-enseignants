@@ -14,9 +14,27 @@ vi.mock('./RiskBadge', () => ({
 import { useHeatmapDrilldown } from '@/hooks/analyse/useAnalysePredictive';
 
 const data: GapHeatmapCell[] = [
-  { departement: 'INFO', competence_id: 1, competence_nom: 'Python', avg_gap: 2.5, enseignants_count: 10 },
-  { departement: 'INFO', competence_id: 2, competence_nom: 'Java', avg_gap: 0.8, enseignants_count: 5 },
-  { departement: 'MATH', competence_id: 1, competence_nom: 'Python', avg_gap: 1.2, enseignants_count: 3 },
+  {
+    departement: 'INFO',
+    competence_id: 1,
+    competence_nom: 'Python',
+    avg_gap: 2.5,
+    enseignants_count: 10,
+  },
+  {
+    departement: 'INFO',
+    competence_id: 2,
+    competence_nom: 'Java',
+    avg_gap: 0.8,
+    enseignants_count: 5,
+  },
+  {
+    departement: 'MATH',
+    competence_id: 1,
+    competence_nom: 'Python',
+    avg_gap: 1.2,
+    enseignants_count: 3,
+  },
 ];
 
 const drilldown: HeatmapDrilldown = {
@@ -26,7 +44,16 @@ const drilldown: HeatmapDrilldown = {
   nb_enseignants: 2,
   avg_gap: 2.5,
   enseignants: [
-    { enseignant_id: 'ENS001', niveau_actuel: 2, niveau_requis: 4, gap_score: 0.5, niveau_urgence: 'HAUTE', mois_stagnation: 8, score_risque: 0.6, niveau_risque: 'ELEVE' },
+    {
+      enseignant_id: 'ENS001',
+      niveau_actuel: 2,
+      niveau_requis: 4,
+      gap_score: 0.5,
+      niveau_urgence: 'HAUTE',
+      mois_stagnation: 8,
+      score_risque: 0.6,
+      niveau_risque: 'ELEVE',
+    },
   ],
 };
 

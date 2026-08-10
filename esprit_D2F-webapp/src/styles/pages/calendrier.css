@@ -16,8 +16,7 @@
   position: relative;
   margin-bottom: 24px;
   padding: 28px 32px;
-  background:
-    linear-gradient(135deg, #ffffff 0%, #f0f7ff 50%, #e8f0fe 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 50%, #e8f0fe 100%);
   border: 1px solid rgba(37, 99, 235, 0.12);
   border-radius: 20px;
   box-shadow:
@@ -28,7 +27,7 @@
 
 .cal-hero::before,
 .cal-hero::after {
-  content: "";
+  content: '';
   position: absolute;
   border-radius: 50%;
   pointer-events: none;
@@ -127,7 +126,7 @@
 }
 
 .cal-stat-card::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
@@ -136,14 +135,24 @@
   border-radius: 16px 16px 0 0;
 }
 
-.cal-stat-card--total::before { background: linear-gradient(90deg, #2563eb, #60a5fa); }
-.cal-stat-card--planifie::before { background: linear-gradient(90deg, #06b6d4, #67e8f9); }
-.cal-stat-card--cours::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-.cal-stat-card--acheve::before { background: linear-gradient(90deg, #10b981, #6ee7b7); }
+.cal-stat-card--total::before {
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+}
+.cal-stat-card--planifie::before {
+  background: linear-gradient(90deg, #06b6d4, #67e8f9);
+}
+.cal-stat-card--cours::before {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+.cal-stat-card--acheve::before {
+  background: linear-gradient(90deg, #10b981, #6ee7b7);
+}
 
 .cal-stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .cal-stat-icon {
@@ -208,11 +217,26 @@
   border: none;
 }
 
-.cal-legend-tag--enregistre { background: #fef3c7; color: #92400e; }
-.cal-legend-tag--planifie   { background: #cffafe; color: #0e7490; }
-.cal-legend-tag--encours    { background: #d1fae5; color: #065f46; }
-.cal-legend-tag--acheve     { background: #f1f5f9; color: #475569; }
-.cal-legend-tag--annule     { background: #fee2e2; color: #991b1b; }
+.cal-legend-tag--enregistre {
+  background: #fef3c7;
+  color: #92400e;
+}
+.cal-legend-tag--planifie {
+  background: #cffafe;
+  color: #0e7490;
+}
+.cal-legend-tag--encours {
+  background: #d1fae5;
+  color: #065f46;
+}
+.cal-legend-tag--acheve {
+  background: #f1f5f9;
+  color: #475569;
+}
+.cal-legend-tag--annule {
+  background: #fee2e2;
+  color: #991b1b;
+}
 
 .cal-legend-dot {
   width: 8px;
@@ -221,11 +245,21 @@
   display: inline-block;
 }
 
-.cal-legend-dot--enregistre { background: #f59e0b; }
-.cal-legend-dot--planifie   { background: #06b6d4; }
-.cal-legend-dot--encours    { background: #10b981; }
-.cal-legend-dot--acheve     { background: #64748b; }
-.cal-legend-dot--annule     { background: #ef4444; }
+.cal-legend-dot--enregistre {
+  background: #f59e0b;
+}
+.cal-legend-dot--planifie {
+  background: #06b6d4;
+}
+.cal-legend-dot--encours {
+  background: #10b981;
+}
+.cal-legend-dot--acheve {
+  background: #64748b;
+}
+.cal-legend-dot--annule {
+  background: #ef4444;
+}
 
 /* ─── Calendar wrapper ─────────────────────────────────────────────────── */
 
@@ -233,7 +267,9 @@
   background: #fff;
   border-radius: 16px;
   border: 1px solid rgba(0, 0, 0, 0.07);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 1px 2px rgba(0, 0, 0, 0.03);
   padding: 20px;
   height: 680px;
   overflow: hidden;
@@ -242,7 +278,13 @@
 /* ─── Big Calendar overrides ───────────────────────────────────────────── */
 
 .cal-wrapper .rbc-calendar {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
 }
 
 .cal-wrapper .rbc-header {
@@ -297,12 +339,24 @@
 }
 
 /* Status event colors */
-.cal-event--enregistre { background: linear-gradient(135deg, #f59e0b, #d97706) !important; }
-.cal-event--planifie   { background: linear-gradient(135deg, #06b6d4, #0891b2) !important; }
-.cal-event--encours    { background: linear-gradient(135deg, #10b981, #059669) !important; }
-.cal-event--acheve     { background: linear-gradient(135deg, #64748b, #475569) !important; }
-.cal-event--annule     { background: linear-gradient(135deg, #ef4444, #dc2626) !important; }
-.cal-event--default    { background: linear-gradient(135deg, #3b82f6, #2563eb) !important; }
+.cal-event--enregistre {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+}
+.cal-event--planifie {
+  background: linear-gradient(135deg, #06b6d4, #0891b2) !important;
+}
+.cal-event--encours {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+}
+.cal-event--acheve {
+  background: linear-gradient(135deg, #64748b, #475569) !important;
+}
+.cal-event--annule {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+}
+.cal-event--default {
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+}
 
 /* Toolbar */
 .cal-wrapper .rbc-toolbar {

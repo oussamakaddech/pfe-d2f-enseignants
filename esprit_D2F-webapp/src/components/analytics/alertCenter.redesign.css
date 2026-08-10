@@ -120,9 +120,15 @@
   border-radius: 50%;
   margin-right: 6px;
 }
-.ac-dist__dot--critical { background: #ef4444; }
-.ac-dist__dot--warning  { background: #f59e0b; }
-.ac-dist__dot--info     { background: #3b82f6; }
+.ac-dist__dot--critical {
+  background: #ef4444;
+}
+.ac-dist__dot--warning {
+  background: #f59e0b;
+}
+.ac-dist__dot--info {
+  background: #3b82f6;
+}
 
 .ac-dot {
   width: 8px;
@@ -130,9 +136,18 @@
   border-radius: 50%;
   flex-shrink: 0;
 }
-.ac-dot--critical { background: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15); }
-.ac-dot--warning  { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15); }
-.ac-dot--info     { background: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+.ac-dot--critical {
+  background: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+.ac-dot--warning {
+  background: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+.ac-dot--info {
+  background: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
 
 /* ── Filters bar ────────────────────────────────────────── */
 .ac-filters {
@@ -284,25 +299,43 @@
 }
 
 /* ── Dark mode ───────────────────────────────────────────── */
-[data-theme="dark"] .ac-page {
+[data-theme='dark'] .ac-page {
   --ac-bg: #211719;
   --ac-border: rgba(255, 255, 255, 0.08);
   --ac-text: #e2e8f0;
   --ac-text-soft: #94a3b8;
   --ac-surface: #2a1d20;
 }
-[data-theme="dark"] .ac-group__items .ant-list-item:hover {
+[data-theme='dark'] .ac-group__items .ant-list-item:hover {
   background: rgba(255, 255, 255, 0.03);
 }
 
 /* ── Animations ──────────────────────────────────────────── */
 @keyframes ac-fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-.ac-groups .ac-group:nth-child(1) { animation-delay: 0s; }
-.ac-groups .ac-group:nth-child(2) { animation-delay: 0.04s; }
-.ac-groups .ac-group:nth-child(3) { animation-delay: 0.08s; }
-.ac-groups .ac-group:nth-child(4) { animation-delay: 0.12s; }
-.ac-groups .ac-group:nth-child(5) { animation-delay: 0.16s; }
-.ac-groups .ac-group:nth-child(6) { animation-delay: 0.2s; }
+.ac-groups .ac-group:nth-child(1) {
+  animation-delay: 0s;
+}
+.ac-groups .ac-group:nth-child(2) {
+  animation-delay: 0.04s;
+}
+.ac-groups .ac-group:nth-child(3) {
+  animation-delay: 0.08s;
+}
+.ac-groups .ac-group:nth-child(4) {
+  animation-delay: 0.12s;
+}
+.ac-groups .ac-group:nth-child(5) {
+  animation-delay: 0.16s;
+}
+.ac-groups .ac-group:nth-child(6) {
+  animation-delay: 0.2s;
+}

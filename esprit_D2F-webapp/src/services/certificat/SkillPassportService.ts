@@ -1,6 +1,6 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
-import type { TeacherSkillPassportDTO } from "@/models/certificat";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
+import type { TeacherSkillPassportDTO } from '@/models/certificat';
 
 // ── Base URL versionnée conforme DSI (/api/v1/skill-passports → service-analyse) ──
 // config.GATEWAY_URL inclut déjà le préfixe /api (ex. http://localhost:8080/api),
@@ -10,8 +10,8 @@ const BASE_URL = `${config.GATEWAY_URL}/v1/skill-passports`;
 // ── Utilitaire : téléchargement d'un Blob PDF ──────────────────────────────
 function downloadPdfBlob(blob: Blob, filename: string): void {
   const url = globalThis.URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.style.display = "none";
+  const a = document.createElement('a');
+  a.style.display = 'none';
   a.href = url;
   a.download = filename;
   document.body.appendChild(a);
@@ -27,9 +27,9 @@ const SkillPassportService = {
    */
   async downloadMyPassport(): Promise<void> {
     const response = await axios.get(`${BASE_URL}/me`, {
-      responseType: "blob",
+      responseType: 'blob',
     });
-    const today = new Date().toISOString().slice(0, 10).replaceAll("-", "");
+    const today = new Date().toISOString().slice(0, 10).replaceAll('-', '');
     downloadPdfBlob(response.data as Blob, `skill-passport-me-${today}.pdf`);
   },
 
@@ -38,9 +38,9 @@ const SkillPassportService = {
    */
   async downloadPassportByUsername(username: string): Promise<void> {
     const response = await axios.get(`${BASE_URL}/teacher/${username}`, {
-      responseType: "blob",
+      responseType: 'blob',
     });
-    const today = new Date().toISOString().slice(0, 10).replaceAll("-", "");
+    const today = new Date().toISOString().slice(0, 10).replaceAll('-', '');
     downloadPdfBlob(response.data as Blob, `skill-passport-${username}-${today}.pdf`);
   },
 
@@ -57,14 +57,10 @@ const SkillPassportService = {
    */
   async getPassportDataByUsername(username: string): Promise<TeacherSkillPassportDTO> {
     const response = await axios.get<TeacherSkillPassportDTO>(
-      `${BASE_URL}/teacher/${username}/json`
+      `${BASE_URL}/teacher/${username}/json`,
     );
     return response.data;
   },
 };
 
 export default SkillPassportService;
-
-
-
-

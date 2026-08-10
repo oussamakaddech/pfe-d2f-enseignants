@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import UnifiedProfileService from "@/services/formation/UnifiedProfileService";
-import type { UnifiedProfile } from "@/services/formation/UnifiedProfileService";
+import { useQuery } from '@tanstack/react-query';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import UnifiedProfileService from '@/services/formation/UnifiedProfileService';
+import type { UnifiedProfile } from '@/services/formation/UnifiedProfileService';
 
 const MIN_CHARS = 2;
 const SEARCH_SIZE = 20;
@@ -15,7 +15,7 @@ export function useTeacherSearch(term: string) {
   const enabled = debouncedTerm.length >= MIN_CHARS;
 
   return useQuery<UnifiedProfile[]>({
-    queryKey: ["teacherSearch", "unified-profiles", debouncedTerm],
+    queryKey: ['teacherSearch', 'unified-profiles', debouncedTerm],
     queryFn: ({ signal }) =>
       UnifiedProfileService.search({
         search: debouncedTerm,
@@ -24,8 +24,8 @@ export function useTeacherSearch(term: string) {
       }).then((results) => {
         // Filter to teacher-compatible roles
         return results.filter((p) => {
-          const role = (p.role ?? "").toLowerCase();
-          return role.includes("enseignant") || role.includes("teacher") || role === "";
+          const role = (p.role ?? '').toLowerCase();
+          return role.includes('enseignant') || role.includes('teacher') || role === '';
         });
       }),
     enabled,
@@ -35,8 +35,8 @@ export function useTeacherSearch(term: string) {
 }
 
 export function formatTeacherLabel(profile: UnifiedProfile): string {
-  const name = [profile.prenom, profile.nom].filter(Boolean).join(" ").trim();
-  const dept = profile.departement ?? "N/A";
+  const name = [profile.prenom, profile.nom].filter(Boolean).join(' ').trim();
+  const dept = profile.departement ?? 'N/A';
   const id = profile.matricule ?? profile.id;
   if (name) return `${name} — ${dept} (${id})`;
   if (profile.email) return `${profile.email} — ${dept}`;

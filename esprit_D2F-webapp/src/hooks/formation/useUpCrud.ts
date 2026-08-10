@@ -1,9 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import UpService from "@/services/api/UploadService";
-import type { LookupItem } from "@/models/common";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import UpService from '@/services/api/UploadService';
+import type { LookupItem } from '@/models/common';
 
 const KEYS = {
-  all: ["ups"] as const,
+  all: ['ups'] as const,
 };
 
 export function useAllUps() {
@@ -15,7 +15,7 @@ export function useAllUps() {
 
 export function useUpById(id: number | string | undefined) {
   return useQuery({
-    queryKey: ["ups", id],
+    queryKey: ['ups', id],
     queryFn: () => UpService.getUpById(id!),
     enabled: !!id,
   });

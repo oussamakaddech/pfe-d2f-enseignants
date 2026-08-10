@@ -8,7 +8,7 @@ const httpMocks = vi.hoisted(() => ({
   mockDelete: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     get: httpMocks.mockGet,
     post: httpMocks.mockPost,
@@ -20,16 +20,17 @@ vi.mock("@/services/httpClient", () => ({
 import BureauService from '../BureauService';
 
 describe('BureauService', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('gets all bureaux', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 1, nom: 'Informatique' }] });
     const result = await BureauService.getAllBureaux();
     expect(result).toEqual([{ id: 1, nom: 'Informatique' }]);
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(
-      expect.stringContaining('/bureaux'),
-      { params: { page: 0, size: 100, sort: 'id,desc' } },
-    );
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/bureaux'), {
+      params: { page: 0, size: 100, sort: 'id,desc' },
+    });
   });
 
   it('normalises the Page envelope and the data/items/unknown shapes', async () => {
@@ -54,7 +55,12 @@ describe('BureauService', () => {
   });
 
   it('creates a bureau', async () => {
-    const payload: BureauRequest & { chefId: number } = { nom: 'Nouveau', email: 'bureau@example.com', numeroTelephone: '0000000000', chefId: 10 };
+    const payload: BureauRequest & { chefId: number } = {
+      nom: 'Nouveau',
+      email: 'bureau@example.com',
+      numeroTelephone: '0000000000',
+      chefId: 10,
+    };
     httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 3, ...payload } });
     const result = await BureauService.createBureau(payload);
     expect(result).toEqual({ id: 3, ...payload });
@@ -62,14 +68,16 @@ describe('BureauService', () => {
   });
 
   it('updates a bureau', async () => {
-    const payload: BureauRequest & { chefId: number } = { nom: 'Mis à jour', email: 'bureau@example.com', numeroTelephone: '0000000000', chefId: 5 };
+    const payload: BureauRequest & { chefId: number } = {
+      nom: 'Mis à jour',
+      email: 'bureau@example.com',
+      numeroTelephone: '0000000000',
+      chefId: 5,
+    };
     httpMocks.mockPut.mockResolvedValueOnce({ data: { id: 1, ...payload } });
     const result = await BureauService.updateBureau(1, payload);
     expect(result).toEqual({ id: 1, ...payload });
-    expect(httpMocks.mockPut).toHaveBeenCalledWith(
-      expect.stringContaining('/1'),
-      payload
-    );
+    expect(httpMocks.mockPut).toHaveBeenCalledWith(expect.stringContaining('/1'), payload);
   });
 
   it('deletes a bureau', async () => {

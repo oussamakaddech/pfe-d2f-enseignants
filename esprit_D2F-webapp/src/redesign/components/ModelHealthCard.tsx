@@ -1,42 +1,45 @@
-import type { ModelPerformance, DriftReport } from "@/models/analyse";
-import HealthGauge from "./HealthGauge";
-import { ChartSkeleton } from "./States";
-import dayjs from "dayjs";
-import "dayjs/locale/fr";
+import type { ModelPerformance, DriftReport } from '@/models/analyse';
+import HealthGauge from './HealthGauge';
+import { ChartSkeleton } from './States';
+import dayjs from 'dayjs';
+import 'dayjs/locale/fr';
 
-dayjs.locale("fr");
+dayjs.locale('fr');
 
-const NA = "—";
+const NA = '—';
 
-type HealthLevel = "healthy" | "attention" | "critical";
+type HealthLevel = 'healthy' | 'attention' | 'critical';
 
 function getHealthLevel(score: number): HealthLevel {
-  if (score >= 70) return "healthy";
-  if (score >= 40) return "attention";
-  return "critical";
+  if (score >= 70) return 'healthy';
+  if (score >= 40) return 'attention';
+  return 'critical';
 }
 
 function getHealthColor(score: number): string {
-  if (score >= 70) return "var(--rd-success)";
-  if (score >= 40) return "var(--rd-warning)";
-  return "var(--rd-error)";
+  if (score >= 70) return 'var(--rd-success)';
+  if (score >= 40) return 'var(--rd-warning)';
+  return 'var(--rd-error)';
 }
 
 const HEALTH_COLORS: Record<HealthLevel, string> = {
-  healthy: "var(--rd-success)",
-  attention: "var(--rd-warning)",
-  critical: "var(--rd-error)",
+  healthy: 'var(--rd-success)',
+  attention: 'var(--rd-warning)',
+  critical: 'var(--rd-error)',
 };
 
 const HEALTH_LABELS: Record<HealthLevel, string> = {
-  healthy: "Bon état",
-  attention: "Attention",
-  critical: "Critique",
+  healthy: 'Bon état',
+  attention: 'Attention',
+  critical: 'Critique',
 };
 
-function computeModelHealth(perf: ModelPerformance | null, drift: DriftReport | null): {
+function computeModelHealth(
+  perf: ModelPerformance | null,
+  drift: DriftReport | null,
+): {
   score: number;
-  level: "healthy" | "attention" | "critical";
+  level: 'healthy' | 'attention' | 'critical';
   factors: Array<{ key: string; label: string; score: number }>;
 } {
   const accuracy = perf?.gap_model_accuracy ?? 0;
@@ -49,9 +52,9 @@ function computeModelHealth(perf: ModelPerformance | null, drift: DriftReport | 
     score,
     level,
     factors: [
-      { key: "accuracy", label: "Précision du modèle", score: accuracyScore },
-      { key: "drift", label: "Stabilité (pas de dérive)", score: driftPenalty > 0 ? 40 : 95 },
-      { key: "trained", label: "Dernier entraînement", score: perf?.last_retrained ? 90 : 20 },
+      { key: 'accuracy', label: 'Précision du modèle', score: accuracyScore },
+      { key: 'drift', label: 'Stabilité (pas de dérive)', score: driftPenalty > 0 ? 40 : 95 },
+      { key: 'trained', label: 'Dernier entraînement', score: perf?.last_retrained ? 90 : 20 },
     ],
   };
 }
@@ -73,8 +76,8 @@ export default function ModelHealthCard({
   const accuracy = modelPerf?.gap_model_accuracy;
   const accuracyPct = accuracy != null ? Math.round(accuracy * 100) : null;
   const lastTrained = modelPerf?.last_retrained;
-  const trainedDate = lastTrained ? dayjs(lastTrained).format("DD/MM/YYYY à HH:mm") : NA;
-  const daysSince = lastTrained ? dayjs().diff(dayjs(lastTrained), "day") : null;
+  const trainedDate = lastTrained ? dayjs(lastTrained).format('DD/MM/YYYY à HH:mm') : NA;
+  const daysSince = lastTrained ? dayjs().diff(dayjs(lastTrained), 'day') : null;
 
   return (
     <div className="rd-model-health">
@@ -84,19 +87,23 @@ export default function ModelHealthCard({
           <div>
             <div className="rd-model-health-warning-title">Dérive détectée</div>
             <div className="rd-model-health-warning-text">
-              {drift.message ?? "Le modèle présente une dérive. Un réentraînement est recommandé."}
+              {drift.message ?? 'Le modèle présente une dérive. Un réentraînement est recommandé.'}
             </div>
           </div>
         </div>
       )}
 
       {accuracy != null && accuracy < 0.5 && (
-        <div className="rd-model-health-warning" style={{ borderColor: "var(--rd-error)", background: "var(--rd-error-bg)" }}>
+        <div
+          className="rd-model-health-warning"
+          style={{ borderColor: 'var(--rd-error)', background: 'var(--rd-error-bg)' }}
+        >
           <span className="rd-model-health-warning-icon">🔴</span>
           <div>
             <div className="rd-model-health-warning-title">Précision faible</div>
             <div className="rd-model-health-warning-text">
-              La précision du modèle est de {accuracyPct} %. Les prédictions peuvent être peu fiables. Envisagez un réentraînement avec des données plus récentes.
+              La précision du modèle est de {accuracyPct} %. Les prédictions peuvent être peu
+              fiables. Envisagez un réentraînement avec des données plus récentes.
             </div>
           </div>
         </div>
@@ -106,21 +113,39 @@ export default function ModelHealthCard({
         <div className="rd-model-health-gauge">
           <HealthGauge score={health.score} color={healthColor} />
           <div className="rd-model-health-gauge-label">
-            <span className="rd-model-health-badge" style={{ color: healthColor, background: `${healthColor}1f` }}>{healthLabel}</span>
-            <span className="rd-muted" style={{ fontSize: 11.5 }}>Santé globale</span>
+            <span
+              className="rd-model-health-badge"
+              style={{ color: healthColor, background: `${healthColor}1f` }}
+            >
+              {healthLabel}
+            </span>
+            <span className="rd-muted" style={{ fontSize: 11.5 }}>
+              Santé globale
+            </span>
           </div>
         </div>
 
         <div className="rd-model-health-stats">
           <div className="rd-model-health-stat">
-            <div className="rd-model-health-stat-val" style={{ color: accuracyPct != null && accuracyPct >= 70 ? "var(--rd-success)" : "var(--rd-warning)" }}>
+            <div
+              className="rd-model-health-stat-val"
+              style={{
+                color:
+                  accuracyPct != null && accuracyPct >= 70
+                    ? 'var(--rd-success)'
+                    : 'var(--rd-warning)',
+              }}
+            >
               {accuracyPct != null ? `${accuracyPct} %` : NA}
             </div>
             <div className="rd-model-health-stat-lbl">Précision</div>
           </div>
           <div className="rd-model-health-stat">
-            <div className="rd-model-health-stat-val" style={{ color: drift?.drift_detected ? "var(--rd-error)" : "var(--rd-success)" }}>
-              {drift?.drift_detected ? "Oui" : "Non"}
+            <div
+              className="rd-model-health-stat-val"
+              style={{ color: drift?.drift_detected ? 'var(--rd-error)' : 'var(--rd-success)' }}
+            >
+              {drift?.drift_detected ? 'Oui' : 'Non'}
             </div>
             <div className="rd-model-health-stat-lbl">Dérive</div>
           </div>
@@ -129,7 +154,9 @@ export default function ModelHealthCard({
             <div className="rd-model-health-stat-lbl">Dernier entraînement</div>
           </div>
           <div className="rd-model-health-stat">
-            <div className="rd-model-health-stat-val">{daysSince != null ? `Il y a ${daysSince} j` : NA}</div>
+            <div className="rd-model-health-stat-val">
+              {daysSince != null ? `Il y a ${daysSince} j` : NA}
+            </div>
             <div className="rd-model-health-stat-lbl">Ancienneté</div>
           </div>
         </div>

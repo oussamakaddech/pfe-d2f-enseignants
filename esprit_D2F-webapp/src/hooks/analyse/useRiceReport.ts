@@ -1,7 +1,13 @@
-import { useState, useCallback } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import RiceService from "@/services/analyse/RiceService";
-import type { RiceDomaine, RiceCompetence, RiceSousCompetence, RiceSavoir, EnseignantId } from "@/models/competence/riceTree";
+import { useState, useCallback } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import RiceService from '@/services/analyse/RiceService';
+import type {
+  RiceDomaine,
+  RiceCompetence,
+  RiceSousCompetence,
+  RiceSavoir,
+  EnseignantId,
+} from '@/models/competence/riceTree';
 
 interface MsgApi {
   success: (msg: string) => void;
@@ -38,30 +44,31 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }: Us
     for (const s of savoirs ?? []) {
       total++;
       const realIds = (s.enseignantsSuggeres ?? []).filter(
-        (id: EnseignantId) => !String(id).startsWith("ext_") && !String(id).startsWith("manual_"),
+        (id: EnseignantId) => !String(id).startsWith('ext_') && !String(id).startsWith('manual_'),
       );
       if (realIds.length > 0) covered++;
     }
     return { total, covered };
   };
 
-  const buildSavoirPayload = (savoirs: RiceSavoir[] | undefined) => (savoirs ?? []).map((s: RiceSavoir) => ({
-    code: s.code,
-    nom: s.nom,
-    description: s.description ?? null,
-    type: s.type,
-    niveau: s.niveau,
-    enseignantIds: (s.enseignantsSuggeres ?? []).filter(
-      (id: EnseignantId) => !String(id).startsWith("ext_") && !String(id).startsWith("manual_"),
-    ),
-  }));
+  const buildSavoirPayload = (savoirs: RiceSavoir[] | undefined) =>
+    (savoirs ?? []).map((s: RiceSavoir) => ({
+      code: s.code,
+      nom: s.nom,
+      description: s.description ?? null,
+      type: s.type,
+      niveau: s.niveau,
+      enseignantIds: (s.enseignantsSuggeres ?? []).filter(
+        (id: EnseignantId) => !String(id).startsWith('ext_') && !String(id).startsWith('manual_'),
+      ),
+    }));
 
   const computeClientCoverage = useCallback(() => {
     const result: Record<string, number> = {};
     for (const d of tree) {
       let total = 0;
       let covered = 0;
-      for (const c of (d.competences ?? [])) {
+      for (const c of d.competences ?? []) {
         const allSavoirs = [
           ...(c.savoirs ?? []),
           ...(c.sousCompetences ?? []).flatMap((sc: RiceSousCompetence) => sc.savoirs ?? []),
@@ -76,19 +83,24 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }: Us
   }, [tree]);
 
   const importMutation = useMutation<ImportReport, Error, Record<string, unknown>>({
-    mutationFn: (payload: Record<string, unknown>) => RiceService.importToDb(payload) as Promise<ImportReport>,
+    mutationFn: (payload: Record<string, unknown>) =>
+      RiceService.importToDb(payload) as Promise<ImportReport>,
   });
 
   const historyQuery = useQuery({
-    queryKey: ["rice-import-history"],
-    queryFn: () => RiceService.getImportHistory().then((data: unknown) => Array.isArray(data) ? data : []),
+    queryKey: ['rice-import-history'],
+    queryFn: () =>
+      RiceService.getImportHistory().then((data: unknown) => (Array.isArray(data) ? data : [])),
     enabled: false,
     staleTime: 5 * 60 * 1000,
   });
 
-  const setImportHistory = useCallback((data: unknown) => {
-    queryClient.setQueryData(["rice-import-history"], data);
-  }, [queryClient]);
+  const setImportHistory = useCallback(
+    (data: unknown) => {
+      queryClient.setQueryData(['rice-import-history'], data);
+    },
+    [queryClient],
+  );
 
   const buildSousCompetencePayload = (sc: RiceSousCompetence) => ({
     code: sc.code,
@@ -114,7 +126,7 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }: Us
         description: d.description ?? null,
         competences: (d.competences ?? []).map(buildCompetencePayload),
       })),
-      departement: departement === "auto" ? undefined : departement,
+      departement: departement === 'auto' ? undefined : departement,
     };
 
     try {
@@ -126,11 +138,11 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }: Us
       msgApi.success(
         result.affectationsCreated != null && result.affectationsCreated > 0
           ? `Import réussi ! ${result.affectationsCreated} affectation(s) créée(s).`
-          : "Import réussi !",
+          : 'Import réussi !',
       );
       setReport(result);
       if (onImportSuccess) onImportSuccess(result);
-      queryClient.invalidateQueries({ queryKey: ["rice-import-history"] });
+      queryClient.invalidateQueries({ queryKey: ['rice-import-history'] });
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       msgApi.error(e.response?.data?.message ?? "Erreur lors de l'import en base");
@@ -154,9 +166,9 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }: Us
       enseignantsCovered: report.enseignantsCovered,
       tauxCouvertureParDomaine: report.tauxCouvertureParDomaine,
     };
-    const blob = new Blob([JSON.stringify(summary, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(summary, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
     a.download = `rice_rapport_${departement}_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();

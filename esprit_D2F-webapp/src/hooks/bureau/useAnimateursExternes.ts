@@ -1,18 +1,18 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import AnimateurExterneService from "@/services/bureau/AnimateurExterneService";
-import type { AnimateurExterne, AnimateurExterneRequest } from "@/models/bureau";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import AnimateurExterneService from '@/services/bureau/AnimateurExterneService';
+import type { AnimateurExterne, AnimateurExterneRequest } from '@/models/bureau';
 
-const queryKey = (bureauId: number) => ["bureaux", bureauId, "animateurs"] as const;
+const queryKey = (bureauId: number) => ['bureaux', bureauId, 'animateurs'] as const;
 
 // refetchType: "all" → rafraîchit aussi le panneau « animateurs » de Gestion des
 // Bureaux même s'il est en cache mais non monté quand on ajoute un animateur
 // depuis le formulaire de formation.
 const invalidateAnimateurs = (qc: ReturnType<typeof useQueryClient>, bureauId: number) =>
-  qc.invalidateQueries({ queryKey: queryKey(bureauId), refetchType: "all" });
+  qc.invalidateQueries({ queryKey: queryKey(bureauId), refetchType: 'all' });
 
 export function useAnimateursExternes(bureauId: number | null, enabled = true) {
   return useQuery<AnimateurExterne[]>({
-    queryKey: bureauId == null ? ["bureaux", "animateurs", "none"] : queryKey(bureauId),
+    queryKey: bureauId == null ? ['bureaux', 'animateurs', 'none'] : queryKey(bureauId),
     queryFn: () => AnimateurExterneService.getByBureau(bureauId as number),
     enabled: enabled && bureauId != null,
   });
@@ -30,8 +30,15 @@ export function useCreateAnimateurExterne() {
 export function useUpdateAnimateurExterne() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ bureauId, id, data }: { bureauId: number; id: number; data: AnimateurExterneRequest }) =>
-      AnimateurExterneService.update(bureauId, id, data),
+    mutationFn: ({
+      bureauId,
+      id,
+      data,
+    }: {
+      bureauId: number;
+      id: number;
+      data: AnimateurExterneRequest;
+    }) => AnimateurExterneService.update(bureauId, id, data),
     onSuccess: (_res, { bureauId }) => invalidateAnimateurs(qc, bureauId),
   });
 }

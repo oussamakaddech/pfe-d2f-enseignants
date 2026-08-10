@@ -1,4 +1,4 @@
-export type Gravite = "elevee" | "moyenne" | "faible";
+export type Gravite = 'elevee' | 'moyenne' | 'faible';
 
 export interface AnalyseGap {
   competenceCode: string;
@@ -40,7 +40,7 @@ export interface DecliningCompetency {
 }
 
 export interface InDemandCompetency extends DecliningCompetency {
-  trend?: "increasing" | "stable";
+  trend?: 'increasing' | 'stable';
 }
 
 export interface TeacherRiskIndicator {

@@ -64,10 +64,6 @@ public final class UserSpecifications {
         specs.add(byIds(userIds));
         specs.add(hasRole(role));
         specs.add(isActive(active));
-        Specification<User> result = Specification.where(null);
-        for (Specification<User> s : specs) {
-            result = result.and(s);
-        }
-        return result;
+        return Specification.allOf(specs);
     }
 }

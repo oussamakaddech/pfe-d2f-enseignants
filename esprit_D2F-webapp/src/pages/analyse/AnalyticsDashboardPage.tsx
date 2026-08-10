@@ -1,57 +1,108 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Row, Col, Select, Alert, Empty, Tag, Button, Skeleton, Tooltip, Modal,
-  Segmented, message, Spin,
-} from "antd";
+  Row,
+  Col,
+  Select,
+  Alert,
+  Empty,
+  Tag,
+  Button,
+  Skeleton,
+  Tooltip,
+  Modal,
+  Segmented,
+  message,
+  Spin,
+} from 'antd';
 import {
-  TeamOutlined, AlertOutlined, LineChartOutlined, WarningOutlined,
-  DashboardOutlined, ReloadOutlined, ClockCircleOutlined, HeatMapOutlined,
-  TrophyOutlined, SafetyCertificateOutlined, RiseOutlined, FallOutlined,
-  InfoCircleOutlined, DownloadOutlined, ArrowDownOutlined,
-  FilePdfOutlined, BulbOutlined, AppstoreOutlined, FilterOutlined,
-} from "@ant-design/icons";
-import { useQuery } from "@tanstack/react-query";
+  TeamOutlined,
+  AlertOutlined,
+  LineChartOutlined,
+  WarningOutlined,
+  DashboardOutlined,
+  ReloadOutlined,
+  ClockCircleOutlined,
+  HeatMapOutlined,
+  TrophyOutlined,
+  SafetyCertificateOutlined,
+  RiseOutlined,
+  FallOutlined,
+  InfoCircleOutlined,
+  DownloadOutlined,
+  ArrowDownOutlined,
+  FilePdfOutlined,
+  BulbOutlined,
+  AppstoreOutlined,
+  FilterOutlined,
+} from '@ant-design/icons';
+import { useQuery } from '@tanstack/react-query';
 import {
   useRealDashboardImpact,
   useAlerts,
   useUpdateAlert,
   useRiskTrends,
-} from "@/hooks/analytics/useAnalyticsQueries";
-import { useSupplyDemand } from "@/hooks/analyse/useAnalysePredictive";
-import { analyticsApi } from "@/services/analyse/analyticsApi";
+} from '@/hooks/analytics/useAnalyticsQueries';
+import { useSupplyDemand } from '@/hooks/analyse/useAnalysePredictive';
+import { analyticsApi } from '@/services/analyse/analyticsApi';
 import {
-  AtRiskTeachersTable, TrendChart, Heatmap, AlertCenter,
+  AtRiskTeachersTable,
+  TrendChart,
+  Heatmap,
+  AlertCenter,
   TrainingImpactPanel,
-} from "@/components/analytics";
-import SupplyDemandChart from "@/components/charts/SupplyDemandChart";
+} from '@/components/analytics';
+import SupplyDemandChart from '@/components/charts/SupplyDemandChart';
 import type {
-  DashboardFilters, NiveauRisque, AtRiskTeacher, HeatmapCell, TopFormation,
-  RealDashboardImpact, AlertEvent,
-} from "@/models/analyse/analyticsFeature";
-import { formatDepartment, formatUP, toCsv, downloadCsv, formatCount } from "@/utils/analytics/format";
-import "./analyticsDashboard.redesign.css";
+  DashboardFilters,
+  NiveauRisque,
+  AtRiskTeacher,
+  HeatmapCell,
+  TopFormation,
+  RealDashboardImpact,
+  AlertEvent,
+} from '@/models/analyse/analyticsFeature';
+import {
+  formatDepartment,
+  formatUP,
+  toCsv,
+  downloadCsv,
+  formatCount,
+} from '@/utils/analytics/format';
+import './analyticsDashboard.redesign.css';
 
 /* ── Définitions métier des KPI (affichées en tooltip) ──────── */
 const KPI_DEFS: Record<string, string> = {
-  "Enseignants en base": "Enseignants actifs présents en base (formation.enseignants, deleted_at IS NULL).",
-  "Indice de risque moyen": "Score moyen des derniers snapshots de risque (0–1). Seuils : < 0,25 Faible · 0,25–0,5 Modéré · 0,5–0,75 Élevé · ≥ 0,75 Critique.",
-  "Gaps critiques": "Écarts d'urgence CRITIQUE calculés sur les données réelles (analyse.skill_gaps).",
-  "Alertes non traitées": "Alertes réelles au statut NOUVELLE ou LUE (analyse.alert_events).",
-  "Taux de couverture": "Part des enseignants actifs ayant au moins une compétence affectée (competence.enseignant_competences).",
-  "Gaps haute priorité": "Écarts d'urgence HAUTE sur les données réelles.",
-  "Avec gaps calculés": "Enseignants distincts présents dans la table des gaps (analyse.skill_gaps).",
-  "Alertes critiques ouvertes": "Alertes réelles de sévérité CRITICAL/CRITIQUE non traitées.",
+  'Enseignants en base':
+    'Enseignants actifs présents en base (formation.enseignants, deleted_at IS NULL).',
+  'Indice de risque moyen':
+    'Score moyen des derniers snapshots de risque (0–1). Seuils : < 0,25 Faible · 0,25–0,5 Modéré · 0,5–0,75 Élevé · ≥ 0,75 Critique.',
+  'Gaps critiques':
+    "Écarts d'urgence CRITIQUE calculés sur les données réelles (analyse.skill_gaps).",
+  'Alertes non traitées': 'Alertes réelles au statut NOUVELLE ou LUE (analyse.alert_events).',
+  'Taux de couverture':
+    'Part des enseignants actifs ayant au moins une compétence affectée (competence.enseignant_competences).',
+  'Gaps haute priorité': "Écarts d'urgence HAUTE sur les données réelles.",
+  'Avec gaps calculés':
+    'Enseignants distincts présents dans la table des gaps (analyse.skill_gaps).',
+  'Alertes critiques ouvertes': 'Alertes réelles de sévérité CRITICAL/CRITIQUE non traitées.',
 };
 
 /* ── Petite carte KPI « riche » (dégradé + bulle d'icône) ──────── */
 function RichKpi({
-  title, value, icon, tone, hint, loading, tooltip, onClick,
+  title,
+  value,
+  icon,
+  tone,
+  hint,
+  loading,
+  tooltip,
+  onClick,
 }: {
   readonly title: string;
   readonly value: ReactNode;
   readonly icon: ReactNode;
-  readonly tone: "primary" | "warning" | "danger" | "info" | "success";
+  readonly tone: 'primary' | 'warning' | 'danger' | 'info' | 'success';
   readonly hint?: string;
   readonly loading?: boolean;
   readonly tooltip?: string;
@@ -74,9 +125,13 @@ function RichKpi({
               </Tooltip>
             )}
           </div>
-          {loading
-            ? <div className="ad-kpi__value" style={{ opacity: 0.5 }}>···</div>
-            : <div className="ad-kpi__value">{value}</div>}
+          {loading ? (
+            <div className="ad-kpi__value" style={{ opacity: 0.5 }}>
+              ···
+            </div>
+          ) : (
+            <div className="ad-kpi__value">{value}</div>
+          )}
           {hint && <div className="ad-kpi__hint">{hint}</div>}
         </div>
       </button>
@@ -94,9 +149,13 @@ function RichKpi({
             </Tooltip>
           )}
         </div>
-        {loading
-          ? <div className="ad-kpi__value" style={{ opacity: 0.5 }}>···</div>
-          : <div className="ad-kpi__value">{value}</div>}
+        {loading ? (
+          <div className="ad-kpi__value" style={{ opacity: 0.5 }}>
+            ···
+          </div>
+        ) : (
+          <div className="ad-kpi__value">{value}</div>
+        )}
         {hint && <div className="ad-kpi__hint">{hint}</div>}
       </div>
     </div>
@@ -105,7 +164,12 @@ function RichKpi({
 
 /* ── Section « glass » réutilisable ──────────────────────────── */
 function Section({
-  title, icon, extra, children, loading, id,
+  title,
+  icon,
+  extra,
+  children,
+  loading,
+  id,
 }: {
   readonly title: string;
   readonly icon?: ReactNode;
@@ -121,42 +185,40 @@ function Section({
         <div className="ad-section__title">{title}</div>
         {extra && <div className="ad-section__extra">{extra}</div>}
       </div>
-      {loading
-        ? <Skeleton active paragraph={{ rows: 4 }} style={{ margin: 16 }} />
-        : children}
+      {loading ? <Skeleton active paragraph={{ rows: 4 }} style={{ margin: 16 }} /> : children}
     </div>
   );
 }
 
 const WINDOWS: { label: string; days: number }[] = [
-  { label: "7 j", days: 7 },
-  { label: "30 j", days: 30 },
-  { label: "Trimestre", days: 90 },
-  { label: "Semestre", days: 180 },
+  { label: '7 j', days: 7 },
+  { label: '30 j', days: 30 },
+  { label: 'Trimestre', days: 90 },
+  { label: 'Semestre', days: 180 },
 ];
 
 /** Niveau de risque (valeurs base) → niveau UI. */
 function toNiveauRisque(raw: string | null | undefined): NiveauRisque {
-  const v = (raw ?? "").toUpperCase();
-  if (v === "CRITIQUE" || v === "CRITICAL") return "CRITIQUE";
-  if (v === "ELEVE" || v === "HIGH") return "ELEVE";
-  if (v === "MODERE" || v === "MEDIUM") return "MODERE";
-  return "FAIBLE";
+  const v = (raw ?? '').toUpperCase();
+  if (v === 'CRITIQUE' || v === 'CRITICAL') return 'CRITIQUE';
+  if (v === 'ELEVE' || v === 'HIGH') return 'ELEVE';
+  if (v === 'MODERE' || v === 'MEDIUM') return 'MODERE';
+  return 'FAIBLE';
 }
 
 /** Enseignants à risque réels (score 0–1 en base) → format tableau.
  *  `departement`/`up` portent les CODES (dept_id/up_id) : identité + filtres ;
  *  les composants d'affichage passent par formatDepartment()/formatUP(). */
-function toAtRiskTeacher(row: RealDashboardImpact["at_risk_teachers"][number]): AtRiskTeacher {
+function toAtRiskTeacher(row: RealDashboardImpact['at_risk_teachers'][number]): AtRiskTeacher {
   return {
     enseignant_id: row.enseignant_id,
-    nom: `${row.prenom ?? ""} ${row.nom ?? ""}`.trim() || row.enseignant_id,
+    nom: `${row.prenom ?? ''} ${row.nom ?? ''}`.trim() || row.enseignant_id,
     departement: row.dept_id ?? null,
     up: row.up_id ?? null,
     score_risque: row.score_risque ?? 0,
     niveau_risque: toNiveauRisque(row.niveau_risque),
     nb_gaps_critiques: row.nb_gaps_critiques ?? 0,
-    tendance: "STABLE",
+    tendance: 'STABLE',
   };
 }
 
@@ -164,9 +226,9 @@ function toAtRiskTeacher(row: RealDashboardImpact["at_risk_teachers"][number]): 
  *  `departement` porte le CODE (dept_id) : il sert de clé d'identité et est
  *  transmis tel quel au drill-down /teachers-by-cell (qui compare avec
  *  e.dept_id). L'affichage du libellé est fait par formatDepartment(). */
-function toHeatmapCell(row: RealDashboardImpact["heatmap"][number]): HeatmapCell {
+function toHeatmapCell(row: RealDashboardImpact['heatmap'][number]): HeatmapCell {
   return {
-    departement: row.dept_id ?? "non_affecte",
+    departement: row.dept_id ?? 'non_affecte',
     competence_id: row.competence_id,
     competence_nom: row.competence_nom ?? row.competence_code,
     avg_gap: row.avg_gap_score ?? 0,
@@ -175,7 +237,7 @@ function toHeatmapCell(row: RealDashboardImpact["heatmap"][number]): HeatmapCell
 }
 
 /** Top formations réelles → format tableau. */
-function toTopFormation(row: RealDashboardImpact["top_formations"][number]): TopFormation {
+function toTopFormation(row: RealDashboardImpact['top_formations'][number]): TopFormation {
   return {
     formation_id: row.formation_id,
     formation_titre: row.titre_formation ?? `Formation #${row.formation_id}`,
@@ -201,13 +263,17 @@ export default function AnalyticsDashboardPage() {
   const [windowDays, setWindowDays] = useState<number>(30);
   const [filters, setFilters] = useState<DashboardFilters>({});
   const [methodOpen, setMethodOpen] = useState(false);
-  const [drill, setDrill] = useState<{ departement: string; competenceId: number; competenceNom: string } | null>(null);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [drill, setDrill] = useState<{
+    departement: string;
+    competenceId: number;
+    competenceNom: string;
+  } | null>(null);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const navigate = useNavigate();
 
   /** Drill-down (F4) : un KPI ouvre la section pertinente du dashboard. */
   const jump = (id: string) =>
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   const impact = useRealDashboardImpact();
   const [alertsPage, setAlertsPage] = useState<number>(1);
@@ -246,10 +312,7 @@ export default function AnalyticsDashboardPage() {
     () => (data?.at_risk_teachers ?? []).map(toAtRiskTeacher),
     [data],
   );
-  const allHeatmap = useMemo<HeatmapCell[]>(
-    () => (data?.heatmap ?? []).map(toHeatmapCell),
-    [data],
-  );
+  const allHeatmap = useMemo<HeatmapCell[]>(() => (data?.heatmap ?? []).map(toHeatmapCell), [data]);
   const topFormations = useMemo<TopFormation[]>(
     () => (data?.top_formations ?? []).map(toTopFormation),
     [data],
@@ -258,31 +321,39 @@ export default function AnalyticsDashboardPage() {
   const departmentOptions = useMemo(() => {
     const seen = new Set<string>();
     const add = (d?: string | null) => {
-      if (d && d !== "non_affecte" && d !== "NON_AFFECTE") seen.add(d);
+      if (d && d !== 'non_affecte' && d !== 'NON_AFFECTE') seen.add(d);
     };
     allHeatmap.forEach((h) => add(h.departement));
     allAtRisk.forEach((t) => add(t.departement));
-    return Array.from(seen).sort((a, b) => a.localeCompare(b)).map((v) => ({ value: v, label: formatDepartment(v) }));
+    return Array.from(seen)
+      .sort((a, b) => a.localeCompare(b))
+      .map((v) => ({ value: v, label: formatDepartment(v) }));
   }, [allHeatmap, allAtRisk]);
 
   const upOptions = useMemo(() => {
     const seen = new Set<string>();
-    allAtRisk.forEach((t) => { if (t.up && t.up !== "non_affecte") seen.add(t.up); });
-    return Array.from(seen).sort((a, b) => a.localeCompare(b)).map((v) => ({ value: v, label: formatUP(v) }));
+    allAtRisk.forEach((t) => {
+      if (t.up && t.up !== 'non_affecte') seen.add(t.up);
+    });
+    return Array.from(seen)
+      .sort((a, b) => a.localeCompare(b))
+      .map((v) => ({ value: v, label: formatUP(v) }));
   }, [allAtRisk]);
 
   const filteredAtRisk = useMemo<AtRiskTeacher[]>(() => {
-    return allAtRisk.filter((t) =>
-      (!filters.departement_id || t.departement === filters.departement_id) &&
-      (!filters.up_id || t.up === filters.up_id) &&
-      (!filters.niveau_risque || t.niveau_risque === filters.niveau_risque),
+    return allAtRisk.filter(
+      (t) =>
+        (!filters.departement_id || t.departement === filters.departement_id) &&
+        (!filters.up_id || t.up === filters.up_id) &&
+        (!filters.niveau_risque || t.niveau_risque === filters.niveau_risque),
     );
   }, [allAtRisk, filters.departement_id, filters.up_id, filters.niveau_risque]);
 
   const filteredHeatmap = useMemo<HeatmapCell[]>(() => {
     return allHeatmap.filter(
       (h) =>
-        h.departement && h.departement !== "non_affecte" &&
+        h.departement &&
+        h.departement !== 'non_affecte' &&
         (!filters.departement_id || h.departement === filters.departement_id),
     );
   }, [allHeatmap, filters.departement_id]);
@@ -296,42 +367,54 @@ export default function AnalyticsDashboardPage() {
 
   const hasActiveFilters = !!(filters.departement_id || filters.up_id || filters.niveau_risque);
 
-  const clearFilters = () => { setFilters({}); setWindowDays(30); };
+  const clearFilters = () => {
+    setFilters({});
+    setWindowDays(30);
+  };
 
   // Drill-down heatmap → enseignants impactés.
   const drillQuery = useQuery({
-    queryKey: ["analytics", "cell", drill?.departement, drill?.competenceId],
+    queryKey: ['analytics', 'cell', drill?.departement, drill?.competenceId],
     enabled: !!drill,
     queryFn: () => analyticsApi.getTeachersByCell(drill!.departement, drill!.competenceId, 50),
   });
 
-  const onRefresh = () => { impact.refetch(); alerts.refetch(); trends.refetch(); };
+  const onRefresh = () => {
+    impact.refetch();
+    alerts.refetch();
+    trends.refetch();
+  };
 
   const onExportPdf = () => window.print();
 
   const onExport = () => {
     const rows = [
-      { indicateur: "Enseignants en base", valeur: formatCount(kpis?.nb_enseignants) },
-      { indicateur: "Enseignants avec gaps calculés", valeur: formatCount(kpis?.nb_enseignants_avec_gaps) },
-      { indicateur: "Indice de risque moyen", valeur: (kpis?.avg_risk_score ?? 0).toFixed(2) },
-      { indicateur: "Gaps critiques", valeur: formatCount(kpis?.nb_gaps_critiques) },
-      { indicateur: "Gaps haute priorité", valeur: formatCount(kpis?.nb_gaps_haute) },
-      { indicateur: "Alertes non traitées", valeur: formatCount(kpis?.nb_alertes_non_traitees) },
-      { indicateur: "Alertes critiques ouvertes", valeur: formatCount(kpis?.nb_alertes_critiques) },
-      { indicateur: "Taux de couverture (%)", valeur: (kpis?.taux_couverture_pct ?? 0).toFixed(1) },
+      { indicateur: 'Enseignants en base', valeur: formatCount(kpis?.nb_enseignants) },
+      {
+        indicateur: 'Enseignants avec gaps calculés',
+        valeur: formatCount(kpis?.nb_enseignants_avec_gaps),
+      },
+      { indicateur: 'Indice de risque moyen', valeur: (kpis?.avg_risk_score ?? 0).toFixed(2) },
+      { indicateur: 'Gaps critiques', valeur: formatCount(kpis?.nb_gaps_critiques) },
+      { indicateur: 'Gaps haute priorité', valeur: formatCount(kpis?.nb_gaps_haute) },
+      { indicateur: 'Alertes non traitées', valeur: formatCount(kpis?.nb_alertes_non_traitees) },
+      { indicateur: 'Alertes critiques ouvertes', valeur: formatCount(kpis?.nb_alertes_critiques) },
+      { indicateur: 'Taux de couverture (%)', valeur: (kpis?.taux_couverture_pct ?? 0).toFixed(1) },
     ];
-    downloadCsv("dashboard-analytique.csv", toCsv(rows, ["indicateur", "valeur"]));
-    message.success("Export CSV généré");
+    downloadCsv('dashboard-analytique.csv', toCsv(rows, ['indicateur', 'valeur']));
+    message.success('Export CSV généré');
   };
 
   return (
     <div className="ad-page" data-theme={theme}>
       <header className="ad-header">
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <DashboardOutlined className="ad-header__icon" />
           <div className="ad-header__titles">
             <span className="ad-header__title">Tableau de bord analytique</span>
-            <span className="ad-header__subtitle">Pilotage du développement professionnel des enseignants — données réelles (base)</span>
+            <span className="ad-header__subtitle">
+              Pilotage du développement professionnel des enseignants — données réelles (base)
+            </span>
           </div>
         </div>
         <div className="ad-header__actions">
@@ -339,15 +422,25 @@ export default function AnalyticsDashboardPage() {
             <Tooltip title="Mode d'exécution du modèle de risque (ML ou fallback heuristique)">
               <span className="ad-header__updated">
                 <ClockCircleOutlined /> Modèle : {kpis.model.mode}
-                {kpis.model.version ? ` · v${kpis.model.version.slice(0, 10)}` : ""}
+                {kpis.model.version ? ` · v${kpis.model.version.slice(0, 10)}` : ''}
               </span>
             </Tooltip>
           )}
-          <Button type="text" icon={<InfoCircleOutlined />} onClick={() => setMethodOpen(true)} style={{ color: "#fff" }}>
+          <Button
+            type="text"
+            icon={<InfoCircleOutlined />}
+            onClick={() => setMethodOpen(true)}
+            style={{ color: '#fff' }}
+          >
             Méthodologie
           </Button>
-          <Button type="text" icon={<BulbOutlined />} onClick={() => setTheme((t) => (t === "light" ? "dark" : "light"))} style={{ color: "#fff" }}>
-            {theme === "light" ? "Mode sombre" : "Mode clair"}
+          <Button
+            type="text"
+            icon={<BulbOutlined />}
+            onClick={() => setTheme((t) => (t === 'light' ? 'dark' : 'light'))}
+            style={{ color: '#fff' }}
+          >
+            {theme === 'light' ? 'Mode sombre' : 'Mode clair'}
           </Button>
           <Button className="ad-refresh-btn" icon={<FilePdfOutlined />} onClick={onExportPdf}>
             Export PDF
@@ -355,7 +448,11 @@ export default function AnalyticsDashboardPage() {
           <Button className="ad-refresh-btn" icon={<DownloadOutlined />} onClick={onExport}>
             Export CSV
           </Button>
-          <Button className="ad-refresh-btn" icon={<LineChartOutlined />} onClick={() => navigate("/home/analytics/pilotage")}>
+          <Button
+            className="ad-refresh-btn"
+            icon={<LineChartOutlined />}
+            onClick={() => navigate('/home/analytics/pilotage')}
+          >
             Prévision
           </Button>
           <Button
@@ -370,7 +467,12 @@ export default function AnalyticsDashboardPage() {
       </header>
 
       {impact.isError && (
-        <Alert type="error" showIcon message="Impossible de charger le dashboard (données réelles)." style={{ marginBottom: 16, borderRadius: 12 }} />
+        <Alert
+          type="error"
+          showIcon
+          message="Impossible de charger le dashboard (données réelles)."
+          style={{ marginBottom: 16, borderRadius: 12 }}
+        />
       )}
 
       {/* ── Barre de filtres ─────────────── */}
@@ -382,42 +484,66 @@ export default function AnalyticsDashboardPage() {
           options={WINDOWS.map((w) => ({ label: w.label, value: String(w.days) }))}
         />
         <Select
-          allowClear placeholder="Département" className="ad-filter-select"
+          allowClear
+          placeholder="Département"
+          className="ad-filter-select"
           value={filters.departement_id}
           onChange={(v) => setFilters((f) => ({ ...f, departement_id: v }))}
-          options={departmentOptions} notFoundContent="Aucun département"
+          options={departmentOptions}
+          notFoundContent="Aucun département"
         />
         <Select
-          allowClear placeholder="UP" className="ad-filter-select"
+          allowClear
+          placeholder="UP"
+          className="ad-filter-select"
           value={filters.up_id}
           onChange={(v) => setFilters((f) => ({ ...f, up_id: v }))}
-          options={upOptions} notFoundContent="Aucune UP"
+          options={upOptions}
+          notFoundContent="Aucune UP"
         />
         <Select
-          allowClear placeholder="Niveau de risque" className="ad-filter-select"
+          allowClear
+          placeholder="Niveau de risque"
+          className="ad-filter-select"
           value={filters.niveau_risque}
           onChange={(v) => setFilters((f) => ({ ...f, niveau_risque: v as NiveauRisque }))}
-          options={["FAIBLE", "MODERE", "ELEVE", "CRITIQUE"].map((r) => ({ value: r, label: r }))}
+          options={['FAIBLE', 'MODERE', 'ELEVE', 'CRITIQUE'].map((r) => ({ value: r, label: r }))}
         />
         <span className="ad-filters__spacer" />
-        <Button type="text" onClick={clearFilters}>Réinitialiser</Button>
+        <Button type="text" onClick={clearFilters}>
+          Réinitialiser
+        </Button>
       </div>
 
       {hasActiveFilters && (
         <div className="ad-filters-active">
-          <span className="ad-filters-active__label"><FilterOutlined /> Filtres actifs :</span>
+          <span className="ad-filters-active__label">
+            <FilterOutlined /> Filtres actifs :
+          </span>
           {filters.departement_id && (
-            <Tag color="red" closable onClose={() => setFilters((f) => ({ ...f, departement_id: undefined }))}>
+            <Tag
+              color="red"
+              closable
+              onClose={() => setFilters((f) => ({ ...f, departement_id: undefined }))}
+            >
               {formatDepartment(filters.departement_id)}
             </Tag>
           )}
           {filters.up_id && (
-            <Tag color="orange" closable onClose={() => setFilters((f) => ({ ...f, up_id: undefined }))}>
+            <Tag
+              color="orange"
+              closable
+              onClose={() => setFilters((f) => ({ ...f, up_id: undefined }))}
+            >
               {formatUP(filters.up_id)}
             </Tag>
           )}
           {filters.niveau_risque && (
-            <Tag color="purple" closable onClose={() => setFilters((f) => ({ ...f, niveau_risque: undefined }))}>
+            <Tag
+              color="purple"
+              closable
+              onClose={() => setFilters((f) => ({ ...f, niveau_risque: undefined }))}
+            >
               Risque {filters.niveau_risque}
             </Tag>
           )}
@@ -430,89 +556,178 @@ export default function AnalyticsDashboardPage() {
       {/* ── Ligne 1 : KPI globaux (données réelles) ─────────────── */}
       <Row gutter={[16, 16]} className="ad-kpi-row">
         <Col xs={12} md={6}>
-          <RichKpi title="Enseignants en base" tone="primary" icon={<TeamOutlined />}
-            value={formatCount(kpis?.nb_enseignants)} tooltip={KPI_DEFS["Enseignants en base"]} loading={impact.isLoading}
-            onClick={() => jump("sec-atrisk")} />
+          <RichKpi
+            title="Enseignants en base"
+            tone="primary"
+            icon={<TeamOutlined />}
+            value={formatCount(kpis?.nb_enseignants)}
+            tooltip={KPI_DEFS['Enseignants en base']}
+            loading={impact.isLoading}
+            onClick={() => jump('sec-atrisk')}
+          />
         </Col>
         <Col xs={12} md={6}>
-          <RichKpi title="Indice de risque moyen" tone="warning" icon={<LineChartOutlined />}
-            value={(kpis?.avg_risk_score ?? 0).toFixed(2)} tooltip={KPI_DEFS["Indice de risque moyen"]} loading={impact.isLoading}
-            onClick={() => jump("sec-atrisk")} />
+          <RichKpi
+            title="Indice de risque moyen"
+            tone="warning"
+            icon={<LineChartOutlined />}
+            value={(kpis?.avg_risk_score ?? 0).toFixed(2)}
+            tooltip={KPI_DEFS['Indice de risque moyen']}
+            loading={impact.isLoading}
+            onClick={() => jump('sec-atrisk')}
+          />
         </Col>
         <Col xs={12} md={6}>
-          <RichKpi title="Gaps critiques" tone="danger" icon={<AlertOutlined />}
-            value={formatCount(kpis?.nb_gaps_critiques)} hint="Urgence CRITIQUE" tooltip={KPI_DEFS["Gaps critiques"]} loading={impact.isLoading}
-            onClick={() => jump("sec-heatmap")} />
+          <RichKpi
+            title="Gaps critiques"
+            tone="danger"
+            icon={<AlertOutlined />}
+            value={formatCount(kpis?.nb_gaps_critiques)}
+            hint="Urgence CRITIQUE"
+            tooltip={KPI_DEFS['Gaps critiques']}
+            loading={impact.isLoading}
+            onClick={() => jump('sec-heatmap')}
+          />
         </Col>
         <Col xs={12} md={6}>
-          <RichKpi title="Alertes non traitées" tone="info" icon={<WarningOutlined />}
-            value={formatCount(kpis?.nb_alertes_non_traitees)} tooltip={KPI_DEFS["Alertes non traitées"]} loading={impact.isLoading}
-            onClick={() => jump("sec-alertes")} />
+          <RichKpi
+            title="Alertes non traitées"
+            tone="info"
+            icon={<WarningOutlined />}
+            value={formatCount(kpis?.nb_alertes_non_traitees)}
+            tooltip={KPI_DEFS['Alertes non traitées']}
+            loading={impact.isLoading}
+            onClick={() => jump('sec-alertes')}
+          />
         </Col>
       </Row>
 
       {/* ── Ligne 1b : KPI décisionnels ─────────────── */}
       <Row gutter={[16, 16]} className="ad-kpi-row">
         <Col xs={12} md={6}>
-          <RichKpi title="Taux de couverture" tone="success" icon={<RiseOutlined />}
-            value={`${(kpis?.taux_couverture_pct ?? 0).toFixed(1)}%`} tooltip={KPI_DEFS["Taux de couverture"]} loading={impact.isLoading}
-            onClick={() => jump("sec-heatmap")} />
+          <RichKpi
+            title="Taux de couverture"
+            tone="success"
+            icon={<RiseOutlined />}
+            value={`${(kpis?.taux_couverture_pct ?? 0).toFixed(1)}%`}
+            tooltip={KPI_DEFS['Taux de couverture']}
+            loading={impact.isLoading}
+            onClick={() => jump('sec-heatmap')}
+          />
         </Col>
         <Col xs={12} md={6}>
-          <RichKpi title="Gaps haute priorité" tone="warning" icon={<FallOutlined />}
-            value={formatCount(kpis?.nb_gaps_haute)} tooltip={KPI_DEFS["Gaps haute priorité"]} loading={impact.isLoading}
-            onClick={() => jump("sec-heatmap")} />
+          <RichKpi
+            title="Gaps haute priorité"
+            tone="warning"
+            icon={<FallOutlined />}
+            value={formatCount(kpis?.nb_gaps_haute)}
+            tooltip={KPI_DEFS['Gaps haute priorité']}
+            loading={impact.isLoading}
+            onClick={() => jump('sec-heatmap')}
+          />
         </Col>
         <Col xs={12} md={6}>
-          <RichKpi title="Avec gaps calculés" tone="info" icon={<RiseOutlined />}
-            value={formatCount(kpis?.nb_enseignants_avec_gaps)} tooltip={KPI_DEFS["Avec gaps calculés"]} loading={impact.isLoading}
-            onClick={() => jump("sec-supply-demand")} />
+          <RichKpi
+            title="Avec gaps calculés"
+            tone="info"
+            icon={<RiseOutlined />}
+            value={formatCount(kpis?.nb_enseignants_avec_gaps)}
+            tooltip={KPI_DEFS['Avec gaps calculés']}
+            loading={impact.isLoading}
+            onClick={() => jump('sec-supply-demand')}
+          />
         </Col>
         <Col xs={12} md={6}>
-          <RichKpi title="Alertes critiques ouvertes" tone="danger" icon={<AlertOutlined />}
-            value={formatCount(kpis?.nb_alertes_critiques)} tooltip={KPI_DEFS["Alertes critiques ouvertes"]} loading={impact.isLoading}
-            onClick={() => jump("sec-alertes")} />
+          <RichKpi
+            title="Alertes critiques ouvertes"
+            tone="danger"
+            icon={<AlertOutlined />}
+            value={formatCount(kpis?.nb_alertes_critiques)}
+            tooltip={KPI_DEFS['Alertes critiques ouvertes']}
+            loading={impact.isLoading}
+            onClick={() => jump('sec-alertes')}
+          />
         </Col>
       </Row>
 
       {/* ── Ligne 2 : à risque + impact formations ─────── */}
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={14}>
-          <Section id="sec-atrisk" title="Enseignants à risque (score ≥ 0,5)" icon={<SafetyCertificateOutlined />}
-            extra={<Tag color={filteredAtRisk.length ? "red" : "default"}>{filteredAtRisk.length}</Tag>}
-            loading={impact.isLoading}>
-            <AtRiskTeachersTable teachers={filteredAtRisk} loading={impact.isLoading}
-              onSelect={(id) => navigate(`/home/analytics/teacher/${id}`)} />
+          <Section
+            id="sec-atrisk"
+            title="Enseignants à risque (score ≥ 0,5)"
+            icon={<SafetyCertificateOutlined />}
+            extra={
+              <Tag color={filteredAtRisk.length ? 'red' : 'default'}>{filteredAtRisk.length}</Tag>
+            }
+            loading={impact.isLoading}
+          >
+            <AtRiskTeachersTable
+              teachers={filteredAtRisk}
+              loading={impact.isLoading}
+              onSelect={(id) => navigate(`/home/analytics/teacher/${id}`)}
+            />
           </Section>
         </Col>
         <Col xs={24} lg={10}>
-          <Section id="sec-impact" title="Impact des formations" icon={<TrophyOutlined />} loading={impact.isLoading}>
+          <Section
+            id="sec-impact"
+            title="Impact des formations"
+            icon={<TrophyOutlined />}
+            loading={impact.isLoading}
+          >
             <TrainingImpactPanel />
           </Section>
         </Col>
 
         {/* ── Ligne 3 : heatmap + offre/demande ─────── */}
         <Col xs={24} lg={14}>
-          <Section id="sec-heatmap" title="Cartographie des écarts — Département × Compétence" icon={<HeatMapOutlined />}
-            extra={<Tooltip title="Cliquez une cellule pour voir les enseignants impactés"><HeatMapOutlined style={{ color: "#c8102e" }} /></Tooltip>}
-            loading={impact.isLoading}>
-            {filteredHeatmap.length
-              ? <Heatmap cells={filteredHeatmap} loading={impact.isLoading}
-                  onCellClick={(d, c, n) => setDrill({ departement: d, competenceId: c, competenceNom: n })} />
-              : <div className="ad-empty"><Empty description="Aucun gap pour ce département" /></div>}
+          <Section
+            id="sec-heatmap"
+            title="Cartographie des écarts — Département × Compétence"
+            icon={<HeatMapOutlined />}
+            extra={
+              <Tooltip title="Cliquez une cellule pour voir les enseignants impactés">
+                <HeatMapOutlined style={{ color: '#c8102e' }} />
+              </Tooltip>
+            }
+            loading={impact.isLoading}
+          >
+            {filteredHeatmap.length ? (
+              <Heatmap
+                cells={filteredHeatmap}
+                loading={impact.isLoading}
+                onCellClick={(d, c, n) =>
+                  setDrill({ departement: d, competenceId: c, competenceNom: n })
+                }
+              />
+            ) : (
+              <div className="ad-empty">
+                <Empty description="Aucun gap pour ce département" />
+              </div>
+            )}
           </Section>
         </Col>
         <Col xs={24} lg={10}>
-          <Section id="sec-supply-demand" title="Offre / Demande par compétence" icon={<AppstoreOutlined />} loading={supplyDemand.isLoading}>
+          <Section
+            id="sec-supply-demand"
+            title="Offre / Demande par compétence"
+            icon={<AppstoreOutlined />}
+            loading={supplyDemand.isLoading}
+          >
             <SupplyDemandChart data={supplyDemand.data} loading={supplyDemand.isLoading} />
           </Section>
         </Col>
 
         {/* ── Ligne 4 : alertes + tendances ─────── */}
         <Col xs={24} lg={12}>
-          <Section id="sec-alertes" title="Alertes & signaux à traiter" icon={<WarningOutlined />}
+          <Section
+            id="sec-alertes"
+            title="Alertes & signaux à traiter"
+            icon={<WarningOutlined />}
             extra={<Tag color="orange">{formatCount(alerts.data?.total)}</Tag>}
-            loading={alerts.isLoading}>
+            loading={alerts.isLoading}
+          >
             <AlertCenter
               alerts={accumAlerts}
               loading={alerts.isLoading}
@@ -527,74 +742,114 @@ export default function AnalyticsDashboardPage() {
           </Section>
         </Col>
         <Col xs={24} lg={12}>
-          <Section title={`Tendances d'évolution du risque (${trendWindow.label})`} icon={<RiseOutlined />} loading={trends.isLoading}>
-            {trends.data?.length
-              ? <TrendChart trends={trends.data} loading={trends.isLoading} />
-              : <div className="ad-empty"><Empty description="Aucune donnée de tendance (snapshots historiques)" /></div>}
+          <Section
+            title={`Tendances d'évolution du risque (${trendWindow.label})`}
+            icon={<RiseOutlined />}
+            loading={trends.isLoading}
+          >
+            {trends.data?.length ? (
+              <TrendChart trends={trends.data} loading={trends.isLoading} />
+            ) : (
+              <div className="ad-empty">
+                <Empty description="Aucune donnée de tendance (snapshots historiques)" />
+              </div>
+            )}
           </Section>
         </Col>
 
         {/* ── Ligne 5 : top formations + actions prioritaires ─────── */}
         <Col xs={24} lg={14}>
-          <Section title="Formations recommandées (argumentées)" icon={<TrophyOutlined />} loading={impact.isLoading}>
-            {topFormations.length
-              ? <TopFormationsTable formations={topFormations} />
-              : <div className="ad-empty"><Empty description="Aucune recommandation récente" /></div>}
+          <Section
+            title="Formations recommandées (argumentées)"
+            icon={<TrophyOutlined />}
+            loading={impact.isLoading}
+          >
+            {topFormations.length ? (
+              <TopFormationsTable formations={topFormations} />
+            ) : (
+              <div className="ad-empty">
+                <Empty description="Aucune recommandation récente" />
+              </div>
+            )}
           </Section>
         </Col>
         <Col xs={24} lg={10}>
-          <Section title="Plan d'action prioritaire" icon={<ArrowDownOutlined />} loading={impact.isLoading}>
+          <Section
+            title="Plan d'action prioritaire"
+            icon={<ArrowDownOutlined />}
+            loading={impact.isLoading}
+          >
             <PriorityActions kpis={kpis} atRisk={filteredAtRisk} onFilter={setFilters} />
           </Section>
         </Col>
       </Row>
 
       {/* ── Modal méthodologie ─────────────── */}
-      <Modal title="Méthodologie du score de risque" open={methodOpen} onOk={() => setMethodOpen(false)} onCancel={() => setMethodOpen(false)} footer={null}>
+      <Modal
+        title="Méthodologie du score de risque"
+        open={methodOpen}
+        onOk={() => setMethodOpen(false)}
+        onCancel={() => setMethodOpen(false)}
+        footer={null}
+      >
         <p style={{ fontSize: 13, lineHeight: 1.7 }}>
           L'<b>indice de risque</b> (0–1) est calculé par un modèle multi-facteurs pondérant :
-          l'absence de formation récente, la stagnation, les gaps critiques et les besoins
-          non couverts. Seuils : <Tag color="green">FAIBLE &lt; 0,25</Tag>{" "}
-          <Tag color="orange">MODÉRÉ 0,25–0,5</Tag> <Tag color="red">ÉLEVÉ 0,5–0,75</Tag>{" "}
+          l'absence de formation récente, la stagnation, les gaps critiques et les besoins non
+          couverts. Seuils : <Tag color="green">FAIBLE &lt; 0,25</Tag>{' '}
+          <Tag color="orange">MODÉRÉ 0,25–0,5</Tag> <Tag color="red">ÉLEVÉ 0,5–0,75</Tag>{' '}
           <Tag color="red">CRITIQUE ≥ 0,75</Tag>.
         </p>
         <p style={{ fontSize: 13, lineHeight: 1.7 }}>
-          Toutes les données affichées sont issues de la <b>base PostgreSQL réelle</b>{" "}
-          (schémas <code>formation</code>, <code>competence</code> et <code>analyse</code> :
-          skill_gaps, teacher_risk_snapshots, alert_events, recommendations). Aucun jeu de
-          données de démonstration n'est utilisé. La heatmap, les enseignants à risque, les
-          alertes et les tendances mensuelles sont recalculés depuis ces tables.
+          Toutes les données affichées sont issues de la <b>base PostgreSQL réelle</b> (schémas{' '}
+          <code>formation</code>, <code>competence</code> et <code>analyse</code> : skill_gaps,
+          teacher_risk_snapshots, alert_events, recommendations). Aucun jeu de données de
+          démonstration n'est utilisé. La heatmap, les enseignants à risque, les alertes et les
+          tendances mensuelles sont recalculés depuis ces tables.
         </p>
       </Modal>
 
       {/* ── Modal drill-down heatmap ─────────────── */}
       <Modal
-        title={`Enseignants impactés — ${drill?.competenceNom ?? ""}`}
-        open={!!drill} onCancel={() => setDrill(null)} footer={null}
+        title={`Enseignants impactés — ${drill?.competenceNom ?? ''}`}
+        open={!!drill}
+        onCancel={() => setDrill(null)}
+        footer={null}
         width={640}
       >
-        {drillQuery.isLoading && <div className="ad-loading"><Spin /></div>}
+        {drillQuery.isLoading && (
+          <div className="ad-loading">
+            <Spin />
+          </div>
+        )}
         {drillQuery.data && drillQuery.data.length > 0 && (
           <table className="ad-drill-tbl">
             <thead>
               <tr>
-                <th>Enseignant</th><th>Département</th><th>UP</th><th>Écart moyen</th><th>Urgence</th>
+                <th>Enseignant</th>
+                <th>Département</th>
+                <th>UP</th>
+                <th>Écart moyen</th>
+                <th>Urgence</th>
               </tr>
             </thead>
             <tbody>
               {drillQuery.data.map((t: Record<string, unknown>, i: number) => (
                 <tr key={String(t.enseignant_id ?? i)}>
-                  <td>{String(t.nom ?? "")}</td>
-                  <td>{formatDepartment(String(t.departement ?? "")) || "Non affecté"}</td>
-                  <td>{formatUP(String(t.up ?? "")) || "Non affecté"}</td>
-                  <td style={{ fontWeight: 600 }}>{Math.round((Number(t.gap_moyen ?? 0)) * 100)}%</td>
-                  <td><Tag>{String(t.urgence ?? "")}</Tag></td>
+                  <td>{String(t.nom ?? '')}</td>
+                  <td>{formatDepartment(String(t.departement ?? '')) || 'Non affecté'}</td>
+                  <td>{formatUP(String(t.up ?? '')) || 'Non affecté'}</td>
+                  <td style={{ fontWeight: 600 }}>{Math.round(Number(t.gap_moyen ?? 0) * 100)}%</td>
+                  <td>
+                    <Tag>{String(t.urgence ?? '')}</Tag>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-        {drillQuery.data?.length === 0 && <Empty description="Aucun enseignant sur cette cellule" />}
+        {drillQuery.data?.length === 0 && (
+          <Empty description="Aucun enseignant sur cette cellule" />
+        )}
       </Modal>
     </div>
   );
@@ -602,26 +857,56 @@ export default function AnalyticsDashboardPage() {
 
 /* ── Bloc "Actions prioritaires" (orienté décision) ─────────── */
 function PriorityActions({
-  kpis, atRisk, onFilter,
+  kpis,
+  atRisk,
+  onFilter,
 }: {
-  readonly kpis: RealDashboardImpact["kpis"] | undefined;
+  readonly kpis: RealDashboardImpact['kpis'] | undefined;
   readonly atRisk: AtRiskTeacher[];
   readonly onFilter: (f: DashboardFilters) => void;
 }) {
-  const actions: { label: string; count: number; tone: "red" | "orange"; filter?: DashboardFilters }[] = [
-    { label: "Traiter les alertes critiques ouvertes", count: kpis?.nb_alertes_critiques ?? 0, tone: "red" },
-    { label: "Couvrir les gaps critiques (urgence CRITIQUE)", count: kpis?.nb_gaps_critiques ?? 0, tone: "red" },
-    { label: "Traiter les gaps haute priorité", count: kpis?.nb_gaps_haute ?? 0, tone: "orange" },
-    { label: "Enseignants avec gaps calculés", count: kpis?.nb_enseignants_avec_gaps ?? 0, tone: "orange" },
-    { label: "Examiner les enseignants à risque CRITIQUE", count: atRisk.filter((t) => t.niveau_risque === "CRITIQUE").length, tone: "red", filter: { niveau_risque: "CRITIQUE" } },
+  const actions: {
+    label: string;
+    count: number;
+    tone: 'red' | 'orange';
+    filter?: DashboardFilters;
+  }[] = [
+    {
+      label: 'Traiter les alertes critiques ouvertes',
+      count: kpis?.nb_alertes_critiques ?? 0,
+      tone: 'red',
+    },
+    {
+      label: 'Couvrir les gaps critiques (urgence CRITIQUE)',
+      count: kpis?.nb_gaps_critiques ?? 0,
+      tone: 'red',
+    },
+    { label: 'Traiter les gaps haute priorité', count: kpis?.nb_gaps_haute ?? 0, tone: 'orange' },
+    {
+      label: 'Enseignants avec gaps calculés',
+      count: kpis?.nb_enseignants_avec_gaps ?? 0,
+      tone: 'orange',
+    },
+    {
+      label: 'Examiner les enseignants à risque CRITIQUE',
+      count: atRisk.filter((t) => t.niveau_risque === 'CRITIQUE').length,
+      tone: 'red',
+      filter: { niveau_risque: 'CRITIQUE' },
+    },
   ];
   return (
     <ul className="ad-actions">
       {actions.map((a) => (
         <li key={a.label}>
-          <span className={`ad-actions__badge ad-actions__badge--${a.tone}`}>{formatCount(a.count)}</span>
+          <span className={`ad-actions__badge ad-actions__badge--${a.tone}`}>
+            {formatCount(a.count)}
+          </span>
           <span className="ad-actions__label">{a.label}</span>
-          {a.filter && <Button size="small" type="link" onClick={() => onFilter(a.filter!)}>Filtrer</Button>}
+          {a.filter && (
+            <Button size="small" type="link" onClick={() => onFilter(a.filter!)}>
+              Filtrer
+            </Button>
+          )}
         </li>
       ))}
     </ul>
@@ -631,7 +916,7 @@ function PriorityActions({
 /* ── Tableau « Top formations » enrichi ─────────────────── */
 function TopFormationsTable({ formations }: { readonly formations: TopFormation[] }) {
   return (
-    <div style={{ overflowX: "auto" }}>
+    <div style={{ overflowX: 'auto' }}>
       <table className="ad-drill-tbl">
         <thead>
           <tr>
@@ -647,27 +932,36 @@ function TopFormationsTable({ formations }: { readonly formations: TopFormation[
             <tr key={String(f.formation_id ?? i)}>
               <td>
                 <b>{f.formation_titre}</b>
-                <div style={{ fontSize: 11, color: "#94a3b8" }}>
-                  {f.departements?.map(formatDepartment).join(", ")}
+                <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                  {f.departements?.map(formatDepartment).join(', ')}
                 </div>
               </td>
               <td>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                   {f.competences_couvertes?.map((c) => (
-                    <Tag key={c} style={{ fontSize: 11, margin: 0 }}>{c}</Tag>
-                  )) ?? "—"}
+                    <Tag key={c} style={{ fontSize: 11, margin: 0 }}>
+                      {c}
+                    </Tag>
+                  )) ?? '—'}
                 </div>
               </td>
-              <td><Tag>{f.enseignants_cibles ?? 0}</Tag></td>
-              <td><span style={{ fontWeight: 700, color: "#c8102e" }}>{Math.round((Number(f.score_moyen ?? 0)) * 100)}%</span></td>
+              <td>
+                <Tag>{f.enseignants_cibles ?? 0}</Tag>
+              </td>
+              <td>
+                <span style={{ fontWeight: 700, color: '#c8102e' }}>
+                  {Math.round(Number(f.score_moyen ?? 0) * 100)}%
+                </span>
+              </td>
               <td>
                 {(() => {
                   if (f.impact_estime > 0.5) return <Tag color="red">Baisse risque élevée</Tag>;
-                  if (f.impact_estime > 0.25) return <Tag color="orange">Baisse risque moyenne</Tag>;
+                  if (f.impact_estime > 0.25)
+                    return <Tag color="orange">Baisse risque moyenne</Tag>;
                   return <Tag color="default">À évaluer</Tag>;
                 })()}
-                <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
-                  −{Math.round((Number(f.impact_estime ?? 0)) * 100)}% risque
+                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                  −{Math.round(Number(f.impact_estime ?? 0) * 100)}% risque
                 </div>
               </td>
             </tr>

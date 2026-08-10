@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Empty } from "antd";
+import { useState } from 'react';
+import { Empty } from 'antd';
 
 interface PolarItem {
   label: string;
@@ -23,14 +23,22 @@ export default function PolarAreaChart({
   }
 
   const palette = [
-    "#6366f1", "#8b5cf6", "#0ea5e9", "#06b6d4", "#10b981",
-    "#f59e0b", "#f97316", "#ef4444", "#ec4899", "#b51200",
+    '#6366f1',
+    '#8b5cf6',
+    '#0ea5e9',
+    '#06b6d4',
+    '#10b981',
+    '#f59e0b',
+    '#f97316',
+    '#ef4444',
+    '#ec4899',
+    '#b51200',
   ];
 
   const cx = size / 2;
   const cy = size / 2;
   const maxVal = Math.max(1, ...items.map((i) => i.value));
-  const outerR = (size / 2) - 12;
+  const outerR = size / 2 - 12;
   const total = items.reduce((s, i) => s + i.value, 0);
 
   let startAngle = -Math.PI / 2;
@@ -69,7 +77,12 @@ export default function PolarAreaChart({
             opacity={hoveredIdx != null && hoveredIdx !== idx ? 0.45 : 0.85}
             stroke="var(--rd-surface, #fff)"
             strokeWidth={2}
-            style={{ transition: "opacity .2s, transform .2s", cursor: "pointer", transformOrigin: `${cx}px ${cy}px`, transform: hoveredIdx === idx ? "scale(1.04)" : "scale(1)" }}
+            style={{
+              transition: 'opacity .2s, transform .2s',
+              cursor: 'pointer',
+              transformOrigin: `${cx}px ${cy}px`,
+              transform: hoveredIdx === idx ? 'scale(1.04)' : 'scale(1)',
+            }}
             onMouseEnter={() => setHoveredIdx(idx)}
             onMouseLeave={() => setHoveredIdx(null)}
           />
@@ -77,19 +90,47 @@ export default function PolarAreaChart({
         <circle cx={cx} cy={cy} r={innerRadius} fill="var(--rd-surface, #fff)" />
         {active ? (
           <>
-            <text x={cx} y={cy - 6} textAnchor="middle" fontSize="18" fontWeight="800" fill="var(--rd-text, #0f172a)">
-              {active.value.toLocaleString("fr-FR")}
+            <text
+              x={cx}
+              y={cy - 6}
+              textAnchor="middle"
+              fontSize="18"
+              fontWeight="800"
+              fill="var(--rd-text, #0f172a)"
+            >
+              {active.value.toLocaleString('fr-FR')}
             </text>
-            <text x={cx} y={cy + 12} textAnchor="middle" fontSize="10" fill="var(--rd-text-3, #94a3b8)" fontWeight="600">
+            <text
+              x={cx}
+              y={cy + 12}
+              textAnchor="middle"
+              fontSize="10"
+              fill="var(--rd-text-3, #94a3b8)"
+              fontWeight="600"
+            >
               {active.label}
             </text>
           </>
         ) : (
           <>
-            <text x={cx} y={cy - 6} textAnchor="middle" fontSize="20" fontWeight="800" fill="var(--rd-text, #0f172a)">
-              {total.toLocaleString("fr-FR")}
+            <text
+              x={cx}
+              y={cy - 6}
+              textAnchor="middle"
+              fontSize="20"
+              fontWeight="800"
+              fill="var(--rd-text, #0f172a)"
+            >
+              {total.toLocaleString('fr-FR')}
             </text>
-            <text x={cx} y={cy + 12} textAnchor="middle" fontSize="10" fill="var(--rd-text-3, #94a3b8)" fontWeight="600">
+            <text
+              x={cx}
+              y={cy + 12}
+              textAnchor="middle"
+              fontSize="10"
+              fill="var(--rd-text-3, #94a3b8)"
+              fontWeight="600"
+            >
               total
             </text>
           </>
@@ -99,7 +140,7 @@ export default function PolarAreaChart({
         {segments.map((seg, idx) => (
           <div
             key={seg.label}
-            className={`polar-legend-item ${hoveredIdx != null && segments[hoveredIdx].label === seg.label ? "active" : ""}`}
+            className={`polar-legend-item ${hoveredIdx != null && segments[hoveredIdx].label === seg.label ? 'active' : ''}`}
             onMouseEnter={() => setHoveredIdx(idx)}
             onMouseLeave={() => setHoveredIdx(null)}
           >

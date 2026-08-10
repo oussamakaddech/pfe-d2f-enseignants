@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { Modal, Button, List, Empty } from "antd";
-import { EditOutlined, PlusOutlined, CloseOutlined } from "@ant-design/icons";
-import UpdateDocumentForm from "./UpdateDocumentForm";
-import DocumentCreateForm from "./DocumentCreateForm";
-import type { Id } from "@/models/common";
-import type { FormationDocument, FormationWithDocuments } from "@/models/document";
+import { useState } from 'react';
+import { Modal, Button, List, Empty } from 'antd';
+import { EditOutlined, PlusOutlined, CloseOutlined } from '@ant-design/icons';
+import UpdateDocumentForm from './UpdateDocumentForm';
+import DocumentCreateForm from './DocumentCreateForm';
+import type { Id } from '@/models/common';
+import type { FormationDocument, FormationWithDocuments } from '@/models/document';
 
 interface DocumentListModalProps {
   open: boolean;
@@ -13,7 +13,12 @@ interface DocumentListModalProps {
   onDocumentsUpdated: (doc: FormationDocument | null) => void;
 }
 
-const DocumentListModal = ({ open, onClose, formation, onDocumentsUpdated }: DocumentListModalProps) => {
+const DocumentListModal = ({
+  open,
+  onClose,
+  formation,
+  onDocumentsUpdated,
+}: DocumentListModalProps) => {
   const [selectedDocId, setSelectedDocId] = useState<Id | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
@@ -48,18 +53,20 @@ const DocumentListModal = ({ open, onClose, formation, onDocumentsUpdated }: Doc
               actions={[
                 <Button
                   key="edit"
-                  type={selectedDocId === doc.idDocument ? "default" : "primary"}
+                  type={selectedDocId === doc.idDocument ? 'default' : 'primary'}
                   danger={selectedDocId !== doc.idDocument}
                   icon={selectedDocId === doc.idDocument ? <CloseOutlined /> : <EditOutlined />}
-                  onClick={() => setSelectedDocId(selectedDocId === doc.idDocument ? null : doc.idDocument)}
+                  onClick={() =>
+                    setSelectedDocId(selectedDocId === doc.idDocument ? null : doc.idDocument)
+                  }
                 >
-                  {selectedDocId === doc.idDocument ? "Annuler" : "Modifier"}
-                </Button>
+                  {selectedDocId === doc.idDocument ? 'Annuler' : 'Modifier'}
+                </Button>,
               ]}
             >
               <List.Item.Meta
                 title={doc.nomDocument}
-                description={doc.originalFileName || "Fichier non défini"}
+                description={doc.originalFileName || 'Fichier non défini'}
               />
             </List.Item>
           )}
@@ -67,7 +74,7 @@ const DocumentListModal = ({ open, onClose, formation, onDocumentsUpdated }: Doc
       ) : (
         <Empty description="😕 Aucun document associé à cette formation." />
       )}
-      <div style={{ marginTop: "1rem", textAlign: "center" }}>
+      <div style={{ marginTop: '1rem', textAlign: 'center' }}>
         {showCreateForm ? (
           <DocumentCreateForm
             formationId={formation.idFormation}
@@ -75,24 +82,26 @@ const DocumentListModal = ({ open, onClose, formation, onDocumentsUpdated }: Doc
             onCancel={() => setShowCreateForm(false)}
           />
         ) : (
-          <Button type="dashed" danger icon={<PlusOutlined />} onClick={() => setShowCreateForm(true)}>
+          <Button
+            type="dashed"
+            danger
+            icon={<PlusOutlined />}
+            onClick={() => setShowCreateForm(true)}
+          >
             Ajouter un document
           </Button>
         )}
       </div>
-      {formation.documents?.map((doc) => (
-        selectedDocId === doc.idDocument && (
-          <div key={`edit-${doc.idDocument}`} style={{ marginTop: "1rem" }}>
-            <UpdateDocumentForm documentData={doc} onUpdated={handleUpdateComplete} />
-          </div>
-        )
-      ))}
+      {formation.documents?.map(
+        (doc) =>
+          selectedDocId === doc.idDocument && (
+            <div key={`edit-${doc.idDocument}`} style={{ marginTop: '1rem' }}>
+              <UpdateDocumentForm documentData={doc} onUpdated={handleUpdateComplete} />
+            </div>
+          ),
+      )}
     </Modal>
   );
 };
 
 export default DocumentListModal;
-
-
-
-

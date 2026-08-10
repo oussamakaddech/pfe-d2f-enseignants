@@ -1,31 +1,31 @@
-import type { CSSProperties } from "react";
-import type { PriorityAction } from "@/models/analyse";
-import { getRiskScore, riskLevel, RISK_LABELS, RISK_COLORS } from "@/redesign/risk";
-import { initialsFromName } from "@/redesign/format";
-import { ListSkeleton, EmptyState } from "./States";
+import type { CSSProperties } from 'react';
+import type { PriorityAction } from '@/models/analyse';
+import { getRiskScore, riskLevel, RISK_LABELS, RISK_COLORS } from '@/redesign/risk';
+import { initialsFromName } from '@/redesign/format';
+import { ListSkeleton, EmptyState } from './States';
 
 function avatarColor(seed: string): string {
-  const palette = ["#b51200", "#7c3aed", "#0891b2", "#2563eb", "#059669", "#d97706", "#db2777"];
+  const palette = ['#b51200', '#7c3aed', '#0891b2', '#2563eb', '#059669', '#d97706', '#db2777'];
   const h = Array.from(seed).reduce((acc, ch) => (acc * 31 + (ch.codePointAt(0) ?? 0)) >>> 0, 0);
   return palette[h % palette.length];
 }
 
 function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return "";
+  if (!iso) return '';
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 const TREND_ICONS: Record<string, { icon: string; color: string; label: string }> = {
-  PROGRESSION: { icon: "↗", color: "var(--rd-error)", label: "En progression" },
-  REGRESSION: { icon: "↘", color: "var(--rd-success)", label: "En régression" },
-  STABLE: { icon: "→", color: "var(--rd-text-3)", label: "Stable" },
+  PROGRESSION: { icon: '↗', color: 'var(--rd-error)', label: 'En progression' },
+  REGRESSION: { icon: '↘', color: 'var(--rd-success)', label: 'En régression' },
+  STABLE: { icon: '→', color: 'var(--rd-text-3)', label: 'Stable' },
 };
 
 function evoColorFor(evoUp: boolean | null): string {
-  if (evoUp == null) return "var(--rd-text-3)";
-  return evoUp ? "var(--rd-error)" : "var(--rd-success)";
+  if (evoUp == null) return 'var(--rd-text-3)';
+  return evoUp ? 'var(--rd-error)' : 'var(--rd-success)';
 }
 
 function AtRiskTeacherRow({ t }: { readonly t: PriorityAction }) {
@@ -40,11 +40,11 @@ function AtRiskTeacherRow({ t }: { readonly t: PriorityAction }) {
   return (
     <div
       className="rd-artable-row"
-      style={level ? ({ ["--row-accent"]: RISK_COLORS[level] } as CSSProperties) : undefined}
+      style={level ? ({ ['--row-accent']: RISK_COLORS[level] } as CSSProperties) : undefined}
     >
       <div className="rd-artable-col rd-artable-col--name">
         <div className="rd-avatar sm" style={{ background: avatarColor(t.enseignant_id) }}>
-          {initialsFromName(t.teacher_name ?? t.enseignant_id, "?")}
+          {initialsFromName(t.teacher_name ?? t.enseignant_id, '?')}
         </div>
         <div>
           <div className="rd-artable-name">{t.teacher_name ?? t.enseignant_id}</div>
@@ -52,11 +52,14 @@ function AtRiskTeacherRow({ t }: { readonly t: PriorityAction }) {
         </div>
       </div>
       <div className="rd-artable-col rd-artable-col--dept">
-        {t.competence_prioritaire?.competence_nom ?? "—"}
+        {t.competence_prioritaire?.competence_nom ?? '—'}
       </div>
       <div className="rd-artable-col rd-artable-col--score">
         {score != null ? (
-          <span className="rd-risk sm" style={{ color: RISK_COLORS[level!], background: `${RISK_COLORS[level!]}1f` }}>
+          <span
+            className="rd-risk sm"
+            style={{ color: RISK_COLORS[level!], background: `${RISK_COLORS[level!]}1f` }}
+          >
             <span className="rd-risk-dot" style={{ background: RISK_COLORS[level!] }} />
             {Math.round(score * 100)} % · {RISK_LABELS[level!]}
           </span>
@@ -76,13 +79,21 @@ function AtRiskTeacherRow({ t }: { readonly t: PriorityAction }) {
       <div className="rd-artable-col rd-artable-col--signals">
         <div className="rd-artable-signals">
           {t.nb_gaps_critiques > 0 && (
-            <span className="rd-signal" style={{ color: "var(--rd-error)", background: "var(--rd-error-bg)" }}>
-              <span aria-hidden>⚠</span> {t.nb_gaps_critiques} critique{t.nb_gaps_critiques > 1 ? "s" : ""}
+            <span
+              className="rd-signal"
+              style={{ color: 'var(--rd-error)', background: 'var(--rd-error-bg)' }}
+            >
+              <span aria-hidden>⚠</span> {t.nb_gaps_critiques} critique
+              {t.nb_gaps_critiques > 1 ? 's' : ''}
             </span>
           )}
           {t.nb_alertes_ouvertes > 0 && (
-            <span className="rd-signal" style={{ color: "var(--rd-warning)", background: "var(--rd-warning-bg)" }}>
-              <span aria-hidden>🔔</span> {t.nb_alertes_ouvertes} alerte{t.nb_alertes_ouvertes > 1 ? "s" : ""}
+            <span
+              className="rd-signal"
+              style={{ color: 'var(--rd-warning)', background: 'var(--rd-warning-bg)' }}
+            >
+              <span aria-hidden>🔔</span> {t.nb_alertes_ouvertes} alerte
+              {t.nb_alertes_ouvertes > 1 ? 's' : ''}
             </span>
           )}
         </div>
@@ -99,7 +110,9 @@ function AtRiskTeacherRow({ t }: { readonly t: PriorityAction }) {
           ) : (
             <span className="rd-arthist-evo rd-muted">—</span>
           )}
-          <span className="rd-arthist-meta">{Math.round(hist?.taux_completion ?? 0)}% complétion</span>
+          <span className="rd-arthist-meta">
+            {Math.round(hist?.taux_completion ?? 0)}% complétion
+          </span>
           {hist?.nb_mois_stagnation ? (
             <span className="rd-arthist-meta">{hist.nb_mois_stagnation} mois stagnation</span>
           ) : null}

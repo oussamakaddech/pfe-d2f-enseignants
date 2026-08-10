@@ -1,24 +1,17 @@
-import  { useState } from "react";
-import {
-  Form,
-  Input,
-  Select,
-  Checkbox,
-  Upload,
-  Button,
-} from "antd";
-import type { UploadFile } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
-import useAppNotification from "@/hooks/ui/useAppNotification";
-import { useCreateDocument } from "@/hooks/document/useDocument";
-import type { Id } from "@/models/common";
-import type { FormationDocument } from "@/models/document";
+import { useState } from 'react';
+import { Form, Input, Select, Checkbox, Upload, Button } from 'antd';
+import type { UploadFile } from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
+import useAppNotification from '@/hooks/ui/useAppNotification';
+import { useCreateDocument } from '@/hooks/document/useDocument';
+import type { Id } from '@/models/common';
+import type { FormationDocument } from '@/models/document';
 
 const { Option } = Select;
 const PATH_OPTIONS = [
-  { value: "PAYEMENT", label: "PAYEMENT" },
-  { value: "CNFCPP",   label: "CNFCPP" },
-  { value: "DOCUMENT", label: "Autre dossier…" },
+  { value: 'PAYEMENT', label: 'PAYEMENT' },
+  { value: 'CNFCPP', label: 'CNFCPP' },
+  { value: 'DOCUMENT', label: 'Autre dossier…' },
 ];
 
 interface DocumentUploadPanelProps {
@@ -53,19 +46,19 @@ export default function DocumentUploadPanel({
 
   const onFinish = async (values: DocFormValues) => {
     if (!fileList.length) {
-      return message.error("Veuillez sélectionner un fichier.");
+      return message.error('Veuillez sélectionner un fichier.');
     }
     setLoading(true);
     try {
       const payload = {
         formationId,
-        pathType:    values.pathType,
+        pathType: values.pathType,
         nomDocument: values.nomDocument,
-        obligation:  String(values.obligation),
-        file:        fileList[0]?.originFileObj as File,
+        obligation: String(values.obligation),
+        file: fileList[0]?.originFileObj as File,
       };
       const newDoc = await createDoc(payload);
-      message.success("Document ajouté avec succès");
+      message.success('Document ajouté avec succès');
       form.resetFields();
       setFileList([]);
       onDocumentAdded(newDoc);
@@ -83,15 +76,15 @@ export default function DocumentUploadPanel({
       layout="vertical"
       onFinish={onFinish}
       initialValues={{
-        pathType:   "PAYEMENT",
-        nomDocument: "",
+        pathType: 'PAYEMENT',
+        nomDocument: '',
         obligation: false,
       }}
     >
       <Form.Item
         name="pathType"
         label="Dossier cible"
-        rules={[{ required: true, message: "Sélectionnez un dossier cible" }]}
+        rules={[{ required: true, message: 'Sélectionnez un dossier cible' }]}
       >
         <Select>
           {PATH_OPTIONS.map((o) => (
@@ -105,7 +98,7 @@ export default function DocumentUploadPanel({
       <Form.Item
         name="nomDocument"
         label="Nom du document"
-        rules={[{ required: true, message: "Saisissez le nom du document" }]}
+        rules={[{ required: true, message: 'Saisissez le nom du document' }]}
       >
         <Input placeholder="Ex : Plan de cours, Présentation…" />
       </Form.Item>
@@ -119,25 +112,21 @@ export default function DocumentUploadPanel({
         label="Fichier"
         valuePropName="fileList"
         getValueFromEvent={(e) => e?.fileList}
-        rules={[{ required: true, message: "Veuillez sélectionner un fichier." }]}
+        rules={[{ required: true, message: 'Veuillez sélectionner un fichier.' }]}
       >
         <Upload {...uploadProps} maxCount={1}>
           <Button icon={<UploadOutlined />}>Sélectionnez le fichier</Button>
         </Upload>
       </Form.Item>
 
-      <Form.Item style={{ textAlign: "right" }}>
+      <Form.Item style={{ textAlign: 'right' }}>
         <Button onClick={onClose} style={{ marginRight: 8 }}>
           Annuler
         </Button>
         <Button type="primary" htmlType="submit" loading={loading}>
-          {loading ? "Envoi…" : "Envoyer"}
+          {loading ? 'Envoi…' : 'Envoyer'}
         </Button>
       </Form.Item>
     </Form>
   );
 }
-
-
-
-

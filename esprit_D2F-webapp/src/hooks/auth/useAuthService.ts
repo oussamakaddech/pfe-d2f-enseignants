@@ -1,7 +1,20 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { login as loginApi, forgotPassword, resetPassword } from "@/services/auth/AuthService";
-import { editProfile, updatePassword as updatePasswordApi, banAccount, enableAccount, deleteAccount, permanentDeleteAccount, updateAccount } from "@/services/auth/AccountService";
-import type { LoginRequest, ResetPasswordRequest, EditProfileRequest, UpdatePasswordRequest } from "@/models/auth";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { login as loginApi, forgotPassword, resetPassword } from '@/services/auth/AuthService';
+import {
+  editProfile,
+  updatePassword as updatePasswordApi,
+  banAccount,
+  enableAccount,
+  deleteAccount,
+  permanentDeleteAccount,
+  updateAccount,
+} from '@/services/auth/AccountService';
+import type {
+  LoginRequest,
+  ResetPasswordRequest,
+  EditProfileRequest,
+  UpdatePasswordRequest,
+} from '@/models/auth';
 
 export function useLogin() {
   return useMutation({
@@ -31,7 +44,7 @@ export function useEditProfile() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: EditProfileRequest) => editProfile(payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["profile"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['profile'] }),
   });
 }
 
@@ -39,7 +52,7 @@ export function useBanAccount() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (userName: string) => banAccount(userName),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['accounts'] }),
   });
 }
 
@@ -47,7 +60,7 @@ export function useEnableAccount() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (userName: string) => enableAccount(userName),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['accounts'] }),
   });
 }
 
@@ -55,7 +68,7 @@ export function useDeleteAccount() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (userId: string) => deleteAccount(userId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['accounts'] }),
   });
 }
 
@@ -63,15 +76,22 @@ export function usePermanentDeleteAccount() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (userId: string) => permanentDeleteAccount(userId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['accounts'] }),
   });
 }
 
 export function useUpdateAccount() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ userId, data, role }: { userId: string; data: EditProfileRequest; role?: string }) =>
-      updateAccount(userId, data, role),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] }),
+    mutationFn: ({
+      userId,
+      data,
+      role,
+    }: {
+      userId: string;
+      data: EditProfileRequest;
+      role?: string;
+    }) => updateAccount(userId, data, role),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['accounts'] }),
   });
 }

@@ -1,17 +1,17 @@
-import { useEffect } from "react";
-import { Modal, Form, Input, Select, Row, Col, Tag } from "antd";
-import { UserAddOutlined, MailOutlined, IdcardOutlined, TeamOutlined } from "@ant-design/icons";
-import useAppNotification from "@/hooks/ui/useAppNotification";
+import { useEffect } from 'react';
+import { Modal, Form, Input, Select, Row, Col, Tag } from 'antd';
+import { UserAddOutlined, MailOutlined, IdcardOutlined, TeamOutlined } from '@ant-design/icons';
+import useAppNotification from '@/hooks/ui/useAppNotification';
 
-export type ActorKind = "ANIMATEUR" | "PARTICIPANT";
+export type ActorKind = 'ANIMATEUR' | 'PARTICIPANT';
 
 export interface ActorDraft {
   nom: string;
   prenom: string;
   email: string;
-  type: "P" | "V" | "C";
-  cup: "O" | "N";
-  chefDepartement: "O" | "N";
+  type: 'P' | 'V' | 'C';
+  cup: 'O' | 'N';
+  chefDepartement: 'O' | 'N';
   upLibelle?: string;
   deptLibelle?: string;
 }
@@ -27,34 +27,39 @@ export interface AddActorModalProps {
 }
 
 const TYPE_OPTIONS = [
-  { value: "P", label: "Permanent" },
-  { value: "V", label: "Vacataire" },
-  { value: "C", label: "Contractuel" },
+  { value: 'P', label: 'Permanent' },
+  { value: 'V', label: 'Vacataire' },
+  { value: 'C', label: 'Contractuel' },
 ];
 
 const CUP_OPTIONS = [
-  { value: "N", label: "Non" },
-  { value: "O", label: "Oui" },
+  { value: 'N', label: 'Non' },
+  { value: 'O', label: 'Oui' },
 ];
 
 const CHEF_OPTIONS = [
-  { value: "N", label: "Non" },
-  { value: "O", label: "Oui" },
+  { value: 'N', label: 'Non' },
+  { value: 'O', label: 'Oui' },
 ];
 
 export default function AddActorModal({
-  open, kind, onCancel, onSubmit,
-  upOptions = [], deptOptions = [], existingEmails = [],
+  open,
+  kind,
+  onCancel,
+  onSubmit,
+  upOptions = [],
+  deptOptions = [],
+  existingEmails = [],
 }: Readonly<AddActorModalProps>) {
   const [form] = Form.useForm<ActorDraft>();
   const { message } = useAppNotification();
-  const title = kind === "ANIMATEUR" ? "Ajouter un animateur" : "Ajouter un participant";
-  const accent = kind === "ANIMATEUR" ? "var(--primary-500)" : "var(--color-info)";
+  const title = kind === 'ANIMATEUR' ? 'Ajouter un animateur' : 'Ajouter un participant';
+  const accent = kind === 'ANIMATEUR' ? 'var(--primary-500)' : 'var(--color-info)';
 
   useEffect(() => {
     if (open) {
       form.resetFields();
-      form.setFieldsValue({ type: "P", cup: "N", chefDepartement: "N" });
+      form.setFieldsValue({ type: 'P', cup: 'N', chefDepartement: 'N' });
     }
   }, [open, form]);
 
@@ -63,7 +68,7 @@ export default function AddActorModal({
       const values = await form.validateFields();
       const email = values.email.trim().toLowerCase();
       if (existingEmails.includes(email)) {
-        message.warning("Cette personne (email) est déjà dans la liste.");
+        message.warning('Cette personne (email) est déjà dans la liste.');
         return;
       }
       await onSubmit({ ...values, email });
@@ -82,7 +87,7 @@ export default function AddActorModal({
       onCancel={onCancel}
       onOk={handleOk}
       title={
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <UserAddOutlined style={{ color: accent }} />
           {title}
         </span>
@@ -92,8 +97,9 @@ export default function AddActorModal({
       destroyOnHidden
       width={560}
     >
-      <Tag color={kind === "ANIMATEUR" ? "red" : "blue"} style={{ marginBottom: 12 }}>
-        <TeamOutlined /> {kind === "ANIMATEUR" ? "Animateur (Formateur)" : "Participant (Enseignant)"}
+      <Tag color={kind === 'ANIMATEUR' ? 'red' : 'blue'} style={{ marginBottom: 12 }}>
+        <TeamOutlined />{' '}
+        {kind === 'ANIMATEUR' ? 'Animateur (Formateur)' : 'Participant (Enseignant)'}
       </Tag>
       <Form form={form} layout="vertical" requiredMark="optional" style={{ marginTop: 8 }}>
         <Row gutter={[12, 0]}>
@@ -101,18 +107,30 @@ export default function AddActorModal({
             <Form.Item
               name="nom"
               label="Nom"
-              rules={[{ required: true, message: "Le nom est requis" }, { whitespace: true, message: "Le nom ne peut pas être vide" }]}
+              rules={[
+                { required: true, message: 'Le nom est requis' },
+                { whitespace: true, message: 'Le nom ne peut pas être vide' },
+              ]}
             >
-              <Input prefix={<IdcardOutlined style={{ color: "#cbd5e0" }} />} placeholder="Ex : Ben Salah" />
+              <Input
+                prefix={<IdcardOutlined style={{ color: '#cbd5e0' }} />}
+                placeholder="Ex : Ben Salah"
+              />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12}>
             <Form.Item
               name="prenom"
               label="Prénom"
-              rules={[{ required: true, message: "Le prénom est requis" }, { whitespace: true, message: "Le prénom ne peut pas être vide" }]}
+              rules={[
+                { required: true, message: 'Le prénom est requis' },
+                { whitespace: true, message: 'Le prénom ne peut pas être vide' },
+              ]}
             >
-              <Input prefix={<IdcardOutlined style={{ color: "#cbd5e0" }} />} placeholder="Ex : Ahmed" />
+              <Input
+                prefix={<IdcardOutlined style={{ color: '#cbd5e0' }} />}
+                placeholder="Ex : Ahmed"
+              />
             </Form.Item>
           </Col>
           <Col span={24}>
@@ -121,10 +139,13 @@ export default function AddActorModal({
               label="Email"
               rules={[
                 { required: true, message: "L'email est requis" },
-                { type: "email", message: "Format email invalide" },
+                { type: 'email', message: 'Format email invalide' },
               ]}
             >
-              <Input prefix={<MailOutlined style={{ color: "#cbd5e0" }} />} placeholder="prenom.nom@esprit.tn" />
+              <Input
+                prefix={<MailOutlined style={{ color: '#cbd5e0' }} />}
+                placeholder="prenom.nom@esprit.tn"
+              />
             </Form.Item>
           </Col>
           <Col xs={12} sm={8}>

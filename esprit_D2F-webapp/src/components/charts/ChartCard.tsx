@@ -1,18 +1,18 @@
-import { memo, useRef, useState, type ReactNode } from "react";
-import { Button, Dropdown, Segmented, Tooltip } from "antd";
-import { DownloadOutlined, InboxOutlined, InfoCircleOutlined } from "@ant-design/icons";
+import { memo, useRef, useState, type ReactNode } from 'react';
+import { Button, Dropdown, Segmented, Tooltip } from 'antd';
+import { DownloadOutlined, InboxOutlined, InfoCircleOutlined } from '@ant-design/icons';
 
-import Skeleton from "@/components/ui/Skeleton";
-import EmptyState from "@/components/common/EmptyState";
-import styles from "./ChartCard.module.css";
+import Skeleton from '@/components/ui/Skeleton';
+import EmptyState from '@/components/common/EmptyState';
+import styles from './ChartCard.module.css';
 
-export type TimeRange = "semaine" | "mois" | "trimestre" | "annee";
+export type TimeRange = 'semaine' | 'mois' | 'trimestre' | 'annee';
 
 const RANGE_OPTIONS = [
-  { label: "Semaine", value: "semaine" },
-  { label: "Mois", value: "mois" },
-  { label: "Trimestre", value: "trimestre" },
-  { label: "Année", value: "annee" },
+  { label: 'Semaine', value: 'semaine' },
+  { label: 'Mois', value: 'mois' },
+  { label: 'Trimestre', value: 'trimestre' },
+  { label: 'Année', value: 'annee' },
 ] as const;
 
 interface ChartCardProps {
@@ -47,23 +47,23 @@ const ChartCard = memo(function ChartCard({
   children,
   loading = false,
   empty = false,
-  emptyMessage = "Données insuffisantes pour la période sélectionnée.",
+  emptyMessage = 'Données insuffisantes pour la période sélectionnée.',
   height = 300,
   timeRange,
   onTimeRangeChange,
   csv,
-  exportFileName = "graphique-d2f",
+  exportFileName = 'graphique-d2f',
   actions,
 }: ChartCardProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
 
   const exportPng = () => {
-    const canvas = bodyRef.current?.querySelector("canvas");
+    const canvas = bodyRef.current?.querySelector('canvas');
     if (!canvas) return;
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.download = `${exportFileName}.png`;
-    link.href = canvas.toDataURL("image/png", 1);
+    link.href = canvas.toDataURL('image/png', 1);
     link.click();
   };
 
@@ -72,10 +72,13 @@ const ChartCard = memo(function ChartCard({
     setExporting(true);
     try {
       const escape = (v: string | number) => `"${String(v).replaceAll('"', '""')}"`;
-      const lines = [csv.headers.map(escape).join(";"), ...csv.rows.map((r) => r.map(escape).join(";"))];
-      const blob = new Blob([`﻿${lines.join("\n")}`], { type: "text/csv;charset=utf-8" });
+      const lines = [
+        csv.headers.map(escape).join(';'),
+        ...csv.rows.map((r) => r.map(escape).join(';')),
+      ];
+      const blob = new Blob([`﻿${lines.join('\n')}`], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.download = `${exportFileName}.csv`;
       link.href = url;
       link.click();
@@ -86,8 +89,8 @@ const ChartCard = memo(function ChartCard({
   };
 
   const exportItems = [
-    { key: "png", label: "Image PNG", onClick: exportPng },
-    ...(csv ? [{ key: "csv", label: "Données CSV", onClick: exportCsv }] : []),
+    { key: 'png', label: 'Image PNG', onClick: exportPng },
+    ...(csv ? [{ key: 'csv', label: 'Données CSV', onClick: exportCsv }] : []),
   ];
 
   return (
@@ -116,8 +119,13 @@ const ChartCard = memo(function ChartCard({
             />
           )}
           {!loading && !empty && (
-            <Dropdown menu={{ items: exportItems }} trigger={["click"]}>
-              <Button size="small" icon={<DownloadOutlined />} loading={exporting} aria-label="Exporter" />
+            <Dropdown menu={{ items: exportItems }} trigger={['click']}>
+              <Button
+                size="small"
+                icon={<DownloadOutlined />}
+                loading={exporting}
+                aria-label="Exporter"
+              />
             </Dropdown>
           )}
         </div>
@@ -126,7 +134,12 @@ const ChartCard = memo(function ChartCard({
       <div ref={bodyRef} className={styles.body} style={{ minHeight: height }}>
         {loading && <Skeleton variant="chart" height={height} />}
         {!loading && empty && (
-          <EmptyState compact icon={<InboxOutlined />} title="Aucune donnée" description={emptyMessage} />
+          <EmptyState
+            compact
+            icon={<InboxOutlined />}
+            title="Aucune donnée"
+            description={emptyMessage}
+          />
         )}
         {!loading && !empty && children}
       </div>

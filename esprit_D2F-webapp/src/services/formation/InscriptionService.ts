@@ -1,6 +1,6 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
-import type { Formation, Inscription } from "@/models/formation";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
+import type { Formation, Inscription } from '@/models/formation';
 const API_URL = `${config.FORMATION_URL}/formation/inscription`;
 
 function normalizeContent<T>(payload: T[] | { content?: T[] } | undefined): T[] {
@@ -35,7 +35,10 @@ const InscriptionService = {
     return normalizeContent(response.data);
   },
 
-  async demanderInscription(formationId: string | number, enseignantId: string | number): Promise<Inscription> {
+  async demanderInscription(
+    formationId: string | number,
+    enseignantId: string | number,
+  ): Promise<Inscription> {
     const response = await axios.post(`${API_URL}/inscriptions`, null, {
       params: { formationId, enseignantId },
     });
@@ -43,21 +46,19 @@ const InscriptionService = {
   },
 
   async getInscriptionsByFormation(formationId: string | number): Promise<Inscription[]> {
-    const response = await axios.get(
-      `${API_URL}/formations/${formationId}/inscriptions`
-    );
+    const response = await axios.get(`${API_URL}/formations/${formationId}/inscriptions`);
     // Le backend renvoie un Page<…> ({content:[...]}) : on normalise en tableau.
     return normalizeContent<Inscription>(response.data);
   },
 
-  async traiterDemande(id: string | number, approuver: boolean, motif?: string): Promise<Inscription> {
-    const response = await axios.put(
-      `${API_URL}/inscriptions/${id}/traiter`,
-      null,
-      {
-        params: { approuver, motif: motif?.trim() || undefined },
-      }
-    );
+  async traiterDemande(
+    id: string | number,
+    approuver: boolean,
+    motif?: string,
+  ): Promise<Inscription> {
+    const response = await axios.put(`${API_URL}/inscriptions/${id}/traiter`, null, {
+      params: { approuver, motif: motif?.trim() || undefined },
+    });
     return response.data;
   },
 
@@ -70,14 +71,11 @@ const InscriptionService = {
     approuver: boolean,
     motif?: string,
   ): Promise<Inscription[]> {
-    const response = await axios.put(
-      `${API_URL}/inscriptions/traiter-bulk`,
-      {
-        ids: ids.map(Number),
-        approuver,
-        motif: motif?.trim() || undefined,
-      }
-    );
+    const response = await axios.put(`${API_URL}/inscriptions/traiter-bulk`, {
+      ids: ids.map(Number),
+      approuver,
+      motif: motif?.trim() || undefined,
+    });
     return Array.isArray(response.data) ? response.data : [];
   },
 

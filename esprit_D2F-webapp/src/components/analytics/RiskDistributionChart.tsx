@@ -1,12 +1,7 @@
-import { Doughnut } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-} from "chart.js";
-import { RISK_LEVEL_COLORS, RISK_LEVEL_ORDER } from "@/utils/analytics/constants";
-import type { RiskDistributionBucket } from "@/models/analyse/analyticsFeature";
+import { Doughnut } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { RISK_LEVEL_COLORS, RISK_LEVEL_ORDER } from '@/utils/analytics/constants';
+import type { RiskDistributionBucket } from '@/models/analyse/analyticsFeature';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -36,7 +31,7 @@ export default function RiskDistributionChart({
   return (
     <Doughnut
       data={data}
-      options={{ responsive: true, plugins: { legend: { position: "bottom" } } }}
+      options={{ responsive: true, plugins: { legend: { position: 'bottom' } } }}
     />
   );
 }

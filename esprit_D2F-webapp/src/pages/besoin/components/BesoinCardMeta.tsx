@@ -23,9 +23,3 @@ export default function BesoinCardMeta({ items }: Readonly<BesoinCardMetaProps>)
     </div>
   );
 }
-
-
-
-
-
-

@@ -9,7 +9,9 @@
   border-left-width: 4px;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
   text-align: left;
   width: 100%;
   font-family: inherit;
@@ -20,13 +22,25 @@
   box-shadow: var(--shadow-md);
 }
 
-.clickable { cursor: pointer; }
+.clickable {
+  cursor: pointer;
+}
 
-.accentPrimary { border-left-color: var(--color-primary); }
-.accentSuccess { border-left-color: var(--color-success); }
-.accentWarning { border-left-color: var(--color-warning); }
-.accentDanger  { border-left-color: var(--color-danger); }
-.accentInfo    { border-left-color: var(--color-info); }
+.accentPrimary {
+  border-left-color: var(--color-primary);
+}
+.accentSuccess {
+  border-left-color: var(--color-success);
+}
+.accentWarning {
+  border-left-color: var(--color-warning);
+}
+.accentDanger {
+  border-left-color: var(--color-danger);
+}
+.accentInfo {
+  border-left-color: var(--color-info);
+}
 
 .header {
   display: flex;
@@ -53,11 +67,26 @@
   flex: none;
 }
 
-.iconPrimary { color: var(--color-primary); background: var(--primary-50); }
-.iconSuccess { color: var(--color-success); background: var(--color-success-bg); }
-.iconWarning { color: var(--color-warning); background: var(--color-warning-bg); }
-.iconDanger  { color: var(--color-danger);  background: var(--color-error-bg); }
-.iconInfo    { color: var(--color-info);    background: var(--color-info-bg); }
+.iconPrimary {
+  color: var(--color-primary);
+  background: var(--primary-50);
+}
+.iconSuccess {
+  color: var(--color-success);
+  background: var(--color-success-bg);
+}
+.iconWarning {
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+}
+.iconDanger {
+  color: var(--color-danger);
+  background: var(--color-error-bg);
+}
+.iconInfo {
+  color: var(--color-info);
+  background: var(--color-info-bg);
+}
 
 .valueRow {
   display: flex;
@@ -87,9 +116,15 @@
   font-weight: var(--font-semibold);
 }
 
-.trendUp     { color: var(--color-success); }
-.trendDown   { color: var(--color-danger); }
-.trendStable { color: var(--color-text-muted); }
+.trendUp {
+  color: var(--color-success);
+}
+.trendDown {
+  color: var(--color-danger);
+}
+.trendStable {
+  color: var(--color-text-muted);
+}
 
 .trendLabel {
   font-weight: var(--font-regular);

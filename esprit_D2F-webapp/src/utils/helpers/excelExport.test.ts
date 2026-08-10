@@ -25,7 +25,11 @@ vi.mock('xlsx-js-style', () => {
     encode_cell,
     encode_range: () => 'A1:B2',
     book_new: () => ({ SheetNames: [], Sheets: {} }),
-    book_append_sheet: (wb: { SheetNames: string[]; Sheets: Record<string, unknown> }, ws: unknown, name: string) => {
+    book_append_sheet: (
+      wb: { SheetNames: string[]; Sheets: Record<string, unknown> },
+      ws: unknown,
+      name: string,
+    ) => {
       wb.SheetNames.push(name);
       wb.Sheets[name] = ws;
     },
@@ -57,24 +61,39 @@ describe('excelExport', () => {
     });
 
     it('adds title and subtitle merges', () => {
-      const ws = styledSheet([{ Nom: 'Alice' }], { title: 'T', subtitle: 'S' }) as Record<string, unknown>;
+      const ws = styledSheet([{ Nom: 'Alice' }], { title: 'T', subtitle: 'S' }) as Record<
+        string,
+        unknown
+      >;
       expect(ws['!merges']).toHaveLength(2);
     });
 
     it('handles title only', () => {
-      const ws = styledSheet([{ Nom: 'Alice' }], { title: 'Only title' }) as Record<string, unknown>;
+      const ws = styledSheet([{ Nom: 'Alice' }], { title: 'Only title' }) as Record<
+        string,
+        unknown
+      >;
       expect(ws['!merges']).toHaveLength(1);
     });
   });
 
   describe('writeExcel', () => {
     it('writes a workbook and sanitizes sheet names', () => {
-      writeExcel([{ name: 'a/b:c*name that is way too long to fit inside excel tab', rows: [{ x: 1 }] }], 'out.xlsx');
+      writeExcel(
+        [{ name: 'a/b:c*name that is way too long to fit inside excel tab', rows: [{ x: 1 }] }],
+        'out.xlsx',
+      );
       expect(writeFileMock).toHaveBeenCalledTimes(1);
       expect(writeFileMock.mock.calls[0][1]).toBe('out.xlsx');
     });
     it('handles multiple sheets', () => {
-      writeExcel([{ name: 'S1', rows: [{ x: 1 }] }, { name: 'S2', rows: [] }], 'multi.xlsx');
+      writeExcel(
+        [
+          { name: 'S1', rows: [{ x: 1 }] },
+          { name: 'S2', rows: [] },
+        ],
+        'multi.xlsx',
+      );
       expect(writeFileMock).toHaveBeenCalledTimes(1);
     });
   });

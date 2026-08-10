@@ -1,38 +1,42 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ReactNode } from "react";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { ReactNode } from 'react';
 
 const mocks = vi.hoisted(() => ({
   useTrainingImpact: vi.fn(),
   useTrainingImpactFormations: vi.fn(),
 }));
 
-vi.mock("@/hooks/analytics/useAnalyticsQueries", () => ({
+vi.mock('@/hooks/analytics/useAnalyticsQueries', () => ({
   useTrainingImpact: mocks.useTrainingImpact,
   useTrainingImpactFormations: mocks.useTrainingImpactFormations,
 }));
 
-import { render, screen } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import TrainingImpactPanel from "@/components/analytics/TrainingImpactPanel";
+import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import TrainingImpactPanel from '@/components/analytics/TrainingImpactPanel';
 
 const createWrapper = () => {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
   return ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={qc}>{children}</QueryClientProvider>
   );
 };
 
-describe("TrainingImpactPanel", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+describe('TrainingImpactPanel', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
-  it("affiche un spinner pendant le chargement", () => {
+  it('affiche un spinner pendant le chargement', () => {
     mocks.useTrainingImpact.mockReturnValue({ isLoading: true, data: undefined });
     mocks.useTrainingImpactFormations.mockReturnValue({ isLoading: true, data: undefined });
     const { container } = render(<TrainingImpactPanel />, { wrapper: createWrapper() });
-    expect(container.querySelector(".ant-spin")).toBeTruthy();
+    expect(container.querySelector('.ant-spin')).toBeTruthy();
   });
 
-  it("affiche un message vide sans données", () => {
+  it('affiche un message vide sans données', () => {
     mocks.useTrainingImpact.mockReturnValue({ isLoading: false, data: undefined });
     mocks.useTrainingImpactFormations.mockReturnValue({ isLoading: false, data: undefined });
     render(<TrainingImpactPanel />, { wrapper: createWrapper() });
@@ -51,7 +55,10 @@ describe("TrainingImpactPanel", () => {
         nb_risque_augmente: 2,
       },
     });
-    mocks.useTrainingImpactFormations.mockReturnValue({ isLoading: false, data: { formations: [] } });
+    mocks.useTrainingImpactFormations.mockReturnValue({
+      isLoading: false,
+      data: { formations: [] },
+    });
     render(<TrainingImpactPanel />, { wrapper: createWrapper() });
     expect(screen.getByText(/Enseignants suivis/i)).toBeInTheDocument();
   });

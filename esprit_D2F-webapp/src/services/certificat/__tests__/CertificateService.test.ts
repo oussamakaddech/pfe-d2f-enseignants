@@ -6,7 +6,7 @@ const httpMocks = vi.hoisted(() => ({
   mockPut: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     get: httpMocks.mockGet,
     post: httpMocks.mockPost,
@@ -28,7 +28,10 @@ describe('CertificateService', () => {
     expect(res).toEqual([{ id: 1 }]);
 
     httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 2 } });
-    const res2 = await CertificateService.createCertificate({ formationId: 1 } as Record<string, unknown>);
+    const res2 = await CertificateService.createCertificate({ formationId: 1 } as Record<
+      string,
+      unknown
+    >);
     expect(res2.data).toEqual({ id: 2 });
   });
 
@@ -51,7 +54,10 @@ describe('CertificateService', () => {
 
   it('updates and generates PDFs', async () => {
     httpMocks.mockPut.mockResolvedValueOnce({ data: { id: 5 } });
-    const res = await CertificateService.updateCertificate(5, { date: 'x' } as Record<string, unknown>);
+    const res = await CertificateService.updateCertificate(5, { date: 'x' } as Record<
+      string,
+      unknown
+    >);
     expect(res.data).toEqual({ id: 5 });
 
     httpMocks.mockGet.mockResolvedValueOnce({ data: ['pdf1', 'pdf2'] });
@@ -59,7 +65,3 @@ describe('CertificateService', () => {
     expect(res2).toEqual(['pdf1', 'pdf2']);
   });
 });
-
-
-
-

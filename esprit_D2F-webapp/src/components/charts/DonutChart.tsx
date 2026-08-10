@@ -1,9 +1,9 @@
-import { memo, useMemo } from "react";
-import { Doughnut } from "react-chartjs-2";
-import type { ChartOptions } from "chart.js";
+import { memo, useMemo } from 'react';
+import { Doughnut } from 'react-chartjs-2';
+import type { ChartOptions } from 'chart.js';
 
-import { chartPalette, cardTooltip } from "./chartTheme";
-import styles from "./DonutChart.module.css";
+import { chartPalette, cardTooltip } from './chartTheme';
+import styles from './DonutChart.module.css';
 
 export interface DonutSlice {
   label: string;
@@ -43,7 +43,7 @@ const DonutChart = memo(function DonutChart({
         {
           data: slices.map((s) => s.value),
           backgroundColor: sliceColors,
-          borderColor: "#ffffff",
+          borderColor: '#ffffff',
           borderWidth: 2,
           hoverOffset: 6,
         },
@@ -52,12 +52,12 @@ const DonutChart = memo(function DonutChart({
     [slices, sliceColors],
   );
 
-  const options = useMemo<ChartOptions<"doughnut">>(
+  const options = useMemo<ChartOptions<'doughnut'>>(
     () =>
       ({
         responsive: true,
         maintainAspectRatio: false,
-        cutout: "68%",
+        cutout: '68%',
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -65,7 +65,7 @@ const DonutChart = memo(function DonutChart({
             callbacks: {
               label: (ctx: { label?: string; parsed: number }) => {
                 const pct = total > 0 ? Math.round((ctx.parsed / total) * 100) : 0;
-                return ` ${ctx.label} : ${ctx.parsed.toLocaleString("fr-FR")} (${pct} %)`;
+                return ` ${ctx.label} : ${ctx.parsed.toLocaleString('fr-FR')} (${pct} %)`;
               },
             },
           },
@@ -74,7 +74,7 @@ const DonutChart = memo(function DonutChart({
           const idx = elements[0]?.index;
           if (idx !== undefined && onSliceClick) onSliceClick(slices[idx], idx);
         },
-      }) as ChartOptions<"doughnut">,
+      }) as ChartOptions<'doughnut'>,
     [total, slices, onSliceClick],
   );
 
@@ -83,7 +83,7 @@ const DonutChart = memo(function DonutChart({
       <div className={styles.donutBox} style={{ height }}>
         <Doughnut data={data} options={options} />
         <div className={styles.center} aria-hidden="true">
-          <span className={styles.total}>{total.toLocaleString("fr-FR")}</span>
+          <span className={styles.total}>{total.toLocaleString('fr-FR')}</span>
           {centerLabel && <span className={styles.centerLabel}>{centerLabel}</span>}
         </div>
       </div>
@@ -99,7 +99,7 @@ const DonutChart = memo(function DonutChart({
             >
               <span className={styles.swatch} style={{ background: sliceColors[i] }} />
               <span className={styles.legendLabel}>{s.label}</span>
-              <span className={styles.legendValue}>{s.value.toLocaleString("fr-FR")}</span>
+              <span className={styles.legendValue}>{s.value.toLocaleString('fr-FR')}</span>
             </button>
           </li>
         ))}

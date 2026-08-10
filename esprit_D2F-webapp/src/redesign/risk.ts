@@ -14,12 +14,12 @@
 // ce module. Aucun autre endroit ne recalcule un seuil.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { riskStyle, riskLevelFromScore } from "@/utils/risk";
+import { riskStyle, riskLevelFromScore } from '@/utils/risk';
 
-export { decodeSignals } from "@/utils/risk";
+export { decodeSignals } from '@/utils/risk';
 
 /** Clé de niveau de risque canonique. */
-export type RiskLevelKey = "FAIBLE" | "MODERE" | "ELEVE" | "CRITIQUE";
+export type RiskLevelKey = 'FAIBLE' | 'MODERE' | 'ELEVE' | 'CRITIQUE';
 
 /**
  * Accesseur unique du score de risque.
@@ -34,10 +34,7 @@ export function getRiskScore(input: {
   score_risque?: number | null;
   riskScore?: number | null;
 }): number | null {
-  const v =
-    input.attrition_risk_score ??
-    input.score_risque ??
-    input.riskScore;
+  const v = input.attrition_risk_score ?? input.score_risque ?? input.riskScore;
   if (v == null || Number.isNaN(v)) return null;
   // Normalisation défensive : si le backend renvoie du 0-100, on ramène en 0-1.
   const safe = v <= 1 ? v : v / 100;
@@ -59,21 +56,21 @@ export function riskStyleFor(score: number) {
 
 /** Libellé FR du niveau (cohérent sur les deux pages). */
 export const RISK_LABELS: Record<RiskLevelKey, string> = {
-  FAIBLE: "Faible",
-  MODERE: "Modéré",
-  ELEVE: "Élevé",
-  CRITIQUE: "Critique",
+  FAIBLE: 'Faible',
+  MODERE: 'Modéré',
+  ELEVE: 'Élevé',
+  CRITIQUE: 'Critique',
 };
 
 /** Couleur sémantique (utilisée par charts, anneaux, barres). */
 export const RISK_COLORS: Record<RiskLevelKey, string> = {
-  FAIBLE: "#10b981",
-  MODERE: "#f59e0b",
-  ELEVE: "#f97316",
-  CRITIQUE: "#ef4444",
+  FAIBLE: '#10b981',
+  MODERE: '#f59e0b',
+  ELEVE: '#f97316',
+  CRITIQUE: '#ef4444',
 };
 
-export const RISK_ORDER: RiskLevelKey[] = ["CRITIQUE", "ELEVE", "MODERE", "FAIBLE"];
+export const RISK_ORDER: RiskLevelKey[] = ['CRITIQUE', 'ELEVE', 'MODERE', 'FAIBLE'];
 
 /** Ordre de sévérité décroissant (pour trier les priorités). */
 export function riskSeverityScore(score: number | null): number {

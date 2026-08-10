@@ -1,5 +1,5 @@
-import React from "react";
-import { Table, Button, Select, Space, Card, Row, Col, Statistic, Typography } from "antd";
+import React from 'react';
+import { Table, Button, Select, Space, Card, Row, Col, Statistic, Typography } from 'antd';
 import {
   EyeOutlined,
   FilePdfOutlined,
@@ -7,10 +7,10 @@ import {
   CheckCircleOutlined,
   FileProtectOutlined,
   TeamOutlined,
-} from "@ant-design/icons";
-import { brand } from "@/components/common";
-import type { Id } from "@/models/common";
-import type { FormationRecord } from "../CompletedFormations";
+} from '@ant-design/icons';
+import { brand } from '@/components/common';
+import type { Id } from '@/models/common';
+import type { FormationRecord } from '../CompletedFormations';
 
 const { Option } = Select;
 const { Text } = Typography;
@@ -43,15 +43,15 @@ export function CompletedFormationsTable({
   pendingCount,
 }: Readonly<CompletedFormationsTableProps>) {
   const columns = [
-    { title: "Titre Formation", dataIndex: "titreFormation", key: "titreFormation" },
-    { title: "État", dataIndex: "etatFormation", key: "etatFormation" },
-    { title: "UP", dataIndex: ["up1", "libelle"], key: "up" },
-    { title: "Département", dataIndex: ["departement1", "libelle"], key: "departement" },
-    { title: "Date Début", dataIndex: "dateDebut", key: "dateDebut" },
-    { title: "Date Fin", dataIndex: "dateFin", key: "dateFin" },
+    { title: 'Titre Formation', dataIndex: 'titreFormation', key: 'titreFormation' },
+    { title: 'État', dataIndex: 'etatFormation', key: 'etatFormation' },
+    { title: 'UP', dataIndex: ['up1', 'libelle'], key: 'up' },
+    { title: 'Département', dataIndex: ['departement1', 'libelle'], key: 'departement' },
+    { title: 'Date Début', dataIndex: 'dateDebut', key: 'dateDebut' },
+    { title: 'Date Fin', dataIndex: 'dateFin', key: 'dateFin' },
     {
-      title: "Action",
-      key: "action",
+      title: 'Action',
+      key: 'action',
       render: (_: unknown, rec: FormationRecord) => (
         <Space size={4}>
           <Button
@@ -103,8 +103,8 @@ export function CompletedFormationsTable({
             <Statistic
               title="Certificats Générés"
               value={certifCount}
-              prefix={<FileProtectOutlined style={{ color: "#059669" }} />}
-              valueStyle={{ color: "#059669", fontWeight: 700 }}
+              prefix={<FileProtectOutlined style={{ color: '#059669' }} />}
+              valueStyle={{ color: '#059669', fontWeight: 700 }}
             />
           </Card>
         </Col>
@@ -113,8 +113,8 @@ export function CompletedFormationsTable({
             <Statistic
               title="En Attente"
               value={pendingCount}
-              prefix={<TeamOutlined style={{ color: "#f59e0b" }} />}
-              valueStyle={{ color: "#f59e0b", fontWeight: 700 }}
+              prefix={<TeamOutlined style={{ color: '#f59e0b' }} />}
+              valueStyle={{ color: '#f59e0b', fontWeight: 700 }}
             />
           </Card>
         </Col>
@@ -138,8 +138,12 @@ export function CompletedFormationsTable({
           columns={columns}
           rowKey="idFormation"
           loading={loadingTable}
-          pagination={{ pageSize: 8, showSizeChanger: true, showTotal: (total) => `${total} formation${total === 1 ? "" : "s"}` }}
-          locale={{ emptyText: "Aucune formation achevée" }}
+          pagination={{
+            pageSize: 8,
+            showSizeChanger: true,
+            showTotal: (total) => `${total} formation${total === 1 ? '' : 's'}`,
+          }}
+          locale={{ emptyText: 'Aucune formation achevée' }}
         />
       </Card>
     </>

@@ -9,4 +9,4 @@
  *     action={{ label: "Créer une formation", onClick: goToCreate }}
  *   />
  */
-export { default } from "@/components/common/EmptyState";
+export { default } from '@/components/common/EmptyState';

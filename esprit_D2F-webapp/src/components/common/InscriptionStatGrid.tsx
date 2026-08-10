@@ -1,7 +1,7 @@
-import { memo } from "react";
-import type { ReactNode } from "react";
-import StatCard from "./StatCard";
-import { semantic, brand } from "@/styles/themes/tokens";
+import { memo } from 'react';
+import type { ReactNode } from 'react';
+import StatCard from './StatCard';
+import { semantic, brand } from '@/styles/themes/tokens';
 
 /**
  * Tone sémantique d'une stat d'inscription.
@@ -9,21 +9,15 @@ import { semantic, brand } from "@/styles/themes/tokens";
  * personnel, suivi global, gestion par formation, fiche, panneau participants)
  * sur la même palette (issues des tokens `semantic` + `brand`).
  */
-export type InscriptionStatTone =
-  | "brand"
-  | "info"
-  | "success"
-  | "warning"
-  | "danger"
-  | "neutral";
+export type InscriptionStatTone = 'brand' | 'info' | 'success' | 'warning' | 'danger' | 'neutral';
 
 const TONE_PALETTE: Record<InscriptionStatTone, { color: string; accent: string }> = {
-  brand:   { color: brand[500],        accent: brand[500] },
-  info:    { color: semantic.info,     accent: semantic.info },
-  success: { color: semantic.success,  accent: semantic.success },
-  warning: { color: semantic.warning,  accent: semantic.warning },
-  danger:  { color: semantic.error,    accent: semantic.error },
-  neutral: { color: "#64748b",         accent: "#64748b" },
+  brand: { color: brand[500], accent: brand[500] },
+  info: { color: semantic.info, accent: semantic.info },
+  success: { color: semantic.success, accent: semantic.success },
+  warning: { color: semantic.warning, accent: semantic.warning },
+  danger: { color: semantic.error, accent: semantic.error },
+  neutral: { color: '#64748b', accent: '#64748b' },
 };
 
 export interface InscriptionStatItem {
@@ -59,14 +53,14 @@ const InscriptionStatGrid = memo(function InscriptionStatGrid({
     <div
       className={className}
       style={{
-        display: "grid",
+        display: 'grid',
         gridTemplateColumns: `repeat(auto-fit, minmax(${minColumnWidth}px, 1fr))`,
         gap,
         marginBottom: 24,
       }}
     >
       {stats.map((s, idx) => {
-        const tone = s.tone ?? "brand";
+        const tone = s.tone ?? 'brand';
         const palette = TONE_PALETTE[tone];
         return (
           <div key={`${s.label}-${idx}`} className="ins-stat-in">

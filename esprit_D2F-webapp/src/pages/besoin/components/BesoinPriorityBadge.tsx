@@ -1,18 +1,21 @@
 const PRIORITY_LABELS: Record<string, string> = {
-  CRITIQUE: "Critique",
-  HAUTE:    "Haute",
-  MOYENNE:  "Moyenne",
-  BASSE:    "Basse",
+  CRITIQUE: 'Critique',
+  HAUTE: 'Haute',
+  MOYENNE: 'Moyenne',
+  BASSE: 'Basse',
 };
 
 type PriorityValue = keyof typeof PRIORITY_LABELS;
 
 interface BesoinPriorityBadgeProps {
   value?: PriorityValue;
-  size?: "sm" | "md";
+  size?: 'sm' | 'md';
 }
 
-export default function BesoinPriorityBadge({ value, size = "md" }: Readonly<BesoinPriorityBadgeProps>) {
+export default function BesoinPriorityBadge({
+  value,
+  size = 'md',
+}: Readonly<BesoinPriorityBadgeProps>) {
   if (!value) return null;
   const label = PRIORITY_LABELS[value] || value;
   return (
@@ -22,9 +25,3 @@ export default function BesoinPriorityBadge({ value, size = "md" }: Readonly<Bes
     </span>
   );
 }
-
-
-
-
-
-

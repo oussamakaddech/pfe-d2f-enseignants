@@ -1,6 +1,6 @@
-import { Card, Progress, Tag, Typography } from "antd";
-import { riskColor, riskLabel } from "@/utils/analytics/format";
-import type { RiskScore } from "@/models/analyse/analyticsFeature";
+import { Card, Progress, Tag, Typography } from 'antd';
+import { riskColor, riskLabel } from '@/utils/analytics/format';
+import type { RiskScore } from '@/models/analyse/analyticsFeature';
 
 interface RiskScoreCardProps {
   readonly risk: RiskScore | undefined;
@@ -10,12 +10,12 @@ interface RiskScoreCardProps {
 /** Carte affichant le score de risque multi-facteurs et sa catégorie. */
 export default function RiskScoreCard({ risk, loading }: RiskScoreCardProps) {
   const score = risk?.score ?? 0;
-  const level = risk?.niveau ?? "FAIBLE";
+  const level = risk?.niveau ?? 'FAIBLE';
   const color = riskColor(level);
 
   return (
     <Card loading={loading} title="Score de risque" style={{ borderRadius: 12 }}>
-      <div style={{ textAlign: "center" }}>
+      <div style={{ textAlign: 'center' }}>
         <Progress
           type="dashboard"
           percent={Math.round(score * 100)}
@@ -23,7 +23,7 @@ export default function RiskScoreCard({ risk, loading }: RiskScoreCardProps) {
           format={(p) => `${p}%`}
         />
         <div style={{ marginTop: 8 }}>
-          <Tag color={color} style={{ fontSize: 14, padding: "2px 12px" }}>
+          <Tag color={color} style={{ fontSize: 14, padding: '2px 12px' }}>
             {riskLabel(level)}
           </Tag>
         </div>

@@ -7,7 +7,7 @@ const httpMocks = vi.hoisted(() => ({
   mockDelete: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     get: httpMocks.mockGet,
     post: httpMocks.mockPost,
@@ -19,7 +19,9 @@ vi.mock("@/services/httpClient", () => ({
 import FormationService from '../FormationService';
 
 describe('FormationService', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('creates a formation', async () => {
     httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 1, titre: 'Java' } });
@@ -56,7 +58,3 @@ describe('FormationService', () => {
     expect(httpMocks.mockDelete).toHaveBeenCalledOnce();
   });
 });
-
-
-
-

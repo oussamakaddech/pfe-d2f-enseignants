@@ -17,7 +17,9 @@
   display: flex;
   margin: 0 12px 0 6px;
   border-radius: 8px;
-  transition: transform 0.2s var(--ease-spring), box-shadow 0.2s;
+  transition:
+    transform 0.2s var(--ease-spring),
+    box-shadow 0.2s;
 }
 
 .app-header-logo-link:hover {
@@ -36,7 +38,9 @@
   height: 38px;
   border-radius: 10px;
   cursor: pointer;
-  transition: background 0.2s var(--ease-in-out), transform 0.15s var(--ease-spring);
+  transition:
+    background 0.2s var(--ease-in-out),
+    transform 0.15s var(--ease-spring);
   outline: none;
   border: none;
   background: transparent;
@@ -71,8 +75,11 @@
   cursor: pointer;
   padding: 4px;
   border-radius: 50%;
-  transition: background 0.2s var(--ease-in-out), box-shadow 0.2s, transform 0.15s var(--ease-spring);
-  border: 1.5px solid rgba(255, 255, 255, 0.20);
+  transition:
+    background 0.2s var(--ease-in-out),
+    box-shadow 0.2s,
+    transform 0.15s var(--ease-spring);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
 }
 
 .app-header-user-trigger:hover {
@@ -83,7 +90,7 @@
 
 .app-header-user-trigger:active {
   transform: scale(0.94);
-  background: rgba(255, 255, 255, 0.20);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* ── StickyBar breadcrumb ──────────────────────────────────────────────── */
@@ -126,5 +133,3 @@
     display: none;
   }
 }
-
-

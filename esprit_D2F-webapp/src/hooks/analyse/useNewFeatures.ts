@@ -1,8 +1,11 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import AnalyticsService from "@/services/analyse/AnalyticsService";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import AnalyticsService from '@/services/analyse/AnalyticsService';
 import type {
-  SkillForecast, PeerBenchmark, AnomalyDetectionResult, DepartmentAnomalyResult,
-} from "@/models/analyse";
+  SkillForecast,
+  PeerBenchmark,
+  AnomalyDetectionResult,
+  DepartmentAnomalyResult,
+} from '@/models/analyse';
 
 // ── 1) Prévision temporelle des niveaux de compétence ──
 export function useForecast(
@@ -10,7 +13,7 @@ export function useForecast(
   opts: { horizonMois?: number; competenceId?: number } = {},
 ) {
   return useQuery<SkillForecast>({
-    queryKey: ["forecast", enseignantId, opts.horizonMois, opts.competenceId],
+    queryKey: ['forecast', enseignantId, opts.horizonMois, opts.competenceId],
     queryFn: () => AnalyticsService.getForecast(enseignantId!, opts),
     enabled: !!enseignantId,
     staleTime: 2 * 60 * 1000,
@@ -20,7 +23,7 @@ export function useForecast(
 // ── 2) Benchmark vs pairs ──
 export function useBenchmark(enseignantId: string | null, parUp = false) {
   return useQuery<PeerBenchmark>({
-    queryKey: ["benchmark", enseignantId, parUp],
+    queryKey: ['benchmark', enseignantId, parUp],
     queryFn: () => AnalyticsService.getBenchmark(enseignantId!, { parUp }),
     enabled: !!enseignantId,
     staleTime: 5 * 60 * 1000,
@@ -32,7 +35,7 @@ export function useDetectAnomalies() {
   const qc = useQueryClient();
   return useMutation<AnomalyDetectionResult, Error, string>({
     mutationFn: (enseignantId: string) => AnalyticsService.detectAnomalies(enseignantId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["alerts"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['alerts'] }),
   });
 }
 
@@ -40,7 +43,8 @@ export function useDetectAnomalies() {
 export function useDetectAnomaliesDepartment() {
   const qc = useQueryClient();
   return useMutation<DepartmentAnomalyResult, Error, string>({
-    mutationFn: (departementId: string) => AnalyticsService.detectAnomaliesDepartment(departementId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["alerts"] }),
+    mutationFn: (departementId: string) =>
+      AnalyticsService.detectAnomaliesDepartment(departementId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['alerts'] }),
   });
 }

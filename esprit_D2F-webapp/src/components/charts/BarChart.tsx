@@ -1,9 +1,9 @@
-import { memo, useMemo } from "react";
-import { Bar } from "react-chartjs-2";
-import type { ChartOptions } from "chart.js";
-import ChartDataLabels from "chartjs-plugin-datalabels";
+import { memo, useMemo } from 'react';
+import { Bar } from 'react-chartjs-2';
+import type { ChartOptions } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 
-import { cardTooltip, subtleGrid, axisTicks, rateToColor, colors } from "./chartTheme";
+import { cardTooltip, subtleGrid, axisTicks, rateToColor, colors } from './chartTheme';
 
 interface BarChartProps {
   readonly labels: string[];
@@ -30,8 +30,8 @@ const BarChart = memo(function BarChart({
   horizontal = true,
   colorByValue = true,
   color,
-  valueSuffix = "",
-  datasetLabel = "Valeur",
+  valueSuffix = '',
+  datasetLabel = 'Valeur',
 }: BarChartProps) {
   const max = useMemo(() => Math.max(...values, 0), [values]);
 
@@ -53,9 +53,9 @@ const BarChart = memo(function BarChart({
     [labels, values, datasetLabel, colorByValue, color, max],
   );
 
-  const options = useMemo<ChartOptions<"bar">>(
+  const options = useMemo<ChartOptions<'bar'>>(
     () => ({
-      indexAxis: horizontal ? ("y" as const) : ("x" as const),
+      indexAxis: horizontal ? ('y' as const) : ('x' as const),
       responsive: true,
       maintainAspectRatio: false,
       // Réserve l'espace des datalabels en bout de barre.
@@ -66,15 +66,15 @@ const BarChart = memo(function BarChart({
           ...(cardTooltip as object),
           callbacks: {
             label: (ctx) =>
-              ` ${Number(horizontal ? ctx.parsed.x : ctx.parsed.y).toLocaleString("fr-FR")}${valueSuffix}`,
+              ` ${Number(horizontal ? ctx.parsed.x : ctx.parsed.y).toLocaleString('fr-FR')}${valueSuffix}`,
           },
         },
         datalabels: {
-          anchor: "end" as const,
-          align: "end" as const,
+          anchor: 'end' as const,
+          align: 'end' as const,
           color: colors.textSecondary,
-          font: { family: "Inter", size: 11, weight: 600 },
-          formatter: (v: number) => `${v.toLocaleString("fr-FR")}${valueSuffix}`,
+          font: { family: 'Inter', size: 11, weight: 600 },
+          formatter: (v: number) => `${v.toLocaleString('fr-FR')}${valueSuffix}`,
         },
       },
       scales: horizontal
@@ -91,7 +91,7 @@ const BarChart = memo(function BarChart({
   );
 
   return (
-    <div style={{ position: "relative", width: "100%", height }}>
+    <div style={{ position: 'relative', width: '100%', height }}>
       <Bar data={data} options={options} plugins={[ChartDataLabels]} />
     </div>
   );

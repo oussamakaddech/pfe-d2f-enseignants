@@ -1,4 +1,4 @@
-import ListAccounts from "@/pages/admin/gererComptes/ListAccounts";
+import ListAccounts from '@/pages/admin/gererComptes/ListAccounts';
 
 /**
  * Page dédiée à la gestion des comptes d'accès.

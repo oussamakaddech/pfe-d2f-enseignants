@@ -14,7 +14,9 @@
   font-weight: var(--font-medium);
   font-size: var(--text-sm);
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  transition: color 0.18s ease, background 0.18s ease;
+  transition:
+    color 0.18s ease,
+    background 0.18s ease;
 }
 
 .competence-page-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
@@ -59,7 +61,9 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
 .competence-stat-card:hover {

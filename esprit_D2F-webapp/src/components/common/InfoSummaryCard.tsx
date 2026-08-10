@@ -1,6 +1,6 @@
-import { memo } from "react";
-import { Card, Row, Col, Typography, Tag } from "antd";
-import { neutral } from "@/styles/themes/tokens";
+import { memo } from 'react';
+import { Card, Row, Col, Typography, Tag } from 'antd';
+import { neutral } from '@/styles/themes/tokens';
 
 const { Text, Paragraph } = Typography;
 
@@ -35,7 +35,7 @@ const InfoSummaryCard = memo(function InfoSummaryCard({
   titleIcon,
   items,
   columns = 3,
-  className = "",
+  className = '',
   style,
 }: InfoSummaryCardProps) {
   const colSpan = Math.floor(24 / columns);
@@ -46,22 +46,32 @@ const InfoSummaryCard = memo(function InfoSummaryCard({
       className={`info-summary-card ${className}`}
       style={{
         borderRadius: 14,
-        border: "1px solid rgba(0,0,0,0.07)",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+        border: '1px solid rgba(0,0,0,0.07)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
         ...style,
       }}
     >
       {title && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-          {titleIcon && <span style={{ color: "#b51200" }}>{titleIcon}</span>}
-          <Text strong style={{ fontSize: 14, color: neutral[900] }}>{title}</Text>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          {titleIcon && <span style={{ color: '#b51200' }}>{titleIcon}</span>}
+          <Text strong style={{ fontSize: 14, color: neutral[900] }}>
+            {title}
+          </Text>
         </div>
       )}
       <Row gutter={[16, 14]}>
         {items.map((item) => (
           <Col xs={24} sm={12} lg={colSpan} key={item.label}>
             <div>
-              <Text style={{ fontSize: 12, fontWeight: 600, color: neutral[500], display: "block", marginBottom: 3 }}>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: neutral[500],
+                  display: 'block',
+                  marginBottom: 3,
+                }}
+              >
                 {item.label}
               </Text>
               {item.tag ? (
@@ -70,7 +80,7 @@ const InfoSummaryCard = memo(function InfoSummaryCard({
                 </Tag>
               ) : (
                 <Text style={{ fontSize: 14, color: neutral[900], fontWeight: 500 }}>
-                  {item.value || "—"}
+                  {item.value || '—'}
                 </Text>
               )}
             </div>
@@ -82,7 +92,3 @@ const InfoSummaryCard = memo(function InfoSummaryCard({
 });
 
 export default InfoSummaryCard;
-
-
-
-

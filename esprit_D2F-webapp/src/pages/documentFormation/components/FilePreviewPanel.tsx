@@ -1,10 +1,10 @@
-import { Button, Card, Space, Typography } from "antd";
-import { EyeOutlined, PictureOutlined } from "@ant-design/icons";
-import type { SelectedFile } from "./docUtils";
-import { formatFileSize } from "./docUtils";
-import { DocEmpty } from "./DocEmpty";
-import { DocFileIcon } from "./DocFileIcon";
-import DocumentViewer from "../DocumentViewer";
+import { Button, Card, Space, Typography } from 'antd';
+import { EyeOutlined, PictureOutlined } from '@ant-design/icons';
+import type { SelectedFile } from './docUtils';
+import { formatFileSize } from './docUtils';
+import { DocEmpty } from './DocEmpty';
+import { DocFileIcon } from './DocFileIcon';
+import DocumentViewer from '../DocumentViewer';
 
 const { Text } = Typography;
 
@@ -25,13 +25,9 @@ export function FilePreviewPanel({ selectedFile }: FilePreviewPanelProps) {
   }
 
   return (
-    <Space direction="vertical" size={12} style={{ width: "100%" }}>
-      <Card
-        variant="borderless"
-        className="doc-file-card"
-        styles={{ body: { padding: 16 } }}
-      >
-        <Space align="start" size={14} style={{ width: "100%" }}>
+    <Space direction="vertical" size={12} style={{ width: '100%' }}>
+      <Card variant="borderless" className="doc-file-card" styles={{ body: { padding: 16 } }}>
+        <Space align="start" size={14} style={{ width: '100%' }}>
           <span className="doc-file-icon">
             <DocFileIcon name={selectedFile.name} />
           </span>
@@ -54,10 +50,7 @@ export function FilePreviewPanel({ selectedFile }: FilePreviewPanelProps) {
         </Space>
       </Card>
 
-      <DocumentViewer
-        url={selectedFile.rawUrl}
-        ext={selectedFile.name.split(".").pop() ?? ""}
-      />
+      <DocumentViewer url={selectedFile.rawUrl} ext={selectedFile.name.split('.').pop() ?? ''} />
     </Space>
   );
 }

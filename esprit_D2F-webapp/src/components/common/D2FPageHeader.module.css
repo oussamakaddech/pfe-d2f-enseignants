@@ -14,8 +14,14 @@
 }
 
 @keyframes d2fHeaderFadeIn {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .headerDivider {
@@ -99,5 +105,5 @@
 
 .actionsSection :global(.ant-btn:hover) {
   background: rgba(255, 255, 255, 0.26) !important;
-  border-color: rgba(255, 255, 255, 0.40) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
 }

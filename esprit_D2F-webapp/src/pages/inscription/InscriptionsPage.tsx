@@ -1,27 +1,29 @@
-import { lazy, Suspense, useMemo } from "react";
-import { Tabs, Spin, Skeleton, Row, Col } from "antd";
-import {
-  AppstoreOutlined,
-  FileTextOutlined,
-  TeamOutlined,
-} from "@ant-design/icons";
-import { useSearchParams } from "react-router-dom";
-import { useProfile } from "@/hooks/formation/useFormationExtras";
-import { normalizeRole } from "@/utils/constants/roles";
-import "@/styles/pages/inscription.css";
+import { lazy, Suspense, useMemo } from 'react';
+import { Tabs, Spin, Skeleton, Row, Col } from 'antd';
+import { AppstoreOutlined, FileTextOutlined, TeamOutlined } from '@ant-design/icons';
+import { useSearchParams } from 'react-router-dom';
+import { useProfile } from '@/hooks/formation/useFormationExtras';
+import { normalizeRole } from '@/utils/constants/roles';
+import '@/styles/pages/inscription.css';
 
-const CatalogueTab = lazy(() => import("./CatalogueTab"));
-const MesInscriptionsTab = lazy(() => import("./MesInscriptionsTab"));
-const SuiviTab = lazy(() => import("./SuiviTab"));
+const CatalogueTab = lazy(() => import('./CatalogueTab'));
+const MesInscriptionsTab = lazy(() => import('./MesInscriptionsTab'));
+const SuiviTab = lazy(() => import('./SuiviTab'));
 
 function TabFallback() {
   return (
     <div style={{ padding: 24, minHeight: 400 }}>
-      <Skeleton.Input active style={{ width: 260, height: 28, marginBottom: 28, display: "block" }} />
+      <Skeleton.Input
+        active
+        style={{ width: 260, height: 28, marginBottom: 28, display: 'block' }}
+      />
       <Row gutter={[16, 16]} style={{ marginBottom: 28 }}>
         {[1, 2, 3, 4].map((i) => (
           <Col xs={24} sm={12} md={6} key={i}>
-            <Skeleton.Node active style={{ width: "100%", height: 110, borderRadius: 14, display: "block" }} />
+            <Skeleton.Node
+              active
+              style={{ width: '100%', height: 110, borderRadius: 14, display: 'block' }}
+            />
           </Col>
         ))}
       </Row>
@@ -35,15 +37,15 @@ export default function InscriptionsPage() {
   const { data: profile, isLoading: profileLoading } = useProfile();
 
   const role = normalizeRole(profile?.role);
-  const isAdminLike = role === "admin" || role === "cup";
-  const isTeacher = role === "enseignant" || role === "animateur";
+  const isAdminLike = role === 'admin' || role === 'cup';
+  const isTeacher = role === 'enseignant' || role === 'animateur';
 
-  const activeTab = searchParams.get("tab") || "catalogue";
+  const activeTab = searchParams.get('tab') || 'catalogue';
 
   const tabs = useMemo(() => {
     const items = [
       {
-        key: "catalogue",
+        key: 'catalogue',
         label: (
           <span className="ins-tab-label">
             <AppstoreOutlined />
@@ -60,7 +62,7 @@ export default function InscriptionsPage() {
 
     if (isTeacher) {
       items.push({
-        key: "mes-inscriptions",
+        key: 'mes-inscriptions',
         label: (
           <span className="ins-tab-label">
             <FileTextOutlined />
@@ -77,7 +79,7 @@ export default function InscriptionsPage() {
 
     if (isAdminLike) {
       items.push({
-        key: "suivi",
+        key: 'suivi',
         label: (
           <span className="ins-tab-label">
             <TeamOutlined />
@@ -97,7 +99,9 @@ export default function InscriptionsPage() {
 
   if (profileLoading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 400 }}>
+      <div
+        style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}
+      >
         <Spin size="large" tip="Chargement..." />
       </div>
     );
@@ -108,12 +112,16 @@ export default function InscriptionsPage() {
       <div className="cat-hero">
         <div className="cat-hero-top">
           <div className="cat-hero-left">
-            <div className="cat-hero-icon"><AppstoreOutlined /></div>
+            <div className="cat-hero-icon">
+              <AppstoreOutlined />
+            </div>
             <div>
               <div className="cat-hero-title-row">
                 <h2 className="cat-hero-title">Catalogue des Formations</h2>
               </div>
-              <div className="cat-hero-subtitle">Consulter le catalogue et suivre vos inscriptions</div>
+              <div className="cat-hero-subtitle">
+                Consulter le catalogue et suivre vos inscriptions
+              </div>
             </div>
           </div>
         </div>

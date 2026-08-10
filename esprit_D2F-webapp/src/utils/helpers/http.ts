@@ -24,18 +24,27 @@
  * @returns {string}
  */
 function extractMessageFromData(data: unknown): string | null {
-  if (typeof data === "string") { const t = data.trim(); return t.length > 0 ? t : null; }
-  if (data && typeof data === "object") {
+  if (typeof data === 'string') {
+    const t = data.trim();
+    return t.length > 0 ? t : null;
+  }
+  if (data && typeof data === 'object') {
     const obj = data as Record<string, unknown>;
-    if (typeof obj.message === "string") { const t = obj.message.trim(); if (t.length > 0) return t; }
-    if (typeof obj.error === "string") { const t = obj.error.trim(); if (t.length > 0) return t; }
+    if (typeof obj.message === 'string') {
+      const t = obj.message.trim();
+      if (t.length > 0) return t;
+    }
+    if (typeof obj.error === 'string') {
+      const t = obj.error.trim();
+      if (t.length > 0) return t;
+    }
   }
   return null;
 }
 
 export const extractErrorMessage = (
   error: unknown,
-  fallback = "Une erreur est survenue. Veuillez réessayer."
+  fallback = 'Une erreur est survenue. Veuillez réessayer.',
 ) => {
   if (!error) return fallback;
 
@@ -43,7 +52,7 @@ export const extractErrorMessage = (
   const msg = extractMessageFromData(errorObj?.response?.data);
   if (msg) return msg;
 
-  if (errorObj && typeof errorObj.message === "string") {
+  if (errorObj && typeof errorObj.message === 'string') {
     const t = errorObj.message.trim();
     if (t.length > 0) return t;
   }
@@ -106,7 +115,7 @@ export const isNotFound = (error: unknown): boolean => extractStatusCode(error) 
  *   headers: authHeader(),
  * });
  */
-export const paginationParams = ({ page = 0, size = 20, sort = "" } = {}) => ({
+export const paginationParams = ({ page = 0, size = 20, sort = '' } = {}) => ({
   page,
   size,
   ...(sort ? { sort } : {}),
@@ -126,8 +135,18 @@ export const paginationParams = ({ page = 0, size = 20, sort = "" } = {}) => ({
  *   isLast: boolean,
  * }}
  */
-export const extractPageData = (pageResponse: unknown): { content: unknown[]; totalElements: number; totalPages: number; currentPage: number; pageSize: number; isFirst: boolean; isLast: boolean } => {
-  if (!pageResponse || typeof pageResponse !== "object") {
+export const extractPageData = (
+  pageResponse: unknown,
+): {
+  content: unknown[];
+  totalElements: number;
+  totalPages: number;
+  currentPage: number;
+  pageSize: number;
+  isFirst: boolean;
+  isLast: boolean;
+} => {
+  if (!pageResponse || typeof pageResponse !== 'object') {
     return {
       content: [],
       totalElements: 0,
@@ -165,11 +184,7 @@ export const extractPageData = (pageResponse: unknown): { content: unknown[]; to
  */
 export const buildQueryString = (params: Record<string, unknown> = {}): string => {
   const entries = Object.entries(params)
-    .filter(([, v]) => v !== null && v !== undefined && v !== "")
+    .filter(([, v]) => v !== null && v !== undefined && v !== '')
     .map(([k, v]) => [k, String(v)]);
   return new URLSearchParams(entries).toString();
 };
-
-
-
-

@@ -1,22 +1,22 @@
-import { useMemo } from "react";
-import type { GapHeatmapCell } from "@/models/analyse";
-import { ChartSkeleton } from "../States";
+import { useMemo } from 'react';
+import type { GapHeatmapCell } from '@/models/analyse';
+import { ChartSkeleton } from '../States';
 
 /** Couleur d'un écart selon sa sévérité absolue (0 à ~3 points). */
 export function gapSeverityColor(gap: number): string {
-  if (gap >= 2) return "#ef4444"; // critique
-  if (gap >= 1) return "#f97316"; // élevé
-  if (gap >= 0.5) return "#f59e0b"; // modéré
-  if (gap >= 0.2) return "#84cc16"; // faible
-  return "#10b981"; // négligeable
+  if (gap >= 2) return '#ef4444'; // critique
+  if (gap >= 1) return '#f97316'; // élevé
+  if (gap >= 0.5) return '#f59e0b'; // modéré
+  if (gap >= 0.2) return '#84cc16'; // faible
+  return '#10b981'; // négligeable
 }
 
 export function gapSeverityLabel(gap: number): string {
-  if (gap >= 2) return "Critique";
-  if (gap >= 1) return "Élevé";
-  if (gap >= 0.5) return "Modéré";
-  if (gap >= 0.2) return "Faible";
-  return "Faible";
+  if (gap >= 2) return 'Critique';
+  if (gap >= 1) return 'Élevé';
+  if (gap >= 0.5) return 'Modéré';
+  if (gap >= 0.2) return 'Faible';
+  return 'Faible';
 }
 
 export default function Heatmap({
@@ -54,11 +54,15 @@ export default function Heatmap({
       <div className="rd-heat-scroll">
         <div
           className="rd-heat-grid"
-          style={{ gridTemplateColumns: `minmax(140px, 1.2fr) repeat(${comps.length}, minmax(54px, 1fr))` }}
+          style={{
+            gridTemplateColumns: `minmax(140px, 1.2fr) repeat(${comps.length}, minmax(54px, 1fr))`,
+          }}
         >
           <div className="rd-heat-corner">Dép. \\ Comp.</div>
           {comps.map(([id, nom]) => (
-            <div key={id} className="rd-heat-head" title={nom}>{nom}</div>
+            <div key={id} className="rd-heat-head" title={nom}>
+              {nom}
+            </div>
           ))}
           {depts.map((d) => (
             <FragmentRow
@@ -101,9 +105,9 @@ function FragmentRow({
     <>
       <button
         type="button"
-        className={`rd-heat-dept ${dimmed ? "dim" : ""}`}
+        className={`rd-heat-dept ${dimmed ? 'dim' : ''}`}
         onClick={() => onSelectDept?.(dept)}
-        title={onSelectDept ? "Filtrer par ce département" : undefined}
+        title={onSelectDept ? 'Filtrer par ce département' : undefined}
       >
         {dept}
       </button>
@@ -120,7 +124,7 @@ function FragmentRow({
               background: color,
               opacity: 0.35 + intensity * 0.65,
               fontSize: 10,
-              color: intensity > 0.55 ? "#fff" : "var(--rd-text-2)",
+              color: intensity > 0.55 ? '#fff' : 'var(--rd-text-2)',
             }}
             title={`${dept} · ${cell.competence_nom}\nÉcart moyen: ${cell.avg_gap.toFixed(2)} · ${cell.enseignants_count} ens.`}
           >

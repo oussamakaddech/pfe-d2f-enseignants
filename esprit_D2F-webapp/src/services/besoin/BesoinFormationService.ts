@@ -1,7 +1,7 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
-import type { Id, ApiListOrPage } from "@/models/common";
-import type { BesoinFormation } from "@/models/besoin";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
+import type { Id, ApiListOrPage } from '@/models/common';
+import type { BesoinFormation } from '@/models/besoin';
 
 const API_URL = `${config.BESOIN_URL}/besoins-formation`;
 
@@ -64,9 +64,7 @@ const BesoinFormationService = {
     return response.data;
   },
 
-  async addBesoinFormation(
-    besoin: Partial<BesoinFormation>
-  ): Promise<BesoinFormation> {
+  async addBesoinFormation(besoin: Partial<BesoinFormation>): Promise<BesoinFormation> {
     const response = await axios.post<BesoinFormation>(`${API_URL}`, besoin);
     return response.data;
   },
@@ -78,7 +76,7 @@ const BesoinFormationService = {
 
   async modifyBesoinFormation(
     besoinFormation: Partial<BesoinFormation>,
-    commentaire: string
+    commentaire: string,
   ): Promise<BesoinFormation> {
     const payload: ModifyBesoinPayload = {
       besoinFormation,
@@ -98,33 +96,63 @@ const BesoinFormationService = {
   },
 
   async getUserNotifications(username: string): Promise<BesoinNotification[]> {
-    const response = await axios.get<ApiListOrPage<BesoinNotification>>(`${API_URL}/notifications/${username}`);
-    return (response.data as { content?: BesoinNotification[] }).content ?? (response.data as BesoinNotification[]) ?? [];
+    const response = await axios.get<ApiListOrPage<BesoinNotification>>(
+      `${API_URL}/notifications/${username}`,
+    );
+    return (
+      (response.data as { content?: BesoinNotification[] }).content ??
+      (response.data as BesoinNotification[]) ??
+      []
+    );
   },
 
   async getMyBesoins(): Promise<BesoinFormation[]> {
     const response = await axios.get<ApiListOrPage<BesoinFormation>>(`${API_URL}/mine`);
-    return (response.data as { content?: BesoinFormation[] }).content ?? (response.data as BesoinFormation[]) ?? [];
+    return (
+      (response.data as { content?: BesoinFormation[] }).content ??
+      (response.data as BesoinFormation[]) ??
+      []
+    );
   },
 
   async getBesoinsByUp(up: string): Promise<BesoinFormation[]> {
     const response = await axios.get<ApiListOrPage<BesoinFormation>>(`${API_URL}/by-up/${up}`);
-    return (response.data as { content?: BesoinFormation[] }).content ?? (response.data as BesoinFormation[]) ?? [];
+    return (
+      (response.data as { content?: BesoinFormation[] }).content ??
+      (response.data as BesoinFormation[]) ??
+      []
+    );
   },
 
   async getBesoinsByDepartement(departement: string): Promise<BesoinFormation[]> {
-    const response = await axios.get<ApiListOrPage<BesoinFormation>>(`${API_URL}/by-departement/${departement}`);
-    return (response.data as { content?: BesoinFormation[] }).content ?? (response.data as BesoinFormation[]) ?? [];
+    const response = await axios.get<ApiListOrPage<BesoinFormation>>(
+      `${API_URL}/by-departement/${departement}`,
+    );
+    return (
+      (response.data as { content?: BesoinFormation[] }).content ??
+      (response.data as BesoinFormation[]) ??
+      []
+    );
   },
 
   async getBesoinsByPriorite(): Promise<BesoinFormation[]> {
     const response = await axios.get<ApiListOrPage<BesoinFormation>>(`${API_URL}/by-priorite`);
-    return (response.data as { content?: BesoinFormation[] }).content ?? (response.data as BesoinFormation[]) ?? [];
+    return (
+      (response.data as { content?: BesoinFormation[] }).content ??
+      (response.data as BesoinFormation[]) ??
+      []
+    );
   },
 
   async getBesoinsByPrioriteLevel(priorite: string): Promise<BesoinFormation[]> {
-    const response = await axios.get<ApiListOrPage<BesoinFormation>>(`${API_URL}/by-priorite/${priorite}`);
-    return (response.data as { content?: BesoinFormation[] }).content ?? (response.data as BesoinFormation[]) ?? [];
+    const response = await axios.get<ApiListOrPage<BesoinFormation>>(
+      `${API_URL}/by-priorite/${priorite}`,
+    );
+    return (
+      (response.data as { content?: BesoinFormation[] }).content ??
+      (response.data as BesoinFormation[]) ??
+      []
+    );
   },
 };
 

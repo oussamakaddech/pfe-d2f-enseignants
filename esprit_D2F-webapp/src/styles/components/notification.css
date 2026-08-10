@@ -4,7 +4,9 @@
   padding: 0;
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.16),
+    0 4px 10px rgba(0, 0, 0, 0.08);
 }
 
 .notif-panel {
@@ -149,7 +151,7 @@
   color: #5a6373;
 }
 .notif-item__time::before {
-  content: "•";
+  content: '•';
   margin-right: 8px;
   color: #cbd5e0;
 }
@@ -164,7 +166,10 @@
   padding: 4px;
   border-radius: 6px;
   opacity: 0;
-  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
 }
 .notif-item:hover .notif-item__close {
   opacity: 1;

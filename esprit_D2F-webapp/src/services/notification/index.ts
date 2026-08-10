@@ -1,1 +1,1 @@
-export * from "./notificationSocket";
+export * from './notificationSocket';

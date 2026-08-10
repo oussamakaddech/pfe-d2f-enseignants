@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import dayjs from "dayjs";
+import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import dayjs from 'dayjs';
 import {
   Layout,
   Row,
@@ -15,7 +15,7 @@ import {
   Tag,
   Tooltip,
   Skeleton,
-} from "antd";
+} from 'antd';
 import {
   ReadOutlined,
   CalendarOutlined,
@@ -26,16 +26,21 @@ import {
   ArrowRightOutlined,
   ApartmentOutlined,
   SearchOutlined,
-} from "@ant-design/icons";
-import { useFormationsByAnimateur } from "@/hooks/presence/usePresence";
-import { ROLES } from "@/utils/constants/roles";
-import { useAuth } from "@/hooks/auth/useAuth";
-import { AppPageHeader } from "@/components/common";
-import "@/styles/pages/formation-list.css";
-import type { Dayjs } from "dayjs";
+} from '@ant-design/icons';
+import { useFormationsByAnimateur } from '@/hooks/presence/usePresence';
+import { ROLES } from '@/utils/constants/roles';
+import { useAuth } from '@/hooks/auth/useAuth';
+import { AppPageHeader } from '@/components/common';
+import '@/styles/pages/formation-list.css';
+import type { Dayjs } from 'dayjs';
 
-interface Person { mail?: string; id?: string | number; }
-interface FormationSeance { participants?: Person[]; }
+interface Person {
+  mail?: string;
+  id?: string | number;
+}
+interface FormationSeance {
+  participants?: Person[];
+}
 interface FormationItem {
   idFormation?: string | number;
   titreFormation?: string;
@@ -52,11 +57,11 @@ const { Text } = Typography;
 const { Option } = Select;
 
 const STATUS_META = {
-  ENREGISTRE: { label: "Enregistrée", color: "#6b7280", bg: "#f3f4f6" },
-  PLANIFIE:   { label: "Planifiée",   color: "#2563eb", bg: "#eff6ff" },
-  EN_COURS:   { label: "En cours",    color: "#d97706", bg: "#fffbeb" },
-  ACHEVE:     { label: "Achevée",     color: "#059669", bg: "#ecfdf5" },
-  ANNULE:     { label: "Annulée",     color: "#dc2626", bg: "#fef2f2" },
+  ENREGISTRE: { label: 'Enregistrée', color: '#6b7280', bg: '#f3f4f6' },
+  PLANIFIE: { label: 'Planifiée', color: '#2563eb', bg: '#eff6ff' },
+  EN_COURS: { label: 'En cours', color: '#d97706', bg: '#fffbeb' },
+  ACHEVE: { label: 'Achevée', color: '#059669', bg: '#ecfdf5' },
+  ANNULE: { label: 'Annulée', color: '#dc2626', bg: '#fef2f2' },
 };
 
 const uniqueByMail = (list: Person[]) => {
@@ -70,10 +75,10 @@ const uniqueByMail = (list: Person[]) => {
 
 const FormationList = () => {
   const { user } = useAuth();
-  const [titleFilter, setTitleFilter] = useState("");
-  const [deptFilter, setDeptFilter] = useState("");
-  const [upFilter, setUpFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [titleFilter, setTitleFilter] = useState('');
+  const [deptFilter, setDeptFilter] = useState('');
+  const [upFilter, setUpFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [startDate, setStartDate] = useState<Dayjs | null>(null);
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
   const navigate = useNavigate();
@@ -85,33 +90,41 @@ const FormationList = () => {
   // Extract dropdown options
   const depts = useMemo(() => {
     const m: Record<string, string> = {};
-    formations.forEach((f: FormationItem) => { if (f.departement1) m[String(f.departement1.id)] = f.departement1.libelle ?? ""; });
+    formations.forEach((f: FormationItem) => {
+      if (f.departement1) m[String(f.departement1.id)] = f.departement1.libelle ?? '';
+    });
     return Object.entries(m).map(([id, libelle]) => ({ id, libelle }));
   }, [formations]);
 
   const ups = useMemo(() => {
     const m: Record<string, string> = {};
-    formations.forEach((f: FormationItem) => { if (f.up1) m[String(f.up1.id)] = f.up1.libelle ?? ""; });
+    formations.forEach((f: FormationItem) => {
+      if (f.up1) m[String(f.up1.id)] = f.up1.libelle ?? '';
+    });
     return Object.entries(m).map(([id, libelle]) => ({ id, libelle }));
   }, [formations]);
 
   const filtered = useMemo(() => {
     return formations.filter((f: FormationItem) => {
-      if (titleFilter && !(f.titreFormation || "").toLowerCase().includes(titleFilter.toLowerCase())) return false;
+      if (
+        titleFilter &&
+        !(f.titreFormation || '').toLowerCase().includes(titleFilter.toLowerCase())
+      )
+        return false;
       if (deptFilter && f.departement1?.id !== deptFilter) return false;
       if (upFilter && f.up1?.id !== upFilter) return false;
       if (statusFilter && f.etatFormation !== statusFilter) return false;
-      if (startDate && dayjs(f.dateDebut).isBefore(startDate, "day")) return false;
-      if (endDate && dayjs(f.dateFin).isAfter(endDate, "day")) return false;
+      if (startDate && dayjs(f.dateDebut).isBefore(startDate, 'day')) return false;
+      if (endDate && dayjs(f.dateFin).isAfter(endDate, 'day')) return false;
       return true;
     });
   }, [formations, titleFilter, deptFilter, upFilter, statusFilter, startDate, endDate]);
 
   const resetFilters = () => {
-    setTitleFilter("");
-    setDeptFilter("");
-    setUpFilter("");
-    setStatusFilter("");
+    setTitleFilter('');
+    setDeptFilter('');
+    setUpFilter('');
+    setStatusFilter('');
     setStartDate(null);
     setEndDate(null);
   };
@@ -119,9 +132,12 @@ const FormationList = () => {
   // Global stats
   const stats = useMemo(() => {
     const total = formations.length;
-    const enCours = formations.filter((f: FormationItem) => f.etatFormation === "EN_COURS").length;
-    const achevees = formations.filter((f: FormationItem) => f.etatFormation === "ACHEVE").length;
-    const totalSeances = formations.reduce((sum: number, f: FormationItem) => sum + (f.seances?.length || 0), 0);
+    const enCours = formations.filter((f: FormationItem) => f.etatFormation === 'EN_COURS').length;
+    const achevees = formations.filter((f: FormationItem) => f.etatFormation === 'ACHEVE').length;
+    const totalSeances = formations.reduce(
+      (sum: number, f: FormationItem) => sum + (f.seances?.length || 0),
+      0,
+    );
     return { total, enCours, achevees, totalSeances };
   }, [formations]);
 
@@ -136,28 +152,36 @@ const FormationList = () => {
       {/* Stats banner */}
       <div className="fl-stats-banner">
         <div className="fl-stat-card fl-stat-total">
-          <span className="fl-stat-icon"><ReadOutlined /></span>
+          <span className="fl-stat-icon">
+            <ReadOutlined />
+          </span>
           <div>
             <div className="fl-stat-value">{stats.total}</div>
             <div className="fl-stat-label">Formations</div>
           </div>
         </div>
         <div className="fl-stat-card fl-stat-en-cours">
-          <span className="fl-stat-icon"><ScheduleOutlined /></span>
+          <span className="fl-stat-icon">
+            <ScheduleOutlined />
+          </span>
           <div>
             <div className="fl-stat-value">{stats.enCours}</div>
             <div className="fl-stat-label">En cours</div>
           </div>
         </div>
         <div className="fl-stat-card fl-stat-achevees">
-          <span className="fl-stat-icon"><CheckSquareOutlined /></span>
+          <span className="fl-stat-icon">
+            <CheckSquareOutlined />
+          </span>
           <div>
             <div className="fl-stat-value">{stats.achevees}</div>
             <div className="fl-stat-label">Achevées</div>
           </div>
         </div>
         <div className="fl-stat-card fl-stat-seances">
-          <span className="fl-stat-icon"><CalendarOutlined /></span>
+          <span className="fl-stat-icon">
+            <CalendarOutlined />
+          </span>
           <div>
             <div className="fl-stat-value">{stats.totalSeances}</div>
             <div className="fl-stat-label">Séances totales</div>
@@ -174,19 +198,21 @@ const FormationList = () => {
               value={titleFilter}
               onChange={(e) => setTitleFilter(e.target.value)}
               allowClear
-              prefix={<SearchOutlined style={{ color: "var(--neutral-400)" }} />}
+              prefix={<SearchOutlined style={{ color: 'var(--neutral-400)' }} />}
             />
           </Col>
           <Col xs={24} sm={12} md={4}>
             <Select
               placeholder="Statut"
               value={statusFilter || undefined}
-              onChange={(v) => setStatusFilter(v || "")}
+              onChange={(v) => setStatusFilter(v || '')}
               allowClear
-              style={{ width: "100%" }}
+              style={{ width: '100%' }}
             >
               {Object.entries(STATUS_META).map(([k, v]) => (
-                <Option key={k} value={k}>{v.label}</Option>
+                <Option key={k} value={k}>
+                  {v.label}
+                </Option>
               ))}
             </Select>
           </Col>
@@ -194,22 +220,30 @@ const FormationList = () => {
             <Select
               placeholder="Département"
               value={deptFilter || undefined}
-              onChange={(v) => setDeptFilter(v || "")}
+              onChange={(v) => setDeptFilter(v || '')}
               allowClear
-              style={{ width: "100%" }}
+              style={{ width: '100%' }}
             >
-              {depts.map((d) => <Option key={d.id} value={d.id}>{d.libelle}</Option>)}
+              {depts.map((d) => (
+                <Option key={d.id} value={d.id}>
+                  {d.libelle}
+                </Option>
+              ))}
             </Select>
           </Col>
           <Col xs={24} sm={12} md={4}>
             <Select
               placeholder="UP"
               value={upFilter || undefined}
-              onChange={(v) => setUpFilter(v || "")}
+              onChange={(v) => setUpFilter(v || '')}
               allowClear
-              style={{ width: "100%" }}
+              style={{ width: '100%' }}
             >
-              {ups.map((u) => <Option key={u.id} value={u.id}>{u.libelle}</Option>)}
+              {ups.map((u) => (
+                <Option key={u.id} value={u.id}>
+                  {u.libelle}
+                </Option>
+              ))}
             </Select>
           </Col>
           <Col xs={24} sm={12} md={3}>
@@ -217,11 +251,11 @@ const FormationList = () => {
               placeholder="Date début"
               value={startDate}
               onChange={(d) => setStartDate(d)}
-              style={{ width: "100%" }}
+              style={{ width: '100%' }}
             />
           </Col>
           <Col xs={24} sm={12} md={3}>
-            <Button icon={<ReloadOutlined />} onClick={resetFilters} style={{ width: "100%" }}>
+            <Button icon={<ReloadOutlined />} onClick={resetFilters} style={{ width: '100%' }}>
               Réinitialiser
             </Button>
           </Col>
@@ -243,9 +277,12 @@ const FormationList = () => {
         <Row gutter={[16, 16]}>
           {filtered.map((f: FormationItem) => {
             const seancesCount = f.seances?.length || 0;
-            const participants = uniqueByMail((f.seances || []).flatMap((s: FormationSeance) => s.participants || []));
+            const participants = uniqueByMail(
+              (f.seances || []).flatMap((s: FormationSeance) => s.participants || []),
+            );
             const participantsCount = participants.length;
-            const status = STATUS_META[f.etatFormation as keyof typeof STATUS_META] || STATUS_META.ENREGISTRE;
+            const status =
+              STATUS_META[f.etatFormation as keyof typeof STATUS_META] || STATUS_META.ENREGISTRE;
             const goTo = () => navigate(`/home/animateur-formations/${f.idFormation}`);
 
             return (
@@ -256,13 +293,19 @@ const FormationList = () => {
                   tabIndex={0}
                   role="button"
                   aria-label={`Ouvrir : ${f.titreFormation}`}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") goTo(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') goTo();
+                  }}
                 >
                   {/* status pill */}
                   <div className="fl-card-status-row">
                     <span
                       className="fl-card-status-pill"
-                      style={{ color: status.color, background: status.bg, borderColor: status.color + "33" }}
+                      style={{
+                        color: status.color,
+                        background: status.bg,
+                        borderColor: status.color + '33',
+                      }}
                     >
                       <span className="fl-card-status-dot" style={{ background: status.color }} />
                       {status.label}
@@ -277,7 +320,8 @@ const FormationList = () => {
                   {/* date range */}
                   <div className="fl-card-meta">
                     <CalendarOutlined className="fl-card-calendar-icon" />
-                    {dayjs(f.dateDebut).format("DD/MM/YYYY")} → {dayjs(f.dateFin).format("DD/MM/YYYY")}
+                    {dayjs(f.dateDebut).format('DD/MM/YYYY')} →{' '}
+                    {dayjs(f.dateFin).format('DD/MM/YYYY')}
                   </div>
 
                   {/* UP / Dept chips */}
@@ -299,11 +343,16 @@ const FormationList = () => {
                   <div className="fl-card-stats">
                     <div className="fl-card-stat">
                       <CalendarOutlined />
-                      <span><strong>{seancesCount}</strong> séance{seancesCount > 1 ? "s" : ""}</span>
+                      <span>
+                        <strong>{seancesCount}</strong> séance{seancesCount > 1 ? 's' : ''}
+                      </span>
                     </div>
                     <div className="fl-card-stat">
                       <TeamOutlined />
-                      <span><strong>{participantsCount}</strong> participant{participantsCount > 1 ? "s" : ""}</span>
+                      <span>
+                        <strong>{participantsCount}</strong> participant
+                        {participantsCount > 1 ? 's' : ''}
+                      </span>
                     </div>
                   </div>
 
@@ -332,11 +381,3 @@ const FormationList = () => {
 };
 
 export default FormationList;
-
-
-
-
-
-
-
-

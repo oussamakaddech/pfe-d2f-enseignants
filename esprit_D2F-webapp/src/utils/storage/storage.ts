@@ -15,8 +15,8 @@
 
 // ── Clés centralisées ─────────────────────────────────────────────────────────
 const KEYS = {
-  ACTIVE_ROLE: "activeRole",
-  PREFERRED_LANG: "preferredLang",
+  ACTIVE_ROLE: 'activeRole',
+  PREFERRED_LANG: 'preferredLang',
 };
 
 // ── Rôle actif ────────────────────────────────────────────────────────────────
@@ -31,8 +31,7 @@ export const getActiveRole = () => localStorage.getItem(KEYS.ACTIVE_ROLE);
  * Stocke le rôle actif.
  * @param {string} role
  */
-export const setActiveRole = (role: string): void =>
-  localStorage.setItem(KEYS.ACTIVE_ROLE, role);
+export const setActiveRole = (role: string): void => localStorage.setItem(KEYS.ACTIVE_ROLE, role);
 
 /**
  * Supprime le rôle actif.
@@ -45,8 +44,7 @@ export const removeActiveRole = () => localStorage.removeItem(KEYS.ACTIVE_ROLE);
  * Récupère la langue préférée de l'utilisateur.
  * @returns {string} code langue (ex: "fr", "en"), "fr" par défaut
  */
-export const getPreferredLang = () =>
-  localStorage.getItem(KEYS.PREFERRED_LANG) ?? "fr";
+export const getPreferredLang = () => localStorage.getItem(KEYS.PREFERRED_LANG) ?? 'fr';
 
 /**
  * Stocke la langue préférée.
@@ -79,7 +77,3 @@ export const storage = {
 };
 
 export default storage;
-
-
-
-

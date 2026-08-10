@@ -1,6 +1,6 @@
-import { memo, type ReactNode } from "react";
-import { Button, Typography } from "antd";
-import styles from "./EmptyState.module.css";
+import { memo, type ReactNode } from 'react';
+import { Button, Typography } from 'antd';
+import styles from './EmptyState.module.css';
 
 const { Title, Text } = Typography;
 
@@ -31,7 +31,7 @@ const EmptyState = memo(function EmptyState({
     <div
       className={styles.container}
       style={{
-        padding: compact ? "32px 16px" : "56px 32px",
+        padding: compact ? '32px 16px' : '56px 32px',
         gap: compact ? 10 : 12,
       }}
     >
@@ -61,11 +61,7 @@ const EmptyState = memo(function EmptyState({
         {title}
       </Title>
 
-      {description && (
-        <Text className={styles.description}>
-          {description}
-        </Text>
-      )}
+      {description && <Text className={styles.description}>{description}</Text>}
 
       {action && (
         <Button

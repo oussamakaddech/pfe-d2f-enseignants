@@ -1,51 +1,46 @@
-import React, { useRef, useState } from "react";
-import { Button, Input, Space, Tooltip, Popconfirm } from "antd";
-import type { InputRef } from "antd";
-import {
-  SearchOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  MailOutlined,
-} from "@ant-design/icons";
+import React, { useRef, useState } from 'react';
+import { Button, Input, Space, Tooltip, Popconfirm } from 'antd';
+import type { InputRef } from 'antd';
+import { SearchOutlined, EditOutlined, DeleteOutlined, MailOutlined } from '@ant-design/icons';
 
 // ─── Helper renderers ────────────────────────────────────────────────────────
 
 export const getAvatarClass = (type: string): string => {
-  if (type === "P") return "teachers-avatar teachers-avatar--perm";
-  if (type === "V") return "teachers-avatar teachers-avatar--vac";
-  if (type === "C") return "teachers-avatar teachers-avatar--cont";
-  return "teachers-avatar teachers-avatar--other";
+  if (type === 'P') return 'teachers-avatar teachers-avatar--perm';
+  if (type === 'V') return 'teachers-avatar teachers-avatar--vac';
+  if (type === 'C') return 'teachers-avatar teachers-avatar--cont';
+  return 'teachers-avatar teachers-avatar--other';
 };
 
 export const getInitials = (nom: string, prenom: string): string => {
-  const n = (nom || "").charAt(0).toUpperCase();
-  const p = (prenom || "").charAt(0).toUpperCase();
-  return p + n || "?";
+  const n = (nom || '').charAt(0).toUpperCase();
+  const p = (prenom || '').charAt(0).toUpperCase();
+  return p + n || '?';
 };
 
 export const getTypeTag = (type: string) => {
-  if (type === "P")
+  if (type === 'P')
     return (
       <span className="teachers-type-tag teachers-type-tag--perm">
-        <span className="teachers-type-dot teachers-type-dot--perm" />{" "}Permanent
+        <span className="teachers-type-dot teachers-type-dot--perm" /> Permanent
       </span>
     );
-  if (type === "V")
+  if (type === 'V')
     return (
       <span className="teachers-type-tag teachers-type-tag--vac">
-        <span className="teachers-type-dot teachers-type-dot--vac" />{" "}Vacataire
+        <span className="teachers-type-dot teachers-type-dot--vac" /> Vacataire
       </span>
     );
-  if (type === "C")
+  if (type === 'C')
     return (
       <span className="teachers-type-tag teachers-type-tag--cont">
-        <span className="teachers-type-dot teachers-type-dot--cont" />{" "}Contractuel
+        <span className="teachers-type-dot teachers-type-dot--cont" /> Contractuel
       </span>
     );
   return (
     <span className="teachers-type-tag teachers-type-tag--other">
       <span className="teachers-type-dot teachers-type-dot--other" />
-      {type || "—"}
+      {type || '—'}
     </span>
   );
 };
@@ -61,13 +56,9 @@ interface UseColumnsProps {
 
 export function useTeachersColumns({ onEdit, onDelete }: UseColumnsProps) {
   const searchInput = useRef<InputRef>(null);
-  const [searchedColumn, setSearchedColumn] = useState("");
+  const [searchedColumn, setSearchedColumn] = useState('');
 
-  const handleSearch = (
-    selectedKeys: string[],
-    confirm: () => void,
-    dataIndex: string
-  ) => {
+  const handleSearch = (selectedKeys: string[], confirm: () => void, dataIndex: string) => {
     confirm();
     setSearchedColumn(dataIndex);
   };
@@ -93,11 +84,9 @@ export function useTeachersColumns({ onEdit, onDelete }: UseColumnsProps) {
           ref={searchInput}
           placeholder={`Rechercher ${placeholder}`}
           value={selectedKeys[0]}
-          onChange={(e) =>
-            setSelectedKeys(e.target.value ? [e.target.value] : [])
-          }
+          onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
           onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
-          style={{ marginBottom: 8, display: "block" }}
+          style={{ marginBottom: 8, display: 'block' }}
         />
         <Button
           type="primary"
@@ -108,23 +97,16 @@ export function useTeachersColumns({ onEdit, onDelete }: UseColumnsProps) {
         >
           OK
         </Button>
-        <Button
-          onClick={() => handleReset(clearFilters)}
-          size="small"
-          style={{ width: 90 }}
-        >
+        <Button onClick={() => handleReset(clearFilters)} size="small" style={{ width: 90 }}>
           Réinitialiser
         </Button>
       </div>
     ),
     filterIcon: (filtered: boolean) => (
-      <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
     ),
     onFilter: (value: unknown, record: Record<string, unknown>) =>
-      record[dataIndex]
-        ?.toString()
-        .toLowerCase()
-        .includes(String(value).toLowerCase()),
+      record[dataIndex]?.toString().toLowerCase().includes(String(value).toLowerCase()),
     filterDropdownProps: {
       onOpenChange: (visible: boolean) => {
         if (visible) {
@@ -134,7 +116,7 @@ export function useTeachersColumns({ onEdit, onDelete }: UseColumnsProps) {
     },
     render: (text: string) =>
       searchedColumn === dataIndex ? (
-        <span style={{ backgroundColor: "#ffc069", padding: 0 }}>{text}</span>
+        <span style={{ backgroundColor: '#ffc069', padding: 0 }}>{text}</span>
       ) : (
         text
       ),
@@ -142,12 +124,11 @@ export function useTeachersColumns({ onEdit, onDelete }: UseColumnsProps) {
 
   const columns = [
     {
-      title: "Enseignant",
-      key: "enseignant",
-      sorter: (a: Record<string, string>, b: Record<string, string>) =>
-        a.nom.localeCompare(b.nom),
-      sortDirections: ["ascend", "descend"] as const,
-      ...getColumnSearchProps("nom", "Nom"),
+      title: 'Enseignant',
+      key: 'enseignant',
+      sorter: (a: Record<string, string>, b: Record<string, string>) => a.nom.localeCompare(b.nom),
+      sortDirections: ['ascend', 'descend'] as const,
+      ...getColumnSearchProps('nom', 'Nom'),
       render: (_: unknown, record: Record<string, string>) => (
         <div className="teachers-name-cell">
           <div className={getAvatarClass(record.type)}>
@@ -157,13 +138,13 @@ export function useTeachersColumns({ onEdit, onDelete }: UseColumnsProps) {
             <div className="teachers-name-primary">
               {record.nom} {record.prenom}
             </div>
-            <div style={{ display: "flex", gap: 4, marginTop: 2 }}>
-              {(record.cup === "O" || record.cup === "Y" || record.cup === "1") && (
+            <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
+              {(record.cup === 'O' || record.cup === 'Y' || record.cup === '1') && (
                 <span className="teachers-badge teachers-badge--cup">CUP</span>
               )}
-              {(record.chefDepartement === "O" ||
-                record.chefDepartement === "Y" ||
-                record.chefDepartement === "1") && (
+              {(record.chefDepartement === 'O' ||
+                record.chefDepartement === 'Y' ||
+                record.chefDepartement === '1') && (
                 <span className="teachers-badge teachers-badge--chef">Chef</span>
               )}
             </div>
@@ -172,24 +153,24 @@ export function useTeachersColumns({ onEdit, onDelete }: UseColumnsProps) {
       ),
     },
     {
-      title: "Type",
-      dataIndex: "type",
-      key: "type",
+      title: 'Type',
+      dataIndex: 'type',
+      key: 'type',
       width: 140,
       sorter: (a: Record<string, string>, b: Record<string, string>) =>
-        (a.type || "").localeCompare(b.type || ""),
-      sortDirections: ["ascend", "descend"] as const,
-      ...getColumnSearchProps("type", "Type"),
+        (a.type || '').localeCompare(b.type || ''),
+      sortDirections: ['ascend', 'descend'] as const,
+      ...getColumnSearchProps('type', 'Type'),
       render: (type: string) => getTypeTag(type),
     },
     {
-      title: "Email",
-      dataIndex: "mail",
-      key: "mail",
+      title: 'Email',
+      dataIndex: 'mail',
+      key: 'mail',
       sorter: (a: Record<string, string>, b: Record<string, string>) =>
-        (a.mail || "").localeCompare(b.mail || ""),
-      sortDirections: ["ascend", "descend"] as const,
-      ...getColumnSearchProps("mail", "Email"),
+        (a.mail || '').localeCompare(b.mail || ''),
+      sortDirections: ['ascend', 'descend'] as const,
+      ...getColumnSearchProps('mail', 'Email'),
       render: (mail: string) =>
         mail ? (
           <span className="teachers-email">
@@ -197,33 +178,32 @@ export function useTeachersColumns({ onEdit, onDelete }: UseColumnsProps) {
             {mail}
           </span>
         ) : (
-          <span style={{ color: "#cbd5e0" }}>—</span>
+          <span style={{ color: '#cbd5e0' }}>—</span>
         ),
     },
     {
-      title: "UP",
-      dataIndex: "upLibelle",
-      key: "upLibelle",
+      title: 'UP',
+      dataIndex: 'upLibelle',
+      key: 'upLibelle',
       sorter: (a: Record<string, string>, b: Record<string, string>) =>
-        (a.upLibelle || "").localeCompare(b.upLibelle || ""),
-      sortDirections: ["ascend", "descend"] as const,
-      ...getColumnSearchProps("upLibelle", "UP"),
-      render: (up: string) => up || <span style={{ color: "#cbd5e0" }}>—</span>,
+        (a.upLibelle || '').localeCompare(b.upLibelle || ''),
+      sortDirections: ['ascend', 'descend'] as const,
+      ...getColumnSearchProps('upLibelle', 'UP'),
+      render: (up: string) => up || <span style={{ color: '#cbd5e0' }}>—</span>,
     },
     {
-      title: "Département",
-      dataIndex: "deptLibelle",
-      key: "deptLibelle",
+      title: 'Département',
+      dataIndex: 'deptLibelle',
+      key: 'deptLibelle',
       sorter: (a: Record<string, string>, b: Record<string, string>) =>
-        (a.deptLibelle || "").localeCompare(b.deptLibelle || ""),
-      sortDirections: ["ascend", "descend"] as const,
-      ...getColumnSearchProps("deptLibelle", "Département"),
-      render: (dept: string) =>
-        dept || <span style={{ color: "#cbd5e0" }}>—</span>,
+        (a.deptLibelle || '').localeCompare(b.deptLibelle || ''),
+      sortDirections: ['ascend', 'descend'] as const,
+      ...getColumnSearchProps('deptLibelle', 'Département'),
+      render: (dept: string) => dept || <span style={{ color: '#cbd5e0' }}>—</span>,
     },
     {
-      title: "Actions",
-      key: "actions",
+      title: 'Actions',
+      key: 'actions',
       width: 100,
       render: (_: unknown, record: Record<string, unknown>) => (
         <Space size="small">
@@ -266,4 +246,3 @@ export function useTeachersColumns({ onEdit, onDelete }: UseColumnsProps) {
 
   return columns;
 }
-

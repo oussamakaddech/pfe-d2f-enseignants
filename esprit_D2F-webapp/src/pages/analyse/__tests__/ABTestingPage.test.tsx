@@ -22,7 +22,7 @@ describe('ABTestingPage', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <ABTestingPage />
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
     expect(screen.getByText(/Tests A\/B/)).toBeInTheDocument();
     expect(screen.getByText('Total echantillon')).toBeInTheDocument();

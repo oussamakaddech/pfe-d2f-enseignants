@@ -6,23 +6,26 @@
  * événements métier RabbitMQ et de l'amorçage) et les pousse en temps réel via
  * WebSocket. Ce service consomme ces données réelles — aucune donnée simulée.
  */
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
 import type {
-  AppNotification, NotificationCategory, NotificationPayload, NotificationSeverity,
-} from "@/models/notification";
+  AppNotification,
+  NotificationCategory,
+  NotificationPayload,
+  NotificationSeverity,
+} from '@/models/notification';
 
 const BASE = `${config.NOTIFICATION_URL}/notifications`;
 
 /** Mappe la réponse du backend (NotificationResponse) vers le modèle front. */
 function toApp(n: Record<string, unknown>): AppNotification {
-  const severity = String(n.severity ?? "INFO").toLowerCase() as NotificationSeverity;
+  const severity = String(n.severity ?? 'INFO').toLowerCase() as NotificationSeverity;
   return {
     id: String(n.id),
     type: String(n.type) as NotificationCategory,
     severity,
-    title: String(n.title ?? ""),
-    message: String(n.message ?? ""),
+    title: String(n.title ?? ''),
+    message: String(n.message ?? ''),
     read: Boolean(n.read),
     createdAt: n.createdAt ? String(n.createdAt) : new Date().toISOString(),
     link: n.link ? String(n.link) : undefined,
@@ -40,7 +43,9 @@ interface PageResponse {
 
 export const notificationService = {
   /** Liste les notifications de l'utilisateur authentifié (plus récentes d'abord). */
-  async list(opts: { unreadOnly?: boolean; page?: number; size?: number } = {}): Promise<AppNotification[]> {
+  async list(
+    opts: { unreadOnly?: boolean; page?: number; size?: number } = {},
+  ): Promise<AppNotification[]> {
     const { unreadOnly = false, page = 0, size = 100 } = opts;
     const res = await axios.get<PageResponse>(BASE, {
       params: { unreadOnly, page, size },

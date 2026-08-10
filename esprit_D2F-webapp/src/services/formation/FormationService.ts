@@ -1,6 +1,6 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
-import type { Formation } from "@/models/formation";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
+import type { Formation } from '@/models/formation';
 const API_URL = `${config.FORMATION_URL}/formation/formations`;
 
 const FormationService = {
@@ -19,7 +19,10 @@ const FormationService = {
     return response.data;
   },
 
-  async updateFormation(id: number | string, formationData: Record<string, unknown>): Promise<Formation> {
+  async updateFormation(
+    id: number | string,
+    formationData: Record<string, unknown>,
+  ): Promise<Formation> {
     const response = await axios.put(`${API_URL}/${id}`, formationData);
     return response.data;
   },

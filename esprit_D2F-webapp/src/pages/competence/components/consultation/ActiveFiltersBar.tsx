@@ -10,7 +10,11 @@ interface ActiveFiltersBarProps {
   onClearAll: () => void;
 }
 
-export default function ActiveFiltersBar({ filters, onRemove, onClearAll }: Readonly<ActiveFiltersBarProps>) {
+export default function ActiveFiltersBar({
+  filters,
+  onRemove,
+  onClearAll,
+}: Readonly<ActiveFiltersBarProps>) {
   if (!Array.isArray(filters) || filters.length === 0) return null;
 
   return (
@@ -38,9 +42,3 @@ export default function ActiveFiltersBar({ filters, onRemove, onClearAll }: Read
     </div>
   );
 }
-
-
-
-
-
-

@@ -4,7 +4,7 @@ const httpMocks = vi.hoisted(() => ({
   mockGet: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     get: httpMocks.mockGet,
   },
@@ -40,10 +40,9 @@ describe('SkillPassportService', () => {
 
     await SkillPassportService.downloadMyPassport();
 
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(
-      expect.stringContaining('/me'),
-      { responseType: 'blob' }
-    );
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/me'), {
+      responseType: 'blob',
+    });
     expect(globalThis.URL.createObjectURL).toHaveBeenCalledWith(blob);
     expect(mockAnchor.href).toBe('blob:mock-url');
     expect(mockAnchor.download).toMatch(/skill-passport-me-\d{8}\.pdf/);
@@ -58,10 +57,9 @@ describe('SkillPassportService', () => {
 
     await SkillPassportService.downloadPassportByUsername('jdoe');
 
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(
-      expect.stringContaining('/teacher/jdoe'),
-      { responseType: 'blob' }
-    );
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/teacher/jdoe'), {
+      responseType: 'blob',
+    });
     expect(mockAnchor.download).toMatch(/skill-passport-jdoe-\d{8}\.pdf/);
     expect(mockAnchor.click).toHaveBeenCalled();
     expect(globalThis.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');

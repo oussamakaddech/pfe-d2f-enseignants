@@ -1,8 +1,8 @@
-import { useState, useMemo, useEffect, useCallback, useRef, createContext, memo } from "react";
-import { flushSync } from "react-dom";
-import type { ReactNode } from "react";
-import type { AuthUser, AuthContextValue, UserRole } from "@/models/auth";
-import { refreshToken as refreshTokenApi, logout as logoutApi } from "@/services/auth/AuthService";
+import { useState, useMemo, useEffect, useCallback, useRef, createContext, memo } from 'react';
+import { flushSync } from 'react-dom';
+import type { ReactNode } from 'react';
+import type { AuthUser, AuthContextValue, UserRole } from '@/models/auth';
+import { refreshToken as refreshTokenApi, logout as logoutApi } from '@/services/auth/AuthService';
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
@@ -15,12 +15,12 @@ const REFRESH_INTERVAL_MS = 100 * 60 * 1000;
 
 const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<AuthUser | null>(() => {
-    const storedUser = sessionStorage.getItem("d2f_user");
+    const storedUser = sessionStorage.getItem('d2f_user');
     if (storedUser) {
       try {
         return JSON.parse(storedUser) as AuthUser;
       } catch {
-        sessionStorage.removeItem("d2f_user");
+        sessionStorage.removeItem('d2f_user');
       }
     }
     return null;
@@ -53,7 +53,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         };
         setUser(updatedUser);
         try {
-          sessionStorage.setItem("d2f_user", JSON.stringify(updatedUser));
+          sessionStorage.setItem('d2f_user', JSON.stringify(updatedUser));
         } catch {
           /* ignore */
         }
@@ -73,9 +73,9 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         }
         stopSilentRefresh();
         setUser(null);
-        sessionStorage.removeItem("d2f_user");
+        sessionStorage.removeItem('d2f_user');
         try {
-          globalThis.dispatchEvent(new Event("auth:loggedOut"));
+          globalThis.dispatchEvent(new Event('auth:loggedOut'));
         } catch {
           /* ignore */
         }
@@ -113,47 +113,52 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const onAuthLoggedOut = () => {
       stopSilentRefresh();
-      sessionStorage.removeItem("d2f_user");
+      sessionStorage.removeItem('d2f_user');
       try {
         flushSync(() => setUser(null));
       } catch {
         setUser(null);
       }
     };
-    globalThis.addEventListener("auth:loggedOut", onAuthLoggedOut);
-    return () => globalThis.removeEventListener("auth:loggedOut", onAuthLoggedOut);
+    globalThis.addEventListener('auth:loggedOut', onAuthLoggedOut);
+    return () => globalThis.removeEventListener('auth:loggedOut', onAuthLoggedOut);
   }, [stopSilentRefresh]);
 
-  const login = useCallback((userData: AuthUser) => {
-    authGenerationRef.current += 1;
-    try {
-      sessionStorage.setItem("d2f_user", JSON.stringify(userData));
-    } catch {
-      /* ignore */
-    }
-    try {
-      flushSync(() => setUser(userData));
-    } catch {
-      setUser(userData);
-    }
-    startSilentRefresh();
-  }, [startSilentRefresh]);
+  const login = useCallback(
+    (userData: AuthUser) => {
+      authGenerationRef.current += 1;
+      try {
+        sessionStorage.setItem('d2f_user', JSON.stringify(userData));
+      } catch {
+        /* ignore */
+      }
+      try {
+        flushSync(() => setUser(userData));
+      } catch {
+        setUser(userData);
+      }
+      startSilentRefresh();
+    },
+    [startSilentRefresh],
+  );
 
   const logout = useCallback(() => {
     authGenerationRef.current += 1;
     stopSilentRefresh();
-    sessionStorage.removeItem("d2f_user");
+    sessionStorage.removeItem('d2f_user');
     try {
       flushSync(() => setUser(null));
     } catch {
       setUser(null);
     }
-    logoutApi().catch(() => { /* ignore */ });
+    logoutApi().catch(() => {
+      /* ignore */
+    });
   }, [stopSilentRefresh]);
 
   const authValue = useMemo<AuthContextValue>(
     () => ({ user, login, logout }),
-    [user, login, logout]
+    [user, login, logout],
   );
 
   return <AuthContext.Provider value={authValue}>{children}</AuthContext.Provider>;

@@ -1,4 +1,4 @@
-import DashboardGlass from "./DashboardGlass";
+import DashboardGlass from './DashboardGlass';
 
 /**
  * Tableau de bord principal (landing /home).

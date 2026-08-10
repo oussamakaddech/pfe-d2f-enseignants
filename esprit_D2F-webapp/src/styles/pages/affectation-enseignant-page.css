@@ -19,7 +19,9 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.22s var(--ease-in-out), transform 0.22s var(--ease-in-out);
+  transition:
+    box-shadow 0.22s var(--ease-in-out),
+    transform 0.22s var(--ease-in-out);
 }
 
 .affectation-stat-card:hover {
@@ -112,11 +114,26 @@
   font-weight: var(--font-semibold);
 }
 
-.affectation-niveau-N1 { background: var(--neutral-100); color: var(--text-muted); }
-.affectation-niveau-N2 { background: var(--color-info-bg); color: var(--color-info); }
-.affectation-niveau-N3 { background: #ecfeff; color: #0891b2; }
-.affectation-niveau-N4 { background: var(--color-success-bg); color: var(--color-success); }
-.affectation-niveau-N5 { background: var(--color-warning-bg); color: var(--color-warning); }
+.affectation-niveau-N1 {
+  background: var(--neutral-100);
+  color: var(--text-muted);
+}
+.affectation-niveau-N2 {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+.affectation-niveau-N3 {
+  background: #ecfeff;
+  color: #0891b2;
+}
+.affectation-niveau-N4 {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+.affectation-niveau-N5 {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
 
 /* ── Action buttons ─────────────────────────────────────────────────────── */
 .affectation-btn-affect {

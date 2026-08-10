@@ -4,11 +4,7 @@ import * as validators from './validators';
 describe('Validators Utility', () => {
   describe('Email validation', () => {
     it('should validate correct email format', () => {
-      const validEmails = [
-        'user@example.com',
-        'test.user@example.co.uk',
-        'user+tag@example.com',
-      ];
+      const validEmails = ['user@example.com', 'test.user@example.co.uk', 'user+tag@example.com'];
 
       validEmails.forEach((email) => {
         if (validators.isValidEmail) {
@@ -18,12 +14,7 @@ describe('Validators Utility', () => {
     });
 
     it('should reject invalid email format', () => {
-      const invalidEmails = [
-        'notanemail',
-        'missing@domain',
-        '@example.com',
-        'user@',
-      ];
+      const invalidEmails = ['notanemail', 'missing@domain', '@example.com', 'user@'];
 
       invalidEmails.forEach((email) => {
         if (validators.isValidEmail) {
@@ -35,11 +26,7 @@ describe('Validators Utility', () => {
 
   describe('Password validation', () => {
     it('should validate strong passwords', () => {
-      const strongPasswords = [
-        'SecurePass123!',
-        'MyPassword@2024',
-        'Complex$Pass99',
-      ];
+      const strongPasswords = ['SecurePass123!', 'MyPassword@2024', 'Complex$Pass99'];
 
       strongPasswords.forEach((pass) => {
         if (validators.isStrongPassword) {
@@ -49,12 +36,7 @@ describe('Validators Utility', () => {
     });
 
     it('should reject weak passwords', () => {
-      const weakPasswords = [
-        'weak',
-        '123456',
-        'password',
-        'aaa',
-      ];
+      const weakPasswords = ['weak', '123456', 'password', 'aaa'];
 
       weakPasswords.forEach((pass) => {
         if (validators.isStrongPassword) {
@@ -66,11 +48,7 @@ describe('Validators Utility', () => {
 
   describe('Phone validation', () => {
     it('should validate phone numbers', () => {
-      const validPhones = [
-        '+21691234567',
-        '21691234567',
-        '91234567',
-      ];
+      const validPhones = ['+21691234567', '21691234567', '91234567'];
 
       validPhones.forEach((phone) => {
         if (validators.isValidPhone) {
@@ -80,11 +58,7 @@ describe('Validators Utility', () => {
     });
 
     it('should reject invalid phone numbers', () => {
-      const invalidPhones = [
-        'notaphone',
-        '123',
-        '',
-      ];
+      const invalidPhones = ['notaphone', '123', ''];
 
       invalidPhones.forEach((phone) => {
         if (validators.isValidPhone) {
@@ -114,11 +88,7 @@ describe('Validators Utility', () => {
 
   describe('Date validation', () => {
     it('should validate valid dates', () => {
-      const validDates = [
-        new Date(),
-        new Date('2024-01-15'),
-        new Date('2025-12-31'),
-      ];
+      const validDates = [new Date(), new Date('2024-01-15'), new Date('2025-12-31')];
 
       validDates.forEach((date) => {
         if (validators.isValidDate) {
@@ -128,11 +98,7 @@ describe('Validators Utility', () => {
     });
 
     it('should reject invalid dates', () => {
-      const invalidDates = [
-        new Date('invalid'),
-        'not a date',
-        null,
-      ];
+      const invalidDates = [new Date('invalid'), 'not a date', null];
 
       invalidDates.forEach((date) => {
         if (validators.isValidDate) {
@@ -158,11 +124,7 @@ describe('Validators Utility', () => {
     });
 
     it('should reject invalid URLs', () => {
-      const invalidUrls = [
-        'not a url',
-        'example.com',
-        'htp://invalid.com',
-      ];
+      const invalidUrls = ['not a url', 'example.com', 'htp://invalid.com'];
 
       invalidUrls.forEach((url) => {
         if (validators.isValidUrl) {
@@ -172,7 +134,3 @@ describe('Validators Utility', () => {
     });
   });
 });
-
-
-
-

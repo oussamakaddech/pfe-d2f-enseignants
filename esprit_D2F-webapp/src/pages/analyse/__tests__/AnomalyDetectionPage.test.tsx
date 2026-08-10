@@ -4,8 +4,18 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AnomalyDetectionPage from '../AnomalyDetectionPage';
 
 vi.mock('@/hooks/analyse/useNewFeatures', () => ({
-  useDetectAnomalies: vi.fn(() => ({ mutate: vi.fn(), data: undefined, isPending: false, isError: false })),
-  useDetectAnomaliesDepartment: vi.fn(() => ({ mutate: vi.fn(), data: undefined, isPending: false, isError: false })),
+  useDetectAnomalies: vi.fn(() => ({
+    mutate: vi.fn(),
+    data: undefined,
+    isPending: false,
+    isError: false,
+  })),
+  useDetectAnomaliesDepartment: vi.fn(() => ({
+    mutate: vi.fn(),
+    data: undefined,
+    isPending: false,
+    isError: false,
+  })),
 }));
 
 vi.mock('@/hooks/auth/useAuth', () => ({
@@ -24,7 +34,7 @@ describe('AnomalyDetectionPage', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <AnomalyDetectionPage />
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
     expect(screen.getByText("Détection d'anomalies")).toBeInTheDocument();
     expect(screen.getByText("Analyse d'un enseignant")).toBeInTheDocument();

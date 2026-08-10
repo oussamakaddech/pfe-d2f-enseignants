@@ -54,7 +54,11 @@ describe('consultationViewUtils', () => {
 
   describe('getNiveauStyle', () => {
     it('returns a style for known ranks', () => {
-      expect(getNiveauStyle('N1_DEBUTANT')).toEqual({ color: '#9a3412', bg: '#ffedd5', border: '#fdba74' });
+      expect(getNiveauStyle('N1_DEBUTANT')).toEqual({
+        color: '#9a3412',
+        bg: '#ffedd5',
+        border: '#fdba74',
+      });
     });
     it('returns default style for unknown', () => {
       expect(getNiveauStyle('abc')).toEqual({ color: '#334155', bg: '#e2e8f0', border: '#cbd5e1' });
@@ -81,7 +85,16 @@ describe('consultationViewUtils', () => {
         domaines: [{ id: 1, code: 'D1', nom: 'Dom' }],
         competences: [{ id: 10, domaineId: 1, code: 'C1', nom: 'Comp' }],
         sousComps: [{ id: 100, competenceId: 10, nom: 'SC' }],
-        savoirs: [{ id: 1000, code: 'S1', nom: 'Sav', type: 'THEORIQUE', niveau: 'N1', sousCompetenceId: 100 }],
+        savoirs: [
+          {
+            id: 1000,
+            code: 'S1',
+            nom: 'Sav',
+            type: 'THEORIQUE',
+            niveau: 'N1',
+            sousCompetenceId: 100,
+          },
+        ],
       });
       expect(result).toHaveLength(1);
       expect(result[0].sousCompetenceNom).toBe('SC');
@@ -94,7 +107,9 @@ describe('consultationViewUtils', () => {
         domaines: [{ id: 1, code: 'D1', nom: 'Dom' }],
         competences: [{ id: 10, domaineId: 1, code: 'C1', nom: 'Comp' }],
         sousComps: [],
-        savoirs: [{ id: 1000, code: 'S1', nom: 'Sav', type: 'PRATIQUE', niveau: 'N2', competenceId: 10 }],
+        savoirs: [
+          { id: 1000, code: 'S1', nom: 'Sav', type: 'PRATIQUE', niveau: 'N2', competenceId: 10 },
+        ],
       });
       expect(result[0].isDirect).toBe(true);
       expect(result[0].competenceNom).toBe('Comp');
@@ -112,9 +127,15 @@ describe('consultationViewUtils', () => {
   describe('getFilteredCrud', () => {
     const crud = {
       domaines: [{ id: 1 }, { id: 2 }],
-      competences: [{ id: 10, domaineId: 1 }, { id: 20, domaineId: 2 }],
+      competences: [
+        { id: 10, domaineId: 1 },
+        { id: 20, domaineId: 2 },
+      ],
       sousComps: [{ id: 100, competenceId: 10 }],
-      savoirs: [{ id: 1000, sousCompetenceId: 100 }, { id: 1001, competenceId: 10 }],
+      savoirs: [
+        { id: 1000, sousCompetenceId: 100 },
+        { id: 1001, competenceId: 10 },
+      ],
     };
     it('returns all data when no domaineId', () => {
       expect(getFilteredCrud(crud, null)).toEqual(crud);

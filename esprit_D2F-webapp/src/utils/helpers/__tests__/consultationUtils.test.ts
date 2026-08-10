@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  buildD3TreeData,
-  buildExportFileName,
-  buildMatrixRows,
-} from '../consultationUtils';
+import { buildD3TreeData, buildExportFileName, buildMatrixRows } from '../consultationUtils';
 
 describe('consultationUtils', () => {
   interface TreeNode {
@@ -59,8 +55,22 @@ describe('consultationUtils', () => {
     const competences: TreeNode[] = [{ id: 10, domaineId: 1, nom: 'Sols', code: 'S' }];
     const sousComps: TreeNode[] = [];
     const savoirs: TreeNode[] = [
-      { id: 300, competenceId: 10, sousCompetenceId: null, nom: 'S1', code: 'S1', type: 'THEORIQUE' },
-      { id: 301, competenceId: 10, sousCompetenceId: null, nom: 'S2', code: 'S2', type: 'PRATIQUE' },
+      {
+        id: 300,
+        competenceId: 10,
+        sousCompetenceId: null,
+        nom: 'S1',
+        code: 'S1',
+        type: 'THEORIQUE',
+      },
+      {
+        id: 301,
+        competenceId: 10,
+        sousCompetenceId: null,
+        nom: 'S2',
+        code: 'S2',
+        type: 'PRATIQUE',
+      },
     ];
 
     const tree = buildD3TreeData(

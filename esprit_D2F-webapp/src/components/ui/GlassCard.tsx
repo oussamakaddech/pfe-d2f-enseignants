@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode } from "react";
+import { type CSSProperties, type ReactNode } from 'react';
 
 interface GlassCardProps {
   readonly title?: ReactNode;
@@ -19,20 +19,17 @@ export default function GlassCard({
   title,
   subtitle,
   icon,
-  iconColor = "#b51200",
-  iconBg = "rgba(181,18,0,0.10)",
+  iconColor = '#b51200',
+  iconBg = 'rgba(181,18,0,0.10)',
   extra,
   children,
   hoverable = false,
   style,
   bodyStyle,
-  className = "",
+  className = '',
 }: GlassCardProps) {
   return (
-    <div
-      className={`glass-card ${hoverable ? "hoverable" : ""} ${className}`}
-      style={style}
-    >
+    <div className={`glass-card ${hoverable ? 'hoverable' : ''} ${className}`} style={style}>
       {(title || icon || extra) && (
         <div className="glass-card-head">
           {icon && (

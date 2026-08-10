@@ -1,14 +1,30 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState } from 'react';
 import {
-  Alert, Badge, Button, Collapse, Row, Col, Segmented, Statistic, Table, Tag, Typography,
-} from "antd";
+  Alert,
+  Badge,
+  Button,
+  Collapse,
+  Row,
+  Col,
+  Segmented,
+  Statistic,
+  Table,
+  Tag,
+  Typography,
+} from 'antd';
 import {
-  BookOutlined, CheckCircleOutlined, InfoCircleOutlined, TableOutlined,
-  TeamOutlined, UserOutlined, WarningOutlined, DatabaseOutlined,
-} from "@ant-design/icons";
-import EnseignantLoadView from "./EnseignantLoadView";
-import EnseignantMatrixView from "./EnseignantMatrixView";
-import { computeCoveragePct } from "./constants";
+  BookOutlined,
+  CheckCircleOutlined,
+  InfoCircleOutlined,
+  TableOutlined,
+  TeamOutlined,
+  UserOutlined,
+  WarningOutlined,
+  DatabaseOutlined,
+} from '@ant-design/icons';
+import EnseignantLoadView from './EnseignantLoadView';
+import EnseignantMatrixView from './EnseignantMatrixView';
+import { computeCoveragePct } from './constants';
 
 const { Text } = Typography;
 
@@ -49,9 +65,9 @@ const countActiveTeachers = (allSavoirs: SavoirNode[]) => {
 };
 
 const getCoverageColor = (tauxCouverture: number) => {
-  if (tauxCouverture >= 80) return "#52c41a";
-  if (tauxCouverture >= 50) return "#fa8c16";
-  return "#f5222d";
+  if (tauxCouverture >= 80) return '#52c41a';
+  if (tauxCouverture >= 50) return '#fa8c16';
+  return '#f5222d';
 };
 
 interface EnseignantPanelProps {
@@ -62,8 +78,14 @@ interface EnseignantPanelProps {
   departement: string;
 }
 
-export default function EnseignantPanel({ tree, setTree, allEnseignants, extractedEnseignants, departement }: Readonly<EnseignantPanelProps>) {
-  const [viewMode, setViewMode] = useState("savoir");
+export default function EnseignantPanel({
+  tree,
+  setTree,
+  allEnseignants,
+  extractedEnseignants,
+  departement,
+}: Readonly<EnseignantPanelProps>) {
+  const [viewMode, setViewMode] = useState('savoir');
 
   const allSavoirs = useMemo(() => flatten(tree), [tree]);
   const totalSavoirs = allSavoirs.length;
@@ -93,7 +115,7 @@ export default function EnseignantPanel({ tree, setTree, allEnseignants, extract
               title="Enseignants actifs"
               value={enseignantsActifs}
               prefix={<TeamOutlined />}
-              valueStyle={{ color: "#1677ff" }}
+              valueStyle={{ color: '#1677ff' }}
             />
           </Col>
           <Col span={8}>
@@ -101,7 +123,7 @@ export default function EnseignantPanel({ tree, setTree, allEnseignants, extract
               title="Savoirs couverts"
               value={`${savoirsCoverts}/${totalSavoirs}`}
               prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: savoirsCoverts === totalSavoirs ? "#52c41a" : "#fa8c16" }}
+              valueStyle={{ color: savoirsCoverts === totalSavoirs ? '#52c41a' : '#fa8c16' }}
             />
           </Col>
           <Col span={8}>
@@ -130,15 +152,15 @@ export default function EnseignantPanel({ tree, setTree, allEnseignants, extract
         value={viewMode}
         onChange={setViewMode}
         options={[
-          { label: "Par savoir", value: "savoir", icon: <BookOutlined /> },
-          { label: "Par enseignant", value: "enseignant", icon: <UserOutlined /> },
-          { label: "Matrice", value: "matrice", icon: <TableOutlined /> },
+          { label: 'Par savoir', value: 'savoir', icon: <BookOutlined /> },
+          { label: 'Par enseignant', value: 'enseignant', icon: <UserOutlined /> },
+          { label: 'Matrice', value: 'matrice', icon: <TableOutlined /> },
         ]}
         style={{ marginBottom: 16 }}
         block
       />
 
-      {viewMode === "enseignant" && (
+      {viewMode === 'enseignant' && (
         <EnseignantLoadView
           tree={tree}
           setTree={setTree}
@@ -147,85 +169,79 @@ export default function EnseignantPanel({ tree, setTree, allEnseignants, extract
         />
       )}
 
-      {viewMode === "matrice" && (
-        <EnseignantMatrixView
-          tree={tree}
-          setTree={setTree}
-          allEnseignants={allEnseignants}
-        />
+      {viewMode === 'matrice' && (
+        <EnseignantMatrixView tree={tree} setTree={setTree} allEnseignants={allEnseignants} />
       )}
 
-      {viewMode === "savoir" && (
+      {viewMode === 'savoir' && (
         <div className="ens-savoir-hint">
-          <InfoCircleOutlined /> Les assignations par savoir se font directement dans les cartes de l&apos;arbre de compétences.
-          Utilisez les modes &quot;Par enseignant&quot; ou &quot;Matrice&quot; pour une vue globale ({departement.toUpperCase()}).
+          <InfoCircleOutlined /> Les assignations par savoir se font directement dans les cartes de
+          l&apos;arbre de compétences. Utilisez les modes &quot;Par enseignant&quot; ou
+          &quot;Matrice&quot; pour une vue globale ({departement.toUpperCase()}).
         </div>
       )}
 
       {unmatched.length > 0 && (
         <Collapse
           ghost
-          items={[{
-            key: "unmatched",
-            label: (
-              <span>
-                <WarningOutlined style={{ color: "#fa8c16" }} />
-                {" "}Enseignants extraits non trouvés en DB
-                <Badge
-                  count={unmatched.length}
-                  style={{ marginLeft: 8, background: "#fa8c16" }}
+          items={[
+            {
+              key: 'unmatched',
+              label: (
+                <span>
+                  <WarningOutlined style={{ color: '#fa8c16' }} /> Enseignants extraits non trouvés
+                  en DB
+                  <Badge
+                    count={unmatched.length}
+                    style={{ marginLeft: 8, background: '#fa8c16' }}
+                  />
+                </span>
+              ),
+              children: (
+                <Table
+                  size="small"
+                  pagination={false}
+                  dataSource={unmatched.map((r, i) => ({ ...r, key: `u-${i}` }))}
+                  columns={[
+                    { title: 'Nom extrait', dataIndex: 'nom_complet' },
+                    {
+                      title: 'Fichier source',
+                      dataIndex: 'fichier',
+                      render: (f) => (
+                        <Text
+                          type="secondary"
+                          style={{
+                            display: 'block',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            minWidth: 0,
+                          }}
+                        >
+                          {f}
+                        </Text>
+                      ),
+                    },
+                    {
+                      title: 'Rôle',
+                      dataIndex: 'role',
+                      render: (r) => <Tag>{r}</Tag>,
+                    },
+                    {
+                      title: 'Action',
+                      render: () => (
+                        <Button size="small" type="link">
+                          Créer dans la DB
+                        </Button>
+                      ),
+                    },
+                  ]}
                 />
-              </span>
-            ),
-            children: (
-              <Table
-                size="small"
-                pagination={false}
-                dataSource={unmatched.map((r, i) => ({ ...r, key: `u-${i}` }))}
-                columns={[
-                  { title: "Nom extrait", dataIndex: "nom_complet" },
-                  {
-                    title: "Fichier source",
-                    dataIndex: "fichier",
-                    render: (f) => (
-                      <Text
-                        type="secondary"
-                        style={{
-                          display: "block",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          minWidth: 0,
-                        }}
-                      >
-                        {f}
-                      </Text>
-                    ),
-                  },
-                  {
-                    title: "Rôle",
-                    dataIndex: "role",
-                    render: (r) => <Tag>{r}</Tag>,
-                  },
-                  {
-                    title: "Action",
-                    render: () => (
-                      <Button size="small" type="link">Créer dans la DB</Button>
-                    ),
-                  },
-                ]}
-              />
-            ),
-          }]}
+              ),
+            },
+          ]}
         />
       )}
     </div>
   );
 }
-
-
-
-
-
-
-

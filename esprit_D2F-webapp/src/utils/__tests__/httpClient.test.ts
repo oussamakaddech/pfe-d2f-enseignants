@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import axios, { isAxiosError } from 'axios';
-import { createApiClient } from "@/services/httpClient";
-import { navigate } from "@/utils/helpers/navigation";
+import { createApiClient } from '@/services/httpClient';
+import { navigate } from '@/utils/helpers/navigation';
 
 const notifyMocks = vi.hoisted(() => ({
   error: vi.fn(),
@@ -11,7 +11,7 @@ const notifyMocks = vi.hoisted(() => ({
 }));
 
 vi.mock('axios', async () => {
-  const actual = await vi.importActual('axios') as typeof import('axios');
+  const actual = (await vi.importActual('axios')) as typeof import('axios');
   return {
     ...actual,
     default: {
@@ -45,7 +45,10 @@ describe('httpClient', () => {
 
   it('creates an api client with withCredentials', () => {
     const api = createApiClient('http://base.url');
-    expect(axios.create).toHaveBeenCalledWith({ baseURL: 'http://base.url', withCredentials: true });
+    expect(axios.create).toHaveBeenCalledWith({
+      baseURL: 'http://base.url',
+      withCredentials: true,
+    });
     expect(api.interceptors.response.use).toHaveBeenCalled();
     expect(typeof (api as unknown as { isAxiosError: unknown }).isAxiosError).toBe('function');
   });
@@ -53,30 +56,33 @@ describe('httpClient', () => {
   it('isAxiosError helper works', () => {
     const api = createApiClient();
     (isAxiosError as unknown as ReturnType<typeof vi.fn>).mockReturnValue(true);
-    expect((api as unknown as { isAxiosError: (v: unknown) => boolean }).isAxiosError({})).toBe(true);
+    expect((api as unknown as { isAxiosError: (v: unknown) => boolean }).isAxiosError({})).toBe(
+      true,
+    );
   });
 
   it('response interceptor handles 401 by dispatching event', async () => {
     const api = createApiClient();
-    const responseErrorHandler = (api.interceptors.response.use as ReturnType<typeof vi.fn>).mock.calls[0][1];
-    
+    const responseErrorHandler = (api.interceptors.response.use as ReturnType<typeof vi.fn>).mock
+      .calls[0][1];
+
     // Mock location to not be on login page
     Object.defineProperty(window, 'location', {
       value: { pathname: '/home/profile', replace: vi.fn(), href: '' },
       writable: true,
       configurable: true,
     });
-    
+
     const error = { response: { status: 401 }, config: { url: 'http://other' } };
-    
+
     const dispatchEventSpy = vi.spyOn(window, 'dispatchEvent');
 
     await expect(responseErrorHandler(error)).rejects.toEqual(error);
-    
+
     expect(dispatchEventSpy).toHaveBeenCalled();
     const event = dispatchEventSpy.mock.calls[0][0] as Event;
     expect(event.type).toBe('auth:loggedOut');
-    
+
     // It should also navigate to login if not already on login
     expect(navigate).toHaveBeenCalledWith('/', { replace: true });
   });
@@ -86,20 +92,23 @@ describe('httpClient', () => {
     vi.setSystemTime(new Date('2026-05-27T10:00:00Z'));
 
     const api = createApiClient();
-    const responseErrorHandler = (api.interceptors.response.use as ReturnType<typeof vi.fn>).mock.calls[0][1];
+    const responseErrorHandler = (api.interceptors.response.use as ReturnType<typeof vi.fn>).mock
+      .calls[0][1];
 
-    await expect(responseErrorHandler({ config: { url: '/foo' } })).rejects.toEqual({ config: { url: '/foo' } });
+    await expect(responseErrorHandler({ config: { url: '/foo' } })).rejects.toEqual({
+      config: { url: '/foo' },
+    });
     expect(notifyMocks.error).toHaveBeenCalledTimes(1);
 
-    await expect(responseErrorHandler({ config: { url: '/bar' } })).rejects.toEqual({ config: { url: '/bar' } });
+    await expect(responseErrorHandler({ config: { url: '/bar' } })).rejects.toEqual({
+      config: { url: '/bar' },
+    });
     expect(notifyMocks.error).toHaveBeenCalledTimes(1);
 
     vi.setSystemTime(new Date('2026-05-27T10:00:11Z'));
-    await expect(responseErrorHandler({ config: { url: '/baz' } })).rejects.toEqual({ config: { url: '/baz' } });
+    await expect(responseErrorHandler({ config: { url: '/baz' } })).rejects.toEqual({
+      config: { url: '/baz' },
+    });
     expect(notifyMocks.error).toHaveBeenCalledTimes(2);
   });
 });
-
-
-
-

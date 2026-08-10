@@ -27,7 +27,7 @@ export {
   formatCode,
   formatNiveauMaitrise,
   formatTypeSavoir,
-} from "./formatters/formatters";
+} from './formatters/formatters';
 
 // ── Validation ────────────────────────────────────────────────────────────────
 export {
@@ -54,7 +54,7 @@ export {
   codeRules,
   descriptionRules,
   emailRules,
-} from "./validators/validators";
+} from './validators/validators';
 
 // ── Stockage local ────────────────────────────────────────────────────────────
 export {
@@ -65,7 +65,7 @@ export {
   setPreferredLang,
   clearSession,
   storage,
-} from "./storage/storage";
+} from './storage/storage';
 
 // ── HTTP / Axios ──────────────────────────────────────────────────────────────
 export {
@@ -77,8 +77,4 @@ export {
   paginationParams,
   extractPageData,
   buildQueryString,
-} from "./helpers/http";
-
-
-
-
+} from './helpers/http';

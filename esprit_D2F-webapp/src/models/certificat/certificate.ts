@@ -101,7 +101,3 @@ export interface TeacherSkillPassportDTO {
   gaps: SkillGapSummaryDTO[];
   recommandations: RecommendationSummaryDTO[];
 }
-
-
-
-

@@ -22,20 +22,20 @@ interface AppConfig {
   NOTIFICATIONS_WS_URL: string;
 }
 
-const stripTrailingSlash = (v: string): string => v.replace(/\/$/, "");
+const stripTrailingSlash = (v: string): string => v.replace(/\/$/, '');
 
 const readApiBase = (): string => {
   const raw = import.meta.env.VITE_API_URL;
-  if (!raw || typeof raw !== "string") {
-    if (import.meta.env.MODE === "production") {
-      throw new Error("VITE_API_URL is required in production");
+  if (!raw || typeof raw !== 'string') {
+    if (import.meta.env.MODE === 'production') {
+      throw new Error('VITE_API_URL is required in production');
     }
-    return "";
+    return '';
   }
   let url = stripTrailingSlash(raw);
   // Ensure relative URLs always start with "/" so they resolve correctly
   // against the page origin and don't accidentally concatenate with baseURL.
-  if (url && !url.startsWith("http://") && !url.startsWith("https://") && !url.startsWith("/")) {
+  if (url && !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
     url = `/${url}`;
   }
   return url;
@@ -51,7 +51,7 @@ const RICE_URL = import.meta.env.VITE_RICE_URL
 
 const NOTIFICATIONS_WS_URL = import.meta.env.VITE_NOTIFICATIONS_WS_URL
   ? String(import.meta.env.VITE_NOTIFICATIONS_WS_URL)
-  : "";
+  : '';
 
 const NOTIFICATION_URL = import.meta.env.VITE_NOTIFICATION_URL
   ? stripTrailingSlash(import.meta.env.VITE_NOTIFICATION_URL)

@@ -1,11 +1,17 @@
-import { memo, useEffect, useMemo, useState } from "react";
-import { Button, DatePicker, Input, Select, Slider, Tag } from "antd";
-import { ClearOutlined, DownOutlined, FilterOutlined, SearchOutlined, UpOutlined } from "@ant-design/icons";
-import dayjs from "dayjs";
+import { memo, useEffect, useMemo, useState } from 'react';
+import { Button, DatePicker, Input, Select, Slider, Tag } from 'antd';
+import {
+  ClearOutlined,
+  DownOutlined,
+  FilterOutlined,
+  SearchOutlined,
+  UpOutlined,
+} from '@ant-design/icons';
+import dayjs from 'dayjs';
 
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import type { FilterConfig, FilterValues } from "./types";
-import styles from "./FilterPanel.module.css";
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import type { FilterConfig, FilterValues } from './types';
+import styles from './FilterPanel.module.css';
 
 const { RangePicker } = DatePicker;
 
@@ -17,7 +23,7 @@ interface FilterPanelProps {
 }
 
 function isActive(value: unknown): boolean {
-  if (value === undefined || value === null || value === "") return false;
+  if (value === undefined || value === null || value === '') return false;
   if (Array.isArray(value)) return value.length > 0;
   return true;
 }
@@ -40,11 +46,13 @@ function SearchFilter({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debounced]);
 
-  useEffect(() => { setText(value); }, [value]);
+  useEffect(() => {
+    setText(value);
+  }, [value]);
 
   return (
     <Input
-      prefix={<SearchOutlined style={{ color: "var(--color-text-muted)" }} />}
+      prefix={<SearchOutlined style={{ color: 'var(--color-text-muted)' }} />}
       placeholder={placeholder}
       value={text}
       onChange={(e) => setText(e.target.value)}
@@ -86,34 +94,34 @@ const FilterPanel = memo(function FilterPanel({
   const chipLabel = (f: FilterConfig): string => {
     const v = values[f.key];
     switch (f.type) {
-      case "select": {
+      case 'select': {
         const opt = f.options.find((o) => String(o.value) === String(v));
         return `${f.label} : ${opt?.label ?? String(v)}`;
       }
-      case "multiSelect": {
+      case 'multiSelect': {
         const arr = v as (string | number)[];
         const names = arr
           .map((x) => f.options.find((o) => String(o.value) === String(x))?.label ?? String(x))
-          .join(", ");
+          .join(', ');
         return `${f.label} : ${names}`;
       }
-      case "dateRange": {
+      case 'dateRange': {
         const [a, b] = v as [string, string];
-        return `${f.label} : ${dayjs(a).format("DD/MM/YYYY")} → ${dayjs(b).format("DD/MM/YYYY")}`;
+        return `${f.label} : ${dayjs(a).format('DD/MM/YYYY')} → ${dayjs(b).format('DD/MM/YYYY')}`;
       }
-      case "rangeSlider": {
+      case 'rangeSlider': {
         const [a, b] = v as [number, number];
-        const unitSuffix = f.unit ? ` ${f.unit}` : "";
+        const unitSuffix = f.unit ? ` ${f.unit}` : '';
         return `${f.label} : ${a}–${b}${unitSuffix}`;
       }
-      case "search":
+      case 'search':
         return `${f.label} : « ${String(v)} »`;
     }
   };
 
   const renderControl = (f: FilterConfig) => {
     switch (f.type) {
-      case "select":
+      case 'select':
         return (
           <Select
             placeholder={f.placeholder ?? f.label}
@@ -126,7 +134,7 @@ const FilterPanel = memo(function FilterPanel({
             style={{ minWidth: 180 }}
           />
         );
-      case "multiSelect":
+      case 'multiSelect':
         return (
           <Select
             mode="multiple"
@@ -141,7 +149,7 @@ const FilterPanel = memo(function FilterPanel({
             style={{ minWidth: 220 }}
           />
         );
-      case "dateRange": {
+      case 'dateRange': {
         const v = values[f.key] as [string, string] | undefined;
         return (
           <RangePicker
@@ -150,16 +158,16 @@ const FilterPanel = memo(function FilterPanel({
               setValue(
                 f.key,
                 range?.[0] && range[1]
-                  ? [range[0].format("YYYY-MM-DD"), range[1].format("YYYY-MM-DD")]
+                  ? [range[0].format('YYYY-MM-DD'), range[1].format('YYYY-MM-DD')]
                   : undefined,
               )
             }
             format="DD/MM/YYYY"
-            placeholder={["Début", "Fin"]}
+            placeholder={['Début', 'Fin']}
           />
         );
       }
-      case "rangeSlider": {
+      case 'rangeSlider': {
         const v = (values[f.key] as [number, number] | undefined) ?? [f.min, f.max];
         return (
           <div className={styles.sliderBox}>
@@ -175,11 +183,11 @@ const FilterPanel = memo(function FilterPanel({
           </div>
         );
       }
-      case "search":
+      case 'search':
         return (
           <SearchFilter
             placeholder={f.placeholder ?? f.label}
-            value={(values[f.key] as string | undefined) ?? ""}
+            value={(values[f.key] as string | undefined) ?? ''}
             onCommit={(v) => setValue(f.key, v)}
           />
         );
@@ -198,11 +206,21 @@ const FilterPanel = memo(function FilterPanel({
         >
           Filtres
           {activeEntries.length > 0 && <span className={styles.count}>{activeEntries.length}</span>}
-          {open ? <UpOutlined className={styles.chevron} /> : <DownOutlined className={styles.chevron} />}
+          {open ? (
+            <UpOutlined className={styles.chevron} />
+          ) : (
+            <DownOutlined className={styles.chevron} />
+          )}
         </Button>
 
         {activeEntries.length > 0 && (
-          <Button type="text" size="small" icon={<ClearOutlined />} onClick={clearAll} className={styles.clear}>
+          <Button
+            type="text"
+            size="small"
+            icon={<ClearOutlined />}
+            onClick={clearAll}
+            className={styles.clear}
+          >
             Effacer tous les filtres
           </Button>
         )}
@@ -212,7 +230,7 @@ const FilterPanel = memo(function FilterPanel({
         <div className={styles.controls}>
           {filters.map((f) => (
             <div key={f.key} className={styles.control}>
-              {f.type !== "rangeSlider" && f.type !== "search" && (
+              {f.type !== 'rangeSlider' && f.type !== 'search' && (
                 <span className={styles.controlLabel}>{f.label}</span>
               )}
               {renderControl(f)}
@@ -227,7 +245,10 @@ const FilterPanel = memo(function FilterPanel({
             <Tag
               key={f.key}
               closable
-              onClose={(e) => { e.preventDefault(); setValue(f.key, undefined); }}
+              onClose={(e) => {
+                e.preventDefault();
+                setValue(f.key, undefined);
+              }}
               className={styles.chip}
             >
               {chipLabel(f)}

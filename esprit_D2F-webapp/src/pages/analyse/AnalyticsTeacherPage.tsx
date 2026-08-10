@@ -1,10 +1,14 @@
-import { useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
-import { Row, Col, Input, Spin, Empty, Tabs as AntTabs } from "antd";
+import { useMemo, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { Row, Col, Input, Spin, Empty, Tabs as AntTabs } from 'antd';
 import {
-  ReloadOutlined, ExperimentOutlined,
-  RiseOutlined, FallOutlined, AimOutlined, InfoCircleOutlined,
-} from "@ant-design/icons";
+  ReloadOutlined,
+  ExperimentOutlined,
+  RiseOutlined,
+  FallOutlined,
+  AimOutlined,
+  InfoCircleOutlined,
+} from '@ant-design/icons';
 import {
   useAnalyzeTeacher,
   useTeacherGaps,
@@ -12,28 +16,24 @@ import {
   useTeacherRisk,
   useTeacherScopeAnalysis,
   useRiskHistory,
-} from "@/hooks/analytics/useAnalyticsQueries";
-import {
-  GapsTable,
-  RecommendationsList,
-  RiskHistoryChart,
-} from "@/components/analytics";
-import ModelBadge from "@/components/analytics/ModelBadge";
-import TeacherScopePanel from "@/components/analytics/TeacherScopePanel";
-import { riskColor, riskLabel } from "@/utils/analytics/format";
-import type { RiskFactor } from "@/models/analyse/analyticsFeature";
-import "./analyticsTeacher.redesign.css";
+} from '@/hooks/analytics/useAnalyticsQueries';
+import { GapsTable, RecommendationsList, RiskHistoryChart } from '@/components/analytics';
+import ModelBadge from '@/components/analytics/ModelBadge';
+import TeacherScopePanel from '@/components/analytics/TeacherScopePanel';
+import { riskColor, riskLabel } from '@/utils/analytics/format';
+import type { RiskFactor } from '@/models/analyse/analyticsFeature';
+import './analyticsTeacher.redesign.css';
 
 function trendClass(trend: string): string {
-  if (trend === "AMELIORATION") return "at-trend-up";
-  if (trend === "DEGRADATION") return "at-trend-down";
-  return "at-trend-flat";
+  if (trend === 'AMELIORATION') return 'at-trend-up';
+  if (trend === 'DEGRADATION') return 'at-trend-down';
+  return 'at-trend-flat';
 }
 
 function trendIcon(trend: string): React.ReactNode {
-  if (trend === "AMELIORATION") return <RiseOutlined />;
-  if (trend === "DEGRADATION") return <FallOutlined />;
-  return "—";
+  if (trend === 'AMELIORATION') return <RiseOutlined />;
+  if (trend === 'DEGRADATION') return <FallOutlined />;
+  return '—';
 }
 
 function tabLabel(base: string, count?: number): string {
@@ -41,7 +41,7 @@ function tabLabel(base: string, count?: number): string {
 }
 
 export default function AnalyticsTeacherPage() {
-  const { enseignantId = "" } = useParams<{ enseignantId: string }>();
+  const { enseignantId = '' } = useParams<{ enseignantId: string }>();
   const [urgence, setUrgence] = useState<string | undefined>();
   const [competenceId, setCompetenceId] = useState<number | null>(null);
 
@@ -60,21 +60,21 @@ export default function AnalyticsTeacherPage() {
       if (!existing || g.gap_score > existing.gap_score) unique.set(g.competence_id, g);
     }
     const deduped = Array.from(unique.values());
-    const critiques = deduped.filter((g) => g.niveau_urgence === "CRITIQUE").length;
-    const hautes = deduped.filter((g) => g.niveau_urgence === "HAUTE").length;
+    const critiques = deduped.filter((g) => g.niveau_urgence === 'CRITIQUE').length;
+    const hautes = deduped.filter((g) => g.niveau_urgence === 'HAUTE').length;
     const stagnants = deduped.filter((g) => g.mois_stagnation > 0).length;
     const regressions = deduped.filter((g) => g.en_regression).length;
     return { total: deduped.length, critiques, hautes, stagnants, regressions };
   }, [gaps.data]);
 
   const score = risk.data?.score ?? 0;
-  const level = risk.data?.niveau ?? "FAIBLE";
+  const level = risk.data?.niveau ?? 'FAIBLE';
   const color = riskColor(level);
   const pct = Math.round(score * 100);
   const circumference = 2 * Math.PI * 70;
   const offset = circumference * (1 - score);
 
-  const trend = risk.data?.tendance ?? "STABLE";
+  const trend = risk.data?.tendance ?? 'STABLE';
   const trendCls = trendClass(trend);
   const trendIco = trendIcon(trend);
 
@@ -86,29 +86,47 @@ export default function AnalyticsTeacherPage() {
         <div className="at-hero-row">
           <div className="at-hero-avatar">
             {risk.data?.enseignant_nom
-              ? risk.data.enseignant_nom.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()
+              ? risk.data.enseignant_nom
+                  .split(' ')
+                  .map((w: string) => w[0])
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase()
               : enseignantId.slice(-2)}
           </div>
           <div className="at-hero-info">
             <div className="at-hero-kicker">
               <AimOutlined /> Analyse prédictive — Enseignant
             </div>
-            <h1 className="at-hero-title">{risk.data?.enseignant_nom || scope.data?.context?.nom_complet || enseignantId}</h1>
+            <h1 className="at-hero-title">
+              {risk.data?.enseignant_nom || scope.data?.context?.nom_complet || enseignantId}
+            </h1>
             <p className="at-hero-sub">
               Score de risque <b>{pct}%</b> · {riskLabel(level)}
-              <span style={{ marginLeft: 12, verticalAlign: "middle" }}>
-                <ModelBadge modelMode={risk.data?.model_mode} modelVersion={risk.data?.model_version} size="small" />
+              <span style={{ marginLeft: 12, verticalAlign: 'middle' }}>
+                <ModelBadge
+                  modelMode={risk.data?.model_mode}
+                  modelVersion={risk.data?.model_version}
+                  size="small"
+                />
               </span>
             </p>
           </div>
           <div className="at-hero-actions">
             <Input
-              value={risk.data?.enseignant_nom ? `${risk.data.enseignant_nom} (${enseignantId})` : enseignantId}
+              value={
+                risk.data?.enseignant_nom
+                  ? `${risk.data.enseignant_nom} (${enseignantId})`
+                  : enseignantId
+              }
               disabled
               placeholder="Enseignant"
               style={{
-                width: 220, background: "var(--at-panel2)", borderColor: "var(--at-line)",
-                color: "var(--at-ink)", borderRadius: 12,
+                width: 220,
+                background: 'var(--at-panel2)',
+                borderColor: 'var(--at-line)',
+                color: 'var(--at-ink)',
+                borderRadius: 12,
               }}
             />
             <button
@@ -118,7 +136,7 @@ export default function AnalyticsTeacherPage() {
               onClick={() => analyze.mutate()}
             >
               <ExperimentOutlined />
-              {analyze.isPending ? "Analyse..." : "Lancer l'analyse"}
+              {analyze.isPending ? 'Analyse...' : "Lancer l'analyse"}
             </button>
             <button type="button" className="at-btn" onClick={() => risk.refetch()}>
               <ReloadOutlined /> Rafraîchir
@@ -132,10 +150,12 @@ export default function AnalyticsTeacherPage() {
         <Col xs={24} md={8}>
           <div
             className="at-score-card at-animate at-animate-d1"
-            style={{ "--score-color": color } as React.CSSProperties}
+            style={{ '--score-color': color } as React.CSSProperties}
           >
             {risk.isLoading ? (
-              <div style={{ padding: 40, textAlign: "center" }}><Spin /></div>
+              <div style={{ padding: 40, textAlign: 'center' }}>
+                <Spin />
+              </div>
             ) : (
               <>
                 <div className="at-score-gauge">
@@ -143,13 +163,20 @@ export default function AnalyticsTeacherPage() {
                     <circle className="at-score-ring-bg" cx="80" cy="80" r="70" />
                     <circle
                       className="at-score-ring-fill"
-                      cx="80" cy="80" r="70"
-                      style={{ strokeDasharray: circumference, strokeDashoffset: offset, stroke: color }}
+                      cx="80"
+                      cy="80"
+                      r="70"
+                      style={{
+                        strokeDasharray: circumference,
+                        strokeDashoffset: offset,
+                        stroke: color,
+                      }}
                     />
                   </svg>
                   <div className="at-score-label">
                     <div className="at-score-pct">
-                      {pct}<span className="at-score-pct-sign">%</span>
+                      {pct}
+                      <span className="at-score-pct-sign">%</span>
                     </div>
                   </div>
                 </div>
@@ -163,7 +190,7 @@ export default function AnalyticsTeacherPage() {
                     </div>
                   )}
                   <div className="at-score-meta-row">
-                    Tendance :{" "}
+                    Tendance :{' '}
                     <span className={`at-trend-badge ${trendCls}`}>
                       {trendIco} {trend}
                     </span>
@@ -174,32 +201,56 @@ export default function AnalyticsTeacherPage() {
           </div>
         </Col>
         <Col xs={24} md={16}>
-          <FactorsPanel
-            facteurs={risk.data?.facteurs}
-            loading={risk.isLoading}
-          />
+          <FactorsPanel facteurs={risk.data?.facteurs} loading={risk.isLoading} />
         </Col>
       </Row>
 
       {/* ── Stats pills ────────────────────────────────────── */}
       {!gaps.isLoading && gapStats.total > 0 && (
         <div className="at-stats at-animate at-animate-d2">
-          <div className="at-stat" style={{ "--accent": "var(--at-brand)" } as React.CSSProperties}>
-            <div className="at-stat-value" style={{ color: "var(--at-brand)" }}>{gapStats.total}</div>
+          <div className="at-stat" style={{ '--accent': 'var(--at-brand)' } as React.CSSProperties}>
+            <div className="at-stat-value" style={{ color: 'var(--at-brand)' }}>
+              {gapStats.total}
+            </div>
             <div className="at-stat-label">Gaps détectés</div>
           </div>
-          <div className="at-stat" style={{ "--accent": gapStats.critiques > 0 ? "var(--at-danger)" : "var(--at-success)" } as React.CSSProperties}>
-            <div className="at-stat-value" style={{ color: gapStats.critiques > 0 ? "var(--at-danger)" : "var(--at-success)" }}>
+          <div
+            className="at-stat"
+            style={
+              {
+                '--accent': gapStats.critiques > 0 ? 'var(--at-danger)' : 'var(--at-success)',
+              } as React.CSSProperties
+            }
+          >
+            <div
+              className="at-stat-value"
+              style={{ color: gapStats.critiques > 0 ? 'var(--at-danger)' : 'var(--at-success)' }}
+            >
               {gapStats.critiques}
             </div>
             <div className="at-stat-label">Critiques</div>
           </div>
-          <div className="at-stat" style={{ "--accent": "var(--at-warning)" } as React.CSSProperties}>
-            <div className="at-stat-value" style={{ color: "var(--at-warning)" }}>{gapStats.stagnants}</div>
+          <div
+            className="at-stat"
+            style={{ '--accent': 'var(--at-warning)' } as React.CSSProperties}
+          >
+            <div className="at-stat-value" style={{ color: 'var(--at-warning)' }}>
+              {gapStats.stagnants}
+            </div>
             <div className="at-stat-label">Stagnants</div>
           </div>
-          <div className="at-stat" style={{ "--accent": gapStats.regressions > 0 ? "var(--at-danger)" : "var(--at-success)" } as React.CSSProperties}>
-            <div className="at-stat-value" style={{ color: gapStats.regressions > 0 ? "var(--at-danger)" : "var(--at-success)" }}>
+          <div
+            className="at-stat"
+            style={
+              {
+                '--accent': gapStats.regressions > 0 ? 'var(--at-danger)' : 'var(--at-success)',
+              } as React.CSSProperties
+            }
+          >
+            <div
+              className="at-stat-value"
+              style={{ color: gapStats.regressions > 0 ? 'var(--at-danger)' : 'var(--at-success)' }}
+            >
               {gapStats.regressions}
             </div>
             <div className="at-stat-label">En régression</div>
@@ -213,47 +264,55 @@ export default function AnalyticsTeacherPage() {
           className="at-tabs"
           items={[
             {
-              key: "scope",
-              label: tabLabel("Analyse contextuelle", scope.data?.gaps.length),
+              key: 'scope',
+              label: tabLabel('Analyse contextuelle', scope.data?.gaps.length),
               children: <TeacherScopePanel data={scope.data} loading={scope.isLoading} />,
             },
             {
-              key: "gaps",
-              label: tabLabel("Gaps de compétences", gapStats.total),
+              key: 'gaps',
+              label: tabLabel('Gaps de compétences', gapStats.total),
               children: (
                 <div>
                   <div className="at-urgence-pills">
-                    {(["FAIBLE", "MODEREE", "HAUTE", "CRITIQUE"] as const).map((u) => (
+                    {(['FAIBLE', 'MODEREE', 'HAUTE', 'CRITIQUE'] as const).map((u) => (
                       <button
                         key={u}
                         type="button"
-                        className={`at-pill ${urgence === u ? "is-active" : ""}`}
+                        className={`at-pill ${urgence === u ? 'is-active' : ''}`}
                         onClick={() => setUrgence(urgence === u ? undefined : u)}
                       >
                         {u}
                       </button>
                     ))}
                   </div>
-                  <GapsTab gaps={gaps} onSelectCompetence={(g) => setCompetenceId(g.competence_id)} />
+                  <GapsTab
+                    gaps={gaps}
+                    onSelectCompetence={(g) => setCompetenceId(g.competence_id)}
+                  />
                 </div>
               ),
             },
             {
-              key: "recos",
-              label: tabLabel("Recommandations", recos.data?.total),
+              key: 'recos',
+              label: tabLabel('Recommandations', recos.data?.total),
               children: (
-                <RecommendationsList recommendations={recos.data?.recommendations ?? []} loading={recos.isLoading} />
+                <RecommendationsList
+                  recommendations={recos.data?.recommendations ?? []}
+                  loading={recos.isLoading}
+                />
               ),
             },
             {
-              key: "models",
-              label: "Modèles",
+              key: 'models',
+              label: 'Modèles',
               children: <ModelsInfoPanel risk={risk} />,
             },
             {
-              key: "history",
-              label: "Historique du risque",
-              children: <RiskHistoryChart points={history.data?.points ?? []} loading={history.isLoading} />,
+              key: 'history',
+              label: 'Historique du risque',
+              children: (
+                <RiskHistoryChart points={history.data?.points ?? []} loading={history.isLoading} />
+              ),
             },
           ]}
         />
@@ -263,17 +322,20 @@ export default function AnalyticsTeacherPage() {
 }
 
 /* ── Factors panel ──────────────────────────────────────────── */
-function FactorsPanel({ facteurs, loading }: Readonly<{ facteurs: RiskFactor[] | undefined; loading: boolean }>) {
+function FactorsPanel({
+  facteurs,
+  loading,
+}: Readonly<{ facteurs: RiskFactor[] | undefined; loading: boolean }>) {
   if (loading) {
     return (
-      <div className="at-factors" style={{ display: "grid", placeItems: "center", minHeight: 200 }}>
+      <div className="at-factors" style={{ display: 'grid', placeItems: 'center', minHeight: 200 }}>
         <Spin />
       </div>
     );
   }
   if (!facteurs?.length) {
     return (
-      <div className="at-factors" style={{ display: "grid", placeItems: "center", minHeight: 200 }}>
+      <div className="at-factors" style={{ display: 'grid', placeItems: 'center', minHeight: 200 }}>
         <Empty description="Aucun facteur disponible" />
       </div>
     );
@@ -281,7 +343,9 @@ function FactorsPanel({ facteurs, loading }: Readonly<{ facteurs: RiskFactor[] |
   return (
     <div className="at-factors">
       <div className="at-factors-head">
-        <div className="at-icon"><InfoCircleOutlined /></div>
+        <div className="at-icon">
+          <InfoCircleOutlined />
+        </div>
         Explication du score (facteurs pondérés)
       </div>
       {facteurs.map((f) => {
@@ -290,11 +354,9 @@ function FactorsPanel({ facteurs, loading }: Readonly<{ facteurs: RiskFactor[] |
         // Facteurs ML : HIGH_proba / MEDIUM_proba / LOW_proba / CRITICAL_proba -> produit du classifier
         const isProbaFactor = /^(HIGH|MEDIUM|LOW|CRITICAL)_proba$/i.test(f.nom);
         const displayName = isProbaFactor
-          ? `Probabilité ${f.nom.replace("_proba", "").toLowerCase()}`
+          ? `Probabilité ${f.nom.replace('_proba', '').toLowerCase()}`
           : f.nom;
-        const rawValue = f.valeur_brute % 1 === 0
-          ? f.valeur_brute
-          : f.valeur_brute.toFixed(2);
+        const rawValue = f.valeur_brute % 1 === 0 ? f.valeur_brute : f.valeur_brute.toFixed(2);
         const displayValue = isProbaFactor
           ? `${(f.valeur_brute * 100).toFixed(0)}% (prob.)`
           : `valeur ${rawValue}`;
@@ -304,7 +366,10 @@ function FactorsPanel({ facteurs, loading }: Readonly<{ facteurs: RiskFactor[] |
               <div className="at-factor-name">
                 {displayName}
                 {isProbaFactor && (
-                  <span style={{ fontSize: 10, color: "var(--at-ink3)", marginLeft: 6 }} title="Probabilite calculee par le classifier RandomForest entraine">
+                  <span
+                    style={{ fontSize: 10, color: 'var(--at-ink3)', marginLeft: 6 }}
+                    title="Probabilite calculee par le classifier RandomForest entraine"
+                  >
                     ML
                   </span>
                 )}
@@ -312,20 +377,23 @@ function FactorsPanel({ facteurs, loading }: Readonly<{ facteurs: RiskFactor[] |
               <div className="at-factor-bar-wrap">
                 <div className="at-factor-bar">
                   <div
-                    className={`at-factor-bar-fill ${isRisk ? "is-risk" : "is-safe"}`}
+                    className={`at-factor-bar-fill ${isRisk ? 'is-risk' : 'is-safe'}`}
                     style={{ width: `${contribPct}%` }}
                   />
                 </div>
-                <span className="at-factor-weight" title="Valeur brute du facteur (proba pour les facteurs ML, sinon valeur brute metriquee)">
+                <span
+                  className="at-factor-weight"
+                  title="Valeur brute du facteur (proba pour les facteurs ML, sinon valeur brute metriquee)"
+                >
                   {displayValue}
                 </span>
               </div>
             </div>
-            <div style={{ textAlign: "right" }}>
-              <div className={`at-factor-contrib ${isRisk ? "is-risk" : "is-safe"}`}>
+            <div style={{ textAlign: 'right' }}>
+              <div className={`at-factor-contrib ${isRisk ? 'is-risk' : 'is-safe'}`}>
                 {contribPct}%
               </div>
-              <div style={{ fontSize: 10, color: "var(--at-ink3)" }}>
+              <div style={{ fontSize: 10, color: 'var(--at-ink3)' }}>
                 contribution {f.contribution.toFixed(3)}
               </div>
             </div>
@@ -339,27 +407,31 @@ function FactorsPanel({ facteurs, loading }: Readonly<{ facteurs: RiskFactor[] |
 /* ── Panneau Modeles ─────────────────────────────────────────────── */
 function ModelsInfoPanel({ risk }: Readonly<{ risk: ReturnType<typeof useTeacherRisk> }>) {
   if (risk.isLoading) {
-    return <div style={{ padding: 30, textAlign: "center" }}><Spin /></div>;
+    return (
+      <div style={{ padding: 30, textAlign: 'center' }}>
+        <Spin />
+      </div>
+    );
   }
-  const mode = risk.data?.model_mode ?? "HEURISTIC_FALLBACK";
+  const mode = risk.data?.model_mode ?? 'HEURISTIC_FALLBACK';
   const version = risk.data?.model_version ?? null;
   return (
-    <div style={{ padding: "6px 2px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--at-ink2)" }}>
+    <div style={{ padding: '6px 2px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--at-ink2)' }}>
           Statut du modèle :
         </span>
         <ModelBadge modelMode={mode} modelVersion={version} />
       </div>
-      {mode === "ML" && version && (
-        <div style={{ marginTop: 12, fontSize: 12, color: "var(--at-ink3)" }}>
-          Modèle entraîné le <b>{new Date(version).toLocaleString("fr-FR")}</b> — GradientBoosting
-          temporel sur corpus réel + synthétique. Les gaps proviennent du vrai artefact
-          (pas de fallback heuristique).
+      {mode === 'ML' && version && (
+        <div style={{ marginTop: 12, fontSize: 12, color: 'var(--at-ink3)' }}>
+          Modèle entraîné le <b>{new Date(version).toLocaleString('fr-FR')}</b> — GradientBoosting
+          temporel sur corpus réel + synthétique. Les gaps proviennent du vrai artefact (pas de
+          fallback heuristique).
         </div>
       )}
-      {mode !== "ML" && (
-        <div style={{ marginTop: 12, fontSize: 12, color: "var(--at-warning)" }}>
+      {mode !== 'ML' && (
+        <div style={{ marginTop: 12, fontSize: 12, color: 'var(--at-warning)' }}>
           Pas d'artefact ML disponible. Calcul en mode règles (heuristique).
         </div>
       )}
@@ -375,7 +447,12 @@ function GapsTab({
   readonly gaps: ReturnType<typeof useTeacherGaps>;
   readonly onSelectCompetence: (g: { competence_id: number }) => void;
 }) {
-  if (gaps.isLoading) return <div style={{ padding: 30, textAlign: "center" }}><Spin /></div>;
+  if (gaps.isLoading)
+    return (
+      <div style={{ padding: 30, textAlign: 'center' }}>
+        <Spin />
+      </div>
+    );
   if (gaps.data?.gaps.length) {
     return (
       <GapsTable

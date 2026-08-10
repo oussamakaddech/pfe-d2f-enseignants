@@ -1,8 +1,16 @@
-import { Alert, Modal, Select, Space, Typography } from "antd";
-import { MergeCellsOutlined } from "@ant-design/icons";
+import { Alert, Modal, Select, Space, Typography } from 'antd';
+import { MergeCellsOutlined } from '@ant-design/icons';
 
-interface SavoirCoords { di: number; ci: number; sci: number; si: number; }
-interface SavoirFlat extends SavoirCoords { nom?: string; label?: string; }
+interface SavoirCoords {
+  di: number;
+  ci: number;
+  sci: number;
+  si: number;
+}
+interface SavoirFlat extends SavoirCoords {
+  nom?: string;
+  label?: string;
+}
 
 interface MergeSavoirModalProps {
   open: boolean;
@@ -18,11 +26,21 @@ const { Text } = Typography;
 const { Option } = Select;
 
 export default function MergeSavoirModal({
-  open, mergeSrc, mergeDst, allSavoirsFlat, onConfirm, onCancel, onSelectDst,
+  open,
+  mergeSrc,
+  mergeDst,
+  allSavoirsFlat,
+  onConfirm,
+  onCancel,
+  onSelectDst,
 }: Readonly<MergeSavoirModalProps>) {
   return (
     <Modal
-      title={<Space><MergeCellsOutlined /> Fusionner deux savoirs</Space>}
+      title={
+        <Space>
+          <MergeCellsOutlined /> Fusionner deux savoirs
+        </Space>
+      }
       open={open}
       onOk={onConfirm}
       onCancel={onCancel}
@@ -39,11 +57,17 @@ export default function MergeSavoirModal({
       />
       {mergeSrc && (
         <div style={{ marginBottom: 16 }}>
-          <Text strong style={{ marginRight: 8 }}>Source :</Text>
-          <span style={{ color: "#cf1322" }}>
+          <Text strong style={{ marginRight: 8 }}>
+            Source :
+          </Text>
+          <span style={{ color: '#cf1322' }}>
             {allSavoirsFlat.find(
-              (s) => s.di === mergeSrc.di && s.ci === mergeSrc.ci && s.sci === mergeSrc.sci && s.si === mergeSrc.si,
-            )?.nom ?? "?"}
+              (s) =>
+                s.di === mergeSrc.di &&
+                s.ci === mergeSrc.ci &&
+                s.sci === mergeSrc.sci &&
+                s.si === mergeSrc.si,
+            )?.nom ?? '?'}
           </span>
         </div>
       )}
@@ -53,18 +77,27 @@ export default function MergeSavoirModal({
           showSearch
           optionFilterProp="children"
           placeholder="Rechercher et sélectionner le savoir cible..."
-          style={{ width: "100%", marginTop: 8 }}
+          style={{ width: '100%', marginTop: 8 }}
           onChange={(key: string) => {
-            const [di, ci, sci, si] = key.split("|").map(Number);
+            const [di, ci, sci, si] = key.split('|').map(Number);
             onSelectDst({ di, ci, sci, si });
           }}
         >
           {allSavoirsFlat
-            .filter((s) => !(
-              s.di === mergeSrc?.di && s.ci === mergeSrc?.ci &&
-              s.sci === mergeSrc?.sci && s.si === mergeSrc?.si))
+            .filter(
+              (s) =>
+                !(
+                  s.di === mergeSrc?.di &&
+                  s.ci === mergeSrc?.ci &&
+                  s.sci === mergeSrc?.sci &&
+                  s.si === mergeSrc?.si
+                ),
+            )
             .map((s) => (
-              <Option key={`${s.di}|${s.ci}|${s.sci}|${s.si}`} value={`${s.di}|${s.ci}|${s.sci}|${s.si}`}>
+              <Option
+                key={`${s.di}|${s.ci}|${s.sci}|${s.si}`}
+                value={`${s.di}|${s.ci}|${s.sci}|${s.si}`}
+              >
                 {s.label}
               </Option>
             ))}

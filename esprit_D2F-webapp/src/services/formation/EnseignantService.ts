@@ -1,6 +1,6 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
-import type { Enseignant } from "@/models/enseignant";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
+import type { Enseignant } from '@/models/enseignant';
 const API_URL = `${config.FORMATION_URL}/formation/enseignants`;
 
 function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; items?: T[] }): T[] {
@@ -8,7 +8,7 @@ function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; it
     return payload;
   }
 
-  if (payload && typeof payload === "object") {
+  if (payload && typeof payload === 'object') {
     const candidate = payload as { content?: unknown[]; data?: unknown[]; items?: unknown[] };
     if (Array.isArray(candidate.content)) {
       return candidate.content as T[];
@@ -53,7 +53,10 @@ const EnseignantService = {
     return response.data;
   },
 
-  async updateEnseignant(id: number | string, enseignantData: Record<string, unknown>): Promise<Enseignant> {
+  async updateEnseignant(
+    id: number | string,
+    enseignantData: Record<string, unknown>,
+  ): Promise<Enseignant> {
     const response = await axios.put(`${API_URL}/${id}`, enseignantData);
     return response.data;
   },
@@ -64,7 +67,7 @@ const EnseignantService = {
 
   async uploadEnseignants(file: File): Promise<{ count: number }> {
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append('file', file);
     const response = await axios.post(`${API_URL}/upload`, formData);
     return response.data;
   },

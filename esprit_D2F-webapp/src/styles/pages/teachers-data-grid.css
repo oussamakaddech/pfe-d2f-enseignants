@@ -16,8 +16,7 @@
   position: relative;
   margin-bottom: 24px;
   padding: 28px 32px;
-  background:
-    linear-gradient(135deg, #ffffff 0%, #fff8f5 50%, #fff1eb 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #fff8f5 50%, #fff1eb 100%);
   border: 1px solid rgba(181, 18, 0, 0.12);
   border-radius: 20px;
   box-shadow:
@@ -28,7 +27,7 @@
 
 .teachers-hero::before,
 .teachers-hero::after {
-  content: "";
+  content: '';
   position: absolute;
   border-radius: 50%;
   pointer-events: none;
@@ -127,7 +126,7 @@
 }
 
 .teachers-stat-card::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
@@ -136,14 +135,24 @@
   border-radius: 16px 16px 0 0;
 }
 
-.teachers-stat-card--total::before { background: linear-gradient(90deg, #b51200, #ff6b5a); }
-.teachers-stat-card--perm::before { background: linear-gradient(90deg, #2563eb, #60a5fa); }
-.teachers-stat-card--vac::before  { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-.teachers-stat-card--cup::before  { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
+.teachers-stat-card--total::before {
+  background: linear-gradient(90deg, #b51200, #ff6b5a);
+}
+.teachers-stat-card--perm::before {
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+}
+.teachers-stat-card--vac::before {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+.teachers-stat-card--cup::before {
+  background: linear-gradient(90deg, #7c3aed, #a78bfa);
+}
 
 .teachers-stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .teachers-stat-icon {
@@ -249,7 +258,9 @@
   background: #fff;
   border-radius: 16px;
   border: 1px solid rgba(0, 0, 0, 0.07);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 1px 2px rgba(0, 0, 0, 0.03);
   overflow: hidden;
   margin-bottom: 24px;
 }
@@ -321,10 +332,22 @@
   letter-spacing: 0.02em;
 }
 
-.teachers-avatar--perm  { background: #eff6ff; color: #2563eb; }
-.teachers-avatar--vac   { background: #fffbeb; color: #d97706; }
-.teachers-avatar--cont  { background: #f0fdf4; color: #16a34a; }
-.teachers-avatar--other { background: #f1f5f9; color: #475569; }
+.teachers-avatar--perm {
+  background: #eff6ff;
+  color: #2563eb;
+}
+.teachers-avatar--vac {
+  background: #fffbeb;
+  color: #d97706;
+}
+.teachers-avatar--cont {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+.teachers-avatar--other {
+  background: #f1f5f9;
+  color: #475569;
+}
 
 /* ─── Type tags ───────────────────────────────────────────────────────── */
 
@@ -370,10 +393,18 @@
   display: inline-block;
 }
 
-.teachers-type-dot--perm { background: #2563eb; }
-.teachers-type-dot--vac  { background: #d97706; }
-.teachers-type-dot--cont { background: #16a34a; }
-.teachers-type-dot--other { background: #94a3b8; }
+.teachers-type-dot--perm {
+  background: #2563eb;
+}
+.teachers-type-dot--vac {
+  background: #d97706;
+}
+.teachers-type-dot--cont {
+  background: #16a34a;
+}
+.teachers-type-dot--other {
+  background: #94a3b8;
+}
 
 /* ─── CUP / Chef badges ───────────────────────────────────────────────── */
 
@@ -406,14 +437,13 @@
   padding: 16px 20px;
   border: 1px dashed rgba(181, 18, 0, 0.25);
   border-radius: 14px;
-  background:
-    linear-gradient(135deg, #fffbf9 0%, #fff5f0 100%);
+  background: linear-gradient(135deg, #fffbf9 0%, #fff5f0 100%);
   position: relative;
   overflow: hidden;
 }
 
 .teachers-extracted-panel::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;

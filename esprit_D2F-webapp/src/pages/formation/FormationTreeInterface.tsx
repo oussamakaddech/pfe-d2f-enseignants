@@ -1,6 +1,6 @@
-import { useState, type ReactNode } from "react";
-import { useFormationsWithDocuments } from "@/hooks/formation/useFormations";
-import { useFormationHierarchy, useDeleteOneDriveFile } from "@/hooks/api/useOneDrive";
+import { useState, type ReactNode } from 'react';
+import { useFormationsWithDocuments } from '@/hooks/formation/useFormations';
+import { useFormationHierarchy, useDeleteOneDriveFile } from '@/hooks/api/useOneDrive';
 
 interface Formation {
   idFormation?: string | number;
@@ -32,38 +32,55 @@ const FormationTreeInterface = () => {
   const renderOneDriveTree = (nodes: OneDriveNode[]): ReactNode => {
     if (!nodes || nodes.length === 0) return <p>Aucun fichier trouvé.</p>;
     return (
-      <ul style={{ listStyle: "none", marginLeft: "10px" }}>
+      <ul style={{ listStyle: 'none', marginLeft: '10px' }}>
         {nodes.map((node) => {
           const isFolder = node.folder;
-          const isExpanded = expandedNodes[node.id ?? ""] || false;
+          const isExpanded = expandedNodes[node.id ?? ''] || false;
           return (
-            <li key={node.id} style={{ marginBottom: "5px" }}>
+            <li key={node.id} style={{ marginBottom: '5px' }}>
               {isFolder ? (
                 <button
                   type="button"
                   tabIndex={0}
-                  style={{ cursor: "pointer", display: "flex", alignItems: "center", background: "none", border: "none", padding: 0 }}
-                  onClick={() => toggleNode(node.id ?? "")}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleNode(node.id ?? ""); } }}
+                  style={{
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                  }}
+                  onClick={() => toggleNode(node.id ?? '')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      toggleNode(node.id ?? '');
+                    }
+                  }}
                 >
-                  <span style={{ marginRight: "5px" }}>
-                    {isExpanded ? "▼" : "▶"}
-                  </span>
+                  <span style={{ marginRight: '5px' }}>{isExpanded ? '▼' : '▶'}</span>
                   <strong>📁 {node.name}</strong>
                 </button>
               ) : (
                 <button
                   type="button"
                   tabIndex={0}
-                  style={{ cursor: "pointer", background: "none", border: "none", padding: 0 }}
+                  style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
                   onClick={() => setSelectedFile(node)}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedFile(node); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedFile(node);
+                    }
+                  }}
                 >
                   📄 {node.name}
                 </button>
               )}
               {!!isFolder && isExpanded && node.children && (
-                <div style={{ marginLeft: "20px", borderLeft: "1px dashed #ccc", paddingLeft: "10px" }}>
+                <div
+                  style={{ marginLeft: '20px', borderLeft: '1px dashed #ccc', paddingLeft: '10px' }}
+                >
                   {renderOneDriveTree(node.children)}
                 </div>
               )}
@@ -83,8 +100,11 @@ const FormationTreeInterface = () => {
             <button
               type="button"
               className="list-group-item-action w-100 text-start border-0 bg-transparent px-3 py-2"
-              onClick={() => { setSelectedFormation(formation); setSelectedFile(null); }}
-              style={{ cursor: "pointer" }}
+              onClick={() => {
+                setSelectedFormation(formation);
+                setSelectedFile(null);
+              }}
+              style={{ cursor: 'pointer' }}
             >
               {formation.titreFormation}
             </button>
@@ -97,40 +117,53 @@ const FormationTreeInterface = () => {
   return (
     <div className="container-fluid mt-3">
       <div className="row">
-        <div className="col-md-3" style={{ border: "1px solid #ccc", minHeight: "500px", overflowY: "auto" }}>
+        <div
+          className="col-md-3"
+          style={{ border: '1px solid #ccc', minHeight: '500px', overflowY: 'auto' }}
+        >
           <h5>Formations</h5>
           {renderFormationList()}
         </div>
 
-        <div className="col-md-4" style={{ border: "1px solid #ccc", minHeight: "500px", overflowY: "auto" }}>
+        <div
+          className="col-md-4"
+          style={{ border: '1px solid #ccc', minHeight: '500px', overflowY: 'auto' }}
+        >
           <h5>
-            Fichiers OneDrive {selectedFormation ? `(${selectedFormation.titreFormation})` : ""}
+            Fichiers OneDrive {selectedFormation ? `(${selectedFormation.titreFormation})` : ''}
           </h5>
-          {selectedFormation ? renderOneDriveTree(oneDriveTree as OneDriveNode[]) : <p>Sélectionnez une formation.</p>}
+          {selectedFormation ? (
+            renderOneDriveTree(oneDriveTree as OneDriveNode[])
+          ) : (
+            <p>Sélectionnez une formation.</p>
+          )}
         </div>
 
-        <div className="col-md-5" style={{ border: "1px solid #ccc", minHeight: "500px", padding: "15px" }}>
+        <div
+          className="col-md-5"
+          style={{ border: '1px solid #ccc', minHeight: '500px', padding: '15px' }}
+        >
           <h5>Visionneuse de document</h5>
           {selectedFile ? (
             <div>
               <h6>{selectedFile.name}</h6>
               <p>
-                <strong> Taille :</strong>{" "}
-                {selectedFile.fileSize ? selectedFile.fileSize + " octets" : "N/A"}
+                <strong> Taille :</strong>{' '}
+                {selectedFile.fileSize ? selectedFile.fileSize + ' octets' : 'N/A'}
               </p>
               {selectedFile.downloadUrl ? (
                 <>
                   <p>
-                    <strong>Ouvrir :</strong>{" "}
+                    <strong>Ouvrir :</strong>{' '}
                     <a href={selectedFile.downloadUrl} target="_blank" rel="noopener noreferrer">
                       Télécharger / Ouvrir
                     </a>
                   </p>
-                  {selectedFile.name?.toLowerCase().endsWith(".pdf") && (
+                  {selectedFile.name?.toLowerCase().endsWith('.pdf') && (
                     <iframe
                       src={selectedFile.downloadUrl}
                       title={selectedFile.name}
-                      style={{ width: "100%", height: "400px", border: "none" }}
+                      style={{ width: '100%', height: '400px', border: 'none' }}
                     ></iframe>
                   )}
                 </>
@@ -142,9 +175,11 @@ const FormationTreeInterface = () => {
                 onClick={async () => {
                   try {
                     await deleteOneDriveFile({
-                      nomFormation: selectedFormation?.titreFormation ?? "",
-                      nomDocument: selectedFile.folder ? (selectedFile.name ?? "") : "dossier_parent",
-                      originalFileName: selectedFile.name ?? ""
+                      nomFormation: selectedFormation?.titreFormation ?? '',
+                      nomDocument: selectedFile.folder
+                        ? (selectedFile.name ?? '')
+                        : 'dossier_parent',
+                      originalFileName: selectedFile.name ?? '',
                     });
                     setSelectedFile(null);
                   } catch {

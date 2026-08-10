@@ -1,10 +1,14 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
-import type { RiceAnalyzeResponse, RiceImportHistoryItem, RiceAssignmentResult } from "@/models/analyse";
-import type { Enseignant } from "@/models/enseignant";
-import type { Savoir, EnseignantCompetence } from "@/models/competence";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
+import type {
+  RiceAnalyzeResponse,
+  RiceImportHistoryItem,
+  RiceAssignmentResult,
+} from '@/models/analyse';
+import type { Enseignant } from '@/models/enseignant';
+import type { Savoir, EnseignantCompetence } from '@/models/competence';
 
-const RICE_BASE       = `${config.RICE_URL}/rice`;     // direct to Python :8001 (no gateway – avoids codec size limit for file uploads)
+const RICE_BASE = `${config.RICE_URL}/rice`; // direct to Python :8001 (no gateway – avoids codec size limit for file uploads)
 const COMPETENCE_BASE = `${config.COMPETENCE_URL}/competence`;
 const FORMATION_ENS_BASE = `${config.FORMATION_URL}/formation/enseignants`;
 
@@ -15,12 +19,14 @@ const normalizeEnseignantsPayload = <T>(payload: T[] | { content?: T[]; data?: T
   return [];
 };
 
-const normalizeSavoirsPayload = <T>(payload: T[] | { content?: T[]; data?: T[]; savoirs?: T[] | Record<string, T> }): T[] => {
+const normalizeSavoirsPayload = <T>(
+  payload: T[] | { content?: T[]; data?: T[]; savoirs?: T[] | Record<string, T> },
+): T[] => {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.content)) return payload.content;
   if (Array.isArray(payload?.data)) return payload.data;
   if (Array.isArray(payload?.savoirs)) return payload.savoirs;
-  if (payload?.savoirs && typeof payload.savoirs === "object") {
+  if (payload?.savoirs && typeof payload.savoirs === 'object') {
     return Object.values(payload.savoirs);
   }
   return [];
@@ -29,7 +35,7 @@ const normalizeSavoirsPayload = <T>(payload: T[] | { content?: T[]; data?: T[]; 
 // S4144: reuse normalizeEnseignantsPayload (identical signature)
 const normalizeAssignmentsPayload = normalizeEnseignantsPayload;
 
-const fetchAllPages = async (url: string, baseParams = "") => {
+const fetchAllPages = async (url: string, baseParams = '') => {
   const first = await axios.get(`${url}${baseParams}`);
   const data = first?.data;
 
@@ -39,7 +45,7 @@ const fetchAllPages = async (url: string, baseParams = "") => {
     return data;
   }
 
-  const pageJoiner = baseParams.includes("?") ? "&" : "?";
+  const pageJoiner = baseParams.includes('?') ? '&' : '?';
   const requests = [];
   for (let page = 1; page < totalPages; page++) {
     requests.push(axios.get(`${url}${baseParams}${pageJoiner}page=${page}`));
@@ -48,7 +54,11 @@ const fetchAllPages = async (url: string, baseParams = "") => {
   const rest = await Promise.all(requests);
   const mergedContent = [
     ...(d.content ?? []),
-    ...rest.flatMap((r) => (Array.isArray((r?.data as { content?: unknown[] })?.content) ? (r.data as { content?: unknown[] }).content : [])),
+    ...rest.flatMap((r) =>
+      Array.isArray((r?.data as { content?: unknown[] })?.content)
+        ? (r.data as { content?: unknown[] }).content
+        : [],
+    ),
   ];
 
   return {
@@ -58,40 +68,40 @@ const fetchAllPages = async (url: string, baseParams = "") => {
 };
 
 const RiceService = {
-
-  analyze: async (files: File[], enseignants: Record<string, unknown>[], departement = "gc"): Promise<RiceAnalyzeResponse> => {
+  analyze: async (
+    files: File[],
+    enseignants: Record<string, unknown>[],
+    departement = 'gc',
+  ): Promise<RiceAnalyzeResponse> => {
     const form = new FormData();
-    files.forEach((f) => form.append("files", f));
-    form.append("enseignants", JSON.stringify(enseignants));
-    form.append("departement", departement);
+    files.forEach((f) => form.append('files', f));
+    form.append('enseignants', JSON.stringify(enseignants));
+    form.append('departement', departement);
     const res = await axios.post(`${RICE_BASE}/analyze`, form, {
       timeout: 300000, // 5 min – AI analysis can be slow
     });
     return res.data;
   },
 
-
   importToDb: async (payload: Record<string, unknown>): Promise<RiceAnalyzeResponse> => {
     const res = await axios.post(`${COMPETENCE_BASE}/rice/import`, payload);
     return res.data;
   },
-
 
   getImportHistory: async (): Promise<RiceImportHistoryItem[]> => {
     const res = await axios.get(`${COMPETENCE_BASE}/rice/imports`);
     return res.data;
   },
 
-
   getEnseignants: async (departement: string | null = null): Promise<Enseignant[]> => {
-    const params = departement ? `?departement=${departement}` : "";
+    const params = departement ? `?departement=${departement}` : '';
 
     try {
       // Charge TOUT l'annuaire (corps enseignant) comme la page Administration :
       // l'endpoint est paginé (défaut 20) → on demande une grande taille et on
       // fusionne les pages restantes via fetchAllPages, sinon seuls 20 enseignants
       // remontaient dans le Matchmaking.
-      const data = await fetchAllPages(FORMATION_ENS_BASE, "?size=200");
+      const data = await fetchAllPages(FORMATION_ENS_BASE, '?size=200');
       const list = normalizeEnseignantsPayload<Record<string, unknown>>(data);
       if (!departement) return list;
       // Les fiches formation portent dept/up sous plusieurs formes (deptLibelle,
@@ -99,10 +109,19 @@ const RiceService = {
       // de façon tolérante pour ne pas vider la liste.
       const deptNorm = String(departement).toLowerCase();
       return list.filter((e) => {
-        const candidates = [e?.departement, e?.department, e?.deptLibelle, e?.deptId, e?.upLibelle, e?.upId]
-          .map((v) => String(v ?? "").toLowerCase())
+        const candidates = [
+          e?.departement,
+          e?.department,
+          e?.deptLibelle,
+          e?.deptId,
+          e?.upLibelle,
+          e?.upId,
+        ]
+          .map((v) => String(v ?? '').toLowerCase())
           .filter(Boolean);
-        return candidates.some((c) => c === deptNorm || c.includes(deptNorm) || deptNorm.includes(c));
+        return candidates.some(
+          (c) => c === deptNorm || c.includes(deptNorm) || deptNorm.includes(c),
+        );
       });
     } catch (err: unknown) {
       // Compatibility fallback: some deployments expose teachers via competence service,
@@ -118,15 +137,13 @@ const RiceService = {
     }
   },
 
-
   getEnseignantAffectations: async (): Promise<EnseignantCompetence[]> => {
     const res = await axios.get(`${COMPETENCE_BASE}/enseignant-competences`);
     return res.data;
   },
 
-
   getSavoirs: async (departement: string | null = null): Promise<Savoir[]> => {
-    const params = departement ? `?departement=${departement}` : "";
+    const params = departement ? `?departement=${departement}` : '';
     try {
       const data = await fetchAllPages(`${COMPETENCE_BASE}/savoirs`, params);
       return normalizeSavoirsPayload(data);
@@ -144,8 +161,10 @@ const RiceService = {
     }
   },
 
-
-  saveAssignments: async (payload: { add?: Record<string, unknown>[]; remove?: Record<string, unknown>[] }): Promise<RiceAssignmentResult> => {
+  saveAssignments: async (payload: {
+    add?: Record<string, unknown>[];
+    remove?: Record<string, unknown>[];
+  }): Promise<RiceAssignmentResult> => {
     const add = Array.isArray(payload?.add) ? payload.add : [];
     const remove = Array.isArray(payload?.remove) ? payload.remove : [];
 
@@ -175,14 +194,11 @@ const RiceService = {
 
     let added = 0;
     for (const item of add) {
-      await axios.post(
-        `${COMPETENCE_BASE}/enseignant-competences`,
-        {
-          enseignantId: String(item?.enseignantId),
-          savoirId: Number(item?.savoirId),
-          niveau: item?.niveau ?? "N1_DEBUTANT",
-        },
-      );
+      await axios.post(`${COMPETENCE_BASE}/enseignant-competences`, {
+        enseignantId: String(item?.enseignantId),
+        savoirId: Number(item?.savoirId),
+        niveau: item?.niveau ?? 'N1_DEBUTANT',
+      });
       added += 1;
     }
 
@@ -204,19 +220,18 @@ const RiceService = {
     return res.data;
   },
 
-  updateEnseignant: async (id: number | string, data: Record<string, unknown>): Promise<Enseignant> => {
+  updateEnseignant: async (
+    id: number | string,
+    data: Record<string, unknown>,
+  ): Promise<Enseignant> => {
     const res = await axios.put(`${COMPETENCE_BASE}/enseignants/${id}`, data);
     return res.data;
   },
 
   deactivateEnseignant: async (id: number | string): Promise<Enseignant> => {
-    const res = await axios.patch(`${COMPETENCE_BASE}/enseignants/${id}`, { etat: "I" });
+    const res = await axios.patch(`${COMPETENCE_BASE}/enseignants/${id}`, { etat: 'I' });
     return res.data;
   },
 };
 
 export default RiceService;
-
-
-
-

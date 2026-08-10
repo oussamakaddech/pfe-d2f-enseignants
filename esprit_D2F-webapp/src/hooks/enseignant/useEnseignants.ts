@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import EnseignantService from "@/services/formation/EnseignantService";
-import type { Id } from "@/models/common";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import EnseignantService from '@/services/formation/EnseignantService';
+import type { Id } from '@/models/common';
 
 export interface Enseignant {
   id?: Id;
@@ -14,8 +14,8 @@ export interface Enseignant {
 }
 
 const KEYS = {
-  all: ["enseignants"] as const,
-  one: (id: Id) => ["enseignants", id] as const,
+  all: ['enseignants'] as const,
+  one: (id: Id) => ['enseignants', id] as const,
 };
 
 export function useEnseignants() {
@@ -23,9 +23,9 @@ export function useEnseignants() {
     queryKey: KEYS.all,
     queryFn: async () => {
       const data = await EnseignantService.getAllEnseignants();
-      return (data as Enseignant[]).map(e => ({
+      return (data as Enseignant[]).map((e) => ({
         ...e,
-        mail: e.mail || (e as Record<string, unknown>).email as string || "",
+        mail: e.mail || ((e as Record<string, unknown>).email as string) || '',
       }));
     },
   });
@@ -41,8 +41,14 @@ export function useEnseignantById(id: Id | undefined) {
         const status = (err as { response?: { status?: number } })?.response?.status;
         if (status === 400 || status === 404) {
           const all = await EnseignantService.getAllEnseignants();
-          const key = String(id ?? "").toLowerCase();
-          return all.find((e) => ((e as Record<string, unknown>).mail ?? e.email ?? "").toString().toLowerCase() === key) ?? null;
+          const key = String(id ?? '').toLowerCase();
+          return (
+            all.find(
+              (e) =>
+                ((e as Record<string, unknown>).mail ?? e.email ?? '').toString().toLowerCase() ===
+                key,
+            ) ?? null
+          );
         }
         throw err;
       }

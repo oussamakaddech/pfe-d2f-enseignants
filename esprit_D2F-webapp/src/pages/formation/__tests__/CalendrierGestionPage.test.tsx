@@ -22,19 +22,43 @@ vi.mock('@/hooks/formation/useCalendar', () => ({
 }));
 
 vi.mock('@/components/calendar', () => ({
-  CalendarFileUpload: ({ onFileChange, loading, disabled }: { onFileChange: (f: File) => void; loading?: boolean; disabled?: boolean }) => (
+  CalendarFileUpload: ({
+    onFileChange,
+    loading,
+    disabled,
+  }: {
+    onFileChange: (f: File) => void;
+    loading?: boolean;
+    disabled?: boolean;
+  }) => (
     <div>
-      <input type="file" data-testid="upload" disabled={disabled} onChange={(e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) onFileChange(f); }} />
+      <input
+        type="file"
+        data-testid="upload"
+        disabled={disabled}
+        onChange={(e) => {
+          const f = (e.target as HTMLInputElement).files?.[0];
+          if (f) onFileChange(f);
+        }}
+      />
       {loading && <span>loading-upload</span>}
     </div>
   ),
-  ImportResultSummary: ({ report }: { report: unknown }) => <div>summary {JSON.stringify(report)}</div>,
-  ConflictsTable: ({ report }: { report: unknown }) => <div>conflicts-{report ? 'has' : 'none'}</div>,
+  ImportResultSummary: ({ report }: { report: unknown }) => (
+    <div>summary {JSON.stringify(report)}</div>
+  ),
+  ConflictsTable: ({ report }: { report: unknown }) => (
+    <div>conflicts-{report ? 'has' : 'none'}</div>
+  ),
   CalendarFormationsTable: () => <div>formations-table</div>,
 }));
 
 function renderWith(queryClient: QueryClient) {
-  return render(<QueryClientProvider client={queryClient}><CalendrierGestionPage /></QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <CalendrierGestionPage />
+    </QueryClientProvider>,
+  );
 }
 
 describe('CalendrierGestionPage', () => {
@@ -65,10 +89,19 @@ describe('CalendrierGestionPage', () => {
   });
 
   it('renders formations and conflicts tabs with content', () => {
-    vi.mocked(cal.useCalendarFormations).mockReturnValue({ data: { totalElements: 5 }, refetch: vi.fn() } as never);
-    vi.mocked(cal.useCalendarConflicts).mockReturnValue({ data: { totalConflicts: 3 }, isFetching: false, refetch: vi.fn() } as never);
+    vi.mocked(cal.useCalendarFormations).mockReturnValue({
+      data: { totalElements: 5 },
+      refetch: vi.fn(),
+    } as never);
+    vi.mocked(cal.useCalendarConflicts).mockReturnValue({
+      data: { totalConflicts: 3 },
+      isFetching: false,
+      refetch: vi.fn(),
+    } as never);
     renderWith(queryClient);
-    const formationsTab = screen.getByText(/Formations & Export/).closest('.ant-tabs-tab') as HTMLElement;
+    const formationsTab = screen
+      .getByText(/Formations & Export/)
+      .closest('.ant-tabs-tab') as HTMLElement;
     fireEvent.click(formationsTab);
     expect(screen.getByText('formations-table')).toBeInTheDocument();
     const conflictsTab = screen.getByText(/Conflits/).closest('.ant-tabs-tab') as HTMLElement;
@@ -77,9 +110,17 @@ describe('CalendrierGestionPage', () => {
   });
 
   it('switches to import tab and previews a file', async () => {
-    const mutate = vi.fn((_f: File, opts: { onSuccess: (d: unknown) => void }) => opts.onSuccess({ sessions: [{ formationName: 'Python', date: '2026-01-01', room: 'A1', participants: [] }], participants: [] }));
+    const mutate = vi.fn((_f: File, opts: { onSuccess: (d: unknown) => void }) =>
+      opts.onSuccess({
+        sessions: [{ formationName: 'Python', date: '2026-01-01', room: 'A1', participants: [] }],
+        participants: [],
+      }),
+    );
     vi.mocked(cal.usePreviewImport).mockReturnValue({ mutate, isPending: false } as never);
-    vi.mocked(cal.useCalendarFormations).mockReturnValue({ data: { totalElements: 5 }, refetch: vi.fn() } as never);
+    vi.mocked(cal.useCalendarFormations).mockReturnValue({
+      data: { totalElements: 5 },
+      refetch: vi.fn(),
+    } as never);
     renderWith(queryClient);
     const file = new File(['x'], 'cal.xlsx', { type: 'application/vnd.ms-excel' });
     const input = screen.getByTestId('upload') as HTMLInputElement;
@@ -89,8 +130,15 @@ describe('CalendrierGestionPage', () => {
   });
 
   it('shows conflict count badge on tabs', () => {
-    vi.mocked(cal.useCalendarConflicts).mockReturnValue({ data: { totalConflicts: 7 }, isFetching: false, refetch: vi.fn() } as never);
-    vi.mocked(cal.useCalendarFormations).mockReturnValue({ data: { totalElements: 5 }, refetch: vi.fn() } as never);
+    vi.mocked(cal.useCalendarConflicts).mockReturnValue({
+      data: { totalConflicts: 7 },
+      isFetching: false,
+      refetch: vi.fn(),
+    } as never);
+    vi.mocked(cal.useCalendarFormations).mockReturnValue({
+      data: { totalElements: 5 },
+      refetch: vi.fn(),
+    } as never);
     renderWith(queryClient);
     expect(screen.getAllByText('7').length).toBeGreaterThan(0);
   });

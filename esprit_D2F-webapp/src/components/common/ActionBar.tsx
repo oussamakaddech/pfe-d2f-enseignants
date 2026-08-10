@@ -1,6 +1,6 @@
-import { memo } from "react";
-import { Button, Popconfirm, Typography } from "antd";
-import s from "./ActionBar.module.css";
+import { memo } from 'react';
+import { Button, Popconfirm, Typography } from 'antd';
+import s from './ActionBar.module.css';
 
 const { Text } = Typography;
 
@@ -9,7 +9,7 @@ interface ActionBarAction {
   label: React.ReactNode;
   icon?: React.ReactNode;
   onClick?: () => void;
-  type?: "primary" | "default" | "dashed" | "text" | "link";
+  type?: 'primary' | 'default' | 'dashed' | 'text' | 'link';
   danger?: boolean;
   disabled?: boolean;
   className?: string;
@@ -20,7 +20,7 @@ interface ActionBarProps {
   /** Actions à afficher */
   actions: ActionBarAction[];
   /** Alignement */
-  align?: "left" | "right" | "center";
+  align?: 'left' | 'right' | 'center';
   /** Gap entre les boutons */
   gap?: number;
   className?: string;
@@ -35,14 +35,14 @@ interface ActionBarProps {
  */
 const ActionBar = memo(function ActionBar({
   actions,
-  align = "right",
+  align = 'right',
   gap = 8,
-  className = "",
+  className = '',
   style,
 }: Readonly<ActionBarProps>) {
-  let justifyContent = "flex-end";
-  if (align === "left") justifyContent = "flex-start";
-  else if (align === "center") justifyContent = "center";
+  let justifyContent = 'flex-end';
+  if (align === 'left') justifyContent = 'flex-start';
+  else if (align === 'center') justifyContent = 'center';
 
   return (
     <div
@@ -53,12 +53,12 @@ const ActionBar = memo(function ActionBar({
         const btn = (
           <Button
             key={action.key}
-            type={action.type || "default"}
+            type={action.type || 'default'}
             icon={action.icon}
             onClick={action.confirm ? undefined : action.onClick}
             danger={action.danger}
             disabled={action.disabled}
-            className={`${action.className ?? ""} ${s.actionButton}`}
+            className={`${action.className ?? ''} ${s.actionButton}`}
           >
             {action.label}
           </Button>
@@ -85,7 +85,3 @@ const ActionBar = memo(function ActionBar({
 });
 
 export default ActionBar;
-
-
-
-

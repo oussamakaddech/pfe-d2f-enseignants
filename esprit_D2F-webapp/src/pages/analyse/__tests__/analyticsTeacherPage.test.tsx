@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   useAnalyzeTeacher: vi.fn(),
@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
   useUpdateAlert: vi.fn(),
 }));
 
-vi.mock("../hooks/useAnalyticsQueries", () => ({
+vi.mock('../hooks/useAnalyticsQueries', () => ({
   useAnalyzeTeacher: mocks.useAnalyzeTeacher,
   useTeacherRisk: mocks.useTeacherRisk,
   useTeacherGaps: mocks.useTeacherGaps,
@@ -22,11 +22,11 @@ vi.mock("../hooks/useAnalyticsQueries", () => ({
   useUpdateAlert: mocks.useUpdateAlert,
 }));
 
-import { render, screen } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
-import { App } from "antd";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import AnalyticsTeacherPage from "@/pages/analyse/AnalyticsTeacherPage";
+import { render, screen } from '@testing-library/react';
+import { BrowserRouter } from 'react-router-dom';
+import { App } from 'antd';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import AnalyticsTeacherPage from '@/pages/analyse/AnalyticsTeacherPage';
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
@@ -40,17 +40,20 @@ const setup = () => {
   mocks.useAnalyzeTeacher.mockReturnValue({ isPending: false, isError: false, mutate: vi.fn() });
   mocks.useTeacherRisk.mockReturnValue({ isLoading: false, data: undefined });
   mocks.useTeacherGaps.mockReturnValue({ isLoading: false, data: { gaps: [] } });
-  mocks.useTeacherRecommendations.mockReturnValue({ isLoading: false, data: { recommendations: [] } });
+  mocks.useTeacherRecommendations.mockReturnValue({
+    isLoading: false,
+    data: { recommendations: [] },
+  });
   mocks.useTeacherTrainingPath.mockReturnValue({ isLoading: false, data: undefined });
   mocks.useRiskHistory.mockReturnValue({ isLoading: false, data: { points: [] } });
   mocks.useAlerts.mockReturnValue({ isLoading: false, data: { alerts: [] } });
   mocks.useUpdateAlert.mockReturnValue({ mutate: vi.fn() });
 };
 
-describe("AnalyticsTeacherPage", () => {
+describe('AnalyticsTeacherPage', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("affiche le titre de la page", () => {
+  it('affiche le titre de la page', () => {
     setup();
     render(<AnalyticsTeacherPage />, { wrapper });
     expect(screen.getByText(/Analyse prédictive — Enseignant/i)).toBeInTheDocument();

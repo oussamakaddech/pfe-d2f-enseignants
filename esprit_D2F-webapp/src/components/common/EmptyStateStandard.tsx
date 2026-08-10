@@ -1,6 +1,6 @@
-import { memo } from "react";
-import { Empty, Button, Typography } from "antd";
-import { neutral } from "@/styles/themes/tokens";
+import { memo } from 'react';
+import { Empty, Button, Typography } from 'antd';
+import { neutral } from '@/styles/themes/tokens';
 
 const { Text, Paragraph } = Typography;
 
@@ -18,7 +18,7 @@ interface EmptyStateStandardProps {
   /** Callback du bouton d'action */
   readonly onAction?: () => void;
   /** Type de bouton */
-  readonly actionType?: "primary" | "default" | "dashed";
+  readonly actionType?: 'primary' | 'default' | 'dashed';
   readonly className?: string;
 }
 
@@ -29,28 +29,31 @@ interface EmptyStateStandardProps {
  * - Bouton d'action optionnel
  */
 const EmptyStateStandard = memo(function EmptyStateStandard({
-  title = "Aucune donnée",
+  title = 'Aucune donnée',
   description,
   image,
   actionLabel,
   actionIcon,
   onAction,
-  actionType = "primary",
-  className = "",
+  actionType = 'primary',
+  className = '',
 }: EmptyStateStandardProps) {
   return (
     <div
       className={`empty-state-standard ${className}`}
       style={{
-        padding: "48px 24px",
-        textAlign: "center",
+        padding: '48px 24px',
+        textAlign: 'center',
       }}
     >
       <Empty
         image={image || Empty.PRESENTED_IMAGE_SIMPLE}
         description={
           <div>
-            <Text strong style={{ fontSize: 15, color: neutral[800], display: "block", marginBottom: 4 }}>
+            <Text
+              strong
+              style={{ fontSize: 15, color: neutral[800], display: 'block', marginBottom: 4 }}
+            >
               {title}
             </Text>
             {description && (
@@ -77,7 +80,3 @@ const EmptyStateStandard = memo(function EmptyStateStandard({
 });
 
 export default EmptyStateStandard;
-
-
-
-

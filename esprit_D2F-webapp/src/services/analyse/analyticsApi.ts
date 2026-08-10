@@ -22,8 +22,8 @@
  * dans @/models/analyse/analyticsFeature pour que les composants restent
  * découplés du backend.
  */
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
 import type {
   AnalyseResult,
   AlertEvent,
@@ -59,7 +59,7 @@ import type {
   TypeAlerte,
   WhatIfRequestPayload,
   WhatIfResponse,
-} from "@/models/analyse/analyticsFeature";
+} from '@/models/analyse/analyticsFeature';
 
 const BASE = `${config.ANALYSE_URL}/analyse/v1/analytics`;
 
@@ -156,36 +156,36 @@ interface BackendTrainingDemandRow {
 // ── Mappers backend → types UI ──────────────────────────────
 
 const RISK_LEVEL_MAP: Record<string, NiveauRisque> = {
-  LOW: "FAIBLE",
-  MEDIUM: "MODERE",
-  HIGH: "ELEVE",
-  CRITICAL: "CRITIQUE",
-  FAIBLE: "FAIBLE",
-  MODERE: "MODERE",
-  MODEREE: "MODERE",
-  ELEVE: "ELEVE",
-  CRITIQUE: "CRITIQUE",
+  LOW: 'FAIBLE',
+  MEDIUM: 'MODERE',
+  HIGH: 'ELEVE',
+  CRITICAL: 'CRITIQUE',
+  FAIBLE: 'FAIBLE',
+  MODERE: 'MODERE',
+  MODEREE: 'MODERE',
+  ELEVE: 'ELEVE',
+  CRITIQUE: 'CRITIQUE',
 };
 
 const URGENCE_MAP: Record<string, NiveauUrgence> = {
-  LOW: "FAIBLE",
-  MEDIUM: "MODEREE",
-  MOYENNE: "MODEREE",
-  HIGH: "HAUTE",
-  CRITICAL: "CRITIQUE",
-  CRITIQUE: "CRITIQUE",
-  FAIBLE: "FAIBLE",
-  HAUTE: "HAUTE",
+  LOW: 'FAIBLE',
+  MEDIUM: 'MODEREE',
+  MOYENNE: 'MODEREE',
+  HIGH: 'HAUTE',
+  CRITICAL: 'CRITIQUE',
+  CRITIQUE: 'CRITIQUE',
+  FAIBLE: 'FAIBLE',
+  HAUTE: 'HAUTE',
 };
 
 function mapRiskLevel(level: string | null | undefined): NiveauRisque {
-  const mapped = RISK_LEVEL_MAP[(level ?? "").toUpperCase()];
-  return mapped ?? "FAIBLE";
+  const mapped = RISK_LEVEL_MAP[(level ?? '').toUpperCase()];
+  return mapped ?? 'FAIBLE';
 }
 
 function mapUrgence(level: string | null | undefined): NiveauUrgence {
-  const mapped = URGENCE_MAP[(level ?? "").toUpperCase()];
-  return mapped ?? "FAIBLE";
+  const mapped = URGENCE_MAP[(level ?? '').toUpperCase()];
+  return mapped ?? 'FAIBLE';
 }
 
 /** Hash numérique stable (les IDs backend sont des chaînes de caractères). */
@@ -202,12 +202,12 @@ function clamp01(value: number): number {
 }
 
 const FACTOR_LABELS: Record<string, string> = {
-  stagnation: "Stagnation",
-  decline: "Régression",
-  attendance: "Taux de présence",
-  low_eval: "Évaluations faibles",
-  repeated_need: "Besoins répétés",
-  low_engagement: "Faible engagement",
+  stagnation: 'Stagnation',
+  decline: 'Régression',
+  attendance: 'Taux de présence',
+  low_eval: 'Évaluations faibles',
+  repeated_need: 'Besoins répétés',
+  low_engagement: 'Faible engagement',
 };
 
 function mapRiskProfile(raw: BackendRiskProfile): RiskScore {
@@ -224,14 +224,14 @@ function mapRiskProfile(raw: BackendRiskProfile): RiskScore {
   return {
     enseignant_id: raw.teacher_id,
     enseignant_nom: null,
-    analysis_status: "READY",
-    data_source: "heuristic",
+    analysis_status: 'READY',
+    data_source: 'heuristic',
     score: clamp01(raw.risk_score / 100),
     niveau: mapRiskLevel(raw.risk_level),
-    model_mode: undefined,  // sera positionne par getRisk depuis meta
+    model_mode: undefined, // sera positionne par getRisk depuis meta
     model_version: null,
     facteurs,
-    tendance: "STABLE",
+    tendance: 'STABLE',
     precedent_score: null,
     computed_at: raw.computed_at ?? new Date().toISOString(),
     warnings: [],
@@ -253,7 +253,7 @@ function mapGap(raw: BackendGapDiagnostic): SkillGap {
     priorite_score: gapScore,
     niveau_urgence: mapUrgence(raw.severity),
     mois_stagnation: 0,
-    en_regression: raw.trend === "DECLINING",
+    en_regression: raw.trend === 'DECLINING',
     nb_besoins_exprimes: 0,
     justification: null,
     computed_at: raw.as_of ?? new Date().toISOString(),
@@ -302,21 +302,21 @@ function mapRecommendation(raw: BackendRecommendation): Recommendation {
     niveau_apres: null,
     niveau_actuel: null,
     justification: raw.reason || null,
-    statut: "PROPOSEE",
+    statut: 'PROPOSEE',
   };
 }
 
 function mapRiskRow(raw: unknown): AtRiskTeacher {
   const source = (raw ?? {}) as Record<string, unknown>;
   return {
-    enseignant_id: String(source.enseignant_id ?? source.teacher_id ?? ""),
-    nom: String(source.nom ?? source.teacher_name ?? source.teacher_id ?? ""),
-    departement: String(source.departement ?? source.department_code ?? "") || null,
-    up: String(source.up ?? "") || null,
+    enseignant_id: String(source.enseignant_id ?? source.teacher_id ?? ''),
+    nom: String(source.nom ?? source.teacher_name ?? source.teacher_id ?? ''),
+    departement: String(source.departement ?? source.department_code ?? '') || null,
+    up: String(source.up ?? '') || null,
     score_risque: Number(source.score_risque ?? source.risk_score ?? 0),
-    niveau_risque: mapRiskLevel(String(source.niveau_risque ?? source.risk_level ?? "")),
+    niveau_risque: mapRiskLevel(String(source.niveau_risque ?? source.risk_level ?? '')),
     nb_gaps_critiques: Number(source.nb_gaps_critiques ?? source.gap_count ?? 0),
-    tendance: String(source.tendance ?? "STABLE"),
+    tendance: String(source.tendance ?? 'STABLE'),
   };
 }
 
@@ -325,9 +325,9 @@ function mapHeatmapCell(raw: unknown): HeatmapCell {
   const avgGap = Number(source.avg_gap ?? source.weighted_severity ?? 0);
   const count = Number(source.enseignants_count ?? source.gap_count ?? 0);
   return {
-    departement: String(source.departement ?? source.department_code ?? ""),
-    competence_id: Number(source.competence_id ?? hashId(String(source.domain_id ?? "ALL"))),
-    competence_nom: String(source.competence_nom ?? source.domain_id ?? ""),
+    departement: String(source.departement ?? source.department_code ?? ''),
+    competence_id: Number(source.competence_id ?? hashId(String(source.domain_id ?? 'ALL'))),
+    competence_nom: String(source.competence_nom ?? source.domain_id ?? ''),
     avg_gap: clamp01(avgGap),
     enseignants_count: count,
   };
@@ -342,14 +342,15 @@ function mapTopFormation(raw: unknown): TopFormation {
   const impact = Number(source.impact_estime ?? source.avg_relevance ?? 0);
   const competencesCouvertes = asStringArray(source.competences_couvertes);
   return {
-    formation_id: Number(source.formation_id ?? hashId(String(source.training_id ?? ""))),
-    formation_titre: String(source.formation_titre ?? source.title ?? ""),
+    formation_id: Number(source.formation_id ?? hashId(String(source.training_id ?? ''))),
+    formation_titre: String(source.formation_titre ?? source.title ?? ''),
     nb_recommandations: Number(source.nb_recommandations ?? source.demand_count ?? 0),
     score_moyen: Number(source.score_moyen ?? source.avg_relevance ?? 0),
     proba_reussite_moy: Number(source.proba_reussite_moy ?? source.avg_relevance ?? 0),
     enseignants_cibles: Number(source.enseignants_cibles ?? source.demand_count ?? 0),
     departements: asStringArray(source.departements),
-    competences_couvertes: competencesCouvertes.length > 0 ? competencesCouvertes : asStringArray(source.target_domains),
+    competences_couvertes:
+      competencesCouvertes.length > 0 ? competencesCouvertes : asStringArray(source.target_domains),
     impact_estime: clamp01(impact),
   };
 }
@@ -366,7 +367,10 @@ interface BackendGlobalPayload {
   kpis?: Record<string, unknown>;
 }
 
-function mapGlobalKpis(payload: BackendGlobalPayload, atRisk: AtRiskTeacher[]): DashboardResponse["kpis"] {
+function mapGlobalKpis(
+  payload: BackendGlobalPayload,
+  atRisk: AtRiskTeacher[],
+): DashboardResponse['kpis'] {
   const k = payload?.real_kpis ?? payload?.kpis ?? {};
   const kpis = (k ?? {}) as Record<string, unknown>;
   const nb = Number(kpis.nb_enseignants_suivis ?? atRisk.length ?? 0);
@@ -386,7 +390,7 @@ function mapGlobalKpis(payload: BackendGlobalPayload, atRisk: AtRiskTeacher[]): 
 }
 
 /** Distribution du risque calculée depuis la liste des enseignants à risque. */
-function computeDistribution(atRisk: AtRiskTeacher[]): DashboardResponse["distribution_risques"] {
+function computeDistribution(atRisk: AtRiskTeacher[]): DashboardResponse['distribution_risques'] {
   const dist: Record<string, number> = { FAIBLE: 0, MODERE: 0, ELEVE: 0, CRITIQUE: 0 };
   atRisk.forEach((t) => {
     dist[t.niveau_risque] = (dist[t.niveau_risque] ?? 0) + 1;
@@ -397,16 +401,16 @@ function computeDistribution(atRisk: AtRiskTeacher[]): DashboardResponse["distri
 function mapModelStatus(raw: unknown): ModelStatus {
   const r = (raw ?? {}) as Record<string, unknown>;
   return {
-    version: (r.last_retrain_status as string) ?? "n/a",
+    version: (r.last_retrain_status as string) ?? 'n/a',
     entraîné_le: (r.last_retrained as string) ?? null,
-    algorithme: "GradientBoosting",
+    algorithme: 'GradientBoosting',
     features_count: 0,
     accuracy: (r.gap_model_accuracy as number) ?? null,
     f1_score: null,
     drift_detected: false,
     derniere_verification_integrite: null,
     integrite_ok: true,
-    source: "modele",
+    source: 'modele',
     disponible: r.gap_model_accuracy !== null && r.gap_model_accuracy !== undefined,
   };
 }
@@ -415,11 +419,11 @@ function mapDrift(raw: unknown): DriftReport {
   const points = Array.isArray(raw) ? (raw as Array<{ critical?: number }>) : [];
   return {
     drift_detected: false,
-    metric: "risk_evolution",
-    valeur_actuelle: points.length ? points.at(-1)?.critical ?? 0 : 0,
+    metric: 'risk_evolution',
+    valeur_actuelle: points.length ? (points.at(-1)?.critical ?? 0) : 0,
     seuil: 0,
     jours_depuis_entrainement: 0,
-    message: "Évolution du risque (backend /dashboard/risk-evolution).",
+    message: 'Évolution du risque (backend /dashboard/risk-evolution).',
     detected_at: new Date().toISOString(),
   };
 }
@@ -442,51 +446,51 @@ interface BackendAlertRow {
 }
 
 const ALERT_TYPE_MAP: Record<string, TypeAlerte> = {
-  GAP_CRITIQUE: "GAP_CRITIQUE",
-  REGRESSION: "REGRESSION",
-  STAGNATION: "STAGNATION",
-  TENDANCE_DEPARTEMENT: "TENDANCE_DEPARTEMENT",
-  COMPLETION_FAIBLE: "COMPLETION_FAIBLE",
-  BESOIN_NON_COUVERT: "BESOIN_NON_COUVERT",
+  GAP_CRITIQUE: 'GAP_CRITIQUE',
+  REGRESSION: 'REGRESSION',
+  STAGNATION: 'STAGNATION',
+  TENDANCE_DEPARTEMENT: 'TENDANCE_DEPARTEMENT',
+  COMPLETION_FAIBLE: 'COMPLETION_FAIBLE',
+  BESOIN_NON_COUVERT: 'BESOIN_NON_COUVERT',
 };
 
 function mapAlertType(raw: string | null | undefined): TypeAlerte {
-  return ALERT_TYPE_MAP[(raw ?? "").toUpperCase()] ?? "BESOIN_NON_COUVERT";
+  return ALERT_TYPE_MAP[(raw ?? '').toUpperCase()] ?? 'BESOIN_NON_COUVERT';
 }
 
 function mapAlertSeverity(raw: string | null | undefined): SeveriteAlerte {
-  const sev = (raw ?? "").toUpperCase();
-  if (sev === "CRITIQUE" || sev === "CRITICAL") return "CRITICAL";
-  if (sev === "INFO") return "INFO";
-  return "WARNING";
+  const sev = (raw ?? '').toUpperCase();
+  if (sev === 'CRITIQUE' || sev === 'CRITICAL') return 'CRITICAL';
+  if (sev === 'INFO') return 'INFO';
+  return 'WARNING';
 }
 
 /** Cycle de vie DDD : NOUVELLE | ACK | RESOLUE | IGNOREE | ESCALADEE. */
 function mapAlertStatus(raw: string | null | undefined): StatutAlerte {
-  const s = (raw ?? "").toUpperCase();
-  if (s === "ACK") return "LUE";
-  if (s === "RESOLUE") return "TRAITEE";
-  if (s === "IGNOREE") return "IGNOREE";
-  if (s === "ESCALADEE") return "ESCALADEE";
-  return "NOUVELLE";
+  const s = (raw ?? '').toUpperCase();
+  if (s === 'ACK') return 'LUE';
+  if (s === 'RESOLUE') return 'TRAITEE';
+  if (s === 'IGNOREE') return 'IGNOREE';
+  if (s === 'ESCALADEE') return 'ESCALADEE';
+  return 'NOUVELLE';
 }
 
 /** Statut UI → statut backend DDD (PATCH /alerts/{id}/status). */
 function toBackendStatus(statut: StatutAlerte): string {
-  if (statut === "TRAITEE") return "RESOLUE";
-  if (statut === "LUE") return "ACK";
+  if (statut === 'TRAITEE') return 'RESOLUE';
+  if (statut === 'LUE') return 'ACK';
   return statut;
 }
 
-function mapCibleType(raw: string | null | undefined): "INDIVIDUEL" | "DEPARTEMENT" | "GLOBAL" {
-  if (raw === "DEPARTEMENT") return "DEPARTEMENT";
-  if (raw === "GLOBAL") return "GLOBAL";
-  return "INDIVIDUEL";
+function mapCibleType(raw: string | null | undefined): 'INDIVIDUEL' | 'DEPARTEMENT' | 'GLOBAL' {
+  if (raw === 'DEPARTEMENT') return 'DEPARTEMENT';
+  if (raw === 'GLOBAL') return 'GLOBAL';
+  return 'INDIVIDUEL';
 }
 
 function mapAlert(raw: BackendAlertRow): AlertEvent {
   return {
-    id: raw.id ?? hashId(`${raw.alert_type}:${raw.teacher_id ?? ""}`),
+    id: raw.id ?? hashId(`${raw.alert_type}:${raw.teacher_id ?? ''}`),
     type_alerte: mapAlertType(raw.alert_type),
     cible_type: mapCibleType(raw.target_type),
     enseignant_id: raw.teacher_id ?? null,
@@ -494,7 +498,7 @@ function mapAlert(raw: BackendAlertRow): AlertEvent {
     competence_id: raw.competence_id ?? null,
     severite: mapAlertSeverity(raw.severity),
     titre: raw.title || raw.alert_type,
-    message: raw.message ?? "",
+    message: raw.message ?? '',
     statut: mapAlertStatus(raw.status),
     created_at: raw.created_at ?? new Date().toISOString(),
   };
@@ -522,9 +526,7 @@ function mapRiskEvolutionRow(raw: BackendRiskEvolutionRow): TrendPoint {
 export const analyticsApi = {
   // ── Analyse individuelle ──────────────────────────────
   analyze(enseignantId: string): Promise<AnalyseResult> {
-    return axios
-      .post<AnalyseResult>(`${BASE}/analysis/${enseignantId}`)
-      .then((r) => r.data);
+    return axios.post<AnalyseResult>(`${BASE}/analysis/${enseignantId}`).then((r) => r.data);
   },
 
   getGaps(
@@ -558,10 +560,9 @@ export const analyticsApi = {
     opts: { competence_id?: number; page?: number; size?: number } = {},
   ): Promise<RecommendationsResponse> {
     return axios
-      .get<ApiEnvelope<BackendRecommendation[]>>(
-        `${BASE}/teachers/${enseignantId}/recommendations`,
-        { params: { competence_id: opts.competence_id ?? undefined, limit: opts.size ?? 20 } },
-      )
+      .get<
+        ApiEnvelope<BackendRecommendation[]>
+      >(`${BASE}/teachers/${enseignantId}/recommendations`, { params: { competence_id: opts.competence_id ?? undefined, limit: opts.size ?? 20 } })
       .then((r) => {
         const recs = (unpack(r.data) ?? []).map(mapRecommendation);
         const size = opts.size ?? recs.length;
@@ -585,10 +586,12 @@ export const analyticsApi = {
   // Analyse contextuelle complete (specialite / UP / departement) — nouveau endpoint.
   getTeacherScopeAnalysis(enseignantId: string): Promise<TeacherScopeAnalysis> {
     return axios
-      .get<ApiEnvelope<BackendTeacherScopeAnalysis>>(`${BASE}/teachers/${enseignantId}/scope-analysis`)
+      .get<
+        ApiEnvelope<BackendTeacherScopeAnalysis>
+      >(`${BASE}/teachers/${enseignantId}/scope-analysis`)
       .then((r) => {
         const raw: BackendTeacherScopeAnalysis = unpack<BackendTeacherScopeAnalysis>(r.data);
-        if (!raw) throw new Error("Pas de donnees scope-analysis");
+        if (!raw) throw new Error('Pas de donnees scope-analysis');
         return {
           context: {
             teacher_id: raw.context.teacher_id,
@@ -624,7 +627,7 @@ export const analyticsApi = {
       .then((r) => {
         const mapped = mapRiskProfile(unpack(r.data));
         const meta = (r.data.meta ?? {}) as { model_mode?: string; model_version?: string | null };
-        mapped.model_mode = meta.model_mode === "ML" ? "ML" : "HEURISTIC_FALLBACK";
+        mapped.model_mode = meta.model_mode === 'ML' ? 'ML' : 'HEURISTIC_FALLBACK';
         mapped.model_version = meta.model_version ?? null;
         return mapped;
       });
@@ -649,7 +652,9 @@ export const analyticsApi = {
   // Endpoint backend réel : /pilotage (F9).
   getPilotage(horizonMois?: number): Promise<PilotageResponse> {
     return axios
-      .get<PilotageResponse>(`${BASE}/pilotage`, { params: horizonMois ? { horizon_mois: horizonMois } : {} })
+      .get<PilotageResponse>(`${BASE}/pilotage`, {
+        params: horizonMois ? { horizon_mois: horizonMois } : {},
+      })
       .then((r) => r.data);
   },
 
@@ -672,14 +677,16 @@ export const analyticsApi = {
           filtres: {},
           kpis: mapGlobalKpis(raw ?? {}, atRisk),
           enseignants_a_risque: atRisk,
-          competences_en_declin: (raw?.competences_en_declin ?? []).map(mapHeatmapCell).map((c) => ({
-            competence_id: c.competence_id,
-            competence_nom: c.competence_nom,
-            domaine_nom: null,
-            variation_moyenne: 0,
-            pct_enseignants_en_declin: 0,
-            nb_enseignants_concernes: c.enseignants_count,
-          })),
+          competences_en_declin: (raw?.competences_en_declin ?? [])
+            .map(mapHeatmapCell)
+            .map((c) => ({
+              competence_id: c.competence_id,
+              competence_nom: c.competence_nom,
+              domaine_nom: null,
+              variation_moyenne: 0,
+              pct_enseignants_en_declin: 0,
+              nb_enseignants_concernes: c.enseignants_count,
+            })),
           distribution_risques: computeDistribution(atRisk),
           tendances,
           alertes_recentes: [],
@@ -692,12 +699,14 @@ export const analyticsApi = {
   // Endpoint backend réel : /dashboard/gap-heatmap (département × domaine).
   getHeatmap(_filters?: DashboardFilters): Promise<HeatmapCell[]> {
     return axios
-      .get<ApiEnvelope<{ cells: BackendHeatmapCell[]; count: number }> | BackendHeatmapCell[]>(
-        `${BASE}/dashboard/gap-heatmap`,
-      )
+      .get<
+        ApiEnvelope<{ cells: BackendHeatmapCell[]; count: number }> | BackendHeatmapCell[]
+      >(`${BASE}/dashboard/gap-heatmap`)
       .then((r) => {
         const unwrapped = (r.data as { data?: unknown })?.data ?? r.data;
-        const rows = Array.isArray(unwrapped) ? unwrapped : (unwrapped as { cells?: BackendHeatmapCell[] }).cells ?? [];
+        const rows = Array.isArray(unwrapped)
+          ? unwrapped
+          : ((unwrapped as { cells?: BackendHeatmapCell[] }).cells ?? []);
         return rows.map(mapHeatmapCell);
       });
   },
@@ -705,18 +714,24 @@ export const analyticsApi = {
   // Endpoint backend réel : /dashboard/teachers-at-risk (seuil 0.5 fixe).
   getAtRisk(_filters?: DashboardFilters & { seuil?: number }): Promise<AtRiskTeacher[]> {
     return axios
-      .get<ApiEnvelope<{ rows: BackendRiskRow[]; count: number }> | BackendRiskRow[]>(
-        `${BASE}/dashboard/teachers-at-risk`,
-      )
+      .get<
+        ApiEnvelope<{ rows: BackendRiskRow[]; count: number }> | BackendRiskRow[]
+      >(`${BASE}/dashboard/teachers-at-risk`)
       .then((r) => {
         const unwrapped = (r.data as { data?: unknown })?.data ?? r.data;
-        const rows = Array.isArray(unwrapped) ? unwrapped : (unwrapped as { rows?: BackendRiskRow[] }).rows ?? [];
+        const rows = Array.isArray(unwrapped)
+          ? unwrapped
+          : ((unwrapped as { rows?: BackendRiskRow[] }).rows ?? []);
         return rows.map(mapRiskRow);
       });
   },
 
   // Endpoint backend réel : /dashboard/teachers-by-cell (drill-down heatmap).
-  getTeachersByCell(departement: string, competenceId: number, limit = 50): Promise<Array<Record<string, unknown>>> {
+  getTeachersByCell(
+    departement: string,
+    competenceId: number,
+    limit = 50,
+  ): Promise<Array<Record<string, unknown>>> {
     return axios
       .get<Array<Record<string, unknown>>>(`${BASE}/dashboard/teachers-by-cell`, {
         params: { departement, competence_id: competenceId, limit },
@@ -746,18 +761,27 @@ export const analyticsApi = {
 
   // ── Alertes (F5/F6) ────────────────────────────────
   // Endpoint backend réel : GET /alerts (nouveau module DDD, enveloppe {data, meta, errors}).
-  getAlerts(filters: {
-    type_alerte?: string;
-    severite?: string;
-    statut?: string;
-    enseignant_id?: string;
-    departement_id?: string;
-    page?: number;
-    size?: number;
-  } = {}): Promise<AlertListResponse> {
+  getAlerts(
+    filters: {
+      type_alerte?: string;
+      severite?: string;
+      statut?: string;
+      enseignant_id?: string;
+      departement_id?: string;
+      page?: number;
+      size?: number;
+    } = {},
+  ): Promise<AlertListResponse> {
     return axios
       .get<ApiEnvelope<BackendAlertRow[]> | BackendAlertRow[]>(`${BASE}/alerts`, {
-        params: { page: filters.page ?? 1, size: filters.size ?? 100, severity: filters.severite, status: filters.statut, target_type: filters.type_alerte, department_id: filters.departement_id },
+        params: {
+          page: filters.page ?? 1,
+          size: filters.size ?? 100,
+          severity: filters.severite,
+          status: filters.statut,
+          target_type: filters.type_alerte,
+          department_id: filters.departement_id,
+        },
       })
       .then((r) => {
         const raw = unpack(r.data);
@@ -769,7 +793,8 @@ export const analyticsApi = {
           | { CRITICAL?: number; WARNING?: number; INFO?: number }
           | undefined;
         return {
-          total: Number.isFinite(totalMatching) && totalMatching > 0 ? totalMatching : alerts.length,
+          total:
+            Number.isFinite(totalMatching) && totalMatching > 0 ? totalMatching : alerts.length,
           page: 0,
           size: alerts.length,
           alerts,
@@ -797,7 +822,9 @@ export const analyticsApi = {
   // ── Impact des formations & simulation what-if (F8) ──
   // Endpoint backend réel : GET /dashboard/training-impact (agrégats historiques).
   getTrainingImpact(): Promise<TrainingImpactResponse> {
-    return axios.get<TrainingImpactResponse>(`${BASE}/dashboard/training-impact`).then((r) => r.data);
+    return axios
+      .get<TrainingImpactResponse>(`${BASE}/dashboard/training-impact`)
+      .then((r) => r.data);
   },
 
   // Endpoint backend réel : GET /dashboard/training-impact/formations (top par impact).
@@ -817,7 +844,9 @@ export const analyticsApi = {
   // ── Monitoring modèle ───────────────────────────────
   // Endpoint backend réel : /dashboard/model-performance.
   getModelStatus(): Promise<ModelStatus> {
-    return axios.get<unknown>(`${BASE}/dashboard/model-performance`).then((r) => mapModelStatus(r.data));
+    return axios
+      .get<unknown>(`${BASE}/dashboard/model-performance`)
+      .then((r) => mapModelStatus(r.data));
   },
 
   // Endpoint backend réel : /dashboard/risk-evolution (proxy drift/évolution).

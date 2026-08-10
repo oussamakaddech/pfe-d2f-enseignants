@@ -1,13 +1,6 @@
-import React, { useState, useMemo } from "react";
-import { Doughnut, Bar } from "react-chartjs-2";
-import {
-  DatePicker,
-  Skeleton,
-  Row,
-  Col,
-  Tooltip,
-  Space,
-} from "antd";
+import React, { useState, useMemo } from 'react';
+import { Doughnut, Bar } from 'react-chartjs-2';
+import { DatePicker, Skeleton, Row, Col, Tooltip, Space } from 'antd';
 import {
   BarChartOutlined,
   TeamOutlined,
@@ -19,24 +12,24 @@ import {
   PieChartOutlined,
   FilterOutlined,
   ArrowUpOutlined,
-} from "@ant-design/icons";
-import dayjs, { type Dayjs } from "dayjs";
+} from '@ant-design/icons';
+import dayjs, { type Dayjs } from 'dayjs';
 
-import { useFormationsByEtat, useGlobalParticipantKPI } from "@/hooks/kpi";
-import "@/styles/pages/kpichart.css";
-import { neutral } from "@/styles/themes/tokens";
+import { useFormationsByEtat, useGlobalParticipantKPI } from '@/hooks/kpi';
+import '@/styles/pages/kpichart.css';
+import { neutral } from '@/styles/themes/tokens';
 
-import FormationProgressBars from "./FormationProgressBars";
-import TopParticipants from "./TopParticipants";
-import TopAbsentees from "./TopAbsentees";
-import NonAffectedList from "./NonAffectedList";
-import MetricCards from "./MetricCards";
-import FormationsByTypeFiltered from "./FormationsByTypeFiltered";
-import DonutByTrainerType from "./DonutByTrainerType";
+import FormationProgressBars from './FormationProgressBars';
+import TopParticipants from './TopParticipants';
+import TopAbsentees from './TopAbsentees';
+import NonAffectedList from './NonAffectedList';
+import MetricCards from './MetricCards';
+import FormationsByTypeFiltered from './FormationsByTypeFiltered';
+import DonutByTrainerType from './DonutByTrainerType';
 
 const { RangePicker } = DatePicker;
 
-type PresetKey = "ytd" | "6m" | "12m" | "current-year" | "all";
+type PresetKey = 'ytd' | '6m' | '12m' | 'current-year' | 'all';
 
 interface Preset {
   key: PresetKey;
@@ -46,29 +39,29 @@ interface Preset {
 
 const PRESETS: Preset[] = [
   {
-    key: "ytd",
-    label: "Depuis Janvier",
-    range: [dayjs().startOf("year"), dayjs().endOf("year")],
+    key: 'ytd',
+    label: 'Depuis Janvier',
+    range: [dayjs().startOf('year'), dayjs().endOf('year')],
   },
   {
-    key: "6m",
-    label: "6 derniers mois",
-    range: [dayjs().subtract(6, "month").startOf("month"), dayjs().endOf("month")],
+    key: '6m',
+    label: '6 derniers mois',
+    range: [dayjs().subtract(6, 'month').startOf('month'), dayjs().endOf('month')],
   },
   {
-    key: "12m",
-    label: "12 derniers mois",
-    range: [dayjs().subtract(12, "month").startOf("month"), dayjs().endOf("month")],
+    key: '12m',
+    label: '12 derniers mois',
+    range: [dayjs().subtract(12, 'month').startOf('month'), dayjs().endOf('month')],
   },
   {
-    key: "current-year",
-    label: "Cette année",
-    range: [dayjs().startOf("year"), dayjs().endOf("year")],
+    key: 'current-year',
+    label: 'Cette année',
+    range: [dayjs().startOf('year'), dayjs().endOf('year')],
   },
   {
-    key: "all",
-    label: "Tout",
-    range: [dayjs("2020-01-01"), dayjs().endOf("year")],
+    key: 'all',
+    label: 'Tout',
+    range: [dayjs('2020-01-01'), dayjs().endOf('year')],
   },
 ];
 
@@ -98,9 +91,9 @@ function KpiSummaryCard({
   const trendUp = (trend ?? 0) > 0;
   const trendDown = (trend ?? 0) < 0;
   let trendClass: string;
-  if (trendUp) trendClass = "up";
-  else if (trendDown) trendClass = "down";
-  else trendClass = "flat";
+  if (trendUp) trendClass = 'up';
+  else if (trendDown) trendClass = 'down';
+  else trendClass = 'flat';
   let trendIcon: React.ReactNode = null;
   if (trendUp) trendIcon = <ArrowUpOutlined style={{ fontSize: 9 }} />;
   else if (trendDown) trendIcon = <FallOutlined style={{ fontSize: 9 }} />;
@@ -110,9 +103,9 @@ function KpiSummaryCard({
       className="kpi-summary-card"
       style={
         {
-          "--accent": accentColor,
-          "--accent-soft": accentSoftColor,
-          "--accent-bg": `${accentColor}14`,
+          '--accent': accentColor,
+          '--accent-soft': accentSoftColor,
+          '--accent-bg': `${accentColor}14`,
         } as React.CSSProperties
       }
     >
@@ -153,10 +146,7 @@ interface KpiSectionTitleProps {
 function KpiSectionTitle({ icon, iconColor, iconBg, title, subtitle, tag }: KpiSectionTitleProps) {
   return (
     <div className="kpi-section">
-      <span
-        className="kpi-section-icon"
-        style={{ background: iconBg, color: iconColor }}
-      >
+      <span className="kpi-section-icon" style={{ background: iconBg, color: iconColor }}>
         {icon}
       </span>
       <div>
@@ -212,17 +202,15 @@ function KpiChartCard({
 }
 
 export default function KPIChart() {
-  const [activePreset, setActivePreset] = useState<PresetKey>("current-year");
+  const [activePreset, setActivePreset] = useState<PresetKey>('current-year');
   const [range, setRange] = useState<[Dayjs, Dayjs]>(
-    PRESETS.find((p) => p.key === "current-year")!.range as [Dayjs, Dayjs]
+    PRESETS.find((p) => p.key === 'current-year')!.range as [Dayjs, Dayjs],
   );
-  const [start, setStart] = useState<string>(range[0].format("YYYY-MM-DD"));
-  const [end, setEnd] = useState<string>(range[1].format("YYYY-MM-DD"));
+  const [start, setStart] = useState<string>(range[0].format('YYYY-MM-DD'));
+  const [end, setEnd] = useState<string>(range[1].format('YYYY-MM-DD'));
 
-  const { data: formationsByEtatRaw, isLoading: loadingEtat } =
-    useFormationsByEtat(start, end);
-  const { data: globalKpiRaw, isLoading: loadingGlobal } =
-    useGlobalParticipantKPI(start, end);
+  const { data: formationsByEtatRaw, isLoading: loadingEtat } = useFormationsByEtat(start, end);
+  const { data: globalKpiRaw, isLoading: loadingGlobal } = useGlobalParticipantKPI(start, end);
 
   const loading = loadingEtat || loadingGlobal;
 
@@ -230,7 +218,11 @@ export default function KPIChart() {
 
   const globalKpiData = useMemo(() => {
     const g = globalKpiRaw as
-      | { nombreParticipantsTotal?: number; nombreParticipantsPresent?: number; tauxParticipation?: number }
+      | {
+          nombreParticipantsTotal?: number;
+          nombreParticipantsPresent?: number;
+          tauxParticipation?: number;
+        }
       | undefined;
     return {
       total: g?.nombreParticipantsTotal ?? 0,
@@ -248,26 +240,26 @@ export default function KPIChart() {
 
   const participationDonutData = useMemo(
     () => ({
-      labels: ["Présents", "Absents"],
+      labels: ['Présents', 'Absents'],
       datasets: [
         {
           data: [globalKpiData.presents, Math.max(0, globalKpiData.total - globalKpiData.presents)],
-          backgroundColor: ["#10b981", "#e2e8f0"],
-          borderColor: ["#ffffff", "#ffffff"],
+          backgroundColor: ['#10b981', '#e2e8f0'],
+          borderColor: ['#ffffff', '#ffffff'],
           borderWidth: 4,
           hoverOffset: 6,
         },
       ],
     }),
-    [globalKpiData]
+    [globalKpiData],
   );
 
   const statusBarData = useMemo(
     () => ({
-      labels: ["Enregistré", "Planifié", "En cours", "Achevé", "Annulé"],
+      labels: ['Enregistré', 'Planifié', 'En cours', 'Achevé', 'Annulé'],
       datasets: [
         {
-          label: "Formations",
+          label: 'Formations',
           data: [
             formationsByEtat.enregistre ?? 0,
             formationsByEtat.planifie ?? 0,
@@ -275,26 +267,26 @@ export default function KPIChart() {
             formationsByEtat.acheve ?? 0,
             formationsByEtat.annule ?? 0,
           ],
-          backgroundColor: ["#94a3b8", "#3b82f6", "#f59e0b", "#10b981", "#ef4444"],
+          backgroundColor: ['#94a3b8', '#3b82f6', '#f59e0b', '#10b981', '#ef4444'],
           borderRadius: 8,
           borderSkipped: false,
           barThickness: 28,
         },
       ],
     }),
-    [formationsByEtat]
+    [formationsByEtat],
   );
 
   const donutOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    cutout: "72%",
+    cutout: '72%',
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: "rgba(15,23,42,0.95)",
-        titleColor: "#fff",
-        bodyColor: "#e2e8f0",
+        backgroundColor: 'rgba(15,23,42,0.95)',
+        titleColor: '#fff',
+        bodyColor: '#e2e8f0',
         padding: 10,
         cornerRadius: 8,
       },
@@ -307,9 +299,9 @@ export default function KPIChart() {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: "rgba(15,23,42,0.95)",
-        titleColor: "#fff",
-        bodyColor: "#e2e8f0",
+        backgroundColor: 'rgba(15,23,42,0.95)',
+        titleColor: '#fff',
+        bodyColor: '#e2e8f0',
         padding: 10,
         cornerRadius: 8,
       },
@@ -322,7 +314,7 @@ export default function KPIChart() {
       },
       y: {
         beginAtZero: true,
-        grid: { color: "rgba(15,23,42,0.05)" },
+        grid: { color: 'rgba(15,23,42,0.05)' },
         ticks: { color: neutral[500], font: { size: 11 }, stepSize: 1 },
         border: { display: false },
       },
@@ -333,16 +325,16 @@ export default function KPIChart() {
     if (!preset.range) return;
     setActivePreset(preset.key);
     setRange(preset.range);
-    setStart(preset.range[0].format("YYYY-MM-DD"));
-    setEnd(preset.range[1].format("YYYY-MM-DD"));
+    setStart(preset.range[0].format('YYYY-MM-DD'));
+    setEnd(preset.range[1].format('YYYY-MM-DD'));
   }
 
   function onRangeChange(dates: [Dayjs | null, Dayjs | null] | null) {
     if (!dates?.[0] || !dates[1]) return;
-    setActivePreset("ytd");
+    setActivePreset('ytd');
     setRange([dates[0], dates[1]]);
-    setStart(dates[0].format("YYYY-MM-DD"));
-    setEnd(dates[1].format("YYYY-MM-DD"));
+    setStart(dates[0].format('YYYY-MM-DD'));
+    setEnd(dates[1].format('YYYY-MM-DD'));
   }
 
   return (
@@ -363,11 +355,11 @@ export default function KPIChart() {
           <Tooltip title="Période d'analyse active">
             <Space size="large" className="kpi-hero-stats" aria-label="Période active">
               <div className="kpi-hero-stat">
-                <span className="kpi-hero-stat-value">{dayjs(start).format("DD MMM YYYY")}</span>
+                <span className="kpi-hero-stat-value">{dayjs(start).format('DD MMM YYYY')}</span>
                 <span className="kpi-hero-stat-label">Du</span>
               </div>
               <div className="kpi-hero-stat">
-                <span className="kpi-hero-stat-value">{dayjs(end).format("DD MMM YYYY")}</span>
+                <span className="kpi-hero-stat-value">{dayjs(end).format('DD MMM YYYY')}</span>
                 <span className="kpi-hero-stat-label">Au</span>
               </div>
             </Space>
@@ -384,7 +376,7 @@ export default function KPIChart() {
           <button
             key={p.key}
             type="button"
-            className={`kpi-preset${activePreset === p.key ? " kpi-preset-active" : ""}`}
+            className={`kpi-preset${activePreset === p.key ? ' kpi-preset-active' : ''}`}
             onClick={() => applyPreset(p)}
             aria-pressed={activePreset === p.key}
           >
@@ -463,15 +455,17 @@ export default function KPIChart() {
           loading={loading}
           footer={
             <div className="kpi-legend-inline">
-              <span><i style={{ background: "#10b981" }} /> Présents ({globalKpiData.presents})</span>
               <span>
-                <i style={{ background: "#e2e8f0" }} /> Absents (
+                <i style={{ background: '#10b981' }} /> Présents ({globalKpiData.presents})
+              </span>
+              <span>
+                <i style={{ background: '#e2e8f0' }} /> Absents (
                 {Math.max(0, globalKpiData.total - globalKpiData.presents)})
               </span>
             </div>
           }
         >
-          <div style={{ position: "relative", height: 220 }}>
+          <div style={{ position: 'relative', height: 220 }}>
             <div className="kpi-donut-center">
               <strong>{(globalKpiData.taux || 0).toFixed(1)}%</strong>
               <small>Taux de présence</small>
@@ -489,7 +483,7 @@ export default function KPIChart() {
           loading={loading}
           footer={
             <>
-              {dayjs(start).format("DD/MM/YYYY")} → {dayjs(end).format("DD/MM/YYYY")}
+              {dayjs(start).format('DD/MM/YYYY')} → {dayjs(end).format('DD/MM/YYYY')}
             </>
           }
         >

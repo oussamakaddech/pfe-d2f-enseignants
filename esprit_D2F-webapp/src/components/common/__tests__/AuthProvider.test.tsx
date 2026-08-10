@@ -26,20 +26,16 @@ const TestComponent = () => {
       userName: 'testuser',
       username: 'testuser',
       emailAddress: 'test@example.com',
-      role: 'USER' as import('@/models/auth').UserRole
+      role: 'USER' as import('@/models/auth').UserRole,
     };
     login(testUser);
   };
 
   return (
     <div>
-      <div data-testid="auth-status">
-        {user ? 'Authenticated' : 'Not authenticated'}
-      </div>
+      <div data-testid="auth-status">{user ? 'Authenticated' : 'Not authenticated'}</div>
       {user && <div data-testid="user-name">{user.username}</div>}
-      <button onClick={handleLogin}>
-        Login
-      </button>
+      <button onClick={handleLogin}>Login</button>
       <button onClick={logout}>Logout</button>
     </div>
   );
@@ -55,23 +51,21 @@ describe('AuthContext', () => {
     render(
       <AuthProvider>
         <TestComponent />
-      </AuthProvider>
+      </AuthProvider>,
     );
 
-    expect(screen.getByTestId('auth-status')).toHaveTextContent(
-      'Not authenticated'
-    );
+    expect(screen.getByTestId('auth-status')).toHaveTextContent('Not authenticated');
   });
 
   it('should update auth state on login', async () => {
     render(
       <AuthProvider>
         <TestComponent />
-      </AuthProvider>
+      </AuthProvider>,
     );
 
     const loginButton = screen.getByRole('button', { name: /login/i });
-    
+
     await userEvent.click(loginButton);
 
     await waitFor(() => {
@@ -83,7 +77,7 @@ describe('AuthContext', () => {
     render(
       <AuthProvider>
         <TestComponent />
-      </AuthProvider>
+      </AuthProvider>,
     );
 
     const loginButton = screen.getByRole('button', { name: /login/i });
@@ -97,9 +91,7 @@ describe('AuthContext', () => {
     await userEvent.click(logoutButton);
 
     await waitFor(() => {
-      expect(screen.getByTestId('auth-status')).toHaveTextContent(
-        'Not authenticated'
-      );
+      expect(screen.getByTestId('auth-status')).toHaveTextContent('Not authenticated');
     });
   });
 
@@ -107,7 +99,7 @@ describe('AuthContext', () => {
     const { unmount } = render(
       <AuthProvider>
         <TestComponent />
-      </AuthProvider>
+      </AuthProvider>,
     );
 
     const loginButton = screen.getByRole('button', { name: /login/i });
@@ -128,7 +120,7 @@ describe('AuthContext', () => {
     render(
       <AuthProvider>
         <TestComponent />
-      </AuthProvider>
+      </AuthProvider>,
     );
 
     // Should restore auth state from sessionStorage
@@ -145,7 +137,7 @@ describe('AuthContext', () => {
     render(
       <AuthProvider>
         <TestComponent />
-      </AuthProvider>
+      </AuthProvider>,
     );
 
     // Component should render without errors even if auth fails
@@ -154,7 +146,3 @@ describe('AuthContext', () => {
     consoleErrorSpy.mockRestore();
   });
 });
-
-
-
-

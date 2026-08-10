@@ -5,7 +5,7 @@ const httpMocks = vi.hoisted(() => ({
   mockGet: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     get: httpMocks.mockGet,
   },
@@ -14,16 +14,34 @@ vi.mock("@/services/httpClient", () => ({
 import UnifiedProfileService from '../UnifiedProfileService';
 
 describe('UnifiedProfileService', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   const base = `${config.FORMATION_URL}/api/v1/unified-profiles`;
 
   it('searches with default page/size', async () => {
-    const data = [{ id: '1', nom: 'A', prenom: 'B', email: 'a@b.c', role: 'ENS', departement: null, unitePedagogique: null, matricule: null, grade: null, statut: null, isActive: true }];
+    const data = [
+      {
+        id: '1',
+        nom: 'A',
+        prenom: 'B',
+        email: 'a@b.c',
+        role: 'ENS',
+        departement: null,
+        unitePedagogique: null,
+        matricule: null,
+        grade: null,
+        statut: null,
+        isActive: true,
+      },
+    ];
     httpMocks.mockGet.mockResolvedValueOnce({ data });
     const out = await UnifiedProfileService.search({ search: 'ali' });
     expect(out).toEqual(data);
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(base, { params: { search: 'ali', role: undefined, page: 0, size: 20 } });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(base, {
+      params: { search: 'ali', role: undefined, page: 0, size: 20 },
+    });
   });
 
   it('searches with explicit filters', async () => {
@@ -31,7 +49,9 @@ describe('UnifiedProfileService', () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: page });
     const out = await UnifiedProfileService.search({ search: 'x', role: 'ENS', page: 3, size: 5 });
     expect(out).toEqual([{ id: '2' }]);
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(base, { params: { search: 'x', role: 'ENS', page: 3, size: 5 } });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(base, {
+      params: { search: 'x', role: 'ENS', page: 3, size: 5 },
+    });
   });
 
   it('normalizes data/content/items shapes', async () => {

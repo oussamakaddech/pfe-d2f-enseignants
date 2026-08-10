@@ -1,5 +1,5 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
 
 /**
  * Service de tests A/B pour le moteur d'analyse prédictive.
@@ -69,7 +69,7 @@ const ABTestingService = {
   /** Récupère les résultats agrégés (liste par variante) d'une expérience. */
   async getResults(experiment: string): Promise<ABResultsResponse> {
     const res = await axios.get<ABResultsResponse>(
-      `${AB_API}/results/${encodeURIComponent(experiment)}`
+      `${AB_API}/results/${encodeURIComponent(experiment)}`,
     );
     return res.data;
   },
@@ -77,7 +77,7 @@ const ABTestingService = {
   /** Détermine la variante gagnante d'une expérience (peut lever 404). */
   async getWinner(experiment: string): Promise<ABWinnerResponse> {
     const res = await axios.get<ABWinnerResponse>(
-      `${AB_API}/winner/${encodeURIComponent(experiment)}`
+      `${AB_API}/winner/${encodeURIComponent(experiment)}`,
     );
     return res.data;
   },

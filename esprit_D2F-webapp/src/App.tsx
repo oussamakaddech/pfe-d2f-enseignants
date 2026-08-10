@@ -1,5 +1,5 @@
-import AppRoutes from "@/routes";
-import ErrorBoundary from "@/components/feedback/ErrorBoundary";
+import AppRoutes from '@/routes';
+import ErrorBoundary from '@/components/feedback/ErrorBoundary';
 
 function App() {
   return (

@@ -5,7 +5,7 @@ const httpMocks = vi.hoisted(() => ({
   mockDelete: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     get: httpMocks.mockGet,
     delete: httpMocks.mockDelete,
@@ -15,7 +15,9 @@ vi.mock("@/services/httpClient", () => ({
 import OneDriveService from '../OneDriveService';
 
 describe('OneDriveService', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('gets drive hierarchy', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: { nodes: [] } });
@@ -29,9 +31,12 @@ describe('OneDriveService', () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: blob });
     const result = await OneDriveService.downloadFile('f1', 'd1', 'file.pdf');
     expect(result).toEqual(blob);
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/download'), expect.objectContaining({
-      params: { nomFormation: 'f1', nomDocument: 'd1', originalFileName: 'file.pdf' }
-    }));
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('/download'),
+      expect.objectContaining({
+        params: { nomFormation: 'f1', nomDocument: 'd1', originalFileName: 'file.pdf' },
+      }),
+    );
   });
 
   it('deletes a file', async () => {
@@ -50,7 +55,9 @@ describe('OneDriveService', () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: [{ name: 'doc1' }] });
     const result = await OneDriveService.getFormationHierarchy(1);
     expect(result).toEqual([{ name: 'doc1' }]);
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/formations/1/hierarchy'));
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('/formations/1/hierarchy'),
+    );
   });
 
   it('propagates errors from all methods', async () => {
@@ -72,7 +79,3 @@ describe('OneDriveService', () => {
     await expect(OneDriveService.getFormationHierarchy(1)).rejects.toThrow('OneDrive error');
   });
 });
-
-
-
-

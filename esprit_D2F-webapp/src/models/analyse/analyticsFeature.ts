@@ -8,22 +8,17 @@
  */
 
 // ── Énumérations métier ────────────────────────────────────
-export type NiveauUrgence = "FAIBLE" | "MODEREE" | "HAUTE" | "CRITIQUE";
-export type NiveauRisque = "FAIBLE" | "MODERE" | "ELEVE" | "CRITIQUE";
+export type NiveauUrgence = 'FAIBLE' | 'MODEREE' | 'HAUTE' | 'CRITIQUE';
+export type NiveauRisque = 'FAIBLE' | 'MODERE' | 'ELEVE' | 'CRITIQUE';
 export type TypeAlerte =
-  | "GAP_CRITIQUE"
-  | "STAGNATION"
-  | "REGRESSION"
-  | "TENDANCE_DEPARTEMENT"
-  | "COMPLETION_FAIBLE"
-  | "BESOIN_NON_COUVERT";
-export type SeveriteAlerte = "INFO" | "WARNING" | "CRITICAL";
-export type StatutAlerte =
-  | "NOUVELLE"
-  | "LUE"
-  | "TRAITEE"
-  | "IGNOREE"
-  | "ESCALADEE";
+  | 'GAP_CRITIQUE'
+  | 'STAGNATION'
+  | 'REGRESSION'
+  | 'TENDANCE_DEPARTEMENT'
+  | 'COMPLETION_FAIBLE'
+  | 'BESOIN_NON_COUVERT';
+export type SeveriteAlerte = 'INFO' | 'WARNING' | 'CRITICAL';
+export type StatutAlerte = 'NOUVELLE' | 'LUE' | 'TRAITEE' | 'IGNOREE' | 'ESCALADEE';
 
 // ── Facteurs du score de risque (explicable) ───────────────
 export interface RiskFactor {
@@ -37,16 +32,22 @@ export interface RiskFactor {
 export interface RiskScore {
   enseignant_id: string;
   enseignant_nom: string | null;
-  analysis_status?: "READY" | "DATA_INCOMPLETE" | "NOT_FOUND" | "STALE_DATA" | "COMPUTATION_FAILED" | "MODEL_FALLBACK";
-  data_source?: "db" | "csv_fallback" | "cache" | "heuristic" | "ml_model";
+  analysis_status?:
+    | 'READY'
+    | 'DATA_INCOMPLETE'
+    | 'NOT_FOUND'
+    | 'STALE_DATA'
+    | 'COMPUTATION_FAILED'
+    | 'MODEL_FALLBACK';
+  data_source?: 'db' | 'csv_fallback' | 'cache' | 'heuristic' | 'ml_model';
   score: number; // 0..1
   niveau: NiveauRisque;
   facteurs: RiskFactor[];
-  tendance: "AMELIORATION" | "STABLE" | "DEGRADATION";
+  tendance: 'AMELIORATION' | 'STABLE' | 'DEGRADATION';
   precedent_score: number | null;
   computed_at: string;
   warnings?: string[];
-  model_mode?: "ML" | "HEURISTIC_FALLBACK";
+  model_mode?: 'ML' | 'HEURISTIC_FALLBACK';
   model_version?: string | null;
 }
 
@@ -148,7 +149,7 @@ export interface RealDashboardImpact {
   top_formations: RealTopFormation[];
   coverage_by_dept: RealCoverageByDept[];
   model?: { name: string; mode: string; version?: string };
-  data_source: "database" | "csv";
+  data_source: 'database' | 'csv';
   note?: string;
 }
 
@@ -212,7 +213,7 @@ export interface Recommendation {
   niveau_apres: number | null;
   niveau_actuel: number | null;
   justification: string | null;
-  statut: "PROPOSEE" | "ACCEPTEE" | "IGNOREE" | "OBSOLETE";
+  statut: 'PROPOSEE' | 'ACCEPTEE' | 'IGNOREE' | 'OBSOLETE';
 }
 
 export interface RecommendationsResponse {
@@ -257,7 +258,7 @@ export interface TrainingPath {
 export interface AnalyseResult {
   enseignant_id: string;
   prediction_result_id: number;
-  statut: "EN_COURS" | "TERMINE" | "ERREUR";
+  statut: 'EN_COURS' | 'TERMINE' | 'ERREUR';
   nb_gaps_detectes: number;
   nb_gaps_critiques: number;
   nb_recommendations: number;
@@ -269,7 +270,7 @@ export interface AnalyseResult {
 export interface AlertEvent {
   id: number;
   type_alerte: TypeAlerte;
-  cible_type: "INDIVIDUEL" | "DEPARTEMENT" | "GLOBAL";
+  cible_type: 'INDIVIDUEL' | 'DEPARTEMENT' | 'GLOBAL';
   enseignant_id: string | null;
   departement_id: string | null;
   competence_id: number | null;
@@ -372,7 +373,7 @@ export interface PilotageBenchmarkDept {
   niveau_moyen: number;
   ecart_vs_cohorte: number;
   nb_enseignants: number;
-  position: "AU_DESSUS" | "EN_DECA";
+  position: 'AU_DESSUS' | 'EN_DECA';
 }
 
 export interface PilotageAnomalies {
@@ -432,7 +433,7 @@ export interface ModelStatus {
   drift_detected: boolean;
   derniere_verification_integrite: string | null;
   integrite_ok: boolean;
-  source: "modele" | "heuristique";
+  source: 'modele' | 'heuristique';
   disponible: boolean;
 }
 
@@ -448,7 +449,7 @@ export interface DriftReport {
 
 export interface RetrainResponse {
   job_id: string;
-  statut: "DECLENCHE" | "EN_COURS" | "TERMINE" | "ECHEC" | "ROLLBACK";
+  statut: 'DECLENCHE' | 'EN_COURS' | 'TERMINE' | 'ECHEC' | 'ROLLBACK';
   message: string;
   ancienne_version: string;
   nouvelle_version: string | null;

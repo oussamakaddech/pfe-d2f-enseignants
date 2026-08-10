@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, type ReactNode } from 'react';
 import {
   Button,
   Card,
@@ -13,7 +13,7 @@ import {
   Avatar,
   Empty,
   Collapse,
-} from "antd";
+} from 'antd';
 import {
   DownloadOutlined,
   SafetyCertificateOutlined,
@@ -29,23 +29,23 @@ import {
   BulbOutlined,
   ClockCircleOutlined,
   ArrowRightOutlined,
-} from "@ant-design/icons";
+} from '@ant-design/icons';
 import type {
   SkillGapSummaryDTO,
   TrainingHistoryDTO,
   CertificationSummaryDTO,
   RecommendationSummaryDTO,
   DomainSummaryDTO,
-} from "@/models/certificat";
+} from '@/models/certificat';
 import {
   useMyPassportData,
   usePassportDataByUsername,
   useDownloadMyPassport,
   useDownloadPassportByUsername,
-} from "@/hooks/certificat/useSkillPassport";
-import { AppPageHeader } from "@/components/common";
-import "@/styles/pages/skill-passport-page.css";
-import s from "./SkillPassportPage.module.css";
+} from '@/hooks/certificat/useSkillPassport';
+import { AppPageHeader } from '@/components/common';
+import '@/styles/pages/skill-passport-page.css';
+import s from './SkillPassportPage.module.css';
 
 const { Text, Paragraph } = Typography;
 
@@ -59,31 +59,31 @@ interface Props {
 /* ── Helpers visuels ──────────────────────────────────────────────────── */
 
 const scoreColor = (score: number): string => {
-  if (score >= 4) return "#10b981";
-  if (score >= 3) return "#f59e0b";
-  return "#ef4444";
+  if (score >= 4) return '#10b981';
+  if (score >= 3) return '#f59e0b';
+  return '#ef4444';
 };
 
 const scoreGradient = (score: number): { from: string; to: string } => {
-  if (score >= 4) return { from: "#34d399", to: "#059669" };
-  if (score >= 3) return { from: "#fbbf24", to: "#d97706" };
-  return { from: "#f87171", to: "#dc2626" };
+  if (score >= 4) return { from: '#34d399', to: '#059669' };
+  if (score >= 3) return { from: '#fbbf24', to: '#d97706' };
+  return { from: '#f87171', to: '#dc2626' };
 };
 
 const statutMeta = (statut: string): { color: string; label: string; icon: ReactNode } => {
   const map: Record<string, { color: string; label: string; icon: ReactNode }> = {
-    "maîtrisé": { color: "#10b981", label: "Profil maîtrisé", icon: <CheckCircleFilled /> },
-    en_progression: { color: "#f59e0b", label: "En progression", icon: <RiseOutlined /> },
-    "à_risque": { color: "#ef4444", label: "À renforcer", icon: <WarningOutlined /> },
+    maîtrisé: { color: '#10b981', label: 'Profil maîtrisé', icon: <CheckCircleFilled /> },
+    en_progression: { color: '#f59e0b', label: 'En progression', icon: <RiseOutlined /> },
+    à_risque: { color: '#ef4444', label: 'À renforcer', icon: <WarningOutlined /> },
   };
-  return map[statut] ?? { color: "#718096", label: statut, icon: <AimOutlined /> };
+  return map[statut] ?? { color: '#718096', label: statut, icon: <AimOutlined /> };
 };
 
 const graviteColor = (gravite: string): string => {
-  const g = (gravite ?? "").toLowerCase();
-  if (g.includes("lev") || g.includes("élev")) return "#ef4444";
-  if (g.includes("moy")) return "#f59e0b";
-  return "#10b981";
+  const g = (gravite ?? '').toLowerCase();
+  if (g.includes('lev') || g.includes('élev')) return '#ef4444';
+  if (g.includes('moy')) return '#f59e0b';
+  return '#10b981';
 };
 
 function formatHeroScore(percent?: number): ReactNode {
@@ -102,15 +102,15 @@ function formatRecoScore(p?: number): ReactNode {
 }
 
 const niveauColor = (n: number): string => {
-  if (n >= 4) return "#10b981";
-  if (n >= 3) return "#f59e0b";
-  return "#ef4444";
+  if (n >= 4) return '#10b981';
+  if (n >= 3) return '#f59e0b';
+  return '#ef4444';
 };
 
 const initiales = (prenom?: string, nom?: string): string =>
-  `${(prenom ?? "").charAt(0)}${(nom ?? "").charAt(0)}`.toUpperCase() || "?";
+  `${(prenom ?? '').charAt(0)}${(nom ?? '').charAt(0)}`.toUpperCase() || '?';
 
-const fmtDate = (iso?: string): string => (iso ? iso.replace("T", " ").slice(0, 16) : "—");
+const fmtDate = (iso?: string): string => (iso ? iso.replace('T', ' ').slice(0, 16) : '—');
 
 /**
  * Page Passeport de Compétences — design credential moderne.
@@ -129,9 +129,10 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
   const passport = query.data ?? null;
   const loading = query.isLoading;
   const queryError = query.error
-    ? (query.error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ??
+    ? ((query.error as { response?: { data?: { message?: string } }; message?: string })?.response
+        ?.data?.message ??
       (query.error as { message?: string })?.message ??
-      "Impossible de charger les données du passeport."
+      'Impossible de charger les données du passeport.')
     : null;
   const error = downloadError ?? queryError;
   const fetchPassport = query.refetch;
@@ -146,7 +147,7 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
         await downloadMutation.mutateAsync();
       }
     } catch {
-      setDownloadError("Échec du téléchargement PDF. Veuillez réessayer.");
+      setDownloadError('Échec du téléchargement PDF. Veuillez réessayer.');
     } finally {
       setDownloadLoading(false);
     }
@@ -182,15 +183,48 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
 
   if (!passport) return null;
 
-  const { identity, scoreGlobal, statut, domaines, formations, certifications, gaps, recommandations } = passport;
+  const {
+    identity,
+    scoreGlobal,
+    statut,
+    domaines,
+    formations,
+    certifications,
+    gaps,
+    recommandations,
+  } = passport;
   const sm = statutMeta(statut);
   const grad = scoreGradient(scoreGlobal);
 
   const kpis = [
-    { icon: <BookOutlined />, value: passport.totalSavoirsMaitrises, label: "Savoirs maîtrisés", from: "#6366f1", to: "#4338ca" },
-    { icon: <TrophyOutlined />, value: passport.totalFormations, label: "Formations suivies", from: "#34d399", to: "#059669" },
-    { icon: <SafetyCertificateOutlined />, value: passport.totalCertifications, label: "Certifications", from: "#fbbf24", to: "#d97706" },
-    { icon: <WarningOutlined />, value: passport.totalGaps, label: "Gaps détectés", from: "#f87171", to: "#dc2626" },
+    {
+      icon: <BookOutlined />,
+      value: passport.totalSavoirsMaitrises,
+      label: 'Savoirs maîtrisés',
+      from: '#6366f1',
+      to: '#4338ca',
+    },
+    {
+      icon: <TrophyOutlined />,
+      value: passport.totalFormations,
+      label: 'Formations suivies',
+      from: '#34d399',
+      to: '#059669',
+    },
+    {
+      icon: <SafetyCertificateOutlined />,
+      value: passport.totalCertifications,
+      label: 'Certifications',
+      from: '#fbbf24',
+      to: '#d97706',
+    },
+    {
+      icon: <WarningOutlined />,
+      value: passport.totalGaps,
+      label: 'Gaps détectés',
+      from: '#f87171',
+      to: '#dc2626',
+    },
   ];
 
   return (
@@ -207,7 +241,7 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
             onClick={handleDownloadPdf}
             size="large"
           >
-            {downloadLabel ?? "Télécharger PDF"}
+            {downloadLabel ?? 'Télécharger PDF'}
           </Button>
         }
       />
@@ -227,7 +261,9 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
               {identity.prenom} {identity.nom}
             </h2>
             <div className={s.heroChips}>
-              {identity.role && <span className={s.heroRole}>{identity.role.replace("ROLE_", "")}</span>}
+              {identity.role && (
+                <span className={s.heroRole}>{identity.role.replace('ROLE_', '')}</span>
+              )}
               <span className={s.heroChip}>
                 <MailOutlined /> {identity.email}
               </span>
@@ -250,11 +286,14 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
             gapDegree={90}
             size={150}
             strokeWidth={9}
-            strokeColor={{ "0%": grad.from, "100%": grad.to }}
+            strokeColor={{ '0%': grad.from, '100%': grad.to }}
             trailColor="rgba(255,255,255,0.18)"
             format={formatHeroScore}
           />
-          <div className={s.heroStatut} style={{ background: `${sm.color}22`, color: sm.color, borderColor: `${sm.color}55` }}>
+          <div
+            className={s.heroStatut}
+            style={{ background: `${sm.color}22`, color: sm.color, borderColor: `${sm.color}55` }}
+          >
             {sm.icon} {sm.label}
           </div>
         </div>
@@ -265,7 +304,10 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
         {kpis.map((kpi) => (
           <Col xs={12} lg={6} key={kpi.label}>
             <div className={s.kpiCard}>
-              <div className={s.kpiIconTile} style={{ background: `linear-gradient(135deg, ${kpi.from}, ${kpi.to})` }}>
+              <div
+                className={s.kpiIconTile}
+                style={{ background: `linear-gradient(135deg, ${kpi.from}, ${kpi.to})` }}
+              >
                 {kpi.icon}
               </div>
               <div className={s.kpiBody}>
@@ -313,9 +355,17 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
       <Row gutter={[18, 18]}>
         {/* ── Formations ─────────────────────────────────────────────────── */}
         <Col xs={24} xl={14}>
-          <SectionCard icon={<TrophyOutlined />} title="Formations suivies" count={formations?.length} fill>
+          <SectionCard
+            icon={<TrophyOutlined />}
+            title="Formations suivies"
+            count={formations?.length}
+            fill
+          >
             {!formations || formations.length === 0 ? (
-              <Empty description="Aucune formation enregistrée" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+              <Empty
+                description="Aucune formation enregistrée"
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              />
             ) : (
               <div className={s.trainingList}>
                 {formations.map((f) => (
@@ -328,7 +378,12 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
 
         {/* ── Certifications ─────────────────────────────────────────────── */}
         <Col xs={24} xl={10}>
-          <SectionCard icon={<SafetyCertificateOutlined />} title="Certifications" count={certifications?.length} fill>
+          <SectionCard
+            icon={<SafetyCertificateOutlined />}
+            title="Certifications"
+            count={certifications?.length}
+            fill
+          >
             {!certifications || certifications.length === 0 ? (
               <Empty description="Aucune certification" image={Empty.PRESENTED_IMAGE_SIMPLE} />
             ) : (
@@ -343,9 +398,16 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
       </Row>
 
       {/* ── Recommandations ─────────────────────────────────────────────── */}
-      <SectionCard icon={<BulbOutlined />} title="Recommandations de formations" count={recommandations?.length}>
+      <SectionCard
+        icon={<BulbOutlined />}
+        title="Recommandations de formations"
+        count={recommandations?.length}
+      >
         {!recommandations || recommandations.length === 0 ? (
-          <Empty description="Aucune recommandation disponible" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          <Empty
+            description="Aucune recommandation disponible"
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
         ) : (
           <Row gutter={[16, 16]}>
             {recommandations.map((r) => (
@@ -380,11 +442,14 @@ function SectionCard({
   readonly fill?: boolean;
 }) {
   return (
-    <Card className={`${s.sectionCard} ${fill ? s.sectionFill : ""}`} styles={{ body: { padding: 0 } }}>
+    <Card
+      className={`${s.sectionCard} ${fill ? s.sectionFill : ''}`}
+      styles={{ body: { padding: 0 } }}
+    >
       <div className={s.sectionHeader}>
         <span className={s.sectionIcon}>{icon}</span>
         <span className={s.sectionTitle}>{title}</span>
-        {typeof count === "number" && <span className={s.sectionCount}>{count}</span>}
+        {typeof count === 'number' && <span className={s.sectionCount}>{count}</span>}
       </div>
       <div className={s.sectionBody}>{children}</div>
     </Card>
@@ -410,7 +475,10 @@ function DomainBlock({ domaine }: { readonly domaine: DomainSummaryDTO }) {
             percent={pct}
             size="small"
             showInfo={false}
-            strokeColor={{ "0%": scoreGradient(domaine.scoreGlobal).from, "100%": scoreGradient(domaine.scoreGlobal).to }}
+            strokeColor={{
+              '0%': scoreGradient(domaine.scoreGlobal).from,
+              '100%': scoreGradient(domaine.scoreGlobal).to,
+            }}
             className={s.domainBar}
           />
           <span className={s.domainScoreVal} style={{ color: scoreColor(domaine.scoreGlobal) }}>
@@ -425,7 +493,7 @@ function DomainBlock({ domaine }: { readonly domaine: DomainSummaryDTO }) {
           className={s.domainCollapse}
           items={[
             {
-              key: "1",
+              key: '1',
               label: <Text type="secondary">Voir le détail des {savoirs.length} savoirs</Text>,
               children: (
                 <div className={s.savoirList}>
@@ -437,7 +505,7 @@ function DomainBlock({ domaine }: { readonly domaine: DomainSummaryDTO }) {
                         </Text>
                         <Text type="secondary" className={s.savoirComp}>
                           {sv.competenceNom}
-                          {sv.type ? ` · ${sv.type}` : ""}
+                          {sv.type ? ` · ${sv.type}` : ''}
                         </Text>
                       </div>
                       <div className={s.savoirRight}>
@@ -489,24 +557,30 @@ function GapRow({ gap }: { readonly gap: SkillGapSummaryDTO }) {
         </Tooltip>
         <ArrowRightOutlined className={s.gapArrow} />
         <Tooltip title="Niveau cible">
-          <span className={s.gapLevelTarget} style={{ color, borderColor: `${color}55`, background: `${color}14` }}>
+          <span
+            className={s.gapLevelTarget}
+            style={{ color, borderColor: `${color}55`, background: `${color}14` }}
+          >
             N{gap.niveauCible}
           </span>
         </Tooltip>
       </div>
-      <Tag className={s.gapTag} style={{ color, background: `${color}18`, borderColor: `${color}40` }}>
-        {(gap.gravite ?? "").toUpperCase()}
+      <Tag
+        className={s.gapTag}
+        style={{ color, background: `${color}18`, borderColor: `${color}40` }}
+      >
+        {(gap.gravite ?? '').toUpperCase()}
       </Tag>
     </div>
   );
 }
 
 function TrainingRow({ f }: { readonly f: TrainingHistoryDTO }) {
-  const statut = f.statut ?? "";
-  let statColor = "#718096";
-  if (statut.includes("TERMINEE")) statColor = "#10b981";
-  else if (statut.includes("COURS")) statColor = "#f59e0b";
-  else if (statut.includes("PLANIF")) statColor = "#6366f1";
+  const statut = f.statut ?? '';
+  let statColor = '#718096';
+  if (statut.includes('TERMINEE')) statColor = '#10b981';
+  else if (statut.includes('COURS')) statColor = '#f59e0b';
+  else if (statut.includes('PLANIF')) statColor = '#6366f1';
 
   return (
     <div className={s.trainingRow}>
@@ -519,14 +593,21 @@ function TrainingRow({ f }: { readonly f: TrainingHistoryDTO }) {
             {f.titre}
           </Text>
           {statut && (
-            <Tag className={s.trainingStatut} style={{ color: statColor, background: `${statColor}18`, borderColor: `${statColor}40` }}>
+            <Tag
+              className={s.trainingStatut}
+              style={{
+                color: statColor,
+                background: `${statColor}18`,
+                borderColor: `${statColor}40`,
+              }}
+            >
               {statut}
             </Tag>
           )}
         </div>
         <div className={s.trainingMeta}>
           <span>
-            <CalendarOutlined /> {f.dateDebut ?? "—"} → {f.dateFin ?? "—"}
+            <CalendarOutlined /> {f.dateDebut ?? '—'} → {f.dateFin ?? '—'}
           </span>
           {f.duree && (
             <span>
@@ -572,11 +653,11 @@ function CertCard({ c }: { readonly c: CertificationSummaryDTO }) {
 }
 
 function RecoCard({ r }: { readonly r: RecommendationSummaryDTO }) {
-  const prio = (r.priorite ?? "").toLowerCase();
-  let prioColor = "#718096";
-  if (prio === "haute") prioColor = "#ef4444";
-  else if (prio === "moyenne") prioColor = "#f59e0b";
-  else if (prio === "basse") prioColor = "#10b981";
+  const prio = (r.priorite ?? '').toLowerCase();
+  let prioColor = '#718096';
+  if (prio === 'haute') prioColor = '#ef4444';
+  else if (prio === 'moyenne') prioColor = '#f59e0b';
+  else if (prio === 'basse') prioColor = '#10b981';
   const probPct = Math.round((r.probabiliteReussite ?? 0) * 100);
 
   return (
@@ -586,7 +667,7 @@ function RecoCard({ r }: { readonly r: RecommendationSummaryDTO }) {
           type="circle"
           size={64}
           percent={probPct}
-          strokeColor={{ "0%": "#6366f1", "100%": "#4338ca" }}
+          strokeColor={{ '0%': '#6366f1', '100%': '#4338ca' }}
           format={formatRecoScore}
         />
         <Text type="secondary" className={s.recoRingLabel}>
@@ -598,8 +679,15 @@ function RecoCard({ r }: { readonly r: RecommendationSummaryDTO }) {
           <Text strong className={s.recoTitle}>
             {r.titre}
           </Text>
-          <Tag className={s.recoPrio} style={{ color: prioColor, background: `${prioColor}18`, borderColor: `${prioColor}40` }}>
-            {(r.priorite ?? "").toUpperCase()}
+          <Tag
+            className={s.recoPrio}
+            style={{
+              color: prioColor,
+              background: `${prioColor}18`,
+              borderColor: `${prioColor}40`,
+            }}
+          >
+            {(r.priorite ?? '').toUpperCase()}
           </Tag>
         </div>
         {r.duree && (
@@ -608,7 +696,11 @@ function RecoCard({ r }: { readonly r: RecommendationSummaryDTO }) {
           </Text>
         )}
         {r.justification && (
-          <Paragraph type="secondary" className={s.recoJust} ellipsis={{ rows: 2, tooltip: r.justification }}>
+          <Paragraph
+            type="secondary"
+            className={s.recoJust}
+            ellipsis={{ rows: 2, tooltip: r.justification }}
+          >
             {r.justification}
           </Paragraph>
         )}

@@ -8,8 +8,8 @@
  * never hardcoded in the frontend.
  */
 
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -33,7 +33,7 @@ export interface TeacherSummary {
   up_code: string;
   status_metier: string;
   risk_score: number;
-  risk_level: "CRITIQUE" | "ELEVE" | "MODERE" | "FAIBLE";
+  risk_level: 'CRITIQUE' | 'ELEVE' | 'MODERE' | 'FAIBLE';
 }
 
 export interface TeacherGap {
@@ -142,10 +142,9 @@ const D2FService = {
     total: number;
     teachers: TeacherSummary[];
   }> {
-    const res = await axios.get<{ total: number; teachers: TeacherSummary[] }>(
-      `${BASE}/teachers`,
-      { params: { risk_level: opts.risk_level, limit: opts.limit ?? 100 } }
-    );
+    const res = await axios.get<{ total: number; teachers: TeacherSummary[] }>(`${BASE}/teachers`, {
+      params: { risk_level: opts.risk_level, limit: opts.limit ?? 100 },
+    });
     return res.data;
   },
 
@@ -155,9 +154,7 @@ const D2FService = {
   },
 
   async getTeacherMLSignal(teacherId: string): Promise<TeacherMLSignal> {
-    const res = await axios.get<TeacherMLSignal>(
-      `${BASE}/teachers/${teacherId}/ml-signal`
-    );
+    const res = await axios.get<TeacherMLSignal>(`${BASE}/teachers/${teacherId}/ml-signal`);
     return res.data;
   },
 
@@ -180,10 +177,9 @@ const D2FService = {
   },
 
   async listAlerts(status?: string): Promise<{ total: number; alerts: D2FAlert[] }> {
-    const res = await axios.get<{ total: number; alerts: D2FAlert[] }>(
-      `${BASE}/alerts`,
-      { params: status ? { status } : {} }
-    );
+    const res = await axios.get<{ total: number; alerts: D2FAlert[] }>(`${BASE}/alerts`, {
+      params: status ? { status } : {},
+    });
     return res.data;
   },
 
@@ -193,19 +189,19 @@ const D2FService = {
   }> {
     const res = await axios.get<{ total: number; recommendations: D2FRecommendation[] }>(
       `${BASE}/recommendations`,
-      { params: priority ? { priority } : {} }
+      { params: priority ? { priority } : {} },
     );
     return res.data;
   },
 
   async markTrainingCompleted(
     teacherId: string,
-    trainingCode: string
+    trainingCode: string,
   ): Promise<TrainingCompletionResult> {
     const res = await axios.post<TrainingCompletionResult>(
       `${BASE}/teachers/${teacherId}/training-complete`,
       null,
-      { params: { training_code: trainingCode } }
+      { params: { training_code: trainingCode } },
     );
     return res.data;
   },
@@ -270,13 +266,15 @@ const D2FService = {
     return res.data;
   },
 
-  async getRiskEvolution(months = 6): Promise<{
-    month: string;
-    critical: number;
-    high: number;
-    score_risque_moyen: number;
-    total_enseignants: number;
-  }[]> {
+  async getRiskEvolution(months = 6): Promise<
+    {
+      month: string;
+      critical: number;
+      high: number;
+      score_risque_moyen: number;
+      total_enseignants: number;
+    }[]
+  > {
     const res = await axios.get(`${BASE}/risk-evolution`, { params: { months } });
     return res.data;
   },

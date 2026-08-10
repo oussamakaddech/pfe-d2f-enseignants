@@ -49,7 +49,7 @@ describe('UnifiedAdministrationPage', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <UnifiedAdministrationPage />
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
     expect(screen.getByText('Administration')).toBeInTheDocument();
     expect(screen.getByText('Total comptes')).toBeInTheDocument();

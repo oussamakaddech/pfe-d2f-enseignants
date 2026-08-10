@@ -1,20 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
-import { useAppNotification } from "@/hooks/ui";
-import {
-  Table,
-  InputNumber,
-  Input,
-  Checkbox,
-  Button,
-  Typography,
-  Space,
-  Row,
-} from "antd";
-import type { TableColumnsType } from "antd";
-import { DownloadOutlined } from "@ant-design/icons";
-import { writeExcel, exportDateLabel, isoDate } from "utils/helpers/excelExport";
-import { useEvaluationsEnrichedByFormation, useUpdateEvaluationsBulk } from "@/hooks/evaluation";
-import { useEnseignants } from "@/hooks/enseignant";
+import { useState, useEffect, useMemo } from 'react';
+import { useAppNotification } from '@/hooks/ui';
+import { Table, InputNumber, Input, Checkbox, Button, Typography, Space, Row } from 'antd';
+import type { TableColumnsType } from 'antd';
+import { DownloadOutlined } from '@ant-design/icons';
+import { writeExcel, exportDateLabel, isoDate } from 'utils/helpers/excelExport';
+import { useEvaluationsEnrichedByFormation, useUpdateEvaluationsBulk } from '@/hooks/evaluation';
+import { useEnseignants } from '@/hooks/enseignant';
 
 const { Text } = Typography;
 
@@ -49,13 +40,22 @@ const FormationEvaluationsTab = ({ formationId }: FormationEvaluationsTabProps) 
   const bulkUpdateMut = useUpdateEvaluationsBulk();
 
   const enrichedBase = useMemo((): EvaluationRow[] => {
-    const ensMap = (enseignantsData as EnseignantData[]).reduce<Record<string, EnseignantData>>((map, ens) => {
-      if (ens.id != null) map[String(ens.id)] = ens;
-      return map;
-    }, {});
+    const ensMap = (enseignantsData as EnseignantData[]).reduce<Record<string, EnseignantData>>(
+      (map, ens) => {
+        if (ens.id != null) map[String(ens.id)] = ens;
+        return map;
+      },
+      {},
+    );
     return (rawEvals as EvaluationRow[]).map((ev) => {
       const ens: EnseignantData = ensMap[String(ev.enseignantId)] ?? {};
-      return { key: ev.idEvalParticipant, ...ev, nom: ens.nom || "", prenom: ens.prenom || "", mail: ens.mail || "" };
+      return {
+        key: ev.idEvalParticipant,
+        ...ev,
+        nom: ens.nom || '',
+        prenom: ens.prenom || '',
+        mail: ens.mail || '',
+      };
     });
   }, [rawEvals, enseignantsData]);
 
@@ -67,7 +67,7 @@ const FormationEvaluationsTab = ({ formationId }: FormationEvaluationsTabProps) 
   }, [enrichedBase]);
 
   const handleSaveAll = () => {
-    const dtoList = evaluations.map(ev => ({
+    const dtoList = evaluations.map((ev) => ({
       idEvalParticipant: ev.idEvalParticipant,
       enseignantId: ev.enseignantId,
       formationId: ev.formationId,
@@ -76,46 +76,57 @@ const FormationEvaluationsTab = ({ formationId }: FormationEvaluationsTabProps) 
       commentaire: ev.commentaire,
     }));
     void bulkUpdateMut.mutateAsync({ formationId, evaluations: dtoList }).catch(() => {
-      message.error("Erreur lors de la sauvegarde des évaluations.");
+      message.error('Erreur lors de la sauvegarde des évaluations.');
     });
   };
 
   const exportExcel = () => {
-    const rows = evaluations.map(ev => ({
-      Nom:          ev.nom,
-      Prénom:       ev.prenom,
-      Email:        ev.mail,
-      Note:         ev.note,
-      Satisfaisant: ev.satisfaisant ? "Oui" : "Non",
-      Commentaire:  ev.commentaire || "",
+    const rows = evaluations.map((ev) => ({
+      Nom: ev.nom,
+      Prénom: ev.prenom,
+      Email: ev.mail,
+      Note: ev.note,
+      Satisfaisant: ev.satisfaisant ? 'Oui' : 'Non',
+      Commentaire: ev.commentaire || '',
     }));
     writeExcel(
-      [{ name: "Évaluations", rows, title: "Évaluations de Formation — Esprit", subtitle: exportDateLabel() }],
-      `evaluations_formation_${formationId}_${isoDate()}.xlsx`
+      [
+        {
+          name: 'Évaluations',
+          rows,
+          title: 'Évaluations de Formation — Esprit',
+          subtitle: exportDateLabel(),
+        },
+      ],
+      `evaluations_formation_${formationId}_${isoDate()}.xlsx`,
     );
   };
 
   const columns: TableColumnsType<EvaluationRow> = [
     {
-      title: "Enseignant",
-      key: "enseignant",
+      title: 'Enseignant',
+      key: 'enseignant',
       render: (_, r) => (
         <>
-          <Text strong>{r.nom} {r.prenom}</Text><br/>
+          <Text strong>
+            {r.nom} {r.prenom}
+          </Text>
+          <br />
           <Text type="secondary">({r.mail})</Text>
         </>
       ),
     },
     {
-      title: "Note",
-      dataIndex: "note",
-      key: "note",
+      title: 'Note',
+      dataIndex: 'note',
+      key: 'note',
       width: 120,
       render: (_, __, idx) => (
         <InputNumber
-          min={0} max={20}
+          min={0}
+          max={20}
           value={evaluations[idx]?.note ?? null}
-          onChange={v => {
+          onChange={(v) => {
             const arr = [...evaluations];
             arr[idx] = { ...arr[idx], note: v };
             setEvaluations(arr);
@@ -124,14 +135,14 @@ const FormationEvaluationsTab = ({ formationId }: FormationEvaluationsTabProps) 
       ),
     },
     {
-      title: "Satisfaisant",
-      dataIndex: "satisfaisant",
-      key: "satisfaisant",
+      title: 'Satisfaisant',
+      dataIndex: 'satisfaisant',
+      key: 'satisfaisant',
       width: 120,
       render: (_, __, idx) => (
         <Checkbox
           checked={evaluations[idx]?.satisfaisant ?? false}
-          onChange={e => {
+          onChange={(e) => {
             const arr = [...evaluations];
             arr[idx] = { ...arr[idx], satisfaisant: e.target.checked };
             setEvaluations(arr);
@@ -140,13 +151,13 @@ const FormationEvaluationsTab = ({ formationId }: FormationEvaluationsTabProps) 
       ),
     },
     {
-      title: "Commentaire",
-      key: "commentaire",
+      title: 'Commentaire',
+      key: 'commentaire',
       render: (_, __, idx) => (
         <Input.TextArea
           rows={2}
-          value={evaluations[idx]?.commentaire ?? ""}
-          onChange={e => {
+          value={evaluations[idx]?.commentaire ?? ''}
+          onChange={(e) => {
             const arr = [...evaluations];
             arr[idx] = { ...arr[idx], commentaire: e.target.value };
             setEvaluations(arr);
@@ -168,21 +179,20 @@ const FormationEvaluationsTab = ({ formationId }: FormationEvaluationsTabProps) 
   }
 
   return (
-    <Space direction="vertical" style={{ width: "100%" }}>
-      <Row justify="space-between" align="middle" style={{ width: "100%", marginBottom: 16 }}>
-        <Text strong style={{ fontSize: 15 }}>Évaluations</Text>
+    <Space direction="vertical" style={{ width: '100%' }}>
+      <Row justify="space-between" align="middle" style={{ width: '100%', marginBottom: 16 }}>
+        <Text strong style={{ fontSize: 15 }}>
+          Évaluations
+        </Text>
         <Button icon={<DownloadOutlined />} onClick={exportExcel}>
           Exporter Excel
         </Button>
       </Row>
-      <Table
-        columns={columns}
-        dataSource={evaluations}
-        pagination={false}
-        bordered
-      />
-      <Space style={{ width: "100%", justifyContent: "flex-end", marginTop: 16 }}>
-        <Button type="primary" onClick={handleSaveAll}>Enregistrer</Button>
+      <Table columns={columns} dataSource={evaluations} pagination={false} bordered />
+      <Space style={{ width: '100%', justifyContent: 'flex-end', marginTop: 16 }}>
+        <Button type="primary" onClick={handleSaveAll}>
+          Enregistrer
+        </Button>
         <Button onClick={() => setEvaluations(enrichedBase)}>Recharger</Button>
       </Space>
     </Space>

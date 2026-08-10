@@ -97,7 +97,13 @@ describe('BesoinReviewStep', () => {
     );
     expect(sections).toHaveLength(5);
     const titles = sections.map((s) => s.title);
-    expect(titles).toEqual(['Contexte', 'Formation', 'Détails & planning', 'Compétences RICE', 'Paramètres']);
+    expect(titles).toEqual([
+      'Contexte',
+      'Formation',
+      'Détails & planning',
+      'Compétences RICE',
+      'Paramètres',
+    ]);
     render(<BesoinReviewStep sections={sections} onEditSection={vi.fn()} />);
     expect(screen.getByText('UP INFO')).toBeInTheDocument();
     expect(screen.getByText('Dept Math')).toBeInTheDocument();

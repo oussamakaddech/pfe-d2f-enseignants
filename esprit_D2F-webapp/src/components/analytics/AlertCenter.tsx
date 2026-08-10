@@ -1,5 +1,5 @@
-import { useState, useMemo, type ReactNode } from "react";
-import { List, Tag, Typography, Empty, Button, Tooltip, Select, Space } from "antd";
+import { useState, useMemo, type ReactNode } from 'react';
+import { List, Tag, Typography, Empty, Button, Tooltip, Select, Space } from 'antd';
 import {
   CheckOutlined,
   StopOutlined,
@@ -13,19 +13,19 @@ import {
   FilterOutlined,
   ReloadOutlined,
   DownOutlined,
-} from "@ant-design/icons";
+} from '@ant-design/icons';
 import {
   SEVERITE_COLORS,
   ALERT_STATUTS_OUVERTS,
   STATUT_ALERTE_LABELS,
-} from "@/utils/analytics/constants";
+} from '@/utils/analytics/constants';
 import type {
   AlertEvent,
   AlertUpdatePayload,
   StatutAlerte,
   TypeAlerte,
-} from "@/models/analyse/analyticsFeature";
-import "./alertCenter.redesign.css";
+} from '@/models/analyse/analyticsFeature';
+import './alertCenter.redesign.css';
 
 /* ── constants ──────────────────────────────────────────── */
 const STATUT_OPTIONS = (Object.keys(STATUT_ALERTE_LABELS) as StatutAlerte[]).map((s) => ({
@@ -34,28 +34,28 @@ const STATUT_OPTIONS = (Object.keys(STATUT_ALERTE_LABELS) as StatutAlerte[]).map
 }));
 
 const TYPE_OPTIONS = [
-  { value: "__ALL__", label: "Tous les types" },
-  { value: "GAP_CRITIQUE", label: "Gap critique" },
-  { value: "BESOIN_NON_COUVERT", label: "Besoin non couvert" },
-  { value: "COMPLETION_FAIBLE", label: "Complétion faible" },
-  { value: "STAGNATION", label: "Stagnation" },
-  { value: "REGRESSION", label: "Régression" },
-  { value: "TENDANCE_DEPARTEMENT", label: "Tendance département" },
+  { value: '__ALL__', label: 'Tous les types' },
+  { value: 'GAP_CRITIQUE', label: 'Gap critique' },
+  { value: 'BESOIN_NON_COUVERT', label: 'Besoin non couvert' },
+  { value: 'COMPLETION_FAIBLE', label: 'Complétion faible' },
+  { value: 'STAGNATION', label: 'Stagnation' },
+  { value: 'REGRESSION', label: 'Régression' },
+  { value: 'TENDANCE_DEPARTEMENT', label: 'Tendance département' },
 ];
 
 const SEVERITE_OPTIONS = [
-  { value: "__ALL__", label: "Toutes sévérités" },
-  { value: "CRITIQUE", label: "Critique" },
-  { value: "HAUTE", label: "Haute" },
-  { value: "MOYENNE", label: "Moyenne" },
-  { value: "WARNING", label: "Warning" },
-  { value: "CRITICAL", label: "Critical" },
-  { value: "INFO", label: "Info" },
+  { value: '__ALL__', label: 'Toutes sévérités' },
+  { value: 'CRITIQUE', label: 'Critique' },
+  { value: 'HAUTE', label: 'Haute' },
+  { value: 'MOYENNE', label: 'Moyenne' },
+  { value: 'WARNING', label: 'Warning' },
+  { value: 'CRITICAL', label: 'Critical' },
+  { value: 'INFO', label: 'Info' },
 ];
 
 const STATUT_FILTER_OPTIONS = [
-  { value: "__ALL__", label: "Tous statuts" },
-  { value: "__OUVERT__", label: "Ouvertes" },
+  { value: '__ALL__', label: 'Tous statuts' },
+  { value: '__OUVERT__', label: 'Ouvertes' },
   ...STATUT_OPTIONS,
 ];
 
@@ -81,41 +81,69 @@ const ALERT_META: Record<
   TypeAlerte,
   { label: string; priorite: string; action: string; icon: ReactNode }
 > = {
-  GAP_CRITIQUE: { label: "Gap critique", priorite: "Haute", action: "Planifier une formation ciblée", icon: <BugOutlined /> },
-  REGRESSION: { label: "Régression", priorite: "Haute", action: "Diagnostiquer la cause", icon: <RiseOutlined /> },
-  STAGNATION: { label: "Stagnation", priorite: "Moyenne", action: "Relancer l'enseignant", icon: <CloudServerOutlined /> },
-  TENDANCE_DEPARTEMENT: { label: "Tendance département", priorite: "Moyenne", action: "Revue départementale", icon: <WarningOutlined /> },
-  COMPLETION_FAIBLE: { label: "Complétion faible", priorite: "Moyenne", action: "Sensibiliser + rappel", icon: <ToolOutlined /> },
-  BESOIN_NON_COUVERT: { label: "Besoin non couvert", priorite: "Haute", action: "Ouvrir une session dédiée", icon: <QuestionCircleOutlined /> },
+  GAP_CRITIQUE: {
+    label: 'Gap critique',
+    priorite: 'Haute',
+    action: 'Planifier une formation ciblée',
+    icon: <BugOutlined />,
+  },
+  REGRESSION: {
+    label: 'Régression',
+    priorite: 'Haute',
+    action: 'Diagnostiquer la cause',
+    icon: <RiseOutlined />,
+  },
+  STAGNATION: {
+    label: 'Stagnation',
+    priorite: 'Moyenne',
+    action: "Relancer l'enseignant",
+    icon: <CloudServerOutlined />,
+  },
+  TENDANCE_DEPARTEMENT: {
+    label: 'Tendance département',
+    priorite: 'Moyenne',
+    action: 'Revue départementale',
+    icon: <WarningOutlined />,
+  },
+  COMPLETION_FAIBLE: {
+    label: 'Complétion faible',
+    priorite: 'Moyenne',
+    action: 'Sensibiliser + rappel',
+    icon: <ToolOutlined />,
+  },
+  BESOIN_NON_COUVERT: {
+    label: 'Besoin non couvert',
+    priorite: 'Haute',
+    action: 'Ouvrir une session dédiée',
+    icon: <QuestionCircleOutlined />,
+  },
 };
 
 const PRIORITE_COLOR: Record<string, string> = {
-  Haute: "#ef4444",
-  Moyenne: "#f59e0b",
-  Faible: "#6b7280",
+  Haute: '#ef4444',
+  Moyenne: '#f59e0b',
+  Faible: '#6b7280',
 };
 
-const SEVERITE_CRIT = new Set(["CRITICAL", "CRITIQUE"]);
-const SEVERITE_WARN = new Set(["WARNING", "HAUTE", "MOYENNE"]);
+const SEVERITE_CRIT = new Set(['CRITICAL', 'CRITIQUE']);
+const SEVERITE_WARN = new Set(['WARNING', 'HAUTE', 'MOYENNE']);
 
 /* Chips de filtrage rapide — valeurs internes (le Select ne les connaît pas). */
-const CHIP_FILTERS = new Set(["__CRIT__", "__WARN__", "__INFO__"]);
+const CHIP_FILTERS = new Set(['__CRIT__', '__WARN__', '__INFO__']);
 
 /** Date relative lisible (« Aujourd'hui 14:32 », « Hier 09:10 », « il y a 3 j »). */
 function relativeDate(iso: string): string {
   const d = new Date(iso);
-  if (!Number.isFinite(d.getTime())) return "Date inconnue";
-  const diffDays = Math.floor(
-    (Date.now() - d.getTime()) / (24 * 60 * 60 * 1000),
-  );
-  const time = d.toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
+  if (!Number.isFinite(d.getTime())) return 'Date inconnue';
+  const diffDays = Math.floor((Date.now() - d.getTime()) / (24 * 60 * 60 * 1000));
+  const time = d.toLocaleTimeString('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit',
   });
   if (diffDays <= 0) return `Aujourd'hui ${time}`;
   if (diffDays === 1) return `Hier ${time}`;
   if (diffDays < 7) return `Il y a ${diffDays} j · ${time}`;
-  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 /* ── component ──────────────────────────────────────────── */
@@ -131,51 +159,49 @@ export default function AlertCenter({
   onSelectEnseignant,
 }: AlertCenterProps) {
   /* ── filters state ── */
-  const [typeFilter, setTypeFilter] = useState<string>("__ALL__");
-  const [severiteFilter, setSeveriteFilter] = useState<string>("__ALL__");
-  const [statutFilter, setStatutFilter] = useState<string>("__ALL__");
+  const [typeFilter, setTypeFilter] = useState<string>('__ALL__');
+  const [severiteFilter, setSeveriteFilter] = useState<string>('__ALL__');
+  const [statutFilter, setStatutFilter] = useState<string>('__ALL__');
   const [expandedGroups, setExpandedGroups] = useState<Set<TypeAlerte>>(new Set());
 
   const resetFilters = () => {
-    setTypeFilter("__ALL__");
-    setSeveriteFilter("__ALL__");
-    setStatutFilter("__ALL__");
+    setTypeFilter('__ALL__');
+    setSeveriteFilter('__ALL__');
+    setStatutFilter('__ALL__');
   };
 
   const hasActiveFilters =
-    typeFilter !== "__ALL__" || severiteFilter !== "__ALL__" || statutFilter !== "__ALL__";
+    typeFilter !== '__ALL__' || severiteFilter !== '__ALL__' || statutFilter !== '__ALL__';
 
   /* ── filtered alerts ── */
   const filteredAlerts = useMemo(() => {
     let result = alerts;
-    if (typeFilter !== "__ALL__") {
+    if (typeFilter !== '__ALL__') {
       result = result.filter((a) => a.type_alerte === typeFilter);
     }
-    if (severiteFilter !== "__ALL__") {
-      if (severiteFilter === "__OUVERT__") {
+    if (severiteFilter !== '__ALL__') {
+      if (severiteFilter === '__OUVERT__') {
         result = result.filter((a) => ALERT_STATUTS_OUVERTS.includes(a.statut));
-      } else if (severiteFilter === "__CRIT__") {
+      } else if (severiteFilter === '__CRIT__') {
         result = result.filter((a) => SEVERITE_CRIT.has(a.severite));
-      } else if (severiteFilter === "__WARN__") {
+      } else if (severiteFilter === '__WARN__') {
         result = result.filter((a) => SEVERITE_WARN.has(a.severite));
-      } else if (severiteFilter === "__INFO__") {
-        result = result.filter((a) => a.severite === "INFO");
+      } else if (severiteFilter === '__INFO__') {
+        result = result.filter((a) => a.severite === 'INFO');
       } else {
         result = result.filter((a) => a.severite === severiteFilter);
       }
     }
-    if (statutFilter === "__OUVERT__") {
+    if (statutFilter === '__OUVERT__') {
       result = result.filter((a) => ALERT_STATUTS_OUVERTS.includes(a.statut));
-    } else if (statutFilter !== "__ALL__") {
+    } else if (statutFilter !== '__ALL__') {
       result = result.filter((a) => a.statut === statutFilter);
     }
     return result;
   }, [alerts, typeFilter, severiteFilter, statutFilter]);
 
   /* ── summary (always from ALL data) ── */
-  const openCount = alerts.filter((a) =>
-    ALERT_STATUTS_OUVERTS.includes(a.statut),
-  ).length;
+  const openCount = alerts.filter((a) => ALERT_STATUTS_OUVERTS.includes(a.statut)).length;
   const useRealCounts = severityTotal != null;
   const severityCounts = {
     CRITICAL: useRealCounts
@@ -184,9 +210,7 @@ export default function AlertCenter({
     WARNING: useRealCounts
       ? severityTotal.WARNING
       : alerts.filter((a) => SEVERITE_WARN.has(a.severite)).length,
-    INFO: useRealCounts
-      ? severityTotal.INFO
-      : alerts.filter((a) => a.severite === "INFO").length,
+    INFO: useRealCounts ? severityTotal.INFO : alerts.filter((a) => a.severite === 'INFO').length,
   };
 
   /* ── group filtered alerts by type ── */
@@ -233,50 +257,51 @@ export default function AlertCenter({
   const isGroupTruncated = (type: TypeAlerte, list: AlertEvent[]) =>
     !expandedGroups.has(type) && list.length > INITIAL_VISIBLE;
 
-  if (!loading && alerts.length === 0)
-    return <Empty description="Aucune alerte" />;
+  if (!loading && alerts.length === 0) return <Empty description="Aucune alerte" />;
 
   return (
     <div className="ac-page">
       {/* ── Summary bar ─────────────────────────────────── */}
       <div className="ac-summary">
         <div className="ac-summary__total">
-          <span className="ac-summary__count">{total != null && total > alerts.length ? total : openCount}</span>
+          <span className="ac-summary__count">
+            {total != null && total > alerts.length ? total : openCount}
+          </span>
           <span className="ac-summary__label">alertes ouvertes</span>
         </div>
         <div className="ac-summary__separateur" />
         <div className="ac-summary__chips">
           <Button
             size="small"
-            type={severiteFilter === "__ALL__" ? "primary" : "text"}
-            onClick={() => setSeveriteFilter("__ALL__")}
+            type={severiteFilter === '__ALL__' ? 'primary' : 'text'}
+            onClick={() => setSeveriteFilter('__ALL__')}
           >
             Toutes
           </Button>
           <Button
             size="small"
             danger
-            type={severiteFilter === "__CRIT__" ? "primary" : "text"}
-            onClick={() => setSeveriteFilter("__CRIT__")}
+            type={severiteFilter === '__CRIT__' ? 'primary' : 'text'}
+            onClick={() => setSeveriteFilter('__CRIT__')}
           >
             {severityCounts.CRITICAL} critiques
           </Button>
           <Button
             size="small"
-            type={severiteFilter === "__WARN__" ? "primary" : "text"}
+            type={severiteFilter === '__WARN__' ? 'primary' : 'text'}
             style={
-              severiteFilter === "__WARN__"
-                ? { background: "#f59e0b", borderColor: "#f59e0b", color: "#fff" }
-                : { color: "#d97706" }
+              severiteFilter === '__WARN__'
+                ? { background: '#f59e0b', borderColor: '#f59e0b', color: '#fff' }
+                : { color: '#d97706' }
             }
-            onClick={() => setSeveriteFilter("__WARN__")}
+            onClick={() => setSeveriteFilter('__WARN__')}
           >
             {severityCounts.WARNING} warnings
           </Button>
           <Button
             size="small"
-            type={severiteFilter === "__INFO__" ? "primary" : "text"}
-            onClick={() => setSeveriteFilter("__INFO__")}
+            type={severiteFilter === '__INFO__' ? 'primary' : 'text'}
+            onClick={() => setSeveriteFilter('__INFO__')}
           >
             {severityCounts.INFO} infos
           </Button>
@@ -290,7 +315,7 @@ export default function AlertCenter({
         const info = severityCounts.INFO;
         const sum = crit + warn + info;
         if (sum <= 0) return null;
-        const pct = (v: number) => `${((v / sum) * 100).toFixed(1).replace(".", ",")} %`;
+        const pct = (v: number) => `${((v / sum) * 100).toFixed(1).replace('.', ',')} %`;
         return (
           <div className="ac-dist">
             <div className="ac-dist__bar">
@@ -367,65 +392,44 @@ export default function AlertCenter({
             style={{ width: 160 }}
           />
           {hasActiveFilters && (
-            <Button
-              size="small"
-              type="link"
-              icon={<ReloadOutlined />}
-              onClick={resetFilters}
-            >
+            <Button size="small" type="link" icon={<ReloadOutlined />} onClick={resetFilters}>
               Réinitialiser
             </Button>
           )}
         </Space>
         {allTypes.length > 1 && (
-          <Button
-            size="small"
-            type="link"
-            onClick={toggleAll}
-            className="ac-filters__expand"
-          >
-            {allExpanded ? "Tout réduire" : "Tout développer"}
+          <Button size="small" type="link" onClick={toggleAll} className="ac-filters__expand">
+            {allExpanded ? 'Tout réduire' : 'Tout développer'}
           </Button>
         )}
       </div>
 
       {/* ── Alert groups ─────────────────────────────────── */}
       <div className="ac-groups">
-        {allTypes.length === 0 && (
-          <Empty description="Aucune alerte ne correspond aux filtres" />
-        )}
+        {allTypes.length === 0 && <Empty description="Aucune alerte ne correspond aux filtres" />}
         {allTypes.map((type) => {
           const list = byType.get(type)!;
           const meta = ALERT_META[type] ?? {
             label: type,
-            priorite: "Moyenne",
-            action: "Traiter",
+            priorite: 'Moyenne',
+            action: 'Traiter',
             icon: <WarningOutlined />,
           };
-          const accentColor = PRIORITE_COLOR[meta.priorite] ?? "#6b7280";
+          const accentColor = PRIORITE_COLOR[meta.priorite] ?? '#6b7280';
           const visible = getVisibleItems(type, list);
           const truncated = isGroupTruncated(type, list);
 
           return (
             <div key={type} className="ac-group">
-              <div
-                className="ac-group__header"
-                style={{ borderLeftColor: accentColor }}
-              >
-                <span
-                  className="ac-group__icon"
-                  style={{ background: accentColor }}
-                >
+              <div className="ac-group__header" style={{ borderLeftColor: accentColor }}>
+                <span className="ac-group__icon" style={{ background: accentColor }}>
                   {meta.icon}
                 </span>
                 <div className="ac-group__meta">
                   <span className="ac-group__label">{meta.label}</span>
                   <span className="ac-group__action">{meta.action}</span>
                 </div>
-                <span
-                  className="ac-group__badge"
-                  style={{ background: accentColor }}
-                >
+                <span className="ac-group__badge" style={{ background: accentColor }}>
                   {list.length}
                 </span>
               </div>
@@ -453,43 +457,33 @@ export default function AlertCenter({
                             size="small"
                             type="primary"
                             icon={<CheckOutlined />}
-                            onClick={() =>
-                              onUpdate(a.id, { statut: "TRAITEE" })
-                            }
+                            onClick={() => onUpdate(a.id, { statut: 'TRAITEE' })}
                           />
                         </Tooltip>,
                         <Button
                           key="ign"
                           size="small"
                           icon={<StopOutlined />}
-                          onClick={() =>
-                            onUpdate(a.id, { statut: "IGNOREE" })
-                          }
+                          onClick={() => onUpdate(a.id, { statut: 'IGNOREE' })}
                         />,
                       );
                     }
-                    const sevColor = (SEVERITE_COLORS[a.severite] as string) ?? "#94a3b8";
+                    const sevColor = (SEVERITE_COLORS[a.severite] as string) ?? '#94a3b8';
                     return (
                       <List.Item
-                        className={`ac-item${isOpen ? "" : " ac-item--traitee"}`}
+                        className={`ac-item${isOpen ? '' : ' ac-item--traitee'}`}
                         style={{ borderLeft: `3px solid ${sevColor}` }}
                         actions={actions}
                       >
                         <List.Item.Meta
                           title={
                             <span className="ac-item__title">
-                              <Tag
-                                color={sevColor}
-                              >
-                                {a.severite}
-                              </Tag>
+                              <Tag color={sevColor}>{a.severite}</Tag>
                               {a.enseignant_id && onSelectEnseignant ? (
                                 <button
                                   type="button"
                                   className="ac-item__link"
-                                  onClick={() =>
-                                    onSelectEnseignant(a.enseignant_id!)
-                                  }
+                                  onClick={() => onSelectEnseignant(a.enseignant_id!)}
                                 >
                                   {a.titre} <ArrowRightOutlined />
                                 </button>
@@ -500,16 +494,13 @@ export default function AlertCenter({
                           }
                           description={
                             <div>
-                              <Typography.Text
-                                type="secondary"
-                                style={{ fontSize: 12 }}
-                              >
+                              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                                 {a.message}
                               </Typography.Text>
                               <div
                                 style={{
                                   fontSize: 11,
-                                  color: "#94a3b8",
+                                  color: '#94a3b8',
                                   marginTop: 2,
                                 }}
                               >
@@ -517,8 +508,8 @@ export default function AlertCenter({
                                   title={(() => {
                                     const d = new Date(a.created_at);
                                     return Number.isFinite(d.getTime())
-                                      ? d.toLocaleString("fr-FR")
-                                      : "Date inconnue";
+                                      ? d.toLocaleString('fr-FR')
+                                      : 'Date inconnue';
                                   })()}
                                 >
                                   <span>{relativeDate(a.created_at)}</span>
@@ -533,11 +524,7 @@ export default function AlertCenter({
                 />
                 {truncated && (
                   <div className="ac-group__more">
-                    <Button
-                      type="link"
-                      size="small"
-                      onClick={() => toggleGroup(type)}
-                    >
+                    <Button type="link" size="small" onClick={() => toggleGroup(type)}>
                       + {list.length - INITIAL_VISIBLE} alertes de plus — Tout afficher
                     </Button>
                   </div>

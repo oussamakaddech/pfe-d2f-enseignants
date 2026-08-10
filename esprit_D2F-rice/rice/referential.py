@@ -19,6 +19,16 @@ from rice.nlp import _normalize, _codes_match, _detect_type
 
 logger = logging.getLogger("rice_analyzer")
 
+
+def _sanitize_log(value: Any) -> str:
+    """Neutralise une valeur contrôlée par l'utilisateur avant de la logger.
+
+    Échappe les caractères de contrôle (injection de logs) et borne la longueur.
+    """
+    text = str(value)
+    cleaned = re.sub(r"[\x00-\x1f\x7f]", "", text)
+    return cleaned[:256]
+
 _KW_DIAGNOSTIC_URBAIN = "diagnostic urbain"
 
 # ── Optional imports ─────────────────────────────────────────────────────────
@@ -426,7 +436,7 @@ def _load_ref_from_db(departement: str = "gc") -> Optional[Dict]:
 
         _REF_DB_CACHE.set(dept_key, merged)
         logger.info(
-            f"Referential loaded from DB [{dept_key}]: "
+            f"Referential loaded from DB [{_sanitize_log(dept_key)}]: "
             f"{len(override)} savoirs, {len(db_competences)} compétences, "
             f"{len(db_domaines)} domaines"
         )
@@ -452,19 +462,19 @@ def _load_generic_ref(departement: str) -> Dict:
         mapping = _json_local.loads(_GENERIC_REF_MAPPING_PATH.read_text(encoding="utf-8"))
         rel_path = mapping.get(departement.lower().strip())
         if not rel_path:
-            logger.info(f"No generic ref mapping entry for '{departement}'")
+            logger.info(f"No generic ref mapping entry for '{_sanitize_log(departement)}'")
             return _GENERIC_FALLBACK_REF
         ref_file = _GENERIC_REF_DIR / Path(rel_path).name
         if not ref_file.is_file():
             ref_file = Path(__file__).resolve().parent.parent / rel_path
         if not ref_file.is_file():
-            logger.info(f"Generic ref file not found for '{departement}': {ref_file}")
+            logger.info(f"Generic ref file not found for '{_sanitize_log(departement)}': {_sanitize_log(ref_file)}")
             return _GENERIC_FALLBACK_REF
         data = _json_local.loads(ref_file.read_text(encoding="utf-8"))
         for key in ("domaines", "competences", "savoirs", "niveaux"):
             if key not in data:
                 data[key] = {}
-        logger.info(f"Generic ref loaded from JSON for '{departement}': "
+        logger.info(f"Generic ref loaded from JSON for '{_sanitize_log(departement)}': "
                     f"{len(data.get('savoirs', {}))} savoirs")
         return data
     except Exception as exc:
@@ -486,7 +496,7 @@ def _get_effective_referential(departement: str = "gc") -> Dict:
         return db_ref
     if dept_key in ("gc", "genie_civil", "genie-civil"):
         return _GC_FALLBACK_REF
-    logger.info(f"Chargement du référentiel générique pour le département '{dept_key}'")
+    logger.info(f"Chargement du référentiel générique pour le département '{_sanitize_log(dept_key)}'")
     return _load_generic_ref(dept_key)
 
 
@@ -810,7 +820,7 @@ def _detect_by_filename(fname_upper: str) -> Optional[str]:
 
 def _detect_by_up_code(combined: str) -> Optional[str]:
     up_match = re.search(
-        r'^(?:unit[eé][ \t]+p[eé]dagogique|UP)[ \t]*:?[ \t]*[-_]?[ \t]*([A-Z0-9_\-]{2,10})',
+        r'^(?:unit[eé][ \t]+p[eé]dagogique|UP)[ \t]*+:?+[ \t]*+[-_]?+[ \t]*+([A-Z0-9_\-]{2,10})',
         combined, re.IGNORECASE | re.MULTILINE,
     )
     if not up_match:
@@ -821,7 +831,7 @@ def _detect_by_up_code(combined: str) -> Optional[str]:
 
 def _detect_by_ue_code(combined: str) -> Optional[str]:
     ue_match = re.search(
-        r'^(?:unit[eé][ \t]+d[\x27\u2019]enseignement|UE)[ \t]*:?[ \t]*([A-Z]{2,6}\w{2,10})',
+        r'^(?:unit[eé][ \t]+d[\x27\u2019]enseignement|UE)[ \t]*+:?+[ \t]*+([A-Z]{2,6}\w{2,10})',
         combined, re.IGNORECASE | re.MULTILINE,
     )
     if not ue_match:
@@ -837,10 +847,20 @@ def _detect_by_ue_code(combined: str) -> Optional[str]:
 
 
 def _detect_by_module_code(combined: str) -> Optional[str]:
-    meta_code_match = re.search(
-        r"^(?:code(?:[ \t]+(?:module|ue))?|module)[ \t]*:?[ \t]*([A-Z]{1,5}[-_]?\d{1,4}[A-Z]?)",
-        combined, re.IGNORECASE | re.MULTILINE,
-    )
+    meta_code_match = None
+    for pattern in (
+        re.compile(
+            r"^code(?:[ \t]+(?:module|ue))?+[ \t]*+:?+[ \t]*+([A-Z]{1,5}[-_]?\d{1,4}[A-Z]?)",
+            re.IGNORECASE | re.MULTILINE,
+        ),
+        re.compile(
+            r"^module[ \t]*+:?+[ \t]*+([A-Z]{1,5}[-_]?\d{1,4}[A-Z]?)",
+            re.IGNORECASE | re.MULTILINE,
+        ),
+    ):
+        meta_code_match = pattern.search(combined)
+        if meta_code_match:
+            break
     if not meta_code_match:
         return None
     meta_code = meta_code_match.group(1).upper().replace("_", "-")

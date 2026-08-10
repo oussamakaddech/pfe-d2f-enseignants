@@ -4,20 +4,22 @@ const httpMocks = vi.hoisted(() => ({
   mockPut: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     put: httpMocks.mockPut,
   },
 }));
 
-vi.mock("@/services/auth/authHeaders", () => ({
+vi.mock('@/services/auth/authHeaders', () => ({
   requireAuthHeader: vi.fn(() => ({ Authorization: 'Bearer test' })),
 }));
 
 import FormationCustomService from '../FormationCustomService';
 
 describe('FormationCustomService', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('generates certificates with default type', async () => {
     httpMocks.mockPut.mockResolvedValueOnce({ data: 'Certificats générés' });
@@ -26,7 +28,7 @@ describe('FormationCustomService', () => {
     expect(httpMocks.mockPut).toHaveBeenCalledWith(
       expect.stringContaining('/1/generate-certificates'),
       null,
-      expect.objectContaining({ params: { typeCertif: 'CERTIF' } })
+      expect.objectContaining({ params: { typeCertif: 'CERTIF' } }),
     );
   });
 
@@ -37,7 +39,7 @@ describe('FormationCustomService', () => {
     expect(httpMocks.mockPut).toHaveBeenCalledWith(
       expect.stringContaining('/2/generate-certificates'),
       null,
-      expect.objectContaining({ params: { typeCertif: 'ATTESTATION' } })
+      expect.objectContaining({ params: { typeCertif: 'ATTESTATION' } }),
     );
   });
 
@@ -46,7 +48,3 @@ describe('FormationCustomService', () => {
     await expect(FormationCustomService.generateCertificates(1)).rejects.toThrow('Server error');
   });
 });
-
-
-
-

@@ -102,14 +102,15 @@ public final class UnifiedProfileSpecifications {
     public static Specification<Enseignant> build(AdvancedFilterRequest filter,
                                                   Collection<String> accountUserIds,
                                                   Collection<String> allowedDeptIds) {
-        return Specification.where(search(filter.getSearch()))
-                .and(departement(filter.getDepartementId()))
-                .and(up(filter.getUpId()))
-                .and(grade(filter.getGrade()))
-                .and(statut(filter.getStatut()))
-                .and(dossierStatus(filter.getDossierStatus()))
-                .and(recruitedBetween(filter.getRecruitedFrom(), filter.getRecruitedTo()))
-                .and(userIdIn(accountUserIds))
-                .and(restrictToDepartements(allowedDeptIds));
+        return Specification.allOf(
+                search(filter.getSearch()),
+                departement(filter.getDepartementId()),
+                up(filter.getUpId()),
+                grade(filter.getGrade()),
+                statut(filter.getStatut()),
+                dossierStatus(filter.getDossierStatus()),
+                recruitedBetween(filter.getRecruitedFrom(), filter.getRecruitedTo()),
+                userIdIn(accountUserIds),
+                restrictToDepartements(allowedDeptIds));
     }
 }

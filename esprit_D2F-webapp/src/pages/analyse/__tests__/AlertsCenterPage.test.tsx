@@ -5,7 +5,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AlertsCenterPage from '../AlertsCenterPage';
 
 vi.mock('@/hooks/analyse/useAnalysePredictive', () => ({
-  useAlertsSummary: vi.fn(() => ({ data: undefined, isLoading: false, isError: false, refetch: vi.fn() })),
+  useAlertsSummary: vi.fn(() => ({
+    data: undefined,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  })),
   useBulkUpdateAlerts: vi.fn(() => ({ mutateAsync: vi.fn() })),
 }));
 
@@ -27,7 +32,7 @@ describe('AlertsCenterPage', () => {
         <BrowserRouter>
           <AlertsCenterPage />
         </BrowserRouter>
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
     expect(screen.getByText("Centre d'alertes")).toBeInTheDocument();
     expect(screen.getByText('Rafraîchir')).toBeInTheDocument();

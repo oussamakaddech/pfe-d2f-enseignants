@@ -16,7 +16,7 @@ export interface ActeurOption {
 }
 
 export const acteurFullName = (e: ActeurSource): string =>
-  [e.nom, e.prenom].filter(Boolean).join(" ").trim();
+  [e.nom, e.prenom].filter(Boolean).join(' ').trim();
 
 /** Valeur stockée pour un acteur : "Nom Prénom <email>". */
 export const buildActeurValue = (e: ActeurSource): string => {
@@ -36,17 +36,20 @@ export const buildActeurOptions = (enseignants: ActeurSource[]): ActeurOption[] 
 /** Sérialise un champ multi-select (tableau ou texte) en texte une-ligne-par-acteur. */
 export const serializeActeurs = (value: unknown): string | undefined => {
   if (Array.isArray(value)) {
-    const joined = value.map((v) => String(v).trim()).filter(Boolean).join("\n");
+    const joined = value
+      .map((v) => String(v).trim())
+      .filter(Boolean)
+      .join('\n');
     return joined || undefined;
   }
-  const str = String(value ?? "").trim();
+  const str = String(value ?? '').trim();
   return str || undefined;
 };
 
 /** Parse un texte stocké en tableau de valeurs pour alimenter un multi-select. */
 export const parseActeurs = (value: unknown): string[] => {
   if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
-  return String(value ?? "")
+  return String(value ?? '')
     .split(/\r?\n/)
     .map((v) => v.trim())
     .filter(Boolean);

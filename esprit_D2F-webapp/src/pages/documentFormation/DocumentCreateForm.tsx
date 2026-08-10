@@ -1,18 +1,18 @@
-import { useState } from "react";
-import { Form, Input, Select, Checkbox, Upload, Button, Typography } from "antd";
-import type { UploadFile } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
-import useAppNotification from "@/hooks/ui/useAppNotification";
-import "antd/dist/reset.css";
-import { useCreateDocument } from "@/hooks/document/useDocument";
-import type { Id } from "@/models/common";
-import type { FormationDocument } from "@/models/document";
+import { useState } from 'react';
+import { Form, Input, Select, Checkbox, Upload, Button, Typography } from 'antd';
+import type { UploadFile } from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
+import useAppNotification from '@/hooks/ui/useAppNotification';
+import 'antd/dist/reset.css';
+import { useCreateDocument } from '@/hooks/document/useDocument';
+import type { Id } from '@/models/common';
+import type { FormationDocument } from '@/models/document';
 
 const { Option } = Select;
 const PATH_OPTIONS = [
-  { value: "PAYEMENT", label: "PAYEMENT" },
-  { value: "CNFCPP",   label: "CNFCPP" },
-  { value: "DOCUMENT", label: "Autre dossier…" },
+  { value: 'PAYEMENT', label: 'PAYEMENT' },
+  { value: 'CNFCPP', label: 'CNFCPP' },
+  { value: 'DOCUMENT', label: 'Autre dossier…' },
 ];
 
 interface DocumentCreateFormProps {
@@ -28,7 +28,11 @@ interface DocFormValues {
   file?: UploadFile[];
 }
 
-export default function DocumentCreateForm({ formationId, onDocumentCreated, onCancel }: Readonly<DocumentCreateFormProps>) {
+export default function DocumentCreateForm({
+  formationId,
+  onDocumentCreated,
+  onCancel,
+}: Readonly<DocumentCreateFormProps>) {
   const { message } = useAppNotification();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -46,18 +50,18 @@ export default function DocumentCreateForm({ formationId, onDocumentCreated, onC
     try {
       const payload = {
         formationId,
-        pathType:    values.pathType,
+        pathType: values.pathType,
         nomDocument: values.nomDocument,
-        obligation:  String(values.obligation),
-        file:        values.file?.[0]?.originFileObj as File,
+        obligation: String(values.obligation),
+        file: values.file?.[0]?.originFileObj as File,
       };
       const newDoc = await createDoc(payload);
-      message.success("Document créé avec succès");
+      message.success('Document créé avec succès');
       form.resetFields();
       setFileList([]);
       onDocumentCreated(newDoc);
     } catch {
-      message.error("🚫 Erreur lors de la création du document.");
+      message.error('🚫 Erreur lors de la création du document.');
     } finally {
       setLoading(false);
     }
@@ -68,14 +72,24 @@ export default function DocumentCreateForm({ formationId, onDocumentCreated, onC
       form={form}
       layout="vertical"
       onFinish={onFinish}
-      initialValues={{ pathType: "PAYEMENT", nomDocument: "", obligation: false }}
-      style={{ margin: 16, padding: 16, border: "1px solid #ddd", borderRadius: 8, background: "#fafafa" }}
+      initialValues={{ pathType: 'PAYEMENT', nomDocument: '', obligation: false }}
+      style={{
+        margin: 16,
+        padding: 16,
+        border: '1px solid #ddd',
+        borderRadius: 8,
+        background: '#fafafa',
+      }}
     >
       <Typography.Title level={5}>Ajouter un nouveau document</Typography.Title>
 
       <Form.Item name="pathType" label="Dossier cible" rules={[{ required: true }]}>
-        <Select getPopupContainer={trigger => trigger.parentNode}>
-          {PATH_OPTIONS.map(o => <Option key={o.value} value={o.value}>{o.label}</Option>)}
+        <Select getPopupContainer={(trigger) => trigger.parentNode}>
+          {PATH_OPTIONS.map((o) => (
+            <Option key={o.value} value={o.value}>
+              {o.label}
+            </Option>
+          ))}
         </Select>
       </Form.Item>
 
@@ -91,7 +105,7 @@ export default function DocumentCreateForm({ formationId, onDocumentCreated, onC
         name="file"
         label="Fichier"
         valuePropName="fileList"
-        getValueFromEvent={e => e?.fileList}
+        getValueFromEvent={(e) => e?.fileList}
         rules={[{ required: true }]}
       >
         <Upload {...uploadProps} maxCount={1}>
@@ -101,16 +115,19 @@ export default function DocumentCreateForm({ formationId, onDocumentCreated, onC
 
       <Form.Item>
         <Button type="primary" htmlType="submit" loading={loading}>
-          {loading ? "Création…" : "Ajouter"}
+          {loading ? 'Création…' : 'Ajouter'}
         </Button>
-        <Button style={{ marginLeft: 8 }} onClick={() => { form.resetFields(); setFileList([]); onCancel(); }}>
+        <Button
+          style={{ marginLeft: 8 }}
+          onClick={() => {
+            form.resetFields();
+            setFileList([]);
+            onCancel();
+          }}
+        >
           Annuler
         </Button>
       </Form.Item>
     </Form>
   );
 }
-
-
-
-

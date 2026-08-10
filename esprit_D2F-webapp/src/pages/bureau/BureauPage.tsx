@@ -1,17 +1,7 @@
-import { useState, useRef, type Key } from "react";
-import {
-  Table,
-  Button,
-  Input,
-  Modal,
-  Form,
-  Popconfirm,
-  Space,
-  Tooltip,
-  Card,
-} from "antd";
-import type { FilterDropdownProps } from "antd/es/table/interface";
-import type { InputRef } from "antd";
+import { useState, useRef, type Key } from 'react';
+import { Table, Button, Input, Modal, Form, Popconfirm, Space, Tooltip, Card } from 'antd';
+import type { FilterDropdownProps } from 'antd/es/table/interface';
+import type { InputRef } from 'antd';
 import {
   SearchOutlined,
   PlusOutlined,
@@ -20,13 +10,18 @@ import {
   PhoneOutlined,
   MailOutlined,
   BankOutlined,
-} from "@ant-design/icons";
-import useAppNotification from "@/hooks/ui/useAppNotification";
-import { useBureaux, useCreateBureau, useUpdateBureau, useDeleteBureau } from "@/hooks/bureau/useBureaux";
-import type { Bureau } from "@/models/bureau";
-import AnimateursExternesPanel from "./AnimateursExternesPanel";
-import "@/styles/pages/bureau-page.css";
-import s from "./BureauPage.module.css";
+} from '@ant-design/icons';
+import useAppNotification from '@/hooks/ui/useAppNotification';
+import {
+  useBureaux,
+  useCreateBureau,
+  useUpdateBureau,
+  useDeleteBureau,
+} from '@/hooks/bureau/useBureaux';
+import type { Bureau } from '@/models/bureau';
+import AnimateursExternesPanel from './AnimateursExternesPanel';
+import '@/styles/pages/bureau-page.css';
+import s from './BureauPage.module.css';
 
 type SearchDropdownProps = Readonly<{
   placeholder: string;
@@ -39,7 +34,16 @@ type SearchDropdownProps = Readonly<{
   inputRef: React.RefObject<InputRef | null>;
 }>;
 
-function ColumnSearchDropdown({ placeholder, selectedKeys, setSelectedKeys, confirm, clearFilters, onSearch, onReset, inputRef }: SearchDropdownProps) {
+function ColumnSearchDropdown({
+  placeholder,
+  selectedKeys,
+  setSelectedKeys,
+  confirm,
+  clearFilters,
+  onSearch,
+  onReset,
+  inputRef,
+}: SearchDropdownProps) {
   return (
     <div className={s.searchDropdown}>
       <Input
@@ -59,7 +63,11 @@ function ColumnSearchDropdown({ placeholder, selectedKeys, setSelectedKeys, conf
       >
         OK
       </Button>
-      <Button onClick={() => clearFilters && onReset(clearFilters)} size="small" className={s.searchBtnReset}>
+      <Button
+        onClick={() => clearFilters && onReset(clearFilters)}
+        size="small"
+        className={s.searchBtnReset}
+      >
         Réinitialiser
       </Button>
     </div>
@@ -81,9 +89,18 @@ type SearchColumnConfig = {
   searchedColumn: string;
 };
 
-function getColumnSearchProps(dataIndex: keyof Bureau, placeholder: string, cfg: SearchColumnConfig) {
+function getColumnSearchProps(
+  dataIndex: keyof Bureau,
+  placeholder: string,
+  cfg: SearchColumnConfig,
+) {
   return {
-    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
+    filterDropdown: ({
+      setSelectedKeys,
+      selectedKeys,
+      confirm,
+      clearFilters,
+    }: FilterDropdownProps) => (
       <ColumnSearchDropdown
         placeholder={placeholder}
         selectedKeys={selectedKeys}
@@ -97,34 +114,32 @@ function getColumnSearchProps(dataIndex: keyof Bureau, placeholder: string, cfg:
     ),
     filterIcon: (filtered: boolean) => <ColumnSearchIcon filtered={filtered} />,
     onFilter: (value: boolean | Key, record: Bureau) =>
-      String(record[dataIndex] ?? "").toLowerCase().includes(String(value).toLowerCase()),
+      String(record[dataIndex] ?? '')
+        .toLowerCase()
+        .includes(String(value).toLowerCase()),
     filterDropdownProps: {
       onOpenChange: (visible: boolean) => {
         if (visible) setTimeout(() => cfg.searchInputRef.current?.select(), 100);
       },
     },
     render: (text: string) =>
-      cfg.searchedColumn === dataIndex ? (
-        <span className={s.searchHighlight}>{text}</span>
-      ) : (
-        text
-      ),
+      cfg.searchedColumn === dataIndex ? <span className={s.searchHighlight}>{text}</span> : text,
   };
 }
 
 export default function BureauPage() {
   const { message: msgApi } = useAppNotification();
   const { data: bureaux = [], isLoading: loading } = useBureaux();
-  const createMut  = useCreateBureau();
-  const updateMut  = useUpdateBureau();
-  const deleteMut  = useDeleteBureau();
+  const createMut = useCreateBureau();
+  const updateMut = useUpdateBureau();
+  const deleteMut = useDeleteBureau();
 
-  const [searchedColumn, setSearchedColumn] = useState("");
+  const [searchedColumn, setSearchedColumn] = useState('');
   const searchInput = useRef<InputRef>(null);
 
   // ── Modal état ────────────────────────────────────────────────────────
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [editingRecord, setEditingRecord] = useState<Bureau | null>(null);
   const [form] = Form.useForm();
 
@@ -133,7 +148,7 @@ export default function BureauPage() {
 
   // ── Ouvrir modal création ─────────────────────────────────────────────
   const openCreate = () => {
-    setModalMode("create");
+    setModalMode('create');
     setEditingRecord(null);
     form.resetFields();
     setModalOpen(true);
@@ -141,7 +156,7 @@ export default function BureauPage() {
 
   // ── Ouvrir modal édition ──────────────────────────────────────────────
   const openEdit = (record: Bureau) => {
-    setModalMode("edit");
+    setModalMode('edit');
     setEditingRecord(record);
     form.setFieldsValue({
       nom: record.nom,
@@ -155,19 +170,19 @@ export default function BureauPage() {
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
-      if (modalMode === "create") {
+      if (modalMode === 'create') {
         await createMut.mutateAsync(values);
-        msgApi.success("Bureau créé avec succès !");
+        msgApi.success('Bureau créé avec succès !');
       } else {
         await updateMut.mutateAsync({ id: editingRecord!.id, data: values });
-        msgApi.success("Bureau modifié avec succès !");
+        msgApi.success('Bureau modifié avec succès !');
       }
       setModalOpen(false);
       form.resetFields();
     } catch (err: unknown) {
       const e = err as { errorFields?: unknown; response?: { data?: { message?: string } } };
       if (e?.errorFields) return;
-      msgApi.error(e?.response?.data?.message || "Erreur lors de la sauvegarde");
+      msgApi.error(e?.response?.data?.message || 'Erreur lors de la sauvegarde');
     }
   };
 
@@ -177,7 +192,10 @@ export default function BureauPage() {
       await deleteMut.mutateAsync(record.id);
       msgApi.success(`Bureau "${record.nom}" supprimé`);
     } catch (err: unknown) {
-      msgApi.error((err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erreur lors de la suppression");
+      msgApi.error(
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          'Erreur lors de la suppression',
+      );
     }
   };
 
@@ -200,19 +218,19 @@ export default function BureauPage() {
 
   const getInitials = (nom: string) =>
     nom
-      .split(" ")
+      .split(' ')
       .slice(0, 2)
       .map((w) => w.charAt(0).toUpperCase())
-      .join("") || "?";
+      .join('') || '?';
 
   const columns = [
     {
-      title: "Nom",
-      dataIndex: "nom",
-      key: "nom",
+      title: 'Nom',
+      dataIndex: 'nom',
+      key: 'nom',
       sorter: (a: Bureau, b: Bureau) => a.nom.localeCompare(b.nom),
-      sortDirections: ["ascend" as const, "descend" as const],
-      ...getColumnSearchProps("nom", "Nom", searchCfg),
+      sortDirections: ['ascend' as const, 'descend' as const],
+      ...getColumnSearchProps('nom', 'Nom', searchCfg),
       render: (nom: string) => (
         <div className="bureau-name-cell">
           <div className="bureau-avatar">{getInitials(nom)}</div>
@@ -221,33 +239,39 @@ export default function BureauPage() {
       ),
     },
     {
-      title: "Email",
-      dataIndex: "email",
-      key: "email",
-      sorter: (a: Bureau, b: Bureau) => (a.email || "").localeCompare(b.email || ""),
-      ...getColumnSearchProps("email", "Email", searchCfg),
+      title: 'Email',
+      dataIndex: 'email',
+      key: 'email',
+      sorter: (a: Bureau, b: Bureau) => (a.email || '').localeCompare(b.email || ''),
+      ...getColumnSearchProps('email', 'Email', searchCfg),
       render: (email: string) =>
         email ? (
-          <span><MailOutlined className={s.iconMuted} />{email}</span>
+          <span>
+            <MailOutlined className={s.iconMuted} />
+            {email}
+          </span>
         ) : (
           <span className={s.emptyValue}>—</span>
         ),
     },
     {
-      title: "Téléphone",
-      dataIndex: "numeroTelephone",
-      key: "numeroTelephone",
-      ...getColumnSearchProps("numeroTelephone", "Téléphone", searchCfg),
+      title: 'Téléphone',
+      dataIndex: 'numeroTelephone',
+      key: 'numeroTelephone',
+      ...getColumnSearchProps('numeroTelephone', 'Téléphone', searchCfg),
       render: (tel: string) =>
         tel ? (
-          <span><PhoneOutlined className={s.iconMuted} />{tel}</span>
+          <span>
+            <PhoneOutlined className={s.iconMuted} />
+            {tel}
+          </span>
         ) : (
           <span className={s.emptyValue}>—</span>
         ),
     },
     {
-      title: "Actions",
-      key: "actions",
+      title: 'Actions',
+      key: 'actions',
       width: 100,
       render: (_: unknown, record: Bureau) => (
         <Space size="small">
@@ -256,13 +280,19 @@ export default function BureauPage() {
               type="text"
               icon={<EditOutlined />}
               className="bureau-btn-edit"
-              onClick={(e) => { e.stopPropagation(); openEdit(record); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                openEdit(record);
+              }}
             />
           </Tooltip>
           <Popconfirm
             title="Supprimer ce bureau ?"
             description={`"${record.nom}" sera définitivement supprimé.`}
-            onConfirm={(e) => { e?.stopPropagation(); handleDelete(record); }}
+            onConfirm={(e) => {
+              e?.stopPropagation();
+              handleDelete(record);
+            }}
             onCancel={(e) => e?.stopPropagation()}
             okText="Supprimer"
             cancelText="Annuler"
@@ -293,10 +323,12 @@ export default function BureauPage() {
                 <h2 className="bureau-hero-title">Gestion des Bureaux</h2>
                 <span className="bureau-hero-badge">
                   {data.length}
-                  <span className={s.heroBadgeCount}>bureau{data.length === 1 ? "" : "x"}</span>
+                  <span className={s.heroBadgeCount}>bureau{data.length === 1 ? '' : 'x'}</span>
                 </span>
               </div>
-              <div className="bureau-hero-subtitle">Gérer les bureaux externes (nom, email, téléphone)</div>
+              <div className="bureau-hero-subtitle">
+                Gérer les bureaux externes (nom, email, téléphone)
+              </div>
             </div>
             <Button
               type="primary"
@@ -355,19 +387,25 @@ export default function BureauPage() {
               expandedRowRender: renderBureauExpanded,
               rowExpandable: (record: Bureau) => record.id != null,
             }}
-            pagination={{ pageSize: 10, showTotal: (total) => `${total} bureau${total === 1 ? "" : "x"}` }}
+            pagination={{
+              pageSize: 10,
+              showTotal: (total) => `${total} bureau${total === 1 ? '' : 'x'}`,
+            }}
           />
         </Card>
       </div>
 
       {/* Modal Créer / Modifier */}
       <Modal
-        title={modalMode === "create" ? "Nouveau Bureau" : `Modifier — ${editingRecord?.nom ?? ""}`}
+        title={modalMode === 'create' ? 'Nouveau Bureau' : `Modifier — ${editingRecord?.nom ?? ''}`}
         open={modalOpen}
-        onCancel={() => { setModalOpen(false); form.resetFields(); }}
+        onCancel={() => {
+          setModalOpen(false);
+          form.resetFields();
+        }}
         onOk={handleSave}
         confirmLoading={saveLoading}
-        okText={modalMode === "create" ? "Créer" : "Enregistrer"}
+        okText={modalMode === 'create' ? 'Créer' : 'Enregistrer'}
         cancelText="Annuler"
         destroyOnHidden
         width={480}
@@ -376,7 +414,7 @@ export default function BureauPage() {
           <Form.Item
             name="nom"
             label="Nom"
-            rules={[{ required: true, message: "Le nom est requis" }]}
+            rules={[{ required: true, message: 'Le nom est requis' }]}
           >
             <Input placeholder="Nom du bureau" />
           </Form.Item>
@@ -385,17 +423,23 @@ export default function BureauPage() {
             label="Email"
             rules={[
               { required: true, message: "L'email est requis" },
-              { type: "email", message: "Email invalide" },
+              { type: 'email', message: 'Email invalide' },
             ]}
           >
-            <Input placeholder="email@exemple.com" prefix={<MailOutlined className={s.inputPrefixIcon} />} />
+            <Input
+              placeholder="email@exemple.com"
+              prefix={<MailOutlined className={s.inputPrefixIcon} />}
+            />
           </Form.Item>
           <Form.Item
             name="numeroTelephone"
             label="Numéro de Téléphone"
-            rules={[{ required: true, message: "Le numéro de téléphone est requis" }]}
+            rules={[{ required: true, message: 'Le numéro de téléphone est requis' }]}
           >
-            <Input placeholder="+216 XX XXX XXX" prefix={<PhoneOutlined className={s.inputPrefixIcon} />} />
+            <Input
+              placeholder="+216 XX XXX XXX"
+              prefix={<PhoneOutlined className={s.inputPrefixIcon} />}
+            />
           </Form.Item>
         </Form>
       </Modal>

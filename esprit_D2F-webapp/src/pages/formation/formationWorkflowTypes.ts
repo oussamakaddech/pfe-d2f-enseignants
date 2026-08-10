@@ -9,7 +9,7 @@ export interface EnseignantItem {
   upLibelle: string;
   deptLibelle: string;
   isManual?: boolean;
-  source?: "system" | "manual" | "import";
+  source?: 'system' | 'manual' | 'import';
 }
 
 export interface SeanceData {
@@ -98,17 +98,17 @@ export interface SeanceConflictItem {
 }
 
 export const PERIOD_OPTIONS = [
-  { value: "WINTER",   label: "Winter" },
-  { value: "SUMMER",   label: "Summer" },
-  { value: "SPRINT",   label: "Sprint" },
-  { value: "WORKSHOP", label: "Workshop" },
-  { value: "OTHER",    label: "Autre" },
+  { value: 'WINTER', label: 'Winter' },
+  { value: 'SUMMER', label: 'Summer' },
+  { value: 'SPRINT', label: 'Sprint' },
+  { value: 'WORKSHOP', label: 'Workshop' },
+  { value: 'OTHER', label: 'Autre' },
 ];
 
 export enum AdditionMode {
-  MANUAL = "MANUAL",
-  AUTO_BY_DEPT = "AUTO_BY_DEPT",
-  AUTO_BY_UP = "AUTO_BY_UP",
+  MANUAL = 'MANUAL',
+  AUTO_BY_DEPT = 'AUTO_BY_DEPT',
+  AUTO_BY_UP = 'AUTO_BY_UP',
 }
 
 export interface AnimateurAdditionConfig {

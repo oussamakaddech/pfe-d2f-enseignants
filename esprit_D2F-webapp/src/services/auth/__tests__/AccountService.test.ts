@@ -8,7 +8,7 @@ const apiMocks = vi.hoisted(() => ({
   mockDelete: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   createApiClient: vi.fn(() => ({
     get: apiMocks.mockGet,
     post: apiMocks.mockPost,
@@ -26,7 +26,9 @@ vi.mock("@/services/httpClient", () => ({
 import accountService from '../AccountService';
 
 describe('accountService', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   const accountUrl = `${config.URL_ACCOUNT}/account`;
 
@@ -37,12 +39,18 @@ describe('accountService', () => {
     });
     const result = await accountService.getAllAccounts();
     expect(result).toEqual([
-      { userId: 'u1', username: 'alice', role: 'ROLE_ADMIN', email: 'a@x.tn', id: 'u1', userName: 'alice' },
+      {
+        userId: 'u1',
+        username: 'alice',
+        role: 'ROLE_ADMIN',
+        email: 'a@x.tn',
+        id: 'u1',
+        userName: 'alice',
+      },
     ]);
-    expect(apiMocks.mockGet).toHaveBeenCalledWith(
-      `${accountUrl}/list-accounts`,
-      { params: { size: 500, page: 0, includeDeleted: false } },
-    );
+    expect(apiMocks.mockGet).toHaveBeenCalledWith(`${accountUrl}/list-accounts`, {
+      params: { size: 500, page: 0, includeDeleted: false },
+    });
   });
 
   it('gets profile', async () => {
@@ -68,11 +76,15 @@ describe('accountService', () => {
   it('bans/enables account', async () => {
     apiMocks.mockPost.mockResolvedValueOnce({ data: 'banned' });
     await accountService.banAccount('u1');
-    expect(apiMocks.mockPost).toHaveBeenCalledWith(`${accountUrl}/ban-account`, null, { params: { userName: 'u1' } });
+    expect(apiMocks.mockPost).toHaveBeenCalledWith(`${accountUrl}/ban-account`, null, {
+      params: { userName: 'u1' },
+    });
 
     apiMocks.mockPost.mockResolvedValueOnce({ data: 'enabled' });
     await accountService.enableAccount('u1');
-    expect(apiMocks.mockPost).toHaveBeenCalledWith(`${accountUrl}/enable-account`, null, { params: { userName: 'u1' } });
+    expect(apiMocks.mockPost).toHaveBeenCalledWith(`${accountUrl}/enable-account`, null, {
+      params: { userName: 'u1' },
+    });
   });
 
   it('deletes/updates account', async () => {
@@ -81,11 +93,15 @@ describe('accountService', () => {
     expect(apiMocks.mockDelete).toHaveBeenCalledWith(`${accountUrl}/delete/id1`);
 
     apiMocks.mockPut.mockResolvedValueOnce({ data: { id: 'id1' } });
-    await accountService.updateAccount('id1', { email: 'e' } as Record<string, unknown>, 'ROLE_ADMIN');
-    expect(apiMocks.mockPut).toHaveBeenCalledWith(`${accountUrl}/update/id1`, { email: 'e' }, { params: { role: 'ROLE_ADMIN' } });
+    await accountService.updateAccount(
+      'id1',
+      { email: 'e' } as Record<string, unknown>,
+      'ROLE_ADMIN',
+    );
+    expect(apiMocks.mockPut).toHaveBeenCalledWith(
+      `${accountUrl}/update/id1`,
+      { email: 'e' },
+      { params: { role: 'ROLE_ADMIN' } },
+    );
   });
 });
-
-
-
-

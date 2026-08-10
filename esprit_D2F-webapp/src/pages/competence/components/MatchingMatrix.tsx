@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useMemo } from "react";
-import { Progress, Tooltip, Avatar, Tag } from "antd";
-import { CheckCircleFilled, CheckOutlined } from "@ant-design/icons";
-import type { Id } from "@/models/common";
+import React, { createContext, useContext, useMemo } from 'react';
+import { Progress, Tooltip, Avatar, Tag } from 'antd';
+import { CheckCircleFilled, CheckOutlined } from '@ant-design/icons';
+import type { Id } from '@/models/common';
 
 interface SavoirItem {
   id?: Id;
@@ -69,9 +69,9 @@ const hashToHsl = (id: Id | undefined) => {
 };
 
 const getProgressColor = (pct: number) => {
-  if (pct < 40) return "#ef4444";
-  if (pct < 75) return "#f59e0b";
-  return "#22c55e";
+  if (pct < 40) return '#ef4444';
+  if (pct < 75) return '#f59e0b';
+  return '#22c55e';
 };
 
 // ─── EnseignantHeader ─────────────────────────────────────────────────────────
@@ -81,22 +81,20 @@ interface EnseignantHeaderProps {
 }
 
 function EnseignantHeader({ enseignant, count }: Readonly<EnseignantHeaderProps>) {
-  const fullName = `${enseignant.prenom ?? ""} ${enseignant.nom ?? ""}`.trim();
-  const initials = `${(enseignant.prenom ?? "")[0] ?? ""}${(enseignant.nom ?? "")[0] ?? ""}`;
+  const fullName = `${enseignant.prenom ?? ''} ${enseignant.nom ?? ''}`.trim();
+  const initials = `${(enseignant.prenom ?? '')[0] ?? ''}${(enseignant.nom ?? '')[0] ?? ''}`;
 
   return (
     <th className="col-ens" scope="col">
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-        <Avatar style={{ backgroundColor: hashToHsl(enseignant.id) }}>
-          {initials}
-        </Avatar>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+        <Avatar style={{ backgroundColor: hashToHsl(enseignant.id) }}>{initials}</Avatar>
         <Tooltip title={fullName}>
           <div
             style={{
               maxWidth: 80,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
               fontSize: 12,
             }}
           >
@@ -125,23 +123,28 @@ function CompetenceGroupRow({ comp, enseignants, assignments }: Readonly<Compete
   return (
     <tr className="comp-group-row">
       <td className="sticky-col">
-        <Tag color="blue">{comp.code}</Tag>{" "}
-        <strong>{comp.nom}</strong>
+        <Tag color="blue">{comp.code}</Tag> <strong>{comp.nom}</strong>
       </td>
       {enseignants.map((ens) => {
         const covered = allSavoirs.filter((s) =>
-          (assignments[String(s.id)] ?? []).includes(String(ens.id))
+          (assignments[String(s.id)] ?? []).includes(String(ens.id)),
         ).length;
-        const pct = allSavoirs.length
-          ? Math.round((covered / allSavoirs.length) * 100)
-          : 0;
+        const pct = allSavoirs.length ? Math.round((covered / allSavoirs.length) * 100) : 0;
 
         return (
-          <td key={String(ens.id)} className="col-ens" style={{ textAlign: "center" }}>
+          <td key={String(ens.id)} className="col-ens" style={{ textAlign: 'center' }}>
             {(() => {
               if (pct === 0) return null;
-              if (pct === 100) return <CheckCircleFilled style={{ color: "#22c55e", fontSize: 20 }} />;
-              return <Progress type="circle" size={32} percent={pct} strokeColor={getProgressColor(pct)} />;
+              if (pct === 100)
+                return <CheckCircleFilled style={{ color: '#22c55e', fontSize: 20 }} />;
+              return (
+                <Progress
+                  type="circle"
+                  size={32}
+                  percent={pct}
+                  strokeColor={getProgressColor(pct)}
+                />
+              );
             })()}
           </td>
         );
@@ -197,10 +200,10 @@ function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }: Readonly
 
   const handleDragStart = (e: React.DragEvent<HTMLButtonElement>) => {
     e.dataTransfer.setData(
-      "application/json",
-      JSON.stringify({ savoirId: String(savoir.id), savoirNom: savoir.nom })
+      'application/json',
+      JSON.stringify({ savoirId: String(savoir.id), savoirNom: savoir.nom }),
     );
-    e.dataTransfer.effectAllowed = "copy";
+    e.dataTransfer.effectAllowed = 'copy';
     onDragStart(String(savoir.id));
   };
 
@@ -214,15 +217,15 @@ function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }: Readonly
           draggable={true}
           onDragStart={handleDragStart}
           onDragEnd={onDragEnd}
-          style={{ opacity: isBeingDragged ? 0.4 : 1, display: "flex", alignItems: "center" }}
+          style={{ opacity: isBeingDragged ? 0.4 : 1, display: 'flex', alignItems: 'center' }}
         >
-          <div className={isAssignedAnywhere ? "dot-assigned" : "dot-unassigned"} />
+          <div className={isAssignedAnywhere ? 'dot-assigned' : 'dot-unassigned'} />
           <div style={{ marginLeft: 8 }}>
             <div
               style={{ fontSize: 13 }}
               title={`${savoir.nom} (${savoir.type} - niveau ${savoir.niveau})`}
             >
-              {`${savoir.code ?? ""} ${savoir.nom}`.slice(0, 28)}
+              {`${savoir.code ?? ''} ${savoir.nom}`.slice(0, 28)}
             </div>
           </div>
         </button>
@@ -233,9 +236,9 @@ function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }: Readonly
         const cellKey = `${savoir.id}-${ens.id}`;
         const isActive = dragOverCell === cellKey;
 
-        let cellClass = "cell-empty";
-        if (isAssigned) cellClass = "cell-assigned";
-        else if (isActive) cellClass = "cell-drop-active";
+        let cellClass = 'cell-empty';
+        if (isAssigned) cellClass = 'cell-assigned';
+        else if (isActive) cellClass = 'cell-drop-active';
 
         return (
           <td
@@ -245,32 +248,36 @@ function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }: Readonly
             onDragStart={(e: React.DragEvent<HTMLTableCellElement>) => {
               if (!isAssigned) return;
               e.dataTransfer.setData(
-                "application/json",
+                'application/json',
                 JSON.stringify({
                   savoirId: String(savoir.id),
                   fromEnsId: String(ens.id),
-                  action: "reassign",
-                })
+                  action: 'reassign',
+                }),
               );
-              e.dataTransfer.effectAllowed = "move";
+              e.dataTransfer.effectAllowed = 'move';
               onDragStart(String(savoir.id));
             }}
             onDragEnd={onDragEnd}
             onClick={() => isAssigned && onUnassign(String(savoir.id), String(ens.id))}
-            onDragOver={(e: React.DragEvent<HTMLTableCellElement>) => !isAssigned && onDragOver(e, String(savoir.id), String(ens.id))}
+            onDragOver={(e: React.DragEvent<HTMLTableCellElement>) =>
+              !isAssigned && onDragOver(e, String(savoir.id), String(ens.id))
+            }
             onDragLeave={(e: React.DragEvent<HTMLTableCellElement>) => {
               if (e.currentTarget.contains(e.relatedTarget as Node)) return;
               onDragLeave(e);
             }}
-            onDrop={(e: React.DragEvent<HTMLTableCellElement>) => !isAssigned && onDrop(e, String(savoir.id), String(ens.id))}
+            onDrop={(e: React.DragEvent<HTMLTableCellElement>) =>
+              !isAssigned && onDrop(e, String(savoir.id), String(ens.id))
+            }
             style={{
-              cursor: isAssigned ? "grab" : "default",
-              textAlign: "center",
+              cursor: isAssigned ? 'grab' : 'default',
+              textAlign: 'center',
               opacity: isDraggingAny && isAssigned && draggingId === String(savoir.id) ? 0.7 : 1,
             }}
             title={isAssigned ? "Cliquer pour retirer l'affectation" : undefined}
           >
-            {isAssigned && <CheckOutlined style={{ color: "#16a34a" }} />}
+            {isAssigned && <CheckOutlined style={{ color: '#16a34a' }} />}
           </td>
         );
       })}
@@ -321,16 +328,19 @@ export default function MatchingMatrix({
     });
   });
 
-  const dragContextValue = useMemo<DragContextValue>(() => ({
-    draggingId,
-    dragOverCell,
-    onDragStart,
-    onDragEnd,
-    onDragOver,
-    onDragLeave,
-    onDrop,
-    onUnassign,
-  }), [draggingId, dragOverCell, onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, onUnassign]);
+  const dragContextValue = useMemo<DragContextValue>(
+    () => ({
+      draggingId,
+      dragOverCell,
+      onDragStart,
+      onDragEnd,
+      onDragOver,
+      onDragLeave,
+      onDrop,
+      onUnassign,
+    }),
+    [draggingId, dragOverCell, onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, onUnassign],
+  );
 
   return (
     <DragContext.Provider value={dragContextValue}>
@@ -351,11 +361,7 @@ export default function MatchingMatrix({
           {competences.map((comp) => (
             <React.Fragment key={String(comp.id)}>
               {/* Competence summary row */}
-              <CompetenceGroupRow
-                comp={comp}
-                enseignants={enseignants}
-                assignments={assignments}
-              />
+              <CompetenceGroupRow comp={comp} enseignants={enseignants} assignments={assignments} />
 
               {/* Sous-compétences and their savoirs */}
               {comp.sousCompetences?.map((sc) => (

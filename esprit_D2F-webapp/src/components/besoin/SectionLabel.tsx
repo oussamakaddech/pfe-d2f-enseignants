@@ -1,12 +1,12 @@
-import { memo } from "react";
-import type { ReactNode } from "react";
-
+import { memo } from 'react';
+import type { ReactNode } from 'react';
+
 interface SectionLabelProps {
   icon: ReactNode;
   title: string;
   hint?: string;
-}
-
+}
+
 const SectionLabel = memo(function SectionLabel({ icon, title, hint }: SectionLabelProps) {
   return (
     <div className="bf-form-section">

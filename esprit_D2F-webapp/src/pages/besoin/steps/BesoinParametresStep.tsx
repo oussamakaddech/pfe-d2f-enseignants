@@ -1,9 +1,9 @@
 /* ─────────────────────────────────────────────────────────────────────────
  * BesoinParametresStep — Step 4: Accessibilité, évaluation & infos supp.
  * ─────────────────────────────────────────────────────────────────────── */
-import { Form, Input, Select } from "antd";
-import { ApartmentOutlined, CheckCircleOutlined, BookOutlined } from "@ant-design/icons";
-import SectionLabel from "@/components/besoin/SectionLabel";
+import { Form, Input, Select } from 'antd';
+import { ApartmentOutlined, CheckCircleOutlined, BookOutlined } from '@ant-design/icons';
+import SectionLabel from '@/components/besoin/SectionLabel';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -38,7 +38,12 @@ export default function BesoinParametresStep() {
         hint="Remarques, contraintes, contexte particulier"
       />
       <Form.Item label="Autres informations" name="autresInformations">
-        <TextArea rows={4} placeholder="Informations additionnelles, spécificités, remarques particulières..." showCount maxLength={1000} />
+        <TextArea
+          rows={4}
+          placeholder="Informations additionnelles, spécificités, remarques particulières..."
+          showCount
+          maxLength={1000}
+        />
       </Form.Item>
     </div>
   );

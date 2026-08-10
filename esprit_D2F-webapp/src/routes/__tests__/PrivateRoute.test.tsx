@@ -16,12 +16,12 @@ describe('PrivateRoute', () => {
 
   it('should allow access when authenticated', () => {
     const mockAuthContext: AuthContextValue = {
-      user: { 
-        id: 1, 
+      user: {
+        id: 1,
         username: 'testuser',
         userName: 'testuser',
         emailAddress: 'test@example.com',
-        role: 'Enseignant'
+        role: 'Enseignant',
       },
       login: vi.fn(),
       logout: vi.fn(),
@@ -37,7 +37,7 @@ describe('PrivateRoute', () => {
             </Route>
           </Routes>
         </AuthContext.Provider>
-      </BrowserRouter>
+      </BrowserRouter>,
     );
 
     expect(screen.getByText('Protected Content')).toBeInTheDocument();
@@ -50,7 +50,7 @@ describe('PrivateRoute', () => {
         username: 'testuser',
         userName: 'testuser',
         emailAddress: 'test@example.com',
-        role: 'Enseignant'
+        role: 'Enseignant',
       },
       login: vi.fn(),
       logout: vi.fn(),
@@ -66,7 +66,7 @@ describe('PrivateRoute', () => {
             </Route>
           </Routes>
         </AuthContext.Provider>
-      </BrowserRouter>
+      </BrowserRouter>,
     );
 
     expect(screen.getByText('Protected Content')).toBeInTheDocument();
@@ -89,7 +89,7 @@ describe('PrivateRoute', () => {
             </Route>
           </Routes>
         </AuthContext.Provider>
-      </BrowserRouter>
+      </BrowserRouter>,
     );
 
     // When not authenticated, should redirect to login
@@ -108,7 +108,7 @@ describe('PrivateRoute', () => {
             </Route>
           </Routes>
         </AuthContext.Provider>
-      </BrowserRouter>
+      </BrowserRouter>,
     );
 
     // Should redirect to login when auth context is null/undefined
@@ -116,7 +116,3 @@ describe('PrivateRoute', () => {
     expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
   });
 });
-
-
-
-

@@ -74,7 +74,9 @@
   background: var(--bg-subtle);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .info-item:hover {

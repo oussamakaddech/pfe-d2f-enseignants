@@ -1,4 +1,4 @@
-"""Entrainement du gap predictor temporel — VERSION CORRIGÉE PAR AUDIT.
+﻿"""Entrainement du gap predictor temporel — VERSION CORRIGÉE PAR AUDIT.
 
 CORRECTIONS APPORTÉES :
   1. Le corpus de 5000 lignes synthetiques est considere OBSOLETE : l'audit DSI
@@ -25,6 +25,7 @@ Exporte gap_predictor_temporal.joblib + temporal_training_metadata.json.
 from __future__ import annotations
 
 import json
+import logging
 import sys
 from pathlib import Path
 from typing import Any
@@ -34,6 +35,9 @@ import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import KFold, cross_val_score
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).parent.parent
 MODELS_DIR = BASE_DIR / "data" / "models"
@@ -152,21 +156,21 @@ def build_candidates() -> list[tuple[str, Any]]:
             ),
         ))
     except ImportError:
-        print("[INFO] XGBoost indisponible")
+        logger.info("[INFO] XGBoost indisponible")
     return candidates
 
 
 def main() -> int:
     df, counts = load_and_combine()
-    print(f"[1] Corpus combine : {counts}")
+    logger.info(f"[1] Corpus combine : {counts}")
 
     if counts["synthetic"] > 0 and counts["real_db"] == 0:
-        print("[ERROR] Corpus 100% synthétique détecté : refus d'entraîner un modèle métier dessus.")
-        print("        L'audit DSI exige un corpus réel. Voir generate_corpus_from_db.py.")
+        logger.info("[ERROR] Corpus 100% synthétique détecté : refus d'entraîner un modèle métier dessus.")
+        logger.info("        L'audit DSI exige un corpus réel. Voir generate_corpus_from_db.py.")
         return 2
     if counts["real_db"] < 50:
-        print(f"[ERROR] Corpus réel insuffisant ({counts['real_db']} lignes < 50) : ")
-        print("        pas de réentraînement honnête possible. Phase de collecte requise.")
+        logger.info(f"[ERROR] Corpus réel insuffisant ({counts['real_db']} lignes < 50) : ")
+        logger.info("        pas de réentraînement honnête possible. Phase de collecte requise.")
         return 2
 
     # ---- Split TEMPOREL STRICT (80/20 sur date_t) ----
@@ -188,21 +192,21 @@ def main() -> int:
             test = df.iloc[n_train:]
             cutoff = dates.iloc[n_train - 1].date()
             split_kind = f"temporal_strict_cutoff_{cutoff}"
-            print(f"[2] Split TEMPOREL STRICT : train={n_train} test={n_test} (test = 20% lignes les plus recentes, cutoff date_t={cutoff})")
+            logger.info(f"[2] Split TEMPOREL STRICT : train={n_train} test={n_test} (test = 20% lignes les plus recentes, cutoff date_t={cutoff})")
         else:
             n = len(df)
             n_train = int(n * 0.8)
             train = df.iloc[:n_train]
             test = df.iloc[n_train:]
             split_kind = "sequential_no_shuffle_80_20_fallback"
-            print(f"[2] date_t indisponible/invalide -> fallback split sequentiel : train={n_train} test={n - n_train}")
+            logger.info(f"[2] date_t indisponible/invalide -> fallback split sequentiel : train={n_train} test={n - n_train}")
     else:
         n = len(df)
         n_train = int(n * 0.8)
         train = df.iloc[:n_train]
         test = df.iloc[n_train:]
         split_kind = "sequential_no_shuffle_80_20"
-        print(f"[2] Pas de colonne date_t -> split sequentiel : train={n_train} test={n - n_train}")
+        logger.info(f"[2] Pas de colonne date_t -> split sequentiel : train={n_train} test={n - n_train}")
 
     X_train = train[FEATURE_COLS].astype(float)
     y_train = train[TARGET_COL].astype(float).clip(0, 5).values
@@ -231,7 +235,7 @@ def main() -> int:
     )
     baseline_rmse = float(np.sqrt(mean_squared_error(y_test, gap_t_proxy)))
     baseline_mae = float(mean_absolute_error(y_test, gap_t_proxy))
-    print(f"[3] Baseline persistance RMSE={baseline_rmse:.4f} MAE={baseline_mae:.4f}")
+    logger.info(f"[3] Baseline persistance RMSE={baseline_rmse:.4f} MAE={baseline_mae:.4f}")
 
     # ---- CV : KFold (RÉGRESSION — pas de StratifiedKFold) ----
     candidates = build_candidates()
@@ -243,11 +247,11 @@ def main() -> int:
         fitted[name] = model
         scores = cross_val_score(model, X_train_arr, y_train, cv=kf, scoring="neg_root_mean_squared_error")
         cv_results[name] = float(-scores.mean())
-        print(f"    {name}: CV-RMSE={cv_results[name]:.4f}")
+        logger.info(f"    {name}: CV-RMSE={cv_results[name]:.4f}")
 
     best_name = min(cv_results, key=cv_results.get)
     best = fitted[best_name]
-    print(f"[4] Meilleur modele : {best_name}")
+    logger.info(f"[4] Meilleur modele : {best_name}")
 
     # Evaluation test
     preds = np.clip(best.predict(X_test_arr), 0, 5)
@@ -255,7 +259,7 @@ def main() -> int:
     test_mae = float(mean_absolute_error(y_test, preds))
     test_r2 = float(r2_score(y_test, preds)) if len(y_test) > 1 else 0.0
     lift_rmse = round(baseline_rmse - test_rmse, 4)
-    print(f"[5] Test : RMSE={test_rmse:.4f} MAE={test_mae:.4f} R2={test_r2:.4f} lift={lift_rmse:.4f}")
+    logger.info(f"[5] Test : RMSE={test_rmse:.4f} MAE={test_mae:.4f} R2={test_r2:.4f} lift={lift_rmse:.4f}")
 
     # Intervalle de confiance du lift par bootstrap sur l'echantillon de test.
     # n_test=21 est petit : un lift ponctuel peut etre du bruit. Le bootstrap
@@ -275,14 +279,14 @@ def main() -> int:
     boot_lifts = np.asarray(boot_lifts)
     lift_ci = (float(np.percentile(boot_lifts, 2.5)), float(np.percentile(boot_lifts, 97.5)))
     lift_significant = bool(lift_ci[0] > 0)
-    print(
+    logger.info(
         f"[5b] Lift IC95% (bootstrap {N_BOOT} replicas, n_test={n_test}) : "
         f"[{lift_ci[0]:.4f}, {lift_ci[1]:.4f}] — significatif={lift_significant}"
     )
 
     # Accept only si lift strictement positif ET test échantillon suffisant (> 20 lignes)
     decision = "accept" if (lift_rmse > 0 and len(y_test) >= 20) else "reject"
-    print(f"[6] Decision : {decision} (lift={lift_rmse:.4f}, n_test={len(y_test)})")
+    logger.info(f"[6] Decision : {decision} (lift={lift_rmse:.4f}, n_test={len(y_test)})")
 
     feature_importances = {}
     if hasattr(best, "feature_importances_"):
@@ -341,7 +345,7 @@ def main() -> int:
 
     save_with_integrity(best, MODEL_PATH)
     METADATA_PATH.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"[7] Modele (avec sidecar SHA-256) + metadata sauvegardes. Decision : {decision}")
+    logger.info(f"[7] Modele (avec sidecar SHA-256) + metadata sauvegardes. Decision : {decision}")
     return 0 if decision == "accept" else 1
 
 

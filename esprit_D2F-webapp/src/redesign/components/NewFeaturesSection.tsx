@@ -1,23 +1,30 @@
-import { useState } from "react";
-import { Section, Card } from "@/redesign/components/Section";
-import CompactKpi from "@/redesign/components/CompactKpi";
-import { KpiSkeleton, ErrorState } from "@/redesign/components/States";
+import { useState } from 'react';
+import { Section, Card } from '@/redesign/components/Section';
+import CompactKpi from '@/redesign/components/CompactKpi';
+import { KpiSkeleton, ErrorState } from '@/redesign/components/States';
 import {
-  useTrainingImpact, useTrainingImpactFormations, useSupplyDemand,
-} from "@/hooks/analyse/useAnalysePredictive";
-import { useDetectAnomaliesDepartment } from "@/hooks/analyse/useNewFeatures";
+  useTrainingImpact,
+  useTrainingImpactFormations,
+  useSupplyDemand,
+} from '@/hooks/analyse/useAnalysePredictive';
+import { useDetectAnomaliesDepartment } from '@/hooks/analyse/useNewFeatures';
 import {
-  RiseOutlined, FallOutlined, ExperimentOutlined, NodeIndexOutlined,
-  WarningOutlined, ScanOutlined, CheckCircleOutlined,
-} from "@ant-design/icons";
-import { Table, Tag, Progress, Button, Empty, Alert, message as antdMessage } from "antd";
-import "@/redesign/redesign.css";
+  RiseOutlined,
+  FallOutlined,
+  ExperimentOutlined,
+  NodeIndexOutlined,
+  WarningOutlined,
+  ScanOutlined,
+  CheckCircleOutlined,
+} from '@ant-design/icons';
+import { Table, Tag, Progress, Button, Empty, Alert, message as antdMessage } from 'antd';
+import '@/redesign/redesign.css';
 
 const QUADRANT_COLOR: Record<string, string> = {
-  CRITIQUE: "error",
-  PENURIE: "warning",
-  SURVEILLER: "processing",
-  SAINE: "success",
+  CRITIQUE: 'error',
+  PENURIE: 'warning',
+  SURVEILLER: 'processing',
+  SAINE: 'success',
 };
 
 /**
@@ -26,7 +33,11 @@ const QUADRANT_COLOR: Record<string, string> = {
  *  - Matrice Offre vs Demande (quadrants de pression compétence)
  *  - Scan d'anomalies en direct (moteur d'anomalie, déclenchable)
  */
-export default function NewFeaturesSection({ departementId }: { readonly departementId?: string | null }) {
+export default function NewFeaturesSection({
+  departementId,
+}: {
+  readonly departementId?: string | null;
+}) {
   const impact = useTrainingImpact();
   const impactFormations = useTrainingImpactFormations(0, 6);
   const supply = useSupplyDemand();
@@ -36,10 +47,10 @@ export default function NewFeaturesSection({ departementId }: { readonly departe
 
   const handleScan = async () => {
     try {
-      const target = departementId ?? "ALL";
+      const target = departementId ?? 'ALL';
       const res = await scanDept.mutateAsync(target);
       setScanMsg(
-        `Scan terminé : ${res.nb_anomalies} anomalie(s) détectée(s) sur ${res.nb_enseignants_scannes} enseignant(s).`
+        `Scan terminé : ${res.nb_anomalies} anomalie(s) détectée(s) sur ${res.nb_enseignants_scannes} enseignant(s).`,
       );
       antdMessage.success("Scan d'anomalies terminé.");
     } catch {
@@ -56,7 +67,10 @@ export default function NewFeaturesSection({ departementId }: { readonly departe
       >
         {impact.isLoading && <KpiSkeleton count={4} />}
         {impact.isError && (
-          <ErrorState message="Erreur de chargement de l'impact." onRetry={() => impact.refetch()} />
+          <ErrorState
+            message="Erreur de chargement de l'impact."
+            onRetry={() => impact.refetch()}
+          />
         )}
         {impact.data && (
           <>
@@ -102,24 +116,41 @@ export default function NewFeaturesSection({ departementId }: { readonly departe
               <Card title="Top formations par impact mesuré" icon={<RiseOutlined />}>
                 {(() => {
                   if (impactFormations.isLoading) return <Empty description="Chargement…" />;
-                  if (impactFormations.data?.formations.length === 0) return <Empty description="Aucune formation suivie à évaluer" />;
+                  if (impactFormations.data?.formations.length === 0)
+                    return <Empty description="Aucune formation suivie à évaluer" />;
                   return (
-                  <Table
-                    rowKey="formation_id"
-                    size="small"
-                    pagination={false}
-                    dataSource={impactFormations.data?.formations ?? []}
-                    columns={[
-                      { title: "Formation", dataIndex: "formation_titre", key: "formation_titre" },
-                      { title: "Enseignants", dataIndex: "nb_enseignants", key: "nb_enseignants", width: 110 },
-                      {
-                        title: "Gain moyen", key: "gain_niveau_moyen", width: 120,
-                        render: (_: unknown, f: { niveau_moyen_avant: number; niveau_moyen_apres: number }) => (
-                          <Tag color="success">+{(f.niveau_moyen_apres - f.niveau_moyen_avant).toFixed(2)}</Tag>
-                        ),
-                      },
-                    ]}
-                  />
+                    <Table
+                      rowKey="formation_id"
+                      size="small"
+                      pagination={false}
+                      dataSource={impactFormations.data?.formations ?? []}
+                      columns={[
+                        {
+                          title: 'Formation',
+                          dataIndex: 'formation_titre',
+                          key: 'formation_titre',
+                        },
+                        {
+                          title: 'Enseignants',
+                          dataIndex: 'nb_enseignants',
+                          key: 'nb_enseignants',
+                          width: 110,
+                        },
+                        {
+                          title: 'Gain moyen',
+                          key: 'gain_niveau_moyen',
+                          width: 120,
+                          render: (
+                            _: unknown,
+                            f: { niveau_moyen_avant: number; niveau_moyen_apres: number },
+                          ) => (
+                            <Tag color="success">
+                              +{(f.niveau_moyen_apres - f.niveau_moyen_avant).toFixed(2)}
+                            </Tag>
+                          ),
+                        },
+                      ]}
+                    />
                   );
                 })()}
               </Card>
@@ -135,7 +166,10 @@ export default function NewFeaturesSection({ departementId }: { readonly departe
       >
         {supply.isLoading && <KpiSkeleton count={3} />}
         {supply.isError && (
-          <ErrorState message="Erreur de chargement de l'offre/demande." onRetry={() => supply.refetch()} />
+          <ErrorState
+            message="Erreur de chargement de l'offre/demande."
+            onRetry={() => supply.refetch()}
+          />
         )}
         {supply.data && (
           <div className="rd-grid-2">
@@ -144,14 +178,17 @@ export default function NewFeaturesSection({ departementId }: { readonly departe
                 <Empty description="Aucune donnée" />
               ) : (
                 <div className="glass-list">
-                  {(["CRITIQUE", "PENURIE", "SURVEILLER", "SAINE"] as const).map((q) => {
+                  {(['CRITIQUE', 'PENURIE', 'SURVEILLER', 'SAINE'] as const).map((q) => {
                     const items = supply.data.filter((s) => s.quadrant === q);
                     return (
                       <div key={q} className="glass-list-item">
                         <Tag color={QUADRANT_COLOR[q]}>{q}</Tag>
                         <span className="li-sub">{items.length} compétence(s)</span>
-                        <span className="glass-chip" style={{ color: "var(--rd-muted)" }}>
-                          {items.slice(0, 2).map((i) => i.competence_nom).join(", ") || "—"}
+                        <span className="glass-chip" style={{ color: 'var(--rd-muted)' }}>
+                          {items
+                            .slice(0, 2)
+                            .map((i) => i.competence_nom)
+                            .join(', ') || '—'}
                         </span>
                       </div>
                     );
@@ -171,9 +208,11 @@ export default function NewFeaturesSection({ departementId }: { readonly departe
                       <div key={s.competence_id} className="glass-list-item">
                         <div className="li-main">
                           <div className="li-title">{s.competence_nom}</div>
-                          <div className="li-sub">{s.domaine_nom} · {s.nb_enseignants} ens.</div>
+                          <div className="li-sub">
+                            {s.domaine_nom} · {s.nb_enseignants} ens.
+                          </div>
                         </div>
-                        <Tag color={QUADRANT_COLOR[s.quadrant] ?? "default"}>{s.quadrant}</Tag>
+                        <Tag color={QUADRANT_COLOR[s.quadrant] ?? 'default'}>{s.quadrant}</Tag>
                       </div>
                     ))}
                 </div>
@@ -207,7 +246,11 @@ export default function NewFeaturesSection({ departementId }: { readonly departe
             signale les déviations significatives (seuil de chute configurable). Les anomalies
             ouvertes alimentent ensuite le centre de surveillance et les alertes.
           </p>
-          <Progress percent={scanDept.isPending ? 60 : 100} showInfo={false} strokeColor="#ff4d4f" />
+          <Progress
+            percent={scanDept.isPending ? 60 : 100}
+            showInfo={false}
+            strokeColor="#ff4d4f"
+          />
         </Card>
       </Section>
     </>

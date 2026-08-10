@@ -10,12 +10,12 @@
  * Cela garantit la coherence cross-pages et la tracabilite des chiffres.
  */
 
-import { useState } from "react";
-import { Card, Select, Space, Typography, Row, Col } from "antd";
-import { SafetyCertificateOutlined, BulbOutlined } from "@ant-design/icons";
-import D2FDashboard from "@/components/analytics/D2FDashboard";
-import RiskBreakdownPanel from "@/components/analytics/RiskBreakdownPanel";
-import { useD2FTeachers } from "@/hooks/analyse/useD2FData";
+import { useState } from 'react';
+import { Card, Select, Space, Typography, Row, Col } from 'antd';
+import { SafetyCertificateOutlined, BulbOutlined } from '@ant-design/icons';
+import D2FDashboard from '@/components/analytics/D2FDashboard';
+import RiskBreakdownPanel from '@/components/analytics/RiskBreakdownPanel';
+import { useD2FTeachers } from '@/hooks/analyse/useD2FData';
 
 const { Title, Paragraph } = Typography;
 
@@ -24,16 +24,16 @@ export default function D2FOverviewPage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <Space direction="vertical" size={16} style={{ width: "100%" }}>
+      <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <Card>
           <Title level={3} style={{ margin: 0 }}>
             <SafetyCertificateOutlined /> Source unique de vérité D2F
-         </Title>
+          </Title>
           <Paragraph type="secondary" style={{ marginBottom: 0 }}>
             Tous les chiffres ci-dessous proviennent de <code>/api/v1/d2f/*</code> (master dataset).
             Aucune valeur n'est codée en dur. Cohérence garantie avec <code>risk_engine.py</code>.
-         </Paragraph>
-       </Card>
+          </Paragraph>
+        </Card>
 
         <D2FDashboard defaultTeacherId={selectedTeacherId} />
 
@@ -43,28 +43,25 @@ export default function D2FOverviewPage() {
               <Space>
                 <BulbOutlined />
                 <span>Decomposition du risque : Score metier vs Signal ML</span>
-             </Space>
+              </Space>
             }
           >
             <Row gutter={[16, 16]}>
               <Col span={24}>
                 <RiskBreakdownPanel teacherId={selectedTeacherId} />
-             </Col>
-           </Row>
-         </Card>
+              </Col>
+            </Row>
+          </Card>
         )}
 
         <Card>
           <Title level={5} style={{ margin: 0 }}>
             Selectionner un enseignant pour voir la decomposition Score metier / Signal ML
-         </Title>
-          <TeacherSelector
-            onChange={(id) => setSelectedTeacherId(id)}
-            value={selectedTeacherId}
-          />
-       </Card>
-     </Space>
-   </div>
+          </Title>
+          <TeacherSelector onChange={(id) => setSelectedTeacherId(id)} value={selectedTeacherId} />
+        </Card>
+      </Space>
+    </div>
   );
 }
 
@@ -88,12 +85,12 @@ function TeacherSelector({
       showSearch
       loading={isLoading}
       placeholder="Choisir un enseignant (ex: T001)"
-      style={{ width: "100%", maxWidth: 480, marginTop: 12 }}
+      style={{ width: '100%', maxWidth: 480, marginTop: 12 }}
       value={value}
       onChange={(v) => onChange(v)}
       options={options}
       filterOption={(input, option) =>
-        (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
       }
     />
   );

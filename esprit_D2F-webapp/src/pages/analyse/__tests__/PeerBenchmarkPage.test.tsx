@@ -4,7 +4,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import PeerBenchmarkPage from '../PeerBenchmarkPage';
 
 vi.mock('@/hooks/analyse/useNewFeatures', () => ({
-  useBenchmark: vi.fn(() => ({ data: undefined, isLoading: false, isError: false, refetch: vi.fn() })),
+  useBenchmark: vi.fn(() => ({
+    data: undefined,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  })),
 }));
 
 vi.mock('@/hooks/auth/useAuth', () => ({
@@ -23,7 +28,7 @@ describe('PeerBenchmarkPage', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <PeerBenchmarkPage />
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
     expect(screen.getByText('Benchmark vs pairs')).toBeInTheDocument();
     expect(screen.getByText("Restreindre à l'UP")).toBeInTheDocument();

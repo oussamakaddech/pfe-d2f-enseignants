@@ -1,16 +1,5 @@
 import { useState, useRef, useMemo } from 'react';
-import {
-  Tabs,
-  Table,
-  Button,
-  Upload,
-  Input,
-  Drawer,
-  Form,
-  Popconfirm,
-  Tooltip,
-  Space,
-} from 'antd';
+import { Tabs, Table, Button, Upload, Input, Drawer, Form, Popconfirm, Tooltip, Space } from 'antd';
 import type { TableColumnType, InputRef } from 'antd';
 import type { FilterDropdownProps } from 'antd/es/table/interface';
 import {
@@ -24,11 +13,23 @@ import {
   ReadOutlined,
   BankOutlined,
 } from '@ant-design/icons';
-import { useAllUps, useCreateUp, useUpdateUp, useDeleteUp, useImportUpsExcel } from "@/hooks/formation/useUpCrud";
-import { useAllDepts, useCreateDept, useUpdateDept, useDeleteDept, useImportDeptsExcel } from "@/hooks/formation/useDeptCrud";
-import useAppNotification from "@/hooks/ui/useAppNotification";
-import { StatCard } from "@/components/common";
-import "@/styles/pages/up-dept-data-grid.css";
+import {
+  useAllUps,
+  useCreateUp,
+  useUpdateUp,
+  useDeleteUp,
+  useImportUpsExcel,
+} from '@/hooks/formation/useUpCrud';
+import {
+  useAllDepts,
+  useCreateDept,
+  useUpdateDept,
+  useDeleteDept,
+  useImportDeptsExcel,
+} from '@/hooks/formation/useDeptCrud';
+import useAppNotification from '@/hooks/ui/useAppNotification';
+import { StatCard } from '@/components/common';
+import '@/styles/pages/up-dept-data-grid.css';
 
 interface RecordItem {
   id: string | number;
@@ -67,7 +68,12 @@ function ColumnFilterDropdown({
         style={{ marginBottom: 8, display: 'block' }}
       />
       <Space>
-        <Button type="primary" icon={<SearchOutlined />} size="small" onClick={() => onSearch(selectedKeys)}>
+        <Button
+          type="primary"
+          icon={<SearchOutlined />}
+          size="small"
+          onClick={() => onSearch(selectedKeys)}
+        >
           OK
         </Button>
         <Button size="small" onClick={() => onReset()}>
@@ -86,7 +92,12 @@ function buildColumnSearchProps(
   searchedColumn: string,
 ): TableColumnType<RecordItem> {
   return {
-    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
+    filterDropdown: ({
+      setSelectedKeys,
+      selectedKeys,
+      confirm,
+      clearFilters,
+    }: FilterDropdownProps) => (
       <ColumnFilterDropdown
         dataIndex={dataIndex}
         placeholder={placeholder}
@@ -97,7 +108,9 @@ function buildColumnSearchProps(
         onReset={() => clearFilters?.()}
       />
     ),
-    filterIcon: (filtered: boolean) => <SearchOutlined style={{ color: filtered ? '#2563eb' : undefined }} />,
+    filterIcon: (filtered: boolean) => (
+      <SearchOutlined style={{ color: filtered ? '#2563eb' : undefined }} />
+    ),
     onFilter: (value, record) =>
       Boolean(record[dataIndex]?.toString().toLowerCase().includes(String(value).toLowerCase())),
     filterDropdownProps: {
@@ -107,8 +120,12 @@ function buildColumnSearchProps(
     },
     render: (text: unknown) =>
       searchedColumn === dataIndex ? (
-        <span style={{ backgroundColor: '#bfdbfe', padding: '2px 6px', borderRadius: 4 }}>{String(text)}</span>
-      ) : String(text),
+        <span style={{ backgroundColor: '#bfdbfe', padding: '2px 6px', borderRadius: 4 }}>
+          {String(text)}
+        </span>
+      ) : (
+        String(text)
+      ),
   };
 }
 
@@ -146,11 +163,14 @@ export default function UpDeptDataGrid() {
   const [searchedColumn, setSearchedColumn] = useState('');
   const searchInput = useRef<InputRef>(null);
 
-  const stats = useMemo(() => ({
-    totalUps: ups.length,
-    totalDepts: depts.length,
-    total: ups.length + depts.length,
-  }), [ups, depts]);
+  const stats = useMemo(
+    () => ({
+      totalUps: ups.length,
+      totalDepts: depts.length,
+      total: ups.length + depts.length,
+    }),
+    [ups, depts],
+  );
 
   /*** Import Excel ***/
   const handleUploadUp = async () => {
@@ -266,7 +286,10 @@ export default function UpDeptDataGrid() {
     confirm();
     setSearchedColumn(dataIndex);
   };
-  const getColumnSearchProps = (dataIndex: string, placeholder: string): TableColumnType<RecordItem> =>
+  const getColumnSearchProps = (
+    dataIndex: string,
+    placeholder: string,
+  ): TableColumnType<RecordItem> =>
     buildColumnSearchProps(dataIndex, placeholder, searchInput, handleSearch, searchedColumn);
 
   /*** Columns definition ***/
@@ -277,9 +300,7 @@ export default function UpDeptDataGrid() {
       key: 'libelle',
       sorter: (a, b) => (a.libelle ?? '').localeCompare(b.libelle ?? ''),
       ...getColumnSearchProps('libelle', 'libellé'),
-      render: (text: string) => (
-        <span style={{ fontWeight: 500, color: '#1f2937' }}>{text}</span>
-      ),
+      render: (text: string) => <span style={{ fontWeight: 500, color: '#1f2937' }}>{text}</span>,
     },
     {
       title: 'Actions',
@@ -321,9 +342,7 @@ export default function UpDeptDataGrid() {
       key: 'libelle',
       sorter: (a, b) => (a.libelle ?? '').localeCompare(b.libelle ?? ''),
       ...getColumnSearchProps('libelle', 'nom'),
-      render: (text: string) => (
-        <span style={{ fontWeight: 500, color: '#1f2937' }}>{text}</span>
-      ),
+      render: (text: string) => <span style={{ fontWeight: 500, color: '#1f2937' }}>{text}</span>,
     },
     {
       title: 'Actions',
@@ -362,20 +381,45 @@ export default function UpDeptDataGrid() {
     <div className="updept-page">
       {/* ── Hero header ── */}
       <div className="updept-hero">
-        <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+        <div
+          style={{
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 16,
+          }}
+        >
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               <h2 className="updept-hero-title">Structures</h2>
               <span className="updept-hero-badge">
                 {stats.total}
-                <span className="updept-hero-badge-total">unité{stats.total === 1 ? "" : "s"}</span>
+                <span className="updept-hero-badge-total">unité{stats.total === 1 ? '' : 's'}</span>
               </span>
             </div>
-            <div className="updept-hero-subtitle">Administrer les unités pédagogiques et les départements</div>
+            <div className="updept-hero-subtitle">
+              Administrer les unités pédagogiques et les départements
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
             <Tooltip title="Rafraîchir">
-              <Button icon={<ReloadOutlined />} onClick={() => { fetchUps(); fetchDepts(); }} style={{ borderRadius: 10, height: 40, width: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={() => {
+                  fetchUps();
+                  fetchDepts();
+                }}
+                style={{
+                  borderRadius: 10,
+                  height: 40,
+                  width: 40,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              />
             </Tooltip>
           </div>
         </div>
@@ -425,17 +469,39 @@ export default function UpDeptDataGrid() {
                     <Tooltip title="Rafraîchir">
                       <Button icon={<ReloadOutlined />} onClick={() => fetchUps()} />
                     </Tooltip>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={openCreateUp} style={{ background: 'linear-gradient(135deg, #b51200, #9a0f00)', border: 'none', boxShadow: '0 4px 12px rgba(181, 18, 0, 0.3)' }}>
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={openCreateUp}
+                      style={{
+                        background: 'linear-gradient(135deg, #b51200, #9a0f00)',
+                        border: 'none',
+                        boxShadow: '0 4px 12px rgba(181, 18, 0, 0.3)',
+                      }}
+                    >
                       Ajouter UP
                     </Button>
                     <Upload
                       accept=".xlsx,.xls"
-                      beforeUpload={(f) => { setFileUp(f); return false; }}
+                      beforeUpload={(f) => {
+                        setFileUp(f);
+                        return false;
+                      }}
                       showUploadList={false}
                     >
                       <Button icon={<UploadOutlined />}>Sélectionner fichier</Button>
                     </Upload>
-                    <Button type="primary" disabled={!fileUp} onClick={handleUploadUp} style={{ background: fileUp ? 'linear-gradient(135deg, #059669, #047857)' : undefined, border: fileUp ? 'none' : undefined }}>
+                    <Button
+                      type="primary"
+                      disabled={!fileUp}
+                      onClick={handleUploadUp}
+                      style={{
+                        background: fileUp
+                          ? 'linear-gradient(135deg, #059669, #047857)'
+                          : undefined,
+                        border: fileUp ? 'none' : undefined,
+                      }}
+                    >
                       Importer Excel
                     </Button>
                   </div>
@@ -444,28 +510,75 @@ export default function UpDeptDataGrid() {
                       dataSource={ups as RecordItem[]}
                       columns={upColumns}
                       rowKey="id"
-                      pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `${total} UP` }}
-                      locale={{ emptyText: <div className="updept-empty"><div className="updept-empty-icon"><ApartmentOutlined /></div><div className="updept-empty-title">Aucune UP</div><div className="updept-empty-desc">Commencez par ajouter une unité pédagogique ou importer depuis un fichier Excel.</div></div> }}
+                      pagination={{
+                        pageSize: 10,
+                        showSizeChanger: true,
+                        showTotal: (total) => `${total} UP`,
+                      }}
+                      locale={{
+                        emptyText: (
+                          <div className="updept-empty">
+                            <div className="updept-empty-icon">
+                              <ApartmentOutlined />
+                            </div>
+                            <div className="updept-empty-title">Aucune UP</div>
+                            <div className="updept-empty-desc">
+                              Commencez par ajouter une unité pédagogique ou importer depuis un
+                              fichier Excel.
+                            </div>
+                          </div>
+                        ),
+                      }}
                     />
                   </div>
 
                   <Drawer
-                    title={upMode === 'create' ? 'Ajouter une UP' : 'Modifier l\'UP'}
+                    title={upMode === 'create' ? 'Ajouter une UP' : "Modifier l'UP"}
                     width={400}
-                    onClose={() => { setDrawerUpVisible(false); formUp.resetFields(); }}
+                    onClose={() => {
+                      setDrawerUpVisible(false);
+                      formUp.resetFields();
+                    }}
                     open={drawerUpVisible}
                     destroyOnHidden
                     className="updept-drawer"
                   >
-                    <Form layout="vertical" form={formUp} onFinish={handleSubmitUp} style={{ marginTop: 8 }}>
-                      <Form.Item name="id" label="Identifiant" rules={[{ required: true, message: 'Identifiant requis' }]}>
-                        <Input placeholder="Ex: UP001" disabled={upMode === 'edit'} style={{ borderRadius: 10 }} />
+                    <Form
+                      layout="vertical"
+                      form={formUp}
+                      onFinish={handleSubmitUp}
+                      style={{ marginTop: 8 }}
+                    >
+                      <Form.Item
+                        name="id"
+                        label="Identifiant"
+                        rules={[{ required: true, message: 'Identifiant requis' }]}
+                      >
+                        <Input
+                          placeholder="Ex: UP001"
+                          disabled={upMode === 'edit'}
+                          style={{ borderRadius: 10 }}
+                        />
                       </Form.Item>
-                      <Form.Item name="libelle" label="Libellé" rules={[{ required: true, message: 'Libellé requis' }]}>
-                        <Input placeholder="Nom de l'unité pédagogique" style={{ borderRadius: 10 }} />
+                      <Form.Item
+                        name="libelle"
+                        label="Libellé"
+                        rules={[{ required: true, message: 'Libellé requis' }]}
+                      >
+                        <Input
+                          placeholder="Nom de l'unité pédagogique"
+                          style={{ borderRadius: 10 }}
+                        />
                       </Form.Item>
                       <Form.Item style={{ marginBottom: 0, marginTop: 24 }}>
-                        <Button type="primary" htmlType="submit" loading={upLoading} block size="large" style={{ borderRadius: 10, fontWeight: 600 }}>
+                        <Button
+                          type="primary"
+                          htmlType="submit"
+                          loading={upLoading}
+                          block
+                          size="large"
+                          style={{ borderRadius: 10, fontWeight: 600 }}
+                        >
                           {upMode === 'create' ? 'Créer' : 'Mettre à jour'}
                         </Button>
                       </Form.Item>
@@ -488,17 +601,39 @@ export default function UpDeptDataGrid() {
                     <Tooltip title="Rafraîchir">
                       <Button icon={<ReloadOutlined />} onClick={() => fetchDepts()} />
                     </Tooltip>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={openCreateDept} style={{ background: 'linear-gradient(135deg, #b51200, #9a0f00)', border: 'none', boxShadow: '0 4px 12px rgba(181, 18, 0, 0.3)' }}>
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={openCreateDept}
+                      style={{
+                        background: 'linear-gradient(135deg, #b51200, #9a0f00)',
+                        border: 'none',
+                        boxShadow: '0 4px 12px rgba(181, 18, 0, 0.3)',
+                      }}
+                    >
                       Ajouter Département
                     </Button>
                     <Upload
                       accept=".xlsx,.xls"
-                      beforeUpload={(f) => { setFileDept(f); return false; }}
+                      beforeUpload={(f) => {
+                        setFileDept(f);
+                        return false;
+                      }}
                       showUploadList={false}
                     >
                       <Button icon={<UploadOutlined />}>Sélectionner fichier</Button>
                     </Upload>
-                    <Button type="primary" disabled={!fileDept} onClick={handleUploadDept} style={{ background: fileDept ? 'linear-gradient(135deg, #059669, #047857)' : undefined, border: fileDept ? 'none' : undefined }}>
+                    <Button
+                      type="primary"
+                      disabled={!fileDept}
+                      onClick={handleUploadDept}
+                      style={{
+                        background: fileDept
+                          ? 'linear-gradient(135deg, #059669, #047857)'
+                          : undefined,
+                        border: fileDept ? 'none' : undefined,
+                      }}
+                    >
                       Importer Excel
                     </Button>
                   </div>
@@ -507,28 +642,74 @@ export default function UpDeptDataGrid() {
                       dataSource={depts as RecordItem[]}
                       columns={deptColumns}
                       rowKey="id"
-                      pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `${total} département${total === 1 ? '' : 's'}` }}
-                      locale={{ emptyText: <div className="updept-empty"><div className="updept-empty-icon"><BankOutlined /></div><div className="updept-empty-title">Aucun département</div><div className="updept-empty-desc">Commencez par ajouter un département ou importer depuis un fichier Excel.</div></div> }}
+                      pagination={{
+                        pageSize: 10,
+                        showSizeChanger: true,
+                        showTotal: (total) => `${total} département${total === 1 ? '' : 's'}`,
+                      }}
+                      locale={{
+                        emptyText: (
+                          <div className="updept-empty">
+                            <div className="updept-empty-icon">
+                              <BankOutlined />
+                            </div>
+                            <div className="updept-empty-title">Aucun département</div>
+                            <div className="updept-empty-desc">
+                              Commencez par ajouter un département ou importer depuis un fichier
+                              Excel.
+                            </div>
+                          </div>
+                        ),
+                      }}
                     />
                   </div>
 
                   <Drawer
-                    title={deptMode === 'create' ? 'Ajouter un département' : 'Modifier le département'}
+                    title={
+                      deptMode === 'create' ? 'Ajouter un département' : 'Modifier le département'
+                    }
                     width={400}
-                    onClose={() => { setDrawerDeptVisible(false); formDept.resetFields(); }}
+                    onClose={() => {
+                      setDrawerDeptVisible(false);
+                      formDept.resetFields();
+                    }}
                     open={drawerDeptVisible}
                     destroyOnHidden
                     className="updept-drawer"
                   >
-                    <Form layout="vertical" form={formDept} onFinish={handleSubmitDept} style={{ marginTop: 8 }}>
-                      <Form.Item name="id" label="Identifiant" rules={[{ required: true, message: 'Identifiant requis' }]}>
-                        <Input placeholder="Ex: DEPT001" disabled={deptMode === 'edit'} style={{ borderRadius: 10 }} />
+                    <Form
+                      layout="vertical"
+                      form={formDept}
+                      onFinish={handleSubmitDept}
+                      style={{ marginTop: 8 }}
+                    >
+                      <Form.Item
+                        name="id"
+                        label="Identifiant"
+                        rules={[{ required: true, message: 'Identifiant requis' }]}
+                      >
+                        <Input
+                          placeholder="Ex: DEPT001"
+                          disabled={deptMode === 'edit'}
+                          style={{ borderRadius: 10 }}
+                        />
                       </Form.Item>
-                      <Form.Item name="nom" label="Nom" rules={[{ required: true, message: 'Nom requis' }]}>
+                      <Form.Item
+                        name="nom"
+                        label="Nom"
+                        rules={[{ required: true, message: 'Nom requis' }]}
+                      >
                         <Input placeholder="Nom du département" style={{ borderRadius: 10 }} />
                       </Form.Item>
                       <Form.Item style={{ marginBottom: 0, marginTop: 24 }}>
-                        <Button type="primary" htmlType="submit" loading={deptLoading} block size="large" style={{ borderRadius: 10, fontWeight: 600 }}>
+                        <Button
+                          type="primary"
+                          htmlType="submit"
+                          loading={deptLoading}
+                          block
+                          size="large"
+                          style={{ borderRadius: 10, fontWeight: 600 }}
+                        >
                           {deptMode === 'create' ? 'Créer' : 'Mettre à jour'}
                         </Button>
                       </Form.Item>

@@ -1,6 +1,6 @@
-import { memo } from "react";
-import { Button } from "antd";
-import { DownloadOutlined } from "@ant-design/icons";
+import { memo } from 'react';
+import { Button } from 'antd';
+import { DownloadOutlined } from '@ant-design/icons';
 
 interface ExportExcelButtonProps {
   onExport: () => Promise<void>;
@@ -15,9 +15,3 @@ const ExportExcelButton = memo(function ExportExcelButton({ onExport }: ExportEx
 });
 
 export default ExportExcelButton;
-
-
-
-
-
-

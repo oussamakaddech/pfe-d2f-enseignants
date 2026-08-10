@@ -1,6 +1,6 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
-import type { BesoinCompetenceLink } from "@/models/besoin";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
+import type { BesoinCompetenceLink } from '@/models/besoin';
 
 const BASE = `${config.BESOIN_URL}/besoins-formation`;
 
@@ -10,7 +10,10 @@ const BesoinCompetenceService = {
     return r.data;
   },
 
-  async replaceAll(besoinId: number, links: BesoinCompetenceLink[]): Promise<BesoinCompetenceLink[]> {
+  async replaceAll(
+    besoinId: number,
+    links: BesoinCompetenceLink[],
+  ): Promise<BesoinCompetenceLink[]> {
     const r = await axios.put<BesoinCompetenceLink[]>(`${BASE}/${besoinId}/competences`, links);
     return r.data;
   },

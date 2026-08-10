@@ -7,7 +7,7 @@ const httpMocks = vi.hoisted(() => ({
   mockDelete: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     get: httpMocks.mockGet,
     post: httpMocks.mockPost,
@@ -19,7 +19,7 @@ vi.mock("@/services/httpClient", () => ({
 import DocumentService from '../DocumentService';
 
 describe('DocumentService', () => {
-  beforeEach(() => { 
+  beforeEach(() => {
     vi.clearAllMocks();
     // Mock URL and document.createElement for downloadDocument
     globalThis.URL.createObjectURL = vi.fn(() => 'blob:url');
@@ -31,7 +31,13 @@ describe('DocumentService', () => {
   it('creates a document', async () => {
     httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 1 } });
     const file = new File(['x'], 'doc.pdf');
-    const result = await DocumentService.createDocument({ formationId: 1, pathType: 'SUPPORT', nomDocument: 'D', obligation: 'true', file });
+    const result = await DocumentService.createDocument({
+      formationId: 1,
+      pathType: 'SUPPORT',
+      nomDocument: 'D',
+      obligation: 'true',
+      file,
+    });
     expect(httpMocks.mockPost).toHaveBeenCalledOnce();
     expect(result).toEqual({ id: 1 });
   });
@@ -46,7 +52,11 @@ describe('DocumentService', () => {
 
   it('updates a document', async () => {
     httpMocks.mockPut.mockResolvedValueOnce({ data: { id: 3 } });
-    const result = await DocumentService.updateDocument(3, { pathType: 'x', nomDocument: 'y', obligation: 'false' });
+    const result = await DocumentService.updateDocument(3, {
+      pathType: 'x',
+      nomDocument: 'y',
+      obligation: 'false',
+    });
     expect(httpMocks.mockPut).toHaveBeenCalledOnce();
     expect(result).toEqual({ id: 3 });
   });
@@ -59,22 +69,18 @@ describe('DocumentService', () => {
 
   it('downloads a document', async () => {
     const blob = new Blob(['data']);
-    httpMocks.mockGet.mockResolvedValueOnce({ 
+    httpMocks.mockGet.mockResolvedValueOnce({
       data: blob,
-      headers: { 'content-disposition': 'attachment; filename="test.pdf"' }
+      headers: { 'content-disposition': 'attachment; filename="test.pdf"' },
     });
-    
+
     // Mock click
     const linkMock = { click: vi.fn(), remove: vi.fn(), setAttribute: vi.fn(), href: '' };
     vi.spyOn(document, 'createElement').mockReturnValue(linkMock as unknown as HTMLElement);
 
     await DocumentService.downloadDocument(1);
-    
+
     expect(linkMock.setAttribute).toHaveBeenCalledWith('download', 'test.pdf');
     expect(linkMock.click).toHaveBeenCalled();
   });
 });
-
-
-
-

@@ -1,5 +1,5 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
 
 // Base legacy du service d'analyse prédictive: /api/analyse/**
 const PREDICTIVE_API = `${config.ANALYSE_URL}/analyse`;
@@ -7,14 +7,32 @@ const PREDICTIVE_API = `${config.ANALYSE_URL}/analyse`;
 const ANALYTICS_V1 = `${config.ANALYSE_URL}/analyse/v1/analytics`;
 
 import type {
-  Gravite, AnalyseGap, AnalyseRecommandation, AnalyseData, DriftReport,
-  DecliningCompetency, InDemandCompetency, TeacherRiskIndicator,
-  GapHeatmapCell, TrainingEffectiveness, RiskEvolutionPoint, ModelPerformance,
-  OverviewKpis, DemandForecast, TrainingNeedsForecast,
-  AlertSummary, BulkAlertUpdateRequest, BulkAlertUpdateResponse,
-  PriorityAction, BatchRecommendationRequest, BatchRecommendationResponse,
-  SupplyDemandItem, RiskDistribution, HeatmapDrilldown, TopFormation,
-} from "@/models/analyse";
+  Gravite,
+  AnalyseGap,
+  AnalyseRecommandation,
+  AnalyseData,
+  DriftReport,
+  DecliningCompetency,
+  InDemandCompetency,
+  TeacherRiskIndicator,
+  GapHeatmapCell,
+  TrainingEffectiveness,
+  RiskEvolutionPoint,
+  ModelPerformance,
+  OverviewKpis,
+  DemandForecast,
+  TrainingNeedsForecast,
+  AlertSummary,
+  BulkAlertUpdateRequest,
+  BulkAlertUpdateResponse,
+  PriorityAction,
+  BatchRecommendationRequest,
+  BatchRecommendationResponse,
+  SupplyDemandItem,
+  RiskDistribution,
+  HeatmapDrilldown,
+  TopFormation,
+} from '@/models/analyse';
 export type { Gravite, AnalyseGap, AnalyseRecommandation, AnalyseData, DriftReport };
 
 interface RawGapItem {
@@ -54,9 +72,9 @@ interface DashboardSummaryResponse {
 }
 
 function mapGapItem(g: RawGapItem, isHeuristic: boolean): AnalyseGap {
-  let gravite: Gravite = "faible";
-  if (g.predicted_gap >= 2) gravite = "elevee";
-  else if (g.predicted_gap >= 1) gravite = "moyenne";
+  let gravite: Gravite = 'faible';
+  if (g.predicted_gap >= 2) gravite = 'elevee';
+  else if (g.predicted_gap >= 1) gravite = 'moyenne';
   return {
     competenceCode: `C${g.competency_id}`,
     competenceLabel: g.competency_name,
@@ -72,11 +90,16 @@ function mapGapItem(g: RawGapItem, isHeuristic: boolean): AnalyseGap {
 
 const AnalysePredictiveService = {
   // ── Prediction ─────────────────────────────────
-  async predictGaps(enseignantId: string, horizonMonths = 6, topN = 10): Promise<PredictGapsResponse> {
-    const res = await axios.post(
-      `${PREDICTIVE_API}/predict/gaps/${enseignantId}`,
-      { teacher_id: enseignantId, horizon_months: horizonMonths, top_n: topN }
-    );
+  async predictGaps(
+    enseignantId: string,
+    horizonMonths = 6,
+    topN = 10,
+  ): Promise<PredictGapsResponse> {
+    const res = await axios.post(`${PREDICTIVE_API}/predict/gaps/${enseignantId}`, {
+      teacher_id: enseignantId,
+      horizon_months: horizonMonths,
+      top_n: topN,
+    });
     return res.data;
   },
 
@@ -96,7 +119,12 @@ const AnalysePredictiveService = {
   },
 
   // ── Recommendation ─────────────────────────────
-  async recommendPath(teacherId: string, targetCompetencyId: number, targetLevel = 4, maxDurationHours?: number): Promise<RecommendPathResponse> {
+  async recommendPath(
+    teacherId: string,
+    targetCompetencyId: number,
+    targetLevel = 4,
+    maxDurationHours?: number,
+  ): Promise<RecommendPathResponse> {
     const res = await axios.post(`${PREDICTIVE_API}/recommend/path`, {
       teacher_id: teacherId,
       target_competency_id: targetCompetencyId,
@@ -108,17 +136,25 @@ const AnalysePredictiveService = {
 
   // ── Detection ──────────────────────────────────
   async getAtRiskTeachers(threshold = 0.5): Promise<TeacherRiskIndicator[]> {
-    const res = await axios.get<{ teachers: Array<{
-      teacher_id: string; teacher_name: string; email: string;
-      department?: string; risk_score: number; risk_factors: string[];
-      top_gaps: unknown[]; last_training_date?: string; engagement_score: number;
-    }> }>(`${PREDICTIVE_API}/detect/at-risk-teachers`, {
+    const res = await axios.get<{
+      teachers: Array<{
+        teacher_id: string;
+        teacher_name: string;
+        email: string;
+        department?: string;
+        risk_score: number;
+        risk_factors: string[];
+        top_gaps: unknown[];
+        last_training_date?: string;
+        engagement_score: number;
+      }>;
+    }>(`${PREDICTIVE_API}/detect/at-risk-teachers`, {
       params: { threshold },
     });
     const riskRecommendation = (score: number): string => {
-      if (score >= 0.75) return "Planifier entretien";
-      if (score >= 0.5) return "Proposer formation";
-      return "OK";
+      if (score >= 0.75) return 'Planifier entretien';
+      if (score >= 0.5) return 'Proposer formation';
+      return 'OK';
     };
     return (res.data.teachers || []).map((t) => {
       const recommendation = riskRecommendation(t.risk_score);
@@ -233,105 +269,48 @@ const AnalysePredictiveService = {
   },
 
   // ── Legacy adapters (used by existing page) ────
-  async analyserEnseignant( // NOSONAR — nested try-catch for auto-train retry is intentional
+  async analyserEnseignant(
     enseignantId: string,
     competenceCible?: string,
-    options?: { autoTrain?: boolean }
+    options?: { autoTrain?: boolean },
   ): Promise<AnalyseData> {
     const autoTrain = options?.autoTrain ?? false;
     try {
       const gapsRes = await this.predictGaps(enseignantId, 6, 10);
 
-      let recommendations: AnalyseRecommandation[] = [];
-      if (competenceCible) {
-        const extractedId = Number.parseInt(competenceCible.replaceAll(/\D/g, "") || "0", 10);
-        if (extractedId > 0) {
-          const recoRes = await this.recommendPath(enseignantId, extractedId, 4).catch(() => null);
-          if (recoRes) {
-            recommendations = (recoRes.path || []).map((step: RawPathStep) => ({
-              ordre: step.step_number,
-              formationId: step.formation_id,
-              titre: step.formation_title,
-              competencesCiblees: [step.competency_name],
-              dureeEstimee: `${step.estimated_duration_hours}h`,
-              prerequisManquants: step.missing_prerequisites || [],
-              probabiliteReussite: step.success_probability,
-              justification: "Basé sur votre profil et les prérequis de la formation.",
-            }));
-          }
-        }
-      }
+      const recommendations = await fetchRecommendations(this, enseignantId, competenceCible);
 
       // Check if result comes from heuristic fallback (model not trained yet).
-      const isHeuristic = gapsRes.explanation?.method === "heuristic" || gapsRes.explanation?.model_trained === false;
+      const isHeuristic =
+        gapsRes.explanation?.method === 'heuristic' || gapsRes.explanation?.model_trained === false;
 
       // B8 fix : auto-train pour les admins quand le backend renvoie un fallback
       // heuristique au lieu d'un 503. Le backend ne renvoie jamais 503 car il
       // dégrade gracieusement vers l'heuristique — on détecte donc ici.
       if (isHeuristic && autoTrain) {
-        try {
-          const trainRes = await this.trainModel();
-          if (trainRes.status === "trained" || trainRes.metrics) {
-            // Retry with the freshly trained model
-            const retried = await this.predictGaps(enseignantId, 6, 10);
-            const stillHeuristic = retried.explanation?.method === "heuristic";
-            return {
-              enseignantId,
-              competenceAnalysee: competenceCible || "Toutes",
-              gaps: (retried.gaps || []).map((g: RawGapItem) => mapGapItem(g, stillHeuristic)),
-              overallRiskScore: retried.overall_risk_score || 0,
-              recommandationsFormations: recommendations,
-              isHeuristic: stillHeuristic,
-              modelNeedsTraining: stillHeuristic,
-            };
-          }
-        } catch {
-          // Auto-train failed — fall through to return heuristic results
-        }
+        const trained = await autoTrainAndRetry(
+          this,
+          enseignantId,
+          competenceCible,
+          recommendations,
+        );
+        if (trained) return trained;
       }
 
-      return {
+      return buildAnalyseResult(
         enseignantId,
-        competenceAnalysee: competenceCible || "Toutes",
-        gaps: (gapsRes.gaps || []).map((g: RawGapItem) => mapGapItem(g, isHeuristic)),
-        overallRiskScore: gapsRes.overall_risk_score || 0,
-        recommandationsFormations: recommendations,
+        competenceCible,
+        gapsRes.gaps || [],
+        recommendations,
         isHeuristic,
-        modelNeedsTraining: isHeuristic,
-      };
+        gapsRes.overall_risk_score || 0,
+      );
     } catch (error: unknown) {
       // If 503 (model not trained) and caller has admin rights, try to auto-train and retry once.
       // Otherwise surface a clear actionable message — only admins can train the model.
       const axiosError = error as { response?: { status: number; data?: { message?: string } } };
       if (axiosError?.response?.status === 503) {
-        if (!autoTrain) {
-          throw new Error(
-            "Le modèle prédictif n'est pas encore entraîné. Veuillez demander à un administrateur de lancer l'entraînement."
-          );
-        }
-        try {
-          await this.trainModel();
-          const gapsRes = await this.predictGaps(enseignantId, 6, 10);
-          return {
-            enseignantId,
-            competenceAnalysee: competenceCible || "Toutes",
-            gaps: (gapsRes.gaps || []).map((g: RawGapItem) => mapGapItem(g, false)),
-            overallRiskScore: gapsRes.overall_risk_score || 0,
-            recommandationsFormations: [],
-            isHeuristic: false,
-            modelNeedsTraining: false,
-          };
-        } catch (retryError: unknown) {
-          const retryAxiosError = retryError as { response?: { status: number } };
-          if (retryAxiosError?.response?.status === 403) {
-            throw new Error(
-              "Le modèle n'est pas entraîné et l'entraînement automatique a été refusé (403). Contactez un administrateur."
-            );
-          }
-          throw new Error(
-            "Le modèle prédictif n'est pas encore entraîné et l'entraînement automatique a échoué. Veuillez contacter l'administrateur."
-          );
-        }
+        return retryWithAutoTrain(this, enseignantId, competenceCible, autoTrain);
       }
       throw error;
     }
@@ -351,8 +330,12 @@ const AnalysePredictiveService = {
       const data = await this.getDashboardSummary();
       return {
         dashboard: {
-          competencesEnDeclin: (data.declining_competencies || []).map((c: DecliningCompetency) => c.competency_name).filter(Boolean),
-          competencesEnForteDemande: (data.in_demand_competencies || []).map((c: InDemandCompetency) => c.competency_name).filter(Boolean),
+          competencesEnDeclin: (data.declining_competencies || [])
+            .map((c: DecliningCompetency) => c.competency_name)
+            .filter(Boolean),
+          competencesEnForteDemande: (data.in_demand_competencies || [])
+            .map((c: InDemandCompetency) => c.competency_name)
+            .filter(Boolean),
           enseignantsARisque: (data.teacher_risk_indicators || [])
             .filter((r: TeacherRiskIndicator) => r.attrition_risk_score > 0.5)
             .map((r: TeacherRiskIndicator) => r.teacher_name),
@@ -362,7 +345,7 @@ const AnalysePredictiveService = {
         rawRiskIndicators: data.teacher_risk_indicators || [],
       };
     } catch {
-      throw new Error("Erreur lors du chargement du tableau de bord");
+      throw new Error('Erreur lors du chargement du tableau de bord');
     }
   },
 
@@ -386,7 +369,9 @@ const AnalysePredictiveService = {
   },
 
   // ── Centre d'Action — Recommandations par cohorte ───────────
-  async getBatchRecommendations(payload: BatchRecommendationRequest): Promise<BatchRecommendationResponse> {
+  async getBatchRecommendations(
+    payload: BatchRecommendationRequest,
+  ): Promise<BatchRecommendationResponse> {
     const res = await axios.post(`${ANALYTICS_V1}/recommendations/batch`, payload);
     return res.data;
   },
@@ -404,7 +389,9 @@ const AnalysePredictiveService = {
   },
 
   async getHeatmapDrilldown(departement: string, competenceId: number): Promise<HeatmapDrilldown> {
-    const res = await axios.get(`${ANALYTICS_V1}/dashboard/gap-heatmap/${departement}/${competenceId}`);
+    const res = await axios.get(
+      `${ANALYTICS_V1}/dashboard/gap-heatmap/${departement}/${competenceId}`,
+    );
     return res.data;
   },
 
@@ -422,7 +409,10 @@ const AnalysePredictiveService = {
     return res.data;
   },
 
-  async getTrainingImpactFormations(page = 0, size = 20): Promise<{
+  async getTrainingImpactFormations(
+    page = 0,
+    size = 20,
+  ): Promise<{
     total: number;
     page: number;
     size: number;
@@ -471,7 +461,112 @@ const AnalysePredictiveService = {
   },
 };
 
+function mapRecommendations(path: RawPathStep[] | undefined): AnalyseRecommandation[] {
+  return (path || []).map((step: RawPathStep) => ({
+    ordre: step.step_number,
+    formationId: step.formation_id,
+    titre: step.formation_title,
+    competencesCiblees: [step.competency_name],
+    dureeEstimee: `${step.estimated_duration_hours}h`,
+    prerequisManquants: step.missing_prerequisites || [],
+    probabiliteReussite: step.success_probability,
+    justification: 'Basé sur votre profil et les prérequis de la formation.',
+  }));
+}
+
+async function fetchRecommendations(
+  service: typeof AnalysePredictiveService,
+  enseignantId: string,
+  competenceCible: string | undefined,
+): Promise<AnalyseRecommandation[]> {
+  if (!competenceCible) return [];
+  const extractedId = Number.parseInt(competenceCible.replaceAll(/\D/g, '') || '0', 10);
+  if (extractedId <= 0) return [];
+  const recoRes = await service.recommendPath(enseignantId, extractedId, 4).catch(() => null);
+  if (!recoRes) return [];
+  return mapRecommendations(recoRes.path);
+}
+
+function buildAnalyseResult(
+  enseignantId: string,
+  competenceCible: string | undefined,
+  gaps: RawGapItem[],
+  recommendations: AnalyseRecommandation[],
+  isHeuristic: boolean,
+  overallRiskScore: number,
+): AnalyseData {
+  return {
+    enseignantId,
+    competenceAnalysee: competenceCible || 'Toutes',
+    gaps: (gaps || []).map((g: RawGapItem) => mapGapItem(g, isHeuristic)),
+    overallRiskScore: overallRiskScore || 0,
+    recommandationsFormations: recommendations,
+    isHeuristic,
+    modelNeedsTraining: isHeuristic,
+  };
+}
+
+async function autoTrainAndRetry(
+  service: typeof AnalysePredictiveService,
+  enseignantId: string,
+  competenceCible: string | undefined,
+  recommendations: AnalyseRecommandation[],
+): Promise<AnalyseData | undefined> {
+  try {
+    const trainRes = await service.trainModel();
+    if (trainRes.status === 'trained' || trainRes.metrics) {
+      // Retry with the freshly trained model
+      const retried = await service.predictGaps(enseignantId, 6, 10);
+      const stillHeuristic = retried.explanation?.method === 'heuristic';
+      return buildAnalyseResult(
+        enseignantId,
+        competenceCible,
+        retried.gaps || [],
+        recommendations,
+        stillHeuristic,
+        retried.overall_risk_score || 0,
+      );
+    }
+    return undefined;
+  } catch {
+    // Auto-train failed — fall through to return heuristic results
+    return undefined;
+  }
+}
+
+async function retryWithAutoTrain(
+  service: typeof AnalysePredictiveService,
+  enseignantId: string,
+  competenceCible: string | undefined,
+  autoTrain: boolean,
+): Promise<AnalyseData> {
+  if (!autoTrain) {
+    throw new Error(
+      "Le modèle prédictif n'est pas encore entraîné. Veuillez demander à un administrateur de lancer l'entraînement.",
+    );
+  }
+  try {
+    await service.trainModel();
+    const gapsRes = await service.predictGaps(enseignantId, 6, 10);
+    return buildAnalyseResult(
+      enseignantId,
+      competenceCible,
+      gapsRes.gaps || [],
+      [],
+      false,
+      gapsRes.overall_risk_score || 0,
+    );
+  } catch (retryError: unknown) {
+    const retryAxiosError = retryError as { response?: { status: number } };
+    if (retryAxiosError?.response?.status === 403) {
+      throw new Error(
+        "Le modèle n'est pas entraîné et l'entraînement automatique a été refusé (403). Contactez un administrateur.",
+      );
+    }
+    throw new Error(
+      "Le modèle prédictif n'est pas encore entraîné et l'entraînement automatique a échoué. Veuillez contacter l'administrateur.",
+    );
+  }
+}
+
 export default AnalysePredictiveService;
-
-
-

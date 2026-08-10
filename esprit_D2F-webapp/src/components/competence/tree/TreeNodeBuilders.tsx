@@ -1,4 +1,4 @@
-import { Space, Tag, Typography } from "antd";
+import { Space, Tag, Typography } from 'antd';
 import {
   ApartmentOutlined,
   BookOutlined,
@@ -7,22 +7,30 @@ import {
   FolderOpenOutlined,
   InfoCircleOutlined,
   TeamOutlined,
-} from "@ant-design/icons";
-import type { TreeNode } from "@/models/competence";
+} from '@ant-design/icons';
+import type { TreeNode } from '@/models/competence';
 
 const { Text } = Typography;
 
-type OpenNiveauModal = (type: "competence" | "sousCompetence", id: string | number, nom: string) => void;
+type OpenNiveauModal = (
+  type: 'competence' | 'sousCompetence',
+  id: string | number,
+  nom: string,
+) => void;
 
 export function buildSavoirNode(s: TreeNode) {
   return {
     key: `sav-${s.id}`,
     title: (
       <Space>
-        {s.type === "THEORIQUE" ? <BookOutlined style={{ color: "#722ed1" }} /> : <ExperimentOutlined style={{ color: "#13c2c2" }} />}
+        {s.type === 'THEORIQUE' ? (
+          <BookOutlined style={{ color: '#722ed1' }} />
+        ) : (
+          <ExperimentOutlined style={{ color: '#13c2c2' }} />
+        )}
         <Text type="secondary">{s.nom}</Text>
-        <Tag color={s.type === "THEORIQUE" ? "purple" : "cyan"}>
-          {s.type === "THEORIQUE" ? "Théorique" : "Pratique"}
+        <Tag color={s.type === 'THEORIQUE' ? 'purple' : 'cyan'}>
+          {s.type === 'THEORIQUE' ? 'Théorique' : 'Pratique'}
         </Tag>
         <Tag>{s.code}</Tag>
       </Space>
@@ -31,7 +39,10 @@ export function buildSavoirNode(s: TreeNode) {
   };
 }
 
-export function buildSousCompNode(sc: TreeNode, openNiveauModal: OpenNiveauModal): Record<string, unknown> {
+export function buildSousCompNode(
+  sc: TreeNode,
+  openNiveauModal: OpenNiveauModal,
+): Record<string, unknown> {
   const enfants = sc.enfants ?? [];
   const isLeaf = enfants.length === 0;
 
@@ -39,19 +50,21 @@ export function buildSousCompNode(sc: TreeNode, openNiveauModal: OpenNiveauModal
     key: `sc-${sc.id}`,
     title: (
       <Space>
-        <BulbOutlined style={{ color: "#fa8c16" }} />
+        <BulbOutlined style={{ color: '#fa8c16' }} />
         <Text>{sc.nom}</Text>
         <Tag color="orange">{sc.code}</Tag>
-        <Tag color="geekblue">N{sc.niveau ?? "-"}</Tag>
+        <Tag color="geekblue">N{sc.niveau ?? '-'}</Tag>
         <Tag icon={<BookOutlined />}>{sc.nombreSavoirs}</Tag>
-        <Tag icon={<TeamOutlined />} color="purple">{sc.nombreEnseignants}</Tag>
+        <Tag icon={<TeamOutlined />} color="purple">
+          {sc.nombreEnseignants}
+        </Tag>
         <Tag
-          style={{ cursor: "pointer" }}
+          style={{ cursor: 'pointer' }}
           icon={<InfoCircleOutlined />}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            openNiveauModal("sousCompetence", sc.id!, sc.nom ?? "");
+            openNiveauModal('sousCompetence', sc.id!, sc.nom ?? '');
           }}
         >
           Niveaux
@@ -65,23 +78,30 @@ export function buildSousCompNode(sc: TreeNode, openNiveauModal: OpenNiveauModal
   };
 }
 
-export function buildCompetenceNode(comp: TreeNode, openNiveauModal: OpenNiveauModal): Record<string, unknown> {
+export function buildCompetenceNode(
+  comp: TreeNode,
+  openNiveauModal: OpenNiveauModal,
+): Record<string, unknown> {
   return {
     key: `comp-${comp.id}`,
     title: (
       <Space>
-        <ApartmentOutlined style={{ color: "#52c41a" }} />
+        <ApartmentOutlined style={{ color: '#52c41a' }} />
         <Text>{comp.nom}</Text>
         <Tag color="green">{comp.code}</Tag>
-        <Tag>{comp.nombreSousCompetences} SC / {comp.nombreSavoirs} S</Tag>
-        <Tag icon={<TeamOutlined />} color="purple">{comp.nombreEnseignants}</Tag>
+        <Tag>
+          {comp.nombreSousCompetences} SC / {comp.nombreSavoirs} S
+        </Tag>
+        <Tag icon={<TeamOutlined />} color="purple">
+          {comp.nombreEnseignants}
+        </Tag>
         <Tag
-          style={{ cursor: "pointer" }}
+          style={{ cursor: 'pointer' }}
           icon={<InfoCircleOutlined />}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            openNiveauModal("competence", comp.id!, comp.nom ?? "");
+            openNiveauModal('competence', comp.id!, comp.nom ?? '');
           }}
         >
           Niveaux
@@ -94,10 +114,14 @@ export function buildCompetenceNode(comp: TreeNode, openNiveauModal: OpenNiveauM
         key: `sav-direct-${s.id}`,
         title: (
           <Space>
-            {s.type === "THEORIQUE" ? <BookOutlined style={{ color: "#722ed1" }} /> : <ExperimentOutlined style={{ color: "#13c2c2" }} />}
+            {s.type === 'THEORIQUE' ? (
+              <BookOutlined style={{ color: '#722ed1' }} />
+            ) : (
+              <ExperimentOutlined style={{ color: '#13c2c2' }} />
+            )}
             <Text type="secondary">{s.nom}</Text>
-            <Tag color={s.type === "THEORIQUE" ? "purple" : "cyan"}>
-              {s.type === "THEORIQUE" ? "Théorique" : "Pratique"}
+            <Tag color={s.type === 'THEORIQUE' ? 'purple' : 'cyan'}>
+              {s.type === 'THEORIQUE' ? 'Théorique' : 'Pratique'}
             </Tag>
             <Tag>{s.code}</Tag>
             <Tag color="gold">Direct</Tag>
@@ -109,16 +133,21 @@ export function buildCompetenceNode(comp: TreeNode, openNiveauModal: OpenNiveauM
   };
 }
 
-export function buildDomaineNode(domaine: TreeNode, openNiveauModal: OpenNiveauModal): Record<string, unknown> {
+export function buildDomaineNode(
+  domaine: TreeNode,
+  openNiveauModal: OpenNiveauModal,
+): Record<string, unknown> {
   return {
     key: `dom-${domaine.id}`,
     title: (
       <Space>
-        <FolderOpenOutlined style={{ color: "#1890ff" }} />
+        <FolderOpenOutlined style={{ color: '#1890ff' }} />
         <Text strong>{domaine.nom}</Text>
         <Tag color="blue">{domaine.code}</Tag>
         <Tag color="green">{domaine.nombreCompetences}</Tag>
-        <Tag icon={<TeamOutlined />} color="purple">{domaine.nombreEnseignants}</Tag>
+        <Tag icon={<TeamOutlined />} color="purple">
+          {domaine.nombreEnseignants}
+        </Tag>
         {!domaine.actif && <Tag color="red">Inactif</Tag>}
       </Space>
     ),

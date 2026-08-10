@@ -1,26 +1,32 @@
-import { memo, useEffect, useMemo, useState, type Key, type ReactNode } from "react";
-import { Button, Dropdown, Input, Table } from "antd";
-import type { TableProps } from "antd";
-import {
-  DownloadOutlined, InboxOutlined, MoreOutlined, SearchOutlined,
-} from "@ant-design/icons";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { memo, useEffect, useMemo, useState, type Key, type ReactNode } from 'react';
+import { Button, Dropdown, Input, Table } from 'antd';
+import type { TableProps } from 'antd';
+import { DownloadOutlined, InboxOutlined, MoreOutlined, SearchOutlined } from '@ant-design/icons';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
-import EmptyState from "@/components/common/EmptyState";
-import Skeleton from "@/components/ui/Skeleton";
-import ConfirmModal from "@/components/ui/ConfirmModal";
-import { useToast } from "@/hooks/useToast";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import FilterPanel from "./FilterPanel";
-import Pagination from "./Pagination";
+import EmptyState from '@/components/common/EmptyState';
+import Skeleton from '@/components/ui/Skeleton';
+import ConfirmModal from '@/components/ui/ConfirmModal';
+import { useToast } from '@/hooks/useToast';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import FilterPanel from './FilterPanel';
+import Pagination from './Pagination';
 import type {
-  BulkAction, DataTableColumn, FilterConfig, FilterValues,
-  PagedResponse, PaginationParams, RowAction,
-} from "./types";
-import styles from "./DataTable.module.css";
+  BulkAction,
+  DataTableColumn,
+  FilterConfig,
+  FilterValues,
+  PagedResponse,
+  PaginationParams,
+  RowAction,
+} from './types';
+import styles from './DataTable.module.css';
 
 /** Module-scope lookup so the row-action menu handler stays under the nesting limit. */
-function findRowAction<T extends object>(actions: RowAction<T>[], key: Key): RowAction<T> | undefined {
+function findRowAction<T extends object>(
+  actions: RowAction<T>[],
+  key: Key,
+): RowAction<T> | undefined {
   return actions.find((a) => a.key === key);
 }
 
@@ -68,14 +74,14 @@ function DataTableInner<T extends object>({
   fetchFn,
   rowKey,
   searchable = true,
-  searchPlaceholder = "Rechercher…",
+  searchPlaceholder = 'Rechercher…',
   exportable = false,
-  exportFileName = "export-d2f",
+  exportFileName = 'export-d2f',
   selectable = false,
   bulkActions = [],
   filters,
   onRowClick,
-  emptyMessage = "Aucun résultat",
+  emptyMessage = 'Aucun résultat',
   emptyDescription,
   emptyAction,
   rowActions,
@@ -87,12 +93,14 @@ function DataTableInner<T extends object>({
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(defaultPageSize);
-  const [searchInput, setSearchInput] = useState("");
-  const [sort, setSort] = useState<{ by?: string; dir?: "asc" | "desc" }>({});
+  const [searchInput, setSearchInput] = useState('');
+  const [sort, setSort] = useState<{ by?: string; dir?: 'asc' | 'desc' }>({});
   const [filterValues, setFilterValues] = useState<FilterValues>({});
   const [selectedKeys, setSelectedKeys] = useState<Key[]>([]);
   const [selectedRows, setSelectedRows] = useState<T[]>([]);
-  const [pendingConfirm, setPendingConfirm] = useState<{ action: RowAction<T>; row: T } | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<{ action: RowAction<T>; row: T } | null>(
+    null,
+  );
   const [exporting, setExporting] = useState(false);
 
   const search = useDebouncedValue(searchInput.trim(), 300);
@@ -114,13 +122,10 @@ function DataTableInner<T extends object>({
     [page, pageSize, search, sort, filterValues],
   );
 
-  const baseKey = useMemo(
-    () => (Array.isArray(queryKey) ? queryKey : [queryKey]),
-    [queryKey],
-  );
+  const baseKey = useMemo(() => (Array.isArray(queryKey) ? queryKey : [queryKey]), [queryKey]);
 
   const { data, isLoading, isFetching, isError, refetch } = useQuery({
-    queryKey: [...baseKey, "table", params],
+    queryKey: [...baseKey, 'table', params],
     queryFn: () => fetchFn(params),
     placeholderData: keepPreviousData,
   });
@@ -128,14 +133,14 @@ function DataTableInner<T extends object>({
   const rows = data?.content ?? [];
   const total = data?.totalElements ?? 0;
 
-  const handleTableChange: TableProps<T>["onChange"] = (_pagination, _filters, sorter) => {
+  const handleTableChange: TableProps<T>['onChange'] = (_pagination, _filters, sorter) => {
     const s = Array.isArray(sorter) ? sorter[0] : sorter;
     const column = s?.column as DataTableColumn<T> | undefined;
     if (!s?.order || !column?.sortKey) {
       setSort({});
       return;
     }
-    setSort({ by: column.sortKey, dir: s.order === "descend" ? "desc" : "asc" });
+    setSort({ by: column.sortKey, dir: s.order === 'descend' ? 'desc' : 'asc' });
   };
 
   const effectiveColumns = useMemo<DataTableColumn<T>[]>(() => {
@@ -145,16 +150,16 @@ function DataTableInner<T extends object>({
     return [
       ...base,
       {
-        key: "__actions",
-        title: "",
+        key: '__actions',
+        title: '',
         width: 56,
-        fixed: "right",
+        fixed: 'right',
         render: (_: unknown, row: T) => {
           const visible = rowActions.filter((a) => !a.hidden?.(row));
           if (!visible.length) return null;
           return (
             <Dropdown
-              trigger={["click"]}
+              trigger={['click']}
               menu={{
                 items: visible.map((a) => ({
                   key: a.key,
@@ -192,24 +197,32 @@ function DataTableInner<T extends object>({
     try {
       setExporting(true);
       const all = await fetchFn({ ...params, page: 1, size: 100_000 });
-      const XLSX = await import("xlsx");
+      const XLSX = await import('xlsx-js-style');
       const exportableCols = columns.filter((c) => c.dataIndex !== undefined);
       const sheetRows = all.content.map((row) => {
         const out: Record<string, unknown> = {};
         for (const col of exportableCols) {
-          const path = Array.isArray(col.dataIndex) ? col.dataIndex.join(".") : String(col.dataIndex);
+          const path = Array.isArray(col.dataIndex)
+            ? col.dataIndex.join('.')
+            : String(col.dataIndex);
           const value = path
-            .split(".")
-            .reduce<unknown>((acc, k) => (acc && typeof acc === "object" ? (acc as Record<string, unknown>)[k] : undefined), row);
-          out[typeof col.title === "string" ? col.title : path] = value ?? "";
+            .split('.')
+            .reduce<unknown>(
+              (acc, k) =>
+                acc && typeof acc === 'object' ? (acc as Record<string, unknown>)[k] : undefined,
+              row,
+            );
+          out[typeof col.title === 'string' ? col.title : path] = value ?? '';
         }
         return out;
       });
       const ws = XLSX.utils.json_to_sheet(sheetRows);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Données");
+      XLSX.utils.book_append_sheet(wb, ws, 'Données');
       XLSX.writeFile(wb, `${exportFileName}.xlsx`);
-      toast.success("Export Excel généré", { description: `${sheetRows.length} ligne(s) exportée(s).` });
+      toast.success('Export Excel généré', {
+        description: `${sheetRows.length} ligne(s) exportée(s).`,
+      });
     } catch {
       toast.error("Échec de l'export", { description: "Réessayez ou contactez l'administrateur." });
     } finally {
@@ -220,7 +233,11 @@ function DataTableInner<T extends object>({
   if (isLoading) {
     return (
       <div className={styles.wrapper}>
-        <Skeleton variant="table" rows={Math.min(pageSize, 10)} columns={Math.min(columns.length, 6)} />
+        <Skeleton
+          variant="table"
+          rows={Math.min(pageSize, 10)}
+          columns={Math.min(columns.length, 6)}
+        />
       </div>
     );
   }
@@ -232,7 +249,7 @@ function DataTableInner<T extends object>({
           icon={<InboxOutlined />}
           title="Impossible de charger les données"
           description="Une erreur réseau ou serveur est survenue."
-          action={{ label: "Réessayer", onClick: () => void refetch() }}
+          action={{ label: 'Réessayer', onClick: () => void refetch() }}
         />
       </div>
     );
@@ -247,7 +264,7 @@ function DataTableInner<T extends object>({
           {searchable && (
             <Input
               className={styles.search}
-              prefix={<SearchOutlined style={{ color: "var(--color-text-muted)" }} />}
+              prefix={<SearchOutlined style={{ color: 'var(--color-text-muted)' }} />}
               placeholder={searchPlaceholder}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
@@ -277,34 +294,46 @@ function DataTableInner<T extends object>({
               size="small"
               danger={a.danger}
               icon={a.icon}
-              onClick={() => { a.onClick(selectedRows); }}
+              onClick={() => {
+                a.onClick(selectedRows);
+              }}
             >
               {a.label}
             </Button>
           ))}
-          <Button size="small" type="text" onClick={() => { setSelectedKeys([]); setSelectedRows([]); }}>
+          <Button
+            size="small"
+            type="text"
+            onClick={() => {
+              setSelectedKeys([]);
+              setSelectedRows([]);
+            }}
+          >
             Tout désélectionner
           </Button>
         </div>
       )}
 
       <Table<T>
-        className={`${styles.table} ${onRowClick ? styles.clickableRows : ""} ${isFetching ? styles.refetching : ""}`}
+        className={`${styles.table} ${onRowClick ? styles.clickableRows : ''} ${isFetching ? styles.refetching : ''}`}
         columns={effectiveColumns}
         dataSource={rows}
-        rowKey={rowKey as TableProps<T>["rowKey"]}
+        rowKey={rowKey as TableProps<T>['rowKey']}
         pagination={false}
         onChange={handleTableChange}
         sticky
         size="middle"
         virtual={Boolean(virtualHeight)}
-        scroll={virtualHeight ? { x: 1100, y: virtualHeight } : { x: "max-content" }}
+        scroll={virtualHeight ? { x: 1100, y: virtualHeight } : { x: 'max-content' }}
         rowSelection={
           selectable
             ? {
                 selectedRowKeys: selectedKeys,
                 preserveSelectedRowKeys: true,
-                onChange: (keys, rowsSel) => { setSelectedKeys(keys); setSelectedRows(rowsSel); },
+                onChange: (keys, rowsSel) => {
+                  setSelectedKeys(keys);
+                  setSelectedRows(rowsSel);
+                },
               }
             : undefined
         }
@@ -327,13 +356,20 @@ function DataTableInner<T extends object>({
         pageSize={pageSize}
         total={total}
         loading={isFetching}
-        onChange={(p, s) => { setPage(p); setPageSize(s); }}
+        onChange={(p, s) => {
+          setPage(p);
+          setPageSize(s);
+        }}
       />
 
       <ConfirmModal
         open={pendingConfirm !== null}
         title={pendingConfirm?.action.confirm?.title}
-        entityName={pendingConfirm ? pendingConfirm.action.confirm?.getEntityName?.(pendingConfirm.row) : undefined}
+        entityName={
+          pendingConfirm
+            ? pendingConfirm.action.confirm?.getEntityName?.(pendingConfirm.row)
+            : undefined
+        }
         onConfirm={async () => {
           if (!pendingConfirm) return;
           await pendingConfirm.action.onClick(pendingConfirm.row);

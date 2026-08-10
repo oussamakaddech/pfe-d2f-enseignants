@@ -1,9 +1,20 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState } from 'react';
 import {
-  Alert, Avatar, Badge, Button, Card, Col, Collapse, Progress, Row, Space, Tag, Typography,
-} from "antd";
-import { WarningOutlined } from "@ant-design/icons";
-import { cloneDeep, computeEnseignantLoad, getInitials, avatarColor } from "./constants";
+  Alert,
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  Col,
+  Collapse,
+  Progress,
+  Row,
+  Space,
+  Tag,
+  Typography,
+} from 'antd';
+import { WarningOutlined } from '@ant-design/icons';
+import { cloneDeep, computeEnseignantLoad, getInitials, avatarColor } from './constants';
 
 const { Text } = Typography;
 
@@ -72,7 +83,7 @@ const addSousCompSavoirRows = (
   sci: number,
 ) => {
   (sc.savoirs ?? []).forEach((s, si) => {
-    rows.push({ di, ci, sci, si, domaineNom: d.nom ?? "", competenceNom: c.nom ?? "", ...s });
+    rows.push({ di, ci, sci, si, domaineNom: d.nom ?? '', competenceNom: c.nom ?? '', ...s });
   });
 };
 
@@ -81,7 +92,15 @@ const flattenSavoirs = (tree: TreeDomaine[]): FlatSavoirRow[] => {
   (tree ?? []).forEach((d, di) => {
     (d.competences ?? []).forEach((c, ci) => {
       (c.savoirs ?? []).forEach((s, si) => {
-        rows.push({ di, ci, sci: -1, si, domaineNom: d.nom ?? "", competenceNom: c.nom ?? "", ...s });
+        rows.push({
+          di,
+          ci,
+          sci: -1,
+          si,
+          domaineNom: d.nom ?? '',
+          competenceNom: c.nom ?? '',
+          ...s,
+        });
       });
       (c.sousCompetences ?? []).forEach((sc, sci) => {
         addSousCompSavoirRows(rows, d, di, c, ci, sc, sci);
@@ -107,16 +126,16 @@ const forEachTreeSavoir = (tree: TreeDomaine[], cb: (s: TreeSavoir) => void) => 
 
 const computeLoadStyle = (e: { loadCount: number }, total: number) => {
   const ratio = total ? Math.round((e.loadCount / total) * 100) : 0;
-  let loadCls = "";
-  if (e.loadCount > 10) loadCls = "overloaded";
-  else if (e.loadCount > 5) loadCls = "warning";
-  let loadStrokeColor = "#52c41a";
-  if (loadCls === "overloaded") loadStrokeColor = "#f5222d";
-  else if (loadCls === "warning") loadStrokeColor = "#fa8c16";
+  let loadCls = '';
+  if (e.loadCount > 10) loadCls = 'overloaded';
+  else if (e.loadCount > 5) loadCls = 'warning';
+  let loadStrokeColor = '#52c41a';
+  if (loadCls === 'overloaded') loadStrokeColor = '#f5222d';
+  else if (loadCls === 'warning') loadStrokeColor = '#fa8c16';
   return { ratio, loadCls, loadStrokeColor };
 };
 
-const isEnterOrSpace = (key: string) => key === "Enter" || key === " ";
+const isEnterOrSpace = (key: string) => key === 'Enter' || key === ' ';
 
 interface EnseignantLoadViewProps {
   tree: TreeDomaine[];
@@ -125,7 +144,12 @@ interface EnseignantLoadViewProps {
   extractedEnseignants?: ExtractedEnseignantRef[];
 }
 
-export default function EnseignantLoadView({ tree, setTree, allEnseignants, extractedEnseignants }: Readonly<EnseignantLoadViewProps>) {
+export default function EnseignantLoadView({
+  tree,
+  setTree,
+  allEnseignants,
+  extractedEnseignants,
+}: Readonly<EnseignantLoadViewProps>) {
   const loadMap = useMemo(() => computeEnseignantLoad(tree), [tree]);
   const allSavoirs = useMemo(() => flattenSavoirs(tree), [tree]);
 
@@ -136,7 +160,7 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
       const nomComplet = e.prenom ? `${e.prenom} ${e.nom}` : e.nom;
       return {
         id,
-        nomComplet: String(nomComplet ?? ""),
+        nomComplet: String(nomComplet ?? ''),
         loadCount: load.count,
         refCodes: [...new Set(load.refCodes)].slice(0, 8),
       };
@@ -183,7 +207,9 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
     if (!selectedEnsId) return;
     const next = cloneDeep(tree);
     forEachTreeSavoir(next, (s) => {
-      s.enseignantsSuggeres = (s.enseignantsSuggeres ?? []).filter((x) => String(x) !== String(selectedEnsId));
+      s.enseignantsSuggeres = (s.enseignantsSuggeres ?? []).filter(
+        (x) => String(x) !== String(selectedEnsId),
+      );
     });
     setTree(next);
   };
@@ -191,7 +217,7 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
   const grouped = useMemo(() => {
     const map = new Map<string, FlatSavoirRow[]>();
     selectedSavoirs.forEach((s) => {
-      const k = s.domaineNom || "Domaine";
+      const k = s.domaineNom || 'Domaine';
       if (!map.has(k)) map.set(k, []);
       map.get(k)!.push(s);
     });
@@ -205,11 +231,9 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
       <Col xs={24} lg={8}>
         {(enseignantRows ?? []).map((e) => {
           const { ratio, loadCls, loadStrokeColor } = computeLoadStyle(e, allSavoirs.length);
-          const cls = [
-            "ens-teacher-card",
-            selectedEnsId === e.id ? "selected" : "",
-            loadCls,
-          ].filter(Boolean).join(" ");
+          const cls = ['ens-teacher-card', selectedEnsId === e.id ? 'selected' : '', loadCls]
+            .filter(Boolean)
+            .join(' ');
           return (
             <button
               key={e.id}
@@ -223,7 +247,9 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
               }}
             >
               <Space align="start">
-                <Avatar style={{ background: avatarColor(e.id) }}>{getInitials(String(e.nomComplet ?? ""), "")}</Avatar>
+                <Avatar style={{ background: avatarColor(e.id) }}>
+                  {getInitials(String(e.nomComplet ?? ''), '')}
+                </Avatar>
                 <div>
                   <Text strong>{e.nomComplet}</Text>
                   <div style={{ marginTop: 6 }}>
@@ -235,7 +261,9 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
                     />
                   </div>
                   <Space wrap size={4} style={{ marginTop: 4 }}>
-                    {e.refCodes.slice(0, 5).map((rc) => <Tag key={`${e.id}-${rc}`}>{rc}</Tag>)}
+                    {e.refCodes.slice(0, 5).map((rc) => (
+                      <Tag key={`${e.id}-${rc}`}>{rc}</Tag>
+                    ))}
                   </Space>
                 </div>
               </Space>
@@ -247,7 +275,7 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
       <Col xs={24} lg={16}>
         <Card
           size="small"
-          title={selected ? `Savoirs de ${selected.nomComplet}` : "Sélectionnez un enseignant"}
+          title={selected ? `Savoirs de ${selected.nomComplet}` : 'Sélectionnez un enseignant'}
           extra={
             <Button danger size="small" onClick={removeAllFromTeacher} disabled={!selectedEnsId}>
               Tout retirer
@@ -262,13 +290,22 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
                 key: domaineNom,
                 label: `${domaineNom} (${savoirs.length} savoirs)`,
                 children: (
-                  <Space direction="vertical" style={{ width: "100%" }}>
+                  <Space direction="vertical" style={{ width: '100%' }}>
                     {savoirs.map((s) => (
-                      <div key={`${s.code}-${s.di}-${s.ci}-${s.sci}-${s.si}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Tag color={s.type === "PRATIQUE" ? "volcano" : "purple"}>{s.type}</Tag>
+                      <div
+                        key={`${s.code}-${s.di}-${s.ci}-${s.sci}-${s.si}`}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                      >
+                        <Tag color={s.type === 'PRATIQUE' ? 'volcano' : 'purple'}>{s.type}</Tag>
                         <Text style={{ flex: 1 }}>{s.nom}</Text>
                         <Tag>{s.niveau}</Tag>
-                        <Button size="small" danger onClick={() => removeOne(s, selectedEnsId ?? "")}>✕ Retirer</Button>
+                        <Button
+                          size="small"
+                          danger
+                          onClick={() => removeOne(s, selectedEnsId ?? '')}
+                        >
+                          ✕ Retirer
+                        </Button>
                       </div>
                     ))}
                   </Space>
@@ -283,17 +320,20 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
             showIcon
             message={`⚠️ ${noTeacherSavoirs.length} savoirs sans enseignant`}
           />
-          <Space direction="vertical" style={{ width: "100%" }}>
+          <Space direction="vertical" style={{ width: '100%' }}>
             {noTeacherSavoirs.slice(0, 20).map((s) => (
-              <div key={`u-${s.code}-${s.di}-${s.ci}-${s.sci}-${s.si}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div
+                key={`u-${s.code}-${s.di}-${s.ci}-${s.sci}-${s.si}`}
+                style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+              >
                 <Text style={{ flex: 1 }}>{s.nom}</Text>
                 <Button
                   size="small"
                   type="primary"
                   disabled={!selectedEnsId}
-                  onClick={() => addOne(s, selectedEnsId ?? "")}
+                  onClick={() => addOne(s, selectedEnsId ?? '')}
                 >
-                  + Assigner à {selected?.nomComplet ?? "..."}
+                  + Assigner à {selected?.nomComplet ?? '...'}
                 </Button>
               </div>
             ))}
@@ -304,22 +344,33 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
           <Collapse
             ghost
             style={{ marginTop: 12 }}
-            items={[{
-              key: "unmatched-local",
-              label: (
-                <span><WarningOutlined style={{ color: "#fa8c16" }} /> Enseignants non trouvés en DB <Badge count={unmatched.length} style={{ marginLeft: 8, background: "#fa8c16" }} /></span>
-              ),
-              children: (
-                <Space direction="vertical" style={{ width: "100%" }}>
-                  {unmatched.map((u) => (
-                    <div key={`${u.nom_complet}-${u.fichier}`} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                      <Text>{u.nom_complet}</Text>
-                      <Text type="secondary">{u.fichier}</Text>
-                    </div>
-                  ))}
-                </Space>
-              ),
-            }]}
+            items={[
+              {
+                key: 'unmatched-local',
+                label: (
+                  <span>
+                    <WarningOutlined style={{ color: '#fa8c16' }} /> Enseignants non trouvés en DB{' '}
+                    <Badge
+                      count={unmatched.length}
+                      style={{ marginLeft: 8, background: '#fa8c16' }}
+                    />
+                  </span>
+                ),
+                children: (
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    {unmatched.map((u) => (
+                      <div
+                        key={`${u.nom_complet}-${u.fichier}`}
+                        style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}
+                      >
+                        <Text>{u.nom_complet}</Text>
+                        <Text type="secondary">{u.fichier}</Text>
+                      </div>
+                    ))}
+                  </Space>
+                ),
+              },
+            ]}
           />
         )}
       </Col>

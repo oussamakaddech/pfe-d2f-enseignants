@@ -1,14 +1,24 @@
-import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import {
-  Badge, Button, Card, Collapse, Form, Input, Modal, Popconfirm, Select, Space, Spin, Table, Tag, Typography,
-} from "antd";
-import type { FormInstance } from "antd";
-import type useStructureData from "@/hooks/competence/useStructureData";
-import type { Id } from "@/models/common";
-import {
-  NIVEAU_LABELS,
-  NIVEAU_OPTIONS,
-} from "@/utils/constants/competenceOptions";
+  Badge,
+  Button,
+  Card,
+  Collapse,
+  Form,
+  Input,
+  Modal,
+  Popconfirm,
+  Select,
+  Space,
+  Spin,
+  Table,
+  Tag,
+  Typography,
+} from 'antd';
+import type { FormInstance } from 'antd';
+import type useStructureData from '@/hooks/competence/useStructureData';
+import type { Id } from '@/models/common';
+import { NIVEAU_LABELS, NIVEAU_OPTIONS } from '@/utils/constants/competenceOptions';
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -18,11 +28,14 @@ interface NiveauDefinitionModalProps {
   addNiveauForm: FormInstance;
 }
 
-export default function NiveauDefinitionModal({ structure, addNiveauForm }: Readonly<NiveauDefinitionModalProps>) {
+export default function NiveauDefinitionModal({
+  structure,
+  addNiveauForm,
+}: Readonly<NiveauDefinitionModalProps>) {
   return (
     <Modal
       forceRender
-      title={`Niveaux de competence - ${structure.niveauTarget?.nom || ""}`}
+      title={`Niveaux de competence - ${structure.niveauTarget?.nom || ''}`}
       open={structure.niveauModalVisible}
       onCancel={() => structure.setNiveauModalVisible(false)}
       footer={null}
@@ -35,7 +48,10 @@ export default function NiveauDefinitionModal({ structure, addNiveauForm }: Read
           <Collapse
             defaultActiveKey={Object.keys(NIVEAU_LABELS)}
             items={Object.entries(NIVEAU_LABELS).map(([key, val]) => {
-              const niveauDataMap = structure.niveauData as Record<string, Array<{ id?: Id; savoirCode?: string; savoirNom?: string; description?: string }>>;
+              const niveauDataMap = structure.niveauData as Record<
+                string,
+                Array<{ id?: Id; savoirCode?: string; savoirNom?: string; description?: string }>
+              >;
               const levelItems = niveauDataMap[key] || [];
               return {
                 key,
@@ -54,23 +70,35 @@ export default function NiveauDefinitionModal({ structure, addNiveauForm }: Read
                       rowKey="id"
                       pagination={false}
                       columns={[
-                        { title: "Code", dataIndex: "savoirCode", width: 100 },
-                        { title: "Savoir", dataIndex: "savoirNom" },
+                        { title: 'Code', dataIndex: 'savoirCode', width: 100 },
+                        { title: 'Savoir', dataIndex: 'savoirNom' },
                         {
-                          title: "Description",
-                          dataIndex: "description",
+                          title: 'Description',
+                          dataIndex: 'description',
                           render: (value) => (
-                            <span style={{ display: "inline-block", maxWidth: 360, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={value || ""}>
-                              {value || "-"}
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                maxWidth: 360,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                              title={value || ''}
+                            >
+                              {value || '-'}
                             </span>
                           ),
                         },
                         {
-                          title: "", width: 50,
+                          title: '',
+                          width: 50,
                           render: (_: unknown, record: { id?: Id }) => (
                             <Popconfirm
                               title="Supprimer ce savoir requis ?"
-                              onConfirm={() => record.id != null && structure.handleRemoveNiveauSavoir(record.id)}
+                              onConfirm={() =>
+                                record.id != null && structure.handleRemoveNiveauSavoir(record.id)
+                              }
                             >
                               <Button size="small" danger icon={<DeleteOutlined />} />
                             </Popconfirm>
@@ -93,17 +121,26 @@ export default function NiveauDefinitionModal({ structure, addNiveauForm }: Read
                 addNiveauForm.resetFields();
               }}
             >
-              <Form.Item name="niveau" rules={[{ required: true, message: "Requis" }]}>
+              <Form.Item name="niveau" rules={[{ required: true, message: 'Requis' }]}>
                 <Select placeholder="Niveau" style={{ width: 180 }}>
                   {NIVEAU_OPTIONS.map((opt) => (
-                    <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+                    <Option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </Option>
                   ))}
                 </Select>
               </Form.Item>
-              <Form.Item name="savoirId" rules={[{ required: true, message: "Requis" }]}>
-                <Select placeholder="Savoir" showSearch optionFilterProp="children" style={{ width: 250 }}>
+              <Form.Item name="savoirId" rules={[{ required: true, message: 'Requis' }]}>
+                <Select
+                  placeholder="Savoir"
+                  showSearch
+                  optionFilterProp="children"
+                  style={{ width: 250 }}
+                >
                   {structure.allSavoirsHierarchie.map((s) => (
-                    <Option key={s.id} value={s.id}>{s.code} - {s.nom}</Option>
+                    <Option key={s.id} value={s.id}>
+                      {s.code} - {s.nom}
+                    </Option>
                   ))}
                 </Select>
               </Form.Item>
@@ -111,7 +148,9 @@ export default function NiveauDefinitionModal({ structure, addNiveauForm }: Read
                 <Input placeholder="Description (optionnel)" style={{ width: 200 }} />
               </Form.Item>
               <Form.Item>
-                <Button type="primary" htmlType="submit" icon={<PlusOutlined />}>Ajouter</Button>
+                <Button type="primary" htmlType="submit" icon={<PlusOutlined />}>
+                  Ajouter
+                </Button>
               </Form.Item>
             </Form>
           </Card>

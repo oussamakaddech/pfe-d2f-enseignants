@@ -1,11 +1,11 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import RiceService from "@/services/analyse/RiceService";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import RiceService from '@/services/analyse/RiceService';
 
 const KEYS = {
-  enseignants: ["rice", "enseignants"] as const,
-  savoirs: (dept?: string | null) => ["rice", "savoirs", dept] as const,
-  affectations: ["rice", "affectations"] as const,
-  history: ["rice", "import-history"] as const,
+  enseignants: ['rice', 'enseignants'] as const,
+  savoirs: (dept?: string | null) => ['rice', 'savoirs', dept] as const,
+  affectations: ['rice', 'affectations'] as const,
+  history: ['rice', 'import-history'] as const,
 };
 
 export function useRiceEnseignants(departement?: string | null) {
@@ -41,15 +41,17 @@ export function useRiceAnalyze() {
       enseignants: Record<string, unknown>[];
       departement?: string;
     }) => RiceService.analyze(files, enseignants, departement),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["rice"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['rice'] }),
   });
 }
 
 export function useRiceSaveAssignments() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { add?: Record<string, unknown>[]; remove?: Record<string, unknown>[] }) =>
-      RiceService.saveAssignments(payload),
+    mutationFn: (payload: {
+      add?: Record<string, unknown>[];
+      remove?: Record<string, unknown>[];
+    }) => RiceService.saveAssignments(payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.affectations }),
   });
 }

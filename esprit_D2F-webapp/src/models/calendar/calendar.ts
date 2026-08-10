@@ -15,7 +15,7 @@ export interface CalendarPage<T> {
   empty: boolean;
 }
 
-export type ImportRowSeverity = "ERROR" | "WARNING";
+export type ImportRowSeverity = 'ERROR' | 'WARNING';
 
 export interface ImportRowError {
   row: number;
@@ -49,7 +49,7 @@ export interface ParsedCalendar {
   errors: ImportRowError[];
 }
 
-export type ConflictType = "ROOM_OVERLAP" | "DUPLICATE_FORMATION" | "SESSION_NUMBERING";
+export type ConflictType = 'ROOM_OVERLAP' | 'DUPLICATE_FORMATION' | 'SESSION_NUMBERING';
 
 export interface Conflict {
   type: ConflictType;
@@ -70,7 +70,7 @@ export interface ConflictReport {
   conflicts: Conflict[];
 }
 
-export type ImportStatus = "SUCCESS" | "PARTIAL" | "FAILED" | "DUPLICATE";
+export type ImportStatus = 'SUCCESS' | 'PARTIAL' | 'FAILED' | 'DUPLICATE';
 
 export interface ImportReport {
   importLogId?: number;
@@ -104,7 +104,7 @@ export interface CalendarParticipant {
   matchedEnseignant: boolean;
 }
 
-export type SendInvitationsStatus = "DISPATCHED" | "NO_RECIPIENT";
+export type SendInvitationsStatus = 'DISPATCHED' | 'NO_RECIPIENT';
 
 export interface SendInvitationsResult {
   formationId?: number;

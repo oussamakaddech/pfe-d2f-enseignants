@@ -1,6 +1,6 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
-import type { ApiListOrPage, Id } from "@/models/common";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
+import type { ApiListOrPage, Id } from '@/models/common';
 import type {
   Competence,
   Domaine,
@@ -11,28 +11,28 @@ import type {
   EnseignantCompetence,
   AssignRequest,
   PrerequisiteRequest,
-} from "@/models/competence";
+} from '@/models/competence';
 
 const BASE = `${config.COMPETENCE_URL}/competence`;
 
 const toList = <T>(payload: ApiListOrPage<T>): T[] =>
-  Array.isArray(payload) ? payload : payload.content ?? [];
+  Array.isArray(payload) ? payload : (payload.content ?? []);
 
 const DomaineAPI = {
   getAll: async (upId?: number | null, departementId?: number | null): Promise<Domaine[]> => {
     const params = new URLSearchParams();
-    params.set("size", "200");
-    if (upId)          params.set("upId",          String(upId));
-    if (departementId) params.set("departementId", String(departementId));
+    params.set('size', '200');
+    if (upId) params.set('upId', String(upId));
+    if (departementId) params.set('departementId', String(departementId));
     const res = await axios.get<ApiListOrPage<Domaine>>(`${BASE}/domaines?${params}`);
     return toList(res.data);
   },
 
   getActifs: async (upId?: number | null, departementId?: number | null): Promise<Domaine[]> => {
     const params = new URLSearchParams();
-    if (upId)          params.set("upId",          String(upId));
-    if (departementId) params.set("departementId", String(departementId));
-    const query = params.toString() ? `?${params}` : "";
+    if (upId) params.set('upId', String(upId));
+    if (departementId) params.set('departementId', String(departementId));
+    const query = params.toString() ? `?${params}` : '';
     const res = await axios.get<Domaine[]>(`${BASE}/domaines/actifs${query}`);
     return res.data;
   },
@@ -52,25 +52,17 @@ const DomaineAPI = {
     return res.data;
   },
 
-  delete: (id: Id): Promise<{ data: unknown }> =>
-    axios.delete(`${BASE}/domaines/${id}`),
+  delete: (id: Id): Promise<{ data: unknown }> => axios.delete(`${BASE}/domaines/${id}`),
 
   toggleActif: async (id: Id): Promise<Domaine> => {
-    const res = await axios.patch<Domaine>(
-      `${BASE}/domaines/${id}/toggle-actif`,
-      {},
-      
-    );
+    const res = await axios.patch<Domaine>(`${BASE}/domaines/${id}/toggle-actif`, {});
     return res.data;
   },
 };
 
 const CompetenceAPI = {
   getAll: async (): Promise<Competence[]> => {
-    const res = await axios.get<ApiListOrPage<Competence>>(
-      `${BASE}/competences?size=200`,
-      
-    );
+    const res = await axios.get<ApiListOrPage<Competence>>(`${BASE}/competences?size=200`);
     return toList(res.data);
   },
 
@@ -84,14 +76,10 @@ const CompetenceAPI = {
     return res.data;
   },
 
-  create: async (
-    domaineId: Id,
-    competence: Partial<Competence>
-  ): Promise<Competence> => {
+  create: async (domaineId: Id, competence: Partial<Competence>): Promise<Competence> => {
     const res = await axios.post<Competence>(
       `${BASE}/competences/domaine/${domaineId}`,
       competence,
-      
     );
     return res.data;
   },
@@ -101,23 +89,18 @@ const CompetenceAPI = {
     return res.data;
   },
 
-  delete: (id: Id): Promise<{ data: unknown }> =>
-    axios.delete(`${BASE}/competences/${id}`),
+  delete: (id: Id): Promise<{ data: unknown }> => axios.delete(`${BASE}/competences/${id}`),
 };
 
 const SousCompetenceAPI = {
   getAll: async (): Promise<SousCompetence[]> => {
-    const res = await axios.get<ApiListOrPage<SousCompetence>>(
-      `${BASE}/sous-competences?size=200`,
-      
-    );
+    const res = await axios.get<ApiListOrPage<SousCompetence>>(`${BASE}/sous-competences?size=200`);
     return toList(res.data);
   },
 
   getByCompetence: async (competenceId: Id): Promise<SousCompetence[]> => {
     const res = await axios.get<ApiListOrPage<SousCompetence>>(
       `${BASE}/sous-competences/competence/${competenceId}`,
-
     );
     return toList(res.data);
   },
@@ -129,63 +112,49 @@ const SousCompetenceAPI = {
 
   create: async (
     competenceId: Id,
-    sousCompetence: Partial<SousCompetence>
+    sousCompetence: Partial<SousCompetence>,
   ): Promise<SousCompetence> => {
     const res = await axios.post<SousCompetence>(
       `${BASE}/sous-competences/competence/${competenceId}`,
       sousCompetence,
-      
     );
     return res.data;
   },
 
   createEnfant: async (
     parentId: Id,
-    sousCompetence: Partial<SousCompetence>
+    sousCompetence: Partial<SousCompetence>,
   ): Promise<SousCompetence> => {
     const res = await axios.post<SousCompetence>(
       `${BASE}/sous-competences/${parentId}/enfants`,
       sousCompetence,
-      
     );
     return res.data;
   },
 
-  update: async (
-    id: Id,
-    sousCompetence: Partial<SousCompetence>
-  ): Promise<SousCompetence> => {
-    const res = await axios.put<SousCompetence>(
-      `${BASE}/sous-competences/${id}`,
-      sousCompetence,
-      
-    );
+  update: async (id: Id, sousCompetence: Partial<SousCompetence>): Promise<SousCompetence> => {
+    const res = await axios.put<SousCompetence>(`${BASE}/sous-competences/${id}`, sousCompetence);
     return res.data;
   },
 
-  delete: (id: Id): Promise<{ data: unknown }> =>
-    axios.delete(`${BASE}/sous-competences/${id}`),
+  delete: (id: Id): Promise<{ data: unknown }> => axios.delete(`${BASE}/sous-competences/${id}`),
 };
 
 const SavoirAPI = {
   getAll: async (): Promise<Savoir[]> => {
-    const res = await axios.get<ApiListOrPage<Savoir>>(
-      `${BASE}/savoirs?size=200`,
-      
-    );
+    const res = await axios.get<ApiListOrPage<Savoir>>(`${BASE}/savoirs?size=200`);
     return toList(res.data);
   },
 
   getBySousCompetence: async (sousCompetenceId: Id): Promise<Savoir[]> => {
-    const res = await axios.get<Savoir[]>(
-      `${BASE}/savoirs/sous-competence/${sousCompetenceId}`,
-      
-    );
+    const res = await axios.get<Savoir[]>(`${BASE}/savoirs/sous-competence/${sousCompetenceId}`);
     return res.data;
   },
 
   getByCompetence: async (competenceId: Id): Promise<Savoir[]> => {
-    const res = await axios.get<ApiListOrPage<Savoir>>(`${BASE}/savoirs/competence/${competenceId}`);
+    const res = await axios.get<ApiListOrPage<Savoir>>(
+      `${BASE}/savoirs/competence/${competenceId}`,
+    );
     return toList(res.data);
   },
 
@@ -197,7 +166,6 @@ const SavoirAPI = {
   search: async (keyword: string): Promise<Savoir[]> => {
     const res = await axios.get<Savoir[]>(
       `${BASE}/savoirs/search?keyword=${encodeURIComponent(keyword)}`,
-      
     );
     return res.data;
   },
@@ -211,20 +179,12 @@ const SavoirAPI = {
     const res = await axios.post<Savoir>(
       `${BASE}/savoirs/sous-competence/${sousCompetenceId}`,
       savoir,
-      
     );
     return res.data;
   },
 
-  createForCompetence: async (
-    competenceId: Id,
-    savoir: Partial<Savoir>
-  ): Promise<Savoir> => {
-    const res = await axios.post<Savoir>(
-      `${BASE}/savoirs/competence/${competenceId}`,
-      savoir,
-      
-    );
+  createForCompetence: async (competenceId: Id, savoir: Partial<Savoir>): Promise<Savoir> => {
+    const res = await axios.post<Savoir>(`${BASE}/savoirs/competence/${competenceId}`, savoir);
     return res.data;
   },
 
@@ -233,15 +193,13 @@ const SavoirAPI = {
     return res.data;
   },
 
-  delete: (id: Id): Promise<{ data: unknown }> =>
-    axios.delete(`${BASE}/savoirs/${id}`),
+  delete: (id: Id): Promise<{ data: unknown }> => axios.delete(`${BASE}/savoirs/${id}`),
 };
 
 const EnseignantCompetenceAPI = {
   getAll: async (): Promise<EnseignantCompetence[]> => {
     const res = await axios.get<ApiListOrPage<EnseignantCompetence>>(
       `${BASE}/enseignant-competences`,
-      
     );
     return toList(res.data);
   },
@@ -249,29 +207,26 @@ const EnseignantCompetenceAPI = {
   getByEnseignant: async (enseignantId: Id): Promise<EnseignantCompetence[]> => {
     const res = await axios.get<EnseignantCompetence[]>(
       `${BASE}/enseignant-competences/enseignant/${enseignantId}`,
-      
     );
     return res.data;
   },
 
   getByEnseignantAndDomaine: async (
     enseignantId: Id,
-    domaineId: Id
+    domaineId: Id,
   ): Promise<EnseignantCompetence[]> => {
     const res = await axios.get<EnseignantCompetence[]>(
       `${BASE}/enseignant-competences/enseignant/${enseignantId}/domaine/${domaineId}`,
-      
     );
     return res.data;
   },
 
   getByEnseignantAndNiveau: async (
     enseignantId: Id,
-    niveau: string
+    niveau: string,
   ): Promise<EnseignantCompetence[]> => {
     const res = await axios.get<EnseignantCompetence[]>(
       `${BASE}/enseignant-competences/enseignant/${enseignantId}/niveau/${niveau}`,
-      
     );
     return res.data;
   },
@@ -279,17 +234,12 @@ const EnseignantCompetenceAPI = {
   countByEnseignant: async (enseignantId: Id): Promise<number> => {
     const res = await axios.get<number>(
       `${BASE}/enseignant-competences/enseignant/${enseignantId}/count`,
-      
     );
     return res.data;
   },
 
   assign: async (request: AssignRequest): Promise<EnseignantCompetence> => {
-    const res = await axios.post<EnseignantCompetence>(
-      `${BASE}/enseignant-competences`,
-      request,
-      
-    );
+    const res = await axios.post<EnseignantCompetence>(`${BASE}/enseignant-competences`, request);
     return res.data;
   },
 
@@ -297,7 +247,6 @@ const EnseignantCompetenceAPI = {
     const res = await axios.patch<EnseignantCompetence>(
       `${BASE}/enseignant-competences/${id}/niveau?niveau=${niveau}`,
       {},
-      
     );
     return res.data;
   },
@@ -313,39 +262,33 @@ const NiveauDefinitionAPI = {
   },
 
   getByCompetence: async (competenceId: Id): Promise<NiveauDefinition[]> => {
-    const res = await axios.get<NiveauDefinition[]>(
-      `${BASE}/niveaux/competence/${competenceId}`,
-      
-    );
+    const res = await axios.get<NiveauDefinition[]>(`${BASE}/niveaux/competence/${competenceId}`);
     return res.data;
   },
 
   getBySousCompetence: async (sousCompetenceId: Id): Promise<NiveauDefinition[]> => {
     const res = await axios.get<NiveauDefinition[]>(
       `${BASE}/niveaux/sous-competence/${sousCompetenceId}`,
-      
     );
     return res.data;
   },
 
   getByCompetenceAndNiveau: async (
     competenceId: Id,
-    niveau: string
+    niveau: string,
   ): Promise<NiveauDefinition[]> => {
     const res = await axios.get<NiveauDefinition[]>(
       `${BASE}/niveaux/competence/${competenceId}/niveau/${niveau}`,
-      
     );
     return res.data;
   },
 
   getBySousCompetenceAndNiveau: async (
     sousCompetenceId: Id,
-    niveau: string
+    niveau: string,
   ): Promise<NiveauDefinition[]> => {
     const res = await axios.get<NiveauDefinition[]>(
       `${BASE}/niveaux/sous-competence/${sousCompetenceId}/niveau/${niveau}`,
-      
     );
     return res.data;
   },
@@ -355,16 +298,18 @@ const NiveauDefinitionAPI = {
     return res.data;
   },
 
-  remove: (id: Id): Promise<{ data: unknown }> =>
-    axios.delete(`${BASE}/niveaux/${id}`),
+  remove: (id: Id): Promise<{ data: unknown }> => axios.delete(`${BASE}/niveaux/${id}`),
 };
 
 const StructureAPI = {
-  getArbreComplet: async (upId?: string | null, departementId?: string | null): Promise<TreeNode[]> => {
+  getArbreComplet: async (
+    upId?: string | null,
+    departementId?: string | null,
+  ): Promise<TreeNode[]> => {
     const params = new URLSearchParams();
-    if (upId)          params.set("upId",          upId);
-    if (departementId) params.set("departementId", departementId);
-    const query = params.toString() ? `?${params}` : "";
+    if (upId) params.set('upId', upId);
+    if (departementId) params.set('departementId', departementId);
+    const query = params.toString() ? `?${params}` : '';
     const res = await axios.get<{ domaines: TreeNode[] }>(`${BASE}/structure/arbre${query}`);
     return res.data.domaines ?? [];
   },
@@ -374,13 +319,32 @@ const StructureAPI = {
     return res.data?.domaines ?? (Array.isArray(res.data) ? res.data : [res.data]);
   },
 
-  rechercheGlobale: async (keyword: string): Promise<{ domaines?: any[]; competences?: any[]; sousCompetences?: any[]; savoirs?: any[] }> => {
-    const res = await axios.get(`${BASE}/structure/recherche?keyword=${encodeURIComponent(keyword)}`);
+  rechercheGlobale: async (
+    keyword: string,
+  ): Promise<{
+    domaines?: any[];
+    competences?: any[];
+    sousCompetences?: any[];
+    savoirs?: any[];
+  }> => {
+    const res = await axios.get(
+      `${BASE}/structure/recherche?keyword=${encodeURIComponent(keyword)}`,
+    );
     return res.data;
   },
 
-  rechercheParDomaine: async (domaineId: Id, keyword: string): Promise<{ domaines?: any[]; competences?: any[]; sousCompetences?: any[]; savoirs?: any[] }> => {
-    const res = await axios.get(`${BASE}/structure/recherche/domaine/${domaineId}?keyword=${encodeURIComponent(keyword)}`);
+  rechercheParDomaine: async (
+    domaineId: Id,
+    keyword: string,
+  ): Promise<{
+    domaines?: any[];
+    competences?: any[];
+    sousCompetences?: any[];
+    savoirs?: any[];
+  }> => {
+    const res = await axios.get(
+      `${BASE}/structure/recherche/domaine/${domaineId}?keyword=${encodeURIComponent(keyword)}`,
+    );
     return res.data;
   },
 };
@@ -389,7 +353,6 @@ const PrerequisiteAPI = {
   getByCompetence: async (competenceId: Id): Promise<Record<string, unknown>[]> => {
     const res = await axios.get<Record<string, unknown>[]>(
       `${BASE}/competences/${competenceId}/prerequisite`,
-      
     );
     return res.data;
   },
@@ -397,7 +360,6 @@ const PrerequisiteAPI = {
   check: async (competenceId: Id, enseignantId: Id): Promise<Record<string, unknown>> => {
     const res = await axios.get<Record<string, unknown>>(
       `${BASE}/competences/${competenceId}/prerequisite/check/${enseignantId}`,
-      
     );
     return res.data;
   },
@@ -405,13 +367,12 @@ const PrerequisiteAPI = {
   add: async (competenceId: Id, data: PrerequisiteRequest): Promise<Record<string, unknown>> => {
     // Validation pour s'assurer que prerequisiteId n'est pas null
     if (!data.prerequisiteId) {
-      throw new Error("prerequisiteId est requis et ne peut pas être null");
+      throw new Error('prerequisiteId est requis et ne peut pas être null');
     }
-    
+
     const res = await axios.post<Record<string, unknown>>(
       `${BASE}/competences/${competenceId}/prerequisite`,
       data,
-      
     );
     return res.data;
   },
@@ -419,12 +380,12 @@ const PrerequisiteAPI = {
   updateNiveau: async (
     competenceId: Id,
     id: Id,
-    niveauMinimum: string
+    niveauMinimum: string,
   ): Promise<Record<string, unknown>> => {
     const res = await axios.patch<Record<string, unknown>>(
       `${BASE}/competences/${competenceId}/prerequisite/${id}/niveau`,
       null,
-      { params: { niveauMinimum } }
+      { params: { niveauMinimum } },
     );
     return res.data;
   },
@@ -445,7 +406,3 @@ const CompetenceService = {
 };
 
 export default CompetenceService;
-
-
-
-

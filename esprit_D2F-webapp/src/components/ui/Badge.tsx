@@ -1,7 +1,7 @@
-import { memo, type ReactNode } from "react";
-import styles from "./Badge.module.css";
+import { memo, type ReactNode } from 'react';
+import styles from './Badge.module.css';
 
-export type BadgeVariant = "success" | "warning" | "danger" | "info" | "neutral" | "primary";
+export type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'primary';
 
 interface BadgeProps {
   readonly variant?: BadgeVariant;
@@ -21,16 +21,16 @@ interface BadgeProps {
  *   <Badge variant="warning" pulse>À risque</Badge>
  */
 const Badge = memo(function Badge({
-  variant = "neutral",
+  variant = 'neutral',
   children,
   pulse = false,
   dot = false,
-  className = "",
+  className = '',
 }: BadgeProps) {
   return (
     <span className={`${styles.badge} ${styles[variant]} ${className}`}>
       {(dot || pulse) && (
-        <span aria-hidden="true" className={`${styles.dot} ${pulse ? styles.pulse : ""}`} />
+        <span aria-hidden="true" className={`${styles.dot} ${pulse ? styles.pulse : ''}`} />
       )}
       {children}
     </span>

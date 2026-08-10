@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import useAppNotification from "@/hooks/ui/useAppNotification";
-import CompetenceService from "@/services/competence/CompetenceService";
-import { buildDomaineNode } from "@/components/competence/tree/TreeNodeBuilders";
-import type { Id } from "@/models/common";
-import type { StructureData } from "@/models/competence";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import useAppNotification from '@/hooks/ui/useAppNotification';
+import CompetenceService from '@/services/competence/CompetenceService';
+import { buildDomaineNode } from '@/components/competence/tree/TreeNodeBuilders';
+import type { Id } from '@/models/common';
+import type { StructureData } from '@/models/competence';
 
 interface NiveauTarget {
-  type: "competence" | "sousCompetence";
+  type: 'competence' | 'sousCompetence';
   id: Id;
   nom: string;
 }
@@ -31,7 +31,7 @@ export default function useStructureData() {
   const qc = useQueryClient();
 
   const [searchResults, setSearchResults] = useState<Record<string, unknown> | null>(null);
-  const [searchKeyword, setSearchKeyword] = useState("");
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedDomaine, setSelectedDomaine] = useState<Id | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -44,36 +44,37 @@ export default function useStructureData() {
 
   const [matrixCompId, setMatrixCompId] = useState<Id | null>(null);
 
-  const openNiveauModal = useCallback(async (type: NiveauTarget["type"], id: Id, nom: string) => {
+  const openNiveauModal = useCallback(async (type: NiveauTarget['type'], id: Id, nom: string) => {
     setNiveauTarget({ type, id, nom });
     setNiveauModalVisible(true);
   }, []);
 
   const allSavoirsQuery = useQuery({
-    queryKey: ["all-savoirs"],
+    queryKey: ['all-savoirs'],
     queryFn: () => CompetenceService.savoir.getAll(),
     staleTime: 5 * 60 * 1000,
   });
 
   const structureQuery = useQuery({
-    queryKey: ["structure", filterUpId, filterDeptId],
-    queryFn: () => CompetenceService.structure.getArbreComplet(
+    queryKey: ['structure', filterUpId, filterDeptId],
+    queryFn: () =>
+      CompetenceService.structure.getArbreComplet(
         filterUpId != null ? String(filterUpId) : null,
-        filterDeptId != null ? String(filterDeptId) : null
+        filterDeptId != null ? String(filterDeptId) : null,
       ),
   });
 
   const niveauQuery = useQuery({
-    queryKey: ["niveau", niveauTarget?.type, niveauTarget?.id],
+    queryKey: ['niveau', niveauTarget?.type, niveauTarget?.id],
     queryFn: () =>
-      niveauTarget?.type === "competence"
+      niveauTarget?.type === 'competence'
         ? CompetenceService.niveauDefinition.getByCompetence(niveauTarget.id)
         : CompetenceService.niveauDefinition.getBySousCompetence(niveauTarget!.id),
     enabled: niveauModalVisible && !!niveauTarget,
   });
 
   const matrixQuery = useQuery({
-    queryKey: ["matrix", matrixCompId],
+    queryKey: ['matrix', matrixCompId],
     queryFn: () => CompetenceService.niveauDefinition.getByCompetence(matrixCompId!),
     enabled: !!matrixCompId,
     select: (resp: unknown): Record<string, Array<{ savoirCode?: string }>> => {
@@ -82,20 +83,24 @@ export default function useStructureData() {
     },
   });
 
-  const addNiveauMutation = useMutation<unknown, Error, { values: NiveauFormValues; target: NiveauTarget }>({
+  const addNiveauMutation = useMutation<
+    unknown,
+    Error,
+    { values: NiveauFormValues; target: NiveauTarget }
+  >({
     mutationFn: ({ values, target }) => {
       const request: NiveauRequest = {
         niveau: values.niveau,
         savoirId: values.savoirId,
         description: values.description,
       };
-      if (target.type === "competence") request.competenceId = target.id;
+      if (target.type === 'competence') request.competenceId = target.id;
       else request.sousCompetenceId = target.id;
       return CompetenceService.niveauDefinition.add(request);
     },
     onSuccess: (_, variables) => {
-      message.success("Savoir requis ajouté au niveau");
-      qc.invalidateQueries({ queryKey: ["niveau", variables.target?.type, variables.target?.id] });
+      message.success('Savoir requis ajouté au niveau');
+      qc.invalidateQueries({ queryKey: ['niveau', variables.target?.type, variables.target?.id] });
     },
     onError: (err: unknown) => {
       const e = err as { response?: { data?: { message?: string } } };
@@ -106,11 +111,11 @@ export default function useStructureData() {
   const removeNiveauMutation = useMutation<unknown, Error, { id: Id; target: NiveauTarget }>({
     mutationFn: ({ id }) => CompetenceService.niveauDefinition.remove(id),
     onSuccess: (_, variables) => {
-      message.success("Savoir requis supprimé du niveau");
-      qc.invalidateQueries({ queryKey: ["niveau", variables.target?.type, variables.target?.id] });
+      message.success('Savoir requis supprimé du niveau');
+      qc.invalidateQueries({ queryKey: ['niveau', variables.target?.type, variables.target?.id] });
     },
     onError: () => {
-      message.error("Erreur lors de la suppression");
+      message.error('Erreur lors de la suppression');
     },
   });
 
@@ -124,11 +129,11 @@ export default function useStructureData() {
   const loadStructure = useCallback(() => structureQuery.refetch(), [structureQuery]);
 
   const invalidateStructure = useCallback(() => {
-    qc.invalidateQueries({ queryKey: ["structure"] });
+    qc.invalidateQueries({ queryKey: ['structure'] });
   }, [qc]);
 
   const refreshMatrixIfNeeded = useCallback(() => {
-    if (matrixCompId) qc.invalidateQueries({ queryKey: ["matrix"] });
+    if (matrixCompId) qc.invalidateQueries({ queryKey: ['matrix'] });
   }, [qc, matrixCompId]);
 
   const applyFilter = useCallback((upId: number | null, deptId: number | null) => {
@@ -136,37 +141,51 @@ export default function useStructureData() {
     setFilterDeptId(deptId);
   }, []);
 
-  const handleAddNiveauSavoir = useCallback(async (values: NiveauFormValues) => {
-    if (!niveauTarget) return;
-    await addNiveauMutation.mutateAsync({ values, target: niveauTarget });
-  }, [niveauTarget, addNiveauMutation]);
+  const handleAddNiveauSavoir = useCallback(
+    async (values: NiveauFormValues) => {
+      if (!niveauTarget) return;
+      await addNiveauMutation.mutateAsync({ values, target: niveauTarget });
+    },
+    [niveauTarget, addNiveauMutation],
+  );
 
-  const handleRemoveNiveauSavoir = useCallback(async (id: Id) => {
-    if (!niveauTarget) return;
-    await removeNiveauMutation.mutateAsync({ id, target: niveauTarget });
-  }, [niveauTarget, removeNiveauMutation]);
+  const handleRemoveNiveauSavoir = useCallback(
+    async (id: Id) => {
+      if (!niveauTarget) return;
+      await removeNiveauMutation.mutateAsync({ id, target: niveauTarget });
+    },
+    [niveauTarget, removeNiveauMutation],
+  );
 
   const loadMatrixData = useCallback((compId: Id) => {
     setMatrixCompId(compId);
   }, []);
 
-  const doSearch = useCallback(async (keyword: string, domaine: Id | null) => {
-    if (!keyword || keyword.trim().length < 2) {
-      setSearchResults(null);
-      return;
-    }
-    setSearchLoading(true);
-    try {
-      let data: Record<string, unknown>;
-      if (domaine) data = await CompetenceService.structure.rechercheParDomaine(domaine, keyword.trim());
-      else data = await CompetenceService.structure.rechercheGlobale(keyword.trim()) as Record<string, unknown>;
-      setSearchResults(data);
-    } catch {
-      message.error("Erreur de recherche");
-    } finally {
-      setSearchLoading(false);
-    }
-  }, [message]);
+  const doSearch = useCallback(
+    async (keyword: string, domaine: Id | null) => {
+      if (!keyword || keyword.trim().length < 2) {
+        setSearchResults(null);
+        return;
+      }
+      setSearchLoading(true);
+      try {
+        let data: Record<string, unknown>;
+        if (domaine)
+          data = await CompetenceService.structure.rechercheParDomaine(domaine, keyword.trim());
+        else
+          data = (await CompetenceService.structure.rechercheGlobale(keyword.trim())) as Record<
+            string,
+            unknown
+          >;
+        setSearchResults(data);
+      } catch {
+        message.error('Erreur de recherche');
+      } finally {
+        setSearchLoading(false);
+      }
+    },
+    [message],
+  );
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -182,13 +201,16 @@ export default function useStructureData() {
     };
   }, [doSearch, searchKeyword, selectedDomaine]);
 
-  const handleSearch = useCallback((value: string) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    void doSearch(value, selectedDomaine);
-  }, [doSearch, selectedDomaine]);
+  const handleSearch = useCallback(
+    (value: string) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      void doSearch(value, selectedDomaine);
+    },
+    [doSearch, selectedDomaine],
+  );
 
   const handleClearSearch = useCallback(() => {
-    setSearchKeyword("");
+    setSearchKeyword('');
     setSearchResults(null);
   }, []);
 

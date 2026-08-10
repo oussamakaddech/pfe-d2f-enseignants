@@ -28,7 +28,7 @@ describe('WhatIfSimulator', () => {
           competences={[{ competence_id: 1, competence_nom: 'Java' }]}
           defaultTeacherId="E1"
         />
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
     expect(screen.getByText('Enseignant')).toBeInTheDocument();
     expect(screen.getByText('Horizon de projection')).toBeInTheDocument();

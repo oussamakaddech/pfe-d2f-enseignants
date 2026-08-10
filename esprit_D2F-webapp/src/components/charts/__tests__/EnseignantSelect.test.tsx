@@ -4,12 +4,24 @@ import EnseignantSelect from '../EnseignantSelect';
 import type { TeacherRiskIndicator } from '@/models/analyse';
 
 const teachers: TeacherRiskIndicator[] = [
-  { teacher_id: 'ENS001', teacher_name: 'Karim TRABELSI',
-    attrition_risk_score: 0.2, disengagement_signals: [],
-    competency_stagnation_rate: 0.1, training_velocity: 4, recommendation: 'OK' },
-  { teacher_id: 'ENS002', teacher_name: 'Sonia MANSOURI',
-    attrition_risk_score: 0.8, disengagement_signals: ['Absence'],
-    competency_stagnation_rate: 0.6, training_velocity: 0, recommendation: 'Planifier entretien' },
+  {
+    teacher_id: 'ENS001',
+    teacher_name: 'Karim TRABELSI',
+    attrition_risk_score: 0.2,
+    disengagement_signals: [],
+    competency_stagnation_rate: 0.1,
+    training_velocity: 4,
+    recommendation: 'OK',
+  },
+  {
+    teacher_id: 'ENS002',
+    teacher_name: 'Sonia MANSOURI',
+    attrition_risk_score: 0.8,
+    disengagement_signals: ['Absence'],
+    competency_stagnation_rate: 0.6,
+    training_velocity: 0,
+    recommendation: 'Planifier entretien',
+  },
 ];
 
 describe('EnseignantSelect', () => {

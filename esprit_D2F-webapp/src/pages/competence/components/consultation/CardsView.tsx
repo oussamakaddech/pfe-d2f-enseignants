@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { Input, Select } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import { useEffect, useMemo, useState } from 'react';
+import { Input, Select } from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
 import {
   ACTIVE_COMP_KEY,
   COMP_PALETTE,
@@ -13,19 +13,22 @@ import {
   hasAnyActiveFilters,
   toNiveauRank,
   type FlatSavoir,
-} from "@/utils/helpers/consultationViewUtils";
-import ActiveFiltersBar from "./ActiveFiltersBar";
-import EmptyState from "./EmptyState";
-import "@/styles/pages/cards-view.css";
+} from '@/utils/helpers/consultationViewUtils';
+import ActiveFiltersBar from './ActiveFiltersBar';
+import EmptyState from './EmptyState';
+import '@/styles/pages/cards-view.css';
 
 const { Option } = Select;
 const PAGE = 20;
 
-interface BadgeProps { text: string; type?: string }
-function Badge({ text, type = "muted" }: Readonly<BadgeProps>) {
-  let cls = "ctp-badge--muted";
-  if (type === "theorique") cls = "ctp-badge--theorique";
-  else if (type === "pratique") cls = "ctp-badge--pratique";
+interface BadgeProps {
+  text: string;
+  type?: string;
+}
+function Badge({ text, type = 'muted' }: Readonly<BadgeProps>) {
+  let cls = 'ctp-badge--muted';
+  if (type === 'theorique') cls = 'ctp-badge--theorique';
+  else if (type === 'pratique') cls = 'ctp-badge--pratique';
   return <span className={`ctp-badge ${cls}`}>{text}</span>;
 }
 
@@ -39,7 +42,10 @@ function useDebouncedValue<T>(value: T, delay = 300): T {
 }
 
 interface CompetenceRef {
-  id?: number | string; code?: string; nom?: string; domaineId?: number | string;
+  id?: number | string;
+  code?: string;
+  nom?: string;
+  domaineId?: number | string;
 }
 
 interface CardsViewProps {
@@ -60,20 +66,23 @@ export default function CardsView({
   onOpenAllConsumed,
 }: Readonly<CardsViewProps>) {
   const scopedCompetences = useMemo(
-    () => (crud.competences || []).filter((c: CompetenceRef) => (selectedDomaine ? String(c.domaineId) === String(selectedDomaine) : true)),
+    () =>
+      (crud.competences || []).filter((c: CompetenceRef) =>
+        selectedDomaine ? String(c.domaineId) === String(selectedDomaine) : true,
+      ),
     [crud.competences, selectedDomaine],
   );
   const [activeComp, setActiveComp] = useState(() => localStorage.getItem(ACTIVE_COMP_KEY) || null);
   const [visibleCount, setVisibleCount] = useState(() => new Map());
   const [openComps, setOpenComps] = useState(() => {
     try {
-      const raw = JSON.parse(localStorage.getItem(OPEN_COMPS_KEY) || "[]");
+      const raw = JSON.parse(localStorage.getItem(OPEN_COMPS_KEY) || '[]');
       return new Set(Array.isArray(raw) ? raw.map(String) : []);
     } catch {
       return new Set();
     }
   });
-  const [filters, setFilters] = useState({ q: "", type: "ALL", niveau: "ALL" });
+  const [filters, setFilters] = useState({ q: '', type: 'ALL', niveau: 'ALL' });
   const debouncedQ = useDebouncedValue(filters.q, 300);
 
   useEffect(() => {
@@ -110,7 +119,7 @@ export default function CardsView({
     const all = new Set(
       flatSavoirs
         .filter((s) => (selectedDomaine ? String(s.domaineId) === String(selectedDomaine) : true))
-        .map((s) => String(s.niveau || "-")),
+        .map((s) => String(s.niveau || '-')),
     );
     return Array.from(all).sort((a, b) => toNiveauRank(a) - toNiveauRank(b));
   }, [flatSavoirs, selectedDomaine]);
@@ -119,32 +128,44 @@ export default function CardsView({
   const hasActiveFilters = hasAnyActiveFilters(filters, debouncedQ);
 
   const compRows = useMemo(
-    () => scopedCompetences
-      .map((comp: CompetenceRef) => {
-        const allLinked = flatSavoirs.filter((s) => s.competenceId != null && String(s.competenceId) === String(comp.id));
-        const filteredLinked = allLinked.filter((s) => {
-          if (filters.type !== "ALL" && s.type !== filters.type) return false;
-          if (filters.niveau !== "ALL" && String(s.niveau || "-") !== filters.niveau) return false;
-          if (!q) return true;
-          return [s.nom, s.code, s.competenceNom, s.sousCompetenceNom, s.domaineNom].join(" ").toLowerCase().includes(q);
-        });
+    () =>
+      scopedCompetences
+        .map((comp: CompetenceRef) => {
+          const allLinked = flatSavoirs.filter(
+            (s) => s.competenceId != null && String(s.competenceId) === String(comp.id),
+          );
+          const filteredLinked = allLinked.filter((s) => {
+            if (filters.type !== 'ALL' && s.type !== filters.type) return false;
+            if (filters.niveau !== 'ALL' && String(s.niveau || '-') !== filters.niveau)
+              return false;
+            if (!q) return true;
+            return [s.nom, s.code, s.competenceNom, s.sousCompetenceNom, s.domaineNom]
+              .join(' ')
+              .toLowerCase()
+              .includes(q);
+          });
 
-        return {
-          comp,
-          allLinked,
-          filteredLinked,
-          theo: filteredLinked.filter((s) => s.type === "THEORIQUE").length,
-          prat: filteredLinked.filter((s) => s.type === "PRATIQUE").length,
-        };
-      })
-      .filter((row) => (activeComp ? String(row.comp.id) === String(activeComp) : true)),
+          return {
+            comp,
+            allLinked,
+            filteredLinked,
+            theo: filteredLinked.filter((s) => s.type === 'THEORIQUE').length,
+            prat: filteredLinked.filter((s) => s.type === 'PRATIQUE').length,
+          };
+        })
+        .filter((row) => (activeComp ? String(row.comp.id) === String(activeComp) : true)),
     [activeComp, filters.niveau, filters.type, flatSavoirs, q, scopedCompetences],
   );
 
   const compCountById = useMemo(() => {
     const map = new Map<string, number>();
     scopedCompetences.forEach((comp: CompetenceRef) => {
-      map.set(String(comp.id), flatSavoirs.filter((s) => s.competenceId != null && String(s.competenceId) === String(comp.id)).length);
+      map.set(
+        String(comp.id),
+        flatSavoirs.filter(
+          (s) => s.competenceId != null && String(s.competenceId) === String(comp.id),
+        ).length,
+      );
     });
     return map;
   }, [flatSavoirs, scopedCompetences]);
@@ -162,11 +183,11 @@ export default function CardsView({
     [compRows],
   );
 
-  const clearFilters = () => setFilters({ q: "", type: "ALL", niveau: "ALL" });
+  const clearFilters = () => setFilters({ q: '', type: 'ALL', niveau: 'ALL' });
   const removeFilter = (key: string) => {
     setFilters((prev) => ({
       ...prev,
-      [key]: key === "q" ? "" : "ALL",
+      [key]: key === 'q' ? '' : 'ALL',
     }));
   };
   const filterChips = buildFilterChips(filters);
@@ -174,7 +195,7 @@ export default function CardsView({
   if (scopedCompetences.length === 0) {
     return (
       <div className="ctp-empty-box ctp-section">
-        <EmptyState type={selectedDomaine ? "noComp" : "noData"} />
+        <EmptyState type={selectedDomaine ? 'noComp' : 'noData'} />
       </div>
     );
   }
@@ -184,29 +205,55 @@ export default function CardsView({
       <aside className="ctp-cards-sidebar">
         <div className="ctp-cards-sidebar__head">Competences</div>
         {scopedCompetences.map((comp: CompetenceRef, idx: number) => (
-          <button key={comp.id} className={`ctp-sidebar-item${activeComp === String(comp.id) ? " active" : ""}`} onClick={() => setActiveComp(String(comp.id))}>
-            <span className="ctp-sidebar-dot" style={{ background: COMP_PALETTE[idx % COMP_PALETTE.length] }} />
+          <button
+            key={comp.id}
+            className={`ctp-sidebar-item${activeComp === String(comp.id) ? ' active' : ''}`}
+            onClick={() => setActiveComp(String(comp.id))}
+          >
+            <span
+              className="ctp-sidebar-dot"
+              style={{ background: COMP_PALETTE[idx % COMP_PALETTE.length] }}
+            />
             <span className="ctp-sidebar-name">{comp.nom}</span>
             <span className="ctp-sidebar-count">{compCountById.get(String(comp.id)) || 0}</span>
           </button>
         ))}
-        <button className={`ctp-sidebar-item${activeComp == null ? " active" : ""}`} onClick={() => setActiveComp(null)}>
-          <span className="ctp-sidebar-dot" style={{ background: "#64748b" }} />
+        <button
+          className={`ctp-sidebar-item${activeComp == null ? ' active' : ''}`}
+          onClick={() => setActiveComp(null)}
+        >
+          <span className="ctp-sidebar-dot" style={{ background: '#64748b' }} />
           <span className="ctp-sidebar-name">Toutes</span>
         </button>
       </aside>
 
       <div>
         <div className="ctp-cards-filters">
-          <Input allowClear prefix={<SearchOutlined style={{ color: "#64748b" }} />} placeholder="Rechercher un savoir, code, competence..." value={filters.q} onChange={(e) => setFilters((prev) => ({ ...prev, q: e.target.value }))} />
-          <Select value={filters.type} onChange={(val) => setFilters((prev) => ({ ...prev, type: val }))}>
+          <Input
+            allowClear
+            prefix={<SearchOutlined style={{ color: '#64748b' }} />}
+            placeholder="Rechercher un savoir, code, competence..."
+            value={filters.q}
+            onChange={(e) => setFilters((prev) => ({ ...prev, q: e.target.value }))}
+          />
+          <Select
+            value={filters.type}
+            onChange={(val) => setFilters((prev) => ({ ...prev, type: val }))}
+          >
             <Option value="ALL">Tous les types</Option>
             <Option value="THEORIQUE">Theorique</Option>
             <Option value="PRATIQUE">Pratique</Option>
           </Select>
-          <Select value={filters.niveau} onChange={(val) => setFilters((prev) => ({ ...prev, niveau: val }))}>
+          <Select
+            value={filters.niveau}
+            onChange={(val) => setFilters((prev) => ({ ...prev, niveau: val }))}
+          >
             <Option value="ALL">Tous les niveaux</Option>
-            {niveaux.map((n) => <Option key={n} value={n}>{formatNiveau(n)}</Option>)}
+            {niveaux.map((n) => (
+              <Option key={n} value={n}>
+                {formatNiveau(n)}
+              </Option>
+            ))}
           </Select>
         </div>
 
@@ -216,17 +263,23 @@ export default function CardsView({
           <div className="ctp-filter-summary">
             <span className="ctp-filter-summary__count">{totalFiltered}</span>
             <span className="ctp-filter-summary__text">
-              savoir{totalFiltered > 1 ? "s" : ""} affiche{totalFiltered > 1 ? "s" : ""} sur {totalAll} au total dans {nonEmptyCompCount} competence{nonEmptyCompCount > 1 ? "s" : ""}
+              savoir{totalFiltered > 1 ? 's' : ''} affiche{totalFiltered > 1 ? 's' : ''} sur{' '}
+              {totalAll} au total dans {nonEmptyCompCount} competence
+              {nonEmptyCompCount > 1 ? 's' : ''}
             </span>
           </div>
         )}
 
         {compRows.length === 0 ? (
-          <div className="ctp-empty-box"><EmptyState type="noResults" onClear={clearFilters} /></div>
+          <div className="ctp-empty-box">
+            <EmptyState type="noResults" onClear={clearFilters} />
+          </div>
         ) : (
           compRows.map((row) => {
             const compId = String(row.comp.id);
-            const paletteIdx = scopedCompetences.findIndex((c: CompetenceRef) => String(c.id) === String(row.comp.id));
+            const paletteIdx = scopedCompetences.findIndex(
+              (c: CompetenceRef) => String(c.id) === String(row.comp.id),
+            );
             const accent = COMP_PALETTE[Math.max(paletteIdx, 0) % COMP_PALETTE.length];
             const isOpen = openComps.has(compId);
             const limit = visibleCount.get(compId) || PAGE;
@@ -236,12 +289,17 @@ export default function CardsView({
 
             return (
               <section key={compId} className="ctp-acc-section">
-                <button className="ctp-acc-header" onClick={() => setOpenComps((prev) => {
-                  const next = new Set(prev);
-                  if (next.has(compId)) next.delete(compId);
-                  else next.add(compId);
-                  return next;
-                })}>
+                <button
+                  className="ctp-acc-header"
+                  onClick={() =>
+                    setOpenComps((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(compId)) next.delete(compId);
+                      else next.add(compId);
+                      return next;
+                    })
+                  }
+                >
                   <span className="ctp-acc-colorbar" style={{ background: accent }} />
                   <div className="ctp-acc-info">
                     <div className="ctp-acc-title">{row.comp.nom}</div>
@@ -249,33 +307,59 @@ export default function CardsView({
                   </div>
                   <span className="ctp-badge ctp-badge--muted">
                     {row.filteredLinked.length}
-                    {row.filteredLinked.length !== row.allLinked.length && <span className="ctp-count-total">/{row.allLinked.length}</span>} savoir{row.filteredLinked.length > 1 ? "s" : ""}
+                    {row.filteredLinked.length !== row.allLinked.length && (
+                      <span className="ctp-count-total">/{row.allLinked.length}</span>
+                    )}{' '}
+                    savoir{row.filteredLinked.length > 1 ? 's' : ''}
                   </span>
                   <div className="ctp-acc-pills">
                     <Badge text={`${row.theo} theo.`} type="theorique" />
                     <Badge text={`${row.prat} prat.`} type="pratique" />
                   </div>
-                  <span className={`ctp-acc-chevron${isOpen ? " open" : ""}`}>{isOpen ? "▼" : "►"}</span>
+                  <span className={`ctp-acc-chevron${isOpen ? ' open' : ''}`}>
+                    {isOpen ? '▼' : '►'}
+                  </span>
                 </button>
 
-                {isOpen && (
-                  row.filteredLinked.length === 0 ? (
-                    <div className="ctp-empty-box"><EmptyState type="noResults" onClear={clearFilters} /></div>
+                {isOpen &&
+                  (row.filteredLinked.length === 0 ? (
+                    <div className="ctp-empty-box">
+                      <EmptyState type="noResults" onClear={clearFilters} />
+                    </div>
                   ) : (
                     <>
                       <div className="ctp-savoir-grid">
                         {visible.map((savoir) => {
                           const niveauStyle = getNiveauStyle(savoir.niveau);
                           return (
-                            <button key={savoir.id} className="ctp-savoir-mini" style={{ borderLeftColor: accent }} onClick={() => onOpenSavoir(savoir)}>
-                              <div className="ctp-savoir-mini__code" style={{ color: accent }}>{savoir.code}</div>
+                            <button
+                              key={savoir.id}
+                              className="ctp-savoir-mini"
+                              style={{ borderLeftColor: accent }}
+                              onClick={() => onOpenSavoir(savoir)}
+                            >
+                              <div className="ctp-savoir-mini__code" style={{ color: accent }}>
+                                {savoir.code}
+                              </div>
                               <div className="ctp-savoir-mini__nom">{savoir.nom}</div>
                               <div className="ctp-savoir-mini__footer">
-                                <Badge text={getTypeLabel(savoir.type ?? "")} type={getTypeBadge(savoir.type ?? "")} />
-                                <span className="ctp-badge" style={{ color: niveauStyle.color, background: niveauStyle.bg, borderColor: niveauStyle.border }}>
+                                <Badge
+                                  text={getTypeLabel(savoir.type ?? '')}
+                                  type={getTypeBadge(savoir.type ?? '')}
+                                />
+                                <span
+                                  className="ctp-badge"
+                                  style={{
+                                    color: niveauStyle.color,
+                                    background: niveauStyle.bg,
+                                    borderColor: niveauStyle.border,
+                                  }}
+                                >
                                   {formatNiveau(savoir.niveau)}
                                 </span>
-                                {savoir.isDirect && <span className="ctp-badge-direct">direct</span>}
+                                {savoir.isDirect && (
+                                  <span className="ctp-badge-direct">direct</span>
+                                )}
                               </div>
                             </button>
                           );
@@ -286,20 +370,23 @@ export default function CardsView({
                         <div className="ctp-show-more">
                           <button
                             className="ctp-show-more-btn"
-                            onClick={() => setVisibleCount((prev) => {
-                              const next = new Map(prev);
-                              next.set(compId, limit + PAGE);
-                              return next;
-                            })}
+                            onClick={() =>
+                              setVisibleCount((prev) => {
+                                const next = new Map(prev);
+                                next.set(compId, limit + PAGE);
+                                return next;
+                              })
+                            }
                           >
-                            Voir {moreCount} savoir{moreCount > 1 ? "s" : ""} de plus
-                            <span className="ctp-show-more-total">({limit} / {row.filteredLinked.length})</span>
+                            Voir {moreCount} savoir{moreCount > 1 ? 's' : ''} de plus
+                            <span className="ctp-show-more-total">
+                              ({limit} / {row.filteredLinked.length})
+                            </span>
                           </button>
                         </div>
                       )}
                     </>
-                  )
-                )}
+                  ))}
               </section>
             );
           })
@@ -308,9 +395,3 @@ export default function CardsView({
     </div>
   );
 }
-
-
-
-
-
-

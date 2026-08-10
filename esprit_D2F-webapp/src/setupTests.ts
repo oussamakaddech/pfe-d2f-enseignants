@@ -1,16 +1,17 @@
 import '@testing-library/jest-dom/vitest';
 
 if (!globalThis.matchMedia) {
-  globalThis.matchMedia = ((query: string): MediaQueryList => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: () => {},
-    removeListener: () => {},
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    dispatchEvent: () => false,
-  } as MediaQueryList)) as typeof window.matchMedia;
+  globalThis.matchMedia = ((query: string): MediaQueryList =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }) as MediaQueryList) as typeof window.matchMedia;
 }
 
 if (!globalThis.ResizeObserver) {
@@ -24,7 +25,7 @@ if (!globalThis.ResizeObserver) {
 if (!globalThis.IntersectionObserver) {
   globalThis.IntersectionObserver = class IntersectionObserver {
     readonly root = null;
-    readonly rootMargin = "0px";
+    readonly rootMargin = '0px';
     readonly thresholds = [];
 
     constructor(_callback: IntersectionObserverCallback) {}

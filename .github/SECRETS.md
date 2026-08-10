@@ -17,6 +17,14 @@ Configurer dans **Settings → Secrets and variables → Actions**.
 | `SONAR_TOKEN`    | Token d'analyse SonarQube                       | —                                |
 | `SONAR_HOST_URL` | URL du serveur SonarQube interne                | `http://sonar.dsi.local:9000`    |
 
+## Sécurité — OWASP Dependency Check (DSI 12.12)
+
+| Secret           | Description                                                                  | Exemple                |
+|------------------|------------------------------------------------------------------------------|------------------------|
+| `NVD_API_KEY`    | Clé API NVD 2.0 (gratuite) — obligatoire pour le job OWASP de la CI          | `https://nvd.nist.gov/developers/request-an-api-key` |
+
+> Sans `NVD_API_KEY`, le job `OWASP - *` échoue dès la mise à jour de la base NVD.
+
 ## Déploiement — Environnement Test
 
 | Secret              | Description                                  |

@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import type { Domaine, Competence } from "@/models/competence";
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import type { Domaine, Competence } from '@/models/competence';
 
 interface CrudStructure {
   domaines?: Domaine[];
@@ -13,18 +13,19 @@ interface UseCompetencePageStateProps {
 }
 
 const normalizeTab = (tab: string | null) => {
-  if (tab === "sousCompetences") return "competences";
-  if (tab === "recherche") return "hierarchie";
-  return tab ?? "domaines";
+  if (tab === 'sousCompetences') return 'competences';
+  if (tab === 'recherche') return 'hierarchie';
+  return tab ?? 'domaines';
 };
 
-export default function useCompetencePageState({ crud, loadStructure }: UseCompetencePageStateProps) {
+export default function useCompetencePageState({
+  crud,
+  loadStructure,
+}: UseCompetencePageStateProps) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState(() =>
-    normalizeTab(searchParams.get("tab")),
-  );
+  const [activeTab, setActiveTab] = useState(() => normalizeTab(searchParams.get('tab')));
 
-  const [viewMode, setViewMode] = useState("buttons");
+  const [viewMode, setViewMode] = useState('buttons');
   const [consultNiveau, setConsultNiveau] = useState(0);
   const [consultDomaine, setConsultDomaine] = useState<Domaine | null>(null);
   const [consultCompetence, setConsultCompetence] = useState<Competence | null>(null);
@@ -45,11 +46,11 @@ export default function useCompetencePageState({ crud, loadStructure }: UseCompe
 
   const handleStatNavigation = useCallback(
     (target: string) => {
-      setActiveTab("hierarchie");
-      setSearchParams({ tab: "hierarchie" });
-      setViewMode("buttons");
+      setActiveTab('hierarchie');
+      setSearchParams({ tab: 'hierarchie' });
+      setViewMode('buttons');
 
-      if (target === "domaines") {
+      if (target === 'domaines') {
         setConsultNiveau(0);
         setConsultDomaine(null);
         setConsultCompetence(null);
@@ -60,7 +61,7 @@ export default function useCompetencePageState({ crud, loadStructure }: UseCompe
       const nextDomaine = consultDomaine ?? crud.domaines?.[0] ?? null;
       if (!nextDomaine) return;
 
-      if (target === "competences") {
+      if (target === 'competences') {
         setConsultNiveau(1);
         setConsultDomaine(nextDomaine);
         setConsultCompetence(null);
@@ -69,10 +70,11 @@ export default function useCompetencePageState({ crud, loadStructure }: UseCompe
       }
 
       const nextCompetence =
-        consultCompetence &&
-        String(consultCompetence.domaineId) === String(nextDomaine.id)
+        consultCompetence && String(consultCompetence.domaineId) === String(nextDomaine.id)
           ? consultCompetence
-          : (crud.competences || []).find((c: Competence) => String(c.domaineId) === String(nextDomaine.id)) ?? null;
+          : ((crud.competences || []).find(
+              (c: Competence) => String(c.domaineId) === String(nextDomaine.id),
+            ) ?? null);
 
       if (!nextCompetence) return;
 
@@ -81,43 +83,37 @@ export default function useCompetencePageState({ crud, loadStructure }: UseCompe
       setConsultCompetence(nextCompetence);
       setConsultScStack([]);
     },
-    [
-      consultCompetence,
-      consultDomaine,
-      crud.competences,
-      crud.domaines,
-      setSearchParams,
-    ],
+    [consultCompetence, consultDomaine, crud.competences, crud.domaines, setSearchParams],
   );
 
   const buildCardTrigger = useCallback(
     (target: string) => ({
-      role: "button",
+      role: 'button',
       tabIndex: 0,
       onClick: () => handleStatNavigation(target),
       onKeyDown: (e: React.KeyboardEvent) => {
-        if (e.key === "Enter" || e.key === " ") {
+        if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           handleStatNavigation(target);
         }
       },
-      style: { cursor: "pointer" },
+      style: { cursor: 'pointer' },
     }),
     [handleStatNavigation],
   );
 
   useEffect(() => {
-    const tab = searchParams.get("tab");
+    const tab = searchParams.get('tab');
     if (!tab) return;
     setActiveTab(normalizeTab(tab));
   }, [searchParams]);
 
   useEffect(() => {
-    if (activeTab === "hierarchie") loadStructure();
+    if (activeTab === 'hierarchie') loadStructure();
   }, [activeTab, loadStructure]);
 
   useEffect(() => {
-    if (viewMode !== "graph") return;
+    if (viewMode !== 'graph') return;
 
     const refreshWidth = () => {
       const rect = graphContainerRef.current?.getBoundingClientRect();
@@ -125,8 +121,8 @@ export default function useCompetencePageState({ crud, loadStructure }: UseCompe
     };
 
     refreshWidth();
-    globalThis.addEventListener("resize", refreshWidth);
-    return () => globalThis.removeEventListener("resize", refreshWidth);
+    globalThis.addEventListener('resize', refreshWidth);
+    return () => globalThis.removeEventListener('resize', refreshWidth);
   }, [viewMode]);
 
   return {

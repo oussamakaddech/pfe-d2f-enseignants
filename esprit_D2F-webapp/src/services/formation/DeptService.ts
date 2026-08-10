@@ -1,6 +1,6 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
-import type { Departement } from "@/models/formation";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
+import type { Departement } from '@/models/formation';
 const API_URL = `${config.FORMATION_URL}/formation/departements`;
 
 function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; items?: T[] }): T[] {
@@ -8,7 +8,7 @@ function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; it
     return payload;
   }
 
-  if (payload && typeof payload === "object") {
+  if (payload && typeof payload === 'object') {
     const candidate = payload as { content?: unknown[]; data?: unknown[]; items?: unknown[] };
     if (Array.isArray(candidate.content)) {
       return candidate.content as T[];
@@ -25,8 +25,10 @@ function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; it
 }
 
 function isNotFoundError(error: unknown): boolean {
-  return (error as { isAxiosError?: boolean; response?: { status?: number } })?.isAxiosError === true
-    && (error as { response?: { status?: number } })?.response?.status === 404;
+  return (
+    (error as { isAxiosError?: boolean; response?: { status?: number } })?.isAxiosError === true &&
+    (error as { response?: { status?: number } })?.response?.status === 404
+  );
 }
 
 const DeptService = {
@@ -63,7 +65,7 @@ const DeptService = {
 
   async importDeptsExcel(file: File): Promise<{ count: number }> {
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append('file', file);
     const response = await axios.post(`${API_URL}/import-excel`, formData);
     return response.data;
   },

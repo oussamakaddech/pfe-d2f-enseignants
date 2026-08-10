@@ -3,8 +3,8 @@ interface BesoinStatusBadgeProps {
 }
 
 export default function BesoinStatusBadge({ approved }: Readonly<BesoinStatusBadgeProps>) {
-  const tone = approved ? "approved" : "pending";
-  const label = approved ? "Approuvé" : "En attente";
+  const tone = approved ? 'approved' : 'pending';
+  const label = approved ? 'Approuvé' : 'En attente';
   return (
     <span className={`bf-status bf-status--${tone}`}>
       <span className="bf-status__dot" aria-hidden="true" />
@@ -12,9 +12,3 @@ export default function BesoinStatusBadge({ approved }: Readonly<BesoinStatusBad
     </span>
   );
 }
-
-
-
-
-
-

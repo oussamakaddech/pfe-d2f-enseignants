@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Card, Avatar, Tag, Typography, Input, Space } from "antd";
+import { useMemo, useState } from 'react';
+import { Card, Avatar, Tag, Typography, Input, Space } from 'antd';
 import {
   TeamOutlined,
   CheckCircleOutlined,
@@ -9,15 +9,15 @@ import {
   MailOutlined,
   ApartmentOutlined,
   SearchOutlined,
-} from "@ant-design/icons";
-import { useInscriptionsByFormation } from "@/hooks/formation";
-import { InscriptionStatGrid, PageLoader, EmptyStateStandard } from "@/components/common";
-import { brand, neutral } from "@/styles/themes/tokens";
-import type { Id } from "@/models/common";
+} from '@ant-design/icons';
+import { useInscriptionsByFormation } from '@/hooks/formation';
+import { InscriptionStatGrid, PageLoader, EmptyStateStandard } from '@/components/common';
+import { brand, neutral } from '@/styles/themes/tokens';
+import type { Id } from '@/models/common';
 
 const { Text } = Typography;
 
-type Etat = "APPROVED" | "PENDING" | "REJECTED";
+type Etat = 'APPROVED' | 'PENDING' | 'REJECTED';
 
 interface EnseignantRef {
   nom?: string;
@@ -34,11 +34,17 @@ interface Inscription {
   enseignant: EnseignantRef;
 }
 
-const ETAT_META: Record<Etat, { color: string; bg: string; label: string; icon: React.ReactNode }> = {
-  APPROVED: { color: "#15803d", bg: "#dcfce7", label: "Approuvé",   icon: <CheckCircleOutlined /> },
-  PENDING:  { color: "#b45309", bg: "#fef3c7", label: "En attente", icon: <ClockCircleOutlined /> },
-  REJECTED: { color: "#b51200", bg: "#fee2e2", label: "Rejeté",     icon: <CloseCircleOutlined /> },
-};
+const ETAT_META: Record<Etat, { color: string; bg: string; label: string; icon: React.ReactNode }> =
+  {
+    APPROVED: { color: '#15803d', bg: '#dcfce7', label: 'Approuvé', icon: <CheckCircleOutlined /> },
+    PENDING: {
+      color: '#b45309',
+      bg: '#fef3c7',
+      label: 'En attente',
+      icon: <ClockCircleOutlined />,
+    },
+    REJECTED: { color: '#b51200', bg: '#fee2e2', label: 'Rejeté', icon: <CloseCircleOutlined /> },
+  };
 
 function normalizeList(data: unknown): Inscription[] {
   if (Array.isArray(data)) return data as Inscription[];
@@ -49,16 +55,19 @@ function normalizeList(data: unknown): Inscription[] {
 
 export default function FormationParticipantsPanel({ formationId }: Readonly<{ formationId: Id }>) {
   const { data, isLoading } = useInscriptionsByFormation(formationId);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
 
   const list = useMemo(() => normalizeList(data), [data]);
 
-  const stats = useMemo(() => ({
-    total:    list.length,
-    approved: list.filter((i) => i.etat === "APPROVED").length,
-    pending:  list.filter((i) => i.etat === "PENDING").length,
-    rejected: list.filter((i) => i.etat === "REJECTED").length,
-  }), [list]);
+  const stats = useMemo(
+    () => ({
+      total: list.length,
+      approved: list.filter((i) => i.etat === 'APPROVED').length,
+      pending: list.filter((i) => i.etat === 'PENDING').length,
+      rejected: list.filter((i) => i.etat === 'REJECTED').length,
+    }),
+    [list],
+  );
 
   const displayed = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -66,10 +75,10 @@ export default function FormationParticipantsPanel({ formationId }: Readonly<{ f
     return list.filter((i) => {
       const e = i.enseignant ?? {};
       return (
-        `${e.prenom ?? ""} ${e.nom ?? ""}`.toLowerCase().includes(term) ||
-        (e.mail ?? "").toLowerCase().includes(term) ||
-        (e.deptLibelle ?? "").toLowerCase().includes(term) ||
-        (e.upLibelle ?? "").toLowerCase().includes(term)
+        `${e.prenom ?? ''} ${e.nom ?? ''}`.toLowerCase().includes(term) ||
+        (e.mail ?? '').toLowerCase().includes(term) ||
+        (e.deptLibelle ?? '').toLowerCase().includes(term) ||
+        (e.upLibelle ?? '').toLowerCase().includes(term)
       );
     });
   }, [list, search]);
@@ -82,7 +91,9 @@ export default function FormationParticipantsPanel({ formationId }: Readonly<{ f
         <Space>
           <TeamOutlined className="fiche-card-icon" />
           <span className="fiche-card-title-text">Participants &amp; inscriptions</span>
-          <Tag color="default" style={{ borderRadius: 10 }}>{stats.total}</Tag>
+          <Tag color="default" style={{ borderRadius: 10 }}>
+            {stats.total}
+          </Tag>
         </Space>
       }
     >
@@ -95,10 +106,30 @@ export default function FormationParticipantsPanel({ formationId }: Readonly<{ f
             minColumnWidth={150}
             gap={12}
             stats={[
-              { icon: <TeamOutlined />,        label: "Total inscrits", value: stats.total,    tone: "brand"   },
-              { icon: <CheckCircleOutlined />, label: "Approuvés",      value: stats.approved, tone: "success" },
-              { icon: <ClockCircleOutlined />, label: "En attente",     value: stats.pending,  tone: "warning" },
-              { icon: <CloseCircleOutlined />, label: "Rejetés",        value: stats.rejected, tone: "danger"  },
+              {
+                icon: <TeamOutlined />,
+                label: 'Total inscrits',
+                value: stats.total,
+                tone: 'brand',
+              },
+              {
+                icon: <CheckCircleOutlined />,
+                label: 'Approuvés',
+                value: stats.approved,
+                tone: 'success',
+              },
+              {
+                icon: <ClockCircleOutlined />,
+                label: 'En attente',
+                value: stats.pending,
+                tone: 'warning',
+              },
+              {
+                icon: <CloseCircleOutlined />,
+                label: 'Rejetés',
+                value: stats.rejected,
+                tone: 'danger',
+              },
             ]}
           />
 
@@ -121,38 +152,72 @@ export default function FormationParticipantsPanel({ formationId }: Readonly<{ f
               description="Les enseignants apparaîtront ici après avoir soumis une demande d'inscription."
             />
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {displayed.map((i) => {
                 const e = i.enseignant ?? {};
                 const meta = ETAT_META[i.etat] ?? ETAT_META.PENDING;
-                const fullName = `${e.prenom ?? ""} ${e.nom ?? ""}`.trim() || "—";
+                const fullName = `${e.prenom ?? ''} ${e.nom ?? ''}`.trim() || '—';
                 return (
                   <div
                     key={i.id}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
+                      display: 'flex',
+                      alignItems: 'center',
                       gap: 14,
-                      padding: "12px 14px",
+                      padding: '12px 14px',
                       borderRadius: 12,
-                      border: "1px solid var(--border-color, #eef0f3)",
-                      background: "var(--bg-card, #fff)",
+                      border: '1px solid var(--border-color, #eef0f3)',
+                      background: 'var(--bg-card, #fff)',
                     }}
                   >
-                    <Avatar style={{ backgroundColor: brand[500], flexShrink: 0 }} icon={<UserOutlined />}>
-                      {(e.prenom?.[0] ?? "") + (e.nom?.[0] ?? "")}
+                    <Avatar
+                      style={{ backgroundColor: brand[500], flexShrink: 0 }}
+                      icon={<UserOutlined />}
+                    >
+                      {(e.prenom?.[0] ?? '') + (e.nom?.[0] ?? '')}
                     </Avatar>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, color: neutral[800] }}>{fullName}</div>
-                      <div style={{ fontSize: 12.5, color: neutral[500], display: "flex", flexWrap: "wrap", gap: 12, marginTop: 2 }}>
-                        {e.mail && <span><MailOutlined style={{ marginRight: 4 }} />{e.mail}</span>}
-                        {e.deptLibelle && <span><ApartmentOutlined style={{ marginRight: 4 }} />{e.deptLibelle}</span>}
-                        {e.upLibelle && <span><TeamOutlined style={{ marginRight: 4 }} />{e.upLibelle}</span>}
+                      <div
+                        style={{
+                          fontSize: 12.5,
+                          color: neutral[500],
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: 12,
+                          marginTop: 2,
+                        }}
+                      >
+                        {e.mail && (
+                          <span>
+                            <MailOutlined style={{ marginRight: 4 }} />
+                            {e.mail}
+                          </span>
+                        )}
+                        {e.deptLibelle && (
+                          <span>
+                            <ApartmentOutlined style={{ marginRight: 4 }} />
+                            {e.deptLibelle}
+                          </span>
+                        )}
+                        {e.upLibelle && (
+                          <span>
+                            <TeamOutlined style={{ marginRight: 4 }} />
+                            {e.upLibelle}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <Tag
                       icon={meta.icon}
-                      style={{ color: meta.color, background: meta.bg, border: "none", borderRadius: 16, fontWeight: 600, padding: "2px 10px" }}
+                      style={{
+                        color: meta.color,
+                        background: meta.bg,
+                        border: 'none',
+                        borderRadius: 16,
+                        fontWeight: 600,
+                        padding: '2px 10px',
+                      }}
                     >
                       {meta.label}
                     </Tag>
@@ -160,7 +225,9 @@ export default function FormationParticipantsPanel({ formationId }: Readonly<{ f
                 );
               })}
               {displayed.length === 0 && (
-                <Text type="secondary" style={{ padding: "8px 4px" }}>Aucun participant ne correspond à la recherche.</Text>
+                <Text type="secondary" style={{ padding: '8px 4px' }}>
+                  Aucun participant ne correspond à la recherche.
+                </Text>
               )}
             </div>
           )}

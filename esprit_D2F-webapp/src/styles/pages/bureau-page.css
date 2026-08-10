@@ -23,7 +23,7 @@
 }
 
 .bureau-hero::before {
-  content: "";
+  content: '';
   position: absolute;
   width: 280px;
   height: 280px;
@@ -36,7 +36,10 @@
   background: radial-gradient(circle, rgba(255, 255, 255, 0.1), transparent 70%);
 }
 
-.bureau-hero > * { position: relative; z-index: 1; }
+.bureau-hero > * {
+  position: relative;
+  z-index: 1;
+}
 
 .bureau-hero-title {
   font-size: 28px !important;
@@ -164,8 +167,14 @@
 
 /* ─── Action buttons ──────────────────────────────────────────────────── */
 
-.bureau-btn-edit:hover  { color: #2563eb !important; background: #eff6ff !important; }
-.bureau-btn-delete:hover { color: #b91c1c !important; background: #fef2f2 !important; }
+.bureau-btn-edit:hover {
+  color: #2563eb !important;
+  background: #eff6ff !important;
+}
+.bureau-btn-delete:hover {
+  color: #b91c1c !important;
+  background: #fef2f2 !important;
+}
 
 .bureau-btn-add {
   background: #fff !important;

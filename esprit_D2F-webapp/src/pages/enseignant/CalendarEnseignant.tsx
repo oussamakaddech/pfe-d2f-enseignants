@@ -1,19 +1,9 @@
-
-import { useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Calendar, dateFnsLocalizer, type View } from "react-big-calendar";
-import { format, parse, startOfWeek, getDay } from "date-fns";
-import { fr } from "date-fns/locale/fr";
-import {
-  Button,
-  Modal,
-  Typography,
-  Row,
-  Col,
-  Space,
-  Tag,
-  Card,
-} from "antd";
+import { useState, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Calendar, dateFnsLocalizer, type View } from 'react-big-calendar';
+import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { fr } from 'date-fns/locale/fr';
+import { Button, Modal, Typography, Row, Col, Space, Tag, Card } from 'antd';
 import {
   ArrowLeftOutlined,
   UserOutlined,
@@ -22,10 +12,10 @@ import {
   ClockCircleOutlined,
   EnvironmentOutlined,
   ApartmentOutlined,
-} from "@ant-design/icons";
-import { useFormationsForCalendar } from "@/hooks/formation";
-import "react-big-calendar/lib/css/react-big-calendar.css";
-import "@/styles/pages/calendar-enseignant.css";
+} from '@ant-design/icons';
+import { useFormationsForCalendar } from '@/hooks/formation';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+import '@/styles/pages/calendar-enseignant.css';
 
 const { Title, Text } = Typography;
 
@@ -63,7 +53,7 @@ interface CalendarEvent {
   end: Date;
   allDay: boolean;
   resource: {
-    role: "animateur" | "participant";
+    role: 'animateur' | 'participant';
     formation: FormationCalendar;
     seance: Seance;
   };
@@ -81,7 +71,7 @@ const toAnimateurEvent = (f: FormationCalendar, s: Seance): CalendarEvent => ({
   start: new Date(`${s.dateSeance}T${s.heureDebut}`),
   end: new Date(`${s.dateSeance}T${s.heureFin}`),
   allDay: false,
-  resource: { role: "animateur", formation: f, seance: s },
+  resource: { role: 'animateur', formation: f, seance: s },
 });
 
 const toParticipantEvent = (f: FormationCalendar, s: Seance): CalendarEvent => ({
@@ -90,21 +80,25 @@ const toParticipantEvent = (f: FormationCalendar, s: Seance): CalendarEvent => (
   start: new Date(`${s.dateSeance}T${s.heureDebut}`),
   end: new Date(`${s.dateSeance}T${s.heureFin}`),
   allDay: false,
-  resource: { role: "participant", formation: f, seance: s },
+  resource: { role: 'participant', formation: f, seance: s },
 });
 
-const buildAnimateurEvents = (formations: FormationCalendar[], enseignantId: string | undefined): CalendarEvent[] =>
+const buildAnimateurEvents = (
+  formations: FormationCalendar[],
+  enseignantId: string | undefined,
+): CalendarEvent[] =>
   formations.flatMap((f) =>
-    f.seances
-      .filter((s) => seanceHasAnimateur(s, enseignantId))
-      .map((s) => toAnimateurEvent(f, s))
+    f.seances.filter((s) => seanceHasAnimateur(s, enseignantId)).map((s) => toAnimateurEvent(f, s)),
   );
 
-const buildParticipantEvents = (formations: FormationCalendar[], enseignantId: string | undefined): CalendarEvent[] =>
+const buildParticipantEvents = (
+  formations: FormationCalendar[],
+  enseignantId: string | undefined,
+): CalendarEvent[] =>
   formations.flatMap((f) =>
     f.seances
       .filter((s) => seanceHasParticipant(s, enseignantId))
-      .map((s) => toParticipantEvent(f, s))
+      .map((s) => toParticipantEvent(f, s)),
   );
 
 const locales = { fr };
@@ -121,24 +115,27 @@ export default function CalendarEnseignant() {
   const navigate = useNavigate();
 
   const [date, setDate] = useState(new Date());
-  const [view, setView] = useState<View>("month");
+  const [view, setView] = useState<View>('month');
   const [open, setOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
   const { data: calendarDto } = useFormationsForCalendar(enseignantId);
   const asAnimateur: FormationCalendar[] = (calendarDto?.asAnimateur ?? []) as FormationCalendar[];
-  const asParticipant: FormationCalendar[] = (calendarDto?.asParticipant ?? []) as FormationCalendar[];
+  const asParticipant: FormationCalendar[] = (calendarDto?.asParticipant ??
+    []) as FormationCalendar[];
 
   const enseignantInfo = useMemo(() => {
     if (!calendarDto) return null;
-    return asAnimateur
-      .flatMap((f) => f.seances ?? [])
-      .find((s) => seanceHasAnimateur(s, enseignantId))
-      ?.animateurs?.find((e) => e.id === enseignantId) ||
-    asParticipant
-      .flatMap((f) => f.seances ?? [])
-      .find((s) => seanceHasParticipant(s, enseignantId))
-      ?.participants?.find((e) => e.id === enseignantId);
+    return (
+      asAnimateur
+        .flatMap((f) => f.seances ?? [])
+        .find((s) => seanceHasAnimateur(s, enseignantId))
+        ?.animateurs?.find((e) => e.id === enseignantId) ||
+      asParticipant
+        .flatMap((f) => f.seances ?? [])
+        .find((s) => seanceHasParticipant(s, enseignantId))
+        ?.participants?.find((e) => e.id === enseignantId)
+    );
   }, [calendarDto, enseignantId, asAnimateur, asParticipant]);
 
   const events = useMemo(() => {
@@ -151,15 +148,15 @@ export default function CalendarEnseignant() {
 
   const eventStyleGetter = (event: CalendarEvent) => ({
     style: {
-      backgroundColor: event.resource.role === "animateur" ? "#ffe4e4" : "#dbeafe",
+      backgroundColor: event.resource.role === 'animateur' ? '#ffe4e4' : '#dbeafe',
       borderRadius: 6,
-      border: event.resource.role === "animateur" ? "1px solid #f5c6c6" : "1px solid #bfdbfe",
-      color: event.resource.role === "animateur" ? "#c0392b" : "#1d4ed8",
-      padding: "2px 6px",
+      border: event.resource.role === 'animateur' ? '1px solid #f5c6c6' : '1px solid #bfdbfe',
+      color: event.resource.role === 'animateur' ? '#c0392b' : '#1d4ed8',
+      padding: '2px 6px',
       fontWeight: 600,
       fontSize: 12,
     },
-    className: event.resource.role === "animateur" ? "blink-animateur" : "",
+    className: event.resource.role === 'animateur' ? 'blink-animateur' : '',
   });
 
   const handleSelectEvent = (event: CalendarEvent) => {
@@ -172,14 +169,14 @@ export default function CalendarEnseignant() {
     setSelectedEvent(null);
   };
 
-  const isAnimateur = selectedEvent?.resource.role === "animateur";
+  const isAnimateur = selectedEvent?.resource.role === 'animateur';
 
   let seancePeople: Person[] = [];
   if (selectedEvent) {
     const seance = selectedEvent.resource.formation.seances.find(
-      (s) => s.idSeance === selectedEvent.resource.seance.idSeance
+      (s) => s.idSeance === selectedEvent.resource.seance.idSeance,
     );
-    seancePeople = isAnimateur ? seance?.participants ?? [] : seance?.animateurs ?? [];
+    seancePeople = isAnimateur ? (seance?.participants ?? []) : (seance?.animateurs ?? []);
   }
 
   return (
@@ -201,24 +198,22 @@ export default function CalendarEnseignant() {
             </div>
             <div>
               <Title level={5} className="cal-ens-teacher-name">
-                {enseignantInfo
-                  ? `${enseignantInfo.nom} ${enseignantInfo.prenom}`
-                  : enseignantId}
+                {enseignantInfo ? `${enseignantInfo.nom} ${enseignantInfo.prenom}` : enseignantId}
               </Title>
               {enseignantInfo && (
                 <span className="cal-ens-teacher-sub">
                   <ApartmentOutlined className="mr-4" />
-                  {enseignantInfo.deptLibelle || "—"} / {enseignantInfo.upLibelle || "—"}
+                  {enseignantInfo.deptLibelle || '—'} / {enseignantInfo.upLibelle || '—'}
                 </span>
               )}
             </div>
           </div>
           <Space align="center" size="small">
-            <CalendarOutlined style={{ color: "var(--text-muted)" }} />
+            <CalendarOutlined style={{ color: 'var(--text-muted)' }} />
             <input
               type="date"
               className="cal-ens-date-input"
-              value={format(date, "yyyy-MM-dd")}
+              value={format(date, 'yyyy-MM-dd')}
               onChange={(e) => setDate(new Date(e.target.value))}
             />
           </Space>
@@ -230,12 +225,10 @@ export default function CalendarEnseignant() {
         <Space wrap size={12} align="center">
           <span className="cal-ens-legend-label">Légende :</span>
           <span className="cal-ens-legend-item animateur">
-            <span className="cal-ens-legend-dot" />{" "}
-            Animateur
+            <span className="cal-ens-legend-dot" /> Animateur
           </span>
           <span className="cal-ens-legend-item participant">
-            <span className="cal-ens-legend-dot" />{" "}
-            Participant
+            <span className="cal-ens-legend-dot" /> Participant
           </span>
         </Space>
       </Card>
@@ -252,8 +245,8 @@ export default function CalendarEnseignant() {
           onNavigate={(newDate: Date) => setDate(newDate)}
           onView={(newView: View) => setView(newView)}
           toolbar
-          views={["month", "week", "day"]}
-          style={{ height: "100%" }}
+          views={['month', 'week', 'day']}
+          style={{ height: '100%' }}
           eventPropGetter={eventStyleGetter}
           onSelectEvent={handleSelectEvent}
         />
@@ -268,9 +261,9 @@ export default function CalendarEnseignant() {
           title={
             <Space>
               <span className={`cal-ens-role-badge ${selectedEvent.resource.role}`}>
-                {isAnimateur ? "Animateur" : "Participant"}
+                {isAnimateur ? 'Animateur' : 'Participant'}
               </span>
-              <Text strong style={{ fontSize: "var(--text-base)" }}>
+              <Text strong style={{ fontSize: 'var(--text-base)' }}>
                 {selectedEvent.resource.formation.titreFormation}
               </Text>
             </Space>
@@ -291,8 +284,9 @@ export default function CalendarEnseignant() {
                     <span className="cal-ens-modal-field-value">
                       {enseignantInfo?.nom} {enseignantInfo?.prenom}
                     </span>
-                    <Text type="secondary" style={{ fontSize: "var(--text-xs)" }}>
-                      {enseignantInfo?.deptLibelle || "Dépt. inconnu"} / {enseignantInfo?.upLibelle || "UP inconnue"}
+                    <Text type="secondary" style={{ fontSize: 'var(--text-xs)' }}>
+                      {enseignantInfo?.deptLibelle || 'Dépt. inconnu'} /{' '}
+                      {enseignantInfo?.upLibelle || 'UP inconnue'}
                     </Text>
                   </div>
                 </Col>
@@ -339,7 +333,7 @@ export default function CalendarEnseignant() {
                       Salle
                     </span>
                     <span className="cal-ens-modal-field-value">
-                      {selectedEvent.resource.seance.salle || "—"}
+                      {selectedEvent.resource.seance.salle || '—'}
                     </span>
                   </div>
                 </Col>
@@ -375,19 +369,28 @@ export default function CalendarEnseignant() {
 
             {/* Personnes associées */}
             <div>
-              <Text strong style={{ color: "var(--text-muted)", fontSize: "var(--text-xs)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              <Text
+                strong
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: 'var(--text-xs)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
                 <TeamOutlined className="mr-6" />
-                {isAnimateur ? "Participants" : "Animateurs"}
+                {isAnimateur ? 'Participants' : 'Animateurs'}
               </Text>
               <div className="cal-ens-modal-person-tags">
-                {seancePeople.length > 0
-                  ? seancePeople.map((p: Person) => (
-                      <Tag key={p.id} icon={<UserOutlined />}>
-                        {p.nom} {p.prenom}
-                      </Tag>
-                    ))
-                  : <Text type="secondary">Aucun</Text>
-                }
+                {seancePeople.length > 0 ? (
+                  seancePeople.map((p: Person) => (
+                    <Tag key={p.id} icon={<UserOutlined />}>
+                      {p.nom} {p.prenom}
+                    </Tag>
+                  ))
+                ) : (
+                  <Text type="secondary">Aucun</Text>
+                )}
               </div>
             </div>
           </Space>
@@ -396,11 +399,3 @@ export default function CalendarEnseignant() {
     </div>
   );
 }
-
-
-
-
-
-
-
-

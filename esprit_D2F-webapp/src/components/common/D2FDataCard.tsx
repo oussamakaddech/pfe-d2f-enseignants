@@ -1,10 +1,10 @@
-import { memo } from "react";
-import { Card, Typography, Tooltip } from "antd";
-import { ArrowUpOutlined, ArrowDownOutlined } from "@ant-design/icons";
-import type { ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
-import { brand, neutral, radius, shadow } from "@/styles/themes/tokens";
-import s from "./D2FDataCard.module.css";
+import { memo } from 'react';
+import { Card, Typography, Tooltip } from 'antd';
+import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
+import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { brand, neutral, radius, shadow } from '@/styles/themes/tokens';
+import s from './D2FDataCard.module.css';
 
 const { Text } = Typography;
 
@@ -39,27 +39,24 @@ const D2FDataCard = memo(function D2FDataCard({
   const trendUp = trend && trend.value > 0;
   const trendDown = trend && trend.value < 0;
   let trendColor: string = neutral[500];
-  if (trendUp) trendColor = "#10b981";
-  else if (trendDown) trendColor = "#ef4444";
+  if (trendUp) trendColor = '#10b981';
+  else if (trendDown) trendColor = '#ef4444';
 
   const cardStyle: React.CSSProperties = {
-    background: "#fff",
+    background: '#fff',
     borderRadius: radius.lg,
-    border: "1px solid rgba(0,0,0,0.07)",
+    border: '1px solid rgba(0,0,0,0.07)',
     borderTop: `3px solid ${accentColor}`,
     boxShadow: shadow.sm,
-    padding: "20px 22px",
-    cursor: href ? "pointer" : "default",
-    transition: "box-shadow 0.22s ease, transform 0.22s ease, border-color 0.22s ease",
+    padding: '20px 22px',
+    cursor: href ? 'pointer' : 'default',
+    transition: 'box-shadow 0.22s ease, transform 0.22s ease, border-color 0.22s ease',
   };
 
   const content = (
     <>
       <div className={s.cardHeader}>
-        <div
-          className={s.iconBox}
-          style={{ background: `${iconColor}14`, color: iconColor }}
-        >
+        <div className={s.iconBox} style={{ background: `${iconColor}14`, color: iconColor }}>
           {icon}
         </div>
         {trend != null && (
@@ -80,11 +77,19 @@ const D2FDataCard = memo(function D2FDataCard({
       </div>
       <div className={s.valueRow}>
         <span className={s.valueNumber} style={{ color: neutral[900] }}>
-          {loading ? "—" : value}
+          {loading ? '—' : value}
         </span>
-        {unit && <span className={s.valueUnit} style={{ color: neutral[500] }}>{unit}</span>}
+        {unit && (
+          <span className={s.valueUnit} style={{ color: neutral[500] }}>
+            {unit}
+          </span>
+        )}
       </div>
-      {subtext && <div className={s.subtext} style={{ color: neutral[500] }}>{subtext}</div>}
+      {subtext && (
+        <div className={s.subtext} style={{ color: neutral[500] }}>
+          {subtext}
+        </div>
+      )}
     </>
   );
 
@@ -97,11 +102,11 @@ const D2FDataCard = memo(function D2FDataCard({
         style={cardStyle}
         onClick={() => navigate(href)}
         onMouseEnter={(e) => {
-          (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
+          (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
           (e.currentTarget as HTMLElement).style.boxShadow = shadow.md;
         }}
         onMouseLeave={(e) => {
-          (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+          (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
           (e.currentTarget as HTMLElement).style.boxShadow = shadow.sm;
         }}
       >
@@ -118,7 +123,3 @@ const D2FDataCard = memo(function D2FDataCard({
 });
 
 export default D2FDataCard;
-
-
-
-

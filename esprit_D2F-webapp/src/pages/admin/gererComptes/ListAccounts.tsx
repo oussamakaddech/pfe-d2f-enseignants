@@ -35,27 +35,32 @@ import {
   SortAscendingOutlined,
   BankOutlined,
 } from '@ant-design/icons';
-import { useAllAccounts } from "@/hooks/formation/useFormations";
-import { useEnseignants, type Enseignant } from "@/hooks/enseignant/useEnseignants";
-import { useAllDepts } from "@/hooks/formation/useDeptCrud";
-import { useAllUps } from "@/hooks/formation/useUpCrud";
-import EnseignantService from "@/services/formation/EnseignantService";
-import { useBanAccount, useEnableAccount, useDeleteAccount, useUpdateAccount } from "@/hooks/auth/useAuthService";
-import useAppNotification from "@/hooks/ui/useAppNotification";
-import CreateAccountDrawer, { ACCOUNT_ROLES } from "@/pages/admin/gererComptes/CreateAccountDrawer";
-import { StatCard, RoleBadge, EmptyState } from "@/components/common";
-import { brand, neutral } from "@/styles/themes/tokens";
-import "@/styles/pages/list-accounts.css";
-import type { Id } from "@/models/common";
+import { useAllAccounts } from '@/hooks/formation/useFormations';
+import { useEnseignants, type Enseignant } from '@/hooks/enseignant/useEnseignants';
+import { useAllDepts } from '@/hooks/formation/useDeptCrud';
+import { useAllUps } from '@/hooks/formation/useUpCrud';
+import EnseignantService from '@/services/formation/EnseignantService';
+import {
+  useBanAccount,
+  useEnableAccount,
+  useDeleteAccount,
+  useUpdateAccount,
+} from '@/hooks/auth/useAuthService';
+import useAppNotification from '@/hooks/ui/useAppNotification';
+import CreateAccountDrawer, { ACCOUNT_ROLES } from '@/pages/admin/gererComptes/CreateAccountDrawer';
+import { StatCard, RoleBadge, EmptyState } from '@/components/common';
+import { brand, neutral } from '@/styles/themes/tokens';
+import '@/styles/pages/list-accounts.css';
+import type { Id } from '@/models/common';
 
 const { Text } = Typography;
 const { Option } = Select;
 
 /** Rôles « enseignants » affichant la section profil métier (cf. CreateAccountDrawer). */
-const TEACHER_ROLES = new Set(["ENSEIGNANT", "ANIMATEUR"]);
+const TEACHER_ROLES = new Set(['ENSEIGNANT', 'ANIMATEUR']);
 /** Responsables de structure : CUP dirige une UP, chef de département un département. */
-const STRUCTURE_ROLES = new Set(["CUP", "CHEF_DEPARTEMENT"]);
-const GRADE_OPTIONS = ["Assistant", "Maître Assistant", "Maître de Conférences", "Professeur"];
+const STRUCTURE_ROLES = new Set(['CUP', 'CHEF_DEPARTEMENT']);
+const GRADE_OPTIONS = ['Assistant', 'Maître Assistant', 'Maître de Conférences', 'Professeur'];
 
 type AccountStatus = 'ACTIF' | 'BLOQUÉ' | 'INCONNU';
 
@@ -73,12 +78,18 @@ interface Account {
 }
 
 function getAccountId(record: Account): string {
-  return String(record.userId ?? record.id ?? "");
+  return String(record.userId ?? record.id ?? '');
 }
 
-const handleSearchFilter = (selectedKeys: React.Key[], confirm: FilterDropdownProps["confirm"]) => { confirm(); };
-const handleReset = (clearFilters: (() => void) | undefined) => { clearFilters?.(); };
-const renderFilterIcon = (filtered: boolean) => <SearchOutlined style={{ color: filtered ? brand[500] : undefined }} />;
+const handleSearchFilter = (selectedKeys: React.Key[], confirm: FilterDropdownProps['confirm']) => {
+  confirm();
+};
+const handleReset = (clearFilters: (() => void) | undefined) => {
+  clearFilters?.();
+};
+const renderFilterIcon = (filtered: boolean) => (
+  <SearchOutlined style={{ color: filtered ? brand[500] : undefined }} />
+);
 
 function makeFilterDropdown(dataIndex: string, searchInputRef: React.RefObject<InputRef | null>) {
   return ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
@@ -87,54 +98,68 @@ function makeFilterDropdown(dataIndex: string, searchInputRef: React.RefObject<I
         ref={searchInputRef}
         placeholder={`Rechercher ${dataIndex}`}
         value={selectedKeys[0]}
-        onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+        onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
         onPressEnter={() => handleSearchFilter(selectedKeys, confirm)}
-        style={{ marginBottom: 8, display: "block" }}
+        style={{ marginBottom: 8, display: 'block' }}
         allowClear
       />
       <Space>
-        <Button type="primary" onClick={() => handleSearchFilter(selectedKeys, confirm)} icon={<SearchOutlined />} size="small">OK</Button>
-        <Button onClick={() => handleReset(clearFilters)} size="small">Réinitialiser</Button>
+        <Button
+          type="primary"
+          onClick={() => handleSearchFilter(selectedKeys, confirm)}
+          icon={<SearchOutlined />}
+          size="small"
+        >
+          OK
+        </Button>
+        <Button onClick={() => handleReset(clearFilters)} size="small">
+          Réinitialiser
+        </Button>
       </Space>
     </div>
   );
 }
 
 const STATUS_DOT_COLORS: Record<AccountStatus, string> = {
-  ACTIF:   "#10b981",
-  BLOQUÉ:  "#ef4444",
-  INCONNU: "#9ca3af",
+  ACTIF: '#10b981',
+  BLOQUÉ: '#ef4444',
+  INCONNU: '#9ca3af',
 };
 
 function AccountStatusBadge({ status }: Readonly<{ status: AccountStatus }>) {
-  const isActive = status === "ACTIF";
+  const isActive = status === 'ACTIF';
   return (
-    <span className={isActive ? "accounts-status-active" : "accounts-status-blocked"}>
+    <span className={isActive ? 'accounts-status-active' : 'accounts-status-blocked'}>
       <span
         aria-hidden="true"
-        className={`accounts-status-dot ${isActive ? "accounts-status-dot--active" : "accounts-status-dot--blocked"}`}
+        className={`accounts-status-dot ${isActive ? 'accounts-status-dot--active' : 'accounts-status-dot--blocked'}`}
       />
       {status}
     </span>
   );
 }
 
-type AccountSort = "name_asc" | "name_desc" | "email_asc" | "role_asc" | "status";
+type AccountSort = 'name_asc' | 'name_desc' | 'email_asc' | 'role_asc' | 'status';
 
 const SORT_OPTIONS: { value: AccountSort; label: string }[] = [
-  { value: "name_asc",  label: "Nom (A → Z)" },
-  { value: "name_desc", label: "Nom (Z → A)" },
-  { value: "email_asc", label: "Email (A → Z)" },
-  { value: "role_asc",  label: "Rôle (A → Z)" },
-  { value: "status",    label: "Statut (actifs d'abord)" },
+  { value: 'name_asc', label: 'Nom (A → Z)' },
+  { value: 'name_desc', label: 'Nom (Z → A)' },
+  { value: 'email_asc', label: 'Email (A → Z)' },
+  { value: 'role_asc', label: 'Rôle (A → Z)' },
+  { value: 'status', label: "Statut (actifs d'abord)" },
 ];
 
 function accountFullName(a: Account): string {
-  return `${a.firsName || a.firstName || ""} ${a.lastName || ""}`.trim().toLowerCase();
+  return `${a.firsName || a.firstName || ''} ${a.lastName || ''}`.trim().toLowerCase();
 }
 
-function resolveFlag(isStructure: boolean, role: string, flagRole: string, fallback: unknown): unknown {
-  if (isStructure) return role === flagRole ? "O" : "N";
+function resolveFlag(
+  isStructure: boolean,
+  role: string,
+  flagRole: string,
+  fallback: unknown,
+): unknown {
+  if (isStructure) return role === flagRole ? 'O' : 'N';
   return fallback;
 }
 
@@ -154,7 +179,8 @@ async function syncEnseignantProfile(
     const pe = error_ as { response?: { data?: { message?: string } } };
     msgApi.warning(
       "Compte mis à jour, mais le profil n'a pas pu être enregistré" +
-        (pe?.response?.data?.message ? ` (${pe.response.data.message})` : "") + ".",
+        (pe?.response?.data?.message ? ` (${pe.response.data.message})` : '') +
+        '.',
     );
   }
 }
@@ -162,10 +188,10 @@ async function syncEnseignantProfile(
 export default function ListAccounts({ embedded = false }: { embedded?: boolean } = {}) {
   const { message: msgApi, modal } = useAppNotification();
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | AccountStatus>("ALL");
+  const [searchText, setSearchText] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | AccountStatus>('ALL');
   const [roleFilter, setRoleFilter] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<AccountSort>("name_asc");
+  const [sortBy, setSortBy] = useState<AccountSort>('name_asc');
   const searchInput = useRef<InputRef>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -195,9 +221,9 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
     }
     return map;
   }, [enseignantByUserId]);
-  const editRoleValue = Form.useWatch("role", editForm);
-  const isEditTeacherRole = TEACHER_ROLES.has(String(editRoleValue ?? ""));
-  const isEditStructureRole = STRUCTURE_ROLES.has(String(editRoleValue ?? ""));
+  const editRoleValue = Form.useWatch('role', editForm);
+  const isEditTeacherRole = TEACHER_ROLES.has(String(editRoleValue ?? ''));
+  const isEditStructureRole = STRUCTURE_ROLES.has(String(editRoleValue ?? ''));
   const { mutateAsync: banAccountApi } = useBanAccount();
   const { mutateAsync: enableAccountApi } = useEnableAccount();
   const { mutateAsync: deleteAccountApi } = useDeleteAccount();
@@ -220,54 +246,59 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
     }
   }, [allAccounts]);
 
-  const fetchAccounts = () => { void refetchAllAccounts(); };
+  const fetchAccounts = () => {
+    void refetchAllAccounts();
+  };
 
-  const stats = useMemo(() => ({
-    total: accounts.length,
-    active: accounts.filter(a => a.status === 'ACTIF').length,
-    blocked: accounts.filter(a => a.status === 'BLOQUÉ').length,
-    admins: accounts.filter(a => (a.role ?? '').toUpperCase() === 'ADMIN').length,
-  }), [accounts]);
+  const stats = useMemo(
+    () => ({
+      total: accounts.length,
+      active: accounts.filter((a) => a.status === 'ACTIF').length,
+      blocked: accounts.filter((a) => a.status === 'BLOQUÉ').length,
+      admins: accounts.filter((a) => (a.role ?? '').toUpperCase() === 'ADMIN').length,
+    }),
+    [accounts],
+  );
 
   const displayedAccounts = useMemo(() => {
     const term = searchText.trim().toLowerCase();
     const roleSet = roleFilter.map((r) => r.toUpperCase());
     const filtered = accounts.filter((a) => {
-      if (statusFilter !== "ALL" && a.status !== statusFilter) return false;
-      if (roleSet.length && !roleSet.includes((a.role ?? "").toUpperCase())) return false;
+      if (statusFilter !== 'ALL' && a.status !== statusFilter) return false;
+      if (roleSet.length && !roleSet.includes((a.role ?? '').toUpperCase())) return false;
       if (!term) return true;
       return (
-        (a.userName ?? "").toLowerCase().includes(term) ||
-        (a.firstName ?? "").toLowerCase().includes(term) ||
-        (a.firsName ?? "").toLowerCase().includes(term) ||
-        (a.lastName ?? "").toLowerCase().includes(term) ||
-        (a.email ?? "").toLowerCase().includes(term) ||
-        (a.role ?? "").toLowerCase().includes(term)
+        (a.userName ?? '').toLowerCase().includes(term) ||
+        (a.firstName ?? '').toLowerCase().includes(term) ||
+        (a.firsName ?? '').toLowerCase().includes(term) ||
+        (a.lastName ?? '').toLowerCase().includes(term) ||
+        (a.email ?? '').toLowerCase().includes(term) ||
+        (a.role ?? '').toLowerCase().includes(term)
       );
     });
 
     const sorted = [...filtered];
     switch (sortBy) {
-      case "name_asc":
+      case 'name_asc':
         sorted.sort((a, b) => accountFullName(a).localeCompare(accountFullName(b)));
         break;
-      case "name_desc":
+      case 'name_desc':
         sorted.sort((a, b) => accountFullName(b).localeCompare(accountFullName(a)));
         break;
-      case "email_asc":
-        sorted.sort((a, b) => (a.email ?? "").localeCompare(b.email ?? ""));
+      case 'email_asc':
+        sorted.sort((a, b) => (a.email ?? '').localeCompare(b.email ?? ''));
         break;
-      case "role_asc":
-        sorted.sort((a, b) => (a.role ?? "").localeCompare(b.role ?? ""));
+      case 'role_asc':
+        sorted.sort((a, b) => (a.role ?? '').localeCompare(b.role ?? ''));
         break;
-      case "status":
-        sorted.sort((a, b) => Number(a.status === "BLOQUÉ") - Number(b.status === "BLOQUÉ"));
+      case 'status':
+        sorted.sort((a, b) => Number(a.status === 'BLOQUÉ') - Number(b.status === 'BLOQUÉ'));
         break;
     }
     return sorted;
   }, [accounts, searchText, statusFilter, roleFilter, sortBy]);
 
-  const hasActiveFilters = !!searchText || statusFilter !== "ALL" || roleFilter.length > 0;
+  const hasActiveFilters = !!searchText || statusFilter !== 'ALL' || roleFilter.length > 0;
 
   const handleCreateSuccess = () => {
     setDrawerVisible(false);
@@ -276,20 +307,22 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
 
   const handleEdit = (record: Account) => {
     setEditingRecord(record);
-    const fiche = enseignantByUserId.get(getAccountId(record)) as Record<string, unknown> | undefined;
+    const fiche = enseignantByUserId.get(getAccountId(record)) as
+      | Record<string, unknown>
+      | undefined;
     editForm.setFieldsValue({
       firstName: record.firsName || record.firstName,
       lastName: record.lastName,
       email: record.email,
       phoneNumber: record.phoneNumber,
-      role: (record.role ?? "").toUpperCase(),
+      role: (record.role ?? '').toUpperCase(),
       // Profil enseignant (pré-rempli depuis la fiche si elle existe)
-      type: (fiche?.type as string) ?? "P",
-      etat: (fiche?.etat as string) ?? "A",
+      type: (fiche?.type as string) ?? 'P',
+      etat: (fiche?.etat as string) ?? 'A',
       grade: fiche?.grade as string | undefined,
       specialite: fiche?.specialite as string | undefined,
-      cup: (fiche?.cup as string) ?? "N",
-      chefDepartement: (fiche?.chefDepartement as string) ?? "N",
+      cup: (fiche?.cup as string) ?? 'N',
+      chefDepartement: (fiche?.chefDepartement as string) ?? 'N',
       upId: fiche?.upId as string | undefined,
       deptId: fiche?.deptId as string | undefined,
     });
@@ -300,7 +333,7 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
     try {
       const values = await editForm.validateFields();
       setLoading(true);
-      const userId = editingRecord ? getAccountId(editingRecord) : "";
+      const userId = editingRecord ? getAccountId(editingRecord) : '';
       await updateAccountApi({
         userId,
         data: {
@@ -316,13 +349,18 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
       // structure (CUP / chef de département), on met à jour la fiche liée (ou on
       // la crée si absente). Pour les responsables, l'indicateur cup/chefDepartement
       // est déduit du rôle. Un échec ici ne masque pas la réussite du compte.
-      const roleStr = String(values.role ?? "");
+      const roleStr = String(values.role ?? '');
       const isTeacher = TEACHER_ROLES.has(roleStr);
       const isStructure = STRUCTURE_ROLES.has(roleStr);
       if ((isTeacher || isStructure) && userId) {
         const fiche = enseignantByUserId.get(userId);
-        const cupFlag = resolveFlag(isStructure, roleStr, "CUP", values.cup);
-        const chefFlag = resolveFlag(isStructure, roleStr, "CHEF_DEPARTEMENT", values.chefDepartement);
+        const cupFlag = resolveFlag(isStructure, roleStr, 'CUP', values.cup);
+        const chefFlag = resolveFlag(
+          isStructure,
+          roleStr,
+          'CHEF_DEPARTEMENT',
+          values.chefDepartement,
+        );
         const ficheData: Record<string, unknown> = {
           nom: values.lastName as string,
           prenom: values.firstName as string,
@@ -357,7 +395,7 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
 
   const handleDelete = (userId: Id, fullName: string) => {
     modal.confirm({
-      title: "Supprimer définitivement ce compte ?",
+      title: 'Supprimer définitivement ce compte ?',
       content: (
         <div>
           <p style={{ marginBottom: 6 }}>
@@ -368,8 +406,8 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
           </p>
         </div>
       ),
-      okText: "Supprimer",
-      cancelText: "Annuler",
+      okText: 'Supprimer',
+      cancelText: 'Annuler',
       okButtonProps: { danger: true },
       centered: true,
       onOk: async () => {
@@ -387,28 +425,42 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
 
   const handleToggleStatus = (record: Account) => {
     const willBlock = record.status === 'ACTIF';
-    const fullName = `${record.firsName || record.firstName || ""} ${record.lastName || ""}`.trim() || record.userName;
+    const fullName =
+      `${record.firsName || record.firstName || ''} ${record.lastName || ''}`.trim() ||
+      record.userName;
     modal.confirm({
-      title: willBlock ? "Bloquer ce compte ?" : "Débloquer ce compte ?",
+      title: willBlock ? 'Bloquer ce compte ?' : 'Débloquer ce compte ?',
       content: (
         <div>
           <p style={{ marginBottom: 4 }}>
-            {willBlock
-              ? <>Le compte de <strong>{fullName}</strong> ne pourra plus se connecter à l'application.</>
-              : <>Le compte de <strong>{fullName}</strong> pourra de nouveau se connecter à l'application.</>}
+            {willBlock ? (
+              <>
+                Le compte de <strong>{fullName}</strong> ne pourra plus se connecter à
+                l'application.
+              </>
+            ) : (
+              <>
+                Le compte de <strong>{fullName}</strong> pourra de nouveau se connecter à
+                l'application.
+              </>
+            )}
           </p>
           <p style={{ marginBottom: 0, color: neutral[600], fontSize: 13 }}>
             {willBlock
-              ? "Vous pourrez le débloquer à tout moment."
-              : "Ses accès et permissions seront restaurés."}
+              ? 'Vous pourrez le débloquer à tout moment.'
+              : 'Ses accès et permissions seront restaurés.'}
           </p>
         </div>
       ),
-      okText: willBlock ? "Bloquer" : "Débloquer",
-      cancelText: "Annuler",
-      okButtonProps: willBlock ? { danger: true } : { type: "primary" },
+      okText: willBlock ? 'Bloquer' : 'Débloquer',
+      cancelText: 'Annuler',
+      okButtonProps: willBlock ? { danger: true } : { type: 'primary' },
       centered: true,
-      icon: willBlock ? <StopOutlined style={{ color: "#f59e0b" }} /> : <CheckCircleOutlined style={{ color: "#10b981" }} />,
+      icon: willBlock ? (
+        <StopOutlined style={{ color: '#f59e0b' }} />
+      ) : (
+        <CheckCircleOutlined style={{ color: '#10b981' }} />
+      ),
       onOk: async () => {
         try {
           if (willBlock) {
@@ -440,15 +492,18 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
       key: 'user',
       width: 280,
       render: (_: unknown, record: Account) => {
-        const fullName = `${record.firsName || record.firstName || ""} ${record.lastName || ""}`.trim() || "—";
+        const fullName =
+          `${record.firsName || record.firstName || ''} ${record.lastName || ''}`.trim() || '—';
         const isActive = record.status === 'ACTIF';
         return (
           <div className="accounts-user-info">
             <div
-              className={`accounts-user-avatar ${isActive ? "accounts-user-avatar--active" : "accounts-user-avatar--inactive"}`}
+              className={`accounts-user-avatar ${isActive ? 'accounts-user-avatar--active' : 'accounts-user-avatar--inactive'}`}
               aria-hidden="true"
             >
-              {(record.firsName || record.firstName || record.userName || "?").charAt(0).toUpperCase()}
+              {(record.firsName || record.firstName || record.userName || '?')
+                .charAt(0)
+                .toUpperCase()}
             </div>
             <div className="accounts-user-details">
               <div className="accounts-user-name">{fullName}</div>
@@ -464,12 +519,15 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
       dataIndex: 'email',
       key: 'email',
       ellipsis: true,
-      render: (text: string) => text ? (
-        <span className="accounts-email">
-          <MailOutlined className="accounts-email-icon" />
-          {text}
-        </span>
-      ) : <span className="accounts-placeholder">—</span>,
+      render: (text: string) =>
+        text ? (
+          <span className="accounts-email">
+            <MailOutlined className="accounts-email-icon" />
+            {text}
+          </span>
+        ) : (
+          <span className="accounts-placeholder">—</span>
+        ),
       ...getColumnSearchProps('email'),
     },
     {
@@ -478,12 +536,15 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
       key: 'phoneNumber',
       width: 160,
       responsive: ['md'],
-      render: (text: string) => text ? (
-        <span className="accounts-phone">
-          <PhoneOutlined className="accounts-phone-icon" />
-          {text}
-        </span>
-      ) : <span className="accounts-placeholder">—</span>,
+      render: (text: string) =>
+        text ? (
+          <span className="accounts-phone">
+            <PhoneOutlined className="accounts-phone-icon" />
+            {text}
+          </span>
+        ) : (
+          <span className="accounts-placeholder">—</span>
+        ),
     },
     {
       title: 'Rôle',
@@ -509,9 +570,7 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
             {dept}
           </span>
         ) : (
-          <span className="accounts-dept-empty">
-            Profil à configurer
-          </span>
+          <span className="accounts-dept-empty">Profil à configurer</span>
         );
       },
     },
@@ -528,7 +587,10 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
       fixed: 'right',
       width: 130,
       render: (_: unknown, record: Account) => {
-        const fullName = `${record.firsName || record.firstName || ""} ${record.lastName || ""}`.trim() || record.userName || "cet utilisateur";
+        const fullName =
+          `${record.firsName || record.firstName || ''} ${record.lastName || ''}`.trim() ||
+          record.userName ||
+          'cet utilisateur';
         return (
           <Space size={6}>
             <Tooltip title="Modifier">
@@ -546,7 +608,11 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
                 icon={record.status === 'ACTIF' ? <LockOutlined /> : <UnlockOutlined />}
                 onClick={() => handleToggleStatus(record)}
                 aria-label={record.status === 'ACTIF' ? 'Bloquer' : 'Débloquer'}
-                className={record.status === 'ACTIF' ? 'accounts-action-btn accounts-action-btn--block' : 'accounts-action-btn accounts-action-btn--activate'}
+                className={
+                  record.status === 'ACTIF'
+                    ? 'accounts-action-btn accounts-action-btn--block'
+                    : 'accounts-action-btn accounts-action-btn--activate'
+                }
               />
             </Tooltip>
             <Popconfirm
@@ -577,40 +643,53 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
     <div className="accounts-page">
       {/* ── Hero header (masqué quand intégré dans la page unifiée) ── */}
       {!embedded && (
-      <div className="accounts-hero">
-        <div className="accounts-hero::before" aria-hidden="true" />
-        <div className="accounts-hero::after" aria-hidden="true" />
-        <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-              <h2 className="accounts-hero-title">Gestion des utilisateurs</h2>
-              <span className="accounts-hero-badge">
-                {stats.total}
-                <span className="accounts-hero-badge-total">compte{stats.total === 1 ? "" : "s"}</span>
-              </span>
+        <div className="accounts-hero">
+          <div className="accounts-hero::before" aria-hidden="true" />
+          <div className="accounts-hero::after" aria-hidden="true" />
+          <div
+            style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 16,
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <h2 className="accounts-hero-title">Gestion des utilisateurs</h2>
+                <span className="accounts-hero-badge">
+                  {stats.total}
+                  <span className="accounts-hero-badge-total">
+                    compte{stats.total === 1 ? '' : 's'}
+                  </span>
+                </span>
+              </div>
+              <div className="accounts-hero-subtitle">
+                Administrer les comptes, rôles et accès à l'application
+              </div>
             </div>
-            <div className="accounts-hero-subtitle">Administrer les comptes, rôles et accès à l'application</div>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Tooltip title="Rafraîchir la liste">
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Tooltip title="Rafraîchir la liste">
+                <Button
+                  icon={<ReloadOutlined />}
+                  onClick={fetchAccounts}
+                  className="accounts-btn-refresh"
+                  aria-label="Rafraîchir"
+                />
+              </Tooltip>
               <Button
-                icon={<ReloadOutlined />}
-                onClick={fetchAccounts}
-                className="accounts-btn-refresh"
-                aria-label="Rafraîchir"
-              />
-            </Tooltip>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setDrawerVisible(true)}
-              className="accounts-btn-create"
-            >
-              Nouveau compte
-            </Button>
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => setDrawerVisible(true)}
+                className="accounts-btn-create"
+              >
+                Nouveau compte
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
       )}
 
       {/* ── KPI stats ───────────────────────────────────────────────── */}
@@ -670,9 +749,9 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
           onChange={setStatusFilter}
           style={{ minWidth: 160 }}
           options={[
-            { value: "ALL",    label: "Tous les statuts" },
-            { value: "ACTIF",  label: "Actifs uniquement" },
-            { value: "BLOQUÉ", label: "Bloqués uniquement" },
+            { value: 'ALL', label: 'Tous les statuts' },
+            { value: 'ACTIF', label: 'Actifs uniquement' },
+            { value: 'BLOQUÉ', label: 'Bloqués uniquement' },
           ]}
         />
         <Select
@@ -683,10 +762,10 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
           options={SORT_OPTIONS}
         />
         <span style={{ color: neutral[500], fontSize: 13 }}>
-          {displayedAccounts.length} résultat{displayedAccounts.length === 1 ? "" : "s"}
+          {displayedAccounts.length} résultat{displayedAccounts.length === 1 ? '' : 's'}
         </span>
         {embedded && (
-          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
             <Tooltip title="Rafraîchir la liste">
               <Button
                 icon={<ReloadOutlined />}
@@ -717,23 +796,27 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
-            showTotal: (total) => `${total} compte${total === 1 ? "" : "s"}`,
+            showTotal: (total) => `${total} compte${total === 1 ? '' : 's'}`,
           }}
           scroll={{ x: 1000 }}
           locale={{
             emptyText: (
               <EmptyState
                 icon={<TeamOutlined />}
-                title={hasActiveFilters ? "Aucun résultat" : "Aucun compte utilisateur"}
+                title={hasActiveFilters ? 'Aucun résultat' : 'Aucun compte utilisateur'}
                 description={
                   hasActiveFilters
-                    ? "Aucun compte ne correspond à vos critères de recherche."
+                    ? 'Aucun compte ne correspond à vos critères de recherche.'
                     : "Commencez par créer un compte pour donner accès à l'application."
                 }
                 action={
                   hasActiveFilters
                     ? undefined
-                    : { label: "Créer un compte", icon: <PlusOutlined />, onClick: () => setDrawerVisible(true) }
+                    : {
+                        label: 'Créer un compte',
+                        icon: <PlusOutlined />,
+                        onClick: () => setDrawerVisible(true),
+                      }
                 }
                 compact
               />
@@ -760,9 +843,9 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
                 borderRadius: 8,
                 background: brand[50],
                 color: brand[500],
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
               <UserOutlined />
@@ -783,29 +866,49 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
         width={520}
         destroyOnHidden
         okButtonProps={{
-          style: { background: "var(--btn-primary-gradient)", border: "none", fontWeight: 600 },
+          style: { background: 'var(--btn-primary-gradient)', border: 'none', fontWeight: 600 },
         }}
       >
         <Form form={editForm} layout="vertical" style={{ marginTop: 16 }}>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="firstName" label="Prénom" rules={[{ required: true, message: "Le prénom est requis" }]}>
+              <Form.Item
+                name="firstName"
+                label="Prénom"
+                rules={[{ required: true, message: 'Le prénom est requis' }]}
+              >
                 <Input prefix={<UserOutlined />} placeholder="Prénom" />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="lastName" label="Nom" rules={[{ required: true, message: "Le nom est requis" }]}>
+              <Form.Item
+                name="lastName"
+                label="Nom"
+                rules={[{ required: true, message: 'Le nom est requis' }]}
+              >
                 <Input placeholder="Nom" />
               </Form.Item>
             </Col>
           </Row>
-          <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email', message: "Email valide requis" }]}>
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[{ required: true, type: 'email', message: 'Email valide requis' }]}
+          >
             <Input prefix={<MailOutlined />} placeholder="prenom.nom@esprit.tn" />
           </Form.Item>
-          <Form.Item name="phoneNumber" label="Téléphone" rules={[{ required: true, message: "Le téléphone est requis" }]}>
+          <Form.Item
+            name="phoneNumber"
+            label="Téléphone"
+            rules={[{ required: true, message: 'Le téléphone est requis' }]}
+          >
             <Input prefix={<PhoneOutlined />} placeholder="0612345678" />
           </Form.Item>
-          <Form.Item name="role" label="Rôle" rules={[{ required: true, message: "Le rôle est requis" }]}>
+          <Form.Item
+            name="role"
+            label="Rôle"
+            rules={[{ required: true, message: 'Le rôle est requis' }]}
+          >
             <Select placeholder="Sélectionner un rôle">
               {ACCOUNT_ROLES.map((r) => (
                 <Option key={r.value} value={r.value}>
@@ -817,7 +920,7 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
 
           {isEditTeacherRole && (
             <>
-              <Divider style={{ margin: "8px 0 16px" }}>Profil enseignant</Divider>
+              <Divider style={{ margin: '8px 0 16px' }}>Profil enseignant</Divider>
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item name="type" label="Type">
@@ -842,7 +945,9 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
                   <Form.Item name="grade" label="Grade académique">
                     <Select allowClear placeholder="Sélectionner un grade">
                       {GRADE_OPTIONS.map((g) => (
-                        <Option key={g} value={g}>{g}</Option>
+                        <Option key={g} value={g}>
+                          {g}
+                        </Option>
                       ))}
                     </Select>
                   </Form.Item>
@@ -874,18 +979,32 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item name="upId" label="Unité pédagogique">
-                    <Select allowClear placeholder="Sélectionner une UP" showSearch optionFilterProp="children">
+                    <Select
+                      allowClear
+                      placeholder="Sélectionner une UP"
+                      showSearch
+                      optionFilterProp="children"
+                    >
                       {ups.map((u) => (
-                        <Option key={u.id} value={u.id}>{u.libelle ?? u.name}</Option>
+                        <Option key={u.id} value={u.id}>
+                          {u.libelle ?? u.name}
+                        </Option>
                       ))}
                     </Select>
                   </Form.Item>
                 </Col>
                 <Col span={12}>
                   <Form.Item name="deptId" label="Département">
-                    <Select allowClear placeholder="Sélectionner un département" showSearch optionFilterProp="children">
+                    <Select
+                      allowClear
+                      placeholder="Sélectionner un département"
+                      showSearch
+                      optionFilterProp="children"
+                    >
                       {depts.map((d) => (
-                        <Option key={d.id} value={d.id}>{d.libelle ?? d.name}</Option>
+                        <Option key={d.id} value={d.id}>
+                          {d.libelle ?? d.name}
+                        </Option>
                       ))}
                     </Select>
                   </Form.Item>
@@ -896,18 +1015,29 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
 
           {isEditStructureRole && (
             <>
-              <Divider style={{ margin: "8px 0 16px" }}>Rattachement structurel</Divider>
+              <Divider style={{ margin: '8px 0 16px' }}>Rattachement structurel</Divider>
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item
                     name="upId"
                     label="Unité pédagogique"
-                    extra={editRoleValue === "CUP" ? "UP dirigée par ce CUP" : undefined}
-                    rules={editRoleValue === "CUP" ? [{ required: true, message: "Sélectionnez l'UP dirigée" }] : undefined}
+                    extra={editRoleValue === 'CUP' ? 'UP dirigée par ce CUP' : undefined}
+                    rules={
+                      editRoleValue === 'CUP'
+                        ? [{ required: true, message: "Sélectionnez l'UP dirigée" }]
+                        : undefined
+                    }
                   >
-                    <Select allowClear placeholder="Sélectionner une UP" showSearch optionFilterProp="children">
+                    <Select
+                      allowClear
+                      placeholder="Sélectionner une UP"
+                      showSearch
+                      optionFilterProp="children"
+                    >
                       {ups.map((u) => (
-                        <Option key={u.id} value={u.id}>{u.libelle ?? u.name}</Option>
+                        <Option key={u.id} value={u.id}>
+                          {u.libelle ?? u.name}
+                        </Option>
                       ))}
                     </Select>
                   </Form.Item>
@@ -916,12 +1046,27 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
                   <Form.Item
                     name="deptId"
                     label="Département"
-                    extra={editRoleValue === "CHEF_DEPARTEMENT" ? "Département dirigé par ce chef" : undefined}
-                    rules={editRoleValue === "CHEF_DEPARTEMENT" ? [{ required: true, message: "Sélectionnez le département dirigé" }] : undefined}
+                    extra={
+                      editRoleValue === 'CHEF_DEPARTEMENT'
+                        ? 'Département dirigé par ce chef'
+                        : undefined
+                    }
+                    rules={
+                      editRoleValue === 'CHEF_DEPARTEMENT'
+                        ? [{ required: true, message: 'Sélectionnez le département dirigé' }]
+                        : undefined
+                    }
                   >
-                    <Select allowClear placeholder="Sélectionner un département" showSearch optionFilterProp="children">
+                    <Select
+                      allowClear
+                      placeholder="Sélectionner un département"
+                      showSearch
+                      optionFilterProp="children"
+                    >
                       {depts.map((d) => (
-                        <Option key={d.id} value={d.id}>{d.libelle ?? d.name}</Option>
+                        <Option key={d.id} value={d.id}>
+                          {d.libelle ?? d.name}
+                        </Option>
                       ))}
                     </Select>
                   </Form.Item>

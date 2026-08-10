@@ -6,7 +6,7 @@
 }
 
 .shimmer::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
@@ -20,11 +20,15 @@
 }
 
 @keyframes skeleton-shimmer {
-  100% { transform: translateX(100%); }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .shimmer::after { animation: none; }
+  .shimmer::after {
+    animation: none;
+  }
 }
 
 /* ── Table ──────────────────────────────────────────────────────────────── */
@@ -69,9 +73,19 @@
   gap: var(--space-3);
 }
 
-.cardTitle  { height: 18px; width: 60%; }
-.cardLine   { height: 13px; width: 100%; }
-.cardFooter { height: 30px; width: 40%; margin-top: var(--space-2); }
+.cardTitle {
+  height: 18px;
+  width: 60%;
+}
+.cardLine {
+  height: 13px;
+  width: 100%;
+}
+.cardFooter {
+  height: 30px;
+  width: 40%;
+  margin-top: var(--space-2);
+}
 
 /* ── KPI ────────────────────────────────────────────────────────────────── */
 .kpiGrid {
@@ -91,9 +105,18 @@
   gap: var(--space-2);
 }
 
-.kpiLabel { height: 13px; width: 55%; }
-.kpiValue { height: 30px; width: 40%; }
-.kpiTrend { height: 12px; width: 70%; }
+.kpiLabel {
+  height: 13px;
+  width: 55%;
+}
+.kpiValue {
+  height: 30px;
+  width: 40%;
+}
+.kpiTrend {
+  height: 12px;
+  width: 70%;
+}
 
 /* ── Text / avatar ──────────────────────────────────────────────────────── */
 .textBlock {
@@ -103,7 +126,9 @@
   width: 100%;
 }
 
-.textLine { height: 14px; }
+.textLine {
+  height: 14px;
+}
 
 .avatarRow {
   display: flex;

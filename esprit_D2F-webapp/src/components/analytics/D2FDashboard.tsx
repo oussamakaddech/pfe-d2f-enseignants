@@ -13,49 +13,82 @@
  * - No hardcoded KPI values
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useState } from 'react';
 import {
-  Row, Col, Card, Tag, Alert, Empty, Skeleton, Tooltip, Button,
-  Table, Modal, Select, Space, message,
-} from "antd";
+  Row,
+  Col,
+  Card,
+  Tag,
+  Alert,
+  Empty,
+  Skeleton,
+  Tooltip,
+  Button,
+  Table,
+  Modal,
+  Select,
+  Space,
+  message,
+} from 'antd';
 import {
-  TeamOutlined, AlertOutlined, LineChartOutlined, WarningOutlined,
-  ReloadOutlined, InfoCircleOutlined, SafetyCertificateOutlined,
-  RiseOutlined, CheckCircleOutlined,
-} from "@ant-design/icons";
+  TeamOutlined,
+  AlertOutlined,
+  LineChartOutlined,
+  WarningOutlined,
+  ReloadOutlined,
+  InfoCircleOutlined,
+  SafetyCertificateOutlined,
+  RiseOutlined,
+  CheckCircleOutlined,
+} from '@ant-design/icons';
 import {
-  useD2FKPIs, useD2FAtRisk, useD2FCritical,
-  useD2FAlerts, useD2FRecommendations,
-  useD2FTeacherProfile, useMarkTrainingCompleted,
-} from "@/hooks/analyse/useD2FData";
-import type { ColumnsType } from "antd/es/table";
+  useD2FKPIs,
+  useD2FAtRisk,
+  useD2FCritical,
+  useD2FAlerts,
+  useD2FRecommendations,
+  useD2FTeacherProfile,
+  useMarkTrainingCompleted,
+} from '@/hooks/analyse/useD2FData';
+import type { ColumnsType } from 'antd/es/table';
 import type {
-  AtRiskTeacherRow, D2FAlert, D2FRecommendation, TeacherGap,
+  AtRiskTeacherRow,
+  D2FAlert,
+  D2FRecommendation,
+  TeacherGap,
   TeacherProfile,
-} from "@/services/analyse/D2FService";
+} from '@/services/analyse/D2FService';
 
 // ── Tooltip Definitions (in French) ─────────────────────
 const KPI_TOOLTIPS: Record<string, string> = {
-  total_teachers: "Nombre total d'enseignants uniques dans le dataset maître (un seul identifiant, un seul département, une seule UP).",
-  enseignants_a_risque: "Enseignants avec score de risque supérieur ou égal à 0,50 (sur l'échelle [0,1]). Indique un besoin de formation proactive.",
-  enseignants_critiques: "Enseignants avec score de risque supérieur ou égal à 0,75. Situation urgente nécessitant une action immédiate (entretien, parcours prioritaire).",
-  score_risque_moyen: "Moyenne des scores de risque sur tous les enseignants. Calculée via la formule officielle: 40% gaps critiques + 25% couverture + 20% stagnation + 15% régression.",
-  taux_couverture_global: "Pourcentage des couples (enseignant × compétence) où le niveau actuel atteint ou dépasse le niveau requis. Indique la maturité globale des compétences.",
-  nb_gaps_critiques: "Nombre de compétences où l'écart entre niveau requis et actuel est supérieur ou égal à 3 (échelle 1-5).",
-  nb_alertes_nouvelles: "Alertes non encore traitées (statut NOUVELLE). Chaque alerte référence un enseignant réel et un gap réel.",
-  nb_recommandations: "Recommandations de formation actives, chacune expliquant pourquoi elle est pertinente (explication_fr).",
+  total_teachers:
+    "Nombre total d'enseignants uniques dans le dataset maître (un seul identifiant, un seul département, une seule UP).",
+  enseignants_a_risque:
+    "Enseignants avec score de risque supérieur ou égal à 0,50 (sur l'échelle [0,1]). Indique un besoin de formation proactive.",
+  enseignants_critiques:
+    'Enseignants avec score de risque supérieur ou égal à 0,75. Situation urgente nécessitant une action immédiate (entretien, parcours prioritaire).',
+  score_risque_moyen:
+    'Moyenne des scores de risque sur tous les enseignants. Calculée via la formule officielle: 40% gaps critiques + 25% couverture + 20% stagnation + 15% régression.',
+  taux_couverture_global:
+    'Pourcentage des couples (enseignant × compétence) où le niveau actuel atteint ou dépasse le niveau requis. Indique la maturité globale des compétences.',
+  nb_gaps_critiques:
+    "Nombre de compétences où l'écart entre niveau requis et actuel est supérieur ou égal à 3 (échelle 1-5).",
+  nb_alertes_nouvelles:
+    'Alertes non encore traitées (statut NOUVELLE). Chaque alerte référence un enseignant réel et un gap réel.',
+  nb_recommandations:
+    'Recommandations de formation actives, chacune expliquant pourquoi elle est pertinente (explication_fr).',
 };
 
 // ── Helper Components ──────────────────────────────────
 
 function RiskTag({ level, score }: Readonly<{ level: string; score: number }>) {
   const config: Record<string, { color: string; label: string }> = {
-    CRITIQUE: { color: "red", label: "Critique" },
-    ELEVE: { color: "orange", label: "Élevé" },
-    MODERE: { color: "gold", label: "Modéré" },
-    FAIBLE: { color: "green", label: "Faible" },
+    CRITIQUE: { color: 'red', label: 'Critique' },
+    ELEVE: { color: 'orange', label: 'Élevé' },
+    MODERE: { color: 'gold', label: 'Modéré' },
+    FAIBLE: { color: 'green', label: 'Faible' },
   };
-  const c = config[level] ?? { color: "default", label: level };
+  const c = config[level] ?? { color: 'default', label: level };
   return (
     <Tag color={c.color}>
       {c.label} ({score.toFixed(2)})
@@ -64,7 +97,14 @@ function RiskTag({ level, score }: Readonly<{ level: string; score: number }>) {
 }
 
 function KPICard({
-  title, value, icon, color, loading, tooltip, suffix, precision = 2,
+  title,
+  value,
+  icon,
+  color,
+  loading,
+  tooltip,
+  suffix,
+  precision = 2,
 }: Readonly<{
   title: string;
   value: number | undefined;
@@ -76,15 +116,13 @@ function KPICard({
   precision?: number;
 }>) {
   return (
-    <Card
-      size="small"
-      loading={loading}
-      style={{ borderLeft: `4px solid ${color}` }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+    <Card size="small" loading={loading} style={{ borderLeft: `4px solid ${color}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ fontSize: 28, color }}>{icon}</div>
         <div style={{ flex: 1 }}>
-          <div style={{ color: "#666", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>
+          <div
+            style={{ color: '#666', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}
+          >
             {title}
             {tooltip && (
               <Tooltip title={tooltip}>
@@ -93,8 +131,8 @@ function KPICard({
             )}
           </div>
           <div style={{ fontSize: 24, fontWeight: 600 }}>
-            {value !== undefined ? value.toFixed(precision) : "···"}
-            {suffix && <span style={{ fontSize: 14, color: "#999", marginLeft: 4 }}>{suffix}</span>}
+            {value !== undefined ? value.toFixed(precision) : '···'}
+            {suffix && <span style={{ fontSize: 14, color: '#999', marginLeft: 4 }}>{suffix}</span>}
           </div>
         </div>
       </div>
@@ -103,13 +141,19 @@ function KPICard({
 }
 
 function gapTagColor(n: number): string {
-  if (n > 2) return "red";
-  if (n > 0) return "orange";
-  return "default";
+  if (n > 2) return 'red';
+  if (n > 0) return 'orange';
+  return 'default';
 }
 
 function AsyncTable<T>({
-  isLoading, isError, items, emptyText, errorMessage, rowKey, columns,
+  isLoading,
+  isError,
+  items,
+  emptyText,
+  errorMessage,
+  rowKey,
+  columns,
 }: Readonly<{
   isLoading: boolean;
   isError: boolean;
@@ -156,13 +200,7 @@ function TeacherProfileModal({
   }
 
   return (
-    <Modal
-      title="Profil enseignant"
-      open={open}
-      onCancel={onClose}
-      width={900}
-      footer={null}
-    >
+    <Modal title="Profil enseignant" open={open} onCancel={onClose} width={900} footer={null}>
       {content}
     </Modal>
   );
@@ -179,12 +217,10 @@ function ProfileDetail({
   return (
     <div>
       <Card size="small" style={{ marginBottom: 12 }}>
-        <Space direction="vertical" style={{ width: "100%" }}>
+        <Space direction="vertical" style={{ width: '100%' }}>
           <div>
             <strong>{profile.teacher.full_name as string}</strong>
-            <Tag style={{ marginLeft: 8 }}>
-              {profile.teacher.department_code as string}
-            </Tag>
+            <Tag style={{ marginLeft: 8 }}>{profile.teacher.department_code as string}</Tag>
             <Tag>{profile.teacher.up_code as string}</Tag>
           </div>
           <div>
@@ -214,14 +250,14 @@ function ProfileDetail({
         dataSource={profile.gaps}
         pagination={false}
         columns={[
-          { title: "Compétence", dataIndex: "competence_nom" },
-          { title: "Actuel", dataIndex: "current_level" },
-          { title: "Requis", dataIndex: "required_level" },
+          { title: 'Compétence', dataIndex: 'competence_nom' },
+          { title: 'Actuel', dataIndex: 'current_level' },
+          { title: 'Requis', dataIndex: 'required_level' },
           {
-            title: "Gap",
-            dataIndex: "gap_value",
+            title: 'Gap',
+            dataIndex: 'gap_value',
             render: (v: number, r: TeacherGap) => (
-              <Tag color={r.is_critical_gap ? "red" : "default"}>Δ {v}</Tag>
+              <Tag color={r.is_critical_gap ? 'red' : 'default'}>Δ {v}</Tag>
             ),
           },
         ]}
@@ -235,7 +271,7 @@ function ProfileDetail({
       </h4>
       <Select
         placeholder="Choisir une formation à terminer"
-        style={{ width: "100%", marginBottom: 8 }}
+        style={{ width: '100%', marginBottom: 8 }}
         options={(profile.recommendations ?? []).map((r) => ({
           value: r.training_code,
           label: `${r.training_title} (cible: ${r.target_competency_code})`,
@@ -249,7 +285,7 @@ function ProfileDetail({
           {profile.alerts.map((a) => (
             <Alert
               key={a.alert_id}
-              type={a.severity === "CRITIQUE" ? "error" : "warning"}
+              type={a.severity === 'CRITIQUE' ? 'error' : 'warning'}
               message={a.message}
               showIcon
               style={{ marginBottom: 8 }}
@@ -282,110 +318,116 @@ export function D2FDashboard({ defaultTeacherId }: Readonly<D2FDashboardProps>) 
   const trainingMutation = useMarkTrainingCompleted();
 
   // ── At-Risk Table Columns ────────────────────────────
-  const atRiskColumns: ColumnsType<AtRiskTeacherRow> = useMemo(() => [
-    {
-      title: "Enseignant",
-      dataIndex: "teacher_name",
-      key: "name",
-      render: (name: string, row) => (
-        <Button
-          type="link"
-          size="small"
-          style={{ padding: 0, height: "auto" }}
-          onClick={() => { setSelectedTeacherId(row.teacher_id); setProfileModalOpen(true); }}
-        >
-          {name}
-        </Button>
-      ),
-    },
-    { title: "Département", dataIndex: "department", key: "dept" },
-    {
-      title: "Score de risque",
-      dataIndex: "risk_score",
-      key: "risk",
-      sorter: (a, b) => a.risk_score - b.risk_score,
-      render: (score: number, row) => <RiskTag level={row.risk_level} score={score} />,
-    },
-    {
-      title: "Gaps critiques",
-      dataIndex: "n_critical_gaps",
-      key: "gaps",
-      render: (n: number) => (
-        <Tag color={gapTagColor(n)}>{n}</Tag>
-      ),
-    },
-    {
-      title: "Top gaps",
-      dataIndex: "top_gaps",
-      key: "top",
-      render: (gaps: { competence_nom: string; gap_value: number }[]) => (
-        <Space direction="vertical" size={2}>
-          {gaps.slice(0, 2).map((g) => (
-            <span key={g.competence_nom} style={{ fontSize: 12 }}>
-              {g.competence_nom} <Tag color={gapTagColor(g.gap_value)}>Δ {g.gap_value}</Tag>
-            </span>
-          ))}
-        </Space>
-      ),
-    },
-  ], []);
+  const atRiskColumns: ColumnsType<AtRiskTeacherRow> = useMemo(
+    () => [
+      {
+        title: 'Enseignant',
+        dataIndex: 'teacher_name',
+        key: 'name',
+        render: (name: string, row) => (
+          <Button
+            type="link"
+            size="small"
+            style={{ padding: 0, height: 'auto' }}
+            onClick={() => {
+              setSelectedTeacherId(row.teacher_id);
+              setProfileModalOpen(true);
+            }}
+          >
+            {name}
+          </Button>
+        ),
+      },
+      { title: 'Département', dataIndex: 'department', key: 'dept' },
+      {
+        title: 'Score de risque',
+        dataIndex: 'risk_score',
+        key: 'risk',
+        sorter: (a, b) => a.risk_score - b.risk_score,
+        render: (score: number, row) => <RiskTag level={row.risk_level} score={score} />,
+      },
+      {
+        title: 'Gaps critiques',
+        dataIndex: 'n_critical_gaps',
+        key: 'gaps',
+        render: (n: number) => <Tag color={gapTagColor(n)}>{n}</Tag>,
+      },
+      {
+        title: 'Top gaps',
+        dataIndex: 'top_gaps',
+        key: 'top',
+        render: (gaps: { competence_nom: string; gap_value: number }[]) => (
+          <Space direction="vertical" size={2}>
+            {gaps.slice(0, 2).map((g) => (
+              <span key={g.competence_nom} style={{ fontSize: 12 }}>
+                {g.competence_nom} <Tag color={gapTagColor(g.gap_value)}>Δ {g.gap_value}</Tag>
+              </span>
+            ))}
+          </Space>
+        ),
+      },
+    ],
+    [],
+  );
 
   // ── Alerts Columns ───────────────────────────────────
-  const alertColumns: ColumnsType<D2FAlert> = useMemo(() => [
-    {
-      title: "Sévérité",
-      dataIndex: "severity",
-      key: "sev",
-      render: (sev: string) => (
-        <Tag color={sev === "CRITIQUE" ? "red" : "orange"}>{sev}</Tag>
-      ),
-    },
-    { title: "Enseignant", dataIndex: "teacher_id", key: "teacher" },
-    { title: "Type", dataIndex: "type", key: "type" },
-    { title: "Message", dataIndex: "message", key: "msg" },
-    {
-      title: "Statut",
-      dataIndex: "status",
-      key: "status",
-      render: (s: string) => <Tag>{s}</Tag>,
-    },
-    { title: "Date", dataIndex: "created_at", key: "date" },
-  ], []);
+  const alertColumns: ColumnsType<D2FAlert> = useMemo(
+    () => [
+      {
+        title: 'Sévérité',
+        dataIndex: 'severity',
+        key: 'sev',
+        render: (sev: string) => <Tag color={sev === 'CRITIQUE' ? 'red' : 'orange'}>{sev}</Tag>,
+      },
+      { title: 'Enseignant', dataIndex: 'teacher_id', key: 'teacher' },
+      { title: 'Type', dataIndex: 'type', key: 'type' },
+      { title: 'Message', dataIndex: 'message', key: 'msg' },
+      {
+        title: 'Statut',
+        dataIndex: 'status',
+        key: 'status',
+        render: (s: string) => <Tag>{s}</Tag>,
+      },
+      { title: 'Date', dataIndex: 'created_at', key: 'date' },
+    ],
+    [],
+  );
 
   // ── Recommendations Columns ──────────────────────────
-  const recColumns: ColumnsType<D2FRecommendation> = useMemo(() => [
-    {
-      title: "Priorité",
-      dataIndex: "priority",
-      key: "priority",
-      render: (p: string) => (
-        <Tag color={p === "HAUTE" ? "red" : "gold"}>{p}</Tag>
-      ),
-    },
-    { title: "Enseignant", dataIndex: "teacher_id", key: "teacher" },
-    { title: "Formation", dataIndex: "training_title", key: "training" },
-    {
-      title: "Compétence cible",
-      dataIndex: "target_competency_code",
-      key: "comp",
-    },
-    {
-      title: "Réduction de risque attendue",
-      dataIndex: "expected_risk_reduction",
-      key: "rr",
-      render: (v: number) => <Tag color="green">−{v.toFixed(2)}</Tag>,
-    },
-    {
-      title: "Explication",
-      dataIndex: "explanation_fr",
-      key: "expl",
-      render: (text: string) => (
-        <Tooltip title={text}>
-          <span style={{ fontSize: 12, color: "#555" }}>{text.slice(0, 40)}…</span>
-        </Tooltip>
-      ),
-    },
-  ], []);
+  const recColumns: ColumnsType<D2FRecommendation> = useMemo(
+    () => [
+      {
+        title: 'Priorité',
+        dataIndex: 'priority',
+        key: 'priority',
+        render: (p: string) => <Tag color={p === 'HAUTE' ? 'red' : 'gold'}>{p}</Tag>,
+      },
+      { title: 'Enseignant', dataIndex: 'teacher_id', key: 'teacher' },
+      { title: 'Formation', dataIndex: 'training_title', key: 'training' },
+      {
+        title: 'Compétence cible',
+        dataIndex: 'target_competency_code',
+        key: 'comp',
+      },
+      {
+        title: 'Réduction de risque attendue',
+        dataIndex: 'expected_risk_reduction',
+        key: 'rr',
+        render: (v: number) => <Tag color="green">−{v.toFixed(2)}</Tag>,
+      },
+      {
+        title: 'Explication',
+        dataIndex: 'explanation_fr',
+        key: 'expl',
+        render: (text: string) => (
+          <Tooltip title={text}>
+            <span style={{ fontSize: 12, color: '#555' }}>{text.slice(0, 40)}…</span>
+          </Tooltip>
+        ),
+      },
+    ],
+    [],
+  );
 
   // ── At-Risk Table ─────────────────────────────
   // ── Training Completion Handler ─────────────────────
@@ -393,10 +435,10 @@ export function D2FDashboard({ defaultTeacherId }: Readonly<D2FDashboardProps>) 
     try {
       const result = await trainingMutation.mutateAsync({ teacherId, trainingCode });
       message.success(
-        `Risque recalculé: ${result.old_risk_score.toFixed(2)} → ${result.new_risk_score.toFixed(2)} (${result.risk_reduction.toFixed(2)} de réduction)`
+        `Risque recalculé: ${result.old_risk_score.toFixed(2)} → ${result.new_risk_score.toFixed(2)} (${result.risk_reduction.toFixed(2)} de réduction)`,
       );
     } catch {
-      message.error("Échec du recompute. Voir la console pour le détail.");
+      message.error('Échec du recompute. Voir la console pour le détail.');
     }
   };
 
@@ -535,11 +577,7 @@ export function D2FDashboard({ defaultTeacherId }: Readonly<D2FDashboardProps>) 
         }
         style={{ marginBottom: 16 }}
         extra={
-          <Button
-            size="small"
-            icon={<ReloadOutlined />}
-            onClick={() => atRiskQ.refetch()}
-          >
+          <Button size="small" icon={<ReloadOutlined />} onClick={() => atRiskQ.refetch()}>
             Actualiser
           </Button>
         }
@@ -572,10 +610,10 @@ export function D2FDashboard({ defaultTeacherId }: Readonly<D2FDashboardProps>) 
             style={{ width: 180 }}
             onChange={(v) => setAlertFilter(v)}
             options={[
-              { value: "NOUVELLE", label: "Nouvelle" },
-              { value: "LUE", label: "Lue" },
-              { value: "EN_COURS", label: "En cours" },
-              { value: "RESOLUE", label: "Résolue" },
+              { value: 'NOUVELLE', label: 'Nouvelle' },
+              { value: 'LUE', label: 'Lue' },
+              { value: 'EN_COURS', label: 'En cours' },
+              { value: 'RESOLUE', label: 'Résolue' },
             ]}
           />
         }

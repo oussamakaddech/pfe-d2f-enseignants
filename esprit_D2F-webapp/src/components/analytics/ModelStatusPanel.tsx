@@ -1,6 +1,6 @@
-import { Card, Descriptions, Tag, Alert, Statistic, Row, Col } from "antd";
-import { CheckCircleOutlined, WarningOutlined } from "@ant-design/icons";
-import type { ModelStatus } from "@/models/analyse/analyticsFeature";
+import { Card, Descriptions, Tag, Alert, Statistic, Row, Col } from 'antd';
+import { CheckCircleOutlined, WarningOutlined } from '@ant-design/icons';
+import type { ModelStatus } from '@/models/analyse/analyticsFeature';
 
 interface ModelStatusPanelProps {
   readonly status: ModelStatus | undefined;
@@ -22,7 +22,7 @@ export default function ModelStatusPanel({ status, loading }: ModelStatusPanelPr
         <Col span={8}>
           <Statistic
             title="Accuracy"
-            value={status.accuracy ?? "—"}
+            value={status.accuracy ?? '—'}
             precision={status.accuracy !== null ? 3 : undefined}
             valueStyle={{ fontSize: 18 }}
           />
@@ -33,9 +33,7 @@ export default function ModelStatusPanel({ status, loading }: ModelStatusPanelPr
       </Row>
       <Descriptions column={1} size="small" bordered>
         <Descriptions.Item label="Version">{status.version}</Descriptions.Item>
-        <Descriptions.Item label="Entraîné le">
-          {status.entraîné_le ?? "—"}
-        </Descriptions.Item>
+        <Descriptions.Item label="Entraîné le">{status.entraîné_le ?? '—'}</Descriptions.Item>
         <Descriptions.Item label="Intégrité">
           {integrityOk ? (
             <Tag color="green" icon={<CheckCircleOutlined />}>
@@ -48,14 +46,10 @@ export default function ModelStatusPanel({ status, loading }: ModelStatusPanelPr
           )}
         </Descriptions.Item>
         <Descriptions.Item label="Drift">
-          {status.drift_detected ? (
-            <Tag color="red">Détecté</Tag>
-          ) : (
-            <Tag color="green">Stable</Tag>
-          )}
+          {status.drift_detected ? <Tag color="red">Détecté</Tag> : <Tag color="green">Stable</Tag>}
         </Descriptions.Item>
         <Descriptions.Item label="Source">
-          {status.source === "heuristique" ? (
+          {status.source === 'heuristique' ? (
             <Tag color="orange">Fallback heuristique</Tag>
           ) : (
             <Tag color="blue">Modèle ML</Tag>

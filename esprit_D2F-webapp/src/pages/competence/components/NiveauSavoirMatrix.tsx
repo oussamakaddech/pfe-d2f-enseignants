@@ -1,4 +1,4 @@
-import { Empty, Tooltip } from "antd";
+import { Empty, Tooltip } from 'antd';
 
 interface NiveauSavoirMatrixItem {
   savoirNom?: string;
@@ -15,13 +15,17 @@ interface NiveauSavoirMatrixProps {
   code?: string;
 }
 
-export default function NiveauSavoirMatrix({ data, title, code }: Readonly<NiveauSavoirMatrixProps>) {
+export default function NiveauSavoirMatrix({
+  data,
+  title,
+  code,
+}: Readonly<NiveauSavoirMatrixProps>) {
   const NIVEAUX = [
-    { key: "N1_DEBUTANT", label: "N 1" },
-    { key: "N2_ELEMENTAIRE", label: "N 2" },
-    { key: "N3_INTERMEDIAIRE", label: "N 3" },
-    { key: "N4_AVANCE", label: "N 4" },
-    { key: "N5_EXPERT", label: "N 5" },
+    { key: 'N1_DEBUTANT', label: 'N 1' },
+    { key: 'N2_ELEMENTAIRE', label: 'N 2' },
+    { key: 'N3_INTERMEDIAIRE', label: 'N 3' },
+    { key: 'N4_AVANCE', label: 'N 4' },
+    { key: 'N5_EXPERT', label: 'N 5' },
   ];
 
   const maxRows = Math.max(...NIVEAUX.map((n) => (data[n.key] || []).length), 1);
@@ -31,27 +35,27 @@ export default function NiveauSavoirMatrix({ data, title, code }: Readonly<Nivea
   }
 
   const tdStyle: React.CSSProperties = {
-    border: "1px solid #000",
-    padding: "6px 12px",
-    textAlign: "center",
+    border: '1px solid #000',
+    padding: '6px 12px',
+    textAlign: 'center',
     fontSize: 13,
     minWidth: 80,
   };
 
   const thStyle: React.CSSProperties = {
     ...tdStyle,
-    fontWeight: "bold",
-    background: "#fff",
+    fontWeight: 'bold',
+    background: '#fff',
   };
 
   return (
-    <div style={{ overflowX: "auto" }}>
+    <div style={{ overflowX: 'auto' }}>
       <table
         style={{
-          borderCollapse: "collapse",
-          width: "100%",
-          tableLayout: "fixed",
-          fontFamily: "inherit",
+          borderCollapse: 'collapse',
+          width: '100%',
+          tableLayout: 'fixed',
+          fontFamily: 'inherit',
         }}
       >
         <thead>
@@ -60,13 +64,13 @@ export default function NiveauSavoirMatrix({ data, title, code }: Readonly<Nivea
               colSpan={NIVEAUX.length}
               style={{
                 ...tdStyle,
-                background: "#fff",
-                color: "#007b7b",
-                fontStyle: "italic",
+                background: '#fff',
+                color: '#007b7b',
+                fontStyle: 'italic',
                 fontSize: 14,
-                fontWeight: "bold",
-                textAlign: "center",
-                padding: "8px 12px",
+                fontWeight: 'bold',
+                textAlign: 'center',
+                padding: '8px 12px',
               }}
             >
               {title && <span>{title}</span>}
@@ -76,7 +80,9 @@ export default function NiveauSavoirMatrix({ data, title, code }: Readonly<Nivea
           </tr>
           <tr>
             {NIVEAUX.map((n) => (
-              <th key={n.key} style={thStyle}>{n.label}</th>
+              <th key={n.key} style={thStyle}>
+                {n.label}
+              </th>
             ))}
           </tr>
         </thead>
@@ -89,9 +95,11 @@ export default function NiveauSavoirMatrix({ data, title, code }: Readonly<Nivea
                   <td key={n.key} style={tdStyle}>
                     {item ? (
                       <Tooltip title={item.savoirNom}>
-                        <span style={{ cursor: "default" }}>{item.savoirCode}</span>
+                        <span style={{ cursor: 'default' }}>{item.savoirCode}</span>
                       </Tooltip>
-                    ) : ""}
+                    ) : (
+                      ''
+                    )}
                   </td>
                 );
               })}
@@ -102,11 +110,3 @@ export default function NiveauSavoirMatrix({ data, title, code }: Readonly<Nivea
     </div>
   );
 }
-
-
-
-
-
-
-
-

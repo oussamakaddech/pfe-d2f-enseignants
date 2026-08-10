@@ -8,7 +8,7 @@ import {
   paginationParams,
   extractPageData,
   buildQueryString,
-} from "@/utils/helpers/http";
+} from '@/utils/helpers/http';
 
 describe('http', () => {
   describe('extractErrorMessage', () => {
@@ -77,13 +77,29 @@ describe('http', () => {
 
   describe('extractPageData', () => {
     it('returns defaults for null/undefined', () => {
-      const def = { content: [], totalElements: 0, totalPages: 0, currentPage: 0, pageSize: 20, isFirst: true, isLast: true };
+      const def = {
+        content: [],
+        totalElements: 0,
+        totalPages: 0,
+        currentPage: 0,
+        pageSize: 20,
+        isFirst: true,
+        isLast: true,
+      };
       expect(extractPageData(null)).toEqual(def);
       expect(extractPageData(undefined)).toEqual(def);
       expect(extractPageData('string')).toEqual(def);
     });
     it('maps page response correctly', () => {
-      const resp = { content: [1, 2], totalElements: 10, totalPages: 2, number: 1, size: 5, first: false, last: false };
+      const resp = {
+        content: [1, 2],
+        totalElements: 10,
+        totalPages: 2,
+        number: 1,
+        size: 5,
+        first: false,
+        last: false,
+      };
       expect(extractPageData(resp)).toEqual({
         content: [1, 2],
         totalElements: 10,

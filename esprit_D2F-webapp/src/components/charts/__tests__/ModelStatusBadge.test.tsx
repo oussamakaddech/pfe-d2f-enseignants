@@ -23,7 +23,9 @@ vi.mock('../../../services/httpClient', () => ({
 import ModelStatusBadge from '../ModelStatusBadge';
 
 describe('ModelStatusBadge', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('shows "Modèle à jour" when no drift detected', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({

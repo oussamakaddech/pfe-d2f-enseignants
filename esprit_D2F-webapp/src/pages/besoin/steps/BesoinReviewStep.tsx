@@ -1,8 +1,8 @@
 /* ─────────────────────────────────────────────────────────────────────────
  * BesoinReviewStep — Summary/review before submission
  * ─────────────────────────────────────────────────────────────────────── */
-import { EditOutlined } from "@ant-design/icons";
-import type { BesoinCompetenceLink } from "@/models/besoin";
+import { EditOutlined } from '@ant-design/icons';
+import type { BesoinCompetenceLink } from '@/models/besoin';
 
 interface SummaryItem {
   label: string;
@@ -24,21 +24,29 @@ interface BesoinReviewStepProps {
 }
 
 function stripTrailingAngle(value: string): string {
-  const idx = value.lastIndexOf("<");
-  if (idx >= 0 && value.indexOf(">", idx) === value.length - 1) {
+  const idx = value.lastIndexOf('<');
+  if (idx >= 0 && value.indexOf('>', idx) === value.length - 1) {
     return value.slice(0, idx);
   }
   return value;
 }
 
-export default function BesoinReviewStep({ sections, onEditSection }: Readonly<BesoinReviewStepProps>) {
+export default function BesoinReviewStep({
+  sections,
+  onEditSection,
+}: Readonly<BesoinReviewStepProps>) {
   return (
     <div className="bf-summary">
       <header className="bf-summary__header">
-        <div className="bf-summary__icon"><EditOutlined /></div>
+        <div className="bf-summary__icon">
+          <EditOutlined />
+        </div>
         <div>
           <h2 className="bf-summary__title">Récapitulatif de votre demande</h2>
-          <p className="bf-summary__sub">Vérifiez les informations avant de soumettre. Cliquez sur "Modifier" pour revenir à une étape.</p>
+          <p className="bf-summary__sub">
+            Vérifiez les informations avant de soumettre. Cliquez sur "Modifier" pour revenir à une
+            étape.
+          </p>
         </div>
       </header>
 
@@ -60,9 +68,12 @@ export default function BesoinReviewStep({ sections, onEditSection }: Readonly<B
               {section.items.map((it) => (
                 <div key={it.label} className="bf-summary-card__row">
                   <dt>{it.label}</dt>
-                  <dd className={it.strong ? "is-strong" : ""}>
+                  <dd className={it.strong ? 'is-strong' : ''}>
                     {it.pillColor ? (
-                      <span className="bf-summary-pill" style={{ "--pill": it.pillColor } as React.CSSProperties}>
+                      <span
+                        className="bf-summary-pill"
+                        style={{ '--pill': it.pillColor } as React.CSSProperties}
+                      >
                         {it.value}
                       </span>
                     ) : (
@@ -81,26 +92,30 @@ export default function BesoinReviewStep({ sections, onEditSection }: Readonly<B
 
 // Helper to build summary sections (pure function, no hooks)
 const PERIOD_OPTIONS = [
-  { value: "WINTER",   label: "Winter" },
-  { value: "SUMMER",   label: "Summer" },
-  { value: "SPRINT",   label: "Sprint" },
-  { value: "WORKSHOP", label: "Workshop" },
-  { value: "OTHER",    label: "Autre" },
+  { value: 'WINTER', label: 'Winter' },
+  { value: 'SUMMER', label: 'Summer' },
+  { value: 'SPRINT', label: 'Sprint' },
+  { value: 'WORKSHOP', label: 'Workshop' },
+  { value: 'OTHER', label: 'Autre' },
 ];
 
 const typeOptions = [
-  { value: "INDIVIDUEL", label: "Individuel" },
-  { value: "COLLECTIF",  label: "Collectif" },
+  { value: 'INDIVIDUEL', label: 'Individuel' },
+  { value: 'COLLECTIF', label: 'Collectif' },
 ];
 
 const prioriteOptions = [
-  { value: "BASSE",    label: "Basse",    accent: "#10b981" },
-  { value: "MOYENNE",  label: "Moyenne",  accent: "#f59e0b" },
-  { value: "HAUTE",    label: "Haute",    accent: "#ef4444" },
-  { value: "CRITIQUE", label: "Critique", accent: "#b51200" },
+  { value: 'BASSE', label: 'Basse', accent: '#10b981' },
+  { value: 'MOYENNE', label: 'Moyenne', accent: '#f59e0b' },
+  { value: 'HAUTE', label: 'Haute', accent: '#ef4444' },
+  { value: 'CRITIQUE', label: 'Critique', accent: '#b51200' },
 ];
 
-interface LookupItem { id?: string | number; name?: string; libelle?: string }
+interface LookupItem {
+  id?: string | number;
+  name?: string;
+  libelle?: string;
+}
 
 export function buildSummarySections(
   values: Record<string, unknown>,
@@ -110,72 +125,108 @@ export function buildSummarySections(
   canManageParticipants: boolean,
   formatParticipantsSummary: (v: unknown) => string,
 ): SummarySection[] {
-  const upObj  = ups.find((u) => String(u.id) === String(values.up));
+  const upObj = ups.find((u) => String(u.id) === String(values.up));
   const depObj = departements.find((d) => String(d.id) === String(values.departement));
-  const typeLabel  = typeOptions.find((t) => t.value === values.typeBesoin)?.label;
-  const prioMeta   = prioriteOptions.find((p) => p.value === values.priorite);
-  const periodLabel = values.periodCode === "OTHER"
-    ? (String(values.customPeriodLabel || "Autre"))
-    : (PERIOD_OPTIONS.find((o) => o.value === values.periodCode)?.label || "—");
+  const typeLabel = typeOptions.find((t) => t.value === values.typeBesoin)?.label;
+  const prioMeta = prioriteOptions.find((p) => p.value === values.priorite);
+  const periodLabel =
+    values.periodCode === 'OTHER'
+      ? String(values.customPeriodLabel || 'Autre')
+      : PERIOD_OPTIONS.find((o) => o.value === values.periodCode)?.label || '—';
 
   const formatActeurs = (raw: unknown): string => {
     const list = Array.isArray(raw)
       ? raw.map((v) => String(v).trim()).filter(Boolean)
-      : String(raw || "").split(/\r?\n/).map((v) => v.trim()).filter(Boolean);
-    if (list.length === 0) return "—";
+      : String(raw || '')
+          .split(/\r?\n/)
+          .map((v) => v.trim())
+          .filter(Boolean);
+    if (list.length === 0) return '—';
     const names = list.map((v) => stripTrailingAngle(v).trim());
-    return `${list.length} — ${names.join(", ")}`;
+    return `${list.length} — ${names.join(', ')}`;
   };
   return [
     {
-      key: "contexte", title: "Contexte", icon: null,
+      key: 'contexte',
+      title: 'Contexte',
+      icon: null,
       items: [
-        { label: "Unité Pédagogique", value: upObj?.name || upObj?.libelle || "—" },
-        { label: "Département",       value: depObj?.name || depObj?.libelle || "—" },
-        { label: "Type de besoin",    value: typeLabel || "—" },
-        ...((canManageParticipants || values.typeBesoin === "INDIVIDUEL" || values.typeBesoin === "COLLECTIF")
-          ? [{ label: "Participants", value: formatParticipantsSummary(values.publicCible) }] : []),
+        { label: 'Unité Pédagogique', value: upObj?.name || upObj?.libelle || '—' },
+        { label: 'Département', value: depObj?.name || depObj?.libelle || '—' },
+        { label: 'Type de besoin', value: typeLabel || '—' },
+        ...(canManageParticipants ||
+        values.typeBesoin === 'INDIVIDUEL' ||
+        values.typeBesoin === 'COLLECTIF'
+          ? [{ label: 'Participants', value: formatParticipantsSummary(values.publicCible) }]
+          : []),
       ],
     },
     {
-      key: "formation", title: "Formation", icon: null,
+      key: 'formation',
+      title: 'Formation',
+      icon: null,
       items: [
-        { label: "Nom",               value: String(values.titre || "—"), strong: true },
-        { label: "Domaine",           value: String(values.theme || "—") },
-        { label: "Objectif",          value: String(values.objectifFormation || "—") },
-        { label: "Objectifs pédago",  value: String(values.objectifsPedagogiques || "—") },
-        { label: "Priorité",          value: prioMeta?.label || "—", pillColor: prioMeta?.accent },
-        { label: "Impact stratégique",value: String(values.impactStrategique || "—") },
+        { label: 'Nom', value: String(values.titre || '—'), strong: true },
+        { label: 'Domaine', value: String(values.theme || '—') },
+        { label: 'Objectif', value: String(values.objectifFormation || '—') },
+        { label: 'Objectifs pédago', value: String(values.objectifsPedagogiques || '—') },
+        { label: 'Priorité', value: prioMeta?.label || '—', pillColor: prioMeta?.accent },
+        { label: 'Impact stratégique', value: String(values.impactStrategique || '—') },
       ],
     },
     {
-      key: "details", title: "Détails & planning", icon: null,
+      key: 'details',
+      title: 'Détails & planning',
+      icon: null,
       items: [
-        { label: "Formateur proposé", value: String(values.propositionAnimateur || "—") },
-        { label: "Animateurs",        value: formatActeurs(values.animateurs) },
-        { label: "Enseignants",       value: formatActeurs(values.enseignants) },
-        { label: "Période",           value: periodLabel },
-        { label: "Date de début",     value: values.dateDebut ? (values.dateDebut as { format: (f: string) => string }).format("DD/MM/YYYY") : "—" },
-        { label: "Date de fin",       value: values.dateFin   ? (values.dateFin   as { format: (f: string) => string }).format("DD/MM/YYYY") : "—" },
-        { label: "Durée",             value: values.dureeFormation ? `${values.dureeFormation} h` : "—" },
-        { label: "Participants max",  value: values.nbMaxParticipants ? String(values.nbMaxParticipants) : "—" },
+        { label: 'Formateur proposé', value: String(values.propositionAnimateur || '—') },
+        { label: 'Animateurs', value: formatActeurs(values.animateurs) },
+        { label: 'Enseignants', value: formatActeurs(values.enseignants) },
+        { label: 'Période', value: periodLabel },
+        {
+          label: 'Date de début',
+          value: values.dateDebut
+            ? (values.dateDebut as { format: (f: string) => string }).format('DD/MM/YYYY')
+            : '—',
+        },
+        {
+          label: 'Date de fin',
+          value: values.dateFin
+            ? (values.dateFin as { format: (f: string) => string }).format('DD/MM/YYYY')
+            : '—',
+        },
+        { label: 'Durée', value: values.dureeFormation ? `${values.dureeFormation} h` : '—' },
+        {
+          label: 'Participants max',
+          value: values.nbMaxParticipants ? String(values.nbMaxParticipants) : '—',
+        },
       ],
     },
     {
-      key: "competences", title: "Compétences RICE", icon: null,
-      items: selectedCompLinks.filter((l) => l.competenceId).length === 0
-        ? [{ label: "Compétences", value: "—" }]
-        : selectedCompLinks.filter((l) => l.competenceId).map((l, i) => ({
-            label: `Compétence ${i + 1}`,
-            value: [l.competenceNom, l.savoirNom].filter(Boolean).join(" → ") || "—",
-          })),
+      key: 'competences',
+      title: 'Compétences RICE',
+      icon: null,
+      items:
+        selectedCompLinks.filter((l) => l.competenceId).length === 0
+          ? [{ label: 'Compétences', value: '—' }]
+          : selectedCompLinks
+              .filter((l) => l.competenceId)
+              .map((l, i) => ({
+                label: `Compétence ${i + 1}`,
+                value: [l.competenceNom, l.savoirNom].filter(Boolean).join(' → ') || '—',
+              })),
     },
     {
-      key: "parametres", title: "Paramètres", icon: null,
+      key: 'parametres',
+      title: 'Paramètres',
+      icon: null,
       items: [
-        { label: "Type de formation",   value: values.estOuverte ? "Ouverte (toutes UPs)" : "Fermée (UP uniquement)" },
-        { label: "Évaluation",          value: String(values.methodesEvaluationAcquis || "—") },
-        { label: "Autres informations", value: String(values.autresInformations || "—") },
+        {
+          label: 'Type de formation',
+          value: values.estOuverte ? 'Ouverte (toutes UPs)' : 'Fermée (UP uniquement)',
+        },
+        { label: 'Évaluation', value: String(values.methodesEvaluationAcquis || '—') },
+        { label: 'Autres informations', value: String(values.autresInformations || '—') },
       ],
     },
   ];

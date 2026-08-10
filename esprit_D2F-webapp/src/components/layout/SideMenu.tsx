@@ -1,39 +1,39 @@
-import { memo, useMemo } from "react";
-import { Menu, Avatar, Badge, Typography, Divider } from "antd";
-import type { MenuProps } from "antd";
-import { UserOutlined } from "@ant-design/icons";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/hooks/auth";
-import { roleMenus, accountGroup, type MenuItem } from "./sideMenuData";
-import "@/styles/components/sidemenu.css";
+import { memo, useMemo } from 'react';
+import { Menu, Avatar, Badge, Typography, Divider } from 'antd';
+import type { MenuProps } from 'antd';
+import { UserOutlined } from '@ant-design/icons';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/hooks/auth';
+import { roleMenus, accountGroup, type MenuItem } from './sideMenuData';
+import '@/styles/components/sidemenu.css';
 
 const { Text } = Typography;
 
 const normalizeRole = (value: unknown) =>
-  String(value ?? "")
+  String(value ?? '')
     .toLowerCase()
-    .replace(/^role_?/, "")
-    .replaceAll(/[\s_-]+/g, "");
+    .replace(/^role_?/, '')
+    .replaceAll(/[\s_-]+/g, '');
 
 const ROLE_LABELS: Record<string, string> = {
-  admin:              "Administrateur",
-  cup:                "CUP",
-  enseignant:         "Enseignant",
-  animateur:          "Animateur",
-  responsabledossier: "Responsable Dossier",
-  chefdepartement:    "Chef de Département",
+  admin: 'Administrateur',
+  cup: 'CUP',
+  enseignant: 'Enseignant',
+  animateur: 'Animateur',
+  responsabledossier: 'Responsable Dossier',
+  chefdepartement: 'Chef de Département',
 };
 
-type AntdMenuItem = NonNullable<MenuProps["items"]>[number];
+type AntdMenuItem = NonNullable<MenuProps['items']>[number];
 
 function processItems(items: MenuItem[]): AntdMenuItem[] {
   return items.map((item): AntdMenuItem => {
-    if (item.type === "group") {
-      return { type: "group", label: item.label, children: processItems(item.children ?? []) };
+    if (item.type === 'group') {
+      return { type: 'group', label: item.label, children: processItems(item.children ?? []) };
     }
     const Icon = item.icon;
     return {
-      key: item.key ?? "",
+      key: item.key ?? '',
       label: item.label,
       danger: item.danger,
       icon: Icon ? <Icon /> : null,
@@ -43,11 +43,11 @@ function processItems(items: MenuItem[]): AntdMenuItem[] {
 }
 
 function getDefaultOpenKeys(pathname: string): string[] {
-  if (pathname.startsWith("/home/besoins"))         return ["besoin_formation_menu"];
-  if (pathname.startsWith("/home/rice"))            return ["rice_ia_group"];
-  if (pathname.startsWith("/home/affectations") ||
-      pathname.startsWith("/home/rice/matchmaking")) return ["gestion_affectation"];
-  if (pathname.startsWith("/home/bureaux"))         return [];
+  if (pathname.startsWith('/home/besoins')) return ['besoin_formation_menu'];
+  if (pathname.startsWith('/home/rice')) return ['rice_ia_group'];
+  if (pathname.startsWith('/home/affectations') || pathname.startsWith('/home/rice/matchmaking'))
+    return ['gestion_affectation'];
+  if (pathname.startsWith('/home/bureaux')) return [];
   return [];
 }
 
@@ -64,10 +64,10 @@ const SideMenu = memo(function SideMenu({ collapsed }: { collapsed?: boolean }) 
   }, [user, roleKey]);
 
   const onClick = ({ key }: { key: string }) => {
-    if (key === "logout") {
+    if (key === 'logout') {
       logout();
-      navigate("/");
-    } else if (typeof key === "string" && key.startsWith("/")) {
+      navigate('/');
+    } else if (typeof key === 'string' && key.startsWith('/')) {
       navigate(key);
     }
   };
@@ -82,9 +82,9 @@ const SideMenu = memo(function SideMenu({ collapsed }: { collapsed?: boolean }) 
             <Avatar
               size={40}
               icon={<UserOutlined />}
-              src={typeof user?.avatar === "string" ? user.avatar : undefined}
+              src={typeof user?.avatar === 'string' ? user.avatar : undefined}
               className="user-avatar"
-              style={{ background: "#b51200", color: "#fff" }}
+              style={{ background: '#b51200', color: '#fff' }}
             />
           </Badge>
           <div className="user-info">
@@ -94,7 +94,7 @@ const SideMenu = memo(function SideMenu({ collapsed }: { collapsed?: boolean }) 
         </div>
       </div>
 
-      <Divider style={{ margin: "6px 0", opacity: 0.35 }} />
+      <Divider style={{ margin: '6px 0', opacity: 0.35 }} />
 
       <div className="sidemenu-nav-section">
         <Menu

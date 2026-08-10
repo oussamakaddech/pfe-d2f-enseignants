@@ -1,4 +1,4 @@
-import { Line } from "react-chartjs-2";
+import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -7,8 +7,8 @@ import {
   LineElement,
   Tooltip,
   Legend,
-} from "chart.js";
-import type { TrendPoint } from "@/models/analyse/analyticsFeature";
+} from 'chart.js';
+import type { TrendPoint } from '@/models/analyse/analyticsFeature';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
@@ -24,22 +24,22 @@ export default function TrendChart({ trends, loading }: TrendChartProps) {
     labels: trends.map((t) => t.month),
     datasets: [
       {
-        label: "Score de risque moyen",
+        label: 'Score de risque moyen',
         data: trends.map((t) => Math.round(t.score_risque_moyen * 100)),
-        borderColor: "#1677ff",
-        yAxisID: "y",
+        borderColor: '#1677ff',
+        yAxisID: 'y',
       },
       {
-        label: "Enseignants CRITIQUE",
+        label: 'Enseignants CRITIQUE',
         data: trends.map((t) => t.nb_gaps_critiques),
-        borderColor: "#f5222d",
-        yAxisID: "y1",
+        borderColor: '#f5222d',
+        yAxisID: 'y1',
       },
       {
-        label: "Enseignants évalués",
+        label: 'Enseignants évalués',
         data: trends.map((t) => t.nb_alertes),
-        borderColor: "#faad14",
-        yAxisID: "y1",
+        borderColor: '#faad14',
+        yAxisID: 'y1',
       },
     ],
   };
@@ -48,10 +48,15 @@ export default function TrendChart({ trends, loading }: TrendChartProps) {
       data={data}
       options={{
         responsive: true,
-        interaction: { mode: "index", intersect: false },
+        interaction: { mode: 'index', intersect: false },
         scales: {
-          y: { type: "linear", position: "left", title: { display: true, text: "Score %" } },
-          y1: { type: "linear", position: "right", title: { display: true, text: "Comptes" }, grid: { drawOnChartArea: false } },
+          y: { type: 'linear', position: 'left', title: { display: true, text: 'Score %' } },
+          y1: {
+            type: 'linear',
+            position: 'right',
+            title: { display: true, text: 'Comptes' },
+            grid: { drawOnChartArea: false },
+          },
         },
       }}
     />

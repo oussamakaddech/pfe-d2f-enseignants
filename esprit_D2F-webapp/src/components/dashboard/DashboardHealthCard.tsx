@@ -1,36 +1,49 @@
-import { memo } from "react";
-import { Progress, Skeleton } from "antd";
-import { HeartOutlined } from "@ant-design/icons";
-import { InfoCard } from "@/components/ui";
-import { useGlobalParticipantKPI } from "@/hooks/kpi";
-import { useOverview } from "@/hooks/analyse/useAnalysePredictive";
-import { useBesoins } from "@/hooks/besoin/useBesoins";
-import { useGlobalDashboard, useParticipationByUp, useInactifs } from "@/hooks/dashboard/useDashboardData";
-import { computeHealthScore, isPendingBesoin } from "@/services/dashboard/dashboardService";
-import type { GlobalParticipantKPI } from "@/models/analyse/kpi";
-import type { AnalyticsUP } from "@/models/analyse/reporting";
-import type { DashboardScope, HealthLevel } from "@/models/dashboard";
+import { memo } from 'react';
+import { Progress, Skeleton } from 'antd';
+import { HeartOutlined } from '@ant-design/icons';
+import { InfoCard } from '@/components/ui';
+import { useGlobalParticipantKPI } from '@/hooks/kpi';
+import { useOverview } from '@/hooks/analyse/useAnalysePredictive';
+import { useBesoins } from '@/hooks/besoin/useBesoins';
+import {
+  useGlobalDashboard,
+  useParticipationByUp,
+  useInactifs,
+} from '@/hooks/dashboard/useDashboardData';
+import { computeHealthScore, isPendingBesoin } from '@/services/dashboard/dashboardService';
+import type { GlobalParticipantKPI } from '@/models/analyse/kpi';
+import type { AnalyticsUP } from '@/models/analyse/reporting';
+import type { DashboardScope, HealthLevel } from '@/models/dashboard';
 
 const LEVEL_COLOR: Record<HealthLevel, string> = {
-  healthy: "#10b981",
-  attention: "#f59e0b",
-  critical: "#ef4444",
+  healthy: '#10b981',
+  attention: '#f59e0b',
+  critical: '#ef4444',
 };
 const LEVEL_LABEL: Record<HealthLevel, string> = {
-  healthy: "Plateforme saine",
+  healthy: 'Plateforme saine',
   attention: "Points d'attention",
-  critical: "Situation critique",
+  critical: 'Situation critique',
 };
 
 function factorColor(score: number): string {
-  if (score >= 75) return "#10b981";
-  if (score >= 50) return "#f59e0b";
-  return "#ef4444";
+  if (score >= 75) return '#10b981';
+  if (score >= 50) return '#f59e0b';
+  return '#ef4444';
 }
 
-const renderHealthScore = (p?: number) => <span className="dash-health-score">{p}<small>/100</small></span>;
+const renderHealthScore = (p?: number) => (
+  <span className="dash-health-score">
+    {p}
+    <small>/100</small>
+  </span>
+);
 
-const DashboardHealthCard = memo(function DashboardHealthCard({ scope }: { readonly scope: DashboardScope }) {
+const DashboardHealthCard = memo(function DashboardHealthCard({
+  scope,
+}: {
+  readonly scope: DashboardScope;
+}) {
   const isAdmin = scope.isAdmin;
   const presenceQ = useGlobalParticipantKPI(scope.start, scope.end);
   const overview = useOverview();
@@ -44,7 +57,8 @@ const DashboardHealthCard = memo(function DashboardHealthCard({ scope }: { reado
     : upQ.isLoading || inactifs.isLoading;
 
   const ups = upQ.data?.items ?? [];
-  const avg = (sel: (u: AnalyticsUP) => number) => (ups.length ? ups.reduce((s, u) => s + (sel(u) || 0), 0) / ups.length : undefined);
+  const avg = (sel: (u: AnalyticsUP) => number) =>
+    ups.length ? ups.reduce((s, u) => s + (sel(u) || 0), 0) / ups.length : undefined;
 
   const health = isAdmin
     ? computeHealthScore({

@@ -1,19 +1,30 @@
-import { useState, useCallback } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import AnalyticsService from "@/services/analyse/AnalyticsService";
+import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import AnalyticsService from '@/services/analyse/AnalyticsService';
 import type {
-  AnalyseResult, GapsResponse, RecommendationsResponse, TrainingPath,
-  GroupedRecommendationsResponse, RecoGroupBy,
-  WhatIfAction, WhatIfResponse,
-} from "@/models/analyse";
+  AnalyseResult,
+  GapsResponse,
+  RecommendationsResponse,
+  TrainingPath,
+  GroupedRecommendationsResponse,
+  RecoGroupBy,
+  WhatIfAction,
+  WhatIfResponse,
+} from '@/models/analyse';
 
-interface GapParams   { urgence?: string; page: number }
-interface RecoParams  { competenceId?: number; page: number }
+interface GapParams {
+  urgence?: string;
+  page: number;
+}
+interface RecoParams {
+  competenceId?: number;
+  page: number;
+}
 
 export function useAnalytics(enseignantId: string) {
   const qc = useQueryClient();
-  const [gapParams,           setGapParams]           = useState<GapParams | null>(null);
-  const [recoParams,          setRecoParams]          = useState<RecoParams | null>(null);
+  const [gapParams, setGapParams] = useState<GapParams | null>(null);
+  const [recoParams, setRecoParams] = useState<RecoParams | null>(null);
   const [trainingCompetenceId, setTrainingCompetenceId] = useState<number | null>(null);
 
   const analysisMutation = useMutation<AnalyseResult, Error>({
@@ -21,26 +32,27 @@ export function useAnalytics(enseignantId: string) {
   });
 
   const gapsQ = useQuery<GapsResponse>({
-    queryKey: ["gaps", enseignantId, gapParams],
-    queryFn:  () => AnalyticsService.getGaps(enseignantId, gapParams!),
-    enabled:  !!enseignantId && gapParams !== null,
+    queryKey: ['gaps', enseignantId, gapParams],
+    queryFn: () => AnalyticsService.getGaps(enseignantId, gapParams!),
+    enabled: !!enseignantId && gapParams !== null,
   });
 
   const recoQ = useQuery<RecommendationsResponse>({
-    queryKey: ["recommendations", enseignantId, recoParams],
-    queryFn:  () =>
+    queryKey: ['recommendations', enseignantId, recoParams],
+    queryFn: () =>
       AnalyticsService.getRecommendations(enseignantId, {
         competence_id: recoParams?.competenceId,
-        page:          recoParams?.page,
+        page: recoParams?.page,
       }),
     enabled: !!enseignantId && recoParams !== null,
   });
 
   const trainingPathQ = useQuery<TrainingPath>({
-    queryKey: ["training-path", enseignantId, trainingCompetenceId],
-    queryFn:  () => AnalyticsService.getTrainingPath(enseignantId, trainingCompetenceId!),
-    enabled:  !!enseignantId && trainingCompetenceId !== null,
-    retry:    (_count: number, error: unknown) => (error as { response?: { status: number } })?.response?.status !== 404,
+    queryKey: ['training-path', enseignantId, trainingCompetenceId],
+    queryFn: () => AnalyticsService.getTrainingPath(enseignantId, trainingCompetenceId!),
+    enabled: !!enseignantId && trainingCompetenceId !== null,
+    retry: (_count: number, error: unknown) =>
+      (error as { response?: { status: number } })?.response?.status !== 404,
   });
 
   const runAnalysis = useCallback(async () => {
@@ -48,49 +60,65 @@ export function useAnalytics(enseignantId: string) {
     return analysisMutation.mutateAsync();
   }, [enseignantId, analysisMutation]);
 
-  const fetchGaps = useCallback((urgence?: string, page = 0) => {
-    if (!enseignantId) return;
-    setGapParams({ urgence, page });
-  }, [enseignantId]);
+  const fetchGaps = useCallback(
+    (urgence?: string, page = 0) => {
+      if (!enseignantId) return;
+      setGapParams({ urgence, page });
+    },
+    [enseignantId],
+  );
 
-  const fetchRecommendations = useCallback((competenceId?: number, page = 0) => {
-    if (!enseignantId) return;
-    setRecoParams({ competenceId, page });
-  }, [enseignantId]);
+  const fetchRecommendations = useCallback(
+    (competenceId?: number, page = 0) => {
+      if (!enseignantId) return;
+      setRecoParams({ competenceId, page });
+    },
+    [enseignantId],
+  );
 
-  const fetchTrainingPath = useCallback((competenceId: number) => {
-    if (!enseignantId) return;
-    setTrainingCompetenceId(competenceId);
-  }, [enseignantId]);
+  const fetchTrainingPath = useCallback(
+    (competenceId: number) => {
+      if (!enseignantId) return;
+      setTrainingCompetenceId(competenceId);
+    },
+    [enseignantId],
+  );
 
   const updateRecoStatus = useMutation({
-    mutationFn: ({ recommendationId, statut }: { recommendationId: number; statut: "ACCEPTEE" | "IGNOREE" }) =>
-      AnalyticsService.updateRecommendationStatus(recommendationId, statut),
+    mutationFn: ({
+      recommendationId,
+      statut,
+    }: {
+      recommendationId: number;
+      statut: 'ACCEPTEE' | 'IGNOREE';
+    }) => AnalyticsService.updateRecommendationStatus(recommendationId, statut),
     onSuccess: () => {
       if (enseignantId) {
-        qc.invalidateQueries({ queryKey: ["recommendations", enseignantId] });
+        qc.invalidateQueries({ queryKey: ['recommendations', enseignantId] });
       }
     },
   });
 
   let error: string | null = null;
   if (analysisMutation.isError) {
-    error = (analysisMutation.error as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erreur lors de l'analyse";
+    error =
+      (analysisMutation.error as { response?: { data?: { message?: string } } })?.response?.data
+        ?.message || "Erreur lors de l'analyse";
   } else if (gapsQ.isError) {
-    error = "Erreur chargement gaps";
+    error = 'Erreur chargement gaps';
   } else if (recoQ.isError) {
-    error = "Erreur chargement recommandations";
+    error = 'Erreur chargement recommandations';
   } else if (trainingPathQ.isError) {
-    error = "Erreur chargement parcours";
+    error = 'Erreur chargement parcours';
   }
 
   return {
-    loading:         gapsQ.isLoading || recoQ.isLoading || trainingPathQ.isLoading,
-    analysing:       analysisMutation.isPending,
-    gaps:            gapsQ.data ?? null,
+    loading: gapsQ.isLoading || recoQ.isLoading || trainingPathQ.isLoading,
+    analysing: analysisMutation.isPending,
+    gaps: gapsQ.data ?? null,
     recommendations: recoQ.data ?? null,
-    trainingPath:    trainingPathQ.data ?? null,
-    analyseResult:   analysisMutation.data ?? null,
+    trainingPath: trainingPathQ.data ?? null,
+    analyseResult: analysisMutation.data ?? null,
     error,
     runAnalysis,
     fetchGaps,
@@ -105,7 +133,7 @@ export function useAnalytics(enseignantId: string) {
 
 export function useGroupedRecommendations(enseignantId: string, groupBy: RecoGroupBy) {
   return useQuery<GroupedRecommendationsResponse>({
-    queryKey: ["recommendations-grouped", enseignantId, groupBy],
+    queryKey: ['recommendations-grouped', enseignantId, groupBy],
     queryFn: () => AnalyticsService.getGroupedRecommendations(enseignantId, groupBy),
     enabled: !!enseignantId,
     staleTime: 30_000,
@@ -120,12 +148,8 @@ export function useSimulateWhatIf(enseignantId: string) {
     mutationFn: (payload) =>
       AnalyticsService.simulateWhatIf({ enseignant_id: enseignantId, ...payload }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["recommendations", enseignantId] });
-      qc.invalidateQueries({ queryKey: ["recommendations-grouped", enseignantId] });
+      qc.invalidateQueries({ queryKey: ['recommendations', enseignantId] });
+      qc.invalidateQueries({ queryKey: ['recommendations-grouped', enseignantId] });
     },
   });
 }
-
-
-
-

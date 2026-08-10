@@ -1,9 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import DeptService from "@/services/formation/DeptService";
-import type { LookupItem } from "@/models/common";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import DeptService from '@/services/formation/DeptService';
+import type { LookupItem } from '@/models/common';
 
 const KEYS = {
-  all: ["departements"] as const,
+  all: ['departements'] as const,
 };
 
 export function useAllDepts() {
@@ -15,7 +15,7 @@ export function useAllDepts() {
 
 export function useDeptById(id: number | string | undefined) {
   return useQuery({
-    queryKey: ["departements", id],
+    queryKey: ['departements', id],
     queryFn: () => DeptService.getDeptById(id!),
     enabled: !!id,
   });

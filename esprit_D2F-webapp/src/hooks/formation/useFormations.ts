@@ -1,22 +1,22 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
-import DeptService from "@/services/formation/DeptService";
-import UpService from "@/services/api/UploadService";
-import { getAllAccounts } from "@/services/auth/AccountService";
-import type { Formation } from "@/models/formation";
-import type { Id } from "@/models/common";
-import type { AuthUser } from "@/models/auth";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import FormationWorkflowService from '@/services/formation/FormationWorkflowService';
+import DeptService from '@/services/formation/DeptService';
+import UpService from '@/services/api/UploadService';
+import { getAllAccounts } from '@/services/auth/AccountService';
+import type { Formation } from '@/models/formation';
+import type { Id } from '@/models/common';
+import type { AuthUser } from '@/models/auth';
 
 const KEYS = {
-  all: ["formations"] as const,
-  one: (id: Id) => ["formations", id] as const,
-  visibles: ["formations", "visibles"] as const,
-  achevees: ["formations", "achevees"] as const,
-  withDocs: ["formations", "with-documents"] as const,
-  byUp: (upId: Id) => ["formations", "up", upId] as const,
-  byDept: (deptId: Id) => ["formations", "dept", deptId] as const,
-  calendar: (enseignantId: Id) => ["formations", "calendar", enseignantId] as const,
-  depts: ["departements"] as const,
+  all: ['formations'] as const,
+  one: (id: Id) => ['formations', id] as const,
+  visibles: ['formations', 'visibles'] as const,
+  achevees: ['formations', 'achevees'] as const,
+  withDocs: ['formations', 'with-documents'] as const,
+  byUp: (upId: Id) => ['formations', 'up', upId] as const,
+  byDept: (deptId: Id) => ['formations', 'dept', deptId] as const,
+  calendar: (enseignantId: Id) => ['formations', 'calendar', enseignantId] as const,
+  depts: ['departements'] as const,
 };
 
 export function useAllFormations() {
@@ -130,14 +130,14 @@ export function useDepartements() {
 
 export function useUps() {
   return useQuery<unknown[]>({
-    queryKey: ["ups"],
+    queryKey: ['ups'],
     queryFn: () => UpService.getAllUps(),
   });
 }
 
 export function useAllAccounts(includeDeleted = false, enabled = true) {
   return useQuery<AuthUser[]>({
-    queryKey: ["accounts", includeDeleted],
+    queryKey: ['accounts', includeDeleted],
     queryFn: () => getAllAccounts(includeDeleted),
     enabled,
   });

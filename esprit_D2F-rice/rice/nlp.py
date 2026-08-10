@@ -826,12 +826,12 @@ def _llm_extract_subcompetences(text: str, module_name: str) -> List[str]:
 
 # ── Standard format: label : value on the SAME line ─────────────────────────
 _RE_MODULE_CODE = re.compile(
-    r"^[ \t]*code[ \t]*:?[ \t]*([A-Z][A-Z0-9\-_]{2,15})", re.I | re.MULTILINE
+    r"^[ \t]*+code[ \t]*+:?+[ \t]*+([A-Z][A-Z0-9\-_]{2,15})", re.I | re.MULTILINE
 )
 # ── Table/reversed format: value on previous line, label on next line ────────
 # Captures code like "MT-34" that appears as a standalone token on its own line
 _RE_MODULE_CODE_TABLE = re.compile(
-    r"^[ \t]*([A-Z]{1,4}[\-_]?\d{1,4}[A-Z]?)[ \t]*(?:\d+h[^\n]*|\n[ \t]*\d+h[^\n]*)$",
+    r"^[ \t]*([A-Z]{1,4}[\-_]?\d{1,4}[A-Z]?)[ \t]*(?:\n[ \t]*)?\d+h[^\n]*$",
     re.MULTILINE,
 )
 _RE_MODULE_NAME = re.compile(
@@ -843,7 +843,7 @@ _RE_MODULE_TITLE_ESPRIT = re.compile(
     re.MULTILINE,
 )
 _RE_UNITE_PEDAGOGIQUE = re.compile(
-    r"^[ \t]*(?:Unit[e\u00e9]\s+p[e\u00e9]dagogique|UP)[ \t]*:?[ \t]*([^\n]{3,60})",
+    r"^[ \t]*+(?:Unit[e\u00e9]\s+p[e\u00e9]dagogique|UP)[ \t]*+:?+[ \t]*+([^\n]{3,60})",
     re.IGNORECASE | re.MULTILINE,
 )
 # Standard responsable (label: value)
@@ -862,7 +862,7 @@ _RE_ENSEIGNANTS = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 _RE_ENSEIGNANTS_DUAL = re.compile(
-    r"^[ \t]*(?:Enseignant|intervenant)s?[ \t]+[\u2013\-][ \t]+(?:Enseignant|intervenant)s?[ \t]*:?[ \t]+([^\n]{5,300})",
+    r"^[ \t]*+(?:Enseignant|intervenant)s?+[ \t]++[\u2013\-][ \t]++(?:Enseignant|intervenant)s?+[ \t]*+:?+[ \t]++([^\n]{5,300})",
     re.IGNORECASE | re.MULTILINE,
 )
 # Reversed format: capture line BEFORE "Enseignants" label
@@ -889,7 +889,7 @@ _RE_COORDINATEUR = re.compile(
 )
 # Standard prerequis
 _RE_PREREQUIS = re.compile(
-    r"^[ \t]*Pr\u00e9[\-\s]?requis[ \t]*:?[ \t]*([^\n]{3,200})",
+    r"^[ \t]*+Pr\u00e9[\-\s]?+requis[ \t]*+:?+[ \t]*+([^\n]{3,200})",
     re.IGNORECASE | re.MULTILINE,
 )
 # Reversed format: capture line BEFORE "Prérequis" label
@@ -898,7 +898,7 @@ _RE_PREREQUIS_REV = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 _RE_OBJECTIF = re.compile(
-    r"^[ \t]*Objectifs?(?:\s+du\s+module)?[ \t]*:?[ \t]*([^\n]{1,500})(?=\n\n|Mode\s+d|Acquis|$)",
+    r"^[ \t]*+Objectifs?+(?:\s+du\s+module)?+[ \t]*+:?+[ \t]*+([^\n]{1,500})",
     re.IGNORECASE | re.MULTILINE,
 )
 
@@ -1063,31 +1063,35 @@ def _is_valid_enseignant_value(value: str) -> bool:
     return True
 
 
+def _norm_row(row) -> List[str]:
+    return [str(c).strip() if c else "" for c in row]
+
+
+def _lookup_shifted_cell(table, row_idx: int, col_idx: int, cells_norm: List[str], table_row: List[str]) -> str:
+    if row_idx + 1 >= len(table):
+        return ""
+    next_row = _norm_row(table[row_idx + 1])
+    if next_row == cells_norm and col_idx < len(table_row) and table_row[col_idx].strip():
+        return table_row[col_idx].strip()
+    if col_idx < len(next_row) and next_row[col_idx].strip():
+        return next_row[col_idx].strip()
+    return ""
+
+
 def _get_cell_value(cells: List[str], table, row_idx: int, col_idx: int) -> str:
     if col_idx + 1 < len(cells) and cells[col_idx + 1].strip():
         return cells[col_idx + 1].strip()
-    # If cells is a different row from table[row_idx], handle accordingly
-    if row_idx < len(table):
-        table_row = [str(c).strip() if c else "" for c in table[row_idx]]
-        cells_norm = [str(c).strip() if c else "" for c in cells]
-        if table_row != cells_norm:
-            # If cells equals the NEXT row, fall back to current indexed row
-            if row_idx + 1 < len(table):
-                next_row = [str(c).strip() if c else "" for c in table[row_idx + 1]]
-                if next_row == cells_norm:
-                    if col_idx < len(table_row) and table_row[col_idx].strip():
-                        return table_row[col_idx].strip()
-            # Otherwise fall back to next row (production + other tests)
-            if row_idx + 1 < len(table):
-                next_row2 = [str(c).strip() if c else "" for c in table[row_idx + 1]]
-                if col_idx < len(next_row2) and next_row2[col_idx].strip():
-                    return next_row2[col_idx].strip()
-        else:
-            # Normal case: cells == table[row_idx] (production path)
-            if col_idx + 1 < len(table):
-                next_row = [str(c).strip() if c else "" for c in table[row_idx + 1]]
-                if col_idx < len(next_row) and next_row[col_idx].strip():
-                    return next_row[col_idx].strip()
+    if row_idx >= len(table):
+        return ""
+    table_row = _norm_row(table[row_idx])
+    cells_norm = _norm_row(cells)
+    if table_row != cells_norm:
+        return _lookup_shifted_cell(table, row_idx, col_idx, cells_norm, table_row)
+    if col_idx + 1 >= len(table):
+        return ""
+    next_row = _norm_row(table[row_idx + 1])
+    if col_idx < len(next_row) and next_row[col_idx].strip():
+        return next_row[col_idx].strip()
     return ""
 
 
@@ -1720,7 +1724,7 @@ def _extract_acquis_apprentissage(text: str) -> List[Dict[str, Any]]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 _RE_SEANCE = re.compile(
-    r"^[ \t]*(?:S[eé]ance|Session|Chapitre|Semaine)[ \t]+(\d{1,4}(?:[-\u2013]\d{1,4})?)[ \t]*:?[ \t]*([^\n]{1,200})",
+    r"^[ \t]*+(?:S[eé]ance|Session|Chapitre|Semaine)[ \t]++(\d{1,4}(?:[-\u2013]\d{1,4})?+)[ \t]*+:?+[ \t]*+([^\n]{1,200})",
     re.IGNORECASE | re.MULTILINE,
 )
 _RE_CHECKMARK = re.compile(r"^[\u2714\u2713\u2611\u2610][ \t]*([^\n]{1,300})$", re.MULTILINE)
@@ -1742,12 +1746,11 @@ def _extract_block_type(block: str) -> Optional[str]:
     type_match = re.search(r"\b(cours\s+int[e\u00e9]gr[e\u00e9]|TP|TD|APP|Projet|Labo)\b", block[start:], re.IGNORECASE)
     if not type_match:
         return None
-    m = type_match
-    return m.group(1).strip() if m else None
+    return type_match.group(1).strip()
 
 
 def _extract_block_duree(block: str) -> Optional[str]:
-    m = re.search(r"^[ \t]*(?:Dur\u00e9e|Duree)[ \t]*:?[ \t]*(\d{1,4}[ \t]*h)", block, re.I | re.MULTILINE)
+    m = re.search(r"^[ \t]*+(?:Dur\u00e9e|Duree)[ \t]*+:?+[ \t]*+(\d{1,4}[ \t]*+h)", block, re.I | re.MULTILINE)
     return m.group(1).strip() if m else None
 
 

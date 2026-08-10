@@ -8,7 +8,10 @@ vi.mock('@/hooks/analyse/useReporting', () => ({
     data: { totalFormations: 12, moyenneParPeriode: 3, tendance: 'HAUSSE', periodes: [] },
     isLoading: false,
   })),
-  useAnalyticsExport: vi.fn(() => ({ exporting: false, exportPdf: vi.fn(() => Promise.resolve()) })),
+  useAnalyticsExport: vi.fn(() => ({
+    exporting: false,
+    exportPdf: vi.fn(() => Promise.resolve()),
+  })),
 }));
 
 describe('FormationsParPeriodePage', () => {
@@ -23,7 +26,7 @@ describe('FormationsParPeriodePage', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <FormationsParPeriodePage />
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
     expect(screen.getByText('Formations par période')).toBeInTheDocument();
     expect(screen.getByText('Total formations')).toBeInTheDocument();

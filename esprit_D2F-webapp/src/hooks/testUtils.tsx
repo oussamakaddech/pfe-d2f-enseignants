@@ -1,14 +1,17 @@
-import React from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { waitFor } from "@testing-library/react";
+import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { waitFor } from '@testing-library/react';
 
 export async function flushQuery(result: { current: any }) {
   try {
-    await waitFor(() => {
-      if (!(result.current.isSuccess || result.current.isFetched || result.current.isError)) {
-        throw new Error("query not settled");
-      }
-    }, { timeout: 1000, interval: 20 });
+    await waitFor(
+      () => {
+        if (!(result.current.isSuccess || result.current.isFetched || result.current.isError)) {
+          throw new Error('query not settled');
+        }
+      },
+      { timeout: 1000, interval: 20 },
+    );
   } catch {
     /* disabled/never-settling query: let the test assert its own expectations */
   }

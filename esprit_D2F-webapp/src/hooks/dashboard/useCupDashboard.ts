@@ -1,21 +1,21 @@
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import AnalyticsService from "@/services/analyse/AnalyticsService";
-import KPIService from "@/services/analyse/KPIService";
-import BesoinFormationService from "@/services/besoin/BesoinFormationService";
-import dayjs from "dayjs";
-import type { Priorite } from "@/models/besoin";
-import type { DashboardScope } from "@/models/dashboard";
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import AnalyticsService from '@/services/analyse/AnalyticsService';
+import KPIService from '@/services/analyse/KPIService';
+import BesoinFormationService from '@/services/besoin/BesoinFormationService';
+import dayjs from 'dayjs';
+import type { Priorite } from '@/models/besoin';
+import type { DashboardScope } from '@/models/dashboard';
 
-const START = dayjs().subtract(12, "month").startOf("month").format("YYYY-MM-DD");
-const END = dayjs().format("YYYY-MM-DD");
+const START = dayjs().subtract(12, 'month').startOf('month').format('YYYY-MM-DD');
+const END = dayjs().format('YYYY-MM-DD');
 const STALE = 5 * 60 * 1000;
 
 export interface CompetenceDemandee {
   name: string;
   count: number;
   /** Priorité réelle maximale des besoins contribuant à cette compétence. */
-  priorite?: Priorite | "NON_DEFINIE";
+  priorite?: Priorite | 'NON_DEFINIE';
 }
 
 export interface BesoinParDept {
@@ -33,7 +33,7 @@ export interface BesoinPriorise {
   urgency: number;
   impact: number;
   count: number;
-  priorite: Priorite | "NON_DEFINIE";
+  priorite: Priorite | 'NON_DEFINIE';
   departement?: string;
   up?: string;
 }
@@ -47,140 +47,165 @@ export interface TauxReussiteDomaine {
 
 function urgencyFromPriorite(p?: Priorite): number {
   switch (p) {
-    case "CRITIQUE": return 5;
-    case "HAUTE": return 4;
-    case "MOYENNE": return 3;
-    case "BASSE": return 2;
-    default: return 2;
+    case 'CRITIQUE':
+      return 5;
+    case 'HAUTE':
+      return 4;
+    case 'MOYENNE':
+      return 3;
+    case 'BASSE':
+      return 2;
+    default:
+      return 2;
   }
 }
 
 function impactFromStrategique(s?: string): number {
   if (!s) return 2;
   const lower = s.toLowerCase();
-  if (lower.includes("stratégique") || lower.includes("critique") || lower.includes("haute")) return 5;
-  if (lower.includes("important") || lower.includes("élevé")) return 4;
-  if (lower.includes("moyen") || lower.includes("modéré")) return 3;
-  if (lower.includes("faible") || lower.includes("bas")) return 2;
+  if (lower.includes('stratégique') || lower.includes('critique') || lower.includes('haute'))
+    return 5;
+  if (lower.includes('important') || lower.includes('élevé')) return 4;
+  if (lower.includes('moyen') || lower.includes('modéré')) return 3;
+  if (lower.includes('faible') || lower.includes('bas')) return 2;
   return 3;
 }
 
-const PRIORITE_RANK: Record<Priorite | "NON_DEFINIE", number> = {
-  CRITIQUE: 5, HAUTE: 4, MOYENNE: 3, BASSE: 2, NON_DEFINIE: 1,
+const PRIORITE_RANK: Record<Priorite | 'NON_DEFINIE', number> = {
+  CRITIQUE: 5,
+  HAUTE: 4,
+  MOYENNE: 3,
+  BASSE: 2,
+  NON_DEFINIE: 1,
 };
 
 export function useCupDashboard() {
   const { data: formationsByEtat, isLoading: etatLoading } = useQuery({
-    queryKey: ["kpi", "formations-by-etat", START, END],
+    queryKey: ['kpi', 'formations-by-etat', START, END],
     queryFn: () => KPIService.getFormationsByEtat(START, END),
     staleTime: STALE,
   });
 
   const { data: formationsByType, isLoading: typeLoading } = useQuery({
-    queryKey: ["kpi", "formations-by-type", START, END],
+    queryKey: ['kpi', 'formations-by-type', START, END],
     queryFn: () => KPIService.getFormationsByTypeFiltered({ start: START, end: END }),
     staleTime: STALE,
   });
 
   const { data: formationsByDomaineRaw = [], isLoading: domaineLoading } = useQuery({
-    queryKey: ["kpi", "formations-by-domaine", START, END],
+    queryKey: ['kpi', 'formations-by-domaine', START, END],
     queryFn: () => KPIService.getFormationsByDomaine(START, END),
     staleTime: STALE,
   });
   const formationsByDomaine = formationsByDomaineRaw.filter(
-    (d) => d.label && d.label.trim().toLowerCase() !== "non défini" && d.label.trim().toLowerCase() !== "non defini"
+    (d) =>
+      d.label &&
+      d.label.trim().toLowerCase() !== 'non défini' &&
+      d.label.trim().toLowerCase() !== 'non defini',
   );
 
   const { data: formationsByCompetenceRaw = [], isLoading: competenceLoading } = useQuery({
-    queryKey: ["kpi", "formations-by-competence", START, END],
+    queryKey: ['kpi', 'formations-by-competence', START, END],
     queryFn: () => KPIService.getFormationsByCompetence(START, END),
     staleTime: STALE,
   });
   const formationsByCompetence = formationsByCompetenceRaw.filter(
-    (c) => c.label && c.label.trim().toLowerCase() !== "non défini" && c.label.trim().toLowerCase() !== "non defini"
+    (c) =>
+      c.label &&
+      c.label.trim().toLowerCase() !== 'non défini' &&
+      c.label.trim().toLowerCase() !== 'non defini',
   );
 
   const { data: heures } = useQuery({
-    queryKey: ["kpi", "heures", START, END],
+    queryKey: ['kpi', 'heures', START, END],
     queryFn: () => KPIService.getTotalHeures(START, END),
     staleTime: STALE,
   });
 
   const { data: participants } = useQuery({
-    queryKey: ["kpi", "participants", START, END],
+    queryKey: ['kpi', 'participants', START, END],
     queryFn: () => KPIService.getUniqueParticipants(START, END),
     staleTime: STALE,
   });
 
   const { data: deptAnalytics, isLoading: deptLoading } = useQuery({
-    queryKey: ["cup", "dept-analytics"],
+    queryKey: ['cup', 'dept-analytics'],
     queryFn: () => AnalyticsService.getFormationsParDepartement({}),
     staleTime: STALE,
     enabled: false, // Endpoint 404 Pending — désactivé pour éviter les erreurs en console.
   });
 
   const { data: upData } = useQuery({
-    queryKey: ["cup", "up-analytics"],
+    queryKey: ['cup', 'up-analytics'],
     queryFn: () => AnalyticsService.getFormationsParUp({}),
     staleTime: STALE,
     enabled: false, // Endpoint 404 Pending — désactivé pour éviter les erreurs en console.
   });
 
   const { data: besoins = [], isLoading: besoinsLoading } = useQuery({
-    queryKey: ["besoins"],
+    queryKey: ['besoins'],
     queryFn: () => BesoinFormationService.getAllBesoinFormations(),
     staleTime: STALE,
   });
 
   const { data: overview } = useQuery({
-    queryKey: ["analyse", "overview"],
-    queryFn: () => import("@/services/analyse/AnalysePredictiveService").then((m) => m.default.getOverview()),
+    queryKey: ['analyse', 'overview'],
+    queryFn: () =>
+      import('@/services/analyse/AnalysePredictiveService').then((m) => m.default.getOverview()),
     staleTime: STALE,
   });
 
   const { data: inDemandCompetencies = [] } = useQuery({
-    queryKey: ["analyse", "in-demand"],
-    queryFn: () => import("@/services/analyse/AnalysePredictiveService").then((m) => m.default.getInDemandCompetencies()),
+    queryKey: ['analyse', 'in-demand'],
+    queryFn: () =>
+      import('@/services/analyse/AnalysePredictiveService').then((m) =>
+        m.default.getInDemandCompetencies(),
+      ),
     staleTime: STALE,
   });
 
   const timelineScope: DashboardScope = {
-    role: "cup",
+    role: 'cup',
     isAdmin: false,
     isCup: true,
     isEnseignant: false,
     isAnimateur: false,
-    start: dayjs().subtract(11, "month").startOf("month").format("YYYY-MM-DD"),
-    end: dayjs().endOf("month").format("YYYY-MM-DD"),
-    rangeKey: "12m",
+    start: dayjs().subtract(11, 'month').startOf('month').format('YYYY-MM-DD'),
+    end: dayjs().endOf('month').format('YYYY-MM-DD'),
+    rangeKey: '12m',
   };
 
   const { data: timeline, isLoading: timelineLoading } = useQuery({
-    queryKey: ["dashboard", "timeline", timelineScope.start, timelineScope.end],
-    queryFn: () => AnalyticsService.getFormationsParPeriode({
-      granularite: "MOIS",
-      debut: timelineScope.start,
-      fin: timelineScope.end,
-    }),
+    queryKey: ['dashboard', 'timeline', timelineScope.start, timelineScope.end],
+    queryFn: () =>
+      AnalyticsService.getFormationsParPeriode({
+        granularite: 'MOIS',
+        debut: timelineScope.start,
+        fin: timelineScope.end,
+      }),
     enabled: !!timelineScope.start && !!timelineScope.end,
     staleTime: STALE,
   });
 
   // Derived: competences les plus demandees (avec priorite reelle max)
   const topCompetences = useMemo<CompetenceDemandee[]>(() => {
-    const comptMap = new Map<string, { count: number; priorite?: Priorite | "NON_DEFINIE" }>();
-    const add = (name: string | null | undefined, n: number, priorite?: Priorite | "NON_DEFINIE") => {
+    const comptMap = new Map<string, { count: number; priorite?: Priorite | 'NON_DEFINIE' }>();
+    const add = (
+      name: string | null | undefined,
+      n: number,
+      priorite?: Priorite | 'NON_DEFINIE',
+    ) => {
       if (!name) return;
       const cur = comptMap.get(name) ?? { count: 0, priorite: undefined };
       cur.count += n;
-      if (priorite && PRIORITE_RANK[priorite] > PRIORITE_RANK[cur.priorite ?? "NON_DEFINIE"]) {
+      if (priorite && PRIORITE_RANK[priorite] > PRIORITE_RANK[cur.priorite ?? 'NON_DEFINIE']) {
         cur.priorite = priorite;
       }
       comptMap.set(name, cur);
     };
     for (const b of besoins) {
-      add(b.theme, 1, b.priorite ?? "NON_DEFINIE");
-      add(b.titre, 1, b.priorite ?? "NON_DEFINIE");
+      add(b.theme, 1, b.priorite ?? 'NON_DEFINIE');
+      add(b.titre, 1, b.priorite ?? 'NON_DEFINIE');
     }
     // Also add from in-demand competencies
     for (const c of inDemandCompetencies) {
@@ -194,15 +219,24 @@ export function useCupDashboard() {
 
   // Derived: besoins par departement
   const besoinsParDept = useMemo<BesoinParDept[]>(() => {
-    const deptMap = new Map<string, { total: number; approuves: number; enAttente: number; critiques: number; hautes: number }>();
+    const deptMap = new Map<
+      string,
+      { total: number; approuves: number; enAttente: number; critiques: number; hautes: number }
+    >();
     for (const b of besoins) {
-      const dept = b.departement ?? "Non assigné";
-      const existing = deptMap.get(dept) ?? { total: 0, approuves: 0, enAttente: 0, critiques: 0, hautes: 0 };
+      const dept = b.departement ?? 'Non assigné';
+      const existing = deptMap.get(dept) ?? {
+        total: 0,
+        approuves: 0,
+        enAttente: 0,
+        critiques: 0,
+        hautes: 0,
+      };
       existing.total++;
       if (b.approuveAdmin) existing.approuves++;
       else existing.enAttente++;
-      if (b.priorite === "CRITIQUE") existing.critiques++;
-      if (b.priorite === "HAUTE") existing.hautes++;
+      if (b.priorite === 'CRITIQUE') existing.critiques++;
+      if (b.priorite === 'HAUTE') existing.hautes++;
       deptMap.set(dept, existing);
     }
     return [...deptMap.entries()]
@@ -216,11 +250,11 @@ export function useCupDashboard() {
       .filter((b) => !b.approuveAdmin)
       .map((b) => ({
         id: b.idBesoinFormation ?? crypto.randomUUID(),
-        label: b.titre ?? b.theme ?? "Sans titre",
+        label: b.titre ?? b.theme ?? 'Sans titre',
         urgency: urgencyFromPriorite(b.priorite),
         impact: impactFromStrategique(b.impactStrategique),
         count: 1,
-        priorite: b.priorite ?? "NON_DEFINIE",
+        priorite: b.priorite ?? 'NON_DEFINIE',
         departement: b.departement,
         up: b.up,
       }));
@@ -252,10 +286,13 @@ export function useCupDashboard() {
     const enCours = formationsByEtat?.enCours ?? 0;
     const tauxReussiteGlobal = total > 0 ? Math.round((acheve / total) * 100) : 0;
     const tauxParticipation = deptAnalytics?.departements?.length
-      ? Math.round(deptAnalytics.departements.reduce((s, d) => s + (d.tauxParticipation ?? 0), 0) / deptAnalytics.departements.length)
+      ? Math.round(
+          deptAnalytics.departements.reduce((s, d) => s + (d.tauxParticipation ?? 0), 0) /
+            deptAnalytics.departements.length,
+        )
       : 0;
     const pendingBesoins = besoins.filter((b) => !b.approuveAdmin).length;
-    const critiques = besoins.filter((b) => b.priorite === "CRITIQUE" && !b.approuveAdmin).length;
+    const critiques = besoins.filter((b) => b.priorite === 'CRITIQUE' && !b.approuveAdmin).length;
 
     return {
       totalFormations: total,
@@ -271,7 +308,10 @@ export function useCupDashboard() {
       departements: deptAnalytics?.departements?.length ?? 0,
       nbEnseignantsSuivis: overview?.nb_enseignants_suivis ?? 0,
       // Le backend renvoie déjà un pourcentage (0-100) : pas de *100 ici.
-      couverture: overview?.taux_couverture_global != null ? Math.round(overview.taux_couverture_global) : null,
+      couverture:
+        overview?.taux_couverture_global != null
+          ? Math.round(overview.taux_couverture_global)
+          : null,
       // Variation réelle vs snapshot précédent (points de pourcentage), null si indisponible.
       couvertureDelta:
         overview?.deltas?.taux_couverture_global != null

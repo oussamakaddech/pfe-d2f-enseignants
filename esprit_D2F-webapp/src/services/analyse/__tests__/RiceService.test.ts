@@ -8,7 +8,7 @@ const httpMocks = vi.hoisted(() => ({
   mockDelete: vi.fn(),
 }));
 
-vi.mock("@/services/httpClient", () => ({
+vi.mock('@/services/httpClient', () => ({
   defaultApi: {
     get: httpMocks.mockGet,
     post: httpMocks.mockPost,
@@ -18,7 +18,7 @@ vi.mock("@/services/httpClient", () => ({
   },
 }));
 
-vi.mock("@/services/auth/authHeaders", () => ({
+vi.mock('@/services/auth/authHeaders', () => ({
   requireAuthHeader: vi.fn(() => ({ Authorization: 'Bearer test' })),
 }));
 
@@ -34,12 +34,12 @@ describe('RiceService', () => {
     const files = [new File([''], 'test.pdf')];
     const enseignants = [{ id: '1' }];
     const result = await RiceService.analyze(files, enseignants, 'info');
-    
+
     expect(result).toEqual({ result: 'ok' });
     expect(httpMocks.mockPost).toHaveBeenCalledWith(
       expect.stringContaining('/rice/analyze'),
       expect.any(FormData),
-      expect.objectContaining({ timeout: 300000 })
+      expect.objectContaining({ timeout: 300000 }),
     );
   });
 
@@ -47,14 +47,19 @@ describe('RiceService', () => {
     httpMocks.mockPost.mockResolvedValueOnce({ data: { success: true } });
     const result = await RiceService.importToDb({ domaines: [] });
     expect(result).toEqual({ success: true });
-    expect(httpMocks.mockPost).toHaveBeenCalledWith(expect.stringContaining('/competence/rice/import'), { domaines: [] });
+    expect(httpMocks.mockPost).toHaveBeenCalledWith(
+      expect.stringContaining('/competence/rice/import'),
+      { domaines: [] },
+    );
   });
 
   it('getImportHistory retrieves imports', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: [] });
     const result = await RiceService.getImportHistory();
     expect(result).toEqual([]);
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/competence/rice/imports'));
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('/competence/rice/imports'),
+    );
   });
 
   it('getEnseignants tries formation then fallback to competence', async () => {
@@ -72,18 +77,23 @@ describe('RiceService', () => {
 
   it('saveAssignments handles add and remove', async () => {
     // Mock existing to find IDs for removal
-    httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 100, savoirId: 1, enseignantId: 'E1' }] });
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: [{ id: 100, savoirId: 1, enseignantId: 'E1' }],
+    });
     httpMocks.mockDelete.mockResolvedValueOnce({});
     httpMocks.mockPost.mockResolvedValueOnce({});
 
     const result = await RiceService.saveAssignments({
       add: [{ savoirId: 2, enseignantId: 'E1' }],
-      remove: [{ savoirId: 1, enseignantId: 'E1' }]
+      remove: [{ savoirId: 1, enseignantId: 'E1' }],
     });
 
     expect(result).toEqual({ added: 1, removed: 1 });
     expect(httpMocks.mockDelete).toHaveBeenCalledWith(expect.stringContaining('/100'));
-    expect(httpMocks.mockPost).toHaveBeenCalledWith(expect.stringContaining('/enseignant-competences'), expect.objectContaining({ savoirId: 2 }));
+    expect(httpMocks.mockPost).toHaveBeenCalledWith(
+      expect.stringContaining('/enseignant-competences'),
+      expect.objectContaining({ savoirId: 2 }),
+    );
   });
 
   it('covers CRUD for enseignants', async () => {
@@ -91,7 +101,10 @@ describe('RiceService', () => {
     await expect(RiceService.createEnseignant({ nom: 'X' })).resolves.toEqual({ id: 'E1' });
 
     httpMocks.mockPut.mockResolvedValueOnce({ data: { id: 'E1', nom: 'Y' } });
-    await expect(RiceService.updateEnseignant('E1', { nom: 'Y' })).resolves.toEqual({ id: 'E1', nom: 'Y' });
+    await expect(RiceService.updateEnseignant('E1', { nom: 'Y' })).resolves.toEqual({
+      id: 'E1',
+      nom: 'Y',
+    });
 
     httpMocks.mockPatch.mockResolvedValueOnce({ data: { id: 'E1', etat: 'I' } });
     await expect(RiceService.deactivateEnseignant('E1')).resolves.toEqual({ id: 'E1', etat: 'I' });
@@ -102,17 +115,21 @@ describe('RiceService', () => {
     const result = await RiceService.getEnseignantAffectations();
     expect(result).toEqual([{ id: 1, savoirId: 1, enseignantId: 'E1' }]);
     expect(httpMocks.mockGet).toHaveBeenCalledWith(
-      expect.stringContaining('/enseignant-competences')
+      expect.stringContaining('/enseignant-competences'),
     );
   });
 
   it('assignCompetence posts to enseignant-competences', async () => {
     httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 10 } });
-    const result = await RiceService.assignCompetence({ enseignantId: 'E1', savoirId: 1, niveau: 'N1_DEBUTANT' });
+    const result = await RiceService.assignCompetence({
+      enseignantId: 'E1',
+      savoirId: 1,
+      niveau: 'N1_DEBUTANT',
+    });
     expect(result).toEqual({ id: 10 });
     expect(httpMocks.mockPost).toHaveBeenCalledWith(
       expect.stringContaining('/enseignant-competences'),
-      { enseignantId: 'E1', savoirId: 1, niveau: 'N1_DEBUTANT' }
+      { enseignantId: 'E1', savoirId: 1, niveau: 'N1_DEBUTANT' },
     );
   });
 
@@ -120,7 +137,7 @@ describe('RiceService', () => {
     httpMocks.mockDelete.mockResolvedValueOnce({ data: null });
     await RiceService.removeAssignment(42);
     expect(httpMocks.mockDelete).toHaveBeenCalledWith(
-      expect.stringContaining('/enseignant-competences/42')
+      expect.stringContaining('/enseignant-competences/42'),
     );
   });
 
@@ -173,7 +190,3 @@ describe('RiceService', () => {
     expect(result).toEqual([{ id: 'E3' }]);
   });
 });
-
-
-
-

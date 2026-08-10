@@ -21,15 +21,24 @@ describe('CalendarService', () => {
     globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock');
     globalThis.URL.revokeObjectURL = vi.fn();
   });
-  afterEach(() => { vi.restoreAllMocks(); });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
   it('previews and imports a file via multipart form data', async () => {
     httpMocks.mockPost.mockResolvedValueOnce({ data: { sessions: [] } });
-    await expect(CalendarService.preview(new File(['x'], 'c.xlsx'))).resolves.toEqual({ sessions: [] });
-    expect(httpMocks.mockPost).toHaveBeenCalledWith(expect.stringContaining('/import/preview'), expect.any(FormData));
+    await expect(CalendarService.preview(new File(['x'], 'c.xlsx'))).resolves.toEqual({
+      sessions: [],
+    });
+    expect(httpMocks.mockPost).toHaveBeenCalledWith(
+      expect.stringContaining('/import/preview'),
+      expect.any(FormData),
+    );
 
     httpMocks.mockPost.mockResolvedValueOnce({ data: { status: 'OK' } });
-    await expect(CalendarService.importCalendar(new File(['x'], 'c.xlsx'))).resolves.toEqual({ status: 'OK' });
+    await expect(CalendarService.importCalendar(new File(['x'], 'c.xlsx'))).resolves.toEqual({
+      status: 'OK',
+    });
   });
 
   it('lists formations with normalised filter params', async () => {
@@ -62,7 +71,9 @@ describe('CalendarService', () => {
       headers: { 'content-disposition': 'attachment; filename="planning.ics"' },
     });
     await CalendarService.downloadIcsAll();
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/export/ics/all'), { responseType: 'blob' });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/export/ics/all'), {
+      responseType: 'blob',
+    });
     expect(globalThis.URL.createObjectURL).toHaveBeenCalled();
     expect(clickSpy).toHaveBeenCalled();
     expect(globalThis.URL.revokeObjectURL).toHaveBeenCalled();
@@ -87,6 +98,9 @@ describe('CalendarService', () => {
     await expect(CalendarService.sendInvitations(5)).resolves.toEqual({ sent: 3, message: 'ok' });
 
     httpMocks.mockPost.mockResolvedValueOnce({ data: { sent: 10, message: 'ok' } });
-    await expect(CalendarService.sendAllInvitations()).resolves.toEqual({ sent: 10, message: 'ok' });
+    await expect(CalendarService.sendAllInvitations()).resolves.toEqual({
+      sent: 10,
+      message: 'ok',
+    });
   });
 });

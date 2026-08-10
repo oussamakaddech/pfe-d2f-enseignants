@@ -1,18 +1,22 @@
-import React, { useState } from "react";
-import { SafetyCertificateOutlined } from "@ant-design/icons";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import { useNavigate } from "react-router-dom";
-import useAppNotification from "@/hooks/ui/useAppNotification";
-import { AppPageHeader } from "@/components/common";
-import "@/styles/pages/completed-formations.css";
-import { useFormationsAchevees, useGenerateFormationCertificates, useFormationReportFetch } from "@/hooks/formation";
-import { useEnseignants } from "@/hooks/enseignant";
-import { useGenerateCertificates } from "@/hooks/certificat";
-import type { Dayjs } from "dayjs";
-import type { Id } from "@/models/common";
-import { CompletedFormationsTable } from "./components/CompletedFormationsTable";
-import { CertificateGenerator } from "./components/CertificateGenerator";
+import React, { useState } from 'react';
+import { SafetyCertificateOutlined } from '@ant-design/icons';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { useNavigate } from 'react-router-dom';
+import useAppNotification from '@/hooks/ui/useAppNotification';
+import { AppPageHeader } from '@/components/common';
+import '@/styles/pages/completed-formations.css';
+import {
+  useFormationsAchevees,
+  useGenerateFormationCertificates,
+  useFormationReportFetch,
+} from '@/hooks/formation';
+import { useEnseignants } from '@/hooks/enseignant';
+import { useGenerateCertificates } from '@/hooks/certificat';
+import type { Dayjs } from 'dayjs';
+import type { Id } from '@/models/common';
+import { CompletedFormationsTable } from './components/CompletedFormationsTable';
+import { CertificateGenerator } from './components/CertificateGenerator';
 
 export interface FormationRecord {
   idFormation?: Id;
@@ -37,7 +41,10 @@ export interface EnseignantRef {
   dept?: { libelle?: string };
 }
 
-interface ReportFormateur { nom?: string; prenom?: string; }
+interface ReportFormateur {
+  nom?: string;
+  prenom?: string;
+}
 interface ReportItem {
   titreFormation?: string;
   formateurs?: ReportFormateur[];
@@ -57,11 +64,11 @@ export default function CompletedFormations() {
   const genBatchMut = useGenerateFormationCertificates();
   const reportFetchMut = useFormationReportFetch();
   const [loadingButtons, setLoadingButtons] = useState<Record<string, boolean>>({});
-  const [typeCertif, setTypeCertif] = useState("CERTIF");
+  const [typeCertif, setTypeCertif] = useState('CERTIF');
   const navigate = useNavigate();
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [selectedEns, setSelectedEns] = useState<EnseignantRef | null>(null);
-  const [attType, setAttType] = useState("PARTICIPATION");
+  const [attType, setAttType] = useState('PARTICIPATION');
   const [period, setPeriod] = useState<Dayjs[]>([]);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [newCertDrawerVisible, setNewCertDrawerVisible] = useState(false);
@@ -71,20 +78,24 @@ export default function CompletedFormations() {
   const [selectedNewCertEns, setSelectedNewCertEns] = useState<EnseignantRef | null>(null);
 
   const handleGenerateCertificate = async (record: FormationRecord) => {
-    const id = String(record.idFormation ?? "");
+    const id = String(record.idFormation ?? '');
     setLoadingButtons((prev) => ({ ...prev, [id]: true }));
     try {
       await genBatchMut.mutateAsync({ formationId: record.idFormation!, typeCertif });
-      message.success("Certificats générés !");
+      message.success('Certificats générés !');
       navigate(`/home/certificate/${id}`);
     } catch (error: unknown) {
       const err = error as { response?: { status?: number; data?: string } };
       const resp = err.response;
-      if (resp?.status === 409 && typeof resp.data === "string" && resp.data.includes("déjà été générés")) {
+      if (
+        resp?.status === 409 &&
+        typeof resp.data === 'string' &&
+        resp.data.includes('déjà été générés')
+      ) {
         message.info(resp.data);
         navigate(`/home/certificate/${id}`);
       } else {
-        message.error("Échec de la génération des certificats.");
+        message.error('Échec de la génération des certificats.');
       }
     } finally {
       setLoadingButtons((prev) => ({ ...prev, [id]: false }));
@@ -100,43 +111,59 @@ export default function CompletedFormations() {
 
   const generateTableOnly = async () => {
     if (!selectedEns || period.length !== 2) {
-      return message.warning("Sélectionnez un formateur et une période.");
+      return message.warning('Sélectionnez un formateur et une période.');
     }
-    const role = attType === "ANIMATION" ? "animateur" : "participant";
+    const role = attType === 'ANIMATION' ? 'animateur' : 'participant';
     const ensId = selectedEns.id;
-    const [start, end] = period.map((d) => d.format("YYYY-MM-DD"));
+    const [start, end] = period.map((d) => d.format('YYYY-MM-DD'));
     try {
       const rawItems = await reportFetchMut.mutateAsync({ role, enseignantId: ensId!, start, end });
       const items = rawItems as ReportItem[];
-      const doc = new jsPDF({ unit: "pt", format: "a4" });
-      doc.setFont("times", "normal").setFontSize(12);
-      const headers = attType === "ANIMATION"
-        ? ["Formation", "Formateur(s)", "Date", "Nb.h", "Public cible", "Objectifs"]
-        : ["Formation", "Formateur", "Date"];
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      doc.setFont('times', 'normal').setFontSize(12);
+      const headers =
+        attType === 'ANIMATION'
+          ? ['Formation', 'Formateur(s)', 'Date', 'Nb.h', 'Public cible', 'Objectifs']
+          : ['Formation', 'Formateur', 'Date'];
       const body = items.map((f) => {
         const noms = Array.isArray(f.formateurs)
-          ? f.formateurs.map((fr) => `${fr.nom ?? ""} ${fr.prenom ?? ""}`).join(", ")
-          : "";
-        return attType === "ANIMATION"
-          ? [f.titreFormation ?? "", noms, f.dateDebut ?? "", `${f.chargeHoraireGlobal ?? ""} h`, f.populationCible ?? "", f.objectifs ?? ""]
-          : [f.titreFormation ?? "", noms, f.dateDebut ?? ""];
+          ? f.formateurs.map((fr) => `${fr.nom ?? ''} ${fr.prenom ?? ''}`).join(', ')
+          : '';
+        return attType === 'ANIMATION'
+          ? [
+              f.titreFormation ?? '',
+              noms,
+              f.dateDebut ?? '',
+              `${f.chargeHoraireGlobal ?? ''} h`,
+              f.populationCible ?? '',
+              f.objectifs ?? '',
+            ]
+          : [f.titreFormation ?? '', noms, f.dateDebut ?? ''];
       });
       autoTable(doc, {
         startY: 40,
         margin: { left: 40, right: 40 },
         head: [headers],
         body,
-        theme: "grid",
-        styles: { font: "times", fontSize: 12, overflow: "linebreak", cellWidth: "wrap" },
-        columnStyles: attType === "ANIMATION"
-          ? { 0: { cellWidth: 100 }, 1: { cellWidth: 100 }, 2: { cellWidth: 60 }, 3: { cellWidth: 50 }, 4: { cellWidth: 80 }, 5: { cellWidth: 140 } }
-          : { 0: { cellWidth: 200 }, 1: { cellWidth: 200 }, 2: { cellWidth: 100 } },
-        headStyles: { fillColor: [230, 230, 230], textColor: 20, halign: "center" },
-        bodyStyles: { valign: "top" },
+        theme: 'grid',
+        styles: { font: 'times', fontSize: 12, overflow: 'linebreak', cellWidth: 'wrap' },
+        columnStyles:
+          attType === 'ANIMATION'
+            ? {
+                0: { cellWidth: 100 },
+                1: { cellWidth: 100 },
+                2: { cellWidth: 60 },
+                3: { cellWidth: 50 },
+                4: { cellWidth: 80 },
+                5: { cellWidth: 140 },
+              }
+            : { 0: { cellWidth: 200 }, 1: { cellWidth: 200 }, 2: { cellWidth: 100 } },
+        headStyles: { fillColor: [230, 230, 230], textColor: 20, halign: 'center' },
+        bodyStyles: { valign: 'top' },
       });
-      setPdfUrl(doc.output("bloburl") as unknown as string);
+      setPdfUrl(doc.output('bloburl') as unknown as string);
     } catch {
-      message.error("Échec de la génération du tableau PDF.");
+      message.error('Échec de la génération du tableau PDF.');
       setDrawerVisible(false);
     }
   };
@@ -154,10 +181,10 @@ export default function CompletedFormations() {
       const formation = formations.find((f) => f.idFormation === newCertFormationId);
       if (!formation) return;
       await generateCertMut.mutateAsync(formation.idFormation!);
-      message.success("Certificat créé !");
+      message.success('Certificat créé !');
       setNewCertDrawerVisible(false);
     } catch {
-      message.error("Échec de la création du certificat.");
+      message.error('Échec de la création du certificat.');
     }
   };
 
@@ -169,7 +196,7 @@ export default function CompletedFormations() {
       <AppPageHeader
         icon={<SafetyCertificateOutlined />}
         title="Formations Achevées"
-        subtitle={`${formations.length} formation${formations.length === 1 ? "" : "s"} terminée${formations.length === 1 ? "" : "s"} — Générez certificats et attestations`}
+        subtitle={`${formations.length} formation${formations.length === 1 ? '' : 's'} terminée${formations.length === 1 ? '' : 's'} — Générez certificats et attestations`}
       />
       <CompletedFormationsTable
         formations={formations}
@@ -186,7 +213,10 @@ export default function CompletedFormations() {
       />
       <CertificateGenerator
         drawerVisible={drawerVisible}
-        onCloseDrawer={() => { setDrawerVisible(false); setPdfUrl(null); }}
+        onCloseDrawer={() => {
+          setDrawerVisible(false);
+          setPdfUrl(null);
+        }}
         pdfUrl={pdfUrl}
         enseignants={enseignants}
         loadingEns={loadingEns}

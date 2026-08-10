@@ -1,5 +1,5 @@
-import { defaultApi as axios } from "@/services/httpClient";
-import { config } from "@/config/env";
+import { defaultApi as axios } from '@/services/httpClient';
+import { config } from '@/config/env';
 const API_URL = `${config.FORMATION_URL}/formation/onedrive`;
 
 const OneDriveService = {
@@ -11,7 +11,7 @@ const OneDriveService = {
   async downloadFile(nomFormation: string, nomDocument: string, originalFileName: string) {
     const response = await axios.get(`${API_URL}/download`, {
       params: { nomFormation, nomDocument, originalFileName },
-      responseType: "blob",
+      responseType: 'blob',
     });
     return response.data;
   },
@@ -31,9 +31,7 @@ const OneDriveService = {
   },
 
   async getFormationHierarchy(idFormation: number | string) {
-    const { data } = await axios.get(
-      `${API_URL}/formations/${idFormation}/hierarchy`
-    );
+    const { data } = await axios.get(`${API_URL}/formations/${idFormation}/hierarchy`);
     return data;
   },
 };

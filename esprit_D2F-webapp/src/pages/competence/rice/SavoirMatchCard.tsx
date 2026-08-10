@@ -1,7 +1,12 @@
-import { useMemo } from "react";
-import { Tag, Select, Tooltip } from "antd";
-import { BookOutlined, ExperimentOutlined, CheckCircleOutlined, WarningOutlined } from "@ant-design/icons";
-import { NIVEAU_OPTIONS, TYPE_COLOR, TYPE_LABEL } from "./constants";
+import { useMemo } from 'react';
+import { Tag, Select, Tooltip } from 'antd';
+import {
+  BookOutlined,
+  ExperimentOutlined,
+  CheckCircleOutlined,
+  WarningOutlined,
+} from '@ant-design/icons';
+import { NIVEAU_OPTIONS, TYPE_COLOR, TYPE_LABEL } from './constants';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Savoir {
@@ -28,14 +33,14 @@ interface SavoirMatchCardProps {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function getNiveauMeta(niveau: string | number | undefined) {
-  const hit = NIVEAU_OPTIONS.find((n) => n.value === String(niveau ?? ""));
-  return hit ?? { label: niveau ? `N${niveau}` : "—", color: "default", emoji: "" };
+  const hit = NIVEAU_OPTIONS.find((n) => n.value === String(niveau ?? ''));
+  return hit ?? { label: niveau ? `N${niveau}` : '—', color: 'default', emoji: '' };
 }
 
-function getTypeMeta(type = "THEORIQUE") {
+function getTypeMeta(type = 'THEORIQUE') {
   return {
-    color: TYPE_COLOR[type] ?? "default",
-    icon: type === "PRATIQUE" ? <ExperimentOutlined /> : <BookOutlined />,
+    color: TYPE_COLOR[type] ?? 'default',
+    icon: type === 'PRATIQUE' ? <ExperimentOutlined /> : <BookOutlined />,
     label: TYPE_LABEL[type] ?? type,
   };
 }
@@ -53,17 +58,18 @@ export default function SavoirMatchCard({
   const typeMeta = useMemo(() => getTypeMeta(savoir.type), [savoir.type]);
 
   const selectOptions = useMemo(
-    () => allTeachers.map((t) => ({
-      label: `${t.prenom ?? ""} ${t.nom ?? ""}`.trim(),
-      value: t.id,
-    })),
+    () =>
+      allTeachers.map((t) => ({
+        label: `${t.prenom ?? ''} ${t.nom ?? ''}`.trim(),
+        value: t.id,
+      })),
     [allTeachers],
   );
 
   return (
-    <div className={`smc-card${isAssigned ? " smc-card--assigned" : " smc-card--unassigned"}`}>
+    <div className={`smc-card${isAssigned ? ' smc-card--assigned' : ' smc-card--unassigned'}`}>
       {/* ── Status stripe ── */}
-      <div className={`smc-stripe${isAssigned ? " smc-stripe--ok" : " smc-stripe--warn"}`} />
+      <div className={`smc-stripe${isAssigned ? ' smc-stripe--ok' : ' smc-stripe--warn'}`} />
 
       {/* ── Header ── */}
       <div className="smc-header">
@@ -74,11 +80,7 @@ export default function SavoirMatchCard({
           </Tooltip>
         </div>
         <div className="smc-header__badges">
-          <Tag
-            icon={typeMeta.icon}
-            color={typeMeta.color}
-            className="smc-tag-type"
-          >
+          <Tag icon={typeMeta.icon} color={typeMeta.color} className="smc-tag-type">
             {typeMeta.label}
           </Tag>
           <Tag color={niveauMeta.color} className="smc-tag-niveau">
@@ -94,7 +96,7 @@ export default function SavoirMatchCard({
             <CheckCircleOutlined className="smc-teachers__icon" />
             {assignedTeacherIds.map((id) => {
               const t = allTeachers.find((x) => String(x.id) === String(id));
-              const label = t ? `${t.prenom ?? ""} ${t.nom ?? ""}`.trim() : String(id);
+              const label = t ? `${t.prenom ?? ''} ${t.nom ?? ''}`.trim() : String(id);
               return (
                 <Tag
                   key={id}

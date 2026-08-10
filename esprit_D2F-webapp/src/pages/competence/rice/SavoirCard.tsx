@@ -1,9 +1,14 @@
-import { memo, useMemo, useState } from "react";
-import { Avatar, Dropdown, Input, Select, Space, Tag, Tooltip, Typography } from "antd";
-import type { MenuProps } from "antd";
-import { DeleteOutlined, EditOutlined, HolderOutlined, MergeCellsOutlined, MoreOutlined } from "@ant-design/icons";
-import { NIVEAU_OPTIONS, TYPE_LABEL, avatarColor, getInitials } from "./constants";
-
+import { memo, useMemo, useState } from 'react';
+import { Avatar, Dropdown, Input, Select, Space, Tag, Tooltip, Typography } from 'antd';
+import type { MenuProps } from 'antd';
+import {
+  DeleteOutlined,
+  EditOutlined,
+  HolderOutlined,
+  MergeCellsOutlined,
+  MoreOutlined,
+} from '@ant-design/icons';
+import { NIVEAU_OPTIONS, TYPE_LABEL, avatarColor, getInitials } from './constants';
 
 const { Text } = Typography;
 
@@ -31,7 +36,12 @@ interface SavoirCardProps {
   sci: number;
   si: number;
   editingNom: { path: number[]; value: string } | null;
-  setEditingNom: (v: { path: number[]; value: string } | null | ((p: { path: number[]; value: string }) => { path: number[]; value: string })) => void;
+  setEditingNom: (
+    v:
+      | { path: number[]; value: string }
+      | null
+      | ((p: { path: number[]; value: string }) => { path: number[]; value: string }),
+  ) => void;
   commitRename: () => void;
   startRename: (path: number[], nom: string) => void;
   toggleType: (di: number, ci: number, sci: number, si: number) => void;
@@ -48,19 +58,19 @@ interface SavoirCardProps {
 }
 
 const NIVEAU_DOT: Record<string, string> = {
-  N1_DEBUTANT: "#94a3b8",
-  N2_ELEMENTAIRE: "#3b82f6",
-  N3_INTERMEDIAIRE: "#16a34a",
-  N4_AVANCE: "#f59e0b",
-  N5_EXPERT: "#ef4444",
+  N1_DEBUTANT: '#94a3b8',
+  N2_ELEMENTAIRE: '#3b82f6',
+  N3_INTERMEDIAIRE: '#16a34a',
+  N4_AVANCE: '#f59e0b',
+  N5_EXPERT: '#ef4444',
 };
 
 const NIVEAU_SIMPLE: Record<string, string> = {
-  N1_DEBUTANT: "Niveau 1",
-  N2_ELEMENTAIRE: "Niveau 2",
-  N3_INTERMEDIAIRE: "Niveau 3",
-  N4_AVANCE: "Niveau 4",
-  N5_EXPERT: "Niveau 5",
+  N1_DEBUTANT: 'Niveau 1',
+  N2_ELEMENTAIRE: 'Niveau 2',
+  N3_INTERMEDIAIRE: 'Niveau 3',
+  N4_AVANCE: 'Niveau 4',
+  N5_EXPERT: 'Niveau 5',
 };
 
 const SavoirCard = memo(function SavoirCard({
@@ -86,7 +96,7 @@ const SavoirCard = memo(function SavoirCard({
   inlineHint,
 }: Readonly<SavoirCardProps>) {
   const [hovered, setHovered] = useState(false);
-  const isEditing = editingNom?.path?.join("-") === `${di}-${ci}-${sci}-${si}`;
+  const isEditing = editingNom?.path?.join('-') === `${di}-${ci}-${sci}-${si}`;
   const assigned = useMemo(() => {
     const ids = (savoir.enseignantsSuggeres ?? []).map(String);
     const map = new Map((allEnseignants ?? []).map((e) => [String(e.id ?? e.enseignantId), e]));
@@ -96,27 +106,27 @@ const SavoirCard = memo(function SavoirCard({
   }, [savoir.enseignantsSuggeres, allEnseignants]);
   const aiSuggestionCount = (savoir.aiSuggestedIds ?? []).length;
 
-  const menuItems: MenuProps["items"] = [
+  const menuItems: MenuProps['items'] = [
     {
-      key: "rename",
+      key: 'rename',
       icon: <EditOutlined />,
-      label: "Renommer",
+      label: 'Renommer',
       onClick: () => startRename([di, ci, sci, si], savoir.nom),
     },
     {
-      key: "merge",
+      key: 'merge',
       icon: <MergeCellsOutlined />,
-      label: "Fusionner avec...",
+      label: 'Fusionner avec...',
       onClick: () => {
         openMerge(di, ci, sci, si);
         setMergeModal(true);
       },
     },
-    { type: "divider" },
+    { type: 'divider' },
     {
-      key: "delete",
+      key: 'delete',
       icon: <DeleteOutlined />,
-      label: "Supprimer",
+      label: 'Supprimer',
       danger: true,
       onClick: () => deleteSavoir(di, ci, sci, si),
     },
@@ -133,25 +143,27 @@ const SavoirCard = memo(function SavoirCard({
       type="button"
       aria-roledescription="draggable"
       aria-label={`Savoir ${savoir.code} — ${savoir.nom}. Glisser pour assigner ou utiliser le menu Plus pour les actions clavier.`}
-      className={`savoir-card${isBeingDragged ? " is-dragging" : ""}`}
+      className={`savoir-card${isBeingDragged ? ' is-dragging' : ''}`}
       draggable
       onDragStart={(e) => onSavoirDragStart(e, di, ci, sci, si)}
       onDragEnd={onSavoirDragEnd}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={(e) => {
-        const trigger = e.currentTarget.querySelector<HTMLElement>(".savoir-card-menu-trigger");
+        const trigger = e.currentTarget.querySelector<HTMLElement>('.savoir-card-menu-trigger');
         trigger?.focus();
       }}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
+        if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          const trigger = e.currentTarget.querySelector<HTMLElement>(".savoir-card-menu-trigger");
+          const trigger = e.currentTarget.querySelector<HTMLElement>('.savoir-card-menu-trigger');
           trigger?.focus();
         }
       }}
     >
-      <span className="savoir-drag-handle"><HolderOutlined /></span>
+      <span className="savoir-drag-handle">
+        <HolderOutlined />
+      </span>
 
       <div style={{ minWidth: 0, flex: 1 }}>
         {isEditing ? (
@@ -161,13 +173,15 @@ const SavoirCard = memo(function SavoirCard({
             onChange={(e) => setEditingNom((p) => ({ ...p, value: e.target.value }))}
             onPressEnter={commitRename}
             onBlur={commitRename}
-            onKeyDown={(e) => e.key === "Escape" && setEditingNom(null)}
+            onKeyDown={(e) => e.key === 'Escape' && setEditingNom(null)}
             autoFocus
           />
         ) : (
           <Tooltip title={savoir.nom}>
             <Text strong>
-              <Tag style={{ marginRight: 6, fontFamily: "monospace", fontWeight: 700 }}>{savoir.code}</Tag>
+              <Tag style={{ marginRight: 6, fontFamily: 'monospace', fontWeight: 700 }}>
+                {savoir.code}
+              </Tag>
               {savoir.nom.length > 60 ? `${savoir.nom.slice(0, 60)}...` : savoir.nom}
             </Text>
           </Tooltip>
@@ -176,24 +190,35 @@ const SavoirCard = memo(function SavoirCard({
         <Space size={6} style={{ marginTop: 6 }} wrap>
           <Tag
             style={{
-              background: savoir.type === "THEORIQUE" ? "#f3e8ff" : "#fff7ed",
-              color: savoir.type === "THEORIQUE" ? "#7c3aed" : "#c2410c",
-              border: "none",
+              background: savoir.type === 'THEORIQUE' ? '#f3e8ff' : '#fff7ed',
+              color: savoir.type === 'THEORIQUE' ? '#7c3aed' : '#c2410c',
+              border: 'none',
               margin: 0,
             }}
             onClick={() => toggleType(di, ci, sci, si)}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleType(di, ci, sci, si); } }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleType(di, ci, sci, si);
+              }
+            }}
           >
             {TYPE_LABEL[savoir.type]}
           </Tag>
 
           <Space size={4}>
-            <span className="niveau-dot" style={{ background: NIVEAU_DOT[savoir.niveau ?? ""] || "#94a3b8" }} />
+            <span
+              className="niveau-dot"
+              style={{ background: NIVEAU_DOT[savoir.niveau ?? ''] || '#94a3b8' }}
+            />
             <Select
               size="small"
               value={savoir.niveau}
               onChange={(v) => setNiveau(di, ci, sci, si, v)}
-              options={NIVEAU_OPTIONS.map((n) => ({ value: n.value, label: NIVEAU_SIMPLE[n.value] ?? n.label }))}
+              options={NIVEAU_OPTIONS.map((n) => ({
+                value: n.value,
+                label: NIVEAU_SIMPLE[n.value] ?? n.label,
+              }))}
               style={{ width: 130 }}
               variant="borderless"
             />
@@ -207,21 +232,36 @@ const SavoirCard = memo(function SavoirCard({
             {getInitials(assigned[0].ens.nom, assigned[0].ens.prenom)}
           </Avatar>
           <Text style={{ fontSize: 12 }}>
-            {(assigned[0].ens.prenom ? `${assigned[0].ens.prenom} ${assigned[0].ens.nom}` : assigned[0].ens.nom ?? "").slice(0, 16)}
+            {(assigned[0].ens.prenom
+              ? `${assigned[0].ens.prenom} ${assigned[0].ens.nom}`
+              : (assigned[0].ens.nom ?? '')
+            ).slice(0, 16)}
           </Text>
-          <button type="button" className="link-button" aria-label="Retirer cet enseignant" onClick={() => removeTeacher(assigned[0].id)}>×</button>
+          <button
+            type="button"
+            className="link-button"
+            aria-label="Retirer cet enseignant"
+            onClick={() => removeTeacher(assigned[0].id)}
+          >
+            ×
+          </button>
           {assigned.length > 1 && <Text type="secondary">+{assigned.length - 1}</Text>}
         </Space>
       ) : (
         <Space size={6} className="savoir-unassigned-hint" wrap>
-          <span>{inlineHint ? "← Glissez vers un enseignant pour affecter" : "Glisser un enseignant →"}</span>
+          <span>
+            {inlineHint ? '← Glissez vers un enseignant pour affecter' : 'Glisser un enseignant →'}
+          </span>
           {aiSuggestionCount > 0 && <Tag color="gold">{aiSuggestionCount} suggestion(s) IA</Tag>}
         </Space>
       )}
 
       {hovered && (
-        <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
-          <MoreOutlined className="savoir-card-menu-trigger" style={{ color: "#64748b", cursor: "pointer" }} />
+        <Dropdown menu={{ items: menuItems }} trigger={['click']}>
+          <MoreOutlined
+            className="savoir-card-menu-trigger"
+            style={{ color: '#64748b', cursor: 'pointer' }}
+          />
         </Dropdown>
       )}
     </button>
@@ -229,9 +269,3 @@ const SavoirCard = memo(function SavoirCard({
 });
 
 export default SavoirCard;
-
-
-
-
-
-

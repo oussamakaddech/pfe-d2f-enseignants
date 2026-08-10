@@ -1,7 +1,11 @@
-import { useState, useCallback } from "react";
-import type { RiceDomaine } from "@/models/competence";
-import type { Enseignant } from "@/models/enseignant";
-import type { CreateEnsTarget, EnseignantRef, ExtractedEnseignant } from "@/pages/competence/rice/riceTypes";
+import { useState, useCallback } from 'react';
+import type { RiceDomaine } from '@/models/competence';
+import type { Enseignant } from '@/models/enseignant';
+import type {
+  CreateEnsTarget,
+  EnseignantRef,
+  ExtractedEnseignant,
+} from '@/pages/competence/rice/riceTypes';
 
 interface MsgApi {
   warning: (msg: string) => void;
@@ -20,45 +24,66 @@ interface UseRiceTeacherManagerParams {
 }
 
 export function useRiceTeacherManager({
-  msgApi, createEnseignantMutate,
-  setAllEnseignants, tree, setEnseignants, remapInTree, setExtractedEnseignants,
+  msgApi,
+  createEnseignantMutate,
+  setAllEnseignants,
+  tree,
+  setEnseignants,
+  remapInTree,
+  setExtractedEnseignants,
 }: UseRiceTeacherManagerParams) {
   const [createEnsModal, setCreateEnsModal] = useState(false);
   const [createEnsTarget, setCreateEnsTarget] = useState<CreateEnsTarget | null>(null);
-  const [createEnsData, setCreateEnsData] = useState({ nom: "", prenom: "", mail: "" });
+  const [createEnsData, setCreateEnsData] = useState({ nom: '', prenom: '', mail: '' });
   const [savingNewEns, setSavingNewEns] = useState(false);
 
-  const remapEnseignant = useCallback((extId: string, realId: string) => {
-    remapInTree(extId, realId);
-    const extIdx = Number.parseInt(extId.replace("ext_", ""), 10);
-    setExtractedEnseignants((prev) => {
-      const next = prev.map((ex, i) => (i === extIdx ? { ...ex, matched_id: realId } : ex));
-      try { sessionStorage.setItem("rice_extracted_enseignants", JSON.stringify(next)); } catch { }
-      return next;
-    });
-    msgApi.success("Enseignant identifié");
-  }, [remapInTree, setExtractedEnseignants, msgApi]);
+  const remapEnseignant = useCallback(
+    (extId: string, realId: string) => {
+      remapInTree(extId, realId);
+      const extIdx = Number.parseInt(extId.replace('ext_', ''), 10);
+      setExtractedEnseignants((prev) => {
+        const next = prev.map((ex, i) => (i === extIdx ? { ...ex, matched_id: realId } : ex));
+        try {
+          sessionStorage.setItem('rice_extracted_enseignants', JSON.stringify(next));
+        } catch {}
+        return next;
+      });
+      msgApi.success('Enseignant identifié');
+    },
+    [remapInTree, setExtractedEnseignants, msgApi],
+  );
 
   const handleCreateNewEnseignant = useCallback(async () => {
     if (!createEnsTarget || !createEnsData.nom.trim()) {
-      msgApi.warning("Le nom est requis");
+      msgApi.warning('Le nom est requis');
       return;
     }
     setSavingNewEns(true);
     try {
       const nomUp = createEnsData.nom.trim().toUpperCase();
       const prenom = createEnsData.prenom.trim();
-      const mail = createEnsData.mail.trim() ||
-        `${nomUp.toLowerCase()}.${prenom.toLowerCase().replaceAll(/\s+/g, ".")}@${import.meta.env.VITE_DEFAULT_EMAIL_DOMAIN || 'esprit.tn'}`;
-      const created = await createEnseignantMutate({ nom: nomUp, prenom, mail, type: "P", etat: "A" });
+      const mail =
+        createEnsData.mail.trim() ||
+        `${nomUp.toLowerCase()}.${prenom.toLowerCase().replaceAll(/\s+/g, '.')}@${import.meta.env.VITE_DEFAULT_EMAIL_DOMAIN || 'esprit.tn'}`;
+      const created = await createEnseignantMutate({
+        nom: nomUp,
+        prenom,
+        mail,
+        type: 'P',
+        etat: 'A',
+      });
       const createdRec = created as Record<string, unknown>;
       const realId = String(createdRec.id ?? createdRec.enseignantId);
-      setAllEnseignants((prev) => [...prev, { ...createdRec, enseignantId: realId } as EnseignantRef]);
+      setAllEnseignants((prev) => [
+        ...prev,
+        { ...createdRec, enseignantId: realId } as EnseignantRef,
+      ]);
       if (Array.isArray(createEnsTarget.path) && createEnsTarget.path.length >= 3) {
         const [di, ci, sci, si] = createEnsTarget.path;
-        const savoir = sci === -1
-          ? tree?.[di]?.competences?.[ci]?.savoirs?.[si]
-          : tree?.[di]?.competences?.[ci]?.sousCompetences?.[sci]?.savoirs?.[si];
+        const savoir =
+          sci === -1
+            ? tree?.[di]?.competences?.[ci]?.savoirs?.[si]
+            : tree?.[di]?.competences?.[ci]?.sousCompetences?.[sci]?.savoirs?.[si];
         if (savoir) {
           const ids = new Set((savoir.enseignantsSuggeres ?? []).map(String));
           ids.add(realId);
@@ -75,16 +100,28 @@ export function useRiceTeacherManager({
       setCreateEnsTarget(null);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
-      msgApi.error(e?.response?.data?.message ?? "Erreur lors de la création");
+      msgApi.error(e?.response?.data?.message ?? 'Erreur lors de la création');
     } finally {
       setSavingNewEns(false);
     }
-  }, [createEnsTarget, createEnsData, createEnseignantMutate, setAllEnseignants, tree, setEnseignants, remapEnseignant, msgApi]);
+  }, [
+    createEnsTarget,
+    createEnsData,
+    createEnseignantMutate,
+    setAllEnseignants,
+    tree,
+    setEnseignants,
+    remapEnseignant,
+    msgApi,
+  ]);
 
   return {
-    createEnsModal, setCreateEnsModal,
-    createEnsTarget, setCreateEnsTarget,
-    createEnsData, setCreateEnsData,
+    createEnsModal,
+    setCreateEnsModal,
+    createEnsTarget,
+    setCreateEnsTarget,
+    createEnsData,
+    setCreateEnsData,
     savingNewEns,
     remapEnseignant,
     handleCreateNewEnseignant,

@@ -365,7 +365,8 @@ def refresh_cache(_user: Annotated[Dict | None, Depends(_get_current_user)] = No
 
 
 @rice_router.post("/match",
-                  summary="Matcher un texte libre contre le référentiel d'un département")
+                  summary="Matcher un texte libre contre le référentiel d'un département",
+                  responses={422: {"description": "Texte vide", "content": {"application/json": {"example": {"detail": "Le texte ne doit pas être vide"}}}}})
 @rice_router.post("/gc-match",  # backward-compat alias
                   summary="Alias déprécié – utiliser /match", include_in_schema=False)
 async def match_text(
@@ -380,7 +381,7 @@ async def match_text(
     """
     if not text.strip():
         from fastapi import HTTPException
-        raise HTTPException(status_code=422, detail="text must not be empty")
+        raise HTTPException(status_code=422, detail="Le texte ne doit pas être vide")
     savoir_codes = _match_gc_savoir(text, departement=departement)
     competence = _match_gc_competence(text, departement=departement)
     suggested_ens = _suggest_gc_enseignants(savoir_codes[:5])

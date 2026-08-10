@@ -4,9 +4,27 @@ import GlassHeatmap from '../GlassHeatmap';
 import type { GapHeatmapCell } from '@/models/analyse';
 
 const data: GapHeatmapCell[] = [
-  { departement: 'INFO', competence_id: 1, competence_nom: 'Python', avg_gap: 2.5, enseignants_count: 10 },
-  { departement: 'INFO', competence_id: 2, competence_nom: 'Java', avg_gap: 0.8, enseignants_count: 5 },
-  { departement: 'MATH', competence_id: 1, competence_nom: 'Python', avg_gap: 1.2, enseignants_count: 3 },
+  {
+    departement: 'INFO',
+    competence_id: 1,
+    competence_nom: 'Python',
+    avg_gap: 2.5,
+    enseignants_count: 10,
+  },
+  {
+    departement: 'INFO',
+    competence_id: 2,
+    competence_nom: 'Java',
+    avg_gap: 0.8,
+    enseignants_count: 5,
+  },
+  {
+    departement: 'MATH',
+    competence_id: 1,
+    competence_nom: 'Python',
+    avg_gap: 1.2,
+    enseignants_count: 3,
+  },
 ];
 
 describe('GlassHeatmap', () => {
