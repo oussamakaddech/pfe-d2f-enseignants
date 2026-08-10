@@ -257,7 +257,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
+          key: owasp-nvd-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
           restore-keys: owasp-nvd-${{ runner.os }}-
 
       - name: OWASP Dependency Check
