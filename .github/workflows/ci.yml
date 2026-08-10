@@ -497,6 +497,9 @@ jobs:
   build-docker:
     name: Docker Build & Push - ${{ matrix.image }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     needs: [lint-backend, security-backend, security-frontend, test-python, sonar]
     if: >-
       always() &&
