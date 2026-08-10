@@ -505,6 +505,7 @@ jobs:
       needs.test-python.result == 'success' &&
       needs.sonar.result == 'success' &&
       !inputs.skip_docker &&
+      vars.DOCKER_ENABLED == 'true' &&
       github.event_name == 'push' &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     strategy:
