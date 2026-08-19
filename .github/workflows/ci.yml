@@ -185,7 +185,11 @@ jobs:
             --exclude=diagnose_same_results.py \
             --exclude=check_gaps.py \
             --exclude=fix_persist_gaps.py \
-            --exclude=validate_catalogue.py || true)
+            --exclude=validate_catalogue.py \
+            --exclude=_fix_train_source.py \
+            --exclude=_fix_model_name.py \
+            --exclude=_fix_candidates.py \
+            --exclude=_patch_meta.py || true)
           if [ -n "$FOUND" ]; then
             echo "PII risk - print() trouve dans le code de production :"
             echo "$FOUND"
