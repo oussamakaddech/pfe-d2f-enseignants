@@ -20,20 +20,23 @@ class ComputeGaps:
     def execute(self, teacher_id: str) -> tuple[list[SkillGap], str, str | None]:
         """Calcule les gaps d'un enseignant dans son périmètre.
 
-        Stratégie :
-        1) Le modèle ML (entraîné sur un référentiel éventuellement partiel)
-           prédit des brutes ; on les filtre au périmètre.
-        2) Si aucun gap ML ne reste dans le périmètre (modèle hors référentiel)
-           on complète avec l'heuristique sur le même périmètre afin qu'un
-           enseignant n'ait jamais de page blanche ni de gaps hors métier.
+        Retourne : (gaps, model_mode, model_version)
+        où ``model_mode`` est l'un des trois modes PRODUCTION_ML / DEMO_ML /
+        HEURISTIC_FALLBACK — jamais "ML" abrégé. Les métadonnées complètes
+        (fallback_reason, provenance, prediction_horizon) sont exposées via
+        ``model_port.status()`` par la couche API.
         """
         scoped = self._scoped_competencies(teacher_id)
+        status = self._model_port.status()
+        model_mode = status.get("model_mode", "HEURISTIC_FALLBACK")
+        model_version = status.get("model_version")
+
         ml_gaps = self._model_port.predict_gaps(teacher_id)
         if ml_gaps is not None:
             filtered = self._filter_to_scope_ids(scoped, ml_gaps)
             if filtered:
                 self._analysis_repository.save_skill_gaps(filtered, teacher_id=teacher_id)
-                return filtered, "ML", self._model_port.status().get("version")
+                return filtered, model_mode, model_version
             # Le ML ne couvre pas le périmètre : fallback heuristique ciblé.
             gaps = self._heuristic_on(competencies=scoped, teacher_id=teacher_id)
             self._analysis_repository.save_skill_gaps(gaps, teacher_id=teacher_id)
@@ -41,7 +44,7 @@ class ComputeGaps:
 
         gaps = self._heuristic(teacher_id)
         self._analysis_repository.save_skill_gaps(gaps, teacher_id=teacher_id)
-        return gaps, "HEURISTIC_FALLBACK", None
+        return gaps, model_mode, None
 
     @staticmethod
     def _filter_to_scope_ids(competencies: list[Competency], gaps: list[SkillGap]) -> list[SkillGap]:

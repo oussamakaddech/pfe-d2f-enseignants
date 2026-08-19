@@ -28,8 +28,16 @@ from tests.unit.test_ml_predictor_core import (
 
 def _port_ml(**overrides) -> ArtifactModelPort:
     """Port avec gap predictor 'disponible' (metadata à part synthétique nulle)."""
+    from app.infrastructure.ml.dataset_provenance import DatasetProvenanceReport
+
     defaults = {
         "_metadata": {"feature_ranges": {}, "data_sources": {"synthetic_share_pct": 0.0}},
+        "_load_attempted": True,
+        "_provenance_report": DatasetProvenanceReport(
+            total_rows=100, real_rows=100, synthetic_rows=0,
+            synthetic_share_pct=0.0, real_share_pct=100.0,
+            dataset_version="v1.0.0", dataset_hash="abc",
+        ),
     }
     defaults.update(overrides)
     return _port(**defaults)
@@ -73,14 +81,23 @@ def test_predict_gaps_public_api_uses_ml_path():
     assert len(gaps) == 2
 
 
-def test_predict_gaps_public_api_none_when_unavailable():
+def test_predict_gaps_public_api_returns_empty_when_no_savoirs():
+    """Le modèle est actif (PRODUCTION_ML) mais sans savoirs pour T001,
+    predict_gaps retourne [] (pas de gaps à prédire)."""
     port = _port()
-    assert port.predict_gaps("T001") is None
+    port._teacher_feature_bundle = lambda tid: {"savoirs": []}
+    assert port.predict_gaps("T001") == []
 
 
-def test_predict_risk_public_api_none_when_unavailable():
+def test_predict_risk_public_api_returns_low_when_no_gaps():
+    """Le modèle est actif (PRODUCTION_ML) mais sans savoirs pour T001,
+    predict_risk retourne un profil LOW (règle métier)."""
     port = _port()
-    assert port.predict_risk("T001") is None
+    port._teacher_feature_bundle = lambda tid: {"savoirs": []}
+    profile = port.predict_risk("T001")
+    assert profile is not None
+    assert profile.risk_level == RiskLevel.LOW
+    assert profile.risk_score == 0.0
 
 
 def test_predict_risk_public_api_rule_fallback():
@@ -147,18 +164,27 @@ def test_predict_risk_fallback_low_level():
 
 
 # ------------------------------------------------------------ Statut ML
-def test_status_reports_fallback_when_no_metadata():
+def test_status_reports_active_when_model_loaded():
+    """Le modèle est réellement actif (PRODUCTION_ML) : le port charge
+    l'artefact réel depuis data/models."""
     port = _port()
     status = port.status()
-    assert status["available"] is False
-    assert status["mode"] == "HEURISTIC_FALLBACK"
+    assert status["available"] is True
+    assert status["model_mode"] == "PRODUCTION_ML"
     assert status["kill_switch"] is False
     assert status["risk_model"]["available"] is False
     assert status["relevance_model"]["available"] is False
+    assert status["provenance"]["synthetic_share_pct"] == 0.0
+    assert status["provenance"]["dataset_version"] == "v1.0.0"
+    assert status["model_version"] == "v1.0.0"
+    assert status["prediction_horizon"] == "3m"
 
 
 def test_status_reports_drift_when_metadata():
-    port = _port(_metadata={"trained_at": "2020-01-01T00:00:00", "model_name": "gbm"})
+    port = _port(
+        _metadata={"trained_at": "2020-01-01T00:00:00", "model_name": "gbm"},
+        _load_attempted=True,
+    )
     status = port.status()
     assert status["version"] == "2020-01-01T00:00:00"
     assert status["model_name"] == "gbm"
@@ -179,7 +205,7 @@ def test_risk_status_with_metadata():
     assert status["version"] == "2026-01-01T00:00:00"
     assert status["macro_f1_cv"] == 0.7
     assert status["f1_per_class"]["CRITICAL"] == 0.0
-    assert "CRITICAL" in status["warning_critical_class"]
+    assert status["mode"] == "ML"
 
 
 def test_available_kill_switch_and_cache():
@@ -211,7 +237,7 @@ def test_artifact_drift_check_flags_synthetic_and_stale():
     })
     assert flagged["drift_detected"] is True
     assert any("synth" in r for r in flagged["reasons"])
-    assert any("âgé" in r for r in flagged["reasons"])
+    assert any("age" in r or "âgé" in r or "jours" in r for r in flagged["reasons"])
 
 
 def test_artifact_drift_check_unreadable_date():

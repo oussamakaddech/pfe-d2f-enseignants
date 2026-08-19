@@ -605,6 +605,25 @@ services:
       MESSAGING_ENABLED: "false"
       CORS_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
       MODELS_DIR: /app/data/models
+      # ── Modes d'exécution ML ──────────────────────────────────────────────
+      # ML_SERVING_MODE est une REQUÊTE : les contrôles peuvent refuser
+      # l'activation (HEURISTIC_FALLBACK) si les conditions ne sont pas réunies.
+      ML_SERVING_MODE: ${ML_SERVING_MODE:-PRODUCTION_ML}
+      ML_REQUIRE_REAL_DATA: ${ML_REQUIRE_REAL_DATA:-true}
+      ML_SYNTHETIC_TOLERANCE_PCT: ${ML_SYNTHETIC_TOLERANCE_PCT:-50.0}
+      ML_MIN_REAL_ROWS: ${ML_MIN_REAL_ROWS:-50}
+      ML_MIN_R2: ${ML_MIN_R2:-0.0}
+      ML_MAX_RMSE: ${ML_MAX_RMSE:-2.0}
+      ML_MAX_MAE: ${ML_MAX_MAE:-1.5}
+      ML_MODEL_VERSION: ${ML_MODEL_VERSION:-v1.0.0}
+      ML_ARTIFACT_PATH: ${ML_ARTIFACT_PATH:-gap_predictor_temporal.joblib}
+      ML_METADATA_PATH: ${ML_METADATA_PATH:-temporal_training_metadata.json}
+      ML_REGISTRY_PATH: ${ML_REGISTRY_PATH:-model_registry.json}
+      ML_FEATURE_SCHEMA_PATH: ${ML_FEATURE_SCHEMA_PATH:-feature_schema.json}
+    volumes:
+      # L'artefact est monté en lecture seule — il n'est jamais régénéré au
+      # démarrage du conteneur. La promotion/rollback est pilotée explicitement.
+      - ./esprit_D2F-predictive-analytics/data/models:/app/data/models:ro
     depends_on:
       predictive-db-migrate:
         condition: service_completed_successfully

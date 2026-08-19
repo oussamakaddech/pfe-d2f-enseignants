@@ -136,7 +136,20 @@ class FakeModelPort:
         return None
 
     def status(self) -> dict:
-        return {"name": "gap_predictor", "available": False, "version": None, "mode": "HEURISTIC_FALLBACK"}
+        return {
+            "name": "gap_predictor",
+            "available": False,
+            "version": None,
+            "mode": "HEURISTIC_FALLBACK",
+            "model_mode": "HEURISTIC_FALLBACK",
+            "model_version": None,
+            "fallback_reason": "faux port de test",
+            "prediction_horizon": None,
+            "provenance": {
+                "synthetic_share_pct": 0.0,
+                "dataset_version": "test",
+            },
+        }
 
     def risk_available(self) -> bool:
         return False

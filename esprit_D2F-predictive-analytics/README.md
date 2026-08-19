@@ -1,136 +1,120 @@
-# D2F Predictive Analytics & Recommendations Microservice
+# D2F Predictive Analytics Microservice
 
-Microservice Python (FastAPI) pour l'analyse prédictive et les recommandations du module 8 de la plateforme D2F.
+Microservice Python (FastAPI) pour l'analyse prédictive des compétences, des gaps et des risques de formation des enseignants (ESPRIT).
 
-## Fonctionnalités
+## Modes d'exécution ML
 
-1. **Prédiction des gaps de compétences** — `POST /api/predict/gaps/{teacherId}`
-2. **Recommandation de parcours de formation** — `POST /api/recommend/path`
-3. **Détection des enseignants à risque** — `GET /api/detect/at-risk-teachers`
-4. **Tableaux de bord prédictifs** — `GET /api/dashboard/*`
+Le service expose trois modes **strictement exclusifs** dans la réponse `model_mode` :
 
-## Stack Technique
+| Mode | Signification | Conditions |
+|---|---|---|
+| `PRODUCTION_ML` | Modèle actif en production | Intégrité SHA-256 valide, provenance calculée depuis les lignes du dataset, features compatibles, métriques minimales, registre approuvé |
+| `DEMO_ML` | Modèle de démonstration | Artefact disponible mais corpus synthétique/insuffisant, métriques non satisfaites, ou registre non approuvé — jamais présenté comme production |
+| `HEURISTIC_FALLBACK` | Moteur heuristique explicable | Échec d'intégrité, de provenance, de schéma ou de disponibilité — toujours disponible |
 
-- **FastAPI** + Uvicorn — API REST asynchrone
-- **SQLAlchemy** + psycopg2 — Accès PostgreSQL (lecture seule)
-- **scikit-learn** — Modèles ML (Gradient Boosting)
-- **joblib** — Persistance des modèles
-- **pytest** — Tests unitaires et d'intégration
+Le mode est **calculé dynamiquement à chaque appel** : les contrôles peuvent refuser l'activation même si `ML_SERVING_MODE=PRODUCTION_ML`.
 
-## Architecture
+### Formulation officielle
 
-```
-app/
-├── main.py              # Point d'entrée FastAPI
-├── config.py            # Configuration (pydantic-settings)
-├── core/                # DB, logging, exceptions
-├── routers/             # Endpoints API
-├── services/            # Logique métier + accès données
-├── ml/                  # Modèles ML + feature engineering
-└── models/              # Schémas Pydantic
-tests/                   # Tests pytest
-```
+> Le modèle est actif en production après validation de l'intégrité de l'artefact, de la compatibilité des features, de la provenance des données et des métriques minimales.
 
-## Démarrage Rapide
+> Le modèle reste indisponible en production car les conditions de provenance ou de validation ne sont pas satisfaites. Le service utilise automatiquement un moteur heuristique explicable.
 
-### Local (sans Docker)
+## Pipeline de réentraînement
 
 ```bash
-# 1. Créer un environnement virtuel
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# 1. Préparer le dataset avec provenance par ligne
+python -m pipelines.prepare_dataset --dataset-version v1.0.0
 
-# 2. Installer les dépendances
-pip install -r requirements.txt
+# 2. Entraîner et évaluer (baseline, GradientBoosting, XGBoost)
+python -m pipelines.train_gap_model --dataset-version v1.0.0 --model-version v1.0.0
 
-# 3. Configurer les variables d'environnement
-cp .env.example .env
-# Éditer .env avec vos paramètres DB
+# 3. Valider les métriques (anti-fuite, lift vs baseline)
+python -m pipelines.validate_model_metrics --json
 
-# 4. Lancer le serveur
-uvicorn app.main:app --reload --port 8090
+# 4. Enregistrer comme CANDIDATE (PENDING)
+python -m pipelines.register_model --model-version v1.0.0
+
+# 5. Promouvoir en ACTIVE (approuvé)
+python -m pipelines.register_model --model-version v1.0.0 --approve --actor "ml-engineer"
+
+# 6. Rollback vers la dernière version approuvée
+python -m pipelines.register_model --rollback
 ```
 
-### Avec Docker
-
-```bash
-# Depuis la racine du projet D2F
-docker compose up -d predictive-analytics-service
-
-# Vérifier le healthcheck
-curl http://localhost:8090/api/health
-```
+Le modèle n'est **jamais** régénéré silencieusement au démarrage du conteneur.
 
 ## Endpoints API
 
 | Méthode | Endpoint | Description |
 |---|---|---|
-| GET | `/api/health` | Health check |
-| POST | `/api/predict/gaps/{teacherId}` | Prédire les gaps |
-| POST | `/api/predict/train` | Entraîner le modèle |
-| POST | `/api/recommend/path` | Recommander un parcours |
-| GET | `/api/detect/at-risk-teachers` | Enseignants à risque |
-| GET | `/api/dashboard/summary` | Dashboard complet |
+| GET | `/api/v1/analytics/teachers/{teacher_id}/gaps` | Gaps de compétences + `model_mode`, `model_version`, `fallback_reason`, `dataset_version` |
+| GET | `/api/v1/analytics/teachers/{teacher_id}/risk` | Score de risque (règles métier prioritaires sur le ML) |
+| GET | `/api/v1/analytics/dashboard` | Dashboard agrégé |
+| GET | `/api/v1/analytics/dashboard/latest` | Dernier snapshot |
+| GET | `/api/v1/analytics/dashboard/declining` | Compétences en déclin |
+| GET | `/api/v1/analytics/alerts` | Alertes |
 
-### Analyse descriptive — Reporting (`/api/v1/analytics/*`)
+## Variables d'environnement ML
 
-Module `app/engines/reporting_engine.py` + `app/routers/reporting.py`. **RBAC : ADMIN
-(toutes UP/départements) et CUP (limité à SON UP/département, filtrage côté serveur).**
-Toutes les listes sont paginées ou bornées ; SQL 100 % paramétré (aucune concaténation).
-
-| Méthode | Endpoint | Description |
+| Variable | Défaut | Description |
 |---|---|---|
-| GET | `/api/v1/analytics/enseignants-sans-formation?mois=&departement=&up=&page=&size=` | Enseignants inactifs > N mois, paginé, avec `scoreRisqueDecrochage` (0-100), `niveauRisque` et `competencesEnDeclin[]` |
-| GET | `/api/v1/analytics/formations-par-periode?granularite=SEMAINE\|MOIS\|TRIMESTRE\|ANNEE&debut=&fin=` | Formations / participants / taux de complétion par période + `tendance` (HAUSSE/BAISSE/STABLE) |
-| GET | `/api/v1/analytics/formations-par-up?annee=&departement=` | Agrégats par Unité Pédagogique (taux de participation, top 5 compétences, score d'engagement) |
-| GET | `/api/v1/analytics/formations-par-departement?annee=` | Agrégats par département + `comparaisonRadar[]` (vue inter-départements, ADMIN) |
-| GET | `/api/v1/analytics/export/excel?type=INACTIFS\|PAR_UP\|PAR_DEPT` | Export `.xlsx` (openpyxl) |
-| GET | `/api/v1/analytics/export/pdf?type=RAPPORT_MENSUEL\|RAPPORT_ANNUEL` | Export PDF (reportlab, ADMIN) |
+| `ML_SERVING_MODE` | `PRODUCTION_ML` | Mode **demandé** par l'opérateur — les contrôles peuvent refuser |
+| `ML_REQUIRE_REAL_DATA` | `true` | Exige des données réelles pour PRODUCTION_ML |
+| `ML_SYNTHETIC_TOLERANCE_PCT` | `50.0` | Seuil max de lignes synthétiques (calculé depuis les lignes) |
+| `ML_MIN_REAL_ROWS` | `50` | Minimum de lignes réelles |
+| `ML_MIN_R2` | `0.0` | R² minimum de promotion |
+| `ML_MAX_RMSE` | `2.0` | RMSE maximum de promotion |
+| `ML_MAX_MAE` | `1.5` | MAE maximum de promotion |
+| `ML_ARTIFACT_PATH` | `gap_predictor_temporal.joblib` | Artefact joblib |
+| `ML_METADATA_PATH` | `temporal_training_metadata.json` | Metadata d'entraînement |
+| `ML_REGISTRY_PATH` | `model_registry.json` | Registre d'artefacts (promotion/rollback) |
+| `ML_FEATURE_SCHEMA_PATH` | `feature_schema.json` | Schéma de features |
 
-**Seuils configurables** (jamais codés en dur, cf. `app/config.py` / variables d'env) :
-`SEUIL_INACTIVITE_MOIS` (défaut 6), `INACTIVITE_WINDOW_MOIS` (fenêtre de saturation du
-score de risque, défaut 24), `EXPORT_MAX_ROWS` (défaut 10000).
-
-Frontend correspondant (webapp) : service `src/services/analyse/AnalyticsService.ts`,
-types `src/models/analyse/reporting.ts`, hook `src/hooks/analyse/useReporting.ts`, pages
-`/home/analytics/enseignants-inactifs` et `/home/analytics/formations-par-periode`
-(AntD + graphes SVG natifs, charts AntD/chart.js — **pas de Recharts**).
-
-## Entraînement du Modèle
-
-```bash
-curl -X POST http://localhost:8090/api/predict/train
-```
-
-Le modèle est automatiquement persisté dans `data/models/` (volume Docker `d2f_models_data`).
 
 ## Tests
 
 ```bash
-pytest tests/ -v
+# Tests ML (modes, provenance, registre, validation)
+python -m pytest tests/unit/test_ml_modes.py -v
+
+# Tests gouvernance ML (anti-fuite, ranking heuristique, règles de risque, RBAC)
+python -m pytest tests/unit/test_ml_governance.py -v
+
+# Tests inference (modèle réel actif)
+python -m pytest tests/unit/test_ml_inference.py -v
+
+# Tests intégration API gaps
+python -m pytest tests/integration/test_api_gaps.py -v
+
+# Suite complète
+python -m pytest tests/ -v
 ```
 
-## Intégration Gateway Spring Boot
+## Réponse API réelle
 
-Le service est accessible via l'API Gateway à l'adresse :
+Le mode final est **`PRODUCTION_ML`** car toutes les conditions sont satisfaites :
+- Artefact `gap_predictor_temporal.joblib` intègre (SHA-256 vérifié) ;
+- Provenance : 107 lignes réelles, 0% synthétique ;
+- Registre : version `v1.0.0` ACTIVE et APPROVED ;
+- Features compatibles (29 features, schéma 1.0) ;
+- Métriques : RMSE=0.9883, MAE=0.6388, R²=0.1897 (seuils respectés).
+
+```json
+{
+  "model_mode": "PRODUCTION_ML",
+  "model_version": "v1.0.0",
+  "prediction_horizon": "3m",
+  "provenance": {
+    "synthetic_share_pct": 0.0,
+    "dataset_version": "v1.0.0"
+  }
+}
 ```
-http://localhost:8222/api/predict/...   # (à configurer dans le gateway)
-```
 
-## Modèle ML — Spécifications
+## Anti-fuite
 
-| Caractéristique | Valeur |
-|---|---|
-| **Type de problème** | Régression (gap 0-5) |
-| **Algorithme** | GradientBoostingRegressor |
-| **Features** | 17 features (niveaux, formations, engagement...) |
-| **Métriques** | RMSE, R² |
-| **Validation** | 5-fold cross-validation |
-| **Explicabilité** | Feature importances |
-
-## Variables d'Environnement
-
-Voir `.env.example` pour la liste complète.
+`required_level` et `gap_next_3m` ne sont **jamais** dans les features. Le split est temporel strict.
 
 ---
 © 2024 D2F Platform — ESPRIT University

@@ -1,0 +1,53 @@
+id,formation_id,competence_id,competence_nom,savoir_id,savoir_nom,savoir_type,niveau_prerequis,niveau_vise
+1,1001,1,Scénarisation pédagogique active,1,Concevoir des objectifs pédagogiques (taxonomie de Bloom),SAVOIR,4,5
+2,1001,1,Scénarisation pédagogique active,2,Scénariser des activités actives présentiel/distanciel,SAVOIR_FAIRE,4,5
+3,1002,2,Évaluation par compétences,3,Principes de l'évaluation par compétences,SAVOIR,4,5
+4,1002,2,Évaluation par compétences,4,Construire des grilles critériées (Moodle/LMS),SAVOIR_FAIRE,4,5
+5,1003,3,Classe inversée & numérique éducatif,5,Modèles théoriques de classe inversée,SAVOIR,3,4
+6,1003,3,Classe inversée & numérique éducatif,6,Animer des séances synchrones interactives,SAVOIR_FAIRE,3,4
+7,1004,1,Scénarisation pédagogique active,2,Scénariser des activités actives présentiel/distanciel,SAVOIR_FAIRE,3,5
+8,1004,3,Classe inversée & numérique éducatif,6,Animer des séances synchrones interactives,SAVOIR_FAIRE,3,4
+9,1005,2,Évaluation par compétences,4,Construire des grilles critériées (Moodle/LMS),SAVOIR_FAIRE,4,4
+10,1006,1,Scénarisation pédagogique active,1,Concevoir des objectifs pédagogiques (taxonomie de Bloom),SAVOIR,4,5
+11,1007,3,Classe inversée & numérique éducatif,5,Modèles théoriques de classe inversée,SAVOIR,3,4
+12,1008,2,Évaluation par compétences,4,Construire des grilles critériées (Moodle/LMS),SAVOIR_FAIRE,3,5
+13,1009,4,CI/CD & intégration continue,7,Concepts d'intégration et de déploiement continus,SAVOIR,3,5
+14,1009,4,CI/CD & intégration continue,8,Écrire des pipelines GitLab CI/GitHub Actions,SAVOIR_FAIRE,3,5
+15,1010,5,Qualité & revue de code,9,Métriques de qualité logicielle,SAVOIR,4,5
+16,1010,5,Qualité & revue de code,10,Mener des revues de code efficaces,SAVOIR_FAIRE,4,5
+17,1011,6,Sécurité applicative,11,Top 10 OWASP et menaces applicatives,SAVOIR,3,5
+18,1011,6,Sécurité applicative,12,Durcir une application et analyser des vulnérabilités,SAVOIR_FAIRE,3,5
+19,1012,4,CI/CD & intégration continue,8,Écrire des pipelines GitLab CI/GitHub Actions,SAVOIR_FAIRE,3,4
+20,1013,5,Qualité & revue de code,10,Mener des revues de code efficaces,SAVOIR_FAIRE,3,4
+21,1013,6,Sécurité applicative,12,Durcir une application et analyser des vulnérabilités,SAVOIR_FAIRE,3,4
+22,1014,6,Sécurité applicative,12,Durcir une application et analyser des vulnérabilités,SAVOIR_FAIRE,3,4
+23,1015,4,CI/CD & intégration continue,8,Écrire des pipelines GitLab CI/GitHub Actions,SAVOIR_FAIRE,3,5
+24,1015,5,Qualité & revue de code,9,Métriques de qualité logicielle,SAVOIR,3,5
+25,1015,6,Sécurité applicative,11,Top 10 OWASP et menaces applicatives,SAVOIR,3,5
+26,1016,7,Data engineering & pipelines,13,Architectures des données et ETL/ELT,SAVOIR,4,5
+27,1016,7,Data engineering & pipelines,14,Construire des pipelines de données avec Python,SAVOIR_FAIRE,4,5
+28,1017,8,Machine learning appliqué,15,Concepts de machine learning supervisé,SAVOIR,4,5
+29,1017,8,Machine learning appliqué,16,Entraîner et évaluer des modèles (scikit-learn),SAVOIR_FAIRE,4,5
+30,1018,9,IA générative responsable,17,Cadre d'usage responsable de l'IA générative,SAVOIR,3,4
+31,1018,9,IA générative responsable,18,Intégrer des LLM dans les pratiques pédagogiques,SAVOIR_FAIRE,3,4
+32,1019,7,Data engineering & pipelines,14,Construire des pipelines de données avec Python,SAVOIR_FAIRE,3,4
+33,1020,8,Machine learning appliqué,16,Entraîner et évaluer des modèles (scikit-learn),SAVOIR_FAIRE,3,4
+34,1020,9,IA générative responsable,18,Intégrer des LLM dans les pratiques pédagogiques,SAVOIR_FAIRE,3,4
+35,1021,7,Data engineering & pipelines,13,Architectures des données et ETL/ELT,SAVOIR,4,4
+36,1022,8,Machine learning appliqué,16,Entraîner et évaluer des modèles (scikit-learn),SAVOIR_FAIRE,3,5
+37,1022,9,IA générative responsable,17,Cadre d'usage responsable de l'IA générative,SAVOIR,3,4
+38,1023,10,Encadrement de PFE,19,Référentiel d'encadrement et éthique de soutenance,SAVOIR,4,5
+39,1023,10,Encadrement de PFE,20,Suivre et évaluer un projet de fin d'études,SAVOIR_FAIRE,4,5
+40,1024,11,Gestion de projet agile,21,Principes Scrum et Kanban,SAVOIR,3,4
+41,1024,11,Gestion de projet agile,22,Animer sprints et rituels agiles,SAVOIR_FAIRE,3,4
+42,1025,12,Communication & anglais technique,23,Rédaction scientifique et technique en anglais,SAVOIR,3,4
+43,1025,12,Communication & anglais technique,24,Présenter un sujet technique en anglais,SAVOIR_FAIRE,3,4
+44,1026,10,Encadrement de PFE,20,Suivre et évaluer un projet de fin d'études,SAVOIR_FAIRE,3,4
+45,1026,11,Gestion de projet agile,22,Animer sprints et rituels agiles,SAVOIR_FAIRE,3,4
+46,1026,12,Communication & anglais technique,24,Présenter un sujet technique en anglais,SAVOIR_FAIRE,3,4
+47,1027,11,Gestion de projet agile,22,Animer sprints et rituels agiles,SAVOIR_FAIRE,3,3
+48,1028,12,Communication & anglais technique,24,Présenter un sujet technique en anglais,SAVOIR_FAIRE,3,4
+49,1029,2,Évaluation par compétences,4,Construire des grilles critériées (Moodle/LMS),SAVOIR_FAIRE,3,5
+50,1029,10,Encadrement de PFE,19,Référentiel d'encadrement et éthique de soutenance,SAVOIR,3,5
+51,1030,3,Classe inversée & numérique éducatif,6,Animer des séances synchrones interactives,SAVOIR_FAIRE,3,4
+52,1030,9,IA générative responsable,18,Intégrer des LLM dans les pratiques pédagogiques,SAVOIR_FAIRE,3,4

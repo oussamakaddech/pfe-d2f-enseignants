@@ -1,0 +1,44 @@
+@startuml
+!theme plain
+skinparam background white
+skinparam rectangle {
+  BackgroundColor #F5F5F5
+  BorderColor #333333
+}
+
+title Diagramme de cas d'utilisation — Sprint 4 : Analyse prédictive (D2F)
+
+left to right direction
+
+actor "CUP" as CUP
+actor "ADMIN" as ADMIN
+
+rectangle "Analyse prédictive D2F\n(esprit_D2F-predictive-analytics)" {
+  usecase "UC1\nConsulter le\ndashboard prédictif" as UC1
+  usecase "UC2\nDétecter les gaps\nde compétences" as UC2
+  usecase "UC3\nSimuler un scénario\n(what-if)" as UC3
+  usecase "UC4\nConsulter la\nrépartition des risques" as UC4
+  usecase "UC5\nConsulter la carte\nde chaleur (heatmap)" as UC5
+  usecase "UC6\nPrévoir l'impact\ndes formations" as UC6
+  usecase "UC7\nRecevoir les alertes\net recommandations" as UC7
+}
+
+CUP --> UC1
+CUP --> UC2
+CUP --> UC4
+CUP --> UC5
+CUP --> UC7
+
+ADMIN --> UC1
+ADMIN --> UC2
+ADMIN --> UC3
+ADMIN --> UC4
+ADMIN --> UC5
+ADMIN --> UC6
+ADMIN --> UC7
+
+UC1 .> UC2 : <<include>>
+UC3 .> UC6 : <<include>>
+UC7 .> UC4 : <<include>>
+
+@enduml

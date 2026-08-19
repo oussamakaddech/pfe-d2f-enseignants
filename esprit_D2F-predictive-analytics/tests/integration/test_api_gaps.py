@@ -31,7 +31,13 @@ def test_gaps_admin_ok_and_paginated(client):
     # Gaps filtres par scope : T001 (D1 Pédagogie) → 1 compétence corrélée
     assert body["meta"]["total"] == 1
     assert body["meta"]["page"] == 1
+    # Champs contractuels du serving ML obligatoires sur chaque réponse gaps.
     assert body["meta"]["model_mode"] == "HEURISTIC_FALLBACK"
+    assert "model_version" in body["meta"]
+    assert "fallback_reason" in body["meta"]
+    assert "dataset_version" in body["meta"]
+    assert "prediction_horizon" in body["meta"]
+    assert "synthetic_share_pct" in body["meta"]
     assert all(gap["severity"] in {"FAIBLE", "MOYENNE", "HAUTE", "CRITIQUE"} for gap in body["data"])
 
 

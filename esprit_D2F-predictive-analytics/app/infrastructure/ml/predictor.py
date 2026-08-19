@@ -1,19 +1,19 @@
-"""Port ML : charge le modele gap_predictor_temporal et UTILISE réellement ses prédictions.
+"""Port ML : charge le modele gap_predictor_temporal et utilise ses predictions.
 
-Mode actif : runtime check : si l'artefact est disponible ET que la metadata
-declare `data_sources.synthetic_share_pct <= ML_SYNTHETIC_TOLERANCE_PCT`,
-le modèle est utilisé (prédiction bornée puis agrégée en SkillGap).
-Sinon, on retourne None -> l'appelant bascule sur l'heuristique métier.
+Modes d'execution :
 
-Anti-fuite : `required_level` ne fait jamais partie des features (pour le
-serving, il est lu depuis la base APRES la prediction ML pour évaluer
-le gap courant, distinct de la prédiction future gap_next_3m).
+1. ``PRODUCTION_ML`` : toutes les validations passent (integrite, provenance
+   calculee depuis les lignes du dataset, features compatibles, registre approuve),
+   l'API expose les predictions du modele.
+2. ``DEMO_ML`` : le corpus est synthetique ou insuffisant, le modele est
+   disponible mais presente comme demonstration, jamais comme production.
+3. ``HEURISTIC_FALLBACK`` : echec d'integrite, de provenance, de schema ou de
+   disponibilite — le moteur heuristique explicable reste la source de verite.
 
-Anti train/serve skew : les feature_ranges du training sont persistes
-dans `temporal_training_metadata.json` et ré-appliquées telles quelles
-au serving (_normalize).
-
-Intégrité : l'artefact n'est chargé que si son sidecar SHA-256/HMAC matche.
+Anti-fuite : ``required_level`` et ``gap_next_3m`` ne sont jamais dans les features.
+Integrite : SHA-256 / HMAC verifies avant chargement (fail-closed).
+La part synthetique est TOUJOURS calculee depuis les lignes du dataset
+(colonne ``is_synthetic``), jamais lue depuis une variable arbitraire.
 """
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ import numpy as np
 from sqlalchemy import text
 
 from app.core.logging import get_logger
+from app.core.ml_status import DEMO_ML, HEURISTIC_FALLBACK, PRODUCTION_ML
 from app.domain.entities.risk_profile import RiskFactor, RiskProfile
 from app.domain.entities.skill_gap import SkillGap
 from app.domain.value_objects.enums import RiskLevel, Severity, Trend
@@ -33,15 +34,27 @@ from app.infrastructure.ml.artifact_integrity import (
     ArtifactIntegrityError,
     load_with_integrity_check,
 )
-
-# Tolerance maximale à la part synthétique du corpus avant d'activer le ML en prod.
-# Documenté par Phase 0 de l'audit : si le corpus est majoritairement synthétique,
-# la prediction ML ne vaut pas mieux que l'heuristique métier.
-ML_SYNTHETIC_TOLERANCE_PCT: float = 50.0
+from app.infrastructure.ml.dataset_provenance import (
+    DatasetProvenanceReport,
+    compute_provenance,
+)
+from app.infrastructure.ml.feature_schema import (
+    validate_feature_spec,
+    validate_feature_vector,
+)
+from app.infrastructure.ml.ml_observability import ml_observability
+from app.infrastructure.ml.model_registry import (
+    APPROVAL_APPROVED,
+    STATUS_ACTIVE,
+    ModelRegistry,
+    RegistryEntry,
+)
 
 logger = get_logger("ml_predictor")
 
-# Ordre canonique des features temporelles ; doit matcher temporal_training_metadata.json
+# Schema de features canonique — version 1.0
+FEATURE_SCHEMA_VERSION = "1.0"
+
 TEMPORAL_FEATURE_COLS = [
     "current_level_t3", "current_level_t2", "current_level_t1", "current_level_t",
     "lag_gap_t3_t2", "lag_gap_t2_t1", "lag_gap_t1_t", "rolling_tendance",
@@ -63,26 +76,32 @@ NIVEAU_INT = {
 
 
 class ArtifactModelPort:
-    """Charge l'artefact temporel entraine et fait l'inference reelle.
+    """Port ML avec routage dynamique entre les trois modes.
 
-    Ne depend que de SQLAlchemy (deja present) : aucun import joblib au
-    chargement du module pour eviter de casser les tests qui n'ont pas
-    l'artefact. Le chargement est lazy, cache en memoire.
+    Le chargement est lazy et fail-closed : aucun artefact n'est charge tant que
+    toutes les validations ne sont pas satisfaites. La decision de mode est
+    recalculee a chaque appel pour refuser l'activation si les controles
+    echouent (l'artefact peut etre altere entre deux appels).
     """
 
     def __init__(self, settings, database) -> None:
         self._settings = settings
         self._database = database
-        self._artifact_path = Path(settings.models_dir) / "gap_predictor_temporal.joblib"
-        self._metadata_path = Path(settings.models_dir) / "temporal_training_metadata.json"
-        self._risk_artifact_path = Path(settings.models_dir) / "risk_classifier.joblib"
-        self._risk_metadata_path = Path(settings.models_dir) / "risk_training_metadata.json"
-        self.relevance_artifact_path = Path(settings.models_dir) / "relevance_model.joblib"
-        self.relevance_metadata_path = Path(settings.models_dir) / "relevance_training_metadata.json"
-        # gap_predictor_temporal : désactivé volontairement (audit DSI, corpus 98% synthétique).
-        # Le modèle n'est PAS chargé ; _predict_gaps retourne None => fallback métier documenté.
+
+        models_dir = Path(settings.models_dir)
+        self._artifact_path = Path(getattr(settings, "ml_artifact_path", "gap_predictor_temporal.joblib"))
+        if not self._artifact_path.is_absolute():
+            self._artifact_path = models_dir / self._artifact_path
+        self._metadata_path = Path(getattr(settings, "ml_metadata_path", "temporal_training_metadata.json"))
+        if not self._metadata_path.is_absolute():
+            self._metadata_path = models_dir / self._metadata_path
+
+        self._risk_artifact_path = models_dir / "risk_classifier.joblib"
+        self._risk_metadata_path = models_dir / "risk_training_metadata.json"
+        self.relevance_artifact_path = models_dir / "relevance_model.joblib"
+        self.relevance_metadata_path = models_dir / "relevance_training_metadata.json"
+
         self._model: Any | None = None
-        self._gap_model_enabled: bool = False  # audit : gap predictor retiré (voir docstring module)
         self._metadata: dict[str, Any] | None = None
         self._risk_model: Any | None = None
         self._risk_metadata: dict[str, Any] | None = None
@@ -91,18 +110,199 @@ class ArtifactModelPort:
         self._load_attempted = False
         self._risk_load_attempted = False
         self._relevance_load_attempted = False
+
         # Kill-switch global (audit DSI 3.3) : ML_ENABLED=false -> AUCUN artefact
-        # chargé, fallback règles métier sur toute la surface d'appel.
         self._ml_enabled: bool = bool(getattr(settings, "ml_enabled", True))
+
+        # Registre d'artefacts
+        registry_path = Path(getattr(settings, "ml_registry_path", "model_registry.json"))
+        if not registry_path.is_absolute():
+            registry_path = models_dir / registry_path
+        self._registry = ModelRegistry(registry_path, models_dir)
+
+        # Provenance calculee depuis les lignes du corpus reel a l'entrainement.
+        self._provenance_report: DatasetProvenanceReport | None = None
+        self._load_provenance()
+
+        # Mode effectif : determine par les controles, jamais force par config.
+        self._mode: str = HEURISTIC_FALLBACK
+        self._fallback_reason: str | None = None
+
+    # ------------------------------------------------------------------
+    # Modes et controles
+    # ------------------------------------------------------------------
+    def _load_provenance(self) -> None:
+        """Calcule la provenance depuis le corpus d'entrainement reel.
+
+        Le pourcentage synthetique est calcule depuis les lignes du dataset
+        (colonne is_synthetic). Si le corpus est absent, provenance vide -> la
+        production est refuse.
+        """
+        base_dir = self._artifact_path.parent.parent / "clean"
+        candidates = [
+            base_dir / "training_corpus_provenanced.csv",
+            base_dir / "training_corpus_from_db.csv",
+            base_dir / "training_corpus.csv",
+        ]
+        for path in candidates:
+            if path.exists():
+                df = _read_csv_safe(path)
+                # La version du dataset est TOUJOURS lue depuis les lignes du
+                # corpus, jamais depuis une variable arbitraire.
+                csv_version = None
+                if df is not None and "dataset_version" in df.columns and not df["dataset_version"].isna().all():
+                    csv_version = str(df["dataset_version"].dropna().iloc[0])
+                self._provenance_report = compute_provenance(
+                    df,
+                    dataset_version=csv_version or "",
+                )
+                if self._provenance_report.errors:
+                    logger.warning(
+                        "provenance corpus incomplet",
+                        path=str(path),
+                        errors=self._provenance_report.errors,
+                    )
+                return
+        self._provenance_report = DatasetProvenanceReport()
+        self._provenance_report.errors.append("aucun corpus d'entrainement trouve")
+
+    def _decide_mode(self) -> str:
+        """Routage dynamique entre PRODUCTION_ML / DEMO_ML / HEURISTIC_FALLBACK.
+
+        Ne retourne PRODUCTION_ML que si TOUTES les conditions sont satisfaites :
+        - kill-switch actif ;
+        - artefact charge avec integrite validee ;
+        - metadata presente et features compatibles ;
+        - provenance calculee et dans la tolerance ;
+        - registre : entree ACTIVE et APPROVED, hash coherent ;
+        - metriques minimales satisfaites.
+        """
+        if not self._ml_enabled:
+            self._fallback_reason = "kill-switch global ML desactive"
+            return HEURISTIC_FALLBACK
+
+        if not self._load_attempted:
+            self._load()
+        if self._model is None:
+            self._fallback_reason = self._fallback_reason or "artefact absent ou integrite invalide"
+            return HEURISTIC_FALLBACK
+
+        meta = self._metadata or {}
+
+        # 1. Verification des features (spec + ordre)
+        expected = list(TEMPORAL_FEATURE_COLS)
+        meta_feats = meta.get("feature_cols") or expected
+        spec_result = validate_feature_spec(
+            meta_feats,
+            meta.get("feature_schema_version") or FEATURE_SCHEMA_VERSION,
+            expected,
+            FEATURE_SCHEMA_VERSION,
+        )
+        if not spec_result.valid:
+            self._fallback_reason = "; ".join(spec_result.errors)
+            return HEURISTIC_FALLBACK
+
+        # 2. Provenance calculee depuis les lignes
+        prov = self._provenance_report
+        if prov is None or prov.errors:
+            self._fallback_reason = (
+                "provenance indisponible (corpus absent ou colonnes manquantes)"
+            )
+            return HEURISTIC_FALLBACK
+        tolerance = float(getattr(self._settings, "ml_synthetic_tolerance_pct", 50.0))
+        require_real = bool(getattr(self._settings, "ml_require_real_data", True))
+        min_real = int(getattr(self._settings, "ml_min_real_rows", 50))
+        if prov.synthetic_share_pct > tolerance:
+            self._fallback_reason = (
+                f"corpus {prov.synthetic_share_pct:.1f}% synthetique "
+                f"(tolerance {tolerance:.0f}%)"
+            )
+            return HEURISTIC_FALLBACK
+        if require_real and prov.real_rows < min_real:
+            self._fallback_reason = (
+                f"donnees reelles insuffisantes : {prov.real_rows} lignes "
+                f"< minimum {min_real}"
+            )
+            return HEURISTIC_FALLBACK
+
+        # 3. Registre : entree ACTIVE et APPROVED
+        entry = self._registry.active()
+        if entry is None or entry.approval_status != APPROVAL_APPROVED:
+            # Modele disponible et valide mais non approuve pour la production.
+            self._fallback_reason = "modele non approuve pour la production (registre)"
+            return DEMO_ML
+        if meta.get("model_name") and entry.model_name != meta.get("model_name"):
+            self._fallback_reason = "modele non approuve pour la production (registre)"
+            return DEMO_ML
+
+        # 4. Metriques minimales
+        metrics = meta.get("metrics") or {}
+        min_r2 = float(getattr(self._settings, "ml_min_r2", 0.0))
+        max_rmse = float(getattr(self._settings, "ml_max_rmse", 2.0))
+        max_mae = float(getattr(self._settings, "ml_max_mae", 1.5))
+        test_r2 = metrics.get("test_r2")
+        test_rmse = metrics.get("test_rmse")
+        test_mae = metrics.get("test_mae")
+        if test_r2 is None or test_rmse is None or test_mae is None:
+            self._fallback_reason = "metriques du modele absentes dans la metadata"
+            return DEMO_ML
+        if test_r2 < min_r2:
+            self._fallback_reason = f"R2={test_r2:.3f} < minimum requis {min_r2:.3f}"
+            return DEMO_ML
+        if test_rmse > max_rmse:
+            self._fallback_reason = f"RMSE={test_rmse:.3f} > maximum autorise {max_rmse:.3f}"
+            return DEMO_ML
+        if test_mae > max_mae:
+            self._fallback_reason = f"MAE={test_mae:.3f} > maximum autorise {max_mae:.3f}"
+            return DEMO_ML
+
+        # 5. Volonte de l'operateur : demande PRODUCTION_ML ?
+        requested = str(getattr(self._settings, "ml_serving_mode", PRODUCTION_ML)).upper()
+        if requested != PRODUCTION_ML:
+            # L'operateur demande explicitement un autre mode.
+            if requested == DEMO_ML:
+                self._fallback_reason = "demande explicite du mode DEMO_ML par l'operateur"
+                return DEMO_ML
+            self._fallback_reason = f"mode demande non reconnu : {requested}"
+            return HEURISTIC_FALLBACK
+
+        self._fallback_reason = None
+        return PRODUCTION_ML
+
+    def _effective_mode(self) -> str:
+        """Retourne le mode courant en recalculant la decision (fail-live)."""
+        self._mode = self._decide_mode()
+        return self._mode
 
     # ------------------------------------------------------------------ API
     def predict_gaps(self, teacher_id: str) -> list[SkillGap] | None:
-        if not self.available():
+        """Retourne les gaps ML si le mode est PRODUCTION_ML ou DEMO_ML.
+
+        En heuristique, retourne None pour que l'appelant bascule sur la
+        methode metier. En DEMO_ML, le modele est utilise mais la reponse API
+        doit exposer DEMO_ML (jamais PRODUCTION_ML).
+        """
+        mode = self._effective_mode()
+        ml_observability.record_mode(mode)
+        if mode == HEURISTIC_FALLBACK:
+            ml_observability.record_fallback(self._fallback_reason)
             return None
         try:
-            return self._predict_gaps(teacher_id)
+            result = self._predict_gaps(teacher_id, mode=mode)
+            if result is None:
+                ml_observability.record_fallback(self._fallback_reason)
+            else:
+                entry = self._registry.active()
+                ml_observability.record_prediction(
+                    model_version=entry.model_version if entry else None,
+                    latency_ms=0.0,
+                    values=[g.gap_score for g in result],
+                )
+            return result
         except Exception as exc:  # pragma: no cover - log + fallback
             logger.error("predict_gaps ML echoue, fallback heuristique", error=str(exc))
+            self._fallback_reason = f"erreur d'inference : {exc}"
+            ml_observability.record_fallback(self._fallback_reason)
             return None
 
     def predict_risk(self, teacher_id: str) -> RiskProfile | None:
@@ -115,17 +315,26 @@ class ArtifactModelPort:
             return None
 
     def status(self) -> dict[str, Any]:
-        available = self.available()
+        mode = self._effective_mode()
         meta = self._metadata or {}
+        prov = self._provenance_report
+        entry = self._registry.active()
         return {
             "name": "gap_predictor_temporal",
-            "available": available,
+            "available": mode in (PRODUCTION_ML, DEMO_ML),
             "kill_switch": not self._ml_enabled,
-            "mode": "ML" if available else "HEURISTIC_FALLBACK",
+            "mode": mode,
+            "model_mode": mode,
+            "model_version": entry.model_version if entry else None,
+            "fallback_reason": self._fallback_reason,
             "version": meta.get("trained_at") or "unknown",
             "model_name": meta.get("model_name", "gradient_boosting"),
             "n_features": meta.get("n_features", len(TEMPORAL_FEATURE_COLS)),
+            "feature_schema_version": FEATURE_SCHEMA_VERSION,
             "drift_check": self._artifact_drift_check(self._metadata),
+            "provenance": prov.to_dict() if prov else {},
+            "registry_entry": entry.to_dict() if entry else None,
+            "prediction_horizon": "3m",
             "risk_model": self.risk_status(),
             "relevance_model": {
                 "name": "relevance_model",
@@ -137,33 +346,25 @@ class ArtifactModelPort:
 
     # -------------------------------------------------------- Drift (passif)
     def _artifact_drift_check(self, meta: dict[str, Any] | None) -> dict[str, Any]:
-        """Contrôle de dérive PASSIF basé sur les métadonnées d'entraînement.
-
-        Sans flux de données fraîches (la base analyse est actuellement
-        inatteignable), un contrôle statistique complet est impossible. Ce
-        check alerte sur les indicateurs documentés dans les métadonnées :
-        - part synthétique du corpus > tolérance -> le modèle est disqualifié ;
-        - âge du modèle > 90 jours -> recommandation de ré-entraînement ;
-        - absence de métadonnées -> artefact non traçable.
-        """
+        """Controle de derive PASSIF base sur les metadonnees d'entrainement."""
         if not meta:
-            return {"checked": True, "drift_detected": True, "reasons": ["metadata absente — artefact non traçable"]}
+            return {"checked": True, "drift_detected": True, "reasons": ["metadata absente — artefact non tracable"]}
         reasons: list[str] = []
         data_src = meta.get("data_sources") or {}
         synth_share = float(data_src.get("synthetic_share_pct", 0.0) or 0.0)
-        if synth_share > ML_SYNTHETIC_TOLERANCE_PCT:
+        if synth_share > float(getattr(self._settings, "ml_synthetic_tolerance_pct", 50.0)):
             reasons.append(
-                f"corpus {synth_share:.1f}% synthétique (tolérance {ML_SYNTHETIC_TOLERANCE_PCT:.0f}%) "
-                "— prédiction disqualifiée, fallback règle métier"
+                f"corpus {synth_share:.1f}% synthetique "
+                f"(tolerance {getattr(self._settings, 'ml_synthetic_tolerance_pct', 50.0):.0f}%)"
             )
         trained_at = meta.get("trained_at")
         if trained_at:
             try:
                 days = (datetime.now() - datetime.fromisoformat(trained_at)).days
                 if days > 90:
-                    reasons.append(f"modèle âgé de {days} jours — ré-entraînement requis")
+                    reasons.append(f"modele age de {days} jours — re-entrainement requis")
             except (TypeError, ValueError):
-                reasons.append("trained_at illisible — fraîcheur indéterminée")
+                reasons.append("trained_at illisible — fraicheur indeterminee")
         return {
             "checked": True,
             "drift_detected": bool(reasons),
@@ -172,50 +373,43 @@ class ArtifactModelPort:
 
     # ------------------------------------------------------------ Interne
     def available(self) -> bool:
-        if not self._ml_enabled:
-            return False
-        if not self._load_attempted:
-            self._load()
-        return self._model is not None
+        mode = self._effective_mode()
+        return mode in (PRODUCTION_ML, DEMO_ML)
 
     def _load(self) -> None:
-        """Charge le gap predictor temporel — DÉSACTIVÉ par audit (corpus 98% synthétique).
-
-        Conformément à la décision d'audit DSI (point 1.1), le gap predictor
-        n'est plus chargé en production. Pour le ré-activer après constitution
-        d'un historique temporel réel suffisant :
-            1. peupler competence.enseignant_competences avec snapshots datés
-               (actuellement ~105 lignes pour 36 enseignants — insuffisant),
-            2. ré-entraîner le modèle,
-            3. basculer `self._gap_model_enabled = True` dans __init__.
-        """
+        """Charge le gap predictor temporel avec verification d'integrite."""
         self._load_attempted = True
-        if not self._gap_model_enabled:
-            logger.info(
-                "gap predictor temporel DESACTIVE par audit — fallback métier automatique",
-                path=str(self._artifact_path),
-            )
-            return
         if not self._artifact_path.exists():
+            self._fallback_reason = f"artefact ML introuvable : {self._artifact_path}"
             logger.warning("artefact ML introuvable", path=str(self._artifact_path))
             return
         try:
-            # Intégrité d'abord — refuse de charger un artefact non signé.
+            # Integrite d'abord — refuse de charger un artefact non signe.
             self._model = load_with_integrity_check(self._artifact_path)
             if self._metadata_path.exists():
                 self._metadata = json.loads(self._metadata_path.read_text(encoding="utf-8"))
             else:
                 self._metadata = {}
+            # Verification des features du modele charge (spec + ordre)
+            n_features_model = int(getattr(self._model, "n_features_in_", 0))
+            if n_features_model and n_features_model != len(TEMPORAL_FEATURE_COLS):
+                self._fallback_reason = (
+                    f"modele avec {n_features_model} features != code {len(TEMPORAL_FEATURE_COLS)}"
+                )
+                self._model = None
+                return
             logger.info(
                 "modele ML charge",
                 path=str(self._artifact_path),
-                n_features=getattr(self._model, "n_features_in_", None),
+                n_features=n_features_model,
             )
         except ArtifactIntegrityError as exc:
             logger.error("artefact ML refuse pour integrite non validee", error=str(exc))
+            self._fallback_reason = f"integrite invalide : {exc}"
             self._model = None
         except Exception as exc:  # pragma: no cover
             logger.error("chargement modele ML impossible", error=str(exc))
+            self._fallback_reason = f"chargement impossible : {exc}"
             self._model = None
 
     # ------------------------------------------------------- Extraction features
@@ -323,30 +517,20 @@ class ArtifactModelPort:
         return NIVEAU_INT.get(str(val).upper(), 0)
 
     def _build_feature_matrix(self, bundle: dict[str, Any]) -> tuple[np.ndarray, list[int], np.ndarray]:
-        """Construit X (n_competences, n_features), les ids de competences et le target brut.
-
-        Retourne aussi le niveau requis brut par competence pour recalculer le gap.
-        """
+        """Construit X (n_competences, n_features), les ids de competences et le requis brut."""
         savs_by_comp = self._group_savoirs(bundle)
-
         if not savs_by_comp:
             return np.empty((0, len(TEMPORAL_FEATURE_COLS))), [], np.array([])
-
         comp_ids = sorted(savs_by_comp.keys())
         max_savoirs = max(len(v) for v in savs_by_comp.values())
         globals_f = self._global_features(bundle)
-
         rows = [
             self._competence_feature_row(savs_by_comp[cid], max_savoirs, len(comp_ids), globals_f)
             for cid in comp_ids
         ]
         X = np.array(rows, dtype=float)
-        # Target brut = niveau requis max par competence (pour recalcul du gap)
         required_by_comp = np.array([
-            max(
-                (int(s["required_level"]) if s["required_level"] else 0)
-                for s in savs_by_comp[cid]
-            ) or 3
+            max((int(s["required_level"]) if s["required_level"] else 0) for s in savs_by_comp[cid]) or 3
             for cid in comp_ids
         ], dtype=float)
         return X, comp_ids, required_by_comp
@@ -401,8 +585,6 @@ class ArtifactModelPort:
         """Une ligne de features par competence (historique temporel + globaux)."""
         ordered = sorted(savs, key=lambda r: r["date_acquisition"] or date.min)
         levels_hist = [float(self._safe_level_int(s["niveau"])) for s in ordered]
-        # 4 points temporels (t-3..t) ; a defaut de 4 points, propagation
-        # arriere de la valeur la plus ancienne.
         hist = levels_hist[-4:] if len(levels_hist) >= 4 else ([levels_hist[0]] * (4 - len(levels_hist)) + levels_hist)
         cur_t3, cur_t2, cur_t1, cur_t = hist
         lag32 = cur_t2 - cur_t3
@@ -442,39 +624,53 @@ class ArtifactModelPort:
         return xn
 
     # ------------------------------------------------------------ Predictions
-    def _predict_gaps(self, teacher_id: str) -> Optional[list[SkillGap]]:
-        """Calcule SkillGap par compétence. Deux chemins, jamais mélangés :
+    def _predict_gaps(self, teacher_id: str, mode: str | None = None) -> Optional[list[SkillGap]]:
+        """Prediction ML avec validation du vecteur de features avant inference.
 
-        1) ML actif : la metadata du modèle déclare une part synthétique
-           supportable (<= ML_SYNTHETIC_TOLERANCE_PCT) — on utilise la
-           prédiction du modèle comme estimation de `gap_next_3m`, puis on la
-           borne selon le niveau requis *courant* lu depuis la base.
-           L'incertitude ML est propagée via `trend=Trend.DECLARED_ML`.
-        2) Fallback : si le modèle est indisponible ou son corpus trop
-           synthétique, on retourne None au caller et l'heuristique métier
-           (GapEngine) reste la source de vérité.
+        - Valide le schema (spec + plages) a chaque appel ;
+        - En cas d'echec de validation, retourne None -> fallback heuristique ;
+        - Le mode (PRODUCTION_ML ou DEMO_ML) est injecte par l'appelant.
         """
         bundle = self._teacher_feature_bundle(teacher_id)
         X, comp_ids, required_by_comp = self._build_feature_matrix(bundle)
         if X.shape[0] == 0:
             return []
+        if self._model is None:
+            return None
         ranges = (self._metadata or {}).get("feature_ranges", {})
-        xn = self._normalize(X, ranges)
 
+        # Validation stricte du vecteur de features au serving.
+        validation = validate_feature_vector(X, TEMPORAL_FEATURE_COLS, ranges)
+        if not validation.valid:
+            logger.error(
+                "features invalides au serving — fallback",
+                errors=validation.errors,
+                teacher_id=teacher_id,
+            )
+            self._fallback_reason = "features invalides au serving : " + "; ".join(validation.errors)
+            return None
+
+        # Defense en profondeur : la metadata doit declarer une part synthetique
+        # dans la tolerance — meme en cas de contournement du routage principal.
         meta = self._metadata or {}
         data_sources = meta.get("data_sources") or {}
-        synth_share = float(data_sources.get("synthetic_share_pct", 100.0))
-        if synth_share > ML_SYNTHETIC_TOLERANCE_PCT:
+        declared_synth = float(data_sources.get("synthetic_share_pct", 100.0))
+        tolerance = float(getattr(self._settings, "ml_synthetic_tolerance_pct", 50.0))
+        if declared_synth > tolerance:
             logger.warning(
-                "gap_predictor ml désactivé : corpus trop synthétique",
-                synthetic_share_pct=synth_share,
-                tolerance=ML_SYNTHETIC_TOLERANCE_PCT,
+                "gap_predictor ml refuse au serving : proportion synthetique declaree trop elevee",
+                declared_synthetic_share_pct=declared_synth,
+                tolerance=tolerance,
             )
-            return None  # déclenche le fallback chez l'appelant
+            self._fallback_reason = (
+                f"metadata declare {declared_synth:.1f}% de données synthétiques "
+                f"(tolérance {tolerance:.0f}%)"
+            )
+            return None
 
+        xn = self._normalize(X, ranges)
         ml_pred = np.clip(self._model.predict(xn), 0.0, 5.0)
 
-        # Récupère code/nom des compétences
         with self._database.read_connection() as conn:
             names = conn.execute(
                 text("SELECT id, code, nom FROM competence.competences WHERE id = ANY(:ids)"),
@@ -488,12 +684,8 @@ class ArtifactModelPort:
         for i, cid in enumerate(comp_ids):
             current_t = float(X[i, 3])
             required = float(required_by_comp[i])
-            # Gap_structural = ce que l'heuristique affiche déjà (référence métier).
             structural_gap = max(0.0, required - current_t)
 
-            # Le modèle prédit gap_next_3m ; on l'aggrège avec le structural
-            # du jour pour donner une vue prospective, sans dépasser les
-            # bornes métier [0..5].
             predicted_future_gap = float(ml_pred[i])
             effective_gap = float(max(structural_gap, predicted_future_gap))
             score = min(1.0, effective_gap / 4.0)
@@ -506,11 +698,12 @@ class ArtifactModelPort:
             else:
                 sev = Severity.LOW
             code, nom = by_id.get(cid, (f"C{cid}", f"Competence {cid}"))
-            trend = Trend.DECLARED_ML
             if predicted_future_gap > structural_gap + 0.5:
                 trend = Trend.WORSENING
             elif predicted_future_gap < structural_gap - 0.5:
                 trend = Trend.IMPROVING
+            else:
+                trend = Trend.DECLARED_ML
             gaps.append(
                 SkillGap(
                     teacher_id=teacher_id,
@@ -528,6 +721,11 @@ class ArtifactModelPort:
         return gaps
 
     def _predict_risk(self, teacher_id: str) -> RiskProfile:
+        """Calcule le risque en priorité par le ML dédié si disponible, sinon règles métier.
+
+        Les règles métier de sécurité restent prioritaires : si >=3 gaps critiques,
+        le niveau est CRITICAL quel que soit le modèle statistique.
+        """
         # 1) Modele ML dedie si disponible
         if self.risk_available():
             try:
@@ -557,65 +755,25 @@ class ArtifactModelPort:
         )
         return RiskProfile(teacher_id=teacher_id, risk_score=round(risk_score, 2), risk_level=level, factors=factors)
 
-    # ------------------------------------------------------- Risk ML dédié
-    def risk_available(self) -> bool:
-        if not self._ml_enabled:
-            return False
-        if not self._risk_load_attempted:
-            self._load_risk_model()
-        return self._risk_model is not None
-
-    def _load_risk_model(self) -> None:
-        self._risk_load_attempted = True
-        if not self._risk_artifact_path.exists():
-            logger.info("artefact risk classifier absent, fallback regle", path=str(self._risk_artifact_path))
-            return
-        try:
-            self._risk_model = load_with_integrity_check(self._risk_artifact_path)
-            if self._risk_metadata_path.exists():
-                self._risk_metadata = json.loads(self._risk_metadata_path.read_text(encoding="utf-8"))
-            else:
-                self._risk_metadata = {}
-            logger.info(
-                "modele risque ML charge",
-                path=str(self._risk_artifact_path),
-                n_teachers=(self._risk_metadata or {}).get("n_teachers"),
-            )
-        except ArtifactIntegrityError as exc:
-            logger.error("risk classifier refuse pour integrite non validee", error=str(exc))
-            self._risk_model = None
-        except Exception as exc:  # pragma: no cover
-            logger.error("chargement modele risque impossible", error=str(exc))
-            self._risk_model = None
-
-    def risk_status(self) -> dict[str, Any]:
-        available = self.risk_available()
-        meta = self._risk_metadata or {}
-        f1_per_class = (meta.get("metrics") or {}).get("f1_per_class") or {}
-        return {
-            "name": "risk_classifier",
-            "available": available,
-            "mode": "ML" if available else "RULE_BASED",
-            "version": meta.get("trained_at") or "unknown",
-            "n_teachers_trained": meta.get("n_teachers"),
-            "macro_f1_cv": (meta.get("metrics") or {}).get("macro_f1"),
-            # Limite documentée : classe CRITICAL sous-représentée (1 exemple,
-            # F1=0.0). Un warning est exposé pour le dashboard / l'observabilité.
-            "warning_critical_class": (
-                "La classe CRITICAL du risk_classifier n'est PAS fiable "
-                "(1 seul échantillon d'entraînement, F1=0.0). "
-                "Une règle métier déterministe (>=3 gaps critiques) reste appliquée."
-                if available else None
-            ),
-            "f1_per_class": f1_per_class,
-        }
+    def _stagnation_months(self, bundle: dict[str, Any]) -> float:
+        savs = bundle.get("savoirs", [])
+        dates: list[date] = []
+        for s in savs:
+            d = s.get("date_acquisition")
+            if d is None:
+                continue
+            if hasattr(d, "date"):
+                d = d.date()
+            if isinstance(d, date):
+                dates.append(d)
+        if not dates:
+            return 18.0
+        return float((date.today() - max(dates)).days / 30.44)
 
     def _predict_risk_ml(self, teacher_id: str) -> RiskProfile:
         """Classifier dedie : RandomForest entraine sur risk_training_metadata."""
         bundle = self._teacher_feature_bundle(teacher_id)
-        gaps = self._predict_gaps(teacher_id)
-
-        # Features du classifier (doivent matcher RISK_FEATURES du pipeline)
+        gaps = self._predict_gaps(teacher_id) or []
         streak = self._stagnation_months(bundle)
         n_crit = sum(1 for g in gaps if g.severity == Severity.CRITICAL)
         n_high = sum(1 for g in gaps if g.severity == Severity.HIGH)
@@ -631,7 +789,6 @@ class ArtifactModelPort:
             streak, avg_eval, float(nb_eval),
             float(bundle["attendance"]), float(len(bundle["completed"])),
             float(nb_need), float(nb_need_ok),
-            # Features derivees
             n_crit / max(1.0, float(n_tot)),
             1.0 if n_crit > 0 else 0.0,
             1.0 if bundle["attendance"] < 0.5 else 0.0,
@@ -642,32 +799,20 @@ class ArtifactModelPort:
         classes = list(self._risk_model.classes_)
         midpoints = {"LOW": 10.0, "MEDIUM": 37.5, "HIGH": 62.5, "CRITICAL": 87.5}
 
-        # Score = esperance des midpoints + bonus si une classe severe a une
-        # proba significative + bonus business : presence de gaps CRITIQUES.
-        # Le lissage RF sur 36 echantillons sous-estime ; on le compense via
-        # le signal non-ambigu des gaps.
         expected = float(np.dot(proba, [midpoints.get(c, 40.0) for c in classes]))
         bonus = 0.0
         if "CRITICAL" in classes and proba[classes.index("CRITICAL")] >= 0.2:
             bonus += 15.0
         elif "HIGH" in classes and proba[classes.index("HIGH")] >= 0.4:
             bonus += 8.0
-        bonus += min(30.0, n_crit * 7.0)  # chaque gap critique pousse le score
+        bonus += min(30.0, n_crit * 7.0)
         risk_score = round(min(100.0, expected + bonus), 2)
 
-        # Mapping classe prédite du modèle
         pred_label = classes[int(np.argmax(proba))]
         level = {"LOW": RiskLevel.LOW, "MEDIUM": RiskLevel.MEDIUM,
                  "HIGH": RiskLevel.HIGH, "CRITICAL": RiskLevel.CRITICAL}.get(pred_label, RiskLevel.MEDIUM)
 
-        # RÈGLE MÉTIER DE SÉCURITÉ (documentée — cf. docs/THRESHOLDS_AND_RISK_POLICY.md) :
-        # le RandomForest a été entraîné sur 36 échantillons dont 1 seul CRITICAL
-        # (F1=0.0 sur cette classe, cf. risk_training_metadata.json). La classe
-        # CRITICAL n'est donc pas fiable statistiquement. En compensation, une
-        # règle déterministe indépendante du ML : ≥3 gaps critiques observés
-        # => niveau CRITICAL, quelque soit la prédiction ML.
-        # Cette règle est EXPOSÉE dans les facteurs (feature="critical_gaps_rule")
-        # afin qu'elle reste traçable et non silencieuse.
+        # REGLE METIER DE SECURITE : >=3 gaps critiques => CRITICAL, quel que soit le ML.
         if n_crit >= 3 and level in {RiskLevel.LOW, RiskLevel.MEDIUM, RiskLevel.HIGH}:
             level = RiskLevel.CRITICAL
             risk_score = max(risk_score, 75.0)
@@ -688,7 +833,6 @@ class ArtifactModelPort:
             for lab, p in zip(classes, proba)
             if float(p) > 0.05
         ]
-        # Facteurs lisibles par les humains (en plus des probas)
         if "CRITICAL" in classes:
             crit_idx = list(classes).index("CRITICAL")
             factors.append(RiskFactor(feature="n_critical_gaps", value=float(n_crit),
@@ -702,21 +846,45 @@ class ArtifactModelPort:
             factors=tuple(factors),
         )
 
-    @staticmethod
-    def _stagnation_months(bundle: dict[str, Any]) -> float:
-        savs = bundle.get("savoirs", [])
-        dates: list[date] = []
-        for s in savs:
-            d = s.get("date_acquisition")
-            if d is None:
-                continue
-            if hasattr(d, "date"):
-                d = d.date()
-            if isinstance(d, date):
-                dates.append(d)
-        if not dates:
-            return 18.0
-        return float((date.today() - max(dates)).days / 30.44)
+    # ------------------------------------------------------- Risk ML dedie
+    def risk_available(self) -> bool:
+        if not self._ml_enabled:
+            return False
+        if not self._risk_load_attempted:
+            self._load_risk_model()
+        return self._risk_model is not None
+
+    def _load_risk_model(self) -> None:
+        self._risk_load_attempted = True
+        if not self._risk_artifact_path.exists():
+            logger.info("artefact risk classifier absent, fallback regle", path=str(self._risk_artifact_path))
+            return
+        try:
+            self._risk_model = load_with_integrity_check(self._risk_artifact_path)
+            if self._risk_metadata_path.exists():
+                self._risk_metadata = json.loads(self._risk_metadata_path.read_text(encoding="utf-8"))
+            else:
+                self._risk_metadata = {}
+        except ArtifactIntegrityError as exc:
+            logger.error("risk classifier refuse pour integrite non validee", error=str(exc))
+            self._risk_model = None
+        except Exception as exc:  # pragma: no cover
+            logger.error("chargement modele risque impossible", error=str(exc))
+            self._risk_model = None
+
+    def risk_status(self) -> dict[str, Any]:
+        available = self.risk_available()
+        meta = self._risk_metadata or {}
+        f1_per_class = (meta.get("metrics") or {}).get("f1_per_class") or {}
+        return {
+            "name": "risk_classifier",
+            "available": available,
+            "mode": "ML" if available else "RULE_BASED",
+            "version": meta.get("trained_at") or "unknown",
+            "n_teachers_trained": meta.get("n_teachers"),
+            "macro_f1_cv": (meta.get("metrics") or {}).get("macro_f1"),
+            "f1_per_class": f1_per_class,
+        }
 
     # ------------------------------------------------------- Pertinence recommandations
     def relevance_available(self) -> bool:
@@ -736,7 +904,6 @@ class ArtifactModelPort:
             self._relevance_model = load_with_integrity_check(self.relevance_artifact_path)
             if self.relevance_metadata_path.exists():
                 self._relevance_metadata = json.loads(self.relevance_metadata_path.read_text(encoding="utf-8"))
-            logger.info("modele pertinence ML charge", path=str(self.relevance_artifact_path))
         except ArtifactIntegrityError as exc:
             logger.error("relevance model refuse pour integrite non validee", error=str(exc))
             self._relevance_model = None
@@ -750,12 +917,7 @@ class ArtifactModelPort:
         formation_id: int,
         content_match_heuristic: float,
     ) -> float | None:
-        """Retourne le score de pertinence ML [0..1] ou None si artefact absent.
-
-        Features reconstruites a la volee pour le couple (teacher, formation).
-        En cas d'echec, retourne None pour que ranking_service conserve son
-        score heuristique (rank_score classique).
-        """
+        """Retourne le score de pertinence ML [0..1] ou None si artefact absent."""
         if not self.relevance_available():
             return None
         try:
@@ -808,7 +970,6 @@ class ArtifactModelPort:
         avg_teacher = float(np.mean(t_levels)) if t_levels else 0.0
         diff = avg_t - avg_teacher
 
-        # Jours depuis derniere acquisition
         with self._database.read_connection() as conn:
             last = conn.execute(
                 text("""
@@ -836,6 +997,16 @@ class ArtifactModelPort:
                 d = d.date()
             f_age = float((date.today() - d).days)
         return f_age
+
+
+def _read_csv_safe(path: Path):
+    """Charge un CSV en DataFrame sans faire planter le port ML."""
+    import pandas as pd
+    try:
+        return pd.read_csv(path)
+    except Exception as exc:
+        logger.error("lecture CSV impossible", path=str(path), error=str(exc))
+        return None
 
 
 def _safe_eval(row) -> tuple[float, int]:

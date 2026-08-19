@@ -1,0 +1,10 @@
+Model,Task,Dataset,Rows,Features,RMSE,MAE,R2,F1 macro,Precision@K,Baseline,Improvement %,Status
+baseline_persistence,regression_gap,v1.0.0,107,29,2.546119570586752,2.1174603174603175,-4.378330894648829,N/A,N/A,N/A,N/A,KEEP_AS_BASELINE
+gradient_boosting,regression_gap,v1.0.0,107,29,0.9882948532111454,0.6387745023620676,0.18966798927442208,N/A,N/A,N/A,61.18,ACTIVE
+xgboost,regression_gap,v1.0.0,107,29,1.0376624133264478,0.6309148621937585,0.10669019767622767,N/A,N/A,N/A,59.25,KEEP_AS_CHALLENGER
+mlp,regression_gap,v1.0.0,107,29,1.20523103634786,1.1337039942891198,-0.20512068698250152,N/A,N/A,N/A,52.66,KEEP_AS_CHALLENGER
+legacy_gap_predictor,regression_gap,v1.0.0,107,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,NOT_AVAILABLE
+risk_heuristic_six_factors,risk_scoring,v1.0.0,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,KEEP_AS_BASELINE
+risk_random_forest,risk_scoring,v1.0.0,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,NOT_AVAILABLE
+ranking_heuristic_ranking,recommendation_ranking,v1.0.0,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,KEEP_AS_BASELINE
+ranking_relevance_model,recommendation_ranking,v1.0.0,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,NOT_AVAILABLE

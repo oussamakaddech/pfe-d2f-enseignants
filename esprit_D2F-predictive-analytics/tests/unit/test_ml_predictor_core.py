@@ -40,6 +40,7 @@ BUNDLE = {
 class _FakeModel:
     def __init__(self, predictions):
         self._predictions = np.asarray(predictions, dtype=float)
+        self.n_features_in_ = len(TEMPORAL_FEATURE_COLS)
 
     def predict(self, X):
         return self._predictions[: X.shape[0]]
@@ -102,6 +103,17 @@ def _port(**overrides) -> ArtifactModelPort:
     settings.seuil_gap_critique = 0.75
     settings.seuil_gap_haute = 0.5
     settings.seuil_gap_moyenne = 0.25
+    settings.ml_artifact_path = "gap_predictor_temporal.joblib"
+    settings.ml_metadata_path = "temporal_training_metadata.json"
+    settings.ml_registry_path = "model_registry.json"
+    settings.ml_synthetic_tolerance_pct = 50.0
+    settings.ml_require_real_data = True
+    settings.ml_min_real_rows = 50
+    settings.ml_min_r2 = 0.0
+    settings.ml_max_rmse = 2.0
+    settings.ml_max_mae = 1.5
+    settings.ml_serving_mode = "PRODUCTION_ML"
+    settings.ml_enabled = True
     port = ArtifactModelPort(settings, database=MagicMock())
     for key, value in overrides.items():
         setattr(port, key, value)

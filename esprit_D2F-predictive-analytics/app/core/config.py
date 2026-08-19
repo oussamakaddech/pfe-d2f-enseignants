@@ -52,10 +52,34 @@ class Settings(BaseSettings):
     )
 
     models_dir: str = "ml/artifacts"
-    gap_model_artifact: str = "gap_predictor.joblib"
+    gap_model_artifact: str = "gap_predictor_temporal.joblib"
     # Kill-switch global du ML (audit DSI 3.3) : à false, AUCUN artefact ML
     # n'est chargé ni utilisé — l'API retombe sur les règles métier déterministes.
     ml_enabled: bool = True
+
+    # ── Modes d'exécution ML ──────────────────────────────────────────────
+    # Mode demandé par l'opérateur. Ce n'est qu'une REQUÊTE : le serveur
+    # applique les contrôles et peut refuser l'activation (fallback).
+    ml_serving_mode: str = "PRODUCTION_ML"
+
+    # Politique de provenance : seuil maximal de lignes synthétiques
+    # dans le corpus d'entraînement. Calculé depuis les lignes du dataset,
+    # jamais depuis une variable arbitraire.
+    ml_synthetic_tolerance_pct: float = 50.0
+    ml_require_real_data: bool = True
+    ml_min_real_rows: int = 50
+
+    # Seuils de promotion du modèle (validation des métriques).
+    ml_min_r2: float = 0.0
+    ml_max_rmse: float = 2.0
+    ml_max_mae: float = 1.5
+    ml_max_train_test_gap_pct: float = 50.0
+
+    # Chemin de l'artefact (chemin relatif au models_dir ou chemin absolu).
+    ml_artifact_path: str = "gap_predictor_temporal.joblib"
+    ml_metadata_path: str = "temporal_training_metadata.json"
+    ml_registry_path: str = "model_registry.json"
+    ml_feature_schema_path: str = "feature_schema.json"
 
     analysis_cache_ttl_hours: int = 24
 

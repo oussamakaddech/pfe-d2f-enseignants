@@ -1,0 +1,13 @@
+id,code,nom,domaine_id,prerequis,description
+1,COMP01,Scénarisation pédagogique active,DOM01,4,"Concevoir des séquences et activités pédagogiques actives"
+2,COMP02,Évaluation par compétences,DOM01,4,"Évaluer les acquis par compétences (grilles critériées, LMS)"
+3,COMP03,Classe inversée & numérique éducatif,DOM01,3,"Animer une classe inversée et intégrer le numérique"
+4,COMP04,CI/CD & intégration continue,DOM02,3,"Automatiser l'intégration et le déploiement continus"
+5,COMP05,Qualité & revue de code,DOM02,4,"Assurer la qualité logicielle et mener des revues de code"
+6,COMP06,Sécurité applicative,DOM02,3,"Sécuriser les applications (OWASP, durcissement)"
+7,COMP07,Data engineering & pipelines,DOM03,4,"Concevoir des pipelines et entrepôts de données fiables"
+8,COMP08,Machine learning appliqué,DOM03,4,"Appliquer des modèles ML à des cas d'usage concrets"
+9,COMP09,IA générative responsable,DOM03,3,"Utiliser l'IA générative de façon responsable et pédagogique"
+10,COMP10,Encadrement de PFE,DOM04,4,"Encadrer des projets de fin d'études et des stages"
+11,COMP11,Gestion de projet agile,DOM04,3,"Gérer des projets en mode agile (Scrum/Kanban)"
+12,COMP12,Communication & anglais technique,DOM04,3,"Communiquer, rédiger et présenter en anglais technique"

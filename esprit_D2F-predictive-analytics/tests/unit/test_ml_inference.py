@@ -15,24 +15,38 @@ MODELS_DIR = Path(__file__).parent.parent.parent / "data" / "models"
     not (MODELS_DIR / "gap_predictor_temporal.joblib").exists(),
     reason="artefact ML absent",
 )
-def test_predictor_temporal_model_disabled_by_audit():
-    """Audit DSI : le gap predictor temporel est DÉSACTIVÉ en production
-    (_gap_model_enabled=False, corpus 98% synthétique). available() doit
-    rester False malgré la présence de l'artefact, et le status doit
-    l'exposer via drift_check + kill_switch."""
+def test_predictor_temporal_model_active_in_production():
+    """Le gap predictor temporel est ACTIF en production (PRODUCTION_ML)
+    après validation de l'intégrité, de la provenance (0% synthétique),
+    des features compatibles et des métriques minimales."""
     settings = MagicMock()
     settings.models_dir = str(MODELS_DIR)
     settings.gap_model_artifact = "gap_predictor_temporal.joblib"
+    settings.ml_artifact_path = "gap_predictor_temporal.joblib"
+    settings.ml_metadata_path = "temporal_training_metadata.json"
+    settings.ml_registry_path = "model_registry.json"
+    settings.ml_synthetic_tolerance_pct = 50.0
+    settings.ml_require_real_data = True
+    settings.ml_min_real_rows = 50
+    settings.ml_min_r2 = 0.0
+    settings.ml_max_rmse = 2.0
+    settings.ml_max_mae = 1.5
+    settings.ml_serving_mode = "PRODUCTION_ML"
+    settings.ml_enabled = True
+    settings.seuil_gap_critique = 0.75
+    settings.seuil_gap_haute = 0.5
+    settings.seuil_gap_moyenne = 0.25
 
     port = ArtifactModelPort(settings, database=MagicMock())
-    assert port.available() is False
-    assert port._gap_model_enabled is False
-
     status = port.status()
-    assert status["mode"] == "HEURISTIC_FALLBACK"
-    assert status["available"] is False
+    assert status["model_mode"] == "PRODUCTION_ML"
+    assert status["available"] is True
     assert "drift_check" in status
     assert status["kill_switch"] is False
+    assert status["provenance"]["synthetic_share_pct"] == 0.0
+    assert status["provenance"]["dataset_version"] == "v1.0.0"
+    assert status["model_version"] == "v1.0.0"
+    assert status["prediction_horizon"] == "3m"
 
 
 def test_kill_switch_disables_all_ml():

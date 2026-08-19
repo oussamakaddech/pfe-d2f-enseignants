@@ -1,6 +1,7 @@
 {
-  "model_name": "gradient_boosting",
-  "trained_at": "2026-08-06T03:44:59.524764",
+  "model_name": "gap_predictor_temporal",
+  "model_version": "v1.0.0",
+  "trained_at": "2026-08-19T04:59:51.787114",
   "n_features": 29,
   "feature_cols": [
     "current_level_t3",
@@ -33,18 +34,19 @@
     "months_since_last_training",
     "engagement_score"
   ],
+  "feature_schema_version": "1.0",
   "n_samples": 107,
   "n_train": 86,
   "n_test": 21,
   "data_sources": {
-    "synthetic": 0,
-    "real_db": 107,
-    "combined": 107,
-    "real_weight_applied": 1,
-    "synthetic_included": false,
+    "total_rows": 107,
+    "real_rows": 107,
+    "synthetic_rows": 0,
+    "synthetic_share_pct": 0.0,
     "real_share_pct": 100.0,
-    "synthetic_share_pct": 0.0
+    "dataset_version": "v1.0.0"
   },
+  "dataset_version": "v1.0.0",
   "hyperparameters": {
     "random_state": 42,
     "cv": {
@@ -54,7 +56,7 @@
       "random_state": 42
     },
     "split": {
-      "type": "temporal_ordered_no_shuffle",
+      "type": "temporal_strict_cutoff_2026-07-22",
       "train_frac": 0.8,
       "test_frac": 0.2
     },
@@ -127,57 +129,56 @@
   },
   "cv_folds": 5,
   "split": {
-    "type": "temporal_strict_cutoff_2026-07-22",
-    "note": "corpus dote de date_t (generate_corpus_from_db.py) : split temporel strict au quantile 80% des dates d'acquisition ; fallback sequentiel si date_t absente"
+    "type": "temporal_strict_cutoff_2026-07-22"
   },
   "candidate_cv_scores": {
-    "gradient_boosting": 0.8689,
-    "xgboost": 0.8689
+    "gradient_boosting": 0.8022,
+    "xgboost": 0.8217
   },
   "metrics": {
-    "test_r2": 0.6582,
-    "test_rmse": 0.7426,
-    "test_mae": 0.4692,
-    "baseline_rmse": 2.852,
-    "baseline_mae": 2.4484,
-    "lift_rmse": 2.1094,
+    "test_r2": 0.1897,
+    "test_rmse": 0.9883,
+    "test_mae": 0.6388,
+    "baseline_rmse": 2.5461,
+    "baseline_mae": 2.1175,
+    "lift_rmse": 1.5578,
     "lift_rmse_ci95": [
-      1.3237,
-      2.8088
+      0.6885,
+      2.3891
     ],
     "lift_ci95_method": "bootstrap 1000 replicas on test sample (n=21), percentile 2.5-97.5",
     "lift_significant_95": true
   },
   "feature_importances": {
-    "current_level_t3": 0.023997,
-    "current_level_t2": 0.020226,
-    "current_level_t1": 0.003937,
-    "current_level_t": 0.283852,
-    "lag_gap_t3_t2": 0.026901,
-    "lag_gap_t2_t1": 0.02142,
-    "lag_gap_t1_t": 0.056388,
-    "rolling_tendance": 0.117792,
-    "days_since_last_training": 0.024212,
-    "training_frequency_per_month": 0.012093,
-    "is_long_absent": 0.004227,
+    "current_level_t3": 0.021428,
+    "current_level_t2": 0.011555,
+    "current_level_t1": 0.009985,
+    "current_level_t": 0.265475,
+    "lag_gap_t3_t2": 0.0,
+    "lag_gap_t2_t1": 0.020594,
+    "lag_gap_t1_t": 0.060858,
+    "rolling_tendance": 0.164156,
+    "days_since_last_training": 0.026719,
+    "training_frequency_per_month": 0.013482,
+    "is_long_absent": 0.005739,
     "is_stagnant": 0.0,
-    "avg_level": 0.063936,
-    "min_level": 0.063305,
-    "max_level": 0.044724,
+    "avg_level": 0.074605,
+    "min_level": 0.065283,
+    "max_level": 0.042504,
     "nb_level_5": 0.0,
-    "nb_level_1": 0.032622,
-    "nb_savoirs": 0.028291,
-    "nb_competences": 0.05365,
-    "competency_coverage_rate": 0.047064,
-    "nb_formations_completed": 0.006837,
+    "nb_level_1": 0.029284,
+    "nb_savoirs": 0.037282,
+    "nb_competences": 0.045803,
+    "competency_coverage_rate": 0.035735,
+    "nb_formations_completed": 0.003736,
     "nb_formations_in_progress": 0.0,
-    "taux_assiduite": 0.006283,
+    "taux_assiduite": 0.005907,
     "nb_besoins_exprimes": 0.0,
     "nb_besoins_approuves": 0.0,
-    "avg_eval_score": 0.002942,
-    "nb_evaluations": 0.004077,
-    "months_since_last_training": 0.023901,
-    "engagement_score": 0.027323
+    "avg_eval_score": 0.004317,
+    "nb_evaluations": 0.003264,
+    "months_since_last_training": 0.020026,
+    "engagement_score": 0.032263
   },
   "feature_ranges": {
     "current_level_t3": {
@@ -198,10 +199,10 @@
     },
     "lag_gap_t3_t2": {
       "min": -2.0,
-      "max": 2.0
+      "max": 1.0
     },
     "lag_gap_t2_t1": {
-      "min": -2.0,
+      "min": -1.0,
       "max": 2.0
     },
     "lag_gap_t1_t": {
@@ -250,14 +251,14 @@
     },
     "nb_savoirs": {
       "min": 2.0,
-      "max": 6.0
+      "max": 7.0
     },
     "nb_competences": {
       "min": 2.0,
       "max": 6.0
     },
     "competency_coverage_rate": {
-      "min": 0.3333333333333333,
+      "min": 0.2857142857142857,
       "max": 1.0
     },
     "nb_formations_completed": {
@@ -298,5 +299,6 @@
     }
   },
   "decision": "accept",
-  "notes": "Corrigé par audit DSI : corpus exclusivement réel (training_corpus_from_db.csv), split temporel strict sur date_t (quantile 80%), KFold pour régression, seed 42. Le synthétique random.randint n'est pas utilisé (EXCLUDE_SYNTHETIC=True). Lift documenté avec IC 95% par bootstrap (1000 réplicas) sur l'échantillon de test."
+  "notes": "Pipeline reproductible : dataset provenanc\u00c3\u00a9, split temporel strict, seed 42, anti-fuite (required_level/gap_next_3m exclus), normalisation captur\u00c3\u00a9e sur train, sidecar SHA-256.",
+  "algorithm": "gradient_boosting"
 }

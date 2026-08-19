@@ -32,17 +32,40 @@ def list_gaps(
     gaps = container.analysis_repository.list_gaps_by_teacher(teacher_id)
     model_mode = None
     model_version = None
+    fallback_reason = None
+    dataset_version = None
+    prediction_horizon = None
+    synthetic_share_pct = None
+    provenance = {}
+    predictions: list[dict] = []
     try:
         status = container.model_port.status()
-        model_mode = status.get("mode")
-        model_version = status.get("version")
+        model_mode = status.get("model_mode") or status.get("mode")
+        model_version = status.get("model_version") or status.get("version")
+        fallback_reason = status.get("fallback_reason")
+        prediction_horizon = status.get("prediction_horizon")
+        provenance = status.get("provenance") or {}
+        if isinstance(provenance, dict):
+            dataset_version = provenance.get("dataset_version")
+            synthetic_share_pct = provenance.get("synthetic_share_pct")
     except Exception:
         pass
     if severity:
         gaps = [gap for gap in gaps if gap.severity.api_value() == severity.upper()]
     page_result = paginate([GapOut(**gap.to_dict()) for gap in gaps], page, size)
+    if model_mode in ("PRODUCTION_ML", "DEMO_ML"):
+        predictions = [gap.to_dict() for gap in gaps]
     return ok_page(
         page_result.data,
         page_result.meta,
-        {"model_mode": model_mode, "model_version": model_version},
+        {
+            "model_mode": model_mode,
+            "model_version": model_version,
+            "fallback_reason": fallback_reason,
+            "dataset_version": dataset_version,
+            "prediction_horizon": prediction_horizon,
+            "synthetic_share_pct": synthetic_share_pct,
+            "provenance": provenance,
+            "predictions": predictions,
+        },
     )
