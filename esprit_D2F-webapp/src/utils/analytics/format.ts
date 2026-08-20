@@ -27,14 +27,6 @@ export function riskLabel(level: NiveauRisque): string {
   return RISK_LEVEL_LABELS[level] ?? level;
 }
 
-/** Mappe un score 0..1 vers un niveau de risque (aligné sur les seuils backend). */
-export function scoreToRiskLevel(score: number): NiveauRisque {
-  if (score >= 0.75) return 'CRITIQUE';
-  if (score >= 0.5) return 'ELEVE';
-  if (score >= 0.25) return 'MODERE';
-  return 'FAIBLE';
-}
-
 /* ── Statut décisionnel unifié (Stable / Stagnation / Régression / Critique) ──
  * Reconciliation de la tendance et du niveau de risque en un seul état lisible,
  * réutilisé partout (table, heatmap, alertes, actions). */

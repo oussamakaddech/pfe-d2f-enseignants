@@ -1,0 +1,1332 @@
+{
+  "mode_deployed": "PRODUCTION_ML",
+  "endpoints": {
+    "alerts": {
+      "data": [
+        {
+          "id": 900,
+          "alert_type": "GAP_CRITIQUE",
+          "target_type": "INDIVIDUEL",
+          "teacher_id": "ENS022",
+          "department_id": null,
+          "competence_id": 3,
+          "severity": "CRITICAL",
+          "title": "Gap critique â€” QualitÃ© & Tests",
+          "message": "Niveau actuel 0/5, requis 5/5 sur la compÃ©tence Â« QualitÃ© & Tests Â». Score prioritÃ© : 1.0.",
+          "details": {
+            "gap_score": 1.0,
+            "niveau_actuel": 0,
+            "niveau_requis": 5,
+            "priorite_score": 1.0,
+            "score_priorite": 1.0
+          },
+          "status": "RESOLUE",
+          "created_at": "2026-07-31T20:00:41.884440+00:00"
+        },
+        {
+          "id": 899,
+          "alert_type": "GAP_CRITIQUE",
+          "target_type": "INDIVIDUEL",
+          "teacher_id": "ENS022",
+          "department_id": null,
+          "competence_id": 3,
+          "severity": "CRITICAL",
+          "title": "Gap critique â€” QualitÃ© & Tests",
+          "message": "Niveau actuel 1/5, requis 5/5 sur la compÃ©tence Â« QualitÃ© & Tests Â». Score prioritÃ© : 0.87.",
+          "details": {
+            "gap_score": 0.87,
+            "niveau_actuel": 1,
+            "niveau_requis": 5,
+            "priorite_score": 0.87,
+            "score_priorite": 1.0
+          },
+          "status": "NOUVELLE",
+          "created_at": "2026-07-31T20:00:41.884435+00:00"
+        },
+        {
+          "id": 898,
+          "alert_type": "GAP_CRITIQUE",
+          "target_type": "INDIVIDUEL",
+          "teacher_id": "ENS015",
+          "department_id": null,
+          "competence_id": 3,
+          "severity": "CRITICAL",
+          "title": "Gap critique â€” QualitÃ© & Tests",
+          "message": "Niveau actuel 0/5, requis 5/5 sur la compÃ©tence Â« QualitÃ© & Tests Â». Score prioritÃ© : 1.0.",
+          "details": {
+            "gap_score": 1.0,
+            "niveau_actuel": 0,
+            "niveau_requis": 5,
+            "priorite_score": 1.0,
+            "score_priorite": 1.0
+          },
+          "status": "NOUVELLE",
+          "created_at": "2026-07-31T16:36:11.293712+00:00"
+        },
+        {
+          "id": 897,
+          "alert_type": "GAP_CRITIQUE",
+          "target_type": "INDIVIDUEL",
+          "teacher_id": "ENS015",
+          "department_id": null,
+          "competence_id": 3,
+          "severity": "CRITICAL",
+          "title": "Gap critique â€” QualitÃ© & Tests",
+          "message": "Niveau actuel 1/5, requis 5/5 sur la compÃ©tence Â« QualitÃ© & Tests Â». Score prioritÃ© : 1.0.",
+          "details": {
+            "gap_score": 1.0,
+            "niveau_actuel": 1,
+            "niveau_requis": 5,
+            "priorite_score": 1.0,
+            "score_priorite": 1.0
+          },
+          "status": "NOUVELLE",
+          "created_at": "2026-07-31T16:36:11.293707+00:00"
+        },
+        {
+          "id": 896,
+          "alert_type": "GAP_CRITIQUE",
+          "target_type": "INDIVIDUEL",
+          "teacher_id": "ENS029",
+          "department_id": null,
+          "competence_id": 8,
+          "severity": "CRITICAL",
+          "title": "Gap critique â€” Conception PÃ©dagogique",
+          "message": "Niveau actuel 0/5, requis 5/5 sur la compÃ©tence Â« Conception PÃ©dagogique Â». Score prioritÃ© : 1.0.",
+          "details": {
+            "gap_score": 1.0,
+            "niveau_actuel": 0,
+            "niveau_requis": 5,
+            "priorite_score": 1.0,
+            "score_priorite": 1.0
+          },
+          "status": "NOUVELLE",
+          "created_at": "2026-07-31T16:34:35.311500+00:00"
+        }
+      ],
+      "meta": {
+        "page": 1,
+        "size": 5,
+        "total": 728,
+        "pages": 146,
+        "total_matching": 728,
+        "severity_open": {
+          "CRITICAL": 182,
+          "WARNING": 353,
+          "INFO": 0
+        }
+      },
+      "errors": []
+    },
+    "dashboard_global": {},
+    "dashboard_global_latest": {
+      "data": {
+        "generated_at": "2026-08-06",
+        "nb_regression": 0,
+        "nb_stagnation": 0,
+        "alertes_recentes": [
+          {
+            "id": 899,
+            "titre": "Gap critique â€” QualitÃ© & Tests",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T20:00:41.884435+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS022"
+          },
+          {
+            "id": 898,
+            "titre": "Gap critique â€” QualitÃ© & Tests",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T16:36:11.293712+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS015"
+          },
+          {
+            "id": 897,
+            "titre": "Gap critique â€” QualitÃ© & Tests",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T16:36:11.293707+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS015"
+          },
+          {
+            "id": 896,
+            "titre": "Gap critique â€” Conception PÃ©dagogique",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T16:34:35.311500+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS029"
+          },
+          {
+            "id": 895,
+            "titre": "Gap critique â€” Conception PÃ©dagogique",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T16:34:35.311499+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS029"
+          },
+          {
+            "id": 894,
+            "titre": "Gap critique â€” Machine Learning",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T16:34:35.311498+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS029"
+          },
+          {
+            "id": 893,
+            "titre": "Gap critique â€” Machine Learning",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T16:34:35.311496+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS029"
+          },
+          {
+            "id": 892,
+            "titre": "Gap critique â€” SÃ©curitÃ© Applicative",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T16:34:35.311495+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS029"
+          },
+          {
+            "id": 891,
+            "titre": "Gap critique â€” SÃ©curitÃ© Applicative",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T16:34:35.311494+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS029"
+          },
+          {
+            "id": 890,
+            "titre": "Gap critique â€” SÃ©curitÃ© Applicative",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T16:34:35.311492+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS029"
+          },
+          {
+            "id": 889,
+            "titre": "Gap critique â€” QualitÃ© & Tests",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T16:34:35.311491+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS029"
+          },
+          {
+            "id": 888,
+            "titre": "Gap critique â€” QualitÃ© & Tests",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T16:34:35.311490+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS029"
+          },
+          {
+            "id": 887,
+            "titre": "Gap critique â€” DÃ©veloppement Frontend",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T16:34:35.311485+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS029"
+          },
+          {
+            "id": 886,
+            "titre": "Gap critique â€” Conception PÃ©dagogique",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T16:33:18.878975+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS003"
+          },
+          {
+            "id": 885,
+            "titre": "Gap critique â€” Conception PÃ©dagogique",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T16:33:18.878974+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS003"
+          },
+          {
+            "id": 884,
+            "titre": "Gap critique â€” Machine Learning",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T16:33:18.878972+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS003"
+          },
+          {
+            "id": 883,
+            "titre": "Gap critique â€” Machine Learning",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T16:33:18.878971+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS003"
+          },
+          {
+            "id": 882,
+            "titre": "Gap critique â€” DÃ©veloppement Frontend",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T16:33:18.878965+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS003"
+          },
+          {
+            "id": 881,
+            "titre": "Gap critique â€” SÃ©curitÃ© Applicative",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T16:32:53.214966+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS005"
+          },
+          {
+            "id": 880,
+            "titre": "Gap critique â€” SÃ©curitÃ© Applicative",
+            "severite": "CRITICAL",
+            "created_at": "2026-07-31T16:32:53.214964+00:00",
+            "type_alerte": "GAP_CRITIQUE",
+            "enseignant_id": "ENS005"
+          }
+        ],
+        "model_performance": {
+          "last_retrained": null,
+          "gap_model_accuracy": 1.0,
+          "last_retrain_status": null,
+          "recommendation_avg_proba": 0.634
+        },
+        "nb_gaps_critiques": 102,
+        "nb_profils_risque": 17,
+        "score_risque_moyen": 0.31,
+        "distribution_risques": [
+          {
+            "count": 5,
+            "niveau": "FAIBLE"
+          },
+          {
+            "count": 12,
+            "niveau": "MODERE"
+          }
+        ],
+        "enseignants_a_risque": [],
+        "nb_alertes_nouvelles": 533,
+        "competences_en_declin": [],
+        "nb_enseignants_suivis": 34,
+        "competences_en_demande": [
+          {
+            "nb_gaps": 19,
+            "domaine_nom": null,
+            "nb_critiques": 11,
+            "competence_id": 3,
+            "score_demande": 0.26,
+            "competence_nom": "QualitÃ© & Tests"
+          },
+          {
+            "nb_gaps": 19,
+            "domaine_nom": null,
+            "nb_critiques": 10,
+            "competence_id": 4,
+            "score_demande": 0.2556,
+            "competence_nom": "SÃ©curitÃ© Applicative"
+          },
+          {
+            "nb_gaps": 17,
+            "domaine_nom": null,
+            "nb_critiques": 11,
+            "competence_id": 6,
+            "score_demande": 0.2378,
+            "competence_nom": "Machine Learning"
+          },
+          {
+            "nb_gaps": 17,
+            "domaine_nom": null,
+            "nb_critiques": 10,
+            "competence_id": 2,
+            "score_demande": 0.2333,
+            "competence_nom": "DÃ©veloppement Frontend"
+          },
+          {
+            "nb_gaps": 16,
+            "domaine_nom": null,
+            "nb_critiques": 6,
+            "competence_id": 1,
+            "score_demande": 0.2044,
+            "competence_nom": "DÃ©veloppement Backend"
+          },
+          {
+            "nb_gaps": 14,
+            "domaine_nom": null,
+            "nb_critiques": 3,
+            "competence_id": 5,
+            "score_demande": 0.1689,
+            "competence_nom": "Infrastructure & Cloud"
+          },
+          {
+            "nb_gaps": 8,
+            "domaine_nom": null,
+            "nb_critiques": 6,
+            "competence_id": 8,
+            "score_demande": 0.1156,
+            "competence_nom": "Conception PÃ©dagogique"
+          },
+          {
+            "nb_gaps": 7,
+            "domaine_nom": null,
+            "nb_critiques": 3,
+            "competence_id": 11,
+            "score_demande": 0.0911,
+            "competence_nom": "PÃ©dagogie NumÃ©rique"
+          },
+          {
+            "nb_gaps": 5,
+            "domaine_nom": null,
+            "nb_critiques": 5,
+            "competence_id": 13,
+            "score_demande": 0.0778,
+            "competence_nom": "Structures et BÃ©ton ArmÃ©"
+          },
+          {
+            "nb_gaps": 5,
+            "domaine_nom": null,
+            "nb_critiques": 4,
+            "competence_id": 15,
+            "score_demande": 0.0733,
+            "competence_nom": "Topographie et GÃ©otechnique"
+          }
+        ],
+        "department_gap_heatmap": [
+          {
+            "avg_gap": 1.0,
+            "departement": "DEPT_GC",
+            "competence_id": 13,
+            "competence_nom": "Structures et BÃ©ton ArmÃ©",
+            "enseignants_count": 5
+          },
+          {
+            "avg_gap": 1.0,
+            "departement": "DEPT_GC",
+            "competence_id": 14,
+            "competence_nom": "MatÃ©riaux de Construction",
+            "enseignants_count": 4
+          },
+          {
+            "avg_gap": 1.0,
+            "departement": "non_affecte",
+            "competence_id": 8,
+            "competence_nom": "Conception PÃ©dagogique",
+            "enseignants_count": 5
+          },
+          {
+            "avg_gap": 0.938,
+            "departement": "DEPT_RT",
+            "competence_id": 10,
+            "competence_nom": "SystÃ¨mes & Cloud",
+            "enseignants_count": 4
+          },
+          {
+            "avg_gap": 0.917,
+            "departement": "DEPT_TECH_WEB",
+            "competence_id": 2,
+            "competence_nom": "DÃ©veloppement Frontend",
+            "enseignants_count": 3
+          },
+          {
+            "avg_gap": 0.9,
+            "departement": "DEPT_GC",
+            "competence_id": 15,
+            "competence_nom": "Topographie et GÃ©otechnique",
+            "enseignants_count": 5
+          },
+          {
+            "avg_gap": 0.893,
+            "departement": "non_affecte",
+            "competence_id": 4,
+            "competence_nom": "SÃ©curitÃ© Applicative",
+            "enseignants_count": 7
+          },
+          {
+            "avg_gap": 0.875,
+            "departement": "DEPT_WEB",
+            "competence_id": 6,
+            "competence_nom": "Machine Learning",
+            "enseignants_count": 2
+          },
+          {
+            "avg_gap": 0.863,
+            "departement": "non_affecte",
+            "competence_id": 1,
+            "competence_nom": "DÃ©veloppement Backend",
+            "enseignants_count": 8
+          },
+          {
+            "avg_gap": 0.863,
+            "departement": "non_affecte",
+            "competence_id": 6,
+            "competence_nom": "Machine Learning",
+            "enseignants_count": 8
+          },
+          {
+            "avg_gap": 0.833,
+            "departement": "DEPT_RT",
+            "competence_id": 4,
+            "competence_nom": "SÃ©curitÃ© Applicative",
+            "enseignants_count": 6
+          },
+          {
+            "avg_gap": 0.831,
+            "departement": "non_affecte",
+            "competence_id": 2,
+            "competence_nom": "DÃ©veloppement Frontend",
+            "enseignants_count": 8
+          },
+          {
+            "avg_gap": 0.812,
+            "departement": "DEPT_INF2",
+            "competence_id": 8,
+            "competence_nom": "Conception PÃ©dagogique",
+            "enseignants_count": 4
+          },
+          {
+            "avg_gap": 0.8,
+            "departement": "non_affecte",
+            "competence_id": 3,
+            "competence_nom": "QualitÃ© & Tests",
+            "enseignants_count": 8
+          },
+          {
+            "avg_gap": 0.75,
+            "departement": "DEPT_WEB",
+            "competence_id": 3,
+            "competence_nom": "QualitÃ© & Tests",
+            "enseignants_count": 4
+          },
+          {
+            "avg_gap": 0.75,
+            "departement": "DEPT_IA",
+            "competence_id": 6,
+            "competence_nom": "Machine Learning",
+            "enseignants_count": 8
+          },
+          {
+            "avg_gap": 0.75,
+            "departement": "DEPT_GL",
+            "competence_id": 2,
+            "competence_nom": "DÃ©veloppement Frontend",
+            "enseignants_count": 2
+          },
+          {
+            "avg_gap": 0.75,
+            "departement": "DEPT_TECH_WEB",
+            "competence_id": 3,
+            "competence_nom": "QualitÃ© & Tests",
+            "enseignants_count": 2
+          },
+          {
+            "avg_gap": 0.75,
+            "departement": "DEPT_IA",
+            "competence_id": 9,
+            "competence_nom": "IngÃ©nierie des DonnÃ©es",
+            "enseignants_count": 2
+          },
+          {
+            "avg_gap": 0.667,
+            "departement": "DEPT_INFO",
+            "competence_id": 6,
+            "competence_nom": "Machine Learning",
+            "enseignants_count": 3
+          },
+          {
+            "avg_gap": 0.667,
+            "departement": "DEPT_TECH_WEB",
+            "competence_id": 8,
+            "competence_nom": "Conception PÃ©dagogique",
+            "enseignants_count": 3
+          },
+          {
+            "avg_gap": 0.625,
+            "departement": "DEPT_WEB",
+            "competence_id": 4,
+            "competence_nom": "SÃ©curitÃ© Applicative",
+            "enseignants_count": 4
+          },
+          {
+            "avg_gap": 0.625,
+            "departement": "DEPT_GL",
+            "competence_id": 3,
+            "competence_nom": "QualitÃ© & Tests",
+            "enseignants_count": 2
+          },
+          {
+            "avg_gap": 0.607,
+            "departement": "DEPT_INFO",
+            "competence_id": 3,
+            "competence_nom": "QualitÃ© & Tests",
+            "enseignants_count": 7
+          },
+          {
+            "avg_gap": 0.583,
+            "departement": "DEPT_GL",
+            "competence_id": 1,
+            "competence_nom": "DÃ©veloppement Backend",
+            "enseignants_count": 3
+          },
+          {
+            "avg_gap": 0.571,
+            "departement": "non_affecte",
+            "competence_id": 5,
+            "competence_nom": "Infrastructure & Cloud",
+            "enseignants_count": 7
+          },
+          {
+            "avg_gap": 0.562,
+            "departement": "DEPT_INFO",
+            "competence_id": 2,
+            "competence_nom": "DÃ©veloppement Frontend",
+            "enseignants_count": 4
+          },
+          {
+            "avg_gap": 0.562,
+            "departement": "DEPT_WEB",
+            "competence_id": 1,
+            "competence_nom": "DÃ©veloppement Backend",
+            "enseignants_count": 4
+          },
+          {
+            "avg_gap": 0.562,
+            "departement": "DEPT_INF2",
+            "competence_id": 11,
+            "competence_nom": "PÃ©dagogie NumÃ©rique",
+            "enseignants_count": 4
+          },
+          {
+            "avg_gap": 0.55,
+            "departement": "DEPT_INFO",
+            "competence_id": 1,
+            "competence_nom": "DÃ©veloppement Backend",
+            "enseignants_count": 5
+          },
+          {
+            "avg_gap": 0.542,
+            "departement": "DEPT_INFO",
+            "competence_id": 4,
+            "competence_nom": "SÃ©curitÃ© Applicative",
+            "enseignants_count": 6
+          },
+          {
+            "avg_gap": 0.5,
+            "departement": "DEPT_WEB",
+            "competence_id": 2,
+            "competence_nom": "DÃ©veloppement Frontend",
+            "enseignants_count": 4
+          },
+          {
+            "avg_gap": 0.4,
+            "departement": "non_affecte",
+            "competence_id": 7,
+            "competence_nom": "Deep Learning",
+            "enseignants_count": 5
+          },
+          {
+            "avg_gap": 0.393,
+            "departement": "DEPT_RT",
+            "competence_id": 5,
+            "competence_nom": "Infrastructure & Cloud",
+            "enseignants_count": 7
+          },
+          {
+            "avg_gap": 0.25,
+            "departement": "DEPT_WEB",
+            "competence_id": 5,
+            "competence_nom": "Infrastructure & Cloud",
+            "enseignants_count": 2
+          },
+          {
+            "avg_gap": 0.167,
+            "departement": "DEPT_TECH_WEB",
+            "competence_id": 11,
+            "competence_nom": "PÃ©dagogie NumÃ©rique",
+            "enseignants_count": 3
+          },
+          {
+            "avg_gap": 0.0,
+            "departement": "DEPT_INFO",
+            "competence_id": 5,
+            "competence_nom": "Infrastructure & Cloud",
+            "enseignants_count": 2
+          },
+          {
+            "avg_gap": 0.0,
+            "departement": "DEPT_IA",
+            "competence_id": 7,
+            "competence_nom": "Deep Learning",
+            "enseignants_count": 2
+          }
+        ],
+        "monthly_risk_evolution": [
+          {
+            "high": 6,
+            "month": "2026-02",
+            "critical": 0,
+            "total_enseignants": 33,
+            "score_risque_moyen": 0.3862
+          },
+          {
+            "high": 5,
+            "month": "2026-03",
+            "critical": 1,
+            "total_enseignants": 33,
+            "score_risque_moyen": 0.3946
+          },
+          {
+            "high": 4,
+            "month": "2026-04",
+            "critical": 2,
+            "total_enseignants": 33,
+            "score_risque_moyen": 0.3841
+          },
+          {
+            "high": 5,
+            "month": "2026-05",
+            "critical": 1,
+            "total_enseignants": 33,
+            "score_risque_moyen": 0.3933
+          },
+          {
+            "high": 5,
+            "month": "2026-06",
+            "critical": 2,
+            "total_enseignants": 33,
+            "score_risque_moyen": 0.3937
+          },
+          {
+            "high": 2,
+            "month": "2026-07",
+            "critical": 1,
+            "total_enseignants": 581,
+            "score_risque_moyen": 0.2544
+          },
+          {
+            "high": 0,
+            "month": "2026-08",
+            "critical": 0,
+            "total_enseignants": 1359,
+            "score_risque_moyen": 0.6264
+          }
+        ],
+        "taux_couverture_global": 1.2,
+        "training_effectiveness": [
+          {
+            "formation_id": 44,
+            "avg_level_gain": 5.0,
+            "nb_recommandee": 1,
+            "completion_rate": 0.0,
+            "formation_titre": "ML Production et MLOps"
+          },
+          {
+            "formation_id": 46,
+            "avg_level_gain": 4.0,
+            "nb_recommandee": 1,
+            "completion_rate": 0.0,
+            "formation_titre": "Next.js et SSR"
+          },
+          {
+            "formation_id": 10,
+            "avg_level_gain": 3.0,
+            "nb_recommandee": 1,
+            "completion_rate": 0.0,
+            "formation_titre": "TDD et Tests Unitaires avec JUnit 5"
+          },
+          {
+            "formation_id": 11,
+            "avg_level_gain": 3.0,
+            "nb_recommandee": 1,
+            "completion_rate": 0.0,
+            "formation_titre": "Tests d'Integration et End-to-End"
+          },
+          {
+            "formation_id": 15,
+            "avg_level_gain": 3.0,
+            "nb_recommandee": 1,
+            "completion_rate": 0.0,
+            "formation_titre": "Microservices avec Spring Cloud"
+          },
+          {
+            "formation_id": 24,
+            "avg_level_gain": 3.0,
+            "nb_recommandee": 2,
+            "completion_rate": 0.0,
+            "formation_titre": "Formation React Avance"
+          },
+          {
+            "formation_id": 25,
+            "avg_level_gain": 3.0,
+            "nb_recommandee": 1,
+            "completion_rate": 0.0,
+            "formation_titre": "TypeScript et Architecture Frontend"
+          },
+          {
+            "formation_id": 30,
+            "avg_level_gain": 3.0,
+            "nb_recommandee": 1,
+            "completion_rate": 0.0,
+            "formation_titre": "AWS Fundamentals"
+          },
+          {
+            "formation_id": 31,
+            "avg_level_gain": 3.0,
+            "nb_recommandee": 1,
+            "completion_rate": 0.0,
+            "formation_titre": "Docker et Kubernetes"
+          },
+          {
+            "formation_id": 41,
+            "avg_level_gain": 3.0,
+            "nb_recommandee": 1,
+            "completion_rate": 0.0,
+            "formation_titre": "CNN et Vision par Ordinateur"
+          },
+          {
+            "formation_id": 42,
+            "avg_level_gain": 3.0,
+            "nb_recommandee": 1,
+            "completion_rate": 0.0,
+            "formation_titre": "NLP et Transformers"
+          },
+          {
+            "formation_id": 43,
+            "avg_level_gain": 3.0,
+            "nb_recommandee": 1,
+            "completion_rate": 0.0,
+            "formation_titre": "Scikit-learn et Modeles Avances"
+          },
+          {
+            "formation_id": 45,
+            "avg_level_gain": 3.0,
+            "nb_recommandee": 1,
+            "completion_rate": 0.0,
+            "formation_titre": "API REST et GraphQL"
+          },
+          {
+            "formation_id": 47,
+            "avg_level_gain": 3.0,
+            "nb_recommandee": 1,
+            "completion_rate": 0.0,
+            "formation_titre": "Hibernate Avance et Performance"
+          },
+          {
+            "formation_id": 6,
+            "avg_level_gain": 2.0,
+            "nb_recommandee": 1,
+            "completion_rate": 0.0,
+            "formation_titre": "Design Patterns Avances"
+          },
+          {
+            "formation_id": 12,
+            "avg_level_gain": 2.0,
+            "nb_recommandee": 1,
+            "completion_rate": 0.0,
+            "formation_titre": "CI/CD et Qualite Logicielle"
+          },
+          {
+            "formation_id": 32,
+            "avg_level_gain": 2.0,
+            "nb_recommandee": 1,
+            "completion_rate": 0.0,
+            "formation_titre": "Architecture Cloud-Native"
+          },
+          {
+            "formation_id": 40,
+            "avg_level_gain": 2.0,
+            "nb_recommandee": 1,
+            "completion_rate": 0.0,
+            "formation_titre": "Introduction au Deep Learning"
+          },
+          {
+            "formation_id": 3,
+            "avg_level_gain": 1.06,
+            "nb_recommandee": 34,
+            "completion_rate": 0.333,
+            "formation_titre": "Introduction au Machine Learning avec Python"
+          },
+          {
+            "formation_id": 2,
+            "avg_level_gain": 1.0,
+            "nb_recommandee": 327,
+            "completion_rate": 1.0,
+            "formation_titre": "SÃ©curitÃ© Web et OWASP Top 10"
+          }
+        ],
+        "alertes_critiques_ouvertes": 36,
+        "top_formations_recommandees": [
+          {
+            "score_moyen": 0.402,
+            "departements": [
+              "DEPT_GC",
+              "DEPT_GL",
+              "DEPT_IA",
+              "DEPT_INF2",
+              "DEPT_INFO",
+              "DEPT_RT",
+              "DEPT_WEB"
+            ],
+            "formation_id": 2,
+            "impact_estime": 0.805,
+            "formation_titre": "SÃ©curitÃ© Web et OWASP Top 10",
+            "enseignants_cibles": 16,
+            "nb_recommandations": 28,
+            "proba_reussite_moy": 0.657,
+            "competences_couvertes": [
+              "QualitÃ© & Tests",
+              "SÃ©curitÃ© Applicative"
+            ]
+          },
+          {
+            "score_moyen": 0.368,
+            "departements": [
+              "DEPT_GC",
+              "DEPT_GL",
+              "DEPT_IA",
+              "DEPT_INF2",
+              "DEPT_INFO",
+              "DEPT_RT",
+              "DEPT_WEB"
+            ],
+            "formation_id": 4,
+            "impact_estime": 0.819,
+            "formation_titre": "React & TypeScript pour l'enseignement",
+            "enseignants_cibles": 18,
+            "nb_recommandations": 24,
+            "proba_reussite_moy": 0.63,
+            "competences_couvertes": [
+              "DÃ©veloppement Frontend"
+            ]
+          },
+          {
+            "score_moyen": 0.359,
+            "departements": [
+              "DEPT_GC",
+              "DEPT_GL",
+              "DEPT_IA",
+              "DEPT_INF2",
+              "DEPT_INFO",
+              "DEPT_RT",
+              "DEPT_WEB"
+            ],
+            "formation_id": 6,
+            "impact_estime": 0.875,
+            "formation_titre": "IngÃ©nierie PÃ©dagogique et Conception de Cours",
+            "enseignants_cibles": 17,
+            "nb_recommandations": 20,
+            "proba_reussite_moy": 0.656,
+            "competences_couvertes": [
+              "Conception PÃ©dagogique"
+            ]
+          },
+          {
+            "score_moyen": 0.412,
+            "departements": [
+              "DEPT_GC",
+              "DEPT_GL",
+              "DEPT_IA",
+              "DEPT_INFO"
+            ],
+            "formation_id": 3,
+            "impact_estime": 0.65,
+            "formation_titre": "Introduction au Machine Learning avec Python",
+            "enseignants_cibles": 14,
+            "nb_recommandations": 19,
+            "proba_reussite_moy": 0.605,
+            "competences_couvertes": [
+              "Deep Learning",
+              "Machine Learning"
+            ]
+          },
+          {
+            "score_moyen": 0.351,
+            "departements": [
+              "DEPT_GL",
+              "DEPT_INFO",
+              "DEPT_RT"
+            ],
+            "formation_id": 5,
+            "impact_estime": 0.643,
+            "formation_titre": "Docker, Kubernetes & CI/CD",
+            "enseignants_cibles": 12,
+            "nb_recommandations": 12,
+            "proba_reussite_moy": 0.724,
+            "competences_couvertes": [
+              "Infrastructure & Cloud"
+            ]
+          },
+          {
+            "score_moyen": 0.426,
+            "departements": [
+              "DEPT_GL",
+              "DEPT_IA",
+              "DEPT_INF2",
+              "DEPT_INFO"
+            ],
+            "formation_id": 1,
+            "impact_estime": 0.75,
+            "formation_titre": "Atelier Spring Boot 3 & JPA AvancÃ©",
+            "enseignants_cibles": 9,
+            "nb_recommandations": 9,
+            "proba_reussite_moy": 0.611,
+            "competences_couvertes": [
+              "DÃ©veloppement Backend"
+            ]
+          },
+          {
+            "score_moyen": 0.637,
+            "departements": [
+              "DEPT_GC"
+            ],
+            "formation_id": 11,
+            "impact_estime": 0.938,
+            "formation_titre": "BIM & ModÃ©lisation Structure 3D",
+            "enseignants_cibles": 4,
+            "nb_recommandations": 6,
+            "proba_reussite_moy": 0.5,
+            "competences_couvertes": [
+              "Structures et BÃ©ton ArmÃ©",
+              "Topographie et GÃ©otechnique"
+            ]
+          },
+          {
+            "score_moyen": 0.608,
+            "departements": [
+              "DEPT_IA"
+            ],
+            "formation_id": 7,
+            "impact_estime": 0.5,
+            "formation_titre": "Atelier Data Engineering : Pandas & Airflow",
+            "enseignants_cibles": 2,
+            "nb_recommandations": 2,
+            "proba_reussite_moy": 0.5,
+            "competences_couvertes": [
+              "IngÃ©nierie des DonnÃ©es"
+            ]
+          },
+          {
+            "score_moyen": 0.492,
+            "departements": [
+              "DEPT_IA"
+            ],
+            "formation_id": 8,
+            "impact_estime": 0.5,
+            "formation_titre": "Power BI & Dataviz pour l'enseignement",
+            "enseignants_cibles": 2,
+            "nb_recommandations": 2,
+            "proba_reussite_moy": 0.5,
+            "competences_couvertes": [
+              "IngÃ©nierie des DonnÃ©es"
+            ]
+          }
+        ],
+        "taux_couverture_departements": [
+          {
+            "nb_evalues": 40,
+            "departement": "DEPT_GC",
+            "taux_couverture": 0.0
+          },
+          {
+            "nb_evalues": 16,
+            "departement": "DEPT_GL",
+            "taux_couverture": 0.0
+          },
+          {
+            "nb_evalues": 40,
+            "departement": "DEPT_IA",
+            "taux_couverture": 0.0
+          },
+          {
+            "nb_evalues": 48,
+            "departement": "DEPT_INFO",
+            "taux_couverture": 4.2
+          },
+          {
+            "nb_evalues": 72,
+            "departement": "DEPT_RT",
+            "taux_couverture": 2.8
+          },
+          {
+            "nb_evalues": 32,
+            "departement": "DEPT_WEB",
+            "taux_couverture": 0.0
+          },
+          {
+            "nb_evalues": 8,
+            "departement": "GL",
+            "taux_couverture": 0.0
+          },
+          {
+            "nb_evalues": 8,
+            "departement": "INFO",
+            "taux_couverture": 0.0
+          },
+          {
+            "nb_evalues": 16,
+            "departement": "RT",
+            "taux_couverture": 0.0
+          },
+          {
+            "nb_evalues": 8,
+            "departement": "SUP",
+            "taux_couverture": 0.0
+          },
+          {
+            "nb_evalues": 8,
+            "departement": "WEB",
+            "taux_couverture": 0.0
+          },
+          {
+            "nb_evalues": 24,
+            "departement": "non_affecte",
+            "taux_couverture": 0.0
+          }
+        ],
+        "besoins_critiques_non_satisfaits": 78,
+        "snapshot_date": "2026-08-06"
+      },
+      "meta": {
+        "scope": "GLOBAL",
+        "scope_id": null
+      },
+      "errors": []
+    },
+    "gaps_ENS001": {
+      "data": [
+        {
+          "competence_id": 4,
+          "competence_code": "RES.SEC",
+          "competence_nom": "SÃ©curitÃ© Applicative",
+          "current_level": 0.0,
+          "target_level": 5.0,
+          "gap_score": 1.0,
+          "severity": "CRITIQUE",
+          "trend": "STABLE",
+          "as_of": "2026-08-19"
+        },
+        {
+          "competence_id": 10,
+          "competence_code": "SYS.CLOUD",
+          "competence_nom": "SystÃ¨mes & Cloud",
+          "current_level": 0.0,
+          "target_level": 5.0,
+          "gap_score": 1.0,
+          "severity": "CRITIQUE",
+          "trend": "STABLE",
+          "as_of": "2026-08-19"
+        },
+        {
+          "competence_id": 5,
+          "competence_code": "RES.INFRA",
+          "competence_nom": "Infrastructure & Cloud",
+          "current_level": 0.0,
+          "target_level": 3.0,
+          "gap_score": 0.75,
+          "severity": "CRITIQUE",
+          "trend": "STABLE",
+          "as_of": "2026-08-19"
+        }
+      ],
+      "meta": {
+        "page": 1,
+        "size": 100,
+        "total": 3,
+        "pages": 1,
+        "model_mode": "PRODUCTION_ML",
+        "model_version": "v1.0.0",
+        "fallback_reason": null,
+        "dataset_version": "v1.0.0",
+        "prediction_horizon": "3m",
+        "synthetic_share_pct": 0.0,
+        "provenance": {
+          "total_rows": 107,
+          "real_rows": 107,
+          "synthetic_rows": 0,
+          "synthetic_share_pct": 0.0,
+          "real_share_pct": 100.0,
+          "dataset_version": "v1.0.0",
+          "min_date": "2016-03-01",
+          "max_date": "2026-07-22",
+          "target_mean": 2.4330218068535823,
+          "target_distribution": {
+            "0.0": 7,
+            "0.3333333333333335": 1,
+            "0.6666666666666665": 1,
+            "0.666666666666667": 2,
+            "1.0": 4,
+            "1.3333333333333333": 1,
+            "1.3333333333333337": 12,
+            "1.6666666666666663": 8,
+            "2.0": 13,
+            "2.333333333333333": 5,
+            "2.6666666666666665": 5,
+            "3.0": 11,
+            "3.333333333333333": 13,
+            "4.0": 24
+          },
+          "missing_values": {},
+          "duplicates": 0,
+          "teachers_distribution": {
+            "ENS042": 6,
+            "ENS015": 5,
+            "ENS016": 4,
+            "ENS007": 4,
+            "ENS019": 4,
+            "ENS014": 4,
+            "ENS021": 4,
+            "ENS017": 4,
+            "ENS023": 4,
+            "ENS010": 3,
+            "ENS024": 3,
+            "ENS027": 3,
+            "ENS006": 3,
+            "ENS009": 3,
+            "ENS037": 3,
+            "ENS035": 3,
+            "ENS025": 3,
+            "ENS026": 3,
+            "ENS008": 3,
+            "ENS013": 3,
+            "ENS022": 3,
+            "ENS_T02": 2,
+            "ENS_T03": 2,
+            "ENS041": 2,
+            "ENS040": 2,
+            "ENS039": 2,
+            "ENS_GC1": 2,
+            "ENS038": 2,
+            "ENS001": 2,
+            "ENS020": 2,
+            "ENS036": 2,
+            "FORM001": 2,
+            "ENS012": 2,
+            "ENS011": 2,
+            "ENS004": 1,
+            "ENS003": 1,
+            "ENS005": 1,
+            "ENS_T01": 1,
+            "ENS002": 1,
+            "ENS018": 1
+          },
+          "competencies_distribution": {
+            "1": 30,
+            "3": 22,
+            "4": 15,
+            "2": 13,
+            "6": 12,
+            "8": 5,
+            "9": 3,
+            "10": 3,
+            "11": 2,
+            "15": 1,
+            "13": 1
+          },
+          "dataset_hash": "8e39bb44c07a06fa23e59a94099ded2a33a73585a958c7b7681e306006761eb9",
+          "errors": []
+        },
+        "predictions": [
+          {
+            "competence_id": 4,
+            "competence_code": "RES.SEC",
+            "competence_nom": "SÃ©curitÃ© Applicative",
+            "current_level": 0,
+            "target_level": 5,
+            "gap_score": 1.0,
+            "severity": "CRITIQUE",
+            "trend": "STABLE",
+            "as_of": "2026-08-19"
+          },
+          {
+            "competence_id": 10,
+            "competence_code": "SYS.CLOUD",
+            "competence_nom": "SystÃ¨mes & Cloud",
+            "current_level": 0,
+            "target_level": 5,
+            "gap_score": 1.0,
+            "severity": "CRITIQUE",
+            "trend": "STABLE",
+            "as_of": "2026-08-19"
+          },
+          {
+            "competence_id": 5,
+            "competence_code": "RES.INFRA",
+            "competence_nom": "Infrastructure & Cloud",
+            "current_level": 0,
+            "target_level": 3,
+            "gap_score": 0.75,
+            "severity": "CRITIQUE",
+            "trend": "STABLE",
+            "as_of": "2026-08-19"
+          }
+        ]
+      },
+      "errors": []
+    },
+    "risk_ENS001": {
+      "data": {
+        "teacher_id": "ENS001",
+        "score": 0.8667,
+        "score_percent": 86.67,
+        "level": "CRITICAL",
+        "level_label": "CRITIQUE",
+        "is_capped": false,
+        "uncapped_score": 0.8667,
+        "factors": [
+          {
+            "feature": "critical_gaps",
+            "code": "critical_gaps",
+            "label": "Gaps critiques",
+            "raw_value": 3.0,
+            "normalized_value": 1.0,
+            "weight": 0.5,
+            "contribution": 0.5,
+            "contribution_percent": 50.0,
+            "scope": "DEPARTMENT",
+            "scope_type": "TEACHER",
+            "scope_id": "ENS001",
+            "scope_label": null
+          },
+          {
+            "feature": "high_gaps",
+            "code": "high_gaps",
+            "label": "Gaps de haute urgence",
+            "raw_value": 0.0,
+            "normalized_value": 0.0,
+            "weight": 0.12,
+            "contribution": 0.0,
+            "contribution_percent": 0.0,
+            "scope": "DEPARTMENT",
+            "scope_type": "TEACHER",
+            "scope_id": "ENS001",
+            "scope_label": null
+          },
+          {
+            "feature": "avg_gap_score",
+            "code": "avg_gap_score",
+            "label": "Profondeur moyenne des gaps",
+            "raw_value": 0.9167,
+            "normalized_value": 0.9167,
+            "weight": 0.4,
+            "contribution": 0.3667,
+            "contribution_percent": 36.67,
+            "scope": "DEPARTMENT",
+            "scope_type": "TEACHER",
+            "scope_id": "ENS001",
+            "scope_label": null
+          }
+        ],
+        "computed_at": "2026-08-20T01:27:40.315414Z",
+        "risk_score": 86.67,
+        "risk_level": "CRITICAL"
+      },
+      "meta": {
+        "model_mode": "PRODUCTION_ML",
+        "model_version": "v1.0.0",
+        "model_name": "gap_predictor_temporal"
+      },
+      "errors": []
+    }
+  },
+  "findings": [],
+  "active_artifact_loadable": true
+}

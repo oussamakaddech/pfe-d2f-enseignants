@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-LEAK_COLUMNS = {"required_level", "required_level_t", "gap_next_3m"}
+LEAK_COLUMNS = {"knowledge_difficulty_level", "required_level", "required_level_t", "gap_next_3m"}
 
 
 @dataclass

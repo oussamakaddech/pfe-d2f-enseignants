@@ -9,6 +9,15 @@ NEED_REF_COUNT = 3.0
 ENGAGEMENT_REF_DAYS = 180.0
 EVAL_REF_SCORE = 5.0
 
+FACTOR_LABELS = {
+    "stagnation": "Stagnation prolongée",
+    "decline": "Régression de niveau",
+    "attendance": "Assiduité faible",
+    "low_eval": "Évaluations faibles",
+    "repeated_need": "Besoins répétés non couverts",
+    "low_engagement": "Faible engagement",
+}
+
 
 @dataclass(frozen=True)
 class RiskInputs:
@@ -58,8 +67,28 @@ def compute_risk(inputs: RiskInputs, weights: dict[str, float]) -> RiskProfile:
     weighted = {key: sub_scores[key] * weights.get(key, 0.0) for key in sub_scores}
     score = min(100.0, 100.0 * sum(weighted.values()) / total_weight)
 
+    raw_values = {
+        "stagnation": inputs.stagnation_months,
+        "decline": 1.0 if inputs.declined else 0.0,
+        "attendance": inputs.attendance_rate,
+        "low_eval": inputs.avg_eval_score if inputs.avg_eval_score is not None else 0.0,
+        "repeated_need": inputs.repeated_need_count,
+        "low_engagement": inputs.days_since_last_activity if inputs.days_since_last_activity is not None else 0.0,
+    }
+
+    # Chaque contribution = sous-score normalisé (0..1) * poids (0..1) / somme des poids.
+    # La somme des poids vaut 1.0 par construction -> somme des contributions <= 1.0,
+    # donc le score n'est jamais plafonné dans ce moteur (is_capped=False).
     factors = tuple(
-        RiskFactor(feature=key, value=round(sub_scores[key], 4), contribution=round(weighted[key] / total_weight, 4))
+        RiskFactor(
+            feature=key,
+            value=round(raw_values[key], 4),
+            normalized_value=round(sub_scores[key], 4),
+            weight=round(weights.get(key, 0.0) / total_weight, 4),
+            contribution=round(weighted[key] / total_weight, 4),
+            label=FACTOR_LABELS.get(key, key),
+            scope="TEACHER",
+        )
         for key in sorted(weighted, key=lambda k: weighted[k], reverse=True)
         if weighted[key] > 0
     )

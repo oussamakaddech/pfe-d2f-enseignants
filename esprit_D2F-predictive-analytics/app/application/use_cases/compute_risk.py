@@ -26,15 +26,20 @@ class ComputeRisk:
         self._model_port = model_port
         self._settings = settings
 
-    def execute(self, teacher_id: str) -> tuple[RiskProfile, str, str | None]:
+    def execute(self, teacher_id: str) -> tuple[RiskProfile, str, str | None, str | None]:
+        status = self._model_port.status()
+        model_mode = status.get("model_mode") or "HEURISTIC_FALLBACK"
+        model_version = status.get("model_version")
+        model_name = status.get("artifact_name") or status.get("model_name")
+
         ml_profile = self._model_port.predict_risk(teacher_id)
         if ml_profile is not None:
             self._analysis_repository.save_risk_snapshot(ml_profile)
-            return ml_profile, "ML", self._model_port.status().get("version")
+            return ml_profile, model_mode, model_version, model_name
 
         profile = self._heuristic(teacher_id)
         self._analysis_repository.save_risk_snapshot(profile)
-        return profile, "HEURISTIC_FALLBACK", None
+        return profile, model_mode, model_version, model_name
 
     def _heuristic(self, teacher_id: str) -> RiskProfile:
         history = self._competency_source.get_teacher_savoir_levels_history(teacher_id)

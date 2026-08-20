@@ -52,6 +52,118 @@ from app.infrastructure.ml.model_registry import (
 
 logger = get_logger("ml_predictor")
 
+# Normalisation du score de risque (règle métier dérivée des gaps) :
+# - Caps documentés : au-delà de ces bornes, le facteur normalisé reste 1.0.
+# - Poids : somme = 1.02 (> 1.0) -> le score final est plafonné à 1.0 et le
+#   dépassement éventuel est exposé via RiskProfile.is_capped/uncapped_score.
+CRITICAL_GAP_CAP = 2.0
+HIGH_GAP_CAP = 1.0
+RISK_RULE_WEIGHTS = {"critical_gaps": 0.50, "high_gaps": 0.12, "avg_gap_score": 0.40}
+
+
+def rule_risk_from_gaps(
+    teacher_id: str,
+    gaps: list[SkillGap],
+    scope: str = "TEACHER",
+    scope_type: str = "TEACHER",
+    scope_id: str | None = None,
+    scope_label: str | None = None,
+) -> RiskProfile:
+    """Score de risque par règle métier dérivée des gaps (normalisé).
+
+    Facteurs normalisés dans [0, 1] avec caps documentés :
+    - critical_gaps : cap ``CRITICAL_GAP_CAP`` (2) ;
+    - high_gaps : cap ``HIGH_GAP_CAP`` (1) ;
+    - avg_gap_score : déjà borné dans [0, 1] par construction.
+
+    Contribution = facteur normalisé * poids (``RISK_RULE_WEIGHTS``) ;
+    score = min(1, somme des contributions) ; le dépassement éventuel est
+    exposé via ``is_capped`` / ``uncapped_score`` (poids total = 1.02 ->
+    cap atteignable). Niveaux : CRITICAL >= 75, HIGH >= 50, MEDIUM >= 30.
+
+    ``scope`` documente le périmètre des gaps comptés :
+    - ``TEACHER`` : référentiel personnel de l'enseignant (pas de
+      rattachement, ou périmètre global par défaut) ;
+    - ``DEPARTMENT`` : gaps du périmètre départemental/UP de l'enseignant.
+
+    ``scope_type`` / ``scope_id`` / ``scope_label`` décrivent le scope
+    concret (ex : ``DEPARTMENT`` / ``DEP_RESEAUX`` / ``Département Réseaux``).
+    Le libellé du facteur est TOUJOURS le même (« Gaps critiques ») — le
+    scope est exposé séparément via ``scope_label`` (jamais concaténé dans
+    le label, ce qui évite « périmètrepérimètre »).
+    """
+    if not gaps:
+        return RiskProfile(teacher_id=teacher_id, risk_score=0.0, risk_level=RiskLevel.LOW, factors=())
+    critical = sum(1 for g in gaps if g.severity == Severity.CRITICAL)
+    high = sum(1 for g in gaps if g.severity == Severity.HIGH)
+    avg_gap = float(np.mean([g.gap_score for g in gaps]))
+
+    n_critical_norm = min(1.0, critical / CRITICAL_GAP_CAP)
+    n_high_norm = min(1.0, high / HIGH_GAP_CAP)
+    avg_norm = min(1.0, max(0.0, avg_gap))
+    contrib_critical = n_critical_norm * RISK_RULE_WEIGHTS["critical_gaps"]
+    contrib_high = n_high_norm * RISK_RULE_WEIGHTS["high_gaps"]
+    contrib_avg = avg_norm * RISK_RULE_WEIGHTS["avg_gap_score"]
+    uncapped = contrib_critical + contrib_high + contrib_avg
+    score_01 = min(1.0, max(0.0, uncapped))
+    risk_score = round(100.0 * score_01, 2)
+    is_capped = uncapped > 1.0
+    if risk_score >= 75:
+        level = RiskLevel.CRITICAL
+    elif risk_score >= 50:
+        level = RiskLevel.HIGH
+    elif risk_score >= 30:
+        level = RiskLevel.MEDIUM
+    else:
+        level = RiskLevel.LOW
+    factors = (
+        RiskFactor(
+            feature="critical_gaps",
+            value=float(critical),
+            normalized_value=round(n_critical_norm, 4),
+            weight=RISK_RULE_WEIGHTS["critical_gaps"],
+            contribution=round(contrib_critical, 4),
+            label="Gaps critiques",
+            scope=scope,
+            scope_type=scope_type,
+            scope_id=scope_id,
+            scope_label=scope_label,
+        ),
+        RiskFactor(
+            feature="high_gaps",
+            value=float(high),
+            normalized_value=round(n_high_norm, 4),
+            weight=RISK_RULE_WEIGHTS["high_gaps"],
+            contribution=round(contrib_high, 4),
+            label="Gaps de haute urgence",
+            scope=scope,
+            scope_type=scope_type,
+            scope_id=scope_id,
+            scope_label=scope_label,
+        ),
+        RiskFactor(
+            feature="avg_gap_score",
+            value=round(avg_gap, 4),
+            normalized_value=round(avg_norm, 4),
+            weight=RISK_RULE_WEIGHTS["avg_gap_score"],
+            contribution=round(contrib_avg, 4),
+            label="Profondeur moyenne des gaps",
+            scope=scope,
+            scope_type=scope_type,
+            scope_id=scope_id,
+            scope_label=scope_label,
+        ),
+    )
+    return RiskProfile(
+        teacher_id=teacher_id,
+        risk_score=risk_score,
+        risk_level=level,
+        factors=factors,
+        is_capped=is_capped,
+        uncapped_score=round(uncapped, 4),
+    )
+
+
 # Schema de features canonique — version 1.0
 FEATURE_SCHEMA_VERSION = "1.0"
 
@@ -326,6 +438,7 @@ class ArtifactModelPort:
             "mode": mode,
             "model_mode": mode,
             "model_version": entry.model_version if entry else None,
+            "artifact_name": entry.model_name if entry else None,
             "fallback_reason": self._fallback_reason,
             "version": meta.get("trained_at") or "unknown",
             "model_name": meta.get("model_name", "gradient_boosting"),
@@ -710,8 +823,8 @@ class ArtifactModelPort:
                     competence_id=cid,
                     competence_code=str(code),
                     competence_nom=str(nom),
-                    current_level=current_t,
-                    target_level=required,
+                    observed_result=current_t,
+                    knowledge_difficulty_level=required,
                     gap_score=round(score, 4),
                     severity=sev,
                     trend=trend,
@@ -734,26 +847,181 @@ class ArtifactModelPort:
                 logger.error("predict_risk ML echoue, fallback regle", error=str(exc))
         # 2) Fallback : regle arbitraire derivee des gaps (comportement historique)
         gaps = self._predict_gaps(teacher_id)
-        if not gaps:
-            return RiskProfile(teacher_id=teacher_id, risk_score=0.0, risk_level=RiskLevel.LOW, factors=())
-        critical = sum(1 for g in gaps if g.severity == Severity.CRITICAL)
-        high = sum(1 for g in gaps if g.severity == Severity.HIGH)
-        avg_gap = float(np.mean([g.gap_score for g in gaps]))
-        risk_score = min(100.0, critical * 25.0 + high * 12.0 + avg_gap * 40.0)
-        if risk_score >= 75:
-            level = RiskLevel.CRITICAL
-        elif risk_score >= 50:
-            level = RiskLevel.HIGH
-        elif risk_score >= 30:
-            level = RiskLevel.MEDIUM
-        else:
-            level = RiskLevel.LOW
-        factors = (
-            RiskFactor(feature="critical_gaps", value=float(critical), contribution=critical * 0.25),
-            RiskFactor(feature="high_gaps", value=float(high), contribution=high * 0.12),
-            RiskFactor(feature="avg_gap_score", value=round(avg_gap, 4), contribution=avg_gap * 0.40),
+        if gaps is None:
+            # Le modele est indisponible ou la validation des features a echoue :
+            # on s'appuie sur le dernier snapshot de gaps persiste (meme source
+            # que l'onglet Gaps) pour ne pas afficher un risque faux-zero.
+            gaps = self._persisted_gaps(teacher_id)
+        return self._rule_risk_scoped(teacher_id, gaps or [])
+
+    def _rule_risk_scoped(self, teacher_id: str, gaps: list[SkillGap]) -> RiskProfile:
+        """Règle de risque sur les gaps DU PÉRIMÈTRE de l'enseignant.
+
+        Les prédictions ML couvrent toutes les compétences où l'enseignant a
+        des niveaux déclarés, y compris hors de son périmètre (ex : un
+        enseignant Génie Civil avec des savoirs GL/Réseaux hérités). Les gaps
+        hors périmètre sont retirés pour que les facteurs du score restent
+        cohérents avec les gaps affichés (onglet Gaps / scope-analysis). Si
+        aucune prédiction ne tombe dans le périmètre, on retombe sur le
+        snapshot persisté (déjà scopé par compute_gaps). Périmètre global si
+        aucun domaine ne correspond (même convention que compute_gaps).
+        """
+        scoped_ids = self._scoped_competence_ids(teacher_id)
+        scope = "DEPARTMENT" if scoped_ids is not None else "TEACHER"
+        scope_type, scope_id, scope_label = self._teacher_scope_info(teacher_id, scope)
+        if scoped_ids is not None and gaps:
+            filtered = [g for g in gaps if g.competence_id in scoped_ids]
+            if not filtered:
+                persisted = self._persisted_gaps(teacher_id) or []
+                filtered = [g for g in persisted if g.competence_id in scoped_ids]
+            gaps = filtered
+        return rule_risk_from_gaps(
+            teacher_id,
+            gaps,
+            scope=scope,
+            scope_type=scope_type,
+            scope_id=scope_id,
+            scope_label=scope_label,
         )
-        return RiskProfile(teacher_id=teacher_id, risk_score=round(risk_score, 2), risk_level=level, factors=factors)
+
+    def _teacher_scope_info(
+        self, teacher_id: str, scope: str
+    ) -> tuple[str, str | None, str | None]:
+        """Retourne (scope_type, scope_id, scope_label) pour l'enseignant.
+
+        - ``DEPARTMENT`` : scope_type="DEPARTMENT", scope_id=dept_id,
+          scope_label="Département <libellé>".
+        - ``UP`` : scope_type="UP", scope_id=up_id,
+          scope_label="Unité pédagogique <libellé>".
+        - ``TEACHER`` (périmètre global) : scope_type="TEACHER",
+          scope_id=teacher_id, scope_label=nom complet.
+        """
+        try:
+            with self._database.read_connection() as conn:
+                row = conn.execute(
+                    text("""
+                        SELECT t.up_id, t.dept_id, t.specialite,
+                               t.up_libelle, t.dept_libelle,
+                               t.prenom, t.nom
+                        FROM formation.enseignants t
+                        WHERE t.id = :tid AND t.deleted_at IS NULL
+                    """),
+                    {"tid": teacher_id},
+                ).mappings().first()
+        except Exception as exc:  # pragma: no cover - log + repli TEACHER
+            logger.error("scope enseignant illisible", teacher_id=teacher_id, error=str(exc))
+            return "TEACHER", teacher_id, None
+        if row is None:
+            return "TEACHER", teacher_id, None
+        if scope == "DEPARTMENT" and row["dept_id"]:
+            label = row["dept_libelle"] or row["dept_id"]
+            if not str(label).lower().startswith("département"):
+                label = f"Département {label}"
+            return "DEPARTMENT", str(row["dept_id"]), str(label)
+        if row["up_id"]:
+            label = row["up_libelle"] or row["up_id"]
+            if not str(label).lower().startswith(("up ", "unité")):
+                label = f"Unité pédagogique {label}"
+            return "UP", str(row["up_id"]), str(label)
+        full_name = f"{row['prenom'] or ''} {row['nom'] or ''}".strip()
+        return "TEACHER", teacher_id, full_name or None
+
+    def _scoped_competence_ids(self, teacher_id: str) -> Optional[set[int]]:
+        """Ids des compétences du périmètre (département/UP/spécialité).
+
+        Retourne None si l'enseignant n'a pas de rattachement ou si aucun
+        domaine ne correspond (périmètre global — même convention que
+        ``compute_gaps``).
+        """
+        try:
+            with self._database.read_connection() as conn:
+                teacher = conn.execute(
+                    text("""
+                        SELECT up_id, dept_id, specialite
+                        FROM formation.enseignants
+                        WHERE id = :tid AND deleted_at IS NULL
+                    """),
+                    {"tid": teacher_id},
+                ).mappings().first()
+                if not teacher or not (teacher["up_id"] or teacher["dept_id"] or teacher["specialite"]):
+                    return None
+                rows = conn.execute(
+                    text("""
+                        SELECT c.id
+                        FROM competence.competences c
+                        LEFT JOIN competence.domaines d ON d.id = c.domaine_id
+                        WHERE (:dept_id IS NOT NULL AND CAST(d.departement_id AS TEXT) = :dept_id)
+                           OR (:up_id IS NOT NULL AND CAST(d.up_id AS TEXT) = :up_id)
+                           OR (:specialite IS NOT NULL AND (
+                               d.nom ILIKE '%' || :specialite || '%'
+                               OR c.nom ILIKE '%' || :specialite || '%'
+                           ))
+                    """),
+                    {"dept_id": teacher["dept_id"], "up_id": teacher["up_id"], "specialite": teacher["specialite"]},
+                ).mappings().all()
+        except Exception as exc:  # pragma: no cover - log + périmètre global
+            logger.error("perimetre enseignant illisible, risque global", teacher_id=teacher_id, error=str(exc))
+            return None
+        ids = {int(r["id"]) for r in rows}
+        return ids or None
+
+    def _persisted_gaps(self, teacher_id: str) -> Optional[list[SkillGap]]:
+        """Lit le dernier snapshot de gaps persiste (analyse.skill_gaps).
+
+        Utilisé comme source de secours du calcul de risque quand le modele ML
+        est indisponible ou que la validation des features echoue au serving.
+        Retourne les gaps du snapshot le plus recent, ou None si aucun.
+        """
+        try:
+            with self._database.read_connection() as conn:
+                latest = conn.execute(
+                    text("""
+                        SELECT MAX(computed_at) AS ts
+                        FROM "analyse".skill_gaps
+                        WHERE enseignant_id = :tid
+                    """),
+                    {"tid": teacher_id},
+                ).scalar_one_or_none()
+                if latest is None:
+                    return None
+                rows = conn.execute(
+                    text("""
+                        SELECT competence_id, gap_score, niveau_urgence
+                        FROM "analyse".skill_gaps
+                        WHERE enseignant_id = :tid AND computed_at = :ts
+                    """),
+                    {"tid": teacher_id, "ts": latest},
+                ).mappings().all()
+        except Exception as exc:  # pragma: no cover - log + absence de fallback
+            logger.error("lecture snapshot gaps impossible pour le risque", teacher_id=teacher_id, error=str(exc))
+            return None
+        if not rows:
+            return None
+        today = date.today()
+        gaps: list[SkillGap] = []
+        for row in rows:
+            urgence = str(row["niveau_urgence"] or "").upper()
+            sev = {
+                "CRITIQUE": Severity.CRITICAL,
+                "HAUTE": Severity.HIGH,
+                "MOYENNE": Severity.MEDIUM,
+                "FAIBLE": Severity.LOW,
+            }.get(urgence, Severity.LOW)
+            gaps.append(
+                SkillGap(
+                    teacher_id=teacher_id,
+                    competence_id=int(row["competence_id"]),
+                    competence_code=f"C{row['competence_id']}",
+                    competence_nom=f"Competence {row['competence_id']}",
+                    observed_result=0.0,
+                    knowledge_difficulty_level=0.0,
+                    gap_score=round(float(row["gap_score"] or 0.0), 4),
+                    severity=sev,
+                    trend=Trend.STABLE,
+                    as_of=today,
+                )
+            )
+        return gaps
 
     def _stagnation_months(self, bundle: dict[str, Any]) -> float:
         savs = bundle.get("savoirs", [])
@@ -774,6 +1042,15 @@ class ArtifactModelPort:
         """Classifier dedie : RandomForest entraine sur risk_training_metadata."""
         bundle = self._teacher_feature_bundle(teacher_id)
         gaps = self._predict_gaps(teacher_id) or []
+        scoped_ids = self._scoped_competence_ids(teacher_id)
+        scope = "DEPARTMENT" if scoped_ids is not None else "TEACHER"
+        scope_type, scope_id, scope_label = self._teacher_scope_info(teacher_id, scope)
+        if scoped_ids is not None and gaps:
+            filtered = [g for g in gaps if g.competence_id in scoped_ids]
+            if not filtered:
+                persisted = self._persisted_gaps(teacher_id) or []
+                filtered = [g for g in persisted if g.competence_id in scoped_ids]
+            gaps = filtered
         streak = self._stagnation_months(bundle)
         n_crit = sum(1 for g in gaps if g.severity == Severity.CRITICAL)
         n_high = sum(1 for g in gaps if g.severity == Severity.HIGH)
@@ -819,31 +1096,70 @@ class ArtifactModelPort:
             factors_extra = (RiskFactor(
                 feature="critical_gaps_rule",
                 value=float(n_crit),
+                normalized_value=1.0,
+                weight=0.3,
                 contribution=0.3,
+                label="Règle métier (≥ 3 gaps critiques)",
+                scope=scope,
+                scope_type=scope_type,
+                scope_id=scope_id,
+                scope_label=scope_label,
             ),)
         else:
             factors_extra = ()
 
+        # Facteurs normalisés : probabilité de classe (0..1) * poids (milieu de
+        # classe / 100) -> contribution toujours bornée dans [0, 1].
         factors = [
             RiskFactor(
                 feature=f"{lab}_proba",
                 value=round(float(p), 4),
+                normalized_value=round(float(p), 4),
+                weight=round(midpoints.get(lab, 0) / 100.0, 4),
                 contribution=round(float(p) * midpoints.get(lab, 0) / 100.0, 4),
+                label=f"Probabilité classe {lab}",
+                scope=scope,
+                scope_type=scope_type,
+                scope_id=scope_id,
+                scope_label=scope_label,
             )
             for lab, p in zip(classes, proba)
             if float(p) > 0.05
         ]
         if "CRITICAL" in classes:
-            crit_idx = list(classes).index("CRITICAL")
-            factors.append(RiskFactor(feature="n_critical_gaps", value=float(n_crit),
-                                      contribution=round(float(proba[crit_idx]), 4)))
-        factors.append(RiskFactor(feature="stagnation_months", value=round(streak, 2), contribution=0.1))
+            factors.append(RiskFactor(
+                feature="n_critical_gaps",
+                value=float(n_crit),
+                normalized_value=round(min(1.0, n_crit / CRITICAL_GAP_CAP), 4),
+                weight=0.50,
+                contribution=round(min(1.0, n_crit / CRITICAL_GAP_CAP) * 0.50, 4),
+                label="Gaps critiques",
+                scope=scope,
+                scope_type=scope_type,
+                scope_id=scope_id,
+                scope_label=scope_label,
+            ))
+        factors.append(RiskFactor(
+            feature="stagnation_months",
+            value=round(streak, 2),
+            normalized_value=round(min(1.0, streak / 24.0), 4),
+            weight=0.10,
+            contribution=round(min(1.0, streak / 24.0) * 0.10, 4),
+            label="Mois de stagnation",
+            scope=scope,
+            scope_type=scope_type,
+            scope_id=scope_id,
+            scope_label=scope_label,
+        ))
         factors.extend(factors_extra)
+        uncapped = sum(f.contribution for f in factors)
         return RiskProfile(
             teacher_id=teacher_id,
             risk_score=risk_score,
             risk_level=level,
             factors=tuple(factors),
+            is_capped=uncapped > 1.0,
+            uncapped_score=round(uncapped, 4),
         )
 
     # ------------------------------------------------------- Risk ML dedie

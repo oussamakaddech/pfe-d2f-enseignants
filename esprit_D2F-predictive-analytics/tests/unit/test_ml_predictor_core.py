@@ -68,6 +68,9 @@ class _Result:
     def scalar(self):
         return self._scalar
 
+    def scalar_one_or_none(self):
+        return self._scalar
+
 
 class _ScriptedConn:
     def __init__(self, script):
@@ -227,8 +230,8 @@ def test_predict_gaps_uses_model_and_names():
     assert first.competence_id == 1
     assert first.competence_code == "C1"
     assert first.competence_nom == "Pedagogie"
-    assert first.current_level == 3.0
-    assert first.target_level == 3.0
+    assert first.observed_result == 3.0
+    assert first.knowledge_difficulty_level == 3.0
     # La prédiction ML (1.0) est RÉELLEMENT utilisée (corrigé par audit) :
     # effective_gap = max(0, 1.0) -> score = 1.0/4 = 0.25 -> MEDIUM,
     # trend WORSENING car la prédiction dépasse le gap structurel de 0.5.

@@ -1,0 +1,31 @@
+{
+  "dataset_path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\clean\\training_corpus_provenanced_v110.csv",
+  "dataset_version": "v1.1.0",
+  "dataset_hash_after": "896609dbdd57d98f0e32e971af6a7357be4064c17d74301856db8abf917e2b47",
+  "initial_rows": 172,
+  "final_rows": 172,
+  "rows_removed": 0,
+  "rows_corrected": 0,
+  "rows_quarantined": 0,
+  "type_corrections": [],
+  "duplicate_actions": [],
+  "duplicate_conflicts": 0,
+  "missing_values": {},
+  "imputation_actions": [],
+  "out_of_range": {},
+  "range_actions": [],
+  "date_issues": {},
+  "date_actions": [],
+  "id_issues": {},
+  "id_actions": [],
+  "granularity": {
+    "granularity": "one_row_per_teacher_competence_month",
+    "valid": true,
+    "violations": []
+  },
+  "provenance": {
+    "total_rows": 172,
+    "real_rows": 172,
+    "synthetic_rows": 0
+  }
+}

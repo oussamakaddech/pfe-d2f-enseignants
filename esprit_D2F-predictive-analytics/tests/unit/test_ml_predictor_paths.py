@@ -104,8 +104,12 @@ def test_predict_risk_public_api_rule_fallback():
     port = _ml_port_with_gaps(_FakeModel([[3.5], [2.0], [1.0], [0.1], [1.0]]), bundle=FIVE_COMP_BUNDLE)
     profile = port.predict_risk("T001")
     assert profile is not None
-    assert profile.risk_level == RiskLevel.HIGH  # 25 + 24 + 0.43*40 = 66.2
-    assert profile.risk_score == 66.2
+    # Normalisé : 1 critique -> min(1, 1/2)=0.5 ; 2 hautes -> min(1, 2/1)=1.0 ;
+    # avg 0.43 -> 0.5*0.50 + 1.0*0.12 + 0.43*0.40 = 0.542 -> 54.2
+    assert profile.risk_level == RiskLevel.HIGH
+    assert profile.risk_score == 54.2
+    assert profile.is_capped is False
+    assert profile.uncapped_score == 0.542
 
 
 def test_predict_risk_fallback_low_when_no_gaps():
@@ -129,7 +133,9 @@ def test_predict_risk_fallback_critical_level():
     port = _ml_port_with_gaps(_FakeModel([[3.5], [3.5], [3.5]]), bundle=bundle)
     profile = port.predict_risk("T001")
     assert profile.risk_level == RiskLevel.CRITICAL
-    assert profile.risk_score == 100.0
+    # Normalisé : 3 critiques -> cap 2 -> 1.0*0.50 ; avg 0.875 -> 0.35 -> 0.85 au total
+    assert profile.risk_score == 85.0
+    assert profile.is_capped is False
 
 
 def test_predict_risk_fallback_medium_level():
@@ -386,9 +392,153 @@ def test_predict_gaps_all_severities_and_trends():
 
 
 # ------------------------------------------------------- Risk ML dédié
+def test_predict_risk_scoped_to_department_drops_out_of_scope_gaps():
+    """Régression audit (ENS014) : le risque doit être calculé sur les gaps DU
+    PÉRIMÈTRE (Département Génie Civil = compétences 10/11/12) et non sur les
+    prédictions ML de compétences hors périmètre (1..5).
+
+    Les prédictions ML couvrent les compétences 1..5 (hors périmètre) ->
+    filtrées à vide -> retombe sur le snapshot persisté (compétences 10/11/12,
+    3 gaps critiques) -> facteur brut = 3, jamais 5.
+    """
+    script = [
+        # _predict_gaps : noms des compétences couvertes (hors périmètre)
+        _Result(rows=[
+            {"id": 1, "code": "DEV.BACK", "nom": "Développement Backend"},
+            {"id": 2, "code": "DEV.FRONT", "nom": "Développement Frontend"},
+            {"id": 3, "code": "DEV.QA", "nom": "Qualité & Tests"},
+            {"id": 4, "code": "RES.SEC", "nom": "Sécurité Applicative"},
+            {"id": 5, "code": "RES.INFRA", "nom": "Infrastructure & Cloud"},
+        ]),
+        # _scoped_competence_ids : enseignant rattaché (DEPT_GC)
+        _Result(rows=[{"up_id": "UP_GC", "dept_id": "DEPT_GC", "specialite": None}]),
+        # _scoped_competence_ids : 3 compétences du périmètre GC
+        _Result(rows=[{"id": 10}, {"id": 11}, {"id": 12}]),
+        # _teacher_scope_info : infos du scope (département)
+        _Result(rows=[{"up_id": "UP_GC", "dept_id": "DEPT_GC", "specialite": None,
+                       "up_libelle": "Génie Civil", "dept_libelle": "Génie Civil",
+                       "prenom": "Wafa", "nom": "BenYoussef"}]),
+        # _persisted_gaps : MAX(computed_at) du snapshot
+        _Result(scalar="2026-08-19T04:59:51.787114"),
+        # _persisted_gaps : snapshot scopé (3 gaps critiques GC)
+        _Result(rows=[
+            {"competence_id": 10, "gap_score": 1.0, "niveau_urgence": "CRITIQUE"},
+            {"competence_id": 11, "gap_score": 1.0, "niveau_urgence": "CRITIQUE"},
+            {"competence_id": 12, "gap_score": 1.0, "niveau_urgence": "CRITIQUE"},
+        ]),
+    ]
+    bundle = dict(
+        BUNDLE,
+        savoirs=[
+            {"competence_id": 1, "niveau": "N1_DEBUTANT", "date_acquisition": "2024-01-10", "required_level": 3},
+            {"competence_id": 2, "niveau": "N2_ELEMENTAIRE", "date_acquisition": "2024-02-10", "required_level": 3},
+            {"competence_id": 3, "niveau": "N3_INTERMEDIAIRE", "date_acquisition": "2024-03-10", "required_level": 3},
+            {"competence_id": 4, "niveau": "N4_AVANCE", "date_acquisition": "2024-04-10", "required_level": 3},
+            {"competence_id": 5, "niveau": "N2_ELEMENTAIRE", "date_acquisition": "2024-05-10", "required_level": 4},
+        ],
+    )
+    port = _ml_port_with_gaps(_FakeModel([[3.5], [3.5], [3.5], [3.5], [3.5]]), bundle=bundle, db_script=script)
+    profile = port._predict_risk("ENS014")
+    by_code = {f.feature: f for f in profile.factors}
+    assert by_code["critical_gaps"].value == 3.0  # JAMAIS 5 (gaps hors périmètre)
+    assert by_code["critical_gaps"].scope == "DEPARTMENT"
+    assert by_code["critical_gaps"].label == "Gaps critiques"
+    assert by_code["critical_gaps"].scope_type == "DEPARTMENT"
+    assert by_code["critical_gaps"].scope_id == "DEPT_GC"
+    assert by_code["critical_gaps"].scope_label == "Département Génie Civil"
+    assert by_code["high_gaps"].label == "Gaps de haute urgence"
+    assert profile.risk_score == 90.0  # 3/2->1.0*0.50 + 0 + 1.0*0.40
+    assert profile.risk_level is RiskLevel.CRITICAL
+
+
+def test_predict_risk_teacher_scope_when_no_affiliation():
+    """Enseignant sans rattachement : périmètre TEACHER, facteurs non scopés,
+    les prédictions ML de toutes ses compétences sont comptées."""
+    script = [
+        # _predict_gaps : noms des compétences couvertes
+        _Result(rows=[
+            {"id": 1, "code": "C1", "nom": "Pedagogie"},
+            {"id": 2, "code": "C2", "nom": "Numerique"},
+            {"id": 3, "code": "C3", "nom": "Conception"},
+            {"id": 4, "code": "C4", "nom": "Evaluation"},
+        ]),
+        # _scoped_competence_ids : aucun rattachement
+        _Result(rows=[{"up_id": None, "dept_id": None, "specialite": None}]),
+        # _teacher_scope_info : enseignant sans rattachement -> TEACHER
+        _Result(rows=[{"up_id": None, "dept_id": None, "specialite": None,
+                       "up_libelle": None, "dept_libelle": None,
+                       "prenom": "Karim", "nom": "Bougherara"}]),
+    ]
+    bundle = dict(
+        BUNDLE,
+        savoirs=[
+            {"competence_id": 1, "niveau": "N1_DEBUTANT", "date_acquisition": "2024-01-10", "required_level": 3},
+            {"competence_id": 2, "niveau": "N2_ELEMENTAIRE", "date_acquisition": "2024-02-10", "required_level": 3},
+            {"competence_id": 3, "niveau": "N3_INTERMEDIAIRE", "date_acquisition": "2024-03-10", "required_level": 3},
+            {"competence_id": 4, "niveau": "N4_AVANCE", "date_acquisition": "2024-04-10", "required_level": 3},
+        ],
+    )
+    port = _ml_port_with_gaps(_FakeModel([[3.5], [3.5], [3.5], [3.5]]), bundle=bundle, db_script=script)
+    profile = port._predict_risk("T099")
+    by_code = {f.feature: f for f in profile.factors}
+    assert by_code["critical_gaps"].value == 4.0
+    assert by_code["critical_gaps"].scope == "TEACHER"
+    assert by_code["critical_gaps"].label == "Gaps critiques"
+    assert by_code["critical_gaps"].scope_type == "TEACHER"
+    assert by_code["critical_gaps"].scope_id == "T099"
+    assert by_code["critical_gaps"].scope_label == "Karim Bougherara"
+    assert profile.risk_level is RiskLevel.CRITICAL
+
+
+def test_predict_risk_department_scope_keeps_scoped_predictions():
+    """Enseignant rattaché avec prédictions ML DANS son périmètre : les gaps
+    hors périmètre sont retirés, ceux du périmètre sont comptés."""
+    script = [
+        # _predict_gaps : noms (compétence 3 hors périmètre incluse)
+        _Result(rows=[
+            {"id": 1, "code": "DEV.BACK", "nom": "Développement Backend"},
+            {"id": 2, "code": "DEV.FRONT", "nom": "Développement Frontend"},
+            {"id": 3, "code": "AI.ML", "nom": "Machine Learning"},
+        ]),
+        # _scoped_competence_ids : enseignant rattaché (DEP_GL)
+        _Result(rows=[{"up_id": "UP_GL", "dept_id": "DEPT_GL", "specialite": None}]),
+        # _scoped_competence_ids : compétences 1 et 2 du périmètre
+        _Result(rows=[{"id": 1}, {"id": 2}]),
+        # _teacher_scope_info : infos du scope (département)
+        _Result(rows=[{"up_id": "UP_GL", "dept_id": "DEPT_GL", "specialite": None,
+                       "up_libelle": "Génie Logiciel", "dept_libelle": "Génie Logiciel",
+                       "prenom": "Test", "nom": "Enseignant"}]),
+    ]
+    bundle = dict(
+        BUNDLE,
+        savoirs=[
+            {"competence_id": 1, "niveau": "N1_DEBUTANT", "date_acquisition": "2024-01-10", "required_level": 3},
+            {"competence_id": 2, "niveau": "N2_ELEMENTAIRE", "date_acquisition": "2024-02-10", "required_level": 3},
+            {"competence_id": 3, "niveau": "N3_INTERMEDIAIRE", "date_acquisition": "2024-03-10", "required_level": 3},
+        ],
+    )
+    port = _ml_port_with_gaps(_FakeModel([[3.5], [3.5], [1.0]]), bundle=bundle, db_script=script)
+    profile = port._predict_risk("T007")
+    by_code = {f.feature: f for f in profile.factors}
+    # 2 critiques scopées (la 3e compétence, hors périmètre, est exclue)
+    assert by_code["critical_gaps"].value == 2.0
+    assert by_code["critical_gaps"].scope == "DEPARTMENT"
+    assert by_code["critical_gaps"].scope_type == "DEPARTMENT"
+    assert by_code["critical_gaps"].scope_id == "DEPT_GL"
+    assert by_code["critical_gaps"].scope_label == "Département Génie Logiciel"
+    # avg sur les 2 gaps scopés : (0.875 + 0.875) / 2 = 0.875
+    assert by_code["avg_gap_score"].value == pytest.approx(0.875, abs=1e-3)
+    assert profile.risk_score == pytest.approx(85.0)  # 1.0*0.50 + 0 + 0.875*0.40
+
+
 def test_predict_risk_ml_bonus_critical_proba():
     port = _port_ml(
-        _database=_ScriptedDb([_Result(rows=[])]),
+        _database=_ScriptedDb([
+            _Result(rows=[]),
+            _Result(rows=[{"up_id": None, "dept_id": None, "specialite": None,
+                           "up_libelle": None, "dept_libelle": None,
+                           "prenom": "Test", "nom": "Enseignant"}]),
+        ]),
         _model=_FakeModel([[3.5], [2.0], [1.0], [0.1], [1.0]]),
         _risk_model=_FakeRiskModel([0.3, 0.7], ["CRITICAL", "LOW"]),
     )
@@ -406,7 +556,12 @@ def test_predict_risk_ml_bonus_critical_proba():
 def test_predict_risk_ml_critical_rule_override():
     """>= 3 gaps critiques => CRITICAL garanti (règle métier traçable)."""
     port = _port_ml(
-        _database=_ScriptedDb([_Result(rows=[])]),
+        _database=_ScriptedDb([
+            _Result(rows=[]),
+            _Result(rows=[{"up_id": None, "dept_id": None, "specialite": None,
+                           "up_libelle": None, "dept_libelle": None,
+                           "prenom": "Test", "nom": "Enseignant"}]),
+        ]),
         _model=_FakeModel([[3.5], [3.5], [3.5], [0.1], [0.1]]),
         _risk_model=_FakeRiskModel([0.3, 0.7], ["CRITICAL", "LOW"]),
     )
@@ -419,7 +574,12 @@ def test_predict_risk_ml_critical_rule_override():
 
 def test_predict_risk_ml_high_bonus():
     port = _port_ml(
-        _database=_ScriptedDb([_Result(rows=[])]),
+        _database=_ScriptedDb([
+            _Result(rows=[]),
+            _Result(rows=[{"up_id": None, "dept_id": None, "specialite": None,
+                           "up_libelle": None, "dept_libelle": None,
+                           "prenom": "Test", "nom": "Enseignant"}]),
+        ]),
         _model=_FakeModel([[3.5], [2.0], [1.0], [0.1], [1.0]]),
         _risk_model=_FakeRiskModel([0.5, 0.5], ["LOW", "HIGH"]),
     )
@@ -432,7 +592,12 @@ def test_predict_risk_ml_high_bonus():
 
 def test_predict_risk_ml_unknown_label_maps_medium():
     port = _port_ml(
-        _database=_ScriptedDb([_Result(rows=[])]),
+        _database=_ScriptedDb([
+            _Result(rows=[]),
+            _Result(rows=[{"up_id": None, "dept_id": None, "specialite": None,
+                           "up_libelle": None, "dept_libelle": None,
+                           "prenom": "Test", "nom": "Enseignant"}]),
+        ]),
         _model=_FakeModel([[0.1], [0.1], [0.1], [0.1], [0.1]]),
         _risk_model=_FakeRiskModel([1.0], ["INCONNU"]),
     )

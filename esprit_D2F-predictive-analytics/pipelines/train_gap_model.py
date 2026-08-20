@@ -34,8 +34,10 @@ FEATURE_SCHEMA_PATH = MODELS_DIR / "feature_schema.json"
 RANDOM_STATE = 42
 np.random.seed(RANDOM_STATE)
 
+DEFAULT_DATASET_VERSION = "v1.0.0"
+
 FEATURE_COLS = [
-    "current_level_t3", "current_level_t2", "current_level_t1", "current_level_t",
+    "observed_result_t3", "observed_result_t2", "observed_result_t1", "observed_result_t",
     "lag_gap_t3_t2", "lag_gap_t2_t1", "lag_gap_t1_t", "rolling_tendance",
     "days_since_last_training", "training_frequency_per_month", "is_long_absent", "is_stagnant",
     "avg_level", "min_level", "max_level", "nb_level_5", "nb_level_1",
@@ -48,12 +50,12 @@ TARGET_COL = "gap_next_3m"
 FEATURE_SCHEMA_VERSION = "1.0"
 
 # Colonnes de fuite interdites dans X
-FORBIDDEN_IN_X = {"required_level", "required_level_t", TARGET_COL}
+FORBIDDEN_IN_X = {"knowledge_difficulty_level", "required_level", "required_level_t", TARGET_COL}
 
 
-def load_provenanced_corpus() -> pd.DataFrame:
+def load_provenanced_corpus(dataset_path: Path | None = None) -> pd.DataFrame:
     """Charge le dataset provenancé et vérifie les colonnes de provenance."""
-    path = CLEAN_DIR / "training_corpus_provenanced.csv"
+    path = dataset_path or (CLEAN_DIR / "training_corpus_provenanced.csv")
     if not path.exists():
         raise FileNotFoundError(
             f"Dataset provenancé introuvable : {path}. "
@@ -84,6 +86,8 @@ def compute_provenance_stats(df: pd.DataFrame) -> dict[str, Any]:
 
 def build_candidates() -> list[tuple[str, Any]]:
     """Construit les modèles candidats (seed 42 partout)."""
+    from sklearn.neural_network import MLPRegressor
+
     candidates: list[tuple[str, Any]] = [
         (
             "gradient_boosting",
@@ -91,6 +95,15 @@ def build_candidates() -> list[tuple[str, Any]]:
                 n_estimators=120, max_depth=3, learning_rate=0.08,
                 subsample=0.85, random_state=RANDOM_STATE,
                 min_samples_split=10, min_samples_leaf=5, max_features="sqrt",
+            ),
+        ),
+        (
+            "mlp",
+            MLPRegressor(
+                hidden_layer_sizes=(32, 16), max_iter=400,
+                learning_rate_init=0.001, alpha=0.01,
+                random_state=RANDOM_STATE, early_stopping=True,
+                n_iter_no_change=20,
             ),
         ),
     ]
@@ -180,10 +193,18 @@ def compute_baseline(y_test: np.ndarray, gap_t_proxy: np.ndarray) -> dict[str, f
     }
 
 
-def train_gap_model(dataset_version: str = "v1.0.0", model_version: str = "v1.0.0") -> dict[str, Any]:
+def train_gap_model(
+    dataset_version: str = "v1.0.0",
+    model_version: str = "v1.0.0",
+    dataset_path: Path | None = None,
+    artifact_path: Path | None = None,
+    metadata_path: Path | None = None,
+) -> dict[str, Any]:
     """Entraîne, évalue et exporte le modèle gap temporal."""
+    out_model = artifact_path or MODEL_PATH
+    out_metadata = metadata_path or METADATA_PATH
     print(f"[1] Chargement dataset provenancé (version {dataset_version})...")
-    df = load_provenanced_corpus()
+    df = load_provenanced_corpus(dataset_path)
     prov = compute_provenance_stats(df)
     print(f"    Provenance : {prov}")
 
@@ -206,7 +227,7 @@ def train_gap_model(dataset_version: str = "v1.0.0", model_version: str = "v1.0.
 
     print("[4] Baseline persistance...")
     gap_t_proxy = np.clip(
-        split["X_test"]["current_level_t"].astype(float).values -
+        split["X_test"]["observed_result_t"].astype(float).values -
         split["X_test"]["avg_level"].astype(float).values,
         0, 5,
     )
@@ -296,15 +317,15 @@ def train_gap_model(dataset_version: str = "v1.0.0", model_version: str = "v1.0.
         "decision": decision,
         "notes": (
             "Pipeline reproductible : dataset provenancé, split temporel strict, "
-            "seed 42, anti-fuite (required_level/gap_next_3m exclus), "
+            "seed 42, anti-fuite (knowledge_difficulty_level/gap_next_3m exclus), "
             "normalisation capturée sur train, sidecar SHA-256."
         ),
     }
 
     # Export : joblib + sidecar SHA-256
     from app.infrastructure.ml.artifact_integrity import save_with_integrity
-    save_with_integrity(best, MODEL_PATH)
-    METADATA_PATH.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
+    save_with_integrity(best, out_model)
+    out_metadata.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
 
     # Export du schéma de features
     feature_schema = {
@@ -314,11 +335,18 @@ def train_gap_model(dataset_version: str = "v1.0.0", model_version: str = "v1.0.
         "forbidden_in_X": sorted(FORBIDDEN_IN_X),
         "feature_ranges": ranges,
     }
-    FEATURE_SCHEMA_PATH.write_text(json.dumps(feature_schema, indent=2, ensure_ascii=False), encoding="utf-8")
+    # Le schéma partagé (feature_schema.json) accompagne l'artefact servi :
+    # il n'est mis à jour que pour la version officielle. Les expériences
+    # candidates exportent leur schéma versionné sans toucher au schéma servi.
+    if dataset_version == DEFAULT_DATASET_VERSION:
+        schema_path = FEATURE_SCHEMA_PATH
+    else:
+        schema_path = MODELS_DIR / f"feature_schema_{dataset_version.replace('.', '')}.json"
+    schema_path.write_text(json.dumps(feature_schema, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    print(f"[9] Modèle sauvegardé : {MODEL_PATH}")
-    print(f"[10] Metadata : {METADATA_PATH}")
-    print(f"[11] Schéma features : {FEATURE_SCHEMA_PATH}")
+    print(f"[9] Modèle sauvegardé : {out_model}")
+    print(f"[10] Metadata : {out_metadata}")
+    print(f"[11] Schéma features : {schema_path}")
     return metadata
 
 
@@ -326,9 +354,18 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Entraîne le gap predictor temporel")
     parser.add_argument("--dataset-version", default="v1.0.0")
     parser.add_argument("--model-version", default="v1.0.0")
+    parser.add_argument("--dataset-path", default=None, help="Chemin du dataset provenancé")
+    parser.add_argument("--artifact-path", default=None, help="Chemin de sortie de l'artefact joblib")
+    parser.add_argument("--metadata-path", default=None, help="Chemin de sortie de la metadata JSON")
     args = parser.parse_args()
     try:
-        metrics = train_gap_model(args.dataset_version, args.model_version)
+        metrics = train_gap_model(
+            args.dataset_version,
+            args.model_version,
+            Path(args.dataset_path) if args.dataset_path else None,
+            Path(args.artifact_path) if args.artifact_path else None,
+            Path(args.metadata_path) if args.metadata_path else None,
+        )
     except SystemExit as exc:
         return int(exc.code or 1)
     return 0 if metrics["decision"] == "accept" else 1

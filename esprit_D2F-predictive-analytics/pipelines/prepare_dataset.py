@@ -46,24 +46,37 @@ def _dataset_hash(df: pd.DataFrame) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def prepare_dataset(dataset_version: str = "v1.0.0") -> pd.DataFrame:
+def prepare_dataset(
+    dataset_version: str = "v1.0.0",
+    corpus_path: Path | None = None,
+) -> tuple[pd.DataFrame, Path]:
     """Construit le dataset versionné avec provenance par ligne."""
-    if not REAL_CORPUS.exists():
+    real_path = corpus_path or REAL_CORPUS
+    output_path = (
+        CLEAN_DIR / f"training_corpus_provenanced_{dataset_version.replace('.', '')}.csv"
+        if dataset_version != "v1.0.0"
+        else OUTPUT_PATH
+    )
+    if not real_path.exists():
         raise FileNotFoundError(
-            f"Corpus réel introuvable : {REAL_CORPUS}. "
-            "Exécutez d'abord : python -m pipelines.generate_corpus_from_db"
+            f"Corpus réel introuvable : {real_path}. "
+            "Exécutez d'abord : python -m pipelines.extract_real_observations"
         )
 
-    real = pd.read_csv(REAL_CORPUS)
+    real = pd.read_csv(real_path)
     if real.empty:
         raise RuntimeError("Corpus réel vide")
 
     # Provenance : toutes les lignes du corpus réel sont marquées réelles.
     now = datetime.now(timezone.utc).isoformat()
-    real["source_type"] = "postgresql_d2f"
-    real["source_id"] = real["teacher_id"].astype(str) + "_" + real["competence_id"].astype(str)
-    real["is_synthetic"] = False
-    real["created_at"] = real.get("date_t", pd.Series([now] * len(real)))
+    if "source_type" not in real.columns:
+        real["source_type"] = "postgresql_d2f"
+    if "source_id" not in real.columns:
+        real["source_id"] = real["teacher_id"].astype(str) + "_" + real["competence_id"].astype(str)
+    if "is_synthetic" not in real.columns:
+        real["is_synthetic"] = False
+    if "created_at" not in real.columns:
+        real["created_at"] = real.get("date_t", pd.Series([now] * len(real)))
     real["dataset_version"] = dataset_version
 
     # Le corpus synthétique n'est ajouté QUE si les données réelles sont
@@ -90,24 +103,28 @@ def prepare_dataset(dataset_version: str = "v1.0.0") -> pd.DataFrame:
     if "date_t" in df.columns:
         df = df.sort_values("date_t").reset_index(drop=True)
 
-    df.to_csv(OUTPUT_PATH, index=False)
+    df.to_csv(output_path, index=False)
 
     total = len(df)
     n_real = int((~df["is_synthetic"]).sum())
     n_synth = int(df["is_synthetic"].sum())
-    print(f"[OK] Dataset préparé : {OUTPUT_PATH}")
+    print(f"[OK] Dataset préparé : {output_path}")
     print(f"    total={total} réelles={n_real} synthétiques={n_synth}")
     print(f"    synthetic_share_pct={100.0 * n_synth / max(1, total):.2f}%")
     print(f"    dataset_version={dataset_version}")
     print(f"    dataset_hash={_dataset_hash(df)}")
-    return df
+    return df, output_path
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Prépare le dataset avec provenance")
     parser.add_argument("--dataset-version", default="v1.0.0", help="Version du dataset")
+    parser.add_argument("--corpus-path", default=None, help="Chemin du corpus réel (défaut : training_corpus_from_db.csv)")
     args = parser.parse_args()
-    prepare_dataset(args.dataset_version)
+    prepare_dataset(
+        args.dataset_version,
+        Path(args.corpus_path) if args.corpus_path else None,
+    )
     return 0
 
 

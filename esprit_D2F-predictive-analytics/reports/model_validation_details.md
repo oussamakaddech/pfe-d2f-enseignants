@@ -1,16 +1,16 @@
 # Détail de validation par modèle
 
-Généré le : 2026-08-19T06:39:57.633729
+Généré le : 2026-08-20T01:56:22.772883
 
 ## Métadonnées d'audit
 
-- **generated_at** : 2026-08-19T06:39:57.633729
-- **dataset_path** : C:\Users\oussama\Desktop\pfe-d2f-enseignants\esprit_D2F-predictive-analytics\data\clean\training_corpus_provenanced.csv
-- **dataset_version** : v1.0.0
-- **dataset_hash** : c70523c0d353ccfed62ca432c0a8486a4ec40b5e09aa47859157a71ffc959fdd
-- **n_rows** : 107
+- **generated_at** : 2026-08-20T01:56:22.772883
+- **dataset_path** : C:\Users\oussama\Desktop\pfe-d2f-enseignants\esprit_D2F-predictive-analytics\data\clean\training_corpus_clean.csv
+- **dataset_version** : v1.1.0
+- **dataset_hash** : 896609dbdd57d98f0e32e971af6a7357be4064c17d74301856db8abf917e2b47
+- **n_rows** : 172
 - **n_teachers** : 40
-- **n_competencies** : 11
+- **n_competencies** : 13
 - **feature_count** : 29
 - **feature_schema_version** : 1.0
 - **feature_schema_hash** : 71e029e254f9b3bced91f7faef0bd0ebb1f1c14f1a1c72c9820cc63e48445ef0
@@ -23,21 +23,26 @@ Généré le : 2026-08-19T06:39:57.633729
 ### baseline_persistence
 - **task** : regression_gap
 - **target** : gap_next_3m
-- **dataset_version** : v1.0.0
-- **dataset_hash** : c70523c0d353ccfed62ca432c0a8486a4ec40b5e09aa47859157a71ffc959fdd
-- **n_rows** : 107
+- **dataset_version** : v1.1.0
+- **dataset_hash** : 896609dbdd57d98f0e32e971af6a7357be4064c17d74301856db8abf917e2b47
+- **n_rows** : 172
 - **n_teachers** : 40
-- **n_competencies** : 11
+- **n_competencies** : 13
 - **feature_count** : 29
 - **feature_schema_version** : 1.0
 - **feature_schema_hash** : 71e029e254f9b3bced91f7faef0bd0ebb1f1c14f1a1c72c9820cc63e48445ef0
 - **train_period** : ('2016-03-01', '2026-07-22')
+- **val_period** : ('2026-07-22', '2026-07-22')
 - **test_period** : ('2026-07-22', '2026-07-22')
 - **random_seed** : 42
-- **split** : temporal_strict_cutoff_2026-07-22
-- **metrics** : {'rmse': 2.546119570586752, 'mae': 2.1174603174603175, 'r2': -4.378330894648829, 'median_abs_err': 2.0, 'max_abs_err': 4.0, 'n_predictions': 21}
-- **n_train** : 86
-- **n_test** : 21
+- **split** : temporal_3way_train_2026-07-22_val_2026-07-22
+- **metrics** : {'rmse': 2.4170790723164326, 'mae': 2.0921568627450977, 'r2': -3.903040251673791, 'median_abs_err': 2.0, 'max_abs_err': 4.0, 'n_predictions': 34}
+- **n_train** : 104
+- **n_val** : 34
+- **n_test** : 34
+- **train_teachers** : 30
+- **val_teachers** : 12
+- **test_teachers** : 12
 - **train_time_s** : 0.0
 - **inference_time_ms** : 0.0
 - **artifact_path** : N/A (règle métier)
@@ -46,93 +51,104 @@ Généré le : 2026-08-19T06:39:57.633729
 ### gradient_boosting
 - **task** : regression_gap
 - **target** : gap_next_3m
-- **dataset_version** : v1.0.0
-- **dataset_hash** : c70523c0d353ccfed62ca432c0a8486a4ec40b5e09aa47859157a71ffc959fdd
-- **n_rows** : 107
+- **dataset_version** : v1.1.0
+- **dataset_hash** : 896609dbdd57d98f0e32e971af6a7357be4064c17d74301856db8abf917e2b47
+- **n_rows** : 172
 - **n_teachers** : 40
-- **n_competencies** : 11
+- **n_competencies** : 13
 - **feature_count** : 29
 - **feature_schema_version** : 1.0
 - **feature_schema_hash** : 71e029e254f9b3bced91f7faef0bd0ebb1f1c14f1a1c72c9820cc63e48445ef0
 - **train_period** : ('2016-03-01', '2026-07-22')
+- **val_period** : ('2026-07-22', '2026-07-22')
 - **test_period** : ('2026-07-22', '2026-07-22')
 - **random_seed** : 42
-- **split** : temporal_strict_cutoff_2026-07-22
-- **metrics** : {'rmse': 0.9882948532111454, 'mae': 0.6387745023620676, 'r2': 0.18966798927442208, 'median_abs_err': 0.3114257970304155, 'max_abs_err': 2.86149176964792, 'n_predictions': 21, 'improvement_vs_baseline_pct': 61.18}
-- **n_train** : 86
-- **n_test** : 21
-- **train_time_s** : 0.0549
-- **inference_time_ms** : 0.285
+- **split** : temporal_3way_train_2026-07-22_val_2026-07-22
+- **metrics** : {'rmse': 1.0696260222483547, 'mae': 0.8221447070327975, 'r2': 0.03983103936383037, 'median_abs_err': 0.6735384652068644, 'max_abs_err': 2.9596326129062414, 'n_predictions': 34, 'improvement_vs_persistence_pct': 55.75}
+- **n_train** : 104
+- **n_val** : 34
+- **n_test** : 34
+- **train_teachers** : 30
+- **val_teachers** : 12
+- **test_teachers** : 12
+- **train_time_s** : 0.0617
+- **inference_time_ms** : 0.3032
 - **artifact_path** : C:\Users\oussama\Desktop\pfe-d2f-enseignants\esprit_D2F-predictive-analytics\data\models\gap_predictor_temporal.joblib
 - **artifact_sha256** : 6bbb396c1e28087deeeb402ecf856388510f54a08895dae5415132b08fb35bbe
 - **serving_status** : ACTIVE
+- **bootstrap_ci** : {'method': 'bootstrap_1000_ic95', 'seed': 42, 'rmse_ci95': [0.7454, 1.3948], 'mae_ci95': [0.6169, 1.0963], 'improvement_pct_ci95': [37.33, 70.55], 'improvement_significant_95': True, 'n_boot': 1000, 'n_test': 34}
 ### xgboost
 - **task** : regression_gap
 - **target** : gap_next_3m
-- **dataset_version** : v1.0.0
-- **dataset_hash** : c70523c0d353ccfed62ca432c0a8486a4ec40b5e09aa47859157a71ffc959fdd
-- **n_rows** : 107
+- **dataset_version** : v1.1.0
+- **dataset_hash** : 896609dbdd57d98f0e32e971af6a7357be4064c17d74301856db8abf917e2b47
+- **n_rows** : 172
 - **n_teachers** : 40
-- **n_competencies** : 11
+- **n_competencies** : 13
 - **feature_count** : 29
 - **feature_schema_version** : 1.0
 - **feature_schema_hash** : 71e029e254f9b3bced91f7faef0bd0ebb1f1c14f1a1c72c9820cc63e48445ef0
 - **train_period** : ('2016-03-01', '2026-07-22')
+- **val_period** : ('2026-07-22', '2026-07-22')
 - **test_period** : ('2026-07-22', '2026-07-22')
 - **random_seed** : 42
-- **split** : temporal_strict_cutoff_2026-07-22
-- **metrics** : {'rmse': 1.0376624133264478, 'mae': 0.6309148621937585, 'r2': 0.10669019767622767, 'median_abs_err': 0.3775567213694251, 'max_abs_err': 3.0058703422546387, 'n_predictions': 21, 'improvement_vs_baseline_pct': 59.25}
-- **n_train** : 86
-- **n_test** : 21
-- **train_time_s** : 0.0613
-- **inference_time_ms** : 1.0124
+- **split** : temporal_3way_train_2026-07-22_val_2026-07-22
+- **metrics** : {'rmse': 1.0936831747264815, 'mae': 0.8137966435329587, 'r2': -0.003845332985124461, 'median_abs_err': 0.6468853950500488, 'max_abs_err': 2.9830074310302734, 'n_predictions': 34, 'improvement_vs_persistence_pct': 54.75}
+- **n_train** : 104
+- **n_val** : 34
+- **n_test** : 34
+- **train_teachers** : 30
+- **val_teachers** : 12
+- **test_teachers** : 12
+- **train_time_s** : 0.0475
+- **inference_time_ms** : 1.3202
 - **artifact_path** : N/A (challenger, non enregistré)
 - **artifact_sha256** : N/A
 - **serving_status** : KEEP_AS_CHALLENGER
+- **bootstrap_ci** : {'method': 'bootstrap_1000_ic95', 'seed': 42, 'rmse_ci95': [0.7603, 1.433], 'mae_ci95': [0.5845, 1.106], 'improvement_pct_ci95': [36.76, 70.06], 'improvement_significant_95': True, 'n_boot': 1000, 'n_test': 34}
 ### mlp
 - **task** : regression_gap
 - **target** : gap_next_3m
-- **dataset_version** : v1.0.0
-- **dataset_hash** : c70523c0d353ccfed62ca432c0a8486a4ec40b5e09aa47859157a71ffc959fdd
-- **n_rows** : 107
+- **dataset_version** : v1.1.0
+- **dataset_hash** : 896609dbdd57d98f0e32e971af6a7357be4064c17d74301856db8abf917e2b47
+- **n_rows** : 172
 - **n_teachers** : 40
-- **n_competencies** : 11
+- **n_competencies** : 13
 - **feature_count** : 29
 - **feature_schema_version** : 1.0
 - **feature_schema_hash** : 71e029e254f9b3bced91f7faef0bd0ebb1f1c14f1a1c72c9820cc63e48445ef0
 - **train_period** : ('2016-03-01', '2026-07-22')
+- **val_period** : ('2026-07-22', '2026-07-22')
 - **test_period** : ('2026-07-22', '2026-07-22')
 - **random_seed** : 42
-- **split** : temporal_strict_cutoff_2026-07-22
-- **metrics** : {'rmse': 1.20523103634786, 'mae': 1.1337039942891198, 'r2': -0.20512068698250152, 'median_abs_err': 1.2349557845915966, 'max_abs_err': 1.7953204791114996, 'n_predictions': 21, 'improvement_vs_baseline_pct': 52.66}
-- **n_train** : 86
-- **n_test** : 21
-- **train_time_s** : 0.081
-- **inference_time_ms** : 0.1459
+- **split** : temporal_3way_train_2026-07-22_val_2026-07-22
+- **metrics** : {'rmse': 1.110131213863728, 'mae': 0.8332836562647046, 'r2': -0.03426629103745582, 'median_abs_err': 0.6474946109758379, 'max_abs_err': 3.0927084505624327, 'n_predictions': 34, 'improvement_vs_persistence_pct': 54.07}
+- **n_train** : 104
+- **n_val** : 34
+- **n_test** : 34
+- **train_teachers** : 30
+- **val_teachers** : 12
+- **test_teachers** : 12
+- **train_time_s** : 0.366
+- **inference_time_ms** : 0.1431
 - **artifact_path** : N/A (challenger, non enregistré)
 - **artifact_sha256** : N/A
 - **serving_status** : KEEP_AS_CHALLENGER
+- **bootstrap_ci** : {'method': 'bootstrap_1000_ic95', 'seed': 42, 'rmse_ci95': [0.7844, 1.454], 'mae_ci95': [0.6135, 1.1091], 'improvement_pct_ci95': [34.24, 69.83], 'improvement_significant_95': True, 'n_boot': 1000, 'n_test': 34}
 ### legacy_gap_predictor
 - **task** : regression_gap
 - **target** : gap_next_3m
-- **dataset_version** : v1.0.0
-- **dataset_hash** : c70523c0d353ccfed62ca432c0a8486a4ec40b5e09aa47859157a71ffc959fdd
-- **n_rows** : 107
+- **dataset_version** : v1.1.0
+- **dataset_hash** : 896609dbdd57d98f0e32e971af6a7357be4064c17d74301856db8abf917e2b47
+- **n_rows** : 172
 - **metrics** : {'rmse': 'N/A', 'mae': 'N/A', 'r2': 'N/A'}
 - **note** : Legacy non évaluable : X has 29 features, but GradientBoostingRegressor is expecting 21 features as input.
 - **serving_status** : NOT_AVAILABLE
-### statistical_validation
-- **method** : bootstrap_1000_ic95
-- **lift_rmse_ci95** : [0.6885, 2.3891]
-- **lift_significant_95** : True
-- **note** : Évaluation indicative : volume insuffisant pour conclure à une généralisation institutionnelle (107 lignes, 21 en test).
-- **train_dates** : ('2016-03-01', '2026-07-22')
-- **test_dates** : ('2026-07-22', '2026-07-22')
 ### subgroup_metrics
-- **gap_faible** : {'rmse': 2.760574294368407, 'mae': 2.7586583180902196, 'r2': 0.0, 'median_abs_err': 2.7586583180902196, 'max_abs_err': 2.86149176964792, 'n_predictions': 2}
-- **gap_moyen** : {'rmse': 0.6508976557378843, 'mae': 0.553866017540081, 'r2': -4.526101194500962, 'median_abs_err': 0.43633701309907635, 'max_abs_err': 1.0992698196448538, 'n_predictions': 10}
-- **gap_élevé** : {'rmse': 0.04070390629209313, 'mae': 0.034235081120097245, 'r2': 0.0, 'median_abs_err': 0.049803754925785704, 'max_abs_err': 0.049803754925785704, 'n_predictions': 3}
-- **gap_critique** : {'rmse': 0.4139388398238177, 'mae': 0.37593041577698005, 'r2': -1.7757948824579461, 'median_abs_err': 0.3020623232823576, 'max_abs_err': 0.6601610084576355, 'n_predictions': 6}
+- **by_teacher** : {'ENS009': {'insufficient_sample': True, 'n': 1}, 'ENS010': {'rmse': 1.0480060695192008, 'mae': 0.8719422642757292, 'r2': -1.2811193451711742, 'median_abs_err': 0.7396547153406678, 'max_abs_err': 1.9596903845593054, 'n_predictions': 6}, 'ENS011': {'insufficient_sample': True, 'n': 3}, 'ENS012': {'rmse': 0.9685224697408216, 'mae': 0.7435844262762368, 'r2': 0.5657241785218239, 'median_abs_err': 0.3405060392654147, 'max_abs_err': 1.5385339145048587, 'n_predictions': 5}, 'ENS013': {'insufficient_sample': True, 'n': 3}, 'ENS020': {'insufficient_sample': True, 'n': 2}, 'ENS021': {'insufficient_sample': True, 'n': 1}, 'ENS023': {'insufficient_sample': True, 'n': 1}, 'ENS025': {'insufficient_sample': True, 'n': 3}, 'ENS026': {'insufficient_sample': True, 'n': 4}, 'ENS027': {'insufficient_sample': True, 'n': 4}, 'FORM001': {'insufficient_sample': True, 'n': 1}}
+- **by_competence** : {'1': {'rmse': 1.2227421806428334, 'mae': 0.7185540464174484, 'r2': -0.5137871708272308, 'median_abs_err': 0.23029952653730767, 'max_abs_err': 2.9145686336735563, 'n_predictions': 6}, '2': {'rmse': 1.1065482217815665, 'mae': 1.0068746070038395, 'r2': -0.007546578665281967, 'median_abs_err': 0.8999331206598863, 'max_abs_err': 1.9596903845593054, 'n_predictions': 8}, '3': {'rmse': 1.2748551750678703, 'mae': 0.8320351588706852, 'r2': -0.5263271085122752, 'median_abs_err': 0.4742709070481519, 'max_abs_err': 2.9596326129062414, 'n_predictions': 6}, '4': {'insufficient_sample': True, 'n': 4}, '5': {'insufficient_sample': True, 'n': 4}, '6': {'rmse': 0.8570569290321152, 'mae': 0.7112586559650153, 'r2': 0.30207304460107, 'median_abs_err': 0.7084823400114377, 'max_abs_err': 1.5385339145048587, 'n_predictions': 6}}
+- **by_ref_month** : {'2026-07-22': {'rmse': 1.0696260222483547, 'mae': 0.8221447070327975, 'r2': 0.03983103936383037, 'median_abs_err': 0.6735384652068644, 'max_abs_err': 2.9596326129062414, 'n_predictions': 34}}
+- **by_gap_severity** : {'gap_faible': {'rmse': 1.9187995463409298, 'mae': 1.6908567877971266, 'r2': -29.067965542144957, 'median_abs_err': 1.4614660854951413, 'max_abs_err': 2.9596326129062414, 'n_predictions': 7}, 'gap_moyen': {'rmse': 0.6556745874029668, 'mae': 0.5681593807284723, 'r2': -6.2919208297549405, 'median_abs_err': 0.5453871485797182, 'max_abs_err': 1.2878382872674523, 'n_predictions': 14}, 'gap_élevé': {'rmse': 0.696477773323586, 'mae': 0.6429815684840906, 'r2': -30.433267509948944, 'median_abs_err': 0.6620756442630731, 'max_abs_err': 0.9542387662689911, 'n_predictions': 6}, 'gap_critique': {'rmse': 0.7743786637790865, 'mae': 0.614971683347439, 'r2': -10.018795036586697, 'median_abs_err': 0.3996384740249024, 'max_abs_err': 1.5385339145048587, 'n_predictions': 7}}
 
 ## Modèles RISQUE
 ### heuristic_six_factors

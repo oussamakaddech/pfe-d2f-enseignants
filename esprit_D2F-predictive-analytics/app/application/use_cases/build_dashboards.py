@@ -82,15 +82,20 @@ class BuildDashboards:
             declining = {
                 "competence_id": gap.competence_id,
                 "competence_nom": gap.competence_nom,
-                "current_avg": gap.current_level,
-                "previous_avg": gap.target_level - gap.gap_score * gap.target_level,
+                "current_avg": gap.observed_result,
+                "previous_avg": gap.knowledge_difficulty_level
+                - gap.gap_score * gap.knowledge_difficulty_level,
             }
             coverage = {
                 "competence_id": gap.competence_id,
-                "current_level": int(gap.current_level),
-                "required_level": int(gap.target_level),
-                "covered": gap.current_level >= gap.target_level,
+                "observed_result": int(gap.observed_result),
+                "knowledge_difficulty_level": int(gap.knowledge_difficulty_level),
+                "covered": gap.observed_result >= gap.knowledge_difficulty_level,
                 "teacher_id": teacher_id,
             }
-            contribution = min(gap.current_level / gap.target_level, 1.0) if gap.target_level else 0.0
+            contribution = (
+                min(gap.observed_result / gap.knowledge_difficulty_level, 1.0)
+                if gap.knowledge_difficulty_level
+                else 0.0
+            )
             yield declining, coverage, contribution

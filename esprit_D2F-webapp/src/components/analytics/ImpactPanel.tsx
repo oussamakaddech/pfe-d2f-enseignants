@@ -45,7 +45,7 @@ export default function ImpactPanel({ enseignantId, gaps, recommendations }: Pro
     Object.fromEntries(uniqueGaps.map((g) => [g.competence_id, true])),
   );
   const [niveaux, setNiveaux] = useState<Record<number, number>>(() =>
-    Object.fromEntries(uniqueGaps.map((g) => [g.competence_id, g.niveau_requis])),
+    Object.fromEntries(uniqueGaps.map((g) => [g.competence_id, g.knowledge_difficulty_level])),
   );
 
   const formationParCompetence = useMemo(() => {
@@ -68,7 +68,7 @@ export default function ImpactPanel({ enseignantId, gaps, recommendations }: Pro
       .filter((g) => selected[g.competence_id])
       .map((g) => ({
         competence_id: g.competence_id,
-        niveau_vise: niveaux[g.competence_id] ?? g.niveau_requis,
+        niveau_vise: niveaux[g.competence_id] ?? g.knowledge_difficulty_level,
         formation_id: formationParCompetence.get(g.competence_id)?.formation_id ?? null,
       }));
     if (!plan.length) return;
@@ -141,7 +141,7 @@ export default function ImpactPanel({ enseignantId, gaps, recommendations }: Pro
                       />
                       <span>
                         {r.gap.competence_nom}
-                        {r.gap.niveau_actuel === 0 && (
+                        {r.gap.observed_result === 0 && (
                           <Tag color="red" style={{ marginLeft: 4 }}>
                             Manquante
                           </Tag>
@@ -154,8 +154,8 @@ export default function ImpactPanel({ enseignantId, gaps, recommendations }: Pro
                   title: 'Actuel → Requis',
                   dataIndex: ['gap', 'niveau_actuel'],
                   render: (_: unknown, r: { gap: SkillGap }) => (
-                    <Tag color={r.gap.niveau_actuel === 0 ? 'red' : 'default'}>
-                      N{r.gap.niveau_actuel} → N{r.gap.niveau_requis}
+                    <Tag color={r.gap.observed_result === 0 ? 'red' : 'default'}>
+                      N{r.gap.observed_result} → N{r.gap.knowledge_difficulty_level}
                     </Tag>
                   ),
                 },
@@ -170,7 +170,7 @@ export default function ImpactPanel({ enseignantId, gaps, recommendations }: Pro
                       onChange={(v) =>
                         setNiveaux((s) => ({
                           ...s,
-                          [r.gap.competence_id]: (v as number) ?? r.gap.niveau_requis,
+                          [r.gap.competence_id]: (v as number) ?? r.gap.knowledge_difficulty_level,
                         }))
                       }
                       disabled={!selected[r.gap.competence_id]}

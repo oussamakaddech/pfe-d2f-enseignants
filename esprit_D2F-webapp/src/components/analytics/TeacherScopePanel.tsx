@@ -1,4 +1,4 @@
-import { Tag, Tooltip, Progress, Empty, Spin, Table } from 'antd';
+import { Tag, Progress, Empty, Spin, Table } from 'antd';
 import {
   AimOutlined,
   ApartmentOutlined,
@@ -30,9 +30,14 @@ interface Props {
 }
 
 /**
- * Panneau "Analyse contextuelle par spécialité / UP / département".
- * Monte : bloc contexte (grade, specialite, UP, dept) + resultats filtres
- * (gaps + recommandations sur les competences du perimetre) + indicateurs ML.
+ * Panneau « Analyse contextuelle par spécialité / UP / département ».
+ * Monte : bloc contexte (grade, specialité, UP, département) + résultats filtrés
+ * (gaps + recommandations sur les compétences du périmètre) + indicateurs ML.
+ *
+ * Affichage (audit visuel) :
+ * - Département et Unité pédagogique sur des lignes distinctes (labels
+ *   français accentués : « Département » / « Unité pédagogique »).
+ * - Pertinence et cible sur des lignes distinctes (jamais concaténées au titre).
  */
 export default function TeacherScopePanel({ data, loading }: Readonly<Props>) {
   if (loading) {
@@ -76,9 +81,12 @@ export default function TeacherScopePanel({ data, loading }: Readonly<Props>) {
         <div className="at-scope-row">
           <ApartmentOutlined className="at-scope-icon" />
           <div>
-            <div className="at-scope-label">Département / Unité pédagogique</div>
+            <div className="at-scope-label">Département</div>
             <div className="at-scope-value">{c.dept_libelle ?? '—'}</div>
-            <div className="at-scope-sub">{c.up_libelle ?? '—'}</div>
+            <div className="at-scope-label" style={{ marginTop: 8 }}>
+              Unité pédagogique
+            </div>
+            <div className="at-scope-value">{c.up_libelle ?? '—'}</div>
           </div>
         </div>
         <div className="at-scope-row">
@@ -86,25 +94,23 @@ export default function TeacherScopePanel({ data, loading }: Readonly<Props>) {
           <div>
             <div className="at-scope-label">Périmètre analysé</div>
             <div className="at-scope-value">
-              {data.scoped_competencies_count} / {data.total_competencies_count} compétences
+              {data.scoped_competencies_count} compétences analysées sur{' '}
+              {data.total_competencies_count} accessibles
             </div>
             <Progress
               percent={scopeCoverage}
               size="small"
               showInfo={false}
-              strokeColor={data.is_fallback_global ? '#f59e0b' : '#10b981'}
+              strokeColor={data.scope.is_global ? '#8c8c8c' : '#10b981'}
               style={{ marginTop: 4 }}
             />
-            {data.is_fallback_global && (
-              <Tooltip title="Aucun domaine rattache a la specialite/UP/dept — fallback sur le referentiel global">
-                <Tag color="warning" icon={<AlertOutlined />} style={{ marginTop: 6 }}>
-                  Référentiel global (périmètre vide)
-                </Tag>
-              </Tooltip>
-            )}
-            {!data.is_fallback_global && (
+            {data.scope.is_global ? (
+              <Tag color="default" style={{ marginTop: 6 }}>
+                Périmètre global
+              </Tag>
+            ) : (
               <Tag color="success" icon={<CheckCircleFilled />} style={{ marginTop: 6 }}>
-                Périmètre ciblé
+                {data.scope.label}
               </Tag>
             )}
           </div>
@@ -135,12 +141,6 @@ export default function TeacherScopePanel({ data, loading }: Readonly<Props>) {
                     <div style={{ fontSize: 11, color: 'var(--at-ink3)' }}>{g.competence_code}</div>
                   </div>
                 ),
-              },
-              {
-                title: 'Niveau',
-                key: 'niveau',
-                width: 110,
-                render: (_, g) => `${g.niveau_actuel.toFixed(1)} / ${g.niveau_requis}`,
               },
               {
                 title: 'Gap',
@@ -184,15 +184,21 @@ export default function TeacherScopePanel({ data, loading }: Readonly<Props>) {
           <div className="at-scope-reco">
             {data.recommendations.map((r) => (
               <div key={`rec-${r.formation_id}-${r.competence_id}`} className="at-scope-reco-card">
-                <div className="at-scope-reco-head">
+                <div className="at-scope-reco-title-block">
                   <span className="at-scope-reco-title">{r.formation_titre}</span>
-                  <Tag color="blue">Score {Math.round((r.score_global ?? 0) * 100)}</Tag>
+                  <div className="at-scope-reco-tags" style={{ marginTop: 4 }}>
+                    <Tag color="blue" style={{ margin: 0 }}>
+                      Pertinence : {Math.round((r.score_pertinence ?? 0) * 100)}/100
+                    </Tag>
+                  </div>
+                  {r.competence_nom ? (
+                    <div className="at-scope-reco-target" style={{ marginTop: 4, fontSize: 12 }}>
+                      Cible : {r.competence_nom}
+                    </div>
+                  ) : null}
                 </div>
                 {r.justification ? (
                   <div className="at-scope-reco-justif">{r.justification}</div>
-                ) : null}
-                {r.competence_nom ? (
-                  <div className="at-scope-reco-comp">Cible : {r.competence_nom}</div>
                 ) : null}
               </div>
             ))}

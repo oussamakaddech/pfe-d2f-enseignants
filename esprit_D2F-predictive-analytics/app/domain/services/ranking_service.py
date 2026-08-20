@@ -26,7 +26,7 @@ def missing_savoirs(state: TeacherCompetencyState) -> set[int]:
     return {
         savoir.id
         for savoir in state.competency.savoirs
-        if state.savoir_levels.get(savoir.id, 0) < savoir.required_level
+        if state.savoir_levels.get(savoir.id, 0) < savoir.knowledge_difficulty_level
     }
 
 

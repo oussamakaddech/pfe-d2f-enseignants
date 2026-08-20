@@ -18,7 +18,7 @@ from app.infrastructure.ml.predictor import (
     ArtifactModelPort,
 )
 
-MODELS_DIR = Path(__file__).parent.parent / "data" / "models"
+MODELS_DIR = Path(__file__).resolve().parents[2] / "data" / "models"
 
 
 class _FakeModel:
@@ -363,3 +363,73 @@ def test_rbac_scope_enforced():
     source = inspect.getsource(gaps.list_gaps)
     assert "enforce_teacher_access" in source
     assert "require_roles" in source
+
+
+# ---------------------------------------------------------------------------
+# 13. Cohérence active_model.version ↔ provenance.dataset_model_version
+# ---------------------------------------------------------------------------
+def test_active_model_version_matches_provenance():
+    """ÉCHEC si le modèle ACTIVE du registre ne correspond pas à la version
+    du dataset servi (colonne dataset_version des lignes du corpus provenancé).
+
+    Garantie : le registre (artefact servi) et le corpus d'entraînement restent
+    sur la même version ; tout écart force une revue avant re-validation.
+    """
+    from app.infrastructure.ml.dataset_provenance import provenance_from_csv
+
+    registry_path = MODELS_DIR / "model_registry.json"
+    if not registry_path.exists():
+        pytest.skip("registre absent")
+
+    import json
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    if isinstance(registry, dict):
+        registry = registry.get("entries", [])
+    active = [e for e in registry if e.get("status") == "ACTIVE"]
+    if not active:
+        pytest.skip("aucune entrée ACTIVE dans le registre")
+
+    active = active[0]
+    corpus = MODELS_DIR.parent / "clean" / "training_corpus_provenanced.csv"
+    if not corpus.exists():
+        pytest.skip("corpus provenancé absent")
+
+    import pandas as pd
+    df = pd.read_csv(corpus)
+    provenance_version = str(df["dataset_version"].iloc[0])
+    assert provenance_version, "provenance.dataset_model_version absente"
+
+    assert active["model_version"] == provenance_version, (
+        f"incohérence version active/registre : registre={active['model_version']} "
+        f"vs provenance={provenance_version} (dataset servi). "
+        "Corrigez le registre ou l'artefact avant toute re-validation."
+    )
+
+
+def test_active_dataset_hash_recomputed():
+    """Le dataset_hash de l'entrée ACTIVE doit être renseigné et correspondre
+    au hash canonique du corpus provenancé (sinon traçabilité cassée)."""
+    from app.infrastructure.ml.dataset_provenance import provenance_from_csv
+
+    registry_path = MODELS_DIR / "model_registry.json"
+    if not registry_path.exists():
+        pytest.skip("registre absent")
+
+    import json
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    if isinstance(registry, dict):
+        registry = registry.get("entries", [])
+    active = [e for e in registry if e.get("status") == "ACTIVE"]
+    if not active:
+        pytest.skip("aucune entrée ACTIVE dans le registre")
+
+    active = active[0]
+    corpus = MODELS_DIR.parent / "clean" / "training_corpus_provenanced.csv"
+    if not corpus.exists():
+        pytest.skip("corpus provenancé absent")
+
+    report = provenance_from_csv(corpus)
+    assert active.get("dataset_hash"), "dataset_hash ACTIVE vide dans le registre"
+    assert active["dataset_hash"] == report.dataset_hash, (
+        f"dataset_hash ACTIVE ({active['dataset_hash']}) != hash corpus ({report.dataset_hash})"
+    )

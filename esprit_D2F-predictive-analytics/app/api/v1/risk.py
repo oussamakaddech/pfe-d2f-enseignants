@@ -18,5 +18,8 @@ def get_risk(teacher_id: str, container: ContainerDependency, user: Annotated[Cu
     user_teacher = resolve_user_teacher(container, user)
     enforce_teacher_access(user, teacher, user_teacher)
 
-    profile, model_mode, model_version = container.compute_risk.execute(teacher_id)
-    return ok(profile.to_dict(model_mode, model_version)["data"], {"model_mode": model_mode, "model_version": model_version})
+    profile, model_mode, model_version, model_name = container.compute_risk.execute(teacher_id)
+    return ok(
+        profile.to_dict(model_mode, model_version)["data"],
+        {"model_mode": model_mode, "model_version": model_version, "model_name": model_name},
+    )

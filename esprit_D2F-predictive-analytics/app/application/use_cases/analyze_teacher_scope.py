@@ -13,12 +13,30 @@ from app.domain.value_objects.enums import DEFAULT_TARGET_LEVEL
 
 
 @dataclass(frozen=True)
+class ScopeInfo:
+    """Périmètre de l'analyse contextuelle, rendu explicite.
+
+    - ``type`` : GLOBAL (aucun rattachement département/UP), DEPARTMENT
+      (département de l'enseignant), UP (unité pédagogique).
+    - ``is_global`` : vrai uniquement si le périmètre global est utilisé par
+      choix (enseignant sans rattachement), jamais comme fallback silencieux.
+    - ``label`` : libellé affichable ("Périmètre global", "Département ...",
+      "Unité pédagogique ...").
+    """
+
+    type: str
+    is_global: bool
+    label: str
+
+
+@dataclass(frozen=True)
 class TeacherScopeAnalysis:
     """Agregat de l'analyse contextuelle d'un enseignant.
 
-    Contient le contexte (specialite / UP / departement), les gaps calcules
-    sur les competences de son perimetre, et les recommandations de
-    formations associees aux gaps les plus critiques.
+    Contient le contexte (specialite / UP / departement), le périmètre
+    explicite (ScopeInfo), les gaps calculés sur les competences de son
+    perimetre, et les recommandations de formations associées aux gaps les
+    plus critiques.
     """
 
     teacher: Teacher
@@ -27,7 +45,7 @@ class TeacherScopeAnalysis:
     recommendations: list[Recommendation]
     total_competencies: int
     scoped_competencies_count: int
-    is_fallback_global: bool
+    scope: ScopeInfo
 
 
 class AnalyzeTeacherScope:
@@ -37,8 +55,10 @@ class AnalyzeTeacherScope:
 
     Regle de filtrage : les domaines de competences rattaches au departement
     ou a l'UP de l'enseignant (ou dont le nom matche sa specialite) sont
-    analyses en priorite. Si aucun domaine ne correspond, on retombe sur le
-    referentiel global (fallback).
+    analyses en priorite. Le périmètre est TOUJOURS explicite :
+    - GLOBAL uniquement si l'enseignant n'a ni departement ni UP ;
+    - DEPARTMENT / UP sinon — même si aucun domaine ne correspond (liste de
+      compétences vide), jamais de fallback silencieux sur le global.
     """
 
     def __init__(
@@ -55,15 +75,34 @@ class AnalyzeTeacherScope:
         self._recommendations_per_gap = recommendations_per_gap
         self._max_gaps_for_recommendations = max_gaps_for_recommendations
 
+    @staticmethod
+    def _scope_label(prefix: str, libelle: str | None, fallback: str | None) -> str:
+        value = (libelle or fallback or "").strip()
+        if not value:
+            return prefix
+        lowered = value.lower().replace("é", "e").replace("è", "e")
+        if lowered.startswith(prefix.lower().replace("é", "e").replace("è", "e")):
+            return value
+        return f"{prefix} {value}"
+
+    @staticmethod
+    def _scope_info(teacher: Teacher) -> ScopeInfo:
+        if teacher.dept_id:
+            label = AnalyzeTeacherScope._scope_label("Département", teacher.dept_libelle, teacher.dept_id)
+            return ScopeInfo(type="DEPARTMENT", is_global=False, label=label)
+        if teacher.up_id:
+            up_libelle = teacher.up_libelle or teacher.up_id
+            label = up_libelle if up_libelle.lower().startswith(("up ", "unité")) else f"Unité pédagogique {up_libelle}"
+            return ScopeInfo(type="UP", is_global=False, label=label)
+        return ScopeInfo(type="GLOBAL", is_global=True, label="Périmètre global")
+
     def execute(self, teacher: Teacher) -> TeacherScopeAnalysis:
         all_competencies = self._competency_source.list_competencies()
         scoped_competencies = self._competency_source.list_competencies_for_scope(
             teacher.up_id, teacher.dept_id, teacher.specialite
         )
 
-        is_fallback = {c.id for c in scoped_competencies} == {c.id for c in all_competencies} and bool(
-            teacher.up_id or teacher.dept_id or teacher.specialite
-        )
+        scope = self._scope_info(teacher)
         scoped_ids = {c.id for c in scoped_competencies}
 
         levels = self._competency_source.get_teacher_savoir_levels(teacher.id)
@@ -85,7 +124,7 @@ class AnalyzeTeacherScope:
             recommendations=recommendations,
             total_competencies=len(all_competencies),
             scoped_competencies_count=len(scoped_competencies),
-            is_fallback_global=is_fallback,
+            scope=scope,
         )
 
     def _compute_gap(
@@ -110,8 +149,8 @@ class AnalyzeTeacherScope:
             competence_id=competency.id,
             competence_code=competency.code,
             competence_nom=competency.nom,
-            current_level=current_level,
-            target_level=float(competency.target_level),
+            observed_result=current_level,
+            knowledge_difficulty_level=float(competency.target_level),
             gap_score=gap_score,
             severity=severity,
             trend=trend_from_levels(current_level, previous_level),

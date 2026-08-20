@@ -1,0 +1,62 @@
+{
+  "title": "Décision finale — validation ML du service esprit_D2F-predictive-analytics",
+  "generated_at": "2026-08-20",
+  "auteur": "Pipeline de vérification (analyse honnête, aucune affirmation non vérifiée)",
+  "decision": {
+    "GAP_production": "DEMO_ONLY (rétroclassé) — l'artefact v1.0.0 reste le modèle servi (ACTIVE dans le registre) mais son corpus d'entraînement est un seed développeur (postgresql_d2f locale, enseignants ENS001-ENS042), non vérifié institutionnellement ; il ne peut pas être présenté comme production validée ESPRIT.",
+    "GAP_v110": "NOT_PROMOTED",
+    "BEST_DEMO_MODEL": "mlp (DEMO_ONLY)",
+    "RISQUE_ML": "NOT_AVAILABLE",
+    "RISQUE_heuristique": "KEEP_AS_BASELINE",
+    "RANKING": "KEEP_AS_BASELINE",
+    "GLOBAL": "VALIDÉ POUR DÉMONSTRATION"
+  },
+  "decision_finale": "VALIDÉ POUR DÉMONSTRATION",
+  "synthese": {
+    "modele_serve": {
+      "artifact": "gap_predictor_temporal.joblib",
+      "version": "v1.0.0",
+      "statut_registre": "ACTIVE / APPROVED",
+      "mode_serving": "PRODUCTION_ML (config runtime)",
+      "decision_honnete": "DEMO_ONLY — provenance non institutionnelle"
+    },
+    "candidat": {
+      "version": "v1.1.0",
+      "statut": "CANDIDATE / PENDING",
+      "decision": "NOT_PROMOTED (métriques inférieures : RMSE 1.0625 vs 0.9883)"
+    },
+    "demo": {
+      "version": "demo-gap-synthetic-v1.0.0",
+      "statut": "DEMO_ONLY",
+      "best_model": "mlp",
+      "rmse": 0.7402,
+      "decision": "jamais présenté comme performance ESPRIT"
+    }
+  },
+  "verifications_faites": [
+    "pytest backend : 315 passed / 0 failed (esprit_D2F-predictive-analytics, venv Python 3.13.2)",
+    "vitest frontend : 193 fichiers / 1425 tests passed, 2 fichiers skip (6 tests skip)",
+    "tsc --noEmit (webapp) : 0 erreur",
+    "split temporel démo (664/154/182) : max(train)=2025-12-31 < min(val)=2026-01-31 < min(test)=2026-04-30 → STRICT OK",
+    "split temporel production v1.0.0 (86/21) et v1.1.0 (138/34) : max(train)=2026-07-22 == min(test)=2026-07-22 → NON strict (overlap sur le bloc du 2026-07-22)",
+    "cible observée : 0/172 lignes avec observation réelle à ref_month+3 mois (target_coverage_report.json) → la cible v1.0.0/v1.1.0 a été calculée par extrapolation de tendance, méthode interdite",
+    "provenance : corpus v1.0.0/v1.1.0 issus de la base locale de dev postgresql_d2f (localhost:7432, user d2f), peuplée par seed/mock du développeur (ENS001-ENS042) → reclassés DEMO_SEED, pas INSTITUTIONAL_RECORD"
+  ],
+  "reserves": [
+    "Enrichir le corpus avec de vraies observations longitudinales institutionnelles (0 ligne avec cible observée aujourd'hui).",
+    "Rétablir un split temporel strict (max(train) < min(test)) avant toute nouvelle validation de production.",
+    "Corriger la classification de provenance : postgresql_d2f (base dev) ≠ INSTITUTIONAL_RECORD sans preuve d'origine institutionnelle.",
+    "Réaliser la validation QA DSI en environnement dédié (recette, runbook) — base non jointe depuis le conteneur de validation locale.",
+    "Ne jamais présenter les métriques du pipeline démo (ni celles du corpus v1.0.0/v1.1.0, rétroclassé démo) comme des performances sur les enseignants réels d'ESPRIT."
+  ],
+  "sources": [
+    "esprit_D2F-predictive-analytics/data/models/model_registry.json",
+    "esprit_D2F-predictive-analytics/data/models/demo/model_registry_demo.json",
+    "esprit_D2F-predictive-analytics/data/models/temporal_training_metadata.json",
+    "esprit_D2F-predictive-analytics/reports/target_coverage_report.json",
+    "esprit_D2F-predictive-analytics/reports/final_model_choice.json",
+    "esprit_D2F-predictive-analytics/reports/final_provenance_report.json",
+    "esprit_D2F-predictive-analytics/reports/final_demo_dataset_validation.json",
+    "esprit_D2F-predictive-analytics/reports/final_production_dataset_validation.json (à corriger : INSTITUTIONAL_RECORD → DEMO_SEED)"
+  ]
+}

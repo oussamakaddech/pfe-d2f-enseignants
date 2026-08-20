@@ -1,0 +1,8 @@
+{
+  "lignes_totales": 172,
+  "lignes_avec_cible": 0,
+  "lignes_sans_cible": 172,
+  "periodes_utilisables": "aucune — aucune observation de niveau future réelle à ref_month+3 mois",
+  "periodes_insuffisantes": "toute la période — chaque paire (enseignant, competence) n'a qu'UNE seule observation de niveau",
+  "explication": "La base ne contient qu'une seule ligne par paire (enseignant, savoir) dans competence.enseignant_competences (0 paire dupliquée). Aucune observation de niveau n'existe à ref_month + 3 mois pour quelconque observation : la cible gap_next_3m observée est donc incalculable. Le corpus actuel v1.0.0/v1.1.0 a calculé cette cible par extrapolation de tendance (cur_t + rolling), ce qui est interdit."
+}

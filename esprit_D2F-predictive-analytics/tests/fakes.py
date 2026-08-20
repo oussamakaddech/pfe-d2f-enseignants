@@ -25,7 +25,7 @@ COMPETENCIES = [
         nom="Pedagogie active",
         domaine_id=10,
         domaine_nom="Pedagogie",
-        savoirs=(Savoir(id=101, code="S101", nom="Classes inversees", required_level=4), Savoir(id=102, code="S102", nom="Evaluation formative", required_level=3)),
+        savoirs=(Savoir(id=101, code="S101", nom="Classes inversees", knowledge_difficulty_level=4), Savoir(id=102, code="S102", nom="Evaluation formative", knowledge_difficulty_level=3)),
     ),
     Competency(
         id=2,
@@ -33,7 +33,7 @@ COMPETENCIES = [
         nom="Outils numeriques",
         domaine_id=10,
         domaine_nom="Pedagogie",
-        savoirs=(Savoir(id=201, code="S201", nom="Tableaux interactifs", required_level=3),),
+        savoirs=(Savoir(id=201, code="S201", nom="Tableaux interactifs", knowledge_difficulty_level=3),),
     ),
 ]
 
@@ -74,9 +74,13 @@ class FakeCompetencySource:
     ) -> list[Competency]:
         # Simule le filtrage : T001 est rattaché au département D1 dont le
         # domaine 10 (Pedagogie) contient C1 ; C2 est hors périmètre pour D1.
+        # Tout périmètre déclaré sans domaine correspondant -> liste vide
+        # (aucun fallback silencieux sur le référentiel global).
         if dept_id == "D1":
             return [c for c in COMPETENCIES if c.id == 1]
-        return list(COMPETENCIES)
+        if up_id == "UP1":
+            return [c for c in COMPETENCIES if c.id == 2]
+        return []
 
     def get_teacher_savoir_levels(self, teacher_id: str) -> dict[int, int]:
         return dict(TEACHER_LEVELS.get(teacher_id, {}))
@@ -143,6 +147,8 @@ class FakeModelPort:
             "mode": "HEURISTIC_FALLBACK",
             "model_mode": "HEURISTIC_FALLBACK",
             "model_version": None,
+            "artifact_name": "gap_predictor",
+            "model_name": "gap_predictor",
             "fallback_reason": "faux port de test",
             "prediction_horizon": None,
             "provenance": {

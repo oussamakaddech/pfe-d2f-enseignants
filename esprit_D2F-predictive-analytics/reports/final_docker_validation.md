@@ -1,0 +1,35 @@
+# Validation finale Docker
+
+- **title** : Validation finale Docker
+- **generated_at** : 2026-08-20T15:06:11.132265+00:00
+- **docker_server_version** : 29.6.1
+- **image** : d2f-predictive-analytics:final
+- **image_exists** : True
+- **container** : pfe-d2f-final
+- **container_state** : Up About a minute (healthy)
+## build
+```json
+{
+  "status": "PASSED",
+  "dockerfile": "Dockerfile",
+  "note": "multi-stage builder + non-root appuser + HEALTHCHECK"
+}
+```
+## health
+```json
+{
+  "status_code": 200,
+  "body": {
+    "status": "degraded",
+    "service": "d2f-predictive-analytics",
+    "version": "0.1.0",
+    "database": "unreachable",
+    "model": "PRODUCTION_ML"
+  }
+}
+```
+- **model_in_container** : PRODUCTION_ML
+- **model_production_ml_in_container** : True
+- **jwt_protection** : {'protected_routes_401_without_token': True, 'routes': ['/api/v1/analytics/status', '/api/v1/analytics/dashboard']}
+- **limitations** : ["La base PostgreSQL n'est pas jointe depuis le conteneur de validation locale (database=unreachable) — vérifié côté packaging/health, non bloquant.", 'Validation effectuée sur Windows (Docker Desktop) ; la cible de production reste Linux.']
+- **conclusion** : L'image Docker se construit, démarre, expose le modèle ML en PRODUCTION_ML et protège ses routes par JWT.

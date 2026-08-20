@@ -20,13 +20,44 @@ export type TypeAlerte =
 export type SeveriteAlerte = 'INFO' | 'WARNING' | 'CRITICAL';
 export type StatutAlerte = 'NOUVELLE' | 'LUE' | 'TRAITEE' | 'IGNOREE' | 'ESCALADEE';
 
+// ── Modes d'exécution du modèle (backend app/core/ml_status.py) ──
+export type ModelMode = 'PRODUCTION_ML' | 'DEMO_ML' | 'HEURISTIC_FALLBACK' | 'ML';
+
 // ── Facteurs du score de risque (explicable) ───────────────
 export interface RiskFactor {
   nom: string;
+  /** Code technique du facteur (ex : `critical_gaps`), aligné sur le backend. */
+  code: string;
+  /** Valeur brute de la métrique (ex : 12 gaps critiques). */
   valeur_brute: number;
+  /** Valeur normalisée dans [0, 1] (bornée par un cap documenté côté backend). */
+  valeur_normalisee: number;
+  /** Poids du facteur dans [0, 1] (fourni par le backend). */
   poids: number;
+  /** Contribution au score = valeur_normalisee * poids, toujours dans [0, 1]. */
   contribution: number;
+  /** Contribution en pourcentage (0..100) — jamais > 100 même pour un gros volume de gaps. */
+  contribution_percent: number;
   explication: string;
+  /**
+   * Catégorie du facteur renseignée par le mapper du service :
+   * - `PROBABILITE_ML` : probabilité de classe renvoyée par le classifier
+   *   (feature backend `*_proba`) — jamais à confondre avec une contribution.
+   * - `FACTEUR` : variable métier pondérée qui contribue au score de risque.
+   */
+  categorie?: 'PROBABILITE_ML' | 'FACTEUR';
+  /**
+   * Périmètre des gaps comptés dans ce facteur (fourni par le backend) :
+   * - `TEACHER` : référentiel personnel (pas de rattachement ou périmètre global) ;
+   * - `DEPARTMENT` : gaps du périmètre départemental/UP de l'enseignant.
+   */
+  scope?: string;
+  /** Type du scope (TEACHER / DEPARTMENT / UP), fourni par le backend. */
+  scope_type?: string;
+  /** Identifiant du scope (ex : ENS024, DEP_RESEAUX), fourni par le backend. */
+  scope_id?: string | null;
+  /** Libellé affichable du scope (ex : « Département Réseaux »), fourni par le backend. */
+  scope_label?: string | null;
 }
 
 export interface RiskScore {
@@ -41,14 +72,26 @@ export interface RiskScore {
     | 'MODEL_FALLBACK';
   data_source?: 'db' | 'csv_fallback' | 'cache' | 'heuristic' | 'ml_model';
   score: number; // 0..1
+  /** Score de risque en pourcentage (0..100), dérivé par le mapper du service. */
+  score_percent: number;
+  /** Libellé du niveau de risque, dérivé par le mapper depuis level. */
+  level_label: string;
   niveau: NiveauRisque;
   facteurs: RiskFactor[];
   tendance: 'AMELIORATION' | 'STABLE' | 'DEGRADATION';
   precedent_score: number | null;
   computed_at: string;
   warnings?: string[];
-  model_mode?: 'ML' | 'HEURISTIC_FALLBACK';
+  model_mode?: ModelMode;
   model_version?: string | null;
+  /** Nom de l'artefact du modèle (ex : `gap_predictor_temporal`), fourni par l'API. */
+  model_name?: string | null;
+  /** Algorithme du modèle (ex : `Gradient Boosting temporel`), fourni par l'API. */
+  model_algorithm?: string | null;
+  /** Vrai si la somme des contributions a été plafonnée à 1.0. */
+  is_capped?: boolean;
+  /** Somme brute des contributions avant plafonnement (peut dépasser 1.0). */
+  uncapped_score?: number;
 }
 
 // ── Analyse contextuelle par spécialité/UP/département (scope-analysis) ──
@@ -64,13 +107,23 @@ export interface TeacherContextInfo {
   dept_libelle: string | null;
 }
 
+export type ScopeType = 'GLOBAL' | 'DEPARTMENT' | 'UP';
+
+/** Périmètre de l'analyse contextuelle, rendu explicite par le backend. */
+export interface TeacherScope {
+  type: ScopeType;
+  is_global: boolean;
+  /** Libellé affichable : « Périmètre global », « Département … », « Unité pédagogique … ». */
+  label: string;
+}
+
 export interface TeacherScopeAnalysis {
   context: TeacherContextInfo;
   gaps: SkillGap[];
   recommendations: Recommendation[];
   scoped_competencies_count: number;
   total_competencies_count: number;
-  is_fallback_global: boolean;
+  scope: TeacherScope;
   computed_at: string;
 }
 
@@ -173,9 +226,8 @@ export interface SkillGap {
   competence_code: string;
   competence_nom: string;
   domaine_nom: string | null;
-  niveau_actuel: number; // N1..N5
-  niveau_requis: number;
-  niveau_vise: number;
+  observed_result: number; // Résultat réel observé de l'enseignant
+  knowledge_difficulty_level: number; // Niveau de difficulté du savoir (référentiel)
   gap_score: number; // 0..1
   priorite_score: number;
   niveau_urgence: NiveauUrgence;
@@ -192,6 +244,28 @@ export interface GapsResponse {
   page: number;
   size: number;
   gaps: SkillGap[];
+  /**
+   * Compteurs agrégés sur l'ensemble des gaps de l'enseignant (calculés par le
+   * mapper du service, indépendants du filtre d'urgence et de la pagination).
+   */
+  gaps_summary: {
+    total: number;
+    critical: number;
+    high: number;
+    stagnant: number;
+    declining: number;
+  };
+  /** Métadonnées du modèle telles que renvoyées par l'API (uniquement si présentes). */
+  model?: {
+    model_mode?: ModelMode;
+    model_version?: string;
+    fallback_reason?: string;
+    dataset_version?: string;
+    prediction_horizon?: string;
+    synthetic_share_pct?: number;
+    total_rows?: number;
+    real_rows?: number;
+  };
 }
 
 // ── Recommandations ────────────────────────────────────────

@@ -74,20 +74,20 @@ class Container:
         )
 
         self.detect_needs = DetectNeeds(
-            gaps_provider=self.compute_gaps.execute,
+            gaps_provider=lambda teacher_id: self.compute_gaps.execute(teacher_id)[0],
             teacher_scopes_provider=self._teacher_scopes,
             training_need_repository=self.training_need_repository,
             settings=settings,
         )
         self.build_dashboards = BuildDashboards(
-            gaps_provider=self.compute_gaps.execute,
+            gaps_provider=lambda teacher_id: self.compute_gaps.execute(teacher_id)[0],
             risk_provider=lambda teacher_id: self.compute_risk.execute(teacher_id)[0],
             teacher_scopes_provider=self._teacher_scopes,
             dashboard_repository=self.dashboard_repository,
         )
         self.generate_alerts = GenerateAlerts(
             teacher_source=self.teacher_source,
-            gaps_provider=self.compute_gaps.execute,
+            gaps_provider=lambda teacher_id: self.compute_gaps.execute(teacher_id)[0],
             risk_provider=lambda teacher_id: self.compute_risk.execute(teacher_id)[0],
             alert_repository=self.alert_repository,
             settings=settings,

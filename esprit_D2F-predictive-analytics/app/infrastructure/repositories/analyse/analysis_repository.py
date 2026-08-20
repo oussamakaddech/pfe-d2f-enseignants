@@ -71,9 +71,9 @@ class SqlAnalysisRepository:
                             "competence_id": gap.competence_id,
                             "competence_code": gap.competence_code,
                             "competence_nom": gap.competence_nom,
-                            "niveau_actuel": int(gap.current_level),
-                            "niveau_requis": int(gap.target_level),
-                            "niveau_vise": int(gap.target_level),
+                            "niveau_actuel": int(gap.observed_result),
+                            "niveau_requis": int(gap.knowledge_difficulty_level),
+                            "niveau_vise": int(gap.knowledge_difficulty_level),
                             "gap_score": gap.gap_score,
                             # Les colonnes suivantes sont NOT NULL sans default en base.
                             # On fournit des valeurs derivees coherentes (impact=urgence=priorite=gap).
@@ -106,8 +106,8 @@ class SqlAnalysisRepository:
                 competence_id=row["competence_id"],
                 competence_code=row["competence_code"],
                 competence_nom=row["competence_nom"],
-                current_level=row["niveau_actuel"],
-                target_level=row["niveau_requis"],
+                observed_result=row["niveau_actuel"],
+                knowledge_difficulty_level=row["niveau_requis"],
                 gap_score=float(row["gap_score"]),
                 severity=Severity(row["niveau_urgence"].upper()),
                 trend=Trend.STABLE,

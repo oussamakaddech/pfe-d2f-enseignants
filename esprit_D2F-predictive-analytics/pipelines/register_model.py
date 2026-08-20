@@ -32,11 +32,12 @@ def _sha256_of_file(path: Path) -> str:
     return h.hexdigest()
 
 
-def _dataset_hash_from_corpus() -> str:
+def _dataset_hash_from_corpus(corpus: Path | None = None) -> str:
     """Calcule le SHA-256 du dataset provenancé (lignes triées, index reset)."""
-    if not PROVENCED_CORPUS.exists():
+    path = corpus or PROVENCED_CORPUS
+    if not path.exists():
         return ""
-    df = pd.read_csv(PROVENCED_CORPUS)
+    df = pd.read_csv(path)
     if df.empty:
         return ""
     canonical = df.copy().sort_values(by=df.columns.tolist()).reset_index(drop=True)
@@ -44,7 +45,14 @@ def _dataset_hash_from_corpus() -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def register_model(model_version: str, approve: bool = False, actor: str | None = None) -> dict:
+def register_model(
+    model_version: str,
+    approve: bool = False,
+    actor: str | None = None,
+    artifact_path: Path | None = None,
+    metadata_path: Path | None = None,
+    corpus_path: Path | None = None,
+) -> dict:
     """Enregistre le modèle courant dans le registre (CANDIDATE ou ACTIVE)."""
     from app.infrastructure.ml.model_registry import (
         APPROVAL_APPROVED,
@@ -55,12 +63,16 @@ def register_model(model_version: str, approve: bool = False, actor: str | None 
         RegistryEntry,
     )
 
-    if not MODEL_PATH.exists():
-        raise SystemExit(f"[ERROR] Artefact introuvable : {MODEL_PATH}")
-    if not METADATA_PATH.exists():
-        raise SystemExit(f"[ERROR] Metadata introuvable : {METADATA_PATH}")
+    artifact = artifact_path or MODEL_PATH
+    meta = metadata_path or METADATA_PATH
+    corpus = corpus_path or PROVENCED_CORPUS
 
-    metadata = json.loads(METADATA_PATH.read_text(encoding="utf-8"))
+    if not artifact.exists():
+        raise SystemExit(f"[ERROR] Artefact introuvable : {artifact}")
+    if not meta.exists():
+        raise SystemExit(f"[ERROR] Metadata introuvable : {meta}")
+
+    metadata = json.loads(meta.read_text(encoding="utf-8"))
     metrics = metadata.get("metrics") or {}
     data_sources = metadata.get("data_sources") or {}
 
@@ -70,8 +82,8 @@ def register_model(model_version: str, approve: bool = False, actor: str | None 
         status=STATUS_ACTIVE if approve else STATUS_CANDIDATE,
         created_at=datetime.now(timezone.utc).isoformat(),
         dataset_version=metadata.get("dataset_version", "unknown"),
-        dataset_hash=_dataset_hash_from_corpus() or metadata.get("dataset_hash", ""),
-        artifact_sha256=_sha256_of_file(MODEL_PATH),
+        dataset_hash=_dataset_hash_from_corpus(corpus) or metadata.get("dataset_hash", ""),
+        artifact_sha256=_sha256_of_file(artifact),
         synthetic_share_pct=float(data_sources.get("synthetic_share_pct", 0.0)),
         feature_names=list(metadata.get("feature_cols", [])),
         feature_schema_version=metadata.get("feature_schema_version", "1.0"),
@@ -120,12 +132,22 @@ def main() -> int:
     parser.add_argument("--rollback", action="store_true", help="Rollback vers la dernière version approuvée")
     parser.add_argument("--target-version", default=None, help="Version cible pour rollback")
     parser.add_argument("--actor", default=None, help="Acteur de l'approbation")
+    parser.add_argument("--artifact-path", default=None, help="Chemin de l'artefact joblib")
+    parser.add_argument("--metadata-path", default=None, help="Chemin de la metadata JSON")
+    parser.add_argument("--corpus-path", default=None, help="Chemin du dataset provenancé")
     args = parser.parse_args()
 
     if args.rollback:
         rollback_model(args.target_version, args.actor)
     else:
-        register_model(args.model_version, approve=args.approve, actor=args.actor)
+        register_model(
+            args.model_version,
+            approve=args.approve,
+            actor=args.actor,
+            artifact_path=Path(args.artifact_path) if args.artifact_path else None,
+            metadata_path=Path(args.metadata_path) if args.metadata_path else None,
+            corpus_path=Path(args.corpus_path) if args.corpus_path else None,
+        )
     return 0
 
 

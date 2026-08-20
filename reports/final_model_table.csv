@@ -1,0 +1,9 @@
+famille,modele,version,dataset,lignes,split_temporel_strict,rmse,mae,r2,gain_vs_persistance_pct,decision
+production,gap_predictor_temporal,v1.0.0,seed_developpeur_107,107,NON (overlap 2026-07-22),0.9883,0.6388,0.1897,1.5578,ACTIVE_registre_mais_DEMO_ONLY_rétroclassé
+production_candidat,gap_predictor_temporal,v1.1.0,seed_developpeur_172,172,NON (overlap 2026-07-22),1.0625,0.7595,0.0527,,NOT_PROMOTED
+demo,baseline_persistence,synthetic-v1.0.0,synthetique_1000,1000,OUI (2025-12-31 < 2026-01-31 < 2026-04-30),1.1203,0.6808,-0.4882,0.0,baseline
+demo,baseline_mean,synthetic-v1.0.0,synthetique_1000,1000,OUI,0.9531,0.7838,-0.0772,14.9246,baseline
+demo,gradient_boosting,synthetic-v1.0.0,synthetique_1000,1000,OUI,0.7490,0.4642,0.3348,33.1474,retenu_demo
+demo,xgboost,synthetic-v1.0.0,synthetique_1000,1000,OUI,0.7632,0.4700,0.3092,31.8754,retenu_demo
+demo,mlp,synthetic-v1.0.0,synthetique_1000,1000,OUI,0.7402,0.4316,0.3495,33.9329,BEST_DEMO_MODEL_DEMO_ONLY
+demo_registre,demo-gap-synthetic-v1.0.0,synthetic-v1.0.0,synthetique_1000,664,N/A,0.7706,0.4595,0.2958,31.2149,DEMO_ONLY_registre

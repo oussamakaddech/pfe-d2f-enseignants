@@ -28,8 +28,8 @@ class RecommendTrainings:
         state = TeacherCompetencyState(
             teacher_id=teacher_id,
             competency=competency,
-            current_level=self._current_level(competency, teacher_id),
-            previous_level=None,
+            observed_result=self._current_level(competency, teacher_id),
+            previous_observed_result=None,
             savoir_levels=self._competency_source.get_teacher_savoir_levels(teacher_id),
         )
 

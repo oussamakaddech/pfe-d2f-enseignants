@@ -44,7 +44,10 @@ class ComputeGaps:
 
         gaps = self._heuristic(teacher_id)
         self._analysis_repository.save_skill_gaps(gaps, teacher_id=teacher_id)
-        return gaps, model_mode, None
+        # Les gaps renvoyés sont heuristiques (le ML n'a rien prédit) :
+        # on expose HEURISTIC_FALLBACK même si le modèle est chargé
+        # (ex : features invalides au serving) — jamais un mode ML mensonger.
+        return gaps, "HEURISTIC_FALLBACK", None
 
     @staticmethod
     def _filter_to_scope_ids(competencies: list[Competency], gaps: list[SkillGap]) -> list[SkillGap]:
@@ -94,8 +97,8 @@ class ComputeGaps:
                     competence_id=competency.id,
                     competence_code=competency.code,
                     competence_nom=competency.nom,
-                    current_level=current_level,
-                    target_level=float(competency.target_level),
+                    observed_result=current_level,
+                    knowledge_difficulty_level=float(competency.target_level),
                     gap_score=gap_score,
                     severity=severity,
                     trend=trend,

@@ -4,7 +4,6 @@ import {
   formatScore,
   riskColor,
   riskLabel,
-  scoreToRiskLevel,
   teacherStatus,
   gapSeverityColor,
   formatDepartment,
@@ -47,26 +46,6 @@ describe('riskLabel', () => {
   });
   it('retourne le niveau tel quel pour une valeur inconnue', () => {
     expect(riskLabel('X' as any)).toBe('X');
-  });
-});
-
-describe('scoreToRiskLevel', () => {
-  it('FAIBLE en dessous de 0,25', () => {
-    expect(scoreToRiskLevel(0.1)).toBe('FAIBLE');
-  });
-  it('MODERE entre 0,25 et 0,5', () => {
-    expect(scoreToRiskLevel(0.3)).toBe('MODERE');
-  });
-  it('ELEVE entre 0,5 et 0,75', () => {
-    expect(scoreToRiskLevel(0.6)).toBe('ELEVE');
-  });
-  it('CRITIQUE au-dessus de 0,75', () => {
-    expect(scoreToRiskLevel(0.8)).toBe('CRITIQUE');
-  });
-  it('gère les seuils exacts', () => {
-    expect(scoreToRiskLevel(0.25)).toBe('MODERE');
-    expect(scoreToRiskLevel(0.5)).toBe('ELEVE');
-    expect(scoreToRiskLevel(0.75)).toBe('CRITIQUE');
   });
 });
 

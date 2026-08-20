@@ -12,19 +12,16 @@ export default function RiskScoreCard({ risk, loading }: RiskScoreCardProps) {
   const score = risk?.score ?? 0;
   const level = risk?.niveau ?? 'FAIBLE';
   const color = riskColor(level);
+  const pct = risk?.score_percent ?? Math.round(score * 100);
+  const label = risk?.level_label ?? riskLabel(level);
 
   return (
     <Card loading={loading} title="Score de risque" style={{ borderRadius: 12 }}>
       <div style={{ textAlign: 'center' }}>
-        <Progress
-          type="dashboard"
-          percent={Math.round(score * 100)}
-          strokeColor={color}
-          format={(p) => `${p}%`}
-        />
+        <Progress type="dashboard" percent={pct} strokeColor={color} format={() => `${pct}%`} />
         <div style={{ marginTop: 8 }}>
           <Tag color={color} style={{ fontSize: 14, padding: '2px 12px' }}>
-            {riskLabel(level)}
+            {label}
           </Tag>
         </div>
         {risk?.precedent_score !== null && risk?.precedent_score !== undefined && (

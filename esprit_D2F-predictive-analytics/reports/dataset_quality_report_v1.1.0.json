@@ -1,0 +1,58 @@
+{
+  "dataset_path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\clean\\training_corpus_from_db_v110.csv",
+  "dataset_version": "v1.1.0",
+  "dataset_hash_sha256": "896609dbdd57d98f0e32e971af6a7357be4064c17d74301856db8abf917e2b47",
+  "volume": {
+    "total_rows": 172,
+    "real_rows": 172,
+    "synthetic_rows": 0,
+    "synthetic_share_pct": 0.0,
+    "teachers": 40,
+    "competences": 13,
+    "months_covered": 36,
+    "min_ref_month": "2016-03-01",
+    "max_ref_month": "2026-07-22",
+    "obs_per_teacher_mean": 4.3
+  },
+  "delta_vs_v1.0.0": {
+    "previous_rows": 107,
+    "added_rows": 65,
+    "previous_hash": "c70523c0d353ccfed62ca432c0a8486a4ec40b5e09aa47859157a71ffc959fdd"
+  },
+  "quality": {
+    "missing_values": {},
+    "duplicate_rows": 0,
+    "target_distribution": {
+      "0.0": 19,
+      "0.3333333333333335": 1,
+      "0.6666666666666665": 1,
+      "0.666666666666667": 2,
+      "1.0": 10,
+      "1.3333333333333333": 1,
+      "1.3333333333333337": 12,
+      "1.6666666666666663": 9,
+      "2.0": 34,
+      "2.333333333333333": 7,
+      "2.6666666666666665": 5,
+      "3.0": 24,
+      "3.333333333333333": 15,
+      "4.0": 32
+    },
+    "leak_columns_in_X": []
+  },
+  "targets_pfe": {
+    "prototype": [
+      500,
+      1000
+    ],
+    "preprod": [
+      2000,
+      5000
+    ],
+    "shortfall_vs_prototype_min": 328,
+    "shortfall_vs_preprod_min": 1828
+  },
+  "acceptable": true,
+  "decision": "USE_FOR_EXPERIMENT",
+  "notes": "Toutes les lignes proviennent de tables reelles (lecture seule). Les paires a 1 savoir (65) ont un historique repete (niveau inchange), jamais invente. Le volume reel maximal extractible depuis la base est inferieur aux cibles prototype : promotion production NON justifiee par le seul volume — decision finale apres metriques (B8)."
+}

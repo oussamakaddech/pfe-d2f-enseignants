@@ -10,6 +10,7 @@ from app.core.security import CurrentUser, require_roles
 from app.schemas.analytics import (
     GapOut,
     RecommendationOut,
+    ScopeOut,
     TeacherContextOut,
     TeacherScopeAnalysisOut,
 )
@@ -54,7 +55,11 @@ def get_teacher_scope_analysis(
         recommendations=[RecommendationOut(**rec.to_dict()) for rec in recommendations],
         scoped_competencies_count=analysis.scoped_competencies_count,
         total_competencies_count=analysis.total_competencies,
-        is_fallback_global=analysis.is_fallback_global,
+        scope=ScopeOut(
+            type=analysis.scope.type,
+            is_global=analysis.scope.is_global,
+            label=analysis.scope.label,
+        ),
         computed_at=datetime.now(timezone.utc),
     )
     return ok(

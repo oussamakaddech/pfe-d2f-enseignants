@@ -1,0 +1,64 @@
+{
+  "risk": {
+    "ml_artifact": {
+      "path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\models\\risk_classifier.joblib",
+      "exists": false,
+      "status": "NOT_AVAILABLE"
+    },
+    "risk_metadata": {
+      "path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\models\\risk_training_metadata.json",
+      "exists": true,
+      "model_name": "random_forest_classifier",
+      "n_samples": 45,
+      "metrics": {
+        "macro_f1": 0.2847,
+        "baseline_macro_f1": 0.2115,
+        "f1_per_class": {
+          "LOW": 0.0,
+          "MEDIUM": 0.8056,
+          "HIGH": 0.3333,
+          "CRITICAL": 0.0
+        }
+      }
+    },
+    "heuristic_profile_engine": {
+      "weights": {
+        "stagnation": 0.25,
+        "decline": 0.2,
+        "attendance": 0.2,
+        "low_eval": 0.15,
+        "repeated_need": 0.1,
+        "low_engagement": 0.1
+      },
+      "refs": {
+        "stagnation_ref_months": 24.0,
+        "need_ref_count": 3.0,
+        "engagement_ref_days": 180.0,
+        "eval_ref_score": 5.0
+      },
+      "status": "KEEP_AS_BASELINE"
+    },
+    "heuristic_rule_from_gaps": {
+      "weights": {
+        "critical_gaps": 0.5,
+        "high_gaps": 0.12,
+        "avg_gap_score": 0.4,
+        "critical_gap_cap": 2.0,
+        "high_gap_cap": 1.0
+      },
+      "status": "KEEP_AS_BASELINE"
+    }
+  },
+  "ranking": {
+    "weights": {
+      "WEIGHT_CONTENT": 0.7,
+      "WEIGHT_QUALITY": 0.2,
+      "WEIGHT_RECENCY": 0.1,
+      "RECENCY_LOOKBACK_DAYS": 365,
+      "rank_score_formula": "0.70*content_match + 0.20*quality_score + 0.10*recency_score"
+    },
+    "has_real_relevance_labels": false,
+    "precision_recall_ndcg": "N/A",
+    "status": "KEEP_AS_BASELINE"
+  }
+}

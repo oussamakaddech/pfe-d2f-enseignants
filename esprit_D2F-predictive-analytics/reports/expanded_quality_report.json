@@ -1,0 +1,9 @@
+{
+  "statut": "AUCUNE_AUGMENTATION",
+  "message": "Aucune augmentation réelle possible sans nouvelles données métier.",
+  "generated_at": "2026-08-20T02:20:15.845737+00:00",
+  "lignes_valides": 172,
+  "lignes_invalides": 0,
+  "taux_couverture_cible": 0.0,
+  "remarque": "Qualité non réévaluée pour v1.2.0 : aucune ligne cible."
+}

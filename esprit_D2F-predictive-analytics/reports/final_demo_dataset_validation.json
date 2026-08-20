@@ -1,0 +1,38 @@
+{
+  "title": "Validation finale du dataset de démonstration",
+  "generated_at": "2026-08-20T14:49:39.968751+00:00",
+  "exists": true,
+  "path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\synthetic\\demo_dataset_synthetic-v1.0.0_clean.csv",
+  "raw_path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\synthetic\\demo_dataset_synthetic-v1.0.0.csv",
+  "raw_exists": true,
+  "n_rows": 1000,
+  "n_teachers": 100,
+  "n_competencies": 13,
+  "n_months": 18,
+  "dataset_version": "synthetic-v1.0.0",
+  "generation_seeds": [
+    42
+  ],
+  "provenance_classes": {
+    "INSTITUTIONAL_RECORD": 0,
+    "DEMO_SEED": 1000,
+    "UNKNOWN": 0
+  },
+  "synthetic_share_pct": 100.0,
+  "data_origin_synthetic_share_pct": 100.0,
+  "institutional_verified_false_share_pct": 100.0,
+  "source_types": {
+    "synthetic_generator": 1000
+  },
+  "missing_required_columns": [],
+  "dataset_hash": "1ff6dd07b5d14a7bac9121d6c0ce91486ca17225998db4d163af5d36cbfee020",
+  "file_sha256": "d636b96b284e71f8553acbf972bf53ac5a444c8bd955fbe10a05c1ef769ac4f9",
+  "valid": true,
+  "criteria": {
+    "100% synthétique (is_synthetic=true)": true,
+    "data_origin=SYNTHETIC sur toutes les lignes": true,
+    "institutional_verified=false (aucune assertion ESPRIT)": true,
+    "0 ligne INSTITUTIONAL_RECORD": true,
+    "dataset clairement étiqueté DEMO (jamais présenté comme ESPRIT)": true
+  }
+}

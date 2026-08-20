@@ -86,15 +86,20 @@ def validate(metadata: dict, schema: dict, thresholds: dict) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Valide les metriques et l'anti-fuite")
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--metadata-path", default=None, help="Chemin de la metadata d'entrainement")
+    parser.add_argument("--feature-schema-path", default=None, help="Chemin du feature schema")
     args = parser.parse_args()
 
-    if not METADATA_PATH.exists():
+    meta_path = Path(args.metadata_path) if args.metadata_path else METADATA_PATH
+    schema_path = Path(args.feature_schema_path) if args.feature_schema_path else FEATURE_SCHEMA_PATH
+
+    if not meta_path.exists():
         report = {"valid": False, "decision": "reject", "errors": ["metadata d'entrainement introuvable"]}
-    elif not FEATURE_SCHEMA_PATH.exists():
+    elif not schema_path.exists():
         report = {"valid": False, "decision": "reject", "errors": ["feature_schema introuvable"]}
     else:
-        metadata = json.loads(METADATA_PATH.read_text(encoding="utf-8"))
-        schema = json.loads(FEATURE_SCHEMA_PATH.read_text(encoding="utf-8"))
+        metadata = json.loads(meta_path.read_text(encoding="utf-8"))
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
         report = validate(metadata, schema, default_thresholds())
 
     if args.json:

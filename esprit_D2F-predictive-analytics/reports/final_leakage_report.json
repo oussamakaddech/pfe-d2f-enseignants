@@ -1,0 +1,31 @@
+{
+  "checks": [
+    {
+      "check": "forbidden_features_in_X",
+      "passed": true,
+      "detail": "features interdites trouvées dans X: aucune"
+    },
+    {
+      "check": "temporal_separation_3way",
+      "passed": true,
+      "detail": "train_max=2026-07-22 test_min=2026-07-22"
+    },
+    {
+      "check": "legacy_leak_detection",
+      "passed": true,
+      "detail": "features interdites legacy: aucune"
+    }
+  ],
+  "forbidden": [
+    "gap_next_3m",
+    "required_level",
+    "required_level_t"
+  ],
+  "legacy": {
+    "artifact_exists": true,
+    "metadata_feature_count": 21,
+    "leak_features": [],
+    "leak_detected": false,
+    "status": "KEEP_AS_CHALLENGER"
+  }
+}
