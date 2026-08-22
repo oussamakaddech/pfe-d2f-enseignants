@@ -37,7 +37,9 @@ np.random.seed(RANDOM_STATE)
 DEFAULT_DATASET_VERSION = "v1.0.0"
 
 FEATURE_COLS = [
-    "observed_result_t3", "observed_result_t2", "observed_result_t1", "observed_result_t",
+    # Même schéma que le serving (feature_schema 1.0) : les colonnes
+    # current_level_t3..t portent l'historique observé des niveaux.
+    "current_level_t3", "current_level_t2", "current_level_t1", "current_level_t",
     "lag_gap_t3_t2", "lag_gap_t2_t1", "lag_gap_t1_t", "rolling_tendance",
     "days_since_last_training", "training_frequency_per_month", "is_long_absent", "is_stagnant",
     "avg_level", "min_level", "max_level", "nb_level_5", "nb_level_1",
@@ -227,7 +229,7 @@ def train_gap_model(
 
     print("[4] Baseline persistance...")
     gap_t_proxy = np.clip(
-        split["X_test"]["observed_result_t"].astype(float).values -
+        split["X_test"]["current_level_t"].astype(float).values -
         split["X_test"]["avg_level"].astype(float).values,
         0, 5,
     )
@@ -281,7 +283,11 @@ def train_gap_model(
         feature_importances = dict(zip(FEATURE_COLS, best.feature_importances_.tolist()))
 
     metadata = {
-        "model_name": best_name,
+        # Nom d'artefact attendu par le registre et le serving — JAMAIS le nom
+        # de l'algorithme : predictor._decide_mode refuse la promotion si
+        # metadata.model_name != registry_entry.model_name.
+        "model_name": "gap_predictor_temporal",
+        "algorithm": best_name,
         "model_version": model_version,
         "trained_at": pd.Timestamp.now().isoformat(),
         "n_features": len(FEATURE_COLS),

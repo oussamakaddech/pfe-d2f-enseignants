@@ -1,12 +1,12 @@
 [
   {
     "model_name": "gap_predictor_temporal",
-    "model_version": "v1.0.0",
-    "status": "ACTIVE",
-    "created_at": "2026-08-19T03:59:52.424490+00:00",
+    "model_version": "v1.1.0",
+    "status": "ARCHIVED",
+    "created_at": "2026-08-22T04:21:56.788210+00:00",
     "dataset_version": "v1.0.0",
-    "dataset_hash": "c70523c0d353ccfed62ca432c0a8486a4ec40b5e09aa47859157a71ffc959fdd",
-    "artifact_sha256": "6bbb396c1e28087deeeb402ecf856388510f54a08895dae5415132b08fb35bbe",
+    "dataset_hash": "97157e6ed83d2b97c64c5d8f73cfe27f2f63bb116b349ed280f24005c9ef3ba3",
+    "artifact_sha256": "7b2519e5c3c3deb0f60c5e04b30836b8b681f7bb6902478efd35cf78fe0a7dce",
     "synthetic_share_pct": 0.0,
     "feature_names": [
       "current_level_t3",
@@ -41,24 +41,23 @@
     ],
     "feature_schema_version": "1.0",
     "metrics": {
-      "rmse": 0.9883,
-      "mae": 0.6388,
-      "r2": 0.1897
+      "rmse": 1.3053,
+      "mae": 1.1643,
+      "r2": 0.1958
     },
     "approval_status": "APPROVED",
-    "approval_date": "2026-08-19T03:59:52.445215+00:00",
+    "approval_date": "2026-08-22T04:21:56.821895+00:00",
     "approval_actor": "ml-engineer",
-    "notes": "Pipeline reproductible : dataset provenancé, split temporel strict, seed 42, anti-fuite (required_level/gap_next_3m exclus), normalisation capturée sur train, sidecar SHA-256.",
-    "dataset_hash_note": "recompute canonical (sort all cols) Windows CRLF; LF variant 8e39bb44c07a06fa23e59a94099ded2a33a73585a958c7b7681e306006761eb9 (conteneur Linux)"
+    "notes": "Pipeline reproductible : dataset provenancé, split temporel strict, seed 42, anti-fuite (knowledge_difficulty_level/gap_next_3m exclus), normalisation capturée sur train, sidecar SHA-256."
   },
   {
     "model_name": "gap_predictor_temporal",
-    "model_version": "v1.1.0",
-    "status": "CANDIDATE",
-    "created_at": "2026-08-19T18:41:46.291017+00:00",
-    "dataset_version": "v1.1.0",
-    "dataset_hash": "896609dbdd57d98f0e32e971af6a7357be4064c17d74301856db8abf917e2b47",
-    "artifact_sha256": "4a6dd15fc23ace6b1062a61d97aa6caedcbeae50448a9a943c1ab7b3051b65c4",
+    "model_version": "v1.0.0",
+    "status": "ACTIVE",
+    "created_at": "2026-08-22T04:29:02.377938+00:00",
+    "dataset_version": "v1.0.0",
+    "dataset_hash": "97157e6ed83d2b97c64c5d8f73cfe27f2f63bb116b349ed280f24005c9ef3ba3",
+    "artifact_sha256": "7b2519e5c3c3deb0f60c5e04b30836b8b681f7bb6902478efd35cf78fe0a7dce",
     "synthetic_share_pct": 0.0,
     "feature_names": [
       "current_level_t3",
@@ -93,13 +92,13 @@
     ],
     "feature_schema_version": "1.0",
     "metrics": {
-      "rmse": 1.0625,
-      "mae": 0.7595,
-      "r2": 0.0527
+      "rmse": 1.3053,
+      "mae": 1.1643,
+      "r2": 0.1958
     },
-    "approval_status": "PENDING",
-    "approval_date": null,
-    "approval_actor": null,
-    "notes": "Pipeline reproductible : dataset provenancé, split temporel strict, seed 42, anti-fuite (required_level/gap_next_3m exclus), normalisation capturée sur train, sidecar SHA-256."
+    "approval_status": "APPROVED",
+    "approval_date": "2026-08-22T04:29:02.413022+00:00",
+    "approval_actor": "ml-engineer",
+    "notes": "Pipeline reproductible : dataset provenancé, split temporel strict, seed 42, anti-fuite (knowledge_difficulty_level/gap_next_3m exclus), normalisation capturée sur train, sidecar SHA-256."
   }
 ]

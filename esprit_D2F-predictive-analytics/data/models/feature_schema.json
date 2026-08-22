@@ -34,6 +34,7 @@
   "target": "gap_next_3m",
   "forbidden_in_X": [
     "gap_next_3m",
+    "knowledge_difficulty_level",
     "required_level",
     "required_level_t"
   ],
@@ -52,31 +53,31 @@
     },
     "current_level_t": {
       "min": 1.0,
-      "max": 4.0
+      "max": 5.0
     },
     "lag_gap_t3_t2": {
-      "min": -2.0,
+      "min": -4.0,
       "max": 1.0
     },
     "lag_gap_t2_t1": {
-      "min": -1.0,
-      "max": 2.0
+      "min": -3.0,
+      "max": 3.0
     },
     "lag_gap_t1_t": {
-      "min": -3.0,
-      "max": 2.0
+      "min": -4.0,
+      "max": 4.0
     },
     "rolling_tendance": {
-      "min": -1.0,
-      "max": 0.6666666666666666
+      "min": -1.3333333333333333,
+      "max": 1.0
     },
     "days_since_last_training": {
-      "min": 1.0,
-      "max": 365.0
+      "min": 31.0,
+      "max": 2639.0
     },
     "training_frequency_per_month": {
       "min": 0.0,
-      "max": 3.0
+      "max": 0.4918032786885246
     },
     "is_long_absent": {
       "min": 0.0,
@@ -84,15 +85,15 @@
     },
     "is_stagnant": {
       "min": 0.0,
-      "max": 0.0
+      "max": 1.0
     },
     "avg_level": {
       "min": 1.0,
-      "max": 4.5
+      "max": 5.0
     },
     "min_level": {
       "min": 1.0,
-      "max": 4.0
+      "max": 5.0
     },
     "max_level": {
       "min": 1.0,
@@ -100,7 +101,7 @@
     },
     "nb_level_5": {
       "min": 0.0,
-      "max": 1.0
+      "max": 2.0
     },
     "nb_level_1": {
       "min": 0.0,
@@ -112,7 +113,7 @@
     },
     "nb_competences": {
       "min": 2.0,
-      "max": 6.0
+      "max": 9.0
     },
     "competency_coverage_rate": {
       "min": 0.2857142857142857,
@@ -120,11 +121,11 @@
     },
     "nb_formations_completed": {
       "min": 0.0,
-      "max": 3.0
+      "max": 2.0
     },
     "nb_formations_in_progress": {
       "min": 0.0,
-      "max": 0.0
+      "max": 3.0
     },
     "taux_assiduite": {
       "min": 0.0,
@@ -147,8 +148,8 @@
       "max": 3.0
     },
     "months_since_last_training": {
-      "min": 0.0328515111695138,
-      "max": 11.990801576872537
+      "min": 1.0183968462549278,
+      "max": 86.69513797634691
     },
     "engagement_score": {
       "min": 0.0,

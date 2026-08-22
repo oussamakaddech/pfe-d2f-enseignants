@@ -88,7 +88,7 @@ class SqlAnalysisRepository:
                             "nb_besoins_exprimes": 0,
                             # Trace l'origine du calcul (ML vs heuristique) :
                             # DECLARED_ML/WORSENING => ML, sinon heuristique.
-                            "tendance": gap.trend.api_value(),
+                            "tendance": gap.trend.value,
                         },
                     )
         except Exception as exc:

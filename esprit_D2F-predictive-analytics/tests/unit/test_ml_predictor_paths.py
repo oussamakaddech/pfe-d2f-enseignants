@@ -182,7 +182,10 @@ def test_status_reports_active_when_model_loaded():
     assert status["relevance_model"]["available"] is False
     assert status["provenance"]["synthetic_share_pct"] == 0.0
     assert status["provenance"]["dataset_version"] == "v1.0.0"
-    assert status["model_version"] == "v1.0.0"
+    # Version = celle de l'entrée ACTIVE du registre réel (évolue à chaque
+    # réentraînement/promotion — ne pas coder en dur).
+    active_entry = port._registry.active()
+    assert status["model_version"] == (active_entry.model_version if active_entry else None)
     assert status["prediction_horizon"] == "3m"
 
 

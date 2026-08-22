@@ -45,7 +45,11 @@ def test_predictor_temporal_model_active_in_production():
     assert status["kill_switch"] is False
     assert status["provenance"]["synthetic_share_pct"] == 0.0
     assert status["provenance"]["dataset_version"] == "v1.0.0"
-    assert status["model_version"] == "v1.0.0"
+    # Version = celle de l'entrée ACTIVE du registre réel (évolue à chaque
+    # réentraînement/promotion — ne pas coder en dur).
+    assert status["model_version"] == (
+        port._registry.active().model_version if port._registry.active() else None
+    )
     assert status["prediction_horizon"] == "3m"
 
 

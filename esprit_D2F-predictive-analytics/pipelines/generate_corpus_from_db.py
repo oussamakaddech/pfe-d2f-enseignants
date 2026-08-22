@@ -86,8 +86,10 @@ def main() -> pd.DataFrame:
         """)).mappings().all()
 
         insc = conn.execute(text("""
-            SELECT enseignant_id, formation_id, etat, date_demande
-            FROM formation.inscriptions WHERE date_demande IS NOT NULL
+            SELECT i.enseignant_id, i.formation_id, i.etat, i.date_demande, f.date_fin
+            FROM formation.inscriptions i
+            LEFT JOIN formation.formations f ON f.id_formation = i.formation_id
+            WHERE i.date_demande IS NOT NULL
         """)).mappings().all()
 
         pres = conn.execute(text("""
@@ -117,6 +119,44 @@ def main() -> pd.DataFrame:
 
     today = pd.Timestamp.today().normalize()
 
+    def _naive(ts):
+        ts = pd.Timestamp(ts)
+        return ts.tz_localize(None) if ts.tzinfo is not None else ts
+
+    # ── Features globales par enseignant : MÊMES définitions que le serving
+    # (predictor._teacher_feature_bundle / _global_features) pour éviter tout
+    # écart train/serving sur les plages de features.
+    last_acq_by_teacher: dict[str, pd.Timestamp] = {}
+    for r in savs:
+        if r["date_acquisition"]:
+            d = _naive(r["date_acquisition"])
+            t = r["enseignant_id"]
+            if t not in last_acq_by_teacher or d > last_acq_by_teacher[t]:
+                last_acq_by_teacher[t] = d
+
+    formations_by_teacher: dict[str, list[dict]] = {}
+    for i in insc:
+        formations_by_teacher.setdefault(i["enseignant_id"], []).append({
+            "etat": i["etat"],
+            "date_demande": _naive(i["date_demande"]) if i["date_demande"] else None,
+            "date_fin": _naive(i["date_fin"]) if i["date_fin"] else None,
+        })
+
+    n_done_by: dict[str, int] = {}
+    n_prog_by: dict[str, int] = {}
+    avg_delta_by: dict[str, float] = {}
+    for tid2, fs in formations_by_teacher.items():
+        comp = [f for f in fs if f["etat"] == "APPROVED" and f["date_fin"] and f["date_fin"] < today]
+        inpr = [f for f in fs if f["etat"] in ("APPROVED", "EN_COURS")]
+        n_done_by[tid2] = len(comp)
+        n_prog_by[tid2] = len(inpr)
+        ad = 0.0
+        if len(comp) >= 2:
+            ds_ = sorted(f["date_fin"] for f in comp if f["date_fin"])
+            deltas = [(ds_[k + 1] - ds_[k]).days for k in range(len(ds_) - 1)]
+            ad = float(np.mean(deltas)) if deltas else 0.0
+        avg_delta_by[tid2] = ad
+
     # Groupe par (enseignant, competence)
     by_tc: dict[tuple[str, int], list[dict]] = {}
     for r in savs:
@@ -126,11 +166,6 @@ def main() -> pd.DataFrame:
             "date": pd.Timestamp(r["date_acquisition"]),
             "required": int(r["required_level"] or 3),
         })
-
-    # Formations par enseignant
-    formations_by_teacher: dict[str, list[dict]] = {}
-    for i in insc:
-        formations_by_teacher.setdefault(i["enseignant_id"], []).append(i)
 
     rows = []
     for (tid, cid), entries in sorted(by_tc.items()):
@@ -154,16 +189,10 @@ def main() -> pd.DataFrame:
         future_level = float(np.clip(cur_t + rolling, 1, 5))
         gap_next = float(max(0, required - future_level))
 
-        # Features engagement (depuis la vraie base)
-        tformations = formations_by_teacher.get(tid, [])
-        n_done = sum(1 for f in tformations if f["etat"] == "APPROVED")
-        n_prog = sum(1 for f in tformations if f["etat"] == "EN_COURS")
-        last_f_date = max((f["date_demande"] for f in tformations), default=None)
-        if last_f_date is not None:
-            ts = pd.Timestamp(last_f_date)
-            if ts.tzinfo is not None:
-                ts = ts.tz_localize(None)
-            days_since_f = (today - ts).days
+        # Features engagement (définitions serving — voir _global_features)
+        last_acq = last_acq_by_teacher.get(tid)
+        if last_acq is not None:
+            days_since_f = (today - last_acq).days
         else:
             days_since_f = 365
         months_since_f = days_since_f / 30.44
@@ -171,6 +200,10 @@ def main() -> pd.DataFrame:
         taux = attendance.get(tid, 0.0)
         avg_note, nb_eval = eval_map.get(tid, (0.0, 0))
         nb_needs, nb_needs_ok = need_map.get(tid, (0, 0))
+        n_done = n_done_by.get(tid, 0)
+        n_prog = n_prog_by.get(tid, 0)
+        ad = avg_delta_by.get(tid, 0.0)
+        freq_month = (n_done / max(1.0, ad / 30.0)) if ad else 0.0
 
         row = {
             "teacher_id": tid,
@@ -182,7 +215,7 @@ def main() -> pd.DataFrame:
             "lag_gap_t3_t2": lag32, "lag_gap_t2_t1": lag21, "lag_gap_t1_t": lag1t,
             "rolling_tendance": rolling,
             "days_since_last_training": float(days_since_f),
-            "training_frequency_per_month": min(10.0, n_done / max(1.0, months_since_f)),
+            "training_frequency_per_month": float(freq_month),
             "is_long_absent": int(days_since_f > 180),
             "is_stagnant": int(days_since_f > 365),
             "avg_level": float(np.mean(levels)),

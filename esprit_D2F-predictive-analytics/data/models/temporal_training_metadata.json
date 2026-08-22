@@ -1,7 +1,8 @@
 {
   "model_name": "gap_predictor_temporal",
+  "algorithm": "gradient_boosting",
   "model_version": "v1.0.0",
-  "trained_at": "2026-08-19T04:59:51.787114",
+  "trained_at": "2026-08-22T05:29:01.033299",
   "n_features": 29,
   "feature_cols": [
     "current_level_t3",
@@ -35,12 +36,12 @@
     "engagement_score"
   ],
   "feature_schema_version": "1.0",
-  "n_samples": 107,
-  "n_train": 86,
-  "n_test": 21,
+  "n_samples": 147,
+  "n_train": 118,
+  "n_test": 29,
   "data_sources": {
-    "total_rows": 107,
-    "real_rows": 107,
+    "total_rows": 147,
+    "real_rows": 147,
     "synthetic_rows": 0,
     "synthetic_share_pct": 0.0,
     "real_share_pct": 100.0,
@@ -82,6 +83,35 @@
         "tol": 0.0001,
         "validation_fraction": 0.1,
         "verbose": 0,
+        "warm_start": false
+      },
+      "mlp": {
+        "activation": "relu",
+        "alpha": 0.01,
+        "batch_size": "auto",
+        "beta_1": 0.9,
+        "beta_2": 0.999,
+        "early_stopping": true,
+        "epsilon": 1e-08,
+        "hidden_layer_sizes": [
+          32,
+          16
+        ],
+        "learning_rate": "constant",
+        "learning_rate_init": 0.001,
+        "loss": "squared_error",
+        "max_fun": 15000,
+        "max_iter": 400,
+        "momentum": 0.9,
+        "n_iter_no_change": 20,
+        "nesterovs_momentum": true,
+        "power_t": 0.5,
+        "random_state": 42,
+        "shuffle": true,
+        "solver": "adam",
+        "tol": 0.0001,
+        "validation_fraction": 0.1,
+        "verbose": false,
         "warm_start": false
       },
       "xgboost": {
@@ -132,53 +162,54 @@
     "type": "temporal_strict_cutoff_2026-07-22"
   },
   "candidate_cv_scores": {
-    "gradient_boosting": 0.8022,
-    "xgboost": 0.8217
+    "gradient_boosting": 1.2971,
+    "mlp": 1.4889,
+    "xgboost": 1.325
   },
   "metrics": {
-    "test_r2": 0.1897,
-    "test_rmse": 0.9883,
-    "test_mae": 0.6388,
-    "baseline_rmse": 2.5461,
-    "baseline_mae": 2.1175,
-    "lift_rmse": 1.5578,
+    "test_r2": 0.1958,
+    "test_rmse": 1.3053,
+    "test_mae": 1.1643,
+    "baseline_rmse": 2.187,
+    "baseline_mae": 1.7259,
+    "lift_rmse": 0.8817,
     "lift_rmse_ci95": [
-      0.6885,
-      2.3891
+      0.4204,
+      1.2916
     ],
-    "lift_ci95_method": "bootstrap 1000 replicas on test sample (n=21), percentile 2.5-97.5",
+    "lift_ci95_method": "bootstrap 1000 replicas on test sample (n=29), percentile 2.5-97.5",
     "lift_significant_95": true
   },
   "feature_importances": {
-    "current_level_t3": 0.021428,
-    "current_level_t2": 0.011555,
-    "current_level_t1": 0.009985,
-    "current_level_t": 0.265475,
-    "lag_gap_t3_t2": 0.0,
-    "lag_gap_t2_t1": 0.020594,
-    "lag_gap_t1_t": 0.060858,
-    "rolling_tendance": 0.164156,
-    "days_since_last_training": 0.026719,
-    "training_frequency_per_month": 0.013482,
-    "is_long_absent": 0.005739,
-    "is_stagnant": 0.0,
-    "avg_level": 0.074605,
-    "min_level": 0.065283,
-    "max_level": 0.042504,
-    "nb_level_5": 0.0,
-    "nb_level_1": 0.029284,
-    "nb_savoirs": 0.037282,
-    "nb_competences": 0.045803,
-    "competency_coverage_rate": 0.035735,
-    "nb_formations_completed": 0.003736,
-    "nb_formations_in_progress": 0.0,
-    "taux_assiduite": 0.005907,
+    "current_level_t3": 0.022212,
+    "current_level_t2": 0.017907,
+    "current_level_t1": 0.042392,
+    "current_level_t": 0.181085,
+    "lag_gap_t3_t2": 0.005238,
+    "lag_gap_t2_t1": 0.030747,
+    "lag_gap_t1_t": 0.130005,
+    "rolling_tendance": 0.093876,
+    "days_since_last_training": 0.024383,
+    "training_frequency_per_month": 0.00195,
+    "is_long_absent": 0.01,
+    "is_stagnant": 0.01182,
+    "avg_level": 0.090972,
+    "min_level": 0.061054,
+    "max_level": 0.097066,
+    "nb_level_5": 0.006302,
+    "nb_level_1": 0.00596,
+    "nb_savoirs": 0.032081,
+    "nb_competences": 0.03785,
+    "competency_coverage_rate": 0.040213,
+    "nb_formations_completed": 0.004851,
+    "nb_formations_in_progress": 0.002635,
+    "taux_assiduite": 0.004464,
     "nb_besoins_exprimes": 0.0,
     "nb_besoins_approuves": 0.0,
-    "avg_eval_score": 0.004317,
-    "nb_evaluations": 0.003264,
-    "months_since_last_training": 0.020026,
-    "engagement_score": 0.032263
+    "avg_eval_score": 0.002782,
+    "nb_evaluations": 0.007182,
+    "months_since_last_training": 0.021791,
+    "engagement_score": 0.013181
   },
   "feature_ranges": {
     "current_level_t3": {
@@ -195,31 +226,31 @@
     },
     "current_level_t": {
       "min": 1.0,
-      "max": 4.0
+      "max": 5.0
     },
     "lag_gap_t3_t2": {
-      "min": -2.0,
+      "min": -4.0,
       "max": 1.0
     },
     "lag_gap_t2_t1": {
-      "min": -1.0,
-      "max": 2.0
+      "min": -3.0,
+      "max": 3.0
     },
     "lag_gap_t1_t": {
-      "min": -3.0,
-      "max": 2.0
+      "min": -4.0,
+      "max": 4.0
     },
     "rolling_tendance": {
-      "min": -1.0,
-      "max": 0.6666666666666666
+      "min": -1.3333333333333333,
+      "max": 1.0
     },
     "days_since_last_training": {
-      "min": 1.0,
-      "max": 365.0
+      "min": 31.0,
+      "max": 2639.0
     },
     "training_frequency_per_month": {
       "min": 0.0,
-      "max": 3.0
+      "max": 0.4918032786885246
     },
     "is_long_absent": {
       "min": 0.0,
@@ -227,15 +258,15 @@
     },
     "is_stagnant": {
       "min": 0.0,
-      "max": 0.0
+      "max": 1.0
     },
     "avg_level": {
       "min": 1.0,
-      "max": 4.5
+      "max": 5.0
     },
     "min_level": {
       "min": 1.0,
-      "max": 4.0
+      "max": 5.0
     },
     "max_level": {
       "min": 1.0,
@@ -243,7 +274,7 @@
     },
     "nb_level_5": {
       "min": 0.0,
-      "max": 1.0
+      "max": 2.0
     },
     "nb_level_1": {
       "min": 0.0,
@@ -255,7 +286,7 @@
     },
     "nb_competences": {
       "min": 2.0,
-      "max": 6.0
+      "max": 9.0
     },
     "competency_coverage_rate": {
       "min": 0.2857142857142857,
@@ -263,11 +294,11 @@
     },
     "nb_formations_completed": {
       "min": 0.0,
-      "max": 3.0
+      "max": 2.0
     },
     "nb_formations_in_progress": {
       "min": 0.0,
-      "max": 0.0
+      "max": 3.0
     },
     "taux_assiduite": {
       "min": 0.0,
@@ -290,8 +321,8 @@
       "max": 3.0
     },
     "months_since_last_training": {
-      "min": 0.0328515111695138,
-      "max": 11.990801576872537
+      "min": 1.0183968462549278,
+      "max": 86.69513797634691
     },
     "engagement_score": {
       "min": 0.0,
@@ -299,6 +330,5 @@
     }
   },
   "decision": "accept",
-  "notes": "Pipeline reproductible : dataset provenanc\u00c3\u00a9, split temporel strict, seed 42, anti-fuite (required_level/gap_next_3m exclus), normalisation captur\u00c3\u00a9e sur train, sidecar SHA-256.",
-  "algorithm": "gradient_boosting"
+  "notes": "Pipeline reproductible : dataset provenancé, split temporel strict, seed 42, anti-fuite (knowledge_difficulty_level/gap_next_3m exclus), normalisation capturée sur train, sidecar SHA-256."
 }
