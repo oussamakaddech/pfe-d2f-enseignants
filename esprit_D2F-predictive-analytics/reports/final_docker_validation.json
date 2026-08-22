@@ -1,28 +1,22 @@
 {
   "title": "Validation finale Docker",
-  "generated_at": "2026-08-20T15:06:11.132265+00:00",
+  "generated_at": "2026-08-22T02:31:56.608780+00:00",
   "docker_server_version": "29.6.1",
   "image": "d2f-predictive-analytics:final",
   "image_exists": true,
   "container": "pfe-d2f-final",
-  "container_state": "Up About a minute (healthy)",
+  "container_state": "",
   "build": {
     "status": "PASSED",
     "dockerfile": "Dockerfile",
     "note": "multi-stage builder + non-root appuser + HEALTHCHECK"
   },
   "health": {
-    "status_code": 200,
-    "body": {
-      "status": "degraded",
-      "service": "d2f-predictive-analytics",
-      "version": "0.1.0",
-      "database": "unreachable",
-      "model": "PRODUCTION_ML"
-    }
+    "status_code": null,
+    "error": "<urlopen error [WinError 10061] Aucune connexion n’a pu être établie car l’ordinateur cible l’a expressément refusée>"
   },
-  "model_in_container": "PRODUCTION_ML",
-  "model_production_ml_in_container": true,
+  "model_in_container": null,
+  "model_production_ml_in_container": false,
   "jwt_protection": {
     "protected_routes_401_without_token": true,
     "routes": [

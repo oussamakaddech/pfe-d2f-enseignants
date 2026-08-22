@@ -33,13 +33,21 @@ class ComputeRisk:
         model_name = status.get("artifact_name") or status.get("model_name")
 
         ml_profile = self._model_port.predict_risk(teacher_id)
+        # Le mode exposé décrit le moteur qui a RÉELLEMENT produit le score :
+        # "ml" uniquement si le modèle de risque dédié a servi. Sinon le score
+        # provient des règles explicables sur les gaps (comportement historique,
+        # conservé pour cohérence avec les gaps affichés) et le mode exposé est
+        # HEURISTIC_FALLBACK — jamais un mode ML mensonger.
+        engine = str(status.get("risk_engine") or "")
         if ml_profile is not None:
             self._analysis_repository.save_risk_snapshot(ml_profile)
-            return ml_profile, model_mode, model_version, model_name
+            if engine == "ml":
+                return ml_profile, model_mode, model_version, model_name
+            return ml_profile, "HEURISTIC_FALLBACK", model_version, model_name
 
         profile = self._heuristic(teacher_id)
         self._analysis_repository.save_risk_snapshot(profile)
-        return profile, model_mode, model_version, model_name
+        return profile, "HEURISTIC_FALLBACK", model_version, model_name
 
     def _heuristic(self, teacher_id: str) -> RiskProfile:
         history = self._competency_source.get_teacher_savoir_levels_history(teacher_id)

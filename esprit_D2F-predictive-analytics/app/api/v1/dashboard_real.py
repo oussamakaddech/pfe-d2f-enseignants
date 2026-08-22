@@ -79,13 +79,14 @@ SELECT
   d.libelle AS dept_libelle,
   rs.score_risque,
   rs.niveau_risque,
+  rs.tendance,
   rs.snapshot_date,
   COALESCE(sg.nb_gaps, 0) AS nb_gaps_persistes,
   COALESCE(sg.nb_critiques, 0) AS nb_gaps_critiques,
   COALESCE(sg.max_gap, 0) AS max_gap_score
 FROM (
   SELECT DISTINCT ON (enseignant_id)
-    enseignant_id, score_risque, niveau_risque, snapshot_date
+    enseignant_id, score_risque, niveau_risque, tendance, snapshot_date
   FROM "analyse".teacher_risk_snapshots
   ORDER BY enseignant_id, computed_at DESC
 ) rs

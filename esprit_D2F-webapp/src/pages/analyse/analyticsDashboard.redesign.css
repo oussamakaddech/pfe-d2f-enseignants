@@ -516,6 +516,102 @@
 
 /* ── KPI row spacing ────────────────────────────────────────── */
 
+/* ── Responsive (tablette / mobile) ─────────────────────────── */
+@media (max-width: 1024px) {
+  .ad-page {
+    padding: 18px 14px;
+  }
+  .ad-header {
+    padding: 16px 18px;
+  }
+}
+
+@media (max-width: 768px) {
+  .ad-page {
+    padding: 14px 10px;
+  }
+  .ad-header {
+    padding: 14px 16px;
+    border-radius: 14px;
+  }
+  .ad-header__icon {
+    font-size: 24px;
+  }
+  .ad-header__title {
+    font-size: 17px;
+  }
+  .ad-header__subtitle {
+    font-size: 12px;
+  }
+  .ad-header__actions {
+    width: 100%;
+    gap: 8px;
+  }
+  .ad-header__actions .ant-btn {
+    padding-inline: 8px;
+    font-size: 12px;
+  }
+  .ad-filters {
+    padding: 12px;
+    gap: 8px;
+  }
+  .ad-filter-select {
+    min-width: 0;
+    flex: 1 1 calc(50% - 8px);
+    max-width: none;
+  }
+  .ad-segmented-wrap {
+    width: 100%;
+    overflow-x: auto;
+  }
+  .ad-kpi {
+    padding: 14px 15px;
+    gap: 12px;
+    border-radius: 13px;
+  }
+  .ad-kpi__icon {
+    width: 42px;
+    height: 42px;
+    font-size: 19px;
+    border-radius: 11px;
+    flex-shrink: 0;
+  }
+  .ad-kpi__value {
+    font-size: 23px;
+  }
+  .ad-card {
+    padding: 14px 14px 16px;
+    border-radius: 13px;
+  }
+  .ad-section__head {
+    gap: 8px;
+  }
+  .ad-section__title {
+    font-size: 13.5px;
+  }
+  .ad-drill-tbl th,
+  .ad-drill-tbl td {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ad-filter-select {
+    flex-basis: 100%;
+  }
+  .ad-kpi__title {
+    font-size: 12px;
+  }
+  .ad-kpi__value {
+    font-size: 21px;
+  }
+  .ad-actions li {
+    padding: 10px 11px;
+    gap: 9px;
+  }
+}
+
 /* ── Impression (isole le dashboard) ─────────────────────────── */
 @media print {
   body * {

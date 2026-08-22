@@ -13,11 +13,11 @@ INSERT_GAPS = """
     INSERT INTO "analyse".skill_gaps
         (enseignant_id, competence_id, competence_code, competence_nom, niveau_actuel,
          niveau_requis, niveau_vise, gap_score, impact_score, urgence_score, priorite_score,
-         niveau_urgence, mois_stagnation, en_regression, nb_besoins_exprimes, computed_at)
+         niveau_urgence, mois_stagnation, en_regression, nb_besoins_exprimes, tendance, computed_at)
     VALUES
         (:enseignant_id, :competence_id, :competence_code, :competence_nom, :niveau_actuel,
          :niveau_requis, :niveau_vise, :gap_score, :impact_score, :urgence_score, :priorite_score,
-         :niveau_urgence, :mois_stagnation, :en_regression, :nb_besoins_exprimes, now())
+         :niveau_urgence, :mois_stagnation, :en_regression, :nb_besoins_exprimes, :tendance, now())
 """
 
 INSERT_RISK = """
@@ -40,7 +40,9 @@ INSERT_RECOMMENDATION = """
 
 SELECT_GAPS_BY_TEACHER = """
     SELECT competence_id, competence_code, competence_nom, niveau_actuel,
-           niveau_requis, gap_score, niveau_urgence, computed_at::date AS computed_at
+           niveau_requis, gap_score, niveau_urgence,
+           COALESCE(tendance, 'STABLE') AS tendance,
+           computed_at::date AS computed_at
     FROM "analyse".skill_gaps
     WHERE enseignant_id = :id
     ORDER BY gap_score DESC, competence_id
@@ -84,6 +86,9 @@ class SqlAnalysisRepository:
                             "mois_stagnation": 0,
                             "en_regression": False,
                             "nb_besoins_exprimes": 0,
+                            # Trace l'origine du calcul (ML vs heuristique) :
+                            # DECLARED_ML/WORSENING => ML, sinon heuristique.
+                            "tendance": gap.trend.api_value(),
                         },
                     )
         except Exception as exc:
@@ -110,7 +115,7 @@ class SqlAnalysisRepository:
                 knowledge_difficulty_level=row["niveau_requis"],
                 gap_score=float(row["gap_score"]),
                 severity=Severity(row["niveau_urgence"].upper()),
-                trend=Trend.STABLE,
+                trend=Trend(str(row["tendance"]).upper()),
                 as_of=row["computed_at"],
             )
             for row in rows

@@ -168,6 +168,7 @@ export interface RealAtRiskTeacher {
   dept_libelle: string | null;
   score_risque: number;
   niveau_risque: string;
+  tendance?: string | null;
   snapshot_date: string;
   nb_gaps_persistes: number;
   nb_gaps_critiques: number;

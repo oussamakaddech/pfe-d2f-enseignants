@@ -50,6 +50,22 @@ def list_gaps(
             synthetic_share_pct = provenance.get("synthetic_share_pct")
     except Exception:
         pass
+    # Mode effectif des lignes servies : les marqueurs DECLARED_ML / WORSENING
+    # ne sont produits que par le modèle ; STABLE / DECLINING uniquement par le
+    # moteur heuristique (compute_gaps._heuristic_on). Si les lignes persistées
+    # portent des tendances heuristiques alors que le statut global annonce un
+    # mode ML (ex : features hors plages au dernier calcul), on expose
+    # HEURISTIC_FALLBACK — jamais un mode ML mensonger.
+    if gaps and model_mode in ("PRODUCTION_ML", "DEMO_ML"):
+        trends = {getattr(g.trend, "value", str(g.trend)) for g in gaps}
+        rows_from_ml = bool(trends & {"DECLARED_ML", "WORSENING"})
+        rows_heuristic_only = bool(trends & {"STABLE", "DECLINING"})
+        if not rows_from_ml and rows_heuristic_only:
+            model_mode = "HEURISTIC_FALLBACK"
+            fallback_reason = (
+                fallback_reason
+                or "dernier calcul hors plages d'entraînement : moteur heuristique explicable appliqué"
+            )
     if severity:
         gaps = [gap for gap in gaps if gap.severity.api_value() == severity.upper()]
     page_result = paginate([GapOut(**gap.to_dict()) for gap in gaps], page, size)

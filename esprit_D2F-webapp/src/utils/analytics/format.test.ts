@@ -89,9 +89,12 @@ describe('formatDepartment', () => {
     expect(formatDepartment(undefined)).toBe('—');
     expect(formatDepartment('')).toBe('—');
   });
-  it('mappe les codes département connus', () => {
+  it('mappe les codes département connus (libellés formation.departements)', () => {
     expect(formatDepartment('DEPT_INFO')).toBe('Informatique');
-    expect(formatDepartment('DEPT_IA')).toBe('Intelligence Artificielle');
+    expect(formatDepartment('DEPT_IA')).toBe('Intelligence Artificielle & Data');
+    expect(formatDepartment('DEPT_GL')).toBe('Génie Logiciel');
+    expect(formatDepartment('DEPT_INF2')).toBe('Informatique & Infrastructures');
+    expect(formatDepartment('DEPT_WEB')).toBe('Développement Web');
   });
   it('nettoie le préfixe DEPT_ en repli', () => {
     expect(formatDepartment('DEPT_XYZ')).toBe('XYZ');

@@ -98,7 +98,7 @@ class SqlCompetencySource:
         savoirs_by_competency: dict[int, list[Savoir]] = {}
         for row in savoir_rows:
             savoirs_by_competency.setdefault(int(row["competence_id"]), []).append(
-                Savoir(id=int(row["id"]), code=str(row["code"]), nom=str(row["nom"]), required_level=int(row["required_level"] or 0))
+                Savoir(id=int(row["id"]), code=str(row["code"]), nom=str(row["nom"]), knowledge_difficulty_level=int(row["required_level"] or 0))
             )
 
         competencies: list[Competency] = []

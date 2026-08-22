@@ -1,6 +1,6 @@
 # Validation des modèles — D2F Predictive Analytics
 
-Généré le : 2026-08-20T01:56:22.772883
+Généré le : 2026-08-22T03:27:19.471252
 
 ## Tableau principal
 
@@ -21,9 +21,9 @@ Généré le : 2026-08-20T01:56:22.772883
 | Modèle | RMSE | MAE | R² | IC95 amélioration | Temps inférence | Décision |
 |---|---:|---:|---:|---:|---:|---|
 | baseline_persistence | 2.4170790723164326 | 2.0921568627450977 | -3.903040251673791 | N/A | 0.0 ms | KEEP_AS_BASELINE |
-| gradient_boosting | 1.0696260222483547 | 0.8221447070327975 | 0.03983103936383037 | [37.33, 70.55] | 0.3032 ms | ACTIVE |
-| xgboost | 1.0936831747264815 | 0.8137966435329587 | -0.003845332985124461 | [36.76, 70.06] | 1.3202 ms | KEEP_AS_CHALLENGER |
-| mlp | 1.110131213863728 | 0.8332836562647046 | -0.03426629103745582 | [34.24, 69.83] | 0.1431 ms | KEEP_AS_CHALLENGER |
+| gradient_boosting | 1.0696260222483547 | 0.8221447070327975 | 0.03983103936383037 | [37.33, 70.55] | 0.311 ms | ACTIVE |
+| xgboost | 1.0936831747264815 | 0.8137966435329587 | -0.003845332985124461 | [36.76, 70.06] | 1.4467 ms | KEEP_AS_CHALLENGER |
+| mlp | 1.110131213863728 | 0.8332836562647046 | -0.03426629103745582 | [34.24, 69.83] | 0.1586 ms | KEEP_AS_CHALLENGER |
 | legacy_gap_predictor | N/A | N/A | N/A | N/A | N/A ms | NOT_AVAILABLE |
 
 ## Tableau RISQUE

@@ -226,6 +226,9 @@ class ArtifactModelPort:
         # Kill-switch global (audit DSI 3.3) : ML_ENABLED=false -> AUCUN artefact
         self._ml_enabled: bool = bool(getattr(settings, "ml_enabled", True))
 
+        # Moteur réellement utilisé par le dernier predict_risk ("ml" | "rules").
+        self._risk_engine: str = "unknown"
+
         # Registre d'artefacts
         registry_path = Path(getattr(settings, "ml_registry_path", "model_registry.json"))
         if not registry_path.is_absolute():
@@ -448,6 +451,7 @@ class ArtifactModelPort:
             "provenance": prov.to_dict() if prov else {},
             "registry_entry": entry.to_dict() if entry else None,
             "prediction_horizon": "3m",
+            "risk_engine": self._risk_engine,
             "risk_model": self.risk_status(),
             "relevance_model": {
                 "name": "relevance_model",
@@ -838,14 +842,19 @@ class ArtifactModelPort:
 
         Les règles métier de sécurité restent prioritaires : si >=3 gaps critiques,
         le niveau est CRITICAL quel que soit le modèle statistique.
+        Le moteur effectivement utilisé est tracé dans ``self._risk_engine``
+        ("ml" | "rules") et exposé via status() pour un étiquetage honnête.
         """
         # 1) Modele ML dedie si disponible
         if self.risk_available():
             try:
-                return self._predict_risk_ml(teacher_id)
+                profile = self._predict_risk_ml(teacher_id)
+                self._risk_engine = "ml"
+                return profile
             except Exception as exc:  # pragma: no cover
                 logger.error("predict_risk ML echoue, fallback regle", error=str(exc))
         # 2) Fallback : regle arbitraire derivee des gaps (comportement historique)
+        self._risk_engine = "rules"
         gaps = self._predict_gaps(teacher_id)
         if gaps is None:
             # Le modele est indisponible ou la validation des features a echoue :

@@ -218,7 +218,7 @@ function toAtRiskTeacher(row: RealDashboardImpact['at_risk_teachers'][number]): 
     score_risque: row.score_risque ?? 0,
     niveau_risque: toNiveauRisque(row.niveau_risque),
     nb_gaps_critiques: row.nb_gaps_critiques ?? 0,
-    tendance: 'STABLE',
+    tendance: row.tendance ?? 'STABLE',
   };
 }
 
@@ -318,31 +318,36 @@ export default function AnalyticsDashboardPage() {
     [data],
   );
 
+  /** Libellés officiels fournis par l'API (formation.departements / formation.ups),
+   *  avec repli sur formatDepartment()/formatUP() si absent. */
   const departmentOptions = useMemo(() => {
-    const seen = new Set<string>();
-    const add = (d?: string | null) => {
-      if (d && d !== 'non_affecte' && d !== 'NON_AFFECTE') seen.add(d);
+    const labels = new Map<string, string>();
+    const add = (code?: string | null, libelle?: string | null) => {
+      if (!code || code === 'non_affecte' || code === 'NON_AFFECTE') return;
+      if (!labels.has(code)) labels.set(code, libelle ?? formatDepartment(code));
     };
-    allHeatmap.forEach((h) => add(h.departement));
-    allAtRisk.forEach((t) => add(t.departement));
-    return Array.from(seen)
-      .sort((a, b) => a.localeCompare(b))
-      .map((v) => ({ value: v, label: formatDepartment(v) }));
-  }, [allHeatmap, allAtRisk]);
+    (data?.heatmap ?? []).forEach((r) => add(r.dept_id, r.dept_libelle));
+    (data?.at_risk_teachers ?? []).forEach((r) => add(r.dept_id, r.dept_libelle));
+    return Array.from(labels.entries())
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .map(([value, label]) => ({ value, label }));
+  }, [data]);
 
   const upOptions = useMemo(() => {
-    const seen = new Set<string>();
-    allAtRisk.forEach((t) => {
-      if (t.up && t.up !== 'non_affecte') seen.add(t.up);
+    const labels = new Map<string, string>();
+    (data?.at_risk_teachers ?? []).forEach((r) => {
+      if (!r.up_id || r.up_id === 'non_affecte') return;
+      if (!labels.has(r.up_id)) labels.set(r.up_id, r.up_libelle ?? formatUP(r.up_id));
     });
-    return Array.from(seen)
-      .sort((a, b) => a.localeCompare(b))
-      .map((v) => ({ value: v, label: formatUP(v) }));
-  }, [allAtRisk]);
+    return Array.from(labels.entries())
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .map(([value, label]) => ({ value, label }));
+  }, [data]);
 
   const filteredAtRisk = useMemo<AtRiskTeacher[]>(() => {
     return allAtRisk.filter(
       (t) =>
+        t.score_risque >= 0.5 &&
         (!filters.departement_id || t.departement === filters.departement_id) &&
         (!filters.up_id || t.up === filters.up_id) &&
         (!filters.niveau_risque || t.niveau_risque === filters.niveau_risque),
@@ -478,11 +483,13 @@ export default function AnalyticsDashboardPage() {
       {/* ── Barre de filtres ─────────────── */}
       <div className="ad-filters">
         <span className="ad-filters__label">Filtres</span>
-        <Segmented
-          value={String(windowDays)}
-          onChange={(v) => setWindowDays(Number(v))}
-          options={WINDOWS.map((w) => ({ label: w.label, value: String(w.days) }))}
-        />
+        <div className="ad-segmented-wrap">
+          <Segmented
+            value={String(windowDays)}
+            onChange={(v) => setWindowDays(Number(v))}
+            options={WINDOWS.map((w) => ({ label: w.label, value: String(w.days) }))}
+          />
+        </div>
         <Select
           allowClear
           placeholder="Département"
@@ -658,7 +665,11 @@ export default function AnalyticsDashboardPage() {
             title="Enseignants à risque (score ≥ 0,5)"
             icon={<SafetyCertificateOutlined />}
             extra={
-              <Tag color={filteredAtRisk.length ? 'red' : 'default'}>{filteredAtRisk.length}</Tag>
+              <Tooltip title={`${filteredAtRisk.length} enseignant(s) avec score ≥ 0,5 sur ${allAtRisk.length} suivis`}>
+                <Tag color={filteredAtRisk.length ? 'red' : 'default'}>
+                  {filteredAtRisk.length} / {allAtRisk.length}
+                </Tag>
+              </Tooltip>
             }
             loading={impact.isLoading}
           >
@@ -814,7 +825,8 @@ export default function AnalyticsDashboardPage() {
         open={!!drill}
         onCancel={() => setDrill(null)}
         footer={null}
-        width={640}
+        width={720}
+        styles={{ body: { overflowX: 'auto' } }}
       >
         {drillQuery.isLoading && (
           <div className="ad-loading">

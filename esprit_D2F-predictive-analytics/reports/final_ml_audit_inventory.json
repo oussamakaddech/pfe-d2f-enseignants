@@ -1,10 +1,10 @@
 {
   "repository_root": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics",
   "git": {
-    "commit_audited": "6cc11176c77f4eaaf8ff1da16e967182aa02ab8b",
-    "commit_subject": "ci: exclude one-off _fix_* repair scripts from print() guard",
-    "commit_date": "2026-08-19 15:45:59 +0100",
-    "modified_files": 106
+    "commit_audited": "72bb18d278921f2a64cddb424e3bf65d5b07258a",
+    "commit_subject": "feat(ml): finalize ML validation, provenance audit and final reports",
+    "commit_date": "2026-08-20 22:00:02 +0100",
+    "modified_files": 4
   },
   "datasets": {
     "v1.0.0": {
