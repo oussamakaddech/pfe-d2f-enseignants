@@ -18,6 +18,20 @@ sont créées sur GitHub : https://github.com/oussamakaddech/pfe-d2f-enseignants
 | 16 | Caractères '?' hérités d'un ancien encodage dans des légendes LaTeX | low | docs | #16 |
 | 17 | docker compose sensible au répertoire d'exécution (.env écrasé) | medium | ops | #17 |
 
+## Issues par microservice (ajout du 2026-08-22)
+
+| # | Service | Titre | Priorité | Lien |
+|---|---------|-------|----------|------|
+| 18 | analyse | Couverture JaCoCo la plus faible du backend (89,0 %) | medium | #18 |
+| 19 | authentification | Mot de passe admin par défaut connu + comptes seed | high | #19 |
+| 20 | common-security | Bibliothèque de sécurité quasi non testée (1 classe / 10 tests) | high | #20 |
+| 21 | api-gateway | Suite mince sur le point d'entrée unique + mapping de routes non documenté | medium | #21 |
+| 22 | notification | Intégration événementielle de l'analyse prédictive non définie | medium | #22 |
+| 23 | rice | Dépendances NLP désactivées en test — risque d'écart prod/test | low | #23 |
+| 24 | formation | Module le plus volumineux — temps de CI à surveiller | low | #24 |
+| 25 | webapp | Aucun test E2E automatisé des parcours critiques | medium | #25 |
+| 26 | predictive-analytics | Garde CI anti-dérive de schéma train/serving absente | high | #26 |
+
 ## Contexte
 
 Les corrections suivantes ont déjà été appliquées et poussées sur `oussama` :
