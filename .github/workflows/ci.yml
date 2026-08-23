@@ -7,6 +7,10 @@
 
 name: D2F CI Pipeline
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
@@ -16,8 +20,6 @@ on:
       - 'feature/**'
       - 'hotfix/**'
       - 'release/**'
-  pull_request:
-    branches: [ main, develop ]
   workflow_dispatch:
     inputs:
       skip_sonar:
@@ -83,9 +85,9 @@ jobs:
           reporter: java-junit
           fail-on-error: false
 
-  # -- Analyse statique Java (SpotBugs) — DSI : lint backend bloquant -----------
-  # Garde-fou contre les bugs sérieux (rank <= 9 : correctness/sécurité de haute
-  # gravité), exécuté sur chaque push sans dépendre du runner self-hosted Sonar.
+  # -- Analyse statique Java (SpotBugs) â€” DSI : lint backend bloquant -----------
+  # Garde-fou contre les bugs sÃ©rieux (rank <= 9 : correctness/sÃ©curitÃ© de haute
+  # gravitÃ©), exÃ©cutÃ© sur chaque push sans dÃ©pendre du runner self-hosted Sonar.
   lint-backend:
     name: SpotBugs - ${{ matrix.service }}
     runs-on: ubuntu-latest
