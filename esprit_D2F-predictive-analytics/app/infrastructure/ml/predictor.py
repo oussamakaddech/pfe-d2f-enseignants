@@ -281,6 +281,82 @@ class ArtifactModelPort:
         self._provenance_report = DatasetProvenanceReport()
         self._provenance_report.errors.append("aucun corpus d'entrainement trouve")
 
+    def _feature_spec_error(self, meta: dict[str, Any]) -> str | None:
+        """Erreur de compatibilite du schéma de features (None si valide)."""
+        expected = list(TEMPORAL_FEATURE_COLS)
+        meta_feats = meta.get("feature_cols") or expected
+        spec_result = validate_feature_spec(
+            meta_feats,
+            meta.get("feature_schema_version") or FEATURE_SCHEMA_VERSION,
+            expected,
+            FEATURE_SCHEMA_VERSION,
+        )
+        if not spec_result.valid:
+            return "; ".join(spec_result.errors)
+        return None
+
+    def _provenance_error(self) -> str | None:
+        """Erreur de provenance du corpus (part synthétique / données réelles)."""
+        prov = self._provenance_report
+        if prov is None or prov.errors:
+            return "provenance indisponible (corpus absent ou colonnes manquantes)"
+        tolerance = float(getattr(self._settings, "ml_synthetic_tolerance_pct", 50.0))
+        require_real = bool(getattr(self._settings, "ml_require_real_data", True))
+        min_real = int(getattr(self._settings, "ml_min_real_rows", 50))
+        if prov.synthetic_share_pct > tolerance:
+            return (
+                f"corpus {prov.synthetic_share_pct:.1f}% synthetique "
+                f"(tolerance {tolerance:.0f}%)"
+            )
+        if require_real and prov.real_rows < min_real:
+            return (
+                f"donnees reelles insuffisantes : {prov.real_rows} lignes "
+                f"< minimum {min_real}"
+            )
+        return None
+
+    def _registry_rejection_reason(self, meta: dict[str, Any]) -> str | None:
+        """Raison d'non-approuvabilité production selon le registre (None si OK)."""
+        entry = self._registry.active()
+        if entry is None or entry.approval_status != APPROVAL_APPROVED:
+            return "modele non approuve pour la production (registre)"
+        model_name = meta.get("model_name")
+        if model_name and entry.model_name != model_name:
+            return "modele non approuve pour la production (registre)"
+        return None
+
+    def _metrics_error(self, meta: dict[str, Any]) -> str | None:
+        """Erreur de metriques minimales dans la metadata (None si satisfaites)."""
+        metrics = meta.get("metrics") or {}
+        min_r2 = float(getattr(self._settings, "ml_min_r2", 0.0))
+        max_rmse = float(getattr(self._settings, "ml_max_rmse", 2.0))
+        max_mae = float(getattr(self._settings, "ml_max_mae", 1.5))
+        test_r2 = metrics.get("test_r2")
+        test_rmse = metrics.get("test_rmse")
+        test_mae = metrics.get("test_mae")
+        if test_r2 is None or test_rmse is None or test_mae is None:
+            return "metriques du modele absentes dans la metadata"
+        if test_r2 < min_r2:
+            return f"R2={test_r2:.3f} < minimum requis {min_r2:.3f}"
+        if test_rmse > max_rmse:
+            return f"RMSE={test_rmse:.3f} > maximum autorise {max_rmse:.3f}"
+        if test_mae > max_mae:
+            return f"MAE={test_mae:.3f} > maximum autorise {max_mae:.3f}"
+        return None
+
+    def _operator_mode_decision(self) -> tuple[str | None, str | None]:
+        """Volonté de l'opérateur quant au mode de service.
+
+        Retourne (mode_a_servir, raison_d_ecart) ; (None, None) signifie que
+        l'opérateur demande bien PRODUCTION_ML — aucun écart.
+        """
+        requested = str(getattr(self._settings, "ml_serving_mode", PRODUCTION_ML)).upper()
+        if requested == PRODUCTION_ML:
+            return None, None
+        if requested == DEMO_ML:
+            return DEMO_ML, "demande explicite du mode DEMO_ML par l'operateur"
+        return HEURISTIC_FALLBACK, f"mode demande non reconnu : {requested}"
+
     def _decide_mode(self) -> str:
         """Routage dynamique entre PRODUCTION_ML / DEMO_ML / HEURISTIC_FALLBACK.
 
@@ -304,82 +380,32 @@ class ArtifactModelPort:
 
         meta = self._metadata or {}
 
-        # 1. Verification des features (spec + ordre)
-        expected = list(TEMPORAL_FEATURE_COLS)
-        meta_feats = meta.get("feature_cols") or expected
-        spec_result = validate_feature_spec(
-            meta_feats,
-            meta.get("feature_schema_version") or FEATURE_SCHEMA_VERSION,
-            expected,
-            FEATURE_SCHEMA_VERSION,
-        )
-        if not spec_result.valid:
-            self._fallback_reason = "; ".join(spec_result.errors)
+        spec_error = self._feature_spec_error(meta)
+        if spec_error:
+            self._fallback_reason = spec_error
             return HEURISTIC_FALLBACK
 
-        # 2. Provenance calculee depuis les lignes
-        prov = self._provenance_report
-        if prov is None or prov.errors:
-            self._fallback_reason = (
-                "provenance indisponible (corpus absent ou colonnes manquantes)"
-            )
-            return HEURISTIC_FALLBACK
-        tolerance = float(getattr(self._settings, "ml_synthetic_tolerance_pct", 50.0))
-        require_real = bool(getattr(self._settings, "ml_require_real_data", True))
-        min_real = int(getattr(self._settings, "ml_min_real_rows", 50))
-        if prov.synthetic_share_pct > tolerance:
-            self._fallback_reason = (
-                f"corpus {prov.synthetic_share_pct:.1f}% synthetique "
-                f"(tolerance {tolerance:.0f}%)"
-            )
-            return HEURISTIC_FALLBACK
-        if require_real and prov.real_rows < min_real:
-            self._fallback_reason = (
-                f"donnees reelles insuffisantes : {prov.real_rows} lignes "
-                f"< minimum {min_real}"
-            )
+        provenance_error = self._provenance_error()
+        if provenance_error:
+            self._fallback_reason = provenance_error
             return HEURISTIC_FALLBACK
 
-        # 3. Registre : entree ACTIVE et APPROVED
-        entry = self._registry.active()
-        if entry is None or entry.approval_status != APPROVAL_APPROVED:
+        registry_error = self._registry_rejection_reason(meta)
+        if registry_error:
             # Modele disponible et valide mais non approuve pour la production.
-            self._fallback_reason = "modele non approuve pour la production (registre)"
-            return DEMO_ML
-        if meta.get("model_name") and entry.model_name != meta.get("model_name"):
-            self._fallback_reason = "modele non approuve pour la production (registre)"
+            self._fallback_reason = registry_error
             return DEMO_ML
 
-        # 4. Metriques minimales
-        metrics = meta.get("metrics") or {}
-        min_r2 = float(getattr(self._settings, "ml_min_r2", 0.0))
-        max_rmse = float(getattr(self._settings, "ml_max_rmse", 2.0))
-        max_mae = float(getattr(self._settings, "ml_max_mae", 1.5))
-        test_r2 = metrics.get("test_r2")
-        test_rmse = metrics.get("test_rmse")
-        test_mae = metrics.get("test_mae")
-        if test_r2 is None or test_rmse is None or test_mae is None:
-            self._fallback_reason = "metriques du modele absentes dans la metadata"
-            return DEMO_ML
-        if test_r2 < min_r2:
-            self._fallback_reason = f"R2={test_r2:.3f} < minimum requis {min_r2:.3f}"
-            return DEMO_ML
-        if test_rmse > max_rmse:
-            self._fallback_reason = f"RMSE={test_rmse:.3f} > maximum autorise {max_rmse:.3f}"
-            return DEMO_ML
-        if test_mae > max_mae:
-            self._fallback_reason = f"MAE={test_mae:.3f} > maximum autorise {max_mae:.3f}"
+        metrics_error = self._metrics_error(meta)
+        if metrics_error:
+            self._fallback_reason = metrics_error
             return DEMO_ML
 
-        # 5. Volonte de l'operateur : demande PRODUCTION_ML ?
-        requested = str(getattr(self._settings, "ml_serving_mode", PRODUCTION_ML)).upper()
-        if requested != PRODUCTION_ML:
+        operator_mode, operator_reason = self._operator_mode_decision()
+        if operator_mode is not None:
             # L'operateur demande explicitement un autre mode.
-            if requested == DEMO_ML:
-                self._fallback_reason = "demande explicite du mode DEMO_ML par l'operateur"
-                return DEMO_ML
-            self._fallback_reason = f"mode demande non reconnu : {requested}"
-            return HEURISTIC_FALLBACK
+            self._fallback_reason = operator_reason
+            return operator_mode
 
         self._fallback_reason = None
         return PRODUCTION_ML
@@ -741,6 +767,56 @@ class ArtifactModelPort:
         return xn
 
     # ------------------------------------------------------------ Predictions
+    def _serving_vector_error(self, X: np.ndarray, teacher_id: str) -> str | None:
+        """Validation stricte du vecteur de features au serving (None si valide)."""
+        ranges = (self._metadata or {}).get("feature_ranges", {})
+        validation = validate_feature_vector(X, TEMPORAL_FEATURE_COLS, ranges)
+        if not validation.valid:
+            logger.error(
+                "features invalides au serving — fallback",
+                errors=validation.errors,
+                teacher_id=teacher_id,
+            )
+            return "features invalides au serving : " + "; ".join(validation.errors)
+        return None
+
+    def _declared_synthetic_share_error(self) -> str | None:
+        """Defense en profondeur : la metadata doit declarer une part synthetique
+        dans la tolerance — meme en cas de contournement du routage principal."""
+        meta = self._metadata or {}
+        data_sources = meta.get("data_sources") or {}
+        declared_synth = float(data_sources.get("synthetic_share_pct", 100.0))
+        tolerance = float(getattr(self._settings, "ml_synthetic_tolerance_pct", 50.0))
+        if declared_synth <= tolerance:
+            return None
+        logger.warning(
+            "gap_predictor ml refuse au serving : proportion synthetique declaree trop elevee",
+            declared_synthetic_share_pct=declared_synth,
+            tolerance=tolerance,
+        )
+        return (
+            f"metadata declare {declared_synth:.1f}% de données synthétiques "
+            f"(tolérance {tolerance:.0f}%)"
+        )
+
+    @staticmethod
+    def _severity_from_score(score: float, seuils: Any) -> Severity:
+        if score >= seuils.seuil_gap_critique:
+            return Severity.CRITICAL
+        if score >= seuils.seuil_gap_haute:
+            return Severity.HIGH
+        if score >= seuils.seuil_gap_moyenne:
+            return Severity.MEDIUM
+        return Severity.LOW
+
+    @staticmethod
+    def _trend_from_gaps(structural_gap: float, predicted_future_gap: float) -> Trend:
+        if predicted_future_gap > structural_gap + 0.5:
+            return Trend.WORSENING
+        if predicted_future_gap < structural_gap - 0.5:
+            return Trend.IMPROVING
+        return Trend.DECLARED_ML
+
     def _predict_gaps(self, teacher_id: str, mode: str | None = None) -> Optional[list[SkillGap]]:
         """Prediction ML avec validation du vecteur de features avant inference.
 
@@ -754,37 +830,17 @@ class ArtifactModelPort:
             return []
         if self._model is None:
             return None
+
+        vector_error = self._serving_vector_error(X, teacher_id)
+        if vector_error:
+            self._fallback_reason = vector_error
+            return None
+        synthetic_error = self._declared_synthetic_share_error()
+        if synthetic_error:
+            self._fallback_reason = synthetic_error
+            return None
+
         ranges = (self._metadata or {}).get("feature_ranges", {})
-
-        # Validation stricte du vecteur de features au serving.
-        validation = validate_feature_vector(X, TEMPORAL_FEATURE_COLS, ranges)
-        if not validation.valid:
-            logger.error(
-                "features invalides au serving — fallback",
-                errors=validation.errors,
-                teacher_id=teacher_id,
-            )
-            self._fallback_reason = "features invalides au serving : " + "; ".join(validation.errors)
-            return None
-
-        # Defense en profondeur : la metadata doit declarer une part synthetique
-        # dans la tolerance — meme en cas de contournement du routage principal.
-        meta = self._metadata or {}
-        data_sources = meta.get("data_sources") or {}
-        declared_synth = float(data_sources.get("synthetic_share_pct", 100.0))
-        tolerance = float(getattr(self._settings, "ml_synthetic_tolerance_pct", 50.0))
-        if declared_synth > tolerance:
-            logger.warning(
-                "gap_predictor ml refuse au serving : proportion synthetique declaree trop elevee",
-                declared_synthetic_share_pct=declared_synth,
-                tolerance=tolerance,
-            )
-            self._fallback_reason = (
-                f"metadata declare {declared_synth:.1f}% de données synthétiques "
-                f"(tolérance {tolerance:.0f}%)"
-            )
-            return None
-
         xn = self._normalize(X, ranges)
         ml_pred = np.clip(self._model.predict(xn), 0.0, 5.0)
 
@@ -806,21 +862,9 @@ class ArtifactModelPort:
             predicted_future_gap = float(ml_pred[i])
             effective_gap = float(max(structural_gap, predicted_future_gap))
             score = min(1.0, effective_gap / 4.0)
-            if score >= seuils.seuil_gap_critique:
-                sev = Severity.CRITICAL
-            elif score >= seuils.seuil_gap_haute:
-                sev = Severity.HIGH
-            elif score >= seuils.seuil_gap_moyenne:
-                sev = Severity.MEDIUM
-            else:
-                sev = Severity.LOW
+            sev = self._severity_from_score(score, seuils)
             code, nom = by_id.get(cid, (f"C{cid}", f"Competence {cid}"))
-            if predicted_future_gap > structural_gap + 0.5:
-                trend = Trend.WORSENING
-            elif predicted_future_gap < structural_gap - 0.5:
-                trend = Trend.IMPROVING
-            else:
-                trend = Trend.DECLARED_ML
+            trend = self._trend_from_gaps(structural_gap, predicted_future_gap)
             gaps.append(
                 SkillGap(
                     teacher_id=teacher_id,
@@ -863,6 +907,23 @@ class ArtifactModelPort:
             gaps = self._persisted_gaps(teacher_id)
         return self._rule_risk_scoped(teacher_id, gaps or [])
 
+    def _filter_gaps_to_scope(
+        self,
+        teacher_id: str,
+        gaps: list[SkillGap],
+        scoped_ids: set[int],
+    ) -> list[SkillGap]:
+        """Gaps restreints au périmètre de l'enseignant.
+
+        Si aucune prédiction ne tombe dans le périmètre, retombe sur le
+        snapshot persisté (déjà scopé par compute_gaps).
+        """
+        filtered = [g for g in gaps if g.competence_id in scoped_ids]
+        if not filtered:
+            persisted = self._persisted_gaps(teacher_id) or []
+            filtered = [g for g in persisted if g.competence_id in scoped_ids]
+        return filtered
+
     def _rule_risk_scoped(self, teacher_id: str, gaps: list[SkillGap]) -> RiskProfile:
         """Règle de risque sur les gaps DU PÉRIMÈTRE de l'enseignant.
 
@@ -879,11 +940,7 @@ class ArtifactModelPort:
         scope = "DEPARTMENT" if scoped_ids is not None else "TEACHER"
         scope_type, scope_id, scope_label = self._teacher_scope_info(teacher_id, scope)
         if scoped_ids is not None and gaps:
-            filtered = [g for g in gaps if g.competence_id in scoped_ids]
-            if not filtered:
-                persisted = self._persisted_gaps(teacher_id) or []
-                filtered = [g for g in persisted if g.competence_id in scoped_ids]
-            gaps = filtered
+            gaps = self._filter_gaps_to_scope(teacher_id, gaps, scoped_ids)
         return rule_risk_from_gaps(
             teacher_id,
             gaps,
@@ -1047,6 +1104,47 @@ class ArtifactModelPort:
             return 18.0
         return float((date.today() - max(dates)).days / 30.44)
 
+    @staticmethod
+    def _risk_class_bonus(classes: list, proba: np.ndarray, n_crit: int) -> float:
+        """Bonus au score quand les classes risquées sont probablement."""
+        bonus = 0.0
+        if "CRITICAL" in classes and proba[classes.index("CRITICAL")] >= 0.2:
+            bonus += 15.0
+        elif "HIGH" in classes and proba[classes.index("HIGH")] >= 0.4:
+            bonus += 8.0
+        return bonus + min(30.0, n_crit * 7.0)
+
+    def _apply_critical_gaps_rule(
+        self,
+        n_crit: int,
+        level: RiskLevel,
+        risk_score: float,
+        scope: str,
+        scope_type: str,
+        scope_id: str | None,
+        scope_label: str | None,
+    ) -> tuple[RiskLevel, float, tuple[RiskFactor, ...]]:
+        """REGLE METIER DE SECURITE : >=3 gaps critiques => CRITICAL.
+
+        Quel que soit le ML : relève le niveau, plancher le score à 75 et
+        ajoute le facteur explicatif dédié.
+        """
+        if n_crit >= 3 and level in {RiskLevel.LOW, RiskLevel.MEDIUM, RiskLevel.HIGH}:
+            factor = RiskFactor(
+                feature="critical_gaps_rule",
+                value=float(n_crit),
+                normalized_value=1.0,
+                weight=0.3,
+                contribution=0.3,
+                label="Règle métier (≥ 3 gaps critiques)",
+                scope=scope,
+                scope_type=scope_type,
+                scope_id=scope_id,
+                scope_label=scope_label,
+            )
+            return RiskLevel.CRITICAL, max(risk_score, 75.0), (factor,)
+        return level, risk_score, ()
+
     def _predict_risk_ml(self, teacher_id: str) -> RiskProfile:
         """Classifier dedie : RandomForest entraine sur risk_training_metadata."""
         bundle = self._teacher_feature_bundle(teacher_id)
@@ -1055,11 +1153,7 @@ class ArtifactModelPort:
         scope = "DEPARTMENT" if scoped_ids is not None else "TEACHER"
         scope_type, scope_id, scope_label = self._teacher_scope_info(teacher_id, scope)
         if scoped_ids is not None and gaps:
-            filtered = [g for g in gaps if g.competence_id in scoped_ids]
-            if not filtered:
-                persisted = self._persisted_gaps(teacher_id) or []
-                filtered = [g for g in persisted if g.competence_id in scoped_ids]
-            gaps = filtered
+            gaps = self._filter_gaps_to_scope(teacher_id, gaps, scoped_ids)
         streak = self._stagnation_months(bundle)
         n_crit = sum(1 for g in gaps if g.severity == Severity.CRITICAL)
         n_high = sum(1 for g in gaps if g.severity == Severity.HIGH)
@@ -1086,36 +1180,16 @@ class ArtifactModelPort:
         midpoints = {"LOW": 10.0, "MEDIUM": 37.5, "HIGH": 62.5, "CRITICAL": 87.5}
 
         expected = float(np.dot(proba, [midpoints.get(c, 40.0) for c in classes]))
-        bonus = 0.0
-        if "CRITICAL" in classes and proba[classes.index("CRITICAL")] >= 0.2:
-            bonus += 15.0
-        elif "HIGH" in classes and proba[classes.index("HIGH")] >= 0.4:
-            bonus += 8.0
-        bonus += min(30.0, n_crit * 7.0)
+        bonus = self._risk_class_bonus(classes, proba, n_crit)
         risk_score = round(min(100.0, expected + bonus), 2)
 
         pred_label = classes[int(np.argmax(proba))]
         level = {"LOW": RiskLevel.LOW, "MEDIUM": RiskLevel.MEDIUM,
                  "HIGH": RiskLevel.HIGH, "CRITICAL": RiskLevel.CRITICAL}.get(pred_label, RiskLevel.MEDIUM)
 
-        # REGLE METIER DE SECURITE : >=3 gaps critiques => CRITICAL, quel que soit le ML.
-        if n_crit >= 3 and level in {RiskLevel.LOW, RiskLevel.MEDIUM, RiskLevel.HIGH}:
-            level = RiskLevel.CRITICAL
-            risk_score = max(risk_score, 75.0)
-            factors_extra = (RiskFactor(
-                feature="critical_gaps_rule",
-                value=float(n_crit),
-                normalized_value=1.0,
-                weight=0.3,
-                contribution=0.3,
-                label="Règle métier (≥ 3 gaps critiques)",
-                scope=scope,
-                scope_type=scope_type,
-                scope_id=scope_id,
-                scope_label=scope_label,
-            ),)
-        else:
-            factors_extra = ()
+        level, risk_score, factors_extra = self._apply_critical_gaps_rule(
+            n_crit, level, risk_score, scope, scope_type, scope_id, scope_label,
+        )
 
         # Facteurs normalisés : probabilité de classe (0..1) * poids (milieu de
         # classe / 100) -> contribution toujours bornée dans [0, 1].

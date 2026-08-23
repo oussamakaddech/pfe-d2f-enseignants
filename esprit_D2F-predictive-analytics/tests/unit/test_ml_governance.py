@@ -137,7 +137,13 @@ def test_critical_risk_rules_preserved():
     import inspect
     from app.infrastructure.ml.predictor import ArtifactModelPort
 
-    source = inspect.getsource(ArtifactModelPort._predict_risk_ml)
+    source = "\n".join(
+        [
+            inspect.getsource(ArtifactModelPort._predict_risk_ml),
+            # La règle de sécurité est déléguée à ce helper.
+            inspect.getsource(ArtifactModelPort._apply_critical_gaps_rule),
+        ]
+    )
     assert "n_crit >= 3" in source
     assert "RiskLevel.CRITICAL" in source
 

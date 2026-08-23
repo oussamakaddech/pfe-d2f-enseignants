@@ -64,6 +64,7 @@ export default function ModelBadge({
   modelMode,
   modelVersion,
   modelName,
+  modelAlgorithm,
   size = 'default',
 }: Props) {
   const meta = MODE_META[modelMode ?? 'HEURISTIC_FALLBACK'];
@@ -76,6 +77,7 @@ export default function ModelBadge({
   if (artifact && modelVersion) tooltipParts.push(`Artefact : ${artifact} · ${version}.`);
   else if (artifact) tooltipParts.push(`Artefact : ${artifact}.`);
   else if (modelVersion) tooltipParts.push(`Version : ${version}.`);
+  if (modelAlgorithm) tooltipParts.push(`Algorithme : ${modelAlgorithm}.`);
   const tooltip = tooltipParts.join(' ');
 
   const fontSize = size === 'small' ? 11 : 12;

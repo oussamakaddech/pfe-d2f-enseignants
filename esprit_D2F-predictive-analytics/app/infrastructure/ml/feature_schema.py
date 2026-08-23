@@ -53,6 +53,36 @@ def validate_feature_spec(
     return result
 
 
+def _check_feature_bounds(
+    result: FeatureValidationResult,
+    values: np.ndarray,
+    col: str,
+    bounds: dict[str, float] | None,
+) -> None:
+    """Compare les valeurs d'une colonne à sa plage d'entraînement."""
+    if not bounds:
+        # Plage non documentée : warning consultatif, pas d'erreur bloquante
+        # (le schéma d'ordre/type reste strictement validé).
+        result.warnings.append(f"plage non documentée pour la feature {col}")
+        return
+    col_min = float(bounds.get("min", -np.inf))
+    col_max = float(bounds.get("max", np.inf))
+    if col_max < col_min:
+        return
+    lo_val = float(values.min())
+    hi_val = float(values.max())
+    tol = max(0.5, (col_max - col_min) * 0.2)
+    if lo_val < col_min - tol or hi_val > col_max + tol:
+        result.fail(
+            f"feature {col} hors plage [{col_min}, {col_max}] "
+            f"(valeurs {lo_val:.2f}..{hi_val:.2f})"
+        )
+    elif lo_val < col_min - 1e-6 or hi_val > col_max + 1e-6:
+        result.warnings.append(
+            f"feature {col} légèrement hors plage d'entraînement"
+        )
+
+
 def validate_feature_vector(
     X: np.ndarray,
     feature_names: list[str],
@@ -79,27 +109,5 @@ def validate_feature_vector(
         result.fail("valeurs NaN détectées dans les features")
 
     for i, col in enumerate(feature_names):
-        bounds = ranges.get(col)
-        if not bounds:
-            # Plage non documentée : on ne peut pas vérifier — warning
-            # consultatif, pas d'erreur bloquante (le schéma d'ordre/type
-            # reste strictement validé).
-            result.warnings.append(f"plage non documentée pour la feature {col}")
-            continue
-        col_min = float(bounds.get("min", -np.inf))
-        col_max = float(bounds.get("max", np.inf))
-        if col_max < col_min:
-            continue
-        lo_val = float(X[:, i].min())
-        hi_val = float(X[:, i].max())
-        tol = max(0.5, (col_max - col_min) * 0.2)
-        if lo_val < col_min - tol or hi_val > col_max + tol:
-            result.fail(
-                f"feature {col} hors plage [{col_min}, {col_max}] "
-                f"(valeurs {lo_val:.2f}..{hi_val:.2f})"
-            )
-        elif lo_val < col_min - 1e-6 or hi_val > col_max + 1e-6:
-            result.warnings.append(
-                f"feature {col} légèrement hors plage d'entraînement"
-            )
+        _check_feature_bounds(result, X[:, i], col, ranges.get(col))
     return result
