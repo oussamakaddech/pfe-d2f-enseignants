@@ -154,7 +154,10 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
                 || path.startsWith("/api/auth/reset-password")
                 || path.startsWith("/api/auth/confirm")
                 || path.startsWith("/api/auth/logout")
-                || path.startsWith("/actuator/");
+                || path.startsWith("/actuator/")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/swagger-ui")
+                || path.equals("/swagger-ui.html");
     }
 
     // ────────────────────────────────────────────────────────────────────────────

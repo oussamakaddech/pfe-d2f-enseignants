@@ -21,6 +21,7 @@
         <postgresql.version>42.7.13</postgresql.version>
         <tomcat.version>10.1.57</tomcat.version>
         <spring-cloud.version>2025.0.3</spring-cloud.version>
+        <springdoc.version>2.8.13</springdoc.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <sonar.projectKey>d2f_api_gateway</sonar.projectKey>
@@ -111,6 +112,13 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
+        </dependency>
+
+        <!-- OpenAPI / Swagger UI (WebFlux) — documentation des routes gateway -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+            <version>${springdoc.version}</version>
         </dependency>
     </dependencies>
 

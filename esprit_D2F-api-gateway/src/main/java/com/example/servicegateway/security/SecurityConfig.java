@@ -44,7 +44,10 @@ public class SecurityConfig {
             "/api/auth/confirm",
             "/api/auth/logout",
             "/actuator/**",
-            "/fallback/**"
+            "/fallback/**",
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html"
     };
 
     private static final String AUTH_COOKIE = "d2f_auth_token";
