@@ -478,7 +478,9 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      # Boot réel observé : ~120 s (Flyway + Hibernate). 60 s provoquait un
+      # « unhealthy » avant la fin du démarrage et bloquait analyse-service.
+      start_period: 240s
     networks:
       - d2f-network
 

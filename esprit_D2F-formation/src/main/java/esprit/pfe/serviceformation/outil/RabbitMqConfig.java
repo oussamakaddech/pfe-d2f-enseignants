@@ -38,10 +38,20 @@ public class RabbitMqConfig {
     private static final String DLX_ARG = "x-dead-letter-exchange";
     private static final String DLK_ARG = "x-dead-letter-routing-key";
 
+    // Exchange dead-letter canonique DSI — doit être IDENTIQUE dans tous les
+    // services qui déclarent une même queue (sinon PRECONDITION_FAILED 406).
+    private static final String DLX_EXCHANGE = "d2f.dlx";
+
+    // NB : ce service est PRODUCTEUR pour certificateQueue et evaluation.*.queues.
+    // Il ne les déclare PAS — la déclaration appartient au service consommateur
+    // (certificat / evaluation) avec ses propres arguments dead-letter.
+    // Toute re-déclaration divergente ici provoquait des boucles d'erreurs
+    // RabbitMQ 406 « inequivalent arg 'x-dead-letter-exchange' ».
+
     @Bean
     public Queue besoinQueue() {
         return QueueBuilder.durable(BESOIN_QUEUE)
-                .withArgument(DLX_ARG, "")
+                .withArgument(DLX_ARG, DLX_EXCHANGE)
                 .withArgument(DLK_ARG, BESOIN_DLQ)
                 .build();
     }
@@ -49,45 +59,6 @@ public class RabbitMqConfig {
     @Bean
     public Queue besoinDlq() {
         return QueueBuilder.durable(BESOIN_DLQ).build();
-    }
-
-    @Bean
-    public Queue certificateQueue() {
-        return QueueBuilder.durable(CERTIFICATE_QUEUE)
-                .withArgument(DLX_ARG, "")
-                .withArgument(DLK_ARG, CERTIFICATE_DLQ)
-                .build();
-    }
-
-    @Bean
-    public Queue certificateDlq() {
-        return QueueBuilder.durable(CERTIFICATE_DLQ).build();
-    }
-
-    @Bean
-    public Queue evalCreateQueue() {
-        return QueueBuilder.durable(EVAL_CREATE_QUEUE)
-                .withArgument(DLX_ARG, "")
-                .withArgument(DLK_ARG, EVAL_CREATE_DLQ)
-                .build();
-    }
-
-    @Bean
-    public Queue evalCreateDlq() {
-        return QueueBuilder.durable(EVAL_CREATE_DLQ).build();
-    }
-
-    @Bean
-    public Queue evalUpdateQueue() {
-        return QueueBuilder.durable(EVAL_UPDATE_QUEUE)
-                .withArgument(DLX_ARG, "")
-                .withArgument(DLK_ARG, EVAL_UPDATE_DLQ)
-                .build();
-    }
-
-    @Bean
-    public Queue evalUpdateDlq() {
-        return QueueBuilder.durable(EVAL_UPDATE_DLQ).build();
     }
 
     // ── Analytics queue (for predictive-analytics consumer) ──
