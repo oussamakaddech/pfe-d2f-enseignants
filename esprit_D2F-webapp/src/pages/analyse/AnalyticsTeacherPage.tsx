@@ -469,7 +469,7 @@ function ModelsInfoPanel({
     ['Algorithme', algorithm || 'Non disponible'],
   ];
   if (modelName && mode !== 'HEURISTIC_FALLBACK') {
-    detailRows.push(["Artefact du modèle", modelName]);
+    detailRows.push(['Artefact du modèle', modelName]);
   }
   if (version && mode !== 'HEURISTIC_FALLBACK') {
     detailRows.push(["Version de l'artefact", formatModelVersion(version)]);
@@ -559,4 +559,3 @@ function GapsTab({
   }
   return <Empty description="Aucun gap — lancez une analyse" />;
 }
-

@@ -665,7 +665,9 @@ export default function AnalyticsDashboardPage() {
             title="Enseignants à risque (score ≥ 0,5)"
             icon={<SafetyCertificateOutlined />}
             extra={
-              <Tooltip title={`${filteredAtRisk.length} enseignant(s) avec score ≥ 0,5 sur ${allAtRisk.length} suivis`}>
+              <Tooltip
+                title={`${filteredAtRisk.length} enseignant(s) avec score ≥ 0,5 sur ${allAtRisk.length} suivis`}
+              >
                 <Tag color={filteredAtRisk.length ? 'red' : 'default'}>
                   {filteredAtRisk.length} / {allAtRisk.length}
                 </Tag>

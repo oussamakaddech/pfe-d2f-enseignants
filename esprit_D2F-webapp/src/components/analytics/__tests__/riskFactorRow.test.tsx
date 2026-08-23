@@ -70,7 +70,9 @@ describe('RiskFactorRow', () => {
     expect(screen.getByText('Gaps critiques')).toBeInTheDocument();
     expect(screen.getByText('Périmètre : Département Réseaux')).toBeInTheDocument();
     // Non-régression : jamais de concaténation label+scope ni de « périmètrepérimètre ».
-    expect(screen.queryByText('Gaps critiques — Périmètre : Département Réseaux')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Gaps critiques — Périmètre : Département Réseaux'),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/périmètrepérimètre/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Gaps critiques du périmètre/)).not.toBeInTheDocument();
   });

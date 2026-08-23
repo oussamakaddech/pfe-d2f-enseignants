@@ -43,9 +43,7 @@ export default function RiskFactorRow({ facteur }: Readonly<{ facteur: RiskFacto
   return (
     <div className="at-factor-row" data-testid={`factor-${facteur.code ?? facteur.nom}`}>
       <div>
-        <div className="at-factor-name">
-          {label}
-        </div>
+        <div className="at-factor-name">{label}</div>
         {scopeLabel ? (
           <div className="at-factor-scope" style={{ fontSize: 11, color: 'var(--at-ink3)' }}>
             {scopeLabel}

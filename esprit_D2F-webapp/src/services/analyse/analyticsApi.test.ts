@@ -181,7 +181,7 @@ describe('analyticsApi â€“ indivuel', () => {
     expect(res.facteurs[0].nom).toBe('Stagnation');
     expect(res.facteurs[0].valeur_brute).toBe(0.8);
     expect(res.facteurs[0].categorie).toBe('FACTEUR');
-expect(res.facteurs[1]).toMatchObject({
+    expect(res.facteurs[1]).toMatchObject({
       nom: 'Probabilité classe Élevée',
       categorie: 'PROBABILITE_ML',
     });
@@ -725,4 +725,3 @@ describe('analyticsApi â€“ scope-analysis', () => {
     expect(score.facteurs[0].valeur_brute).toBe(3);
   });
 });
-

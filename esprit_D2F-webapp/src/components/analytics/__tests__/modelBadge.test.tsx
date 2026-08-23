@@ -40,7 +40,11 @@ describe('ModelBadge', () => {
 
   it('affiche le nom et la version de l artefact fournis par l API (PRODUCTION_ML)', () => {
     render(
-      <ModelBadge modelMode="PRODUCTION_ML" modelVersion="v1.0.0" modelName="gap_predictor_temporal" />,
+      <ModelBadge
+        modelMode="PRODUCTION_ML"
+        modelVersion="v1.0.0"
+        modelName="gap_predictor_temporal"
+      />,
     );
     const badge = screen.getByText(
       (_, el) => el?.getAttribute('class')?.includes('at-badge') ?? false,
@@ -54,7 +58,11 @@ describe('ModelBadge', () => {
 
   it('version 1.0.0 sans préfixe est formatée en v1.0.0 (pas de double v)', () => {
     render(
-      <ModelBadge modelMode="PRODUCTION_ML" modelVersion="1.0.0" modelName="gap_predictor_temporal" />,
+      <ModelBadge
+        modelMode="PRODUCTION_ML"
+        modelVersion="1.0.0"
+        modelName="gap_predictor_temporal"
+      />,
     );
     const badge = screen.getByText(
       (_, el) => el?.getAttribute('class')?.includes('at-badge') ?? false,

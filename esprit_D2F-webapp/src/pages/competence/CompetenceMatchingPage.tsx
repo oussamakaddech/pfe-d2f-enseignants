@@ -523,7 +523,7 @@ export default function CompetenceMatchingPage() {
                 dispatch({ type: 'SET_FILTER', payload: { key: 'departement', value: v } });
                 reloadData();
               }}
-              style={{ width: 180 }}
+              style={{ width: 180, maxWidth: '100%' }}
               options={[{ value: 'all', label: 'Tous les départements' }]}
             />
             <Select
@@ -531,7 +531,7 @@ export default function CompetenceMatchingPage() {
               onChange={(v) =>
                 dispatch({ type: 'SET_FILTER', payload: { key: 'domaine', value: v } })
               }
-              style={{ width: 180 }}
+              style={{ width: 180, maxWidth: '100%' }}
               options={domainOptions}
             />
             <Input.Search
@@ -540,7 +540,7 @@ export default function CompetenceMatchingPage() {
               onChange={(e) =>
                 dispatch({ type: 'SET_FILTER', payload: { key: 'search', value: e.target.value } })
               }
-              style={{ width: 220 }}
+              style={{ width: 220, maxWidth: '100%' }}
               allowClear
             />
             <Button
@@ -581,7 +581,7 @@ export default function CompetenceMatchingPage() {
                 placeholder="Filtrer..."
                 value={ensSearch}
                 onChange={(e) => setEnsSearch(e.target.value)}
-                style={{ width: 150 }}
+                style={{ width: 150, maxWidth: '100%' }}
                 allowClear
                 size="small"
               />
@@ -647,7 +647,7 @@ export default function CompetenceMatchingPage() {
         footer={null}
       >
         <Form form={form} onFinish={handleModalSubmit} layout="vertical">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="modal-form-grid">
             <Form.Item name="prenom" label="Prénom" rules={[{ required: true, message: 'Requis' }]}>
               <Input />
             </Form.Item>

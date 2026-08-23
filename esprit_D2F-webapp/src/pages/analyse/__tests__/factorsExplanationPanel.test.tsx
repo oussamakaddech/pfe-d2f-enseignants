@@ -70,7 +70,7 @@ describe('FactorsExplanationPanel', () => {
     expect(screen.queryByText('Probabilités ML (classifier)')).not.toBeInTheDocument();
   });
 
-  it("affiche la classe ML la plus probable et la note de séparation score métier / classifier", () => {
+  it('affiche la classe ML la plus probable et la note de séparation score métier / classifier', () => {
     const facteurs: RiskFactor[] = [
       baseFactor({
         nom: 'Probabilité classe Critique',

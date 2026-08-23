@@ -47,10 +47,7 @@ export function teacherStatus(
   const n = (niveauRisque ?? '').toUpperCase();
   if (n === 'CRITIQUE') return 'Critique';
   if (t === 'DEGRADATION' || t === 'REGRESSION') return 'Regression';
-  if (
-    t === 'STAGNATION' ||
-    (t === 'STABLE' && (n === 'MODERE' || n === 'ELEVE'))
-  )
+  if (t === 'STAGNATION' || (t === 'STABLE' && (n === 'MODERE' || n === 'ELEVE')))
     return 'Stagnation';
   return 'Stable';
 }

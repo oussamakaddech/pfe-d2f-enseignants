@@ -60,11 +60,19 @@ const MODE_META: Record<
  * Le nom et la version de l'artefact proviennent uniquement de l'API
  * (jamais codés en dur ici).
  */
-export default function ModelBadge({ modelMode, modelVersion, modelName, size = 'default' }: Props) {
+export default function ModelBadge({
+  modelMode,
+  modelVersion,
+  modelName,
+  size = 'default',
+}: Props) {
   const meta = MODE_META[modelMode ?? 'HEURISTIC_FALLBACK'];
   const artifact = modelName ? `${modelName}` : '';
   const version = formatModelVersion(modelVersion);
-  const tooltipParts = [meta.description, modelMode ? `Mode : ${modelMode}.` : 'Mode : HEURISTIC_FALLBACK.'];
+  const tooltipParts = [
+    meta.description,
+    modelMode ? `Mode : ${modelMode}.` : 'Mode : HEURISTIC_FALLBACK.',
+  ];
   if (artifact && modelVersion) tooltipParts.push(`Artefact : ${artifact} · ${version}.`);
   else if (artifact) tooltipParts.push(`Artefact : ${artifact}.`);
   else if (modelVersion) tooltipParts.push(`Version : ${version}.`);

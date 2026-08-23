@@ -99,7 +99,7 @@ describe('TeacherScopePanel', () => {
     expect(screen.getByText('Département Réseaux & Télécoms')).toBeInTheDocument();
   });
 
-  it("affiche « Périmètre global » uniquement pour un scope GLOBAL", () => {
+  it('affiche « Périmètre global » uniquement pour un scope GLOBAL', () => {
     const globalData: TeacherScopeAnalysis = {
       ...data,
       scope: { type: 'GLOBAL', is_global: true, label: 'Périmètre global' },
