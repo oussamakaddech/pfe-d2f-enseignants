@@ -77,11 +77,22 @@ class DatasetProvenanceReport:
 
 
 def file_hash(df: pd.DataFrame) -> str:
-    """SHA-256 stable du contenu du dataset (tri des lignes + index réinitialisé)."""
+    """SHA-256 stable du contenu du dataset (tri des lignes + index r�initialis�).
+
+    Deux normalisations OBLIGATOIRES pour un hash identique sur toutes les
+    plateformes :
+    - lineterminator="\\n" : to_csv() suit sinon l'os.linesep (CRLF sur Windows,
+      LF sur Linux) et le hash diff�re entre CI et local pour un m�me dataset ;
+    - kind="stable" : ordonnancement d�terministe des lignes dupliqu�es.
+    """
     if df is None or df.empty:
         return hashlib.sha256(b"").hexdigest()
-    canonical = df.copy().sort_values(by=df.columns.tolist()).reset_index(drop=True)
-    payload = canonical.to_csv(index=False).encode("utf-8")
+    canonical = (
+        df.copy()
+        .sort_values(by=df.columns.tolist(), kind="stable")
+        .reset_index(drop=True)
+    )
+    payload = canonical.to_csv(index=False, lineterminator="\n").encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
 
 
