@@ -12,10 +12,10 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Configuration RabbitMQ du service de notifications.
  *
- * <p>Les autres microservices (formation, besoin, certificat, evaluation…)
- * publient leurs événements métier réels sur l'exchange fanout
- * {@code d2f.notifications} ; ce service les consomme et crée de vraies
- * notifications pour les destinataires concernés.</p>
+ * <p>Les autres microservices (formation, besoin, certificat, evaluationâ€¦)
+ * publient leurs Ã©vÃ©nements mÃ©tier rÃ©els sur l'exchange fanout
+ * {@code d2f.notifications} ; ce service les consomme et crÃ©e de vraies
+ * notifications pour les destinataires concernÃ©s.</p>
  */
 @Configuration
 public class RabbitMqConfig {
@@ -42,7 +42,7 @@ public class RabbitMqConfig {
     }
 
     @Bean
-    public Jackson2JsonMessageConverter jacksonJmsMessageConverter(
+    public Jackson2JsonMessageConverter rabbitMessageConverter(
             com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
         return new Jackson2JsonMessageConverter(objectMapper);
     }
