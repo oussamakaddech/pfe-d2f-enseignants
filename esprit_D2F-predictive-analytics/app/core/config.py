@@ -21,10 +21,34 @@ class Settings(BaseSettings):
     database_url: str = Field(default="postgresql://d2f:d2f@localhost:7432/d2f")
     db_connect_timeout: int = 5
 
-    jwt_secret: str = Field(default="change-me-in-prod")
+    jwt_secret: str = ""
     jwt_algorithm: str = "HS512"
     jwt_auth_enabled: bool = True
     public_paths: list[str] = ["/api/v1/analytics/health", "/api/v1/analytics/ready", "/docs", "/redoc", "/openapi.json", "/metrics"]
+
+    @field_validator("jwt_secret")
+    @classmethod
+    def _jwt_secret_strong_in_prod(cls, v: str) -> str:
+        """P0 sécurité (CDC DSI §IV.1) — fail fast en production si le secret
+        JWT est absent, trop court pour HS512 (< 64 chars) ou un placeholder."""
+        import os
+
+        env = os.getenv("APP_ENV", "development").lower()
+        if env in ("prod", "production"):
+            if not v or not v.strip():
+                raise ValueError(
+                    "JWT_SECRET is required in production. Set it via env var or .env file."
+                )
+            if len(v.strip()) < 64:
+                raise ValueError(
+                    f"JWT_SECRET too short ({len(v.strip())} chars). Minimum 64 chars for HS512."
+                )
+            lowered = v.lower()
+            if "change-me" in lowered or "change_me" in lowered or "changeme" in lowered:
+                raise ValueError(
+                    "JWT_SECRET contains a placeholder (CHANGE_ME). Configure a real secret."
+                )
+        return v
 
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
