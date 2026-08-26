@@ -249,6 +249,7 @@ export default function AppRoutes() {
                           ROLES.CUP,
                           ROLES.CHEF_DEPARTEMENT,
                           ROLES.ENSEIGNANT,
+                          ROLES.ANIMATEUR,
                         ]}
                       />
                     }
@@ -339,7 +340,9 @@ export default function AppRoutes() {
                     <Route path="/home/animateur-formations/:id" element={<FormationDetail />} />
                   </Route>
 
-                  <Route element={<RoleGuard allowedRoles={[ROLES.ENSEIGNANT]} />}>
+                  {/* Présences : consultation de sa feuille de présence (enseignant
+                      OU animateur — les présences animateurs sont créées par séance). */}
+                  <Route element={<RoleGuard allowedRoles={[ROLES.ENSEIGNANT, ROLES.ANIMATEUR]} />}>
                     <Route path="/home/mes-presences" element={<MaPresence />} />
                   </Route>
                 </Route>

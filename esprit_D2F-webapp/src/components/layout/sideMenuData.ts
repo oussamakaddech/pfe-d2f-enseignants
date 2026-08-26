@@ -163,6 +163,7 @@ export const animateurMenu: MenuItem[] = [
   dashboardItem,
   { label: 'Mon espace', key: '/home/personal-dashboard', icon: HomeOutlined },
   { label: "Sessions d'Animation", key: '/home/animateur-formations', icon: ReadOutlined },
+  { label: 'Mes Présences', key: '/home/mes-presences', icon: EyeOutlined },
   { label: 'Évaluations', key: '/home/Evaluations', icon: TrophyOutlined },
   {
     label: 'Besoins de Formation',

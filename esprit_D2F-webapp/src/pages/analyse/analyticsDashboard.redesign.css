@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    Tableau de bord analytique — style « moderne & riche »
    Palette exécutive : fond clair aéré, en-tête dégradé, cartes « glass »,
-   Cartes KPI à dégradé + bulle d'icône, ombres douces et survol.
+   Cartes KPI claires à barre d'accent + pastille d'icône, ombres douces.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .ad-page {
@@ -77,6 +77,8 @@
   border-color: rgba(255, 255, 255, 0.35) !important;
   color: #fff !important;
   backdrop-filter: blur(4px);
+  border-radius: 999px !important;
+  font-weight: 600;
 }
 .ad-refresh-btn:hover {
   background: rgba(255, 255, 255, 0.28) !important;
@@ -85,29 +87,149 @@
 /* ── Barre de filtres ────────────────────────────────────────── */
 .ad-filters {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-end;
+  gap: 16px;
   flex-wrap: wrap;
-  padding: 14px 16px;
+  padding: 14px 18px;
   margin-bottom: 18px;
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--ad-surface-solid);
   border: 1px solid var(--ad-border);
   box-shadow: 0 6px 20px -12px rgba(15, 23, 42, 0.25);
 }
+.ad-filters__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  align-self: stretch;
+  padding-right: 18px;
+  border-right: 1px solid var(--ad-border);
+}
+.ad-filters__badge {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  font-size: 17px;
+  color: #fff;
+  background: linear-gradient(135deg, #c8102e, #e11d2e);
+  box-shadow: 0 8px 18px -8px rgba(200, 16, 46, 0.55);
+}
+.ad-filters__head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
 .ad-filters__label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  margin-right: 2px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ad-title);
+  letter-spacing: 0.2px;
+  line-height: 1.2;
+}
+.ad-filters__sub {
+  font-size: 11px;
+  color: var(--ad-text-soft);
+  line-height: 1.2;
 }
 .ad-filters__spacer {
   flex: 1 1 auto;
 }
+.ad-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ad-filter-group__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--ad-text-soft);
+}
+.ad-filter-group__label .anticon {
+  color: #c8102e;
+  font-size: 12px;
+}
 .ad-filter-select {
-  min-width: 170px;
+  min-width: 180px;
+}
+.ad-filter-select .ant-select-selector {
+  border-radius: 10px !important;
+}
+.ad-filter-select .ant-select-prefix {
+  margin-inline-end: 7px;
+  color: #c8102e;
+}
+.ad-filter-select--active .ant-select-selector {
+  border-color: rgba(200, 16, 46, 0.5) !important;
+  background: rgba(200, 16, 46, 0.045) !important;
+  box-shadow: 0 0 0 3px rgba(200, 16, 46, 0.07);
+}
+
+/* Segmented « période » — pilule dégradée */
+.ad-filters .ant-segmented {
+  background: rgba(15, 23, 42, 0.05);
+  padding: 3px;
+  border-radius: 11px;
+}
+.ad-filters .ant-segmented-item {
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 12.5px;
+}
+.ad-filters .ant-segmented-thumb {
+  background: linear-gradient(135deg, #c8102e, #e11d2e) !important;
+  box-shadow: 0 6px 14px -6px rgba(200, 16, 46, 0.55) !important;
+  border-radius: 8px !important;
+}
+.ad-filters .ant-segmented-item-selected {
+  color: #fff !important;
+}
+
+/* Options « niveau de risque » — pastille colorée */
+.ad-risk-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.ad-risk-opt__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ad-risk-opt--faible .ad-risk-opt__dot {
+  background: #10b981;
+}
+.ad-risk-opt--modere .ad-risk-opt__dot {
+  background: #f59e0b;
+}
+.ad-risk-opt--eleve .ad-risk-opt__dot {
+  background: #f97316;
+}
+.ad-risk-opt--critique .ad-risk-opt__dot {
+  background: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18);
+}
+
+/* Bouton « Réinitialiser » */
+.ad-filters__reset {
+  border-radius: 10px;
+  font-weight: 600;
+  color: #c8102e !important;
+  border: 1px dashed rgba(200, 16, 46, 0.45) !important;
+  background: rgba(200, 16, 46, 0.03) !important;
+}
+.ad-filters__reset:not(:disabled):hover {
+  color: #fff !important;
+  background: linear-gradient(135deg, #c8102e, #e11d2e) !important;
+  border-style: solid;
+  border-color: transparent !important;
 }
 
 /* ── Bandeau « filtres actifs » ─────────────────────────────── */
@@ -179,100 +301,183 @@
   box-shadow: 0 0 0 4px rgba(200, 16, 46, 0.15);
 }
 
-/* ── Cartes KPI à dégradé ───────────────────────────────────── */
+/* ── Cartes KPI « claires » à barre d'accent ────────────────── */
 .ad-kpi-row {
-  margin-bottom: 18px;
   margin-bottom: 20px;
 }
 .ad-kpi-row + .ad-kpi-row {
   margin-top: -2px;
 }
 .ad-kpi {
+  --ad-accent: linear-gradient(180deg, #c8102e, #e11d2e);
+  --ad-accent-soft: rgba(200, 16, 46, 0.07);
+  --ad-accent-color: #c8102e;
+  --ad-accent-ring: rgba(200, 16, 46, 0.16);
   position: relative;
   overflow: hidden;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 18px 20px;
-  border-radius: 16px;
-  color: #fff;
-  box-shadow: 0 16px 34px -18px rgba(15, 23, 42, 0.5);
+  gap: 14px;
+  padding: 18px 20px 18px 24px;
+  border-radius: 18px;
+  background: var(--ad-surface-solid);
+  border: 1px solid var(--ad-border);
+  box-shadow: var(--ad-card-shadow);
+  color: var(--ad-text);
   transition:
     transform 0.18s ease,
-    box-shadow 0.18s ease;
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+/* Barre d'accent verticale (bord gauche) */
+.ad-kpi::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: var(--ad-accent);
+}
+/* Halo décoratif tonal (haut-droite) */
+.ad-kpi::after {
+  content: '';
+  position: absolute;
+  right: -36px;
+  top: -36px;
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  background: var(--ad-accent-soft);
+  pointer-events: none;
 }
 .ad-kpi:hover {
   transform: translateY(-3px);
-  box-shadow: 0 24px 46px -20px rgba(15, 23, 42, 0.6);
+  border-color: var(--ad-accent-ring);
+  box-shadow: 0 24px 46px -20px rgba(15, 23, 42, 0.35);
 }
 .ad-kpi--clickable {
   cursor: pointer;
 }
 .ad-kpi--clickable:focus-visible {
-  outline: 3px solid rgba(255, 255, 255, 0.85);
+  outline: 3px solid var(--ad-accent-ring);
   outline-offset: 2px;
 }
 .ad-kpi--clickable .ad-kpi__title::after {
   content: '↗';
   margin-left: 6px;
   font-size: 11px;
-  opacity: 0.85;
-}
-.ad-kpi::after {
-  content: '';
-  position: absolute;
-  right: -30px;
-  top: -30px;
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
+  font-weight: 800;
+  color: var(--ad-accent-color);
 }
 .ad-kpi__icon {
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  font-size: 24px;
-  background: rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(4px);
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
+  font-size: 22px;
+  color: var(--ad-accent-color);
+  background: var(--ad-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--ad-accent-ring);
+  flex-shrink: 0;
+  z-index: 1;
 }
 .ad-kpi__body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  min-width: 0;
   z-index: 1;
 }
 .ad-kpi__title {
-  font-size: 13px;
-  opacity: 0.9;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--ad-text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .ad-kpi__value {
   font-size: 30px;
   font-weight: 800;
   line-height: 1.05;
+  letter-spacing: -0.5px;
+  color: var(--ad-title);
+  font-variant-numeric: tabular-nums;
 }
 .ad-kpi__hint {
-  font-size: 11px;
-  opacity: 0.8;
+  align-self: flex-start;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  color: var(--ad-accent-color);
+  background: var(--ad-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--ad-accent-ring);
 }
 
+/* Tonalités : accent dégradé + teintes associées */
 .ad-kpi--primary {
-  background: linear-gradient(135deg, #c8102e, #e11d2e);
+  --ad-accent: linear-gradient(180deg, #c8102e, #e11d2e);
+  --ad-accent-soft: rgba(200, 16, 46, 0.07);
+  --ad-accent-color: #c8102e;
+  --ad-accent-ring: rgba(200, 16, 46, 0.16);
 }
 .ad-kpi--warning {
-  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  --ad-accent: linear-gradient(180deg, #f59e0b, #f97316);
+  --ad-accent-soft: rgba(245, 158, 11, 0.1);
+  --ad-accent-color: #b45309;
+  --ad-accent-ring: rgba(245, 158, 11, 0.22);
 }
 .ad-kpi--danger {
-  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  --ad-accent: linear-gradient(180deg, #ef4444, #b91c1c);
+  --ad-accent-soft: rgba(239, 68, 68, 0.08);
+  --ad-accent-color: #b91c1c;
+  --ad-accent-ring: rgba(239, 68, 68, 0.2);
 }
 .ad-kpi--info {
-  background: linear-gradient(135deg, #db2777, #9f1239);
+  --ad-accent: linear-gradient(180deg, #db2777, #9f1239);
+  --ad-accent-soft: rgba(219, 39, 119, 0.08);
+  --ad-accent-color: #be185d;
+  --ad-accent-ring: rgba(219, 39, 119, 0.2);
 }
 .ad-kpi--success {
-  background: linear-gradient(135deg, #10b981, #059669);
+  --ad-accent: linear-gradient(180deg, #10b981, #059669);
+  --ad-accent-soft: rgba(16, 185, 129, 0.1);
+  --ad-accent-color: #047857;
+  --ad-accent-ring: rgba(16, 185, 129, 0.22);
+}
+
+/* Mode sombre : accents éclaircis sur cartes sombres */
+.ad-page[data-theme='dark'] .ad-kpi--primary {
+  --ad-accent-color: #fb7185;
+  --ad-accent-soft: rgba(200, 16, 46, 0.2);
+  --ad-accent-ring: rgba(251, 113, 133, 0.3);
+}
+.ad-page[data-theme='dark'] .ad-kpi--warning {
+  --ad-accent-color: #fbbf24;
+  --ad-accent-soft: rgba(245, 158, 11, 0.18);
+  --ad-accent-ring: rgba(251, 191, 36, 0.28);
+}
+.ad-page[data-theme='dark'] .ad-kpi--danger {
+  --ad-accent-color: #f87171;
+  --ad-accent-soft: rgba(239, 68, 68, 0.2);
+  --ad-accent-ring: rgba(248, 113, 113, 0.3);
+}
+.ad-page[data-theme='dark'] .ad-kpi--info {
+  --ad-accent-color: #f472b6;
+  --ad-accent-soft: rgba(219, 39, 119, 0.2);
+  --ad-accent-ring: rgba(244, 114, 182, 0.3);
+}
+.ad-page[data-theme='dark'] .ad-kpi--success {
+  --ad-accent-color: #34d399;
+  --ad-accent-soft: rgba(16, 185, 129, 0.18);
+  --ad-accent-ring: rgba(52, 211, 153, 0.28);
 }
 
 /* ── Divers ─────────────────────────────────────────────────── */
@@ -376,6 +581,31 @@
 }
 .ad-page[data-theme='dark'] .ant-tag {
   filter: brightness(1.15);
+}
+
+/* ── Mode sombre — barre de filtres ──────────────────────────── */
+.ad-page[data-theme='dark'] .ad-filters .ant-segmented {
+  background: rgba(255, 255, 255, 0.08);
+}
+.ad-page[data-theme='dark'] .ad-filter-select .ant-select-prefix {
+  color: #fb7185;
+}
+.ad-page[data-theme='dark'] .ad-filter-group__label .anticon {
+  color: #fb7185;
+}
+.ad-page[data-theme='dark'] .ad-filter-select--active .ant-select-selector {
+  background: rgba(200, 16, 46, 0.16) !important;
+  border-color: rgba(251, 113, 133, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.1);
+}
+.ad-page[data-theme='dark'] .ad-filters__reset {
+  color: #fb7185 !important;
+  border-color: rgba(251, 113, 133, 0.4) !important;
+  background: rgba(251, 113, 133, 0.07) !important;
+}
+.ad-page[data-theme='dark'] .ad-filters__reset:not(:disabled):hover {
+  color: #fff !important;
+  background: linear-gradient(135deg, #c8102e, #e11d2e) !important;
 }
 
 /* ── Animations & transitions ────────────────────────────────── */
@@ -553,12 +783,25 @@
   }
   .ad-filters {
     padding: 12px;
-    gap: 8px;
+    gap: 10px;
+  }
+  .ad-filters__head {
+    width: 100%;
+    align-self: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--ad-border);
+    padding: 0 0 10px;
+  }
+  .ad-filter-group {
+    flex: 1 1 calc(50% - 10px);
   }
   .ad-filter-select {
+    width: 100%;
     min-width: 0;
-    flex: 1 1 calc(50% - 8px);
     max-width: none;
+  }
+  .ad-filters__reset {
+    width: 100%;
   }
   .ad-segmented-wrap {
     width: 100%;
@@ -597,6 +840,7 @@
 }
 
 @media (max-width: 480px) {
+  .ad-filter-group,
   .ad-filter-select {
     flex-basis: 100%;
   }

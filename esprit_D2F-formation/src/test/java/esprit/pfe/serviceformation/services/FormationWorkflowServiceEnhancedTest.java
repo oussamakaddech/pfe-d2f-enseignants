@@ -62,6 +62,10 @@ class FormationWorkflowServiceEnhancedTest {
     @InjectMocks
     private FormationWorkflowService formationWorkflowService;
 
+    /** Utilisateur à portée globale : contourne le contrôle row-level présences. */
+    private static final CurrentUser ADMIN_USER =
+            new CurrentUser("admin", "1", "admin@esprit.tn", Set.of("ADMIN"));
+
     private FormationWorkflowRequest request;
 
     @BeforeEach
@@ -307,7 +311,7 @@ class FormationWorkflowServiceEnhancedTest {
         presence.setIdParticipation(1L);
         lenient().when(presenceRepository.findById(1L)).thenReturn(Optional.of(presence));
 
-        formationWorkflowService.updatePresence(1L, true, "OK");
+        formationWorkflowService.updatePresence(1L, true, "OK", ADMIN_USER);
 
         assertThat(presence.isPresent()).isTrue();
         assertThat(presence.getCommentaire()).isEqualTo("OK");
@@ -318,7 +322,7 @@ class FormationWorkflowServiceEnhancedTest {
     void shouldFailUpdatePresenceNotFound() {
         when(presenceRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> formationWorkflowService.updatePresence(999L, true, "OK"));
+        assertThrows(IllegalArgumentException.class, () -> formationWorkflowService.updatePresence(999L, true, "OK", ADMIN_USER));
     }
 
     @Test

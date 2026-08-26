@@ -51,6 +51,10 @@ class FormationWorkflowServiceCoverageTest {
     @InjectMocks
     private FormationWorkflowService service;
 
+    /** Utilisateur à portée globale : contourne le contrôle row-level présences. */
+    private static final CurrentUser ADMIN_USER =
+            new CurrentUser("admin", "1", "admin@esprit.tn", Set.of("ADMIN"));
+
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(service, "formationMapper", formationMapper);
@@ -383,11 +387,11 @@ class FormationWorkflowServiceCoverageTest {
         Presence p = new Presence();
         p.setIdParticipation(1L);
         when(presenceRepository.findById(1L)).thenReturn(Optional.of(p));
-        service.updatePresence(1L, true, "OK");
+        service.updatePresence(1L, true, "OK", ADMIN_USER);
         assertThat(p.isPresent()).isTrue();
 
         when(presenceRepository.findById(999L)).thenReturn(Optional.empty());
-        assertThrows(IllegalArgumentException.class, () -> service.updatePresence(999L, true, "OK"));
+        assertThrows(IllegalArgumentException.class, () -> service.updatePresence(999L, true, "OK", ADMIN_USER));
     }
 
     @Test

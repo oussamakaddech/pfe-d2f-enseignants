@@ -41,7 +41,8 @@ SELECT
   (SELECT ROUND(AVG(score_risque)::numeric, 4)
      FROM (
        SELECT DISTINCT ON (enseignant_id) enseignant_id, score_risque
-       FROM "analyse".teacher_risk_snapshots ORDER BY enseignant_id, computed_at DESC
+       FROM "analyse".teacher_risk_snapshots
+       ORDER BY enseignant_id, computed_at DESC NULLS LAST, snapshot_date DESC
      ) t) AS avg_risk_score
 """
 
@@ -88,7 +89,7 @@ FROM (
   SELECT DISTINCT ON (enseignant_id)
     enseignant_id, score_risque, niveau_risque, tendance, snapshot_date
   FROM "analyse".teacher_risk_snapshots
-  ORDER BY enseignant_id, computed_at DESC
+  ORDER BY enseignant_id, computed_at DESC NULLS LAST, snapshot_date DESC
 ) rs
 JOIN formation.enseignants e ON e.id = rs.enseignant_id AND e.deleted_at IS NULL
 LEFT JOIN formation.ups u ON u.id = e.up_id

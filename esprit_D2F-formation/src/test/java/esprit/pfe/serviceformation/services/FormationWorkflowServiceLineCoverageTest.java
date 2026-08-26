@@ -50,6 +50,10 @@ class FormationWorkflowServiceLineCoverageTest {
     private AnimateurParticipantResolver animateurParticipantResolver;
     private FormationWorkflowService service;
 
+    /** Utilisateur à portée globale : contourne le contrôle row-level présences. */
+    private static final CurrentUser ADMIN_USER =
+            new CurrentUser("admin", "1", "admin@esprit.tn", Set.of("ADMIN"));
+
     @BeforeEach
     void setUp() {
         helper = new FormationWorkflowServiceHelper(
@@ -1008,7 +1012,7 @@ class FormationWorkflowServiceLineCoverageTest {
     void updatePres_ok() {
         Presence p = new Presence(); p.setIdParticipation(1L);
         when(presenceRepository.findById(1L)).thenReturn(Optional.of(p));
-        service.updatePresence(1L, true, "Present");
+        service.updatePresence(1L, true, "Present", ADMIN_USER);
         assertTrue(p.isPresent());
         assertThat(p.getCommentaire()).isEqualTo("Present");
         verify(presenceRepository).save(p);
@@ -1017,7 +1021,7 @@ class FormationWorkflowServiceLineCoverageTest {
     @Test @DisplayName("updatePresence - not found throws")
     void updatePres_notFound() {
         when(presenceRepository.findById(99L)).thenReturn(Optional.empty());
-        assertThrows(IllegalArgumentException.class, () -> service.updatePresence(99L, true, "OK"));
+        assertThrows(IllegalArgumentException.class, () -> service.updatePresence(99L, true, "OK", ADMIN_USER));
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1086,7 +1090,7 @@ class FormationWorkflowServiceLineCoverageTest {
         p.setEnseignant(buildEnseignant("E1", "N", "P", "e@e.tn", "E"));
         SeanceFormation sf = new SeanceFormation(); sf.setIdSeance(1L); sf.setPresences(new ArrayList<>(List.of(p)));
         when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(sf));
-        assertThat(service.batchUpdatePresences(1L, null)).isNotEmpty();
+        assertThat(service.batchUpdatePresences(1L, null, ADMIN_USER)).isNotEmpty();
     }
 
     @Test @DisplayName("batchUpdate - empty updates")
@@ -1094,16 +1098,17 @@ class FormationWorkflowServiceLineCoverageTest {
         SeanceFormation sf = new SeanceFormation(); sf.setIdSeance(1L); sf.setPresences(new ArrayList<>());
         when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(sf));
         BatchPresenceUpdateRequest req = new BatchPresenceUpdateRequest(new ArrayList<>());
-        assertThat(service.batchUpdatePresences(1L, req)).isEmpty();
+        assertThat(service.batchUpdatePresences(1L, req, ADMIN_USER)).isEmpty();
     }
 
     @Test @DisplayName("batchUpdate - valid update")
     void batch_valid() {
         Presence p = new Presence(); p.setIdParticipation(1L); p.setPresent(false);
         p.setEnseignant(buildEnseignant("E1", "N", "P", "e@e.tn", "E"));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>(List.of(p)));
         BatchPresenceUpdateRequest req = new BatchPresenceUpdateRequest(List.of(new BatchPresenceUpdateRequest.Item(1L, true, "OK")));
-        service.batchUpdatePresences(1L, req);
+        service.batchUpdatePresences(1L, req, ADMIN_USER);
         assertTrue(p.isPresent());
         assertThat(p.getCommentaire()).isEqualTo("OK");
         verify(presenceRepository).saveAll(anyList());
@@ -1111,30 +1116,33 @@ class FormationWorkflowServiceLineCoverageTest {
 
     @Test @DisplayName("batchUpdate - null item and null idParticipation")
     void batch_nullItem() {
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>());
         List<BatchPresenceUpdateRequest.Item> items = new ArrayList<>();
         items.add(new BatchPresenceUpdateRequest.Item(null, true, null));
         items.add(null);
         BatchPresenceUpdateRequest req = new BatchPresenceUpdateRequest(items);
-        assertThat(service.batchUpdatePresences(1L, req)).isEmpty();
+        assertThat(service.batchUpdatePresences(1L, req, ADMIN_USER)).isEmpty();
     }
 
     @Test @DisplayName("batchUpdate - item not found in seance")
     void batch_itemNotFound() {
         Presence p = new Presence(); p.setIdParticipation(1L);
         p.setEnseignant(buildEnseignant("E1", "N", "P", "e@e.tn", "E"));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>(List.of(p)));
         BatchPresenceUpdateRequest req = new BatchPresenceUpdateRequest(List.of(new BatchPresenceUpdateRequest.Item(999L, true, "X")));
-        assertThat(service.batchUpdatePresences(1L, req)).hasSize(1);
+        assertThat(service.batchUpdatePresences(1L, req, ADMIN_USER)).hasSize(1);
     }
 
     @Test @DisplayName("batchUpdate - null commentaire keeps existing")
     void batch_nullCommentaire() {
         Presence p = new Presence(); p.setIdParticipation(1L); p.setCommentaire("Old");
         p.setEnseignant(buildEnseignant("E1", "N", "P", "e@e.tn", "E"));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>(List.of(p)));
         BatchPresenceUpdateRequest req = new BatchPresenceUpdateRequest(List.of(new BatchPresenceUpdateRequest.Item(1L, true, null)));
-        service.batchUpdatePresences(1L, req);
+        service.batchUpdatePresences(1L, req, ADMIN_USER);
         assertThat(p.getCommentaire()).isEqualTo("Old");
     }
 
@@ -1146,8 +1154,9 @@ class FormationWorkflowServiceLineCoverageTest {
     void markAll_present_default() {
         Presence p = new Presence(); p.setPresent(false); p.setCommentaire("Presence a valider");
         p.setEnseignant(buildEnseignant("E1", "N", "P", "e@e.tn", "E"));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>(List.of(p)));
-        service.markAllPresences(1L, true);
+        service.markAllPresences(1L, true, ADMIN_USER);
         assertTrue(p.isPresent());
         assertThat(p.getCommentaire()).isEqualTo("Presence confirmee");
     }
@@ -1156,8 +1165,9 @@ class FormationWorkflowServiceLineCoverageTest {
     void markAll_present_custom() {
         Presence p = new Presence(); p.setPresent(false); p.setCommentaire("Custom");
         p.setEnseignant(buildEnseignant("E1", "N", "P", "e@e.tn", "E"));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>(List.of(p)));
-        service.markAllPresences(1L, true);
+        service.markAllPresences(1L, true, ADMIN_USER);
         assertThat(p.getCommentaire()).isEqualTo("Custom");
     }
 
@@ -1165,15 +1175,17 @@ class FormationWorkflowServiceLineCoverageTest {
     void markAll_absent() {
         Presence p = new Presence(); p.setPresent(true);
         p.setEnseignant(buildEnseignant("E1", "N", "P", "e@e.tn", "E"));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>(List.of(p)));
-        service.markAllPresences(1L, false);
+        service.markAllPresences(1L, false, ADMIN_USER);
         assertFalse(p.isPresent());
     }
 
     @Test @DisplayName("markAll - empty list")
     void markAll_empty() {
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>());
-        assertThat(service.markAllPresences(1L, true)).isEmpty();
+        assertThat(service.markAllPresences(1L, true, ADMIN_USER)).isEmpty();
         verify(presenceRepository).saveAll(anyList());
     }
 
@@ -1181,8 +1193,9 @@ class FormationWorkflowServiceLineCoverageTest {
     void markAll_nullComment() {
         Presence p = new Presence(); p.setPresent(false); p.setCommentaire(null);
         p.setEnseignant(buildEnseignant("E1", "N", "P", "e@e.tn", "E"));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>(List.of(p)));
-        service.markAllPresences(1L, true);
+        service.markAllPresences(1L, true, ADMIN_USER);
         assertThat(p.getCommentaire()).isEqualTo("Presence confirmee");
     }
 
@@ -1190,8 +1203,9 @@ class FormationWorkflowServiceLineCoverageTest {
     void markAll_blankComment() {
         Presence p = new Presence(); p.setPresent(false); p.setCommentaire("   ");
         p.setEnseignant(buildEnseignant("E1", "N", "P", "e@e.tn", "E"));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>(List.of(p)));
-        service.markAllPresences(1L, true);
+        service.markAllPresences(1L, true, ADMIN_USER);
         assertThat(p.getCommentaire()).isEqualTo("Presence confirmee");
     }
 
@@ -1427,11 +1441,11 @@ class FormationWorkflowServiceLineCoverageTest {
         assertThat(service.getFormationsByAnimateurEmail("a@e.tn")).hasSize(1);
     }
 
-    @Test @DisplayName("byEmail - filters out non-EN_COURS")
+    @Test @DisplayName("byEmail - returns all statuses (ANNULE/ACHEVE inclus)")
     void byEmail_filtered() {
         Formation f = buildFormation(1L, EtatFormation.ANNULE);
         when(formationRepository.findDistinctBySeancesAnimateursMail("a@e.tn")).thenReturn(List.of(f));
-        assertThat(service.getFormationsByAnimateurEmail("a@e.tn")).isEmpty();
+        assertThat(service.getFormationsByAnimateurEmail("a@e.tn")).hasSize(1);
     }
 
     // ═══════════════════════════════════════════════════════════════════════

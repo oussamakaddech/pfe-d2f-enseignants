@@ -35,6 +35,10 @@ import {
   BulbOutlined,
   AppstoreOutlined,
   FilterOutlined,
+  BankOutlined,
+  ApartmentOutlined,
+  FireOutlined,
+  UndoOutlined,
 } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -196,6 +200,32 @@ const WINDOWS: { label: string; days: number }[] = [
   { label: 'Trimestre', days: 90 },
   { label: 'Semestre', days: 180 },
 ];
+
+/** Libellés lisibles des niveaux de risque (valeurs base : FAIBLE/MODERE/ELEVE/CRITIQUE). */
+const RISK_LABELS: Record<NiveauRisque, string> = {
+  FAIBLE: 'Faible',
+  MODERE: 'Modéré',
+  ELEVE: 'Élevé',
+  CRITIQUE: 'Critique',
+};
+
+const RISK_TONES: { value: NiveauRisque; label: string; tone: string }[] = [
+  { value: 'FAIBLE', label: 'Faible', tone: 'faible' },
+  { value: 'MODERE', label: 'Modéré', tone: 'modere' },
+  { value: 'ELEVE', label: 'Élevé', tone: 'eleve' },
+  { value: 'CRITIQUE', label: 'Critique', tone: 'critique' },
+];
+
+/** Options du filtre « niveau de risque » avec pastille colorée. */
+const RISK_OPTIONS = RISK_TONES.map((r) => ({
+  value: r.value,
+  label: (
+    <span className={`ad-risk-opt ad-risk-opt--${r.tone}`}>
+      <span className="ad-risk-opt__dot" aria-hidden="true" />
+      {r.label}
+    </span>
+  ),
+}));
 
 /** Niveau de risque (valeurs base) → niveau UI. */
 function toNiveauRisque(raw: string | null | undefined): NiveauRisque {
@@ -371,6 +401,10 @@ export default function AnalyticsDashboardPage() {
   }, [alerts.data?.severity_open, kpis?.nb_alertes_non_traitees]);
 
   const hasActiveFilters = !!(filters.departement_id || filters.up_id || filters.niveau_risque);
+  const activeFilterCount = [filters.departement_id, filters.up_id, filters.niveau_risque].filter(
+    Boolean,
+  ).length;
+  const periodResetNeeded = windowDays !== 30;
 
   const clearFilters = () => {
     setFilters({});
@@ -482,44 +516,94 @@ export default function AnalyticsDashboardPage() {
 
       {/* ── Barre de filtres ─────────────── */}
       <div className="ad-filters">
-        <span className="ad-filters__label">Filtres</span>
-        <div className="ad-segmented-wrap">
-          <Segmented
-            value={String(windowDays)}
-            onChange={(v) => setWindowDays(Number(v))}
-            options={WINDOWS.map((w) => ({ label: w.label, value: String(w.days) }))}
+        <div className="ad-filters__head">
+          <span className="ad-filters__badge" aria-hidden="true">
+            <FilterOutlined />
+          </span>
+          <div className="ad-filters__head-text">
+            <span className="ad-filters__label">Filtres</span>
+            <span className="ad-filters__sub">
+              {activeFilterCount > 0
+                ? `${activeFilterCount} critère${activeFilterCount > 1 ? 's' : ''} actif${
+                    activeFilterCount > 1 ? 's' : ''
+                  }`
+                : 'Aucun critère actif'}
+            </span>
+          </div>
+        </div>
+
+        <div className="ad-filter-group">
+          <span className="ad-filter-group__label">
+            <ClockCircleOutlined /> Période
+          </span>
+          <div className="ad-segmented-wrap">
+            <Segmented
+              value={String(windowDays)}
+              onChange={(v) => setWindowDays(Number(v))}
+              options={WINDOWS.map((w) => ({ label: w.label, value: String(w.days) }))}
+            />
+          </div>
+        </div>
+
+        <div className="ad-filter-group">
+          <span className="ad-filter-group__label">
+            <BankOutlined /> Département
+          </span>
+          <Select
+            allowClear
+            placeholder="Tous les départements"
+            className={`ad-filter-select${filters.departement_id ? ' ad-filter-select--active' : ''}`}
+            prefix={<BankOutlined />}
+            value={filters.departement_id}
+            onChange={(v) => setFilters((f) => ({ ...f, departement_id: v }))}
+            options={departmentOptions}
+            notFoundContent="Aucun département"
           />
         </div>
-        <Select
-          allowClear
-          placeholder="Département"
-          className="ad-filter-select"
-          value={filters.departement_id}
-          onChange={(v) => setFilters((f) => ({ ...f, departement_id: v }))}
-          options={departmentOptions}
-          notFoundContent="Aucun département"
-        />
-        <Select
-          allowClear
-          placeholder="UP"
-          className="ad-filter-select"
-          value={filters.up_id}
-          onChange={(v) => setFilters((f) => ({ ...f, up_id: v }))}
-          options={upOptions}
-          notFoundContent="Aucune UP"
-        />
-        <Select
-          allowClear
-          placeholder="Niveau de risque"
-          className="ad-filter-select"
-          value={filters.niveau_risque}
-          onChange={(v) => setFilters((f) => ({ ...f, niveau_risque: v as NiveauRisque }))}
-          options={['FAIBLE', 'MODERE', 'ELEVE', 'CRITIQUE'].map((r) => ({ value: r, label: r }))}
-        />
+
+        <div className="ad-filter-group">
+          <span className="ad-filter-group__label">
+            <ApartmentOutlined /> UP
+          </span>
+          <Select
+            allowClear
+            placeholder="Toutes les UP"
+            className={`ad-filter-select${filters.up_id ? ' ad-filter-select--active' : ''}`}
+            prefix={<ApartmentOutlined />}
+            value={filters.up_id}
+            onChange={(v) => setFilters((f) => ({ ...f, up_id: v }))}
+            options={upOptions}
+            notFoundContent="Aucune UP"
+          />
+        </div>
+
+        <div className="ad-filter-group">
+          <span className="ad-filter-group__label">
+            <FireOutlined /> Niveau de risque
+          </span>
+          <Select
+            allowClear
+            placeholder="Tous les niveaux"
+            className={`ad-filter-select${filters.niveau_risque ? ' ad-filter-select--active' : ''}`}
+            prefix={<FireOutlined />}
+            value={filters.niveau_risque}
+            onChange={(v) => setFilters((f) => ({ ...f, niveau_risque: v as NiveauRisque }))}
+            options={RISK_OPTIONS}
+            notFoundContent="Aucun niveau"
+          />
+        </div>
+
         <span className="ad-filters__spacer" />
-        <Button type="text" onClick={clearFilters}>
-          Réinitialiser
-        </Button>
+        <Tooltip title="Rétablir la période (30 j) et effacer les filtres">
+          <Button
+            className="ad-filters__reset"
+            icon={<UndoOutlined />}
+            onClick={clearFilters}
+            disabled={!hasActiveFilters && !periodResetNeeded}
+          >
+            Réinitialiser
+          </Button>
+        </Tooltip>
       </div>
 
       {hasActiveFilters && (
@@ -551,7 +635,7 @@ export default function AnalyticsDashboardPage() {
               closable
               onClose={() => setFilters((f) => ({ ...f, niveau_risque: undefined }))}
             >
-              Risque {filters.niveau_risque}
+              Risque {RISK_LABELS[filters.niveau_risque]}
             </Tag>
           )}
           <span className="ad-filters-active__hint">

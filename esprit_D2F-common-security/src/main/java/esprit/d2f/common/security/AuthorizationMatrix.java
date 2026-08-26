@@ -32,6 +32,13 @@ public final class AuthorizationMatrix {
     public static final String FORMATION_DELETE = "hasAnyRole('ROLE_ADMIN')";
     public static final String FORMATION_APPROVE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
     public static final String FORMATION_READ_OWN = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_ENSEIGNANT')";
+    // Marquage des présences d'une séance : l'animateur/formateur de la séance (et,
+    // par symétrie métier, l'enseignant-animateur interne) saisit la feuille de
+    // présence ; les rôles de gestion (ADMIN/CUP/RESPONSABLE_DOSSIER) conservent
+    // l'accès hérité de FORMATION_UPDATE. Le contrôle fin (appartenance à la séance)
+    // est assuré applicativement dans FormationWorkflowService.
+    public static final String PRESENCE_MARK =
+            "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_RESPONSABLE_DOSSIER','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_ENSEIGNANT')";
 
     // ── Documents de formation ─────────────────────────────────────────
     // Périmètre RESPONSABLE_DOSSIER : CRUD docs + consultation formations.
@@ -43,6 +50,10 @@ public final class AuthorizationMatrix {
     public static final String DOCUMENT_DELETE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_RESPONSABLE_DOSSIER')";
 
     public static final String EVALUATION_READ_ALL = "hasAnyRole('ROLE_ADMIN','ROLE_CHEF_DEPARTEMENT','ROLE_ENSEIGNANT')";
+    // Lecture des évaluations dans un périmètre formation : l'animateur/formateur
+    // qui anime une formation doit pouvoir consulter ses évaluations.
+    public static final String EVALUATION_READ_FORMATION =
+            "hasAnyRole('ROLE_ADMIN','ROLE_CHEF_DEPARTEMENT','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR')";
     public static final String EVALUATION_READ_CUP = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
     public static final String EVALUATION_READ_ENSEIGNANT = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT')";
     public static final String EVALUATION_READ_FORMATEUR = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR','ROLE_ANIMATEUR')";

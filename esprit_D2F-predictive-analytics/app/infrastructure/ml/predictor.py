@@ -967,9 +967,12 @@ class ArtifactModelPort:
                 row = conn.execute(
                     text("""
                         SELECT t.up_id, t.dept_id, t.specialite,
-                               t.up_libelle, t.dept_libelle,
+                               u.libelle AS up_libelle,
+                               d.libelle AS dept_libelle,
                                t.prenom, t.nom
                         FROM formation.enseignants t
+                        LEFT JOIN formation.ups u ON u.id = t.up_id
+                        LEFT JOIN formation.departements d ON d.id = t.dept_id
                         WHERE t.id = :tid AND t.deleted_at IS NULL
                     """),
                     {"tid": teacher_id},

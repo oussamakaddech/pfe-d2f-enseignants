@@ -28,6 +28,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
@@ -1391,10 +1392,28 @@ public class FormationWorkflowService {
         }
     }
 
+    /**
+     * Contrôle row-level : seuls les rôles de gestion (ADMIN/CUP/RESPONSABLE_DOSSIER,
+     * cf. CurrentUser#hasGlobalScope) ou un animateur affecté à la séance peuvent
+     * modifier sa feuille de présence.
+     */
+    private void assertCanManageSeancePresences(SeanceFormation seance, CurrentUser user) {
+        if (user != null && user.hasGlobalScope()) {
+            return;
+        }
+        String email = user != null ? user.email() : null;
+        boolean membre = email != null && seance != null && seance.getAnimateurs() != null
+                && seance.getAnimateurs().stream().anyMatch(e -> email.equalsIgnoreCase(e.getMail()));
+        if (!membre) {
+            throw new AccessDeniedException("Vous n'êtes pas animateur de cette séance");
+        }
+    }
+
     @Transactional
-    public void updatePresence(Long idParticipation, boolean isPresent, String commentaire) {
+    public void updatePresence(Long idParticipation, boolean isPresent, String commentaire, CurrentUser user) {
         Presence presence = presenceRepository.findById(idParticipation)
                 .orElseThrow(() -> new IllegalArgumentException("Presence introuvable pour id " + idParticipation));
+        assertCanManageSeancePresences(presence.getSeanceFormation(), user);
         presence.setPresent(isPresent);
         presence.setCommentaire(commentaire);
         presenceRepository.save(presence);
@@ -1434,10 +1453,10 @@ public class FormationWorkflowService {
 
     public List<FormationResponseDTO> getFormationsByAnimateurEmail(String email) {
         List<Formation> allFormations = formationRepository.findDistinctBySeancesAnimateursMail(email);
-        List<Formation> enCours = allFormations.stream()
-                .filter(f -> f.getEtatFormation() == EtatFormation.EN_COURS)
-                .toList();
-        enCours.forEach(f -> {
+        // Toutes les formations animées (y compris ACHEVE) : l'animateur doit pouvoir
+        // consulter et finaliser la feuille de présence même après la fin de la
+        // formation — le filtrage par statut est fait côté interface.
+        allFormations.forEach(f -> {
             if (f.getSeances() != null) {
                 f.getSeances().forEach(s -> {
                     Hibernate.initialize(s.getAnimateurs());
@@ -1445,7 +1464,7 @@ public class FormationWorkflowService {
                 });
             }
         });
-        return enCours.stream().map(formationMapper::toResponseDTO).toList();
+        return allFormations.stream().map(formationMapper::toResponseDTO).toList();
     }
 
     public List<PresenceDTO> getPresencesBySeance(Long seanceId) {
@@ -1459,7 +1478,10 @@ public class FormationWorkflowService {
     }
 
     @Transactional
-    public List<PresenceDTO> batchUpdatePresences(Long seanceId, esprit.pfe.serviceformation.dto.BatchPresenceUpdateRequest request) {
+    public List<PresenceDTO> batchUpdatePresences(Long seanceId, esprit.pfe.serviceformation.dto.BatchPresenceUpdateRequest request, CurrentUser user) {
+        SeanceFormation seance = seanceFormationRepository.findById(seanceId)
+                .orElseThrow(() -> new IllegalArgumentException("Seance introuvable for id " + seanceId));
+        assertCanManageSeancePresences(seance, user);
         if (request == null || request.getUpdates() == null || request.getUpdates().isEmpty()) {
             return getPresencesBySeance(seanceId);
         }
@@ -1485,7 +1507,10 @@ public class FormationWorkflowService {
     }
 
     @Transactional
-    public List<PresenceDTO> markAllPresences(Long seanceId, boolean present) {
+    public List<PresenceDTO> markAllPresences(Long seanceId, boolean present, CurrentUser user) {
+        SeanceFormation seance = seanceFormationRepository.findById(seanceId)
+                .orElseThrow(() -> new IllegalArgumentException("Seance introuvable for id " + seanceId));
+        assertCanManageSeancePresences(seance, user);
         List<Presence> seancePresences = presenceRepository.findBySeanceFormation_IdSeance(seanceId);
         for (Presence p : seancePresences) {
             p.setPresent(present);
