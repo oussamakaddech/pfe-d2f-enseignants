@@ -216,6 +216,8 @@ function mapModelMode(mode: string | null | undefined): ModelMode {
   const m = (mode ?? '').toUpperCase();
   if (m === 'PRODUCTION_ML' || m === 'ML') return m === 'PRODUCTION_ML' ? 'PRODUCTION_ML' : 'ML';
   if (m === 'DEMO_ML') return 'DEMO_ML';
+  // Moteur de risque en repli fail-closed : etiquete explicitement.
+  if (m === 'HEURISTIC') return 'HEURISTIC';
   return 'HEURISTIC_FALLBACK';
 }
 
