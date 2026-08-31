@@ -46,6 +46,14 @@ RANDOM_STATE = 42
 TEST_FRAC = 0.2
 VAL_FRAC = 0.2
 
+# GOUVERNANCE 7.6 (limite 2) : protocole multi-fenêtres armé seulement quand
+# le corpus dépasse 500 lignes sur >= 6 mois distincts. En dessous, le
+# pipeline affiche explicitement que le corpus est insuffisant — aucune
+# validation multi-fenêtres n'est fabriquée.
+MULTIFRAME_MIN_ROWS = 500
+MULTIFRAME_MIN_MONTHS = 6
+MULTIFRAME_MIN_FOLD_TEST_ROWS = 30
+
 FEATURE_COLS = [
     "current_level_t3", "current_level_t2", "current_level_t1", "current_level_t",
     "lag_gap_t3_t2", "lag_gap_t2_t1", "lag_gap_t1_t", "rolling_tendance",
@@ -306,6 +314,130 @@ def _compute_subgroup_metrics(df: pd.DataFrame, split: dict, preds: np.ndarray) 
     result["by_gap_severity"] = gap_metrics
 
     return result
+
+
+def _multiframe_eligibility(df: pd.DataFrame) -> dict[str, Any]:
+    """Éligibilité au protocole multi-fenêtres (limite 7.6.2).
+
+    Conditions réelles mesurées sur le corpus (jamais contournées) :
+    - n_rows >= 500 ;
+    - >= 6 mois distincts dans date_t.
+    """
+    n_rows = int(len(df))
+    if "date_t" in df.columns:
+        dates = pd.to_datetime(df["date_t"], errors="coerce")
+        distinct_months = int(dates.dt.to_period("M").nunique())
+    else:
+        distinct_months = 0
+    eligible = n_rows >= MULTIFRAME_MIN_ROWS and distinct_months >= MULTIFRAME_MIN_MONTHS
+    return {
+        "eligible": eligible,
+        "n_rows": n_rows,
+        "distinct_months": distinct_months,
+        "min_rows_required": MULTIFRAME_MIN_ROWS,
+        "min_months_required": MULTIFRAME_MIN_MONTHS,
+        "message": (
+            "corpus eligible au protocole multi-fenetres"
+            if eligible
+            else f"Corpus insuffisant pour validation multi-fenetres (n={n_rows}"
+            f" < {MULTIFRAME_MIN_ROWS} lignes ou {distinct_months}"
+            f" < {MULTIFRAME_MIN_MONTHS} mois distincts)"
+        ),
+    }
+
+
+def _evaluate_multiframe(df: pd.DataFrame, gb_params: dict) -> dict[str, Any] | None:
+    """Splits temporels glissants + IC bootstrap par fenêtre (limite 7.6.2).
+
+    Retourne None si le corpus est insuffisant — le pipeline appelant affiche
+    alors explicitement le message « Corpus insuffisant... ».
+    """
+    eligibility = _multiframe_eligibility(df)
+    if not eligibility["eligible"]:
+        return None
+
+    from sklearn.ensemble import GradientBoostingRegressor
+
+    dates = pd.to_datetime(df["date_t"], errors="coerce")
+    df = df.assign(_month=dates.dt.to_period("M")).sort_values("date_t").reset_index(drop=True)
+    months = sorted(df["_month"].unique())
+
+    folds: list[dict[str, Any]] = []
+    n = len(df)
+    fold_test_size = max(MULTIFRAME_MIN_FOLD_TEST_ROWS, int(n * 0.15))
+    step = fold_test_size
+    start = 0
+    while start + fold_test_size + fold_test_size <= n:  # train + test non vides
+        train = df.iloc[: start + fold_test_size]
+        test = df.iloc[start + fold_test_size : start + 2 * fold_test_size]
+        start += step
+
+        X_train = train[FEATURE_COLS].astype(float)
+        y_train = train[TARGET_COL].astype(float).clip(0, 5).values
+        X_test = test[FEATURE_COLS].astype(float)
+        y_test = test[TARGET_COL].astype(float).clip(0, 5).values
+
+        ranges = {}
+        for col in FEATURE_COLS:
+            mn, mx = float(X_train[col].min()), float(X_train[col].max())
+            ranges[col] = {"min": mn, "max": mx}
+            if mx > mn:
+                X_train[col] = ((X_train[col] - mn) / (mx - mn)).clip(0, 1)
+                X_test[col] = ((X_test[col] - mn) / (mx - mn)).clip(0, 1)
+            else:
+                X_train[col], X_test[col] = 0.0, 0.0
+
+        model = GradientBoostingRegressor(**gb_params)
+        model.fit(X_train.values, y_train)
+        preds = np.clip(model.predict(X_test.values), 0, 5)
+
+        metrics = _compute_metrics(y_test, preds)
+        baseline = _baseline_persistence(y_test, test[FEATURE_COLS])
+        boot = _bootstrap_ci(y_test, preds, baseline)
+        folds.append({
+            "train_period": f"{train['date_t'].min()}..{train['date_t'].max()}",
+            "test_period": f"{test['date_t'].min()}..{test['date_t'].max()}",
+            "n_train": int(len(train)),
+            "n_test": int(len(test)),
+            "metrics": metrics,
+            "bootstrap_ci": boot,
+        })
+
+    if not folds:
+        return None
+
+    rmse_vals = [f["metrics"]["rmse"] for f in folds]
+    mae_vals = [f["metrics"]["mae"] for f in folds]
+    return {
+        "protocol": "temporal_rolling_windows",
+        "n_folds": len(folds),
+        "rmse_mean": round(float(np.mean(rmse_vals)), 4),
+        "rmse_std": round(float(np.std(rmse_vals)), 4),
+        "mae_mean": round(float(np.mean(mae_vals)), 4),
+        "mae_std": round(float(np.std(mae_vals)), 4),
+        "bootstrap_replications": 1000,
+        "ci_method": "percentile_2.5_97.5",
+        "folds": folds,
+    }
+
+
+def _compute_segment_metrics(df: pd.DataFrame, split: dict, preds: np.ndarray) -> dict:
+    """Métriques par segment département (limite 7.6.2) — reports/segment_metrics.json."""
+    test_df = df.iloc[len(df) - split["n_test"]:].copy().reset_index(drop=True)
+    test_df["y_true"] = split["y_test"]
+    test_df["y_pred"] = preds
+    seg_col = "department_id" if "department_id" in test_df.columns else None
+    segments: dict[str, Any] = {}
+    if seg_col:
+        for dept, group in test_df.groupby(seg_col):
+            if len(group) >= 5:
+                segments[str(dept)] = _compute_metrics(group["y_true"].values, group["y_pred"].values)
+            else:
+                segments[str(dept)] = {"insufficient_sample": True, "n": int(len(group))}
+    else:
+        segments["_global"] = _compute_metrics(test_df["y_true"].values, test_df["y_pred"].values)
+        segments["_note"] = "colonne department_id absente du corpus — métriques globales uniquement"
+    return segments
 
 
 def _evaluate_gap_models(df: pd.DataFrame) -> dict[str, Any]:
@@ -804,6 +936,59 @@ def main() -> int:
         m = model.get("metrics", {})
         print(f"    {name}: RMSE={m.get('rmse', 'N/A')}, MAE={m.get('mae', 'N/A')}, "
               f"R²={m.get('r2', 'N/A')}, improvement={m.get('improvement_vs_persistence_pct', 'N/A')}%")
+
+    # ── GOUVERNANCE 7.6 (limite 2) : protocole multi-fenêtres conditionnel ──
+    print("\n[3bis] Éligibilité multi-fenêtres...")
+    eligibility = _multiframe_eligibility(df)
+    print(f"    {eligibility['message']}")
+    if eligibility["eligible"]:
+        gb_params = {
+            "n_estimators": 120, "max_depth": 3, "learning_rate": 0.08,
+            "subsample": 0.85, "random_state": RANDOM_STATE,
+            "min_samples_split": 10, "min_samples_leaf": 5, "max_features": "sqrt",
+        }
+        multiframe = _evaluate_multiframe(df, gb_params)
+        if multiframe:
+            gap_results["multiframe_validation"] = multiframe
+            (REPORTS_DIR / "multiframe_validation.json").write_text(
+                json.dumps(multiframe, indent=2, ensure_ascii=False, default=str),
+                encoding="utf-8",
+            )
+            print(f"    multi-fenêtres : {multiframe['n_folds']} folds, "
+                  f"RMSE moyen {multiframe['rmse_mean']} ± {multiframe['rmse_std']}")
+        else:
+            print("    aucune fenêtre exploitable — corpus trop court")
+    else:
+        gap_results["multiframe_validation"] = {
+            "status": "REFUSED",
+            "reason": eligibility["message"],
+        }
+
+    # Métriques par segment département (reports/segment_metrics.json).
+    try:
+        from sklearn.ensemble import GradientBoostingRegressor
+
+        split = _temporal_split_3way(df)
+        X_train, X_val, X_test, _ = _normalize_with_ranges(split["X_train"], split["X_val"], split["X_test"])
+        gb = GradientBoostingRegressor(
+            n_estimators=120, max_depth=3, learning_rate=0.08,
+            subsample=0.85, random_state=RANDOM_STATE,
+            min_samples_split=10, min_samples_leaf=5, max_features="sqrt",
+        )
+        gb.fit(X_train.values, split["y_train"])
+        preds = np.clip(gb.predict(X_test.values), 0, 5)
+        segment_metrics = {
+            "dataset_version": str(df["dataset_version"].iloc[0]),
+            "n_rows": int(len(df)),
+            "segments": _compute_segment_metrics(df, split, preds),
+        }
+        (REPORTS_DIR / "segment_metrics.json").write_text(
+            json.dumps(segment_metrics, indent=2, ensure_ascii=False, default=str),
+            encoding="utf-8",
+        )
+        print("    métriques par segment : reports/segment_metrics.json")
+    except Exception as exc:
+        print(f"    métriques par segment impossible : {exc}")
 
     print("\n[4] Évaluation du risque...")
     risk = _evaluate_risk_rf()

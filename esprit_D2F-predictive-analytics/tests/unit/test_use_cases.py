@@ -79,7 +79,8 @@ def test_compute_risk_returns_heuristic_mode_and_persists(repositories):
         settings,
     )
     profile, mode, _, _ = use_case.execute("T002")
-    assert mode == "HEURISTIC_FALLBACK"
+    assert mode == "HEURISTIC"
+
     assert 0 <= profile.risk_score <= 100
     assert repositories["analyse"].risk[-1] is profile
 

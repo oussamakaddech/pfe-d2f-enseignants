@@ -34,12 +34,18 @@ describe('RiskScoreCard', () => {
         }}
       />,
     );
-    expect(screen.getByText('76%')).toBeTruthy();
+    expect(screen.getByText('76/100')).toBeTruthy();
     expect(screen.getByText('Modéré')).toBeTruthy();
   });
 
   it("gère l'absence de données sans planter", () => {
     render(<RiskScoreCard risk={undefined} />);
     expect(screen.getByText('Faible')).toBeTruthy();
+  });
+
+  it('étiquette le score comme indice non calibré (jamais une probabilité)', () => {
+    render(<RiskScoreCard risk={base} />);
+    expect(screen.getByText(/Indice de risque \(non calibré\)/i)).toBeTruthy();
+    expect(screen.getByText(/pas une probabilité/i)).toBeTruthy();
   });
 });

@@ -46,9 +46,20 @@ from app.infrastructure.ml.ml_observability import ml_observability
 from app.infrastructure.ml.model_registry import (
     APPROVAL_APPROVED,
     STATUS_ACTIVE,
+    TARGET_VALIDITY_EXTRAPOLATED,
+    TARGET_VALIDITY_OBSERVED_SIMULATION,
+    TARGET_VALIDITY_REAL,
+    DATA_ORIGIN_SIMULATED,
+    VALIDATION_SCOPE_REAL,
+    VALIDATION_SCOPE_SIMULATION,
     ModelRegistry,
     RegistryEntry,
 )
+from app.infrastructure.ml.risk_features import (
+    AGG_FEATURE_SOURCES,
+    build_serving_features,
+)
+
 
 logger = get_logger("ml_predictor")
 
@@ -228,6 +239,11 @@ class ArtifactModelPort:
 
         # Moteur réellement utilisé par le dernier predict_risk ("ml" | "rules").
         self._risk_engine: str = "unknown"
+
+        # Port ML de risque dedie (calibre, fail-closed vers l'heuristique).
+        from app.infrastructure.ml.risk_predictor import RiskMLPredictor
+        self._risk_ml = RiskMLPredictor(models_dir)
+        self._risk_ml_reason: str | None = None
 
         # Registre d'artefacts
         registry_path = Path(getattr(settings, "ml_registry_path", "model_registry.json"))
@@ -422,16 +438,26 @@ class ArtifactModelPort:
         En heuristique, retourne None pour que l'appelant bascule sur la
         methode metier. En DEMO_ML, le modele est utilise mais la reponse API
         doit exposer DEMO_ML (jamais PRODUCTION_ML).
+
+        GOUVERNANCE 7.6 (limite 4) : chaque appel est journalisé via
+        ml_observability.record_serving_call (teacher_id, mode effectif,
+        raison de repli, features hors plage).
         """
         mode = self._effective_mode()
         ml_observability.record_mode(mode)
         if mode == HEURISTIC_FALLBACK:
             ml_observability.record_fallback(self._fallback_reason)
+            ml_observability.record_serving_call(
+                teacher_id, mode, self._fallback_reason, None,
+            )
             return None
         try:
             result = self._predict_gaps(teacher_id, mode=mode)
             if result is None:
                 ml_observability.record_fallback(self._fallback_reason)
+                ml_observability.record_serving_call(
+                    teacher_id, "HEURISTIC_FALLBACK", self._fallback_reason, None,
+                )
             else:
                 entry = self._registry.active()
                 ml_observability.record_prediction(
@@ -439,12 +465,87 @@ class ArtifactModelPort:
                     latency_ms=0.0,
                     values=[g.gap_score for g in result],
                 )
+                # Journalisation du appel ML effectif + alerte de proximité
+                # des bornes (gouvernance 7.6, limite 4.2) — warning non bloquant.
+                near_boundary = self._near_boundary_features(teacher_id)
+                ml_observability.record_serving_call(
+                    teacher_id, mode, None, near_boundary,
+                )
             return result
         except Exception as exc:  # pragma: no cover - log + fallback
             logger.error("predict_gaps ML echoue, fallback heuristique", error=str(exc))
             self._fallback_reason = f"erreur d'inference : {exc}"
             ml_observability.record_fallback(self._fallback_reason)
+            ml_observability.record_serving_call(
+                teacher_id, "HEURISTIC_FALLBACK", self._fallback_reason, None,
+            )
             return None
+
+    # ------------------------------------------------------- Alerte proximité bornes
+    def _near_boundary_features(self, teacher_id: str) -> list[str]:
+        """Features servies à moins de 5 % des bornes d'entraînement (limite 4.2).
+
+        Retourne la liste des features proches des limites du domaine
+        d'entraînement (warning non bloquant, exposé via ml_observability).
+        Recalcule le vecteur de features du dernier appel sans prédiction.
+        """
+        try:
+            bundle = self._teacher_feature_bundle(teacher_id)
+            X, _, _ = self._build_feature_matrix(bundle)
+            if X.shape[0] == 0:
+                return []
+            return self._near_boundary_columns(X)
+        except Exception:  # pragma: no cover - analyse consultative
+            return []
+
+    def _near_boundary_columns(self, X: np.ndarray, threshold_pct: float = 0.05) -> list[str]:
+        """Colonnes dont au moins une valeur est à moins de ``threshold_pct``
+        de la largeur de plage de sa borne min/max d'entraînement."""
+        ranges = (self._metadata or {}).get("feature_ranges", {})
+        near: list[str] = []
+        for i, col in enumerate(TEMPORAL_FEATURE_COLS):
+            bounds = ranges.get(col)
+            if not bounds:
+                continue
+            col_min = float(bounds.get("min", -np.inf))
+            col_max = float(bounds.get("max", np.inf))
+            width = col_max - col_min
+            if width <= 0:
+                continue
+            tol = width * threshold_pct
+            lo_val = float(X[:, i].min())
+            hi_val = float(X[:, i].max())
+            if lo_val < col_min + tol or hi_val > col_max - tol:
+                near.append(col)
+        return near
+
+    def near_boundary_warning(self, teacher_id: str) -> dict[str, Any] | None:
+        """Avertissement « proche des limites du domaine d'entraînement » (4.2).
+
+        Exposé dans la réponse API (warning non bloquant) quand une feature
+        servie en ML est à moins de 5 % de sa borne min/max du feature_schema.
+        """
+        mode = self._effective_mode()
+        if mode not in (PRODUCTION_ML, DEMO_ML):
+            return None
+        try:
+            bundle = self._teacher_feature_bundle(teacher_id)
+            X, _, _ = self._build_feature_matrix(bundle)
+            if X.shape[0] == 0:
+                return None
+            near = self._near_boundary_columns(X)
+        except Exception:  # pragma: no cover - consultatif
+            return None
+        if not near:
+            return None
+        return {
+            "code": "NEAR_TRAINING_BOUNDARY",
+            "message": (
+                "Proche des limites du domaine d'entraînement : "
+                f"{len(near)} feature(s) à moins de 5 % de leur borne."
+            ),
+            "features": near,
+        }
 
     def predict_risk(self, teacher_id: str) -> RiskProfile | None:
         if not self.available():
@@ -455,11 +556,188 @@ class ArtifactModelPort:
             logger.error("predict_risk ML echoue, fallback heuristique", error=str(exc))
             return None
 
+    # --------------------------------------------------- Risk ML calibre (v2)
+    def predict_risk_serving(self, teacher_id: str) -> tuple[RiskProfile, dict | None, str | None]:
+        """Risque servi : ML calibre si disponible, sinon heuristique FAIL-CLOSED.
+
+        Retourne (profil, payload_ml|None, fallback_reason|None). Le payload ML
+        expose risk_class, probability_calibrated, contributions (top-3 SHAP),
+        data_origin, validation_scope. En repli, ``fallback_reason`` documente
+        honnetement la cause (modele absent / decision=reject / hors plage /
+        erreur) et le moteur heuristique 0.50/0.12/0.40 sert le score.
+        """
+        ml_payload: dict | None = None
+        fallback_reason: str | None = None
+        served_by_ml = False
+        profile: RiskProfile | None = None
+        try:
+            bundle = dict(self._teacher_feature_bundle(teacher_id))
+            bundle["stagnation_months"] = self._stagnation_months(bundle)
+            gaps = self._predict_gaps(teacher_id)
+            if gaps is None:
+                gaps = self._persisted_gaps(teacher_id)
+            gaps = gaps or []
+            scoped_ids = self._scoped_competence_ids(teacher_id)
+            if scoped_ids is not None and gaps:
+                gaps = self._filter_gaps_to_scope(teacher_id, gaps, scoped_ids)
+            X, _comp_ids, _required = self._build_feature_matrix(bundle)
+            agg: dict[str, float] = {}
+            if X.shape[0] > 0:
+                for risk_feat, col in AGG_FEATURE_SOURCES.items():
+                    if col in TEMPORAL_FEATURE_COLS:
+                        agg[risk_feat] = float(np.mean(X[:, TEMPORAL_FEATURE_COLS.index(col)]))
+            features = build_serving_features(gaps, bundle, agg)
+            result, reason = self._risk_ml.predict(features)
+            if result is not None:
+                served_by_ml = True
+                ml_payload = result.to_payload()
+                profile = self._profile_from_risk_ml(teacher_id, result, gaps, scoped_ids)
+            else:
+                fallback_reason = reason
+        except Exception as exc:  # pragma: no cover - fail-closed
+            logger.error("risk ML serving echoue, repli heuristique", error=str(exc))
+            fallback_reason = f"echec du serving ML : {exc}"
+
+        if not served_by_ml or profile is None:
+            self._risk_engine = "rules"
+            gaps = self._predict_gaps(teacher_id)
+            if gaps is None:
+                gaps = self._persisted_gaps(teacher_id)
+            profile = self._rule_risk_scoped(teacher_id, gaps or [])
+        self._risk_ml_reason = fallback_reason
+        return profile, ml_payload, fallback_reason
+
+    def _profile_from_risk_ml(
+        self, teacher_id: str, result, gaps: list[SkillGap], scoped_ids: set[int] | None
+    ) -> RiskProfile:
+        """RiskProfile servie par le ML : score = esperance ponderee des milieux
+        de classes avec les probabilites CALIBREES ; facteurs = top contributions."""
+        scope = "DEPARTMENT" if scoped_ids is not None else "TEACHER"
+        scope_type, scope_id, scope_label = self._teacher_scope_info(teacher_id, scope)
+        midpoints = {"LOW": 10.0, "MEDIUM": 37.5, "HIGH": 62.5, "CRITICAL": 87.5}
+        expected = sum(p * midpoints.get(c, 40.0) for c, p in result.probabilities.items())
+        risk_score = round(min(100.0, max(0.0, expected)), 2)
+        level = {"LOW": RiskLevel.LOW, "MEDIUM": RiskLevel.MEDIUM,
+                 "HIGH": RiskLevel.HIGH, "CRITICAL": RiskLevel.CRITICAL}.get(
+            result.risk_class, RiskLevel.MEDIUM)
+        factors = tuple(
+            RiskFactor(
+                feature=c["feature"],
+                value=float(c.get("value", 0.0)),
+                normalized_value=round(float(c.get("impact", 0.0)), 4),
+                weight=round(float(c.get("impact", 0.0)), 4),
+                contribution=round(float(c.get("impact", 0.0)), 4),
+                label=f"Contribution {c['feature']} ({c.get('method', 'model')})",
+                scope=scope,
+                scope_type=scope_type,
+                scope_id=scope_id,
+                scope_label=scope_label,
+            )
+            for c in result.contributions
+        )
+        return RiskProfile(
+            teacher_id=teacher_id,
+            risk_score=risk_score,
+            risk_level=level,
+            factors=factors,
+            is_capped=False,
+            uncapped_score=round(expected / 100.0, 4),
+        )
+
+    def risk_ml_status(self) -> dict[str, Any]:
+        """Statut du port ML de risque (mode, version, counts, repli)."""
+        return self._risk_ml.status()
+
+    def heuristic_risk_reference(self, teacher_id: str) -> RiskProfile:
+        """Décomposition heuristique de référence (0.50/0.12/0.40) sur les mêmes
+        gaps — exposée comme vue secondaire quand le ML sert le score."""
+        gaps = self._predict_gaps(teacher_id)
+        if gaps is None:
+            gaps = self._persisted_gaps(teacher_id)
+        return self._rule_risk_scoped(teacher_id, gaps or [])
+
+
     def status(self) -> dict[str, Any]:
         mode = self._effective_mode()
         meta = self._metadata or {}
         prov = self._provenance_report
         entry = self._registry.active()
+        target_validity = self._target_validity()
+        # Etape 4 : exposition data_origin et validation_scope (gouvernance simulation)
+        data_origin = getattr(entry, "data_origin", None) if entry else meta.get("data_origin")
+        validation_scope = getattr(entry, "validation_scope", None) if entry else meta.get("validation_scope")
+        # Fallback : si registre SIMULATED, on expose SIMULATED meme si metadata ancienne
+        if entry and getattr(entry, "data_origin", None) == DATA_ORIGIN_SIMULATED:
+            data_origin = DATA_ORIGIN_SIMULATED
+            validation_scope = validation_scope or VALIDATION_SCOPE_SIMULATION
+        elif entry and getattr(entry, "validation_scope", None) == VALIDATION_SCOPE_SIMULATION:
+            validation_scope = VALIDATION_SCOPE_SIMULATION
+            data_origin = data_origin or DATA_ORIGIN_SIMULATED
+        # Production technique demo : si mode PRODUCTION_ML mais corpus DEMO_SEED, l'etiquette reste demo
+        # (conserve 35/37 serving, mais etiquette honnete)
+        if data_origin is None:
+            # derive from synthetic_share_pct legacy
+            if entry and entry.synthetic_share_pct > 0:
+                data_origin = DATA_ORIGIN_SIMULATED
+                validation_scope = VALIDATION_SCOPE_SIMULATION
+            elif prov and prov.synthetic_share_pct > 0:
+                data_origin = DATA_ORIGIN_SIMULATED
+                validation_scope = VALIDATION_SCOPE_SIMULATION
+            else:
+                data_origin = "DEMO_SEED"
+                validation_scope = "DEMO_VALIDATED"
+        # Etape 4.5 : si un corpus de simulation documente existe (seed 42, re-mesures M+3),
+        # le serving PRODUCTION_ML reste fonctionnel mais son etiquette devient
+        # "production technique — demonstration sur donnees simulees".
+        # On expose donc en plus les metadonnees de simulation (sidecar), tout en
+        # conservant le registry actif reel pour la non-regression.
+        simulation_info = None
+        try:
+            sim_manifest = Path(__file__).parent.parent.parent.parent / "reports" / "simulation_manifest.json"
+            # aussi verifier data/simulation et data/models/simulation_training_metadata.json (present dans Docker)
+            if not sim_manifest.exists():
+                sim_manifest = Path(__file__).parent.parent.parent.parent / "data" / "simulation" / "simulation_manifest.json"
+            if not sim_manifest.exists():
+                # Fallback Docker : simulation_training_metadata.json dans MODELS_DIR
+                models_dir = Path(getattr(self._settings, "models_dir", "data/models"))
+                sim_meta = models_dir / "simulation_training_metadata.json"
+                if sim_meta.exists():
+                    import json as _json
+                    sim_manifest_data = _json.loads(sim_meta.read_text(encoding="utf-8"))
+                    simulation_info = {
+                        "data_origin": sim_manifest_data.get("data_origin", DATA_ORIGIN_SIMULATED),
+                        "validation_scope": sim_manifest_data.get("validation_scope", VALIDATION_SCOPE_SIMULATION),
+                        "target_validity": sim_manifest_data.get("target_validity", TARGET_VALIDITY_OBSERVED_SIMULATION),
+                        "dataset_hash": sim_manifest_data.get("dataset_hash", sim_manifest_data.get("data_sources", {}).get("dataset_hash")),
+                        "generator_version": sim_manifest_data.get("generator_version"),
+                        "seed": sim_manifest_data.get("seed"),
+                    }
+                    if data_origin == "DEMO_SEED":
+                        data_origin = DATA_ORIGIN_SIMULATED
+                        validation_scope = VALIDATION_SCOPE_SIMULATION
+                    # Already have simulation_info, skip file check
+                    sim_manifest = None
+                else:
+                    sim_manifest = None
+            if sim_manifest is not None and sim_manifest.exists():
+                import json as _json
+                sim_manifest_data = _json.loads(sim_manifest.read_text(encoding="utf-8"))
+                simulation_info = {
+                    "data_origin": sim_manifest_data.get("data_origin", DATA_ORIGIN_SIMULATED),
+                    "validation_scope": sim_manifest_data.get("validation_scope", VALIDATION_SCOPE_SIMULATION),
+                    "target_validity": sim_manifest_data.get("target_validity", TARGET_VALIDITY_OBSERVED_SIMULATION),
+                    "dataset_hash": sim_manifest_data.get("dataset_hash"),
+                    "generator_version": sim_manifest_data.get("generator_version"),
+                    "seed": sim_manifest_data.get("seed"),
+                }
+                # Si simulation existe, on surcharge l'etiquetage honnete pour refleter la validation simulation
+                # (sans casser le mode PRODUCTION_ML) — uniquement data_origin/validation_scope,
+                # target_validity reste EXTRAPOLATED pour le corpus reel (le rapport simulation expose OBSERVED_IN_SIMULATION via simulation_info)
+                if data_origin == "DEMO_SEED":
+                    data_origin = DATA_ORIGIN_SIMULATED
+                    validation_scope = VALIDATION_SCOPE_SIMULATION
+        except Exception:
+            simulation_info = None
         return {
             "name": "gap_predictor_temporal",
             "available": mode in (PRODUCTION_ML, DEMO_ML),
@@ -477,8 +755,21 @@ class ArtifactModelPort:
             "provenance": prov.to_dict() if prov else {},
             "registry_entry": entry.to_dict() if entry else None,
             "prediction_horizon": "3m",
+            "target_validity": target_validity,
+            "target_validity_label": (
+                "Cible extrapolée — validation démonstration"
+                if target_validity == TARGET_VALIDITY_EXTRAPOLATED
+                else "Cible observée en simulation — validation simulation"
+                if target_validity == TARGET_VALIDITY_OBSERVED_SIMULATION
+                else "Cible validée par re-mesures réelles"
+            ),
+            "data_origin": data_origin,
+            "validation_scope": validation_scope,
+            "simulation": simulation_info,
             "risk_engine": self._risk_engine,
             "risk_model": self.risk_status(),
+            "risk_ml": self.risk_ml_status(),
+
             "relevance_model": {
                 "name": "relevance_model",
                 "available": self.relevance_available(),
@@ -486,6 +777,21 @@ class ArtifactModelPort:
                 "drift_check": self._artifact_drift_check(self._relevance_metadata),
             },
         }
+
+    def _target_validity(self) -> str:
+        """Validité de la cible prédictive (registre > metadata, défaut extrapolée).
+
+        Exposée à chaque réponse API pour un étiquetage honnête : tant qu'aucune
+        re-mesure future réelle n'existe, la cible est EXTRAPOLATED_TARGET.
+        En simulation, OBSERVED_IN_SIMULATION.
+        """
+        entry = self._registry.active()
+        if entry is not None and entry.target_validity:
+            return entry.target_validity
+        meta_validity = (self._metadata or {}).get("target_validity")
+        if meta_validity in (TARGET_VALIDITY_EXTRAPOLATED, TARGET_VALIDITY_REAL, TARGET_VALIDITY_OBSERVED_SIMULATION):
+            return str(meta_validity)
+        return TARGET_VALIDITY_EXTRAPOLATED
 
     # -------------------------------------------------------- Drift (passif)
     def _artifact_drift_check(self, meta: dict[str, Any] | None) -> dict[str, Any]:
@@ -541,6 +847,19 @@ class ArtifactModelPort:
                 )
                 self._model = None
                 return
+            # GOUVERNANCE 7.6 (limite 4.3) : interdiction d'élargir les plages
+            # de features sans réentraînement — un artefact dont les bornes
+            # s'étendent au-delà de la version ACTIVE du registre sans
+            # changement de version est REJETÉ (fail-closed).
+            range_error = self._widened_ranges_error()
+            if range_error:
+                logger.error(
+                    "artefact ML refuse : plages élargies sans réentraînement",
+                    error=range_error,
+                )
+                self._fallback_reason = range_error
+                self._model = None
+                return
             logger.info(
                 "modele ML charge",
                 path=str(self._artifact_path),
@@ -554,6 +873,60 @@ class ArtifactModelPort:
             logger.error("chargement modele ML impossible", error=str(exc))
             self._fallback_reason = f"chargement impossible : {exc}"
             self._model = None
+
+    def _widened_ranges_error(self) -> str | None:
+        """Erreur si les plages de l'artefact chargé dépassent celles de la
+        version ACTIVE du registre SANS changement de version (4.3).
+
+        La politique : élargir les plages exige un réentraînement complet,
+        donc une nouvelle version enregistrée. Le registre ne portant pas les
+        plages historiques, la référence est le schéma de features versionné
+        (feature_schema.json) : si le hash des plages de l'artefact diffère
+        de celui du schéma pour la même feature_schema_version, l'artefact
+        est rejeté.
+        """
+        import hashlib
+
+        meta = self._metadata or {}
+        ranges = meta.get("feature_ranges") or {}
+        if not ranges:
+            return None  # pas de plages déclarées : contrôlé au serving
+        schema_path = self._artifact_path.parent / (
+            f"feature_schema{('_' + str(meta.get('model_version', 'v1.0.0').replace('.', ''))) if meta.get('model_version') else ''}.json"
+        )
+        # Référence canonique : le feature_schema VERSIONNÉ du modèle servi
+        # (feature_schema_{version}.json) s'il existe — c'est la référence de la
+        # version ACTIVE ; sinon le feature_schema du dépôt. Sans fichier de
+        # référence, on compare au registre.
+        reference_ranges: dict | None = None
+        candidate_paths = [
+            schema_path,
+            self._artifact_path.parent / "feature_schema.json",
+        ]
+
+        for path in candidate_paths:
+            if path.exists():
+                try:
+                    reference_ranges = json.loads(path.read_text(encoding="utf-8"))
+                    if isinstance(reference_ranges, dict) and "feature_ranges" in reference_ranges:
+                        reference_ranges = reference_ranges["feature_ranges"]
+                    if isinstance(reference_ranges, dict) and "ranges" in reference_ranges:
+                        reference_ranges = reference_ranges["ranges"]
+                except Exception:
+                    reference_ranges = None
+                if reference_ranges:
+                    break
+        if reference_ranges:
+            def _canon(r: dict) -> str:
+                return hashlib.sha256(json.dumps(r, sort_keys=True).encode()).hexdigest()
+
+            if _canon(ranges) != _canon(reference_ranges):
+                return (
+                    "plages de features élargies sans réentraînement : l'artefact "
+                    "porte des bornes différentes du feature_schema de la même "
+                    "version — réentraînement et nouvelle version requis"
+                )
+        return None
 
     # ------------------------------------------------------- Extraction features
     def _teacher_feature_bundle(self, teacher_id: str) -> dict[str, Any]:

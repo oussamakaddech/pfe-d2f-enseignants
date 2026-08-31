@@ -107,6 +107,24 @@ class HealthOut(BaseModel):
     version: str
     database: str
     model: str
+    target_validity: str | None = None
+    data_origin: str | None = None
+    validation_scope: str | None = None
+    # --- ML actif (etape 1-3 : serving des ecarts + risque) ---
+    model_version: str | None = None
+    # Serving des ecarts : "X/Y" enseignants servis par le modele (mode ML),
+    # le reste en repli heuristique (fallback_reason documente).
+    ml_serving_count: str | None = None
+    ml_serving_teachers: int | None = None
+    ml_heuristic_fallback_teachers: int | None = None
+    # Modele de risque : ML actif ou repli heuristique fail-closed.
+    risk_ml_active: bool | None = None
+    risk_model_version: str | None = None
+    risk_mode: str | None = None
+    risk_ml_serving_count: int | None = None
+    risk_heuristic_fallback_count: int | None = None
+    risk_fallback_reason: str | None = None
+
 
 
 class AnalysisAcceptedOut(BaseModel):

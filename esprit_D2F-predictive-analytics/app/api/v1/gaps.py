@@ -36,6 +36,10 @@ def list_gaps(
     dataset_version = None
     prediction_horizon = None
     synthetic_share_pct = None
+    target_validity = None
+    target_validity_label = None
+    data_origin = None
+    validation_scope = None
     provenance = {}
     predictions: list[dict] = []
     try:
@@ -44,6 +48,10 @@ def list_gaps(
         model_version = status.get("model_version") or status.get("version")
         fallback_reason = status.get("fallback_reason")
         prediction_horizon = status.get("prediction_horizon")
+        target_validity = status.get("target_validity")
+        target_validity_label = status.get("target_validity_label")
+        data_origin = status.get("data_origin")
+        validation_scope = status.get("validation_scope")
         provenance = status.get("provenance") or {}
         if isinstance(provenance, dict):
             dataset_version = provenance.get("dataset_version")
@@ -68,6 +76,13 @@ def list_gaps(
             )
     if severity:
         gaps = [gap for gap in gaps if gap.severity.api_value() == severity.upper()]
+    # GOUVERNANCE 7.6 (limite 4.2) : avertissement non bloquant quand une
+    # feature servie est proche des bornes d'entraînement (< 5 %).
+    near_boundary = None
+    try:
+        near_boundary = container.model_port.near_boundary_warning(teacher_id)
+    except Exception:
+        near_boundary = None
     page_result = paginate([GapOut(**gap.to_dict()) for gap in gaps], page, size)
     if model_mode in ("PRODUCTION_ML", "DEMO_ML"):
         predictions = [gap.to_dict() for gap in gaps]
@@ -80,8 +95,13 @@ def list_gaps(
             "fallback_reason": fallback_reason,
             "dataset_version": dataset_version,
             "prediction_horizon": prediction_horizon,
+            "target_validity": target_validity,
+            "target_validity_label": target_validity_label,
+            "data_origin": data_origin,
+            "validation_scope": validation_scope,
             "synthetic_share_pct": synthetic_share_pct,
             "provenance": provenance,
             "predictions": predictions,
+            "near_boundary_warning": near_boundary,
         },
     )

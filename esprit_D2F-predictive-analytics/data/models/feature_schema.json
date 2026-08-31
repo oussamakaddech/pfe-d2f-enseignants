@@ -155,5 +155,7 @@
       "min": 0.0,
       "max": 21.245098039215687
     }
-  }
+  },
+  "feature_ranges_source": "union (quantiles 0.001-0.999 sur simulation_dataset.csv, corpus complet 10920 lignes) x (etendue observee du corpus de demonstration training_corpus_from_db.csv) — justifiee par les deux distributions observees, sans valeur forcee",
+  "feature_ranges_source_simulation": "union (quantiles 0.001-0.999 sur simulation_dataset.csv, corpus complet 10920 lignes) x (etendue observee du corpus de demonstration training_corpus_from_db.csv) — justifiee par les deux distributions observees, sans valeur forcee"
 }

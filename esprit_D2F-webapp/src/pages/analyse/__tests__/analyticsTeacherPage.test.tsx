@@ -90,7 +90,7 @@ describe('AnalyticsTeacherPage', () => {
     expect(screen.getByText(/Lancer l'analyse/i)).toBeInTheDocument();
   });
 
-  it('affiche le score et le libellé dérivés du backend (76 % / Modéré)', () => {
+  it('affiche le score et le libellé dérivés du backend (76 / 100 / Modéré)', () => {
     setup();
     mocks.useTeacherRisk.mockReturnValue({
       isLoading: false,
@@ -110,7 +110,9 @@ describe('AnalyticsTeacherPage', () => {
       },
     });
     render(<AnalyticsTeacherPage />, { wrapper });
-    expect(screen.getByText('76%')).toBeInTheDocument();
+    // Gouvernance 7.6 : indice non calibré, jamais présenté en « % de probabilité ».
+    expect(screen.getAllByText(/76 \/ 100/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/\(non calibré\)/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Modéré')).toBeInTheDocument();
   });
 
@@ -255,5 +257,66 @@ describe('AnalyticsTeacherPage', () => {
     expect(screen.queryByText(/mode hérité/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Probabilités ML \(classifier\)/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Réussite/i)).not.toBeInTheDocument();
+  });
+
+  it('gouvernance 7.6 : affiche la mention « Cible extrapolée » quand target_validity=EXTRAPOLATED_TARGET', () => {
+    setup();
+    mocks.useTeacherRisk.mockReturnValue({
+      isLoading: false,
+      data: {
+        enseignant_id: 'T1',
+        enseignant_nom: 'Nom Test',
+        score: 0.4,
+        score_percent: 40,
+        niveau: 'MODERE',
+        level_label: 'Modéré',
+        facteurs: [],
+        tendance: 'STABLE',
+        precedent_score: null,
+        computed_at: new Date().toISOString(),
+        model_mode: 'PRODUCTION_ML',
+        model_version: 'v1.0.0',
+        model_name: 'gap_predictor_temporal',
+        target_validity: 'EXTRAPOLATED_TARGET',
+      },
+    });
+    render(<AnalyticsTeacherPage />, { wrapper });
+    // Badge cible extrapolée visible (hero).
+    expect(screen.getAllByText(/Cible extrapolée/i).length).toBeGreaterThanOrEqual(1);
+    // Onglet Modèles : mention détaillée.
+    screen.getByText('Modèles').click();
+    expect(
+      screen.getAllByText(/Cible extrapolée — validation démonstration/i).length,
+    ).toBeGreaterThanOrEqual(1);
+  });
+
+  it('gouvernance 7.6 (test_no_probability_wording_in_frontend) : l indice de risque n est jamais libellé « probabilité »', () => {
+    setup();
+    mocks.useTeacherRisk.mockReturnValue({
+      isLoading: false,
+      data: {
+        enseignant_id: 'T1',
+        enseignant_nom: 'Nom Test',
+        score: 0.9,
+        score_percent: 90,
+        niveau: 'CRITIQUE',
+        level_label: 'Critique',
+        facteurs: [],
+        tendance: 'STABLE',
+        precedent_score: null,
+        computed_at: new Date().toISOString(),
+        model_mode: 'PRODUCTION_ML',
+        model_version: 'v1.0.0',
+      },
+    });
+    const { container } = render(<AnalyticsTeacherPage />, { wrapper });
+    // L'indice est affiché avec son étiquette honnête.
+    expect(screen.getAllByText(/non calibré/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Indice de risque/i).length).toBeGreaterThanOrEqual(1);
+    // Aucun libellé « probabilité » attaché à l'indice de risque dans le DOM rendu.
+    const html = container.innerHTML.toLowerCase();
+    expect(html).not.toContain('probabilité de risque');
+    expect(html).not.toContain('probabilite de risque');
+    expect(html).not.toContain('probability of risk');
   });
 });

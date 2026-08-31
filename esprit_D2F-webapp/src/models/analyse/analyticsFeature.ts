@@ -21,7 +21,7 @@ export type SeveriteAlerte = 'INFO' | 'WARNING' | 'CRITICAL';
 export type StatutAlerte = 'NOUVELLE' | 'LUE' | 'TRAITEE' | 'IGNOREE' | 'ESCALADEE';
 
 // ── Modes d'exécution du modèle (backend app/core/ml_status.py) ──
-export type ModelMode = 'PRODUCTION_ML' | 'DEMO_ML' | 'HEURISTIC_FALLBACK' | 'ML';
+export type ModelMode = 'PRODUCTION_ML' | 'DEMO_ML' | 'HEURISTIC_FALLBACK' | 'ML' | 'HEURISTIC';
 
 // ── Facteurs du score de risque (explicable) ───────────────
 export interface RiskFactor {
@@ -88,11 +88,48 @@ export interface RiskScore {
   model_name?: string | null;
   /** Algorithme du modèle (ex : `Gradient Boosting temporel`), fourni par l'API. */
   model_algorithm?: string | null;
+  /** Validité de la cible prédictive (EXTRAPOLATED_TARGET | REAL_VALIDATED_TARGET | OBSERVED_IN_SIMULATION). */
+  target_validity?: string | null;
+  validation_scope?: string | null;
+  data_origin?: string | null;
+  /** Type de score : WEIGHTED_HEURISTIC_INDEX (indice pondéré, pas une probabilité). */
+  score_type?: string | null;
+  /** Statut de calibration de l'indice : NOT_CALIBRATED tant qu'aucune étude n'est faite. */
+  calibration_status?: string | null;
   /** Vrai si la somme des contributions a été plafonnée à 1.0. */
   is_capped?: boolean;
   /** Somme brute des contributions avant plafonnement (peut dépasser 1.0). */
   uncapped_score?: number;
+  /** Moteur ayant RÉELLEMENT servi le score : 'ML' (modèle calibré) | 'HEURISTIC' (repli fail-closed). */
+  mode?: 'ML' | 'HEURISTIC';
+  /** Classe de risque prédite par le modèle (LOW | MEDIUM | HIGH | CRITICAL). */
+  risk_class?: string | null;
+  /** Probabilité calibrée de la classe prédite (0..1) — modèle ML uniquement. */
+  probability_calibrated?: number | null;
+  /** Probabilités calibrées par classe (somme = 1) — modèle ML uniquement. */
+  probabilities?: Record<string, number> | null;
+  /** Top contributions du modèle (SHAP / méthode étiquetée) — modèle ML uniquement. */
+  contributions?: RiskContribution[] | null;
+  /** Méthode d'explication (shap.TreeExplainer, logistic_coefficients...). */
+  explanation_method?: string | null;
+  /** Raison explicite du repli heuristique (fail-closed) — mode HEURISTIC uniquement. */
+  fallback_reason?: string | null;
+  /** Décomposition heuristique de référence (0,50/0,12/0,40) conservée comme vue secondaire. */
+  heuristic_reference?: {
+    description?: string;
+    weights?: Record<string, number>;
+    factors?: RiskFactor[];
+  } | null;
 }
+
+/** Contribution individuelle du modèle de risque (top-k SHAP ou proxy étiqueté). */
+export interface RiskContribution {
+  feature: string;
+  value: number;
+  impact: number;
+  method: string;
+}
+
 
 // ── Analyse contextuelle par spécialité/UP/département (scope-analysis) ──
 export interface TeacherContextInfo {
@@ -213,7 +250,12 @@ export interface RiskHistoryPoint {
   score: number; // 0..1
   niveau: NiveauRisque;
   tendance: string;
+  /** Classe de risque servie (mode ML) — optionnel. */
+  risk_class?: string | null;
+  /** Probabilité calibrée (mode ML) — optionnel. */
+  probability_calibrated?: number | null;
 }
+
 
 export interface RiskHistoryResponse {
   enseignant_id: string;
@@ -266,7 +308,21 @@ export interface GapsResponse {
     synthetic_share_pct?: number;
     total_rows?: number;
     real_rows?: number;
+    target_validity?: string | null;
+    target_validity_label?: string | null;
+    data_origin?: string | null;
+    validation_scope?: string | null;
+    /** Avertissement de proximité des bornes d'entraînement (limite 4.2). */
+    near_boundary_warning?: {
+      code: string;
+      message: string;
+      features: string[];
+    } | null;
   };
+  /** Validité de la cible prédictive (EXTRAPOLATED_TARGET | REAL_VALIDATED_TARGET | OBSERVED_IN_SIMULATION). */
+  target_validity?: string | null;
+  validation_scope?: string | null;
+  data_origin?: string | null;
 }
 
 // ── Recommandations ────────────────────────────────────────

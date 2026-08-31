@@ -23,6 +23,7 @@ from app.core.config import Settings
 from app.domain.services.need_detector import TeacherScope
 from app.infrastructure.db.database import Database
 from app.infrastructure.messaging.event_handlers import build_event_handlers
+from app.infrastructure.ml.ml_observability import ml_observability
 from app.infrastructure.ml.predictor import ArtifactModelPort
 from app.infrastructure.repositories.analyse.alert_repository import SqlAlertRepository
 from app.infrastructure.repositories.analyse.analysis_repository import SqlAnalysisRepository
@@ -109,6 +110,9 @@ class Container:
 
     def connect(self) -> None:
         self.database.connect()
+        # GOUVERNANCE 7.6 (limite 4) : persistance best-effort du journal de
+        # serving ML dans analyse.ml_observability (fail-safe mémoire).
+        ml_observability.attach_db_sink(self.database)
 
     def dispose(self) -> None:
         self.database.dispose()

@@ -2,7 +2,16 @@
   "lignes_totales": 172,
   "lignes_avec_cible": 0,
   "lignes_sans_cible": 172,
+  "real_future_observation_count": 0,
+  "extrapolated_count": 172,
+  "distinct_observation_months": 0,
+  "promotion_policy": {
+    "required_target_validity": "REAL_VALIDATED_TARGET",
+    "min_real_future_observations": 30,
+    "min_distinct_observation_months": 3,
+    "current_eligible": false
+  },
   "periodes_utilisables": "aucune — aucune observation de niveau future réelle à ref_month+3 mois",
   "periodes_insuffisantes": "toute la période — chaque paire (enseignant, competence) n'a qu'UNE seule observation de niveau",
-  "explication": "La base ne contient qu'une seule ligne par paire (enseignant, savoir) dans competence.enseignant_competences (0 paire dupliquée). Aucune observation de niveau n'existe à ref_month + 3 mois pour quelconque observation : la cible gap_next_3m observée est donc incalculable. Le corpus actuel v1.0.0/v1.1.0 a calculé cette cible par extrapolation de tendance (cur_t + rolling), ce qui est interdit."
+  "explication": "La base ne contient qu'une seule ligne par paire (enseignant, savoir) dans competence.enseignant_competences (0 paire dupliquée). Aucune observation de niveau n'existe à ref_month + 3 mois pour quelconque observation : la cible gap_next_3m observée est donc incalculable. Le corpus actuel v1.0.0/v1.1.0 a calculé cette cible par extrapolation de tendance (cur_t + rolling), ce qui est interdit. Gouvernance 7.6 : la version active expose target_validity=EXTRAPOLATED_TARGET ; la promotion REAL_VALIDATED_TARGET exige >= 30 observations futures réelles couvrant >= 3 mois distincts (instrumentation livrée : colonnes target_observation_date / is_extrapolated + snapshots mensuels niveau_snapshot)."
 }

@@ -264,30 +264,36 @@ function mapFactorNom(feature: string): string {
   return FACTOR_LABELS[feature] ?? feature;
 }
 
+type BackendRiskFactorItem = BackendRiskProfile['factors'][number];
+
+function mapHeuristicFactor(f: BackendRiskFactorItem): RiskFactor {
+  const isProba = /_proba$/i.test(f.code || f.feature);
+  const displayNom = f.label?.trim() ? f.label : mapFactorNom(f.code || f.feature);
+  return {
+    nom: displayNom,
+    code: f.code ?? f.feature,
+    valeur_brute: f.raw_value ?? f.value ?? 0,
+    valeur_normalisee: clamp01(f.normalized_value ?? 0),
+    poids: f.weight ?? 0,
+    contribution: clamp01(f.contribution ?? 0),
+    contribution_percent: Math.round(
+      Math.max(0, Math.min(100, f.contribution_percent ?? (f.contribution ?? 0) * 100)),
+    ),
+    explication: `${displayNom} (valeur ${formatRaw(f.raw_value ?? 0)}, normalisée ${clamp01(
+      f.normalized_value ?? 0,
+    ).toFixed(2)})`,
+    categorie: isProba ? 'PROBABILITE_ML' : 'FACTEUR',
+    scope: f.scope ?? '',
+    scope_type: f.scope_type ?? '',
+    scope_id: f.scope_id ?? null,
+    scope_label: f.scope_label ?? null,
+  };
+}
+
+
 function mapRiskProfile(raw: BackendRiskProfile): RiskScore {
-  const facteurs: RiskFactor[] = (raw.factors ?? []).map((f) => {
-    const isProba = /_proba$/i.test(f.code || f.feature);
-    const displayNom = f.label?.trim() ? f.label : mapFactorNom(f.code || f.feature);
-    return {
-      nom: displayNom,
-      code: f.code ?? f.feature,
-      valeur_brute: f.raw_value ?? f.value ?? 0,
-      valeur_normalisee: clamp01(f.normalized_value ?? 0),
-      poids: f.weight ?? 0,
-      contribution: clamp01(f.contribution ?? 0),
-      contribution_percent: Math.round(
-        Math.max(0, Math.min(100, f.contribution_percent ?? (f.contribution ?? 0) * 100)),
-      ),
-      explication: `${displayNom} (valeur ${formatRaw(f.raw_value ?? 0)}, normalisée ${clamp01(
-        f.normalized_value ?? 0,
-      ).toFixed(2)})`,
-      categorie: isProba ? 'PROBABILITE_ML' : 'FACTEUR',
-      scope: f.scope ?? '',
-      scope_type: f.scope_type ?? '',
-      scope_id: f.scope_id ?? null,
-      scope_label: f.scope_label ?? null,
-    };
-  });
+  const facteurs: RiskFactor[] = (raw.factors ?? []).map(mapHeuristicFactor);
+
   const level = raw.level ?? raw.risk_level;
   const niveau = mapRiskLevel(level);
   const score01 = clamp01(raw.score ?? (raw.risk_score ?? 0) / 100);
@@ -660,7 +666,19 @@ export const analyticsApi = {
             total_rows:
               typeof provenance.total_rows === 'number' ? provenance.total_rows : undefined,
             real_rows: typeof provenance.real_rows === 'number' ? provenance.real_rows : undefined,
+            target_validity: (m.target_validity as string) ?? null,
+            target_validity_label: (m.target_validity_label as string) ?? null,
+            data_origin: (m.data_origin as string) ?? null,
+            validation_scope: (m.validation_scope as string) ?? null,
+            near_boundary_warning: (m.near_boundary_warning as {
+              code: string;
+              message: string;
+              features: string[];
+            } | null) ?? null,
           },
+          target_validity: (m.target_validity as string) ?? null,
+          validation_scope: (m.validation_scope as string) ?? null,
+          data_origin: (m.data_origin as string) ?? null,
         };
       });
   },
@@ -745,12 +763,53 @@ export const analyticsApi = {
           model_version?: string | null;
           model_name?: string | null;
           model_algorithm?: string | null;
+          target_validity?: string | null;
+          validation_scope?: string | null;
+          data_origin?: string | null;
+        };
+        const data = (r.data.data ?? {}) as {
+          score_type?: string | null;
+          calibration_status?: string | null;
+          mode?: string | null;
+          risk_class?: string | null;
+          probability_calibrated?: number | null;
+          probabilities?: Record<string, number> | null;
+          contributions?: { feature: string; value: number; impact: number; method: string }[] | null;
+          explanation_method?: string | null;
+          fallback_reason?: string | null;
+          heuristic_reference?: {
+            description?: string;
+            weights?: Record<string, number>;
+            factors?: BackendRiskProfile['factors'];
+          } | null;
         };
         mapped.model_mode = mapModelMode(meta.model_mode);
         mapped.model_version = meta.model_version ?? null;
         mapped.model_name = meta.model_name ?? null;
         mapped.model_algorithm = (meta.model_algorithm ?? null) as string | null;
+        mapped.target_validity = meta.target_validity ?? null;
+        mapped.validation_scope = meta.validation_scope ?? null;
+        mapped.data_origin = meta.data_origin ?? null;
+        mapped.score_type = data.score_type ?? 'WEIGHTED_HEURISTIC_INDEX';
+        mapped.calibration_status = data.calibration_status ?? 'NOT_CALIBRATED';
+        // Mode reellement servi : ML (modele calibre) ou HEURISTIC (repli fail-closed).
+        mapped.mode = data.mode === 'ML' ? 'ML' : 'HEURISTIC';
+        mapped.data_source = mapped.mode === 'ML' ? 'ml_model' : 'heuristic';
+        mapped.risk_class = data.risk_class ?? null;
+        mapped.probability_calibrated = data.probability_calibrated ?? null;
+        mapped.probabilities = data.probabilities ?? null;
+        mapped.contributions = data.contributions ?? null;
+        mapped.explanation_method = data.explanation_method ?? null;
+        mapped.fallback_reason = data.fallback_reason ?? null;
+        mapped.heuristic_reference = data.heuristic_reference
+          ? {
+              description: data.heuristic_reference.description,
+              weights: data.heuristic_reference.weights,
+              factors: (data.heuristic_reference.factors ?? []).map(mapHeuristicFactor),
+            }
+          : null;
         return mapped;
+
       });
   },
 

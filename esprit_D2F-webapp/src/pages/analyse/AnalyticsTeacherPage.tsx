@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Row, Col, Input, Spin, Empty, Alert, Tabs as AntTabs } from 'antd';
+import { Row, Col, Input, Spin, Empty, Alert, Collapse, Tabs as AntTabs } from 'antd';
 import {
   ReloadOutlined,
   ExperimentOutlined,
@@ -8,6 +8,7 @@ import {
   FallOutlined,
   AimOutlined,
   InfoCircleOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import {
   useAnalyzeTeacher,
@@ -22,8 +23,24 @@ import ModelBadge, { formatModelVersion } from '@/components/analytics/ModelBadg
 import RiskFactorRow from '@/components/analytics/RiskFactorRow';
 import TeacherScopePanel from '@/components/analytics/TeacherScopePanel';
 import { riskColor } from '@/utils/analytics/format';
-import type { ModelMode, RiskFactor } from '@/models/analyse/analyticsFeature';
+import type {
+  ModelMode,
+  RiskContribution,
+  RiskFactor,
+} from '@/models/analyse/analyticsFeature';
 import './analyticsTeacher.redesign.css';
+
+const RISK_CLASS_LABELS: Record<string, string> = {
+  LOW: 'FAIBLE',
+  MEDIUM: 'MODEREE',
+  HIGH: 'HAUTE',
+  CRITICAL: 'CRITIQUE',
+};
+
+function riskClassLabel(riskClass?: string | null): string {
+  if (!riskClass) return '—';
+  return RISK_CLASS_LABELS[riskClass.toUpperCase()] ?? riskClass;
+}
 
 const TREND_LABELS: Record<string, string> = {
   AMELIORATION: 'Amélioration',
@@ -101,8 +118,8 @@ export default function AnalyticsTeacherPage() {
             <h1 className="at-hero-title">
               {risk.data?.enseignant_nom || scope.data?.context?.nom_complet || enseignantId}
             </h1>
-            <p className="at-hero-sub">
-              Score de risque : <b>{pct}%</b> · {levelLabel}
+            <p className="at-hero-sub" title="Indice pondéré explicable (facteurs, caps, profil comportemental) — indice d'aide au classement, PAS une probabilité calibrée.">
+              Indice de risque : <b>{pct} / 100</b> (non calibré) · {levelLabel}
             </p>
             <span style={{ display: 'block', marginTop: 8 }}>
               <ModelBadge
@@ -110,6 +127,9 @@ export default function AnalyticsTeacherPage() {
                 modelVersion={risk.data?.model_version}
                 modelName={risk.data?.model_name}
                 modelAlgorithm={risk.data?.model_algorithm}
+                targetValidity={risk.data?.target_validity ?? gaps.data?.target_validity}
+                validationScope={risk.data?.validation_scope ?? gaps.data?.validation_scope}
+                dataOrigin={risk.data?.data_origin ?? gaps.data?.data_origin}
                 size="small"
               />
             </span>
@@ -183,20 +203,37 @@ export default function AnalyticsTeacherPage() {
                       }}
                     />
                   </svg>
-                  <div className="at-score-label">
+                  <div className="at-score-label" title="Indice de risque (non calibré) — pas une probabilité">
                     <div className="at-score-pct">
                       {pct}
-                      <span className="at-score-pct-sign">%</span>
+                      <span className="at-score-pct-sign">/100</span>
                     </div>
                   </div>
                 </div>
                 <div className="at-score-tag" style={{ color, borderColor: color }}>
                   {levelLabel}
                 </div>
-                <div className="at-score-meta">
+                <div
+                  className="at-score-meta"
+                  title={
+                    risk.data?.mode === 'ML'
+                      ? `Score servi par le modèle ML calibré : probabilité calibrée de la classe ${riskClassLabel(risk.data?.risk_class)} (validation sur données simulées). Décomposition : contributions du modèle (vue principale) + heuristique de référence (vue secondaire).`
+                      : 'Indice pondéré explicable : facteurs normalisés × poids (0,50 gaps critiques / 0,12 gaps haute urgence / 0,40 profondeur moyenne), plafonnement documenté, profil comportemental. Indice d\'aide au classement — PAS une probabilité calibrée.'
+                  }
+                >
+                  <div className="at-score-meta-row" style={{ fontSize: 11 }}>
+                    {risk.data?.mode === 'ML' ? (
+                      <>
+                        Probabilité calibrée {pct}% · classe{' '}
+                        <b>{riskClassLabel(risk.data?.risk_class)}</b> (modèle ML, validé sur données simulées)
+                      </>
+                    ) : (
+                      <>Indice de risque {pct} / 100 (non calibré)</>
+                    )}
+                  </div>
                   {risk.data?.precedent_score != null && (
                     <div className="at-score-meta-row">
-                      Précédent : <b>{Math.round(risk.data.precedent_score * 100)}%</b>
+                      Précédent : <b>{Math.round(risk.data.precedent_score * 100)}</b> / 100
                     </div>
                   )}
                   <div className="at-score-meta-row">
@@ -211,11 +248,32 @@ export default function AnalyticsTeacherPage() {
           </div>
         </Col>
         <Col xs={24} md={16}>
-          <FactorsPanel
-            facteurs={risk.data?.facteurs}
-            loading={risk.isLoading}
-            levelLabel={levelLabel}
-          />
+          {risk.data?.mode === 'ML' ? (
+            <RiskMLExplanationPanel
+              contributions={risk.data?.contributions}
+              explanationMethod={risk.data?.explanation_method}
+              probabilities={risk.data?.probabilities}
+              riskClass={risk.data?.risk_class}
+              heuristicReference={risk.data?.heuristic_reference}
+              levelLabel={levelLabel}
+              loading={risk.isLoading}
+            />
+          ) : (
+            <FactorsPanel
+              facteurs={risk.data?.facteurs}
+              loading={risk.isLoading}
+              levelLabel={levelLabel}
+            />
+          )}
+          {risk.data?.mode === 'HEURISTIC' && risk.data?.fallback_reason && (
+            <Alert
+              type="warning"
+              showIcon
+              style={{ marginTop: 8 }}
+              message="Score servi par l'heuristique (repli fail-closed)"
+              description={risk.data.fallback_reason}
+            />
+          )}
         </Col>
       </Row>
 
@@ -299,6 +357,15 @@ export default function AnalyticsTeacherPage() {
                       </button>
                     ))}
                   </div>
+                  {gaps.data?.model?.near_boundary_warning && (
+                    <Alert
+                      type="warning"
+                      showIcon
+                      style={{ marginBottom: 12 }}
+                      message="Proche des limites du domaine d'entraînement"
+                      description={`${gaps.data.model.near_boundary_warning.message} — la prédiction reste servie (avertissement non bloquant), mais la fiabilité est moindre aux bornes.`}
+                    />
+                  )}
                   <GapsTab
                     gaps={gaps}
                     onSelectCompetence={(g) => setCompetenceId(g.competence_id)}
@@ -371,14 +438,14 @@ function FactorsPanel({
             </div>
             Classifier ML
           </div>
-          {probas.map((f) => (
+              {probas.map((f) => (
             <div key={f.nom} className="at-factor-row">
               <div>
                 <div className="at-factor-name">
                   {f.nom}
                   <span
                     style={{ fontSize: 10, color: 'var(--at-ink3)', marginLeft: 6 }}
-                    title="Probabilité calculée par le classifier ML"
+                    title="Probabilité de classe estimée par le classifier ML (hors indice de risque)"
                   >
                     {' '}
                     ML
@@ -387,7 +454,7 @@ function FactorsPanel({
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div className="at-factor-contrib is-proba">
-                  {(f.valeur_brute * 100).toFixed(0)}% (prob.)
+                  {(f.valeur_brute * 100).toFixed(0)}% (classe ML)
                 </div>
               </div>
             </div>
@@ -398,8 +465,8 @@ function FactorsPanel({
             </div>
           )}
           <div style={{ fontSize: 11, color: 'var(--at-ink3)', marginTop: 8 }}>
-            Le niveau {levelLabel} provient du score métier pondéré. Le classifier ML estime
-            uniquement des probabilités de classes.
+            Le niveau {levelLabel} provient de l'indice métier pondéré (non calibré — pas une
+            probabilité). Le classifier ML estime uniquement des probabilités de classes.
           </div>
         </>
       )}
@@ -438,6 +505,12 @@ const MODEL_MODE_TEXTS: Record<string, { titre: string; detail: string; warn: bo
     detail: "L'analyse repose sur le modèle ML entraîné.",
     warn: false,
   },
+  HEURISTIC: {
+    titre: 'Heuristique (repli fail-closed)',
+    detail:
+      'Le modèle ML est indisponible ou non déployé — score servi par l\'heuristique 0,50/0,12/0,40 (raison dans fallback_reason).',
+    warn: true,
+  },
   HEURISTIC_FALLBACK: {
     titre: 'Analyse heuristique de secours — modèle ML indisponible',
     detail: 'Modèle ML indisponible — calcul effectué par le moteur heuristique expliqué.',
@@ -462,12 +535,62 @@ function ModelsInfoPanel({
   const algorithm = risk.data?.model_algorithm ?? null;
   const meta = MODEL_MODE_TEXTS[mode] ?? MODEL_MODE_TEXTS.HEURISTIC_FALLBACK;
   const model = gaps.data?.model;
+  const targetValidity = risk.data?.target_validity ?? model?.target_validity ?? null;
+  const validationScope = risk.data?.validation_scope ?? model?.validation_scope ?? null;
+  const dataOrigin = risk.data?.data_origin ?? model?.data_origin ?? null;
 
   // Affichage clair du modèle : Mode, Algorithme, Artefact, Version (depuis l'API).
   const detailRows: Array<[string, string]> = [
     ['Mode', mode],
     ['Algorithme', algorithm || 'Non disponible'],
   ];
+  if (targetValidity) {
+    detailRows.push([
+      'Validité de la cible',
+      targetValidity === 'EXTRAPOLATED_TARGET'
+        ? 'Cible extrapolée — validation démonstration'
+        : targetValidity === 'OBSERVED_IN_SIMULATION'
+          ? 'Cible observée en simulation — validation simulation'
+          : 'Cible validée par re-mesures réelles',
+    ]);
+  }
+  if (validationScope) {
+    detailRows.push([
+      'Portée de validation',
+      validationScope === 'SIMULATION_VALIDATED'
+        ? 'Validé sur données simulées'
+        : validationScope === 'REAL_VALIDATED'
+          ? 'Validé sur données réelles DSI'
+          : validationScope,
+    ]);
+  }
+  if (dataOrigin) {
+    detailRows.push([
+      'Origine des données',
+      dataOrigin === 'SIMULATED' ? 'Données simulées (seed 42)' : dataOrigin,
+    ]);
+  }
+  if (risk.data?.score_type) {
+    detailRows.push([
+      'Type de score',
+      risk.data?.mode === 'ML'
+        ? 'Probabilité calibrée par le modèle (isotonique sur CRITIQUE)'
+        : 'Indice pondéré explicable (non calibré)',
+    ]);
+  }
+  // Modèle de risque ML (étape ML actif) : moteur, classe, repli éventuel.
+  detailRows.push([
+    'Moteur de risque',
+    risk.data?.mode === 'ML'
+      ? `ML calibré — classe ${risk.data?.risk_class ?? '—'} (${Math.round((risk.data?.probability_calibrated ?? 0) * 100)}%)`
+      : 'Heuristique 0,50/0,12/0,40 (repli fail-closed)',
+  ]);
+  if (risk.data?.mode === 'HEURISTIC' && risk.data?.fallback_reason) {
+    detailRows.push(['Raison du repli', risk.data.fallback_reason]);
+  }
+  if (risk.data?.mode === 'ML' && risk.data?.explanation_method) {
+    detailRows.push(['Explicabilité', risk.data.explanation_method]);
+  }
   if (modelName && mode !== 'HEURISTIC_FALLBACK') {
     detailRows.push(['Artefact du modèle', modelName]);
   }
@@ -492,6 +615,12 @@ function ModelsInfoPanel({
   if (model?.fallback_reason) {
     detailRows.push(['Raison du fallback', model.fallback_reason]);
   }
+  if (model?.near_boundary_warning) {
+    detailRows.push([
+      'Proximité des bornes',
+      `${model.near_boundary_warning.message} (features : ${model.near_boundary_warning.features.join(', ')})`,
+    ]);
+  }
   return (
     <div style={{ padding: '6px 2px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -503,8 +632,45 @@ function ModelsInfoPanel({
           modelVersion={version}
           modelName={modelName}
           modelAlgorithm={algorithm}
+          targetValidity={targetValidity}
+          validationScope={validationScope}
+          dataOrigin={dataOrigin}
         />
       </div>
+      {targetValidity === 'EXTRAPOLATED_TARGET' && (
+        <div
+          style={{
+            marginTop: 10,
+            fontSize: 12,
+            color: 'var(--at-warning)',
+            padding: '6px 10px',
+            border: '1px solid var(--at-warning)',
+            borderRadius: 8,
+          }}
+        >
+          Cible extrapolée — validation démonstration : la cible gap_next_3m est dérivée de
+          l'historique (tendance glissante), aucune re-mesure future réelle n'est encore
+          disponible. Les métriques mesurent la qualité de l'extrapolation, pas une
+          performance prédictive observée.
+        </div>
+      )}
+      {(targetValidity === 'OBSERVED_IN_SIMULATION' || validationScope === 'SIMULATION_VALIDATED' || dataOrigin === 'SIMULATED') && (
+        <div
+          style={{
+            marginTop: 10,
+            fontSize: 12,
+            color: '#856404',
+            background: '#fff3cd',
+            padding: '8px 12px',
+            border: '1px solid #ffe69c',
+            borderRadius: 8,
+          }}
+        >
+          Validé sur données simulées — Pipeline et gouvernance validés de bout en bout sur
+          données simulées réalistes (générateur documenté, seed 42, backtest M+3, IC bootstrap,
+          calibration) ; déploiement réel conditionné à l’accès aux données DSI.
+        </div>
+      )}
       {detailRows.length > 0 && (
         <div
           style={{
@@ -534,6 +700,125 @@ function ModelsInfoPanel({
   );
 }
 
+/* ── Panneau d'explication du risque servi en ML (vue principale + heuristique) ── */
+function RiskMLExplanationPanel({
+  contributions,
+  explanationMethod,
+  probabilities,
+  riskClass,
+  heuristicReference,
+  levelLabel,
+  loading,
+}: Readonly<{
+  contributions?: RiskContribution[] | null;
+  explanationMethod?: string | null;
+  probabilities?: Record<string, number> | null;
+  riskClass?: string | null;
+  heuristicReference?: {
+    description?: string;
+    weights?: Record<string, number>;
+    factors?: RiskFactor[];
+  } | null;
+  levelLabel: string;
+  loading: boolean;
+}>) {
+  if (loading) {
+    return (
+      <div className="at-factors" style={{ display: 'grid', placeItems: 'center', minHeight: 200 }}>
+        <Spin />
+      </div>
+    );
+  }
+  if (!contributions?.length) {
+    return (
+      <div className="at-factors" style={{ display: 'grid', placeItems: 'center', minHeight: 200 }}>
+        <Empty description="Aucune contribution du modèle disponible" />
+      </div>
+    );
+  }
+  const maxImpact = Math.max(...contributions.map((c) => c.impact), 0.0001);
+  const probaEntries = Object.entries(probabilities ?? {}).sort((a, b) => b[1] - a[1]);
+  return (
+    <div className="at-factors">
+      <div className="at-factors-head">
+        <div className="at-icon">
+          <ThunderboltOutlined />
+        </div>
+        Contributions du modèle ML — classe {riskClassLabel(riskClass)} ({levelLabel})
+        {explanationMethod && (
+          <span style={{ fontSize: 10, color: 'var(--at-ink3)', marginLeft: 8 }}>
+            méthode : {explanationMethod} · validé sur données simulées
+          </span>
+        )}
+      </div>
+      {contributions.map((c) => (
+        <div key={c.feature} className="at-factor-row">
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div className="at-factor-name">{c.feature}</div>
+            <div
+              style={{
+                height: 6,
+                borderRadius: 3,
+                background: 'var(--at-bg3, #eee)',
+                marginTop: 4,
+              }}
+            >
+              <div
+                style={{
+                  width: `${Math.round((c.impact / maxImpact) * 100)}%`,
+                  height: '100%',
+                  borderRadius: 3,
+                  background: 'var(--at-brand, #1677ff)',
+                }}
+              />
+            </div>
+          </div>
+          <div style={{ textAlign: 'right', marginLeft: 12 }}>
+            <div style={{ fontWeight: 600 }}>{Math.round(c.impact * 100)}%</div>
+            <div style={{ fontSize: 10, color: 'var(--at-ink3)' }}>valeur : {c.value}</div>
+          </div>
+        </div>
+      ))}
+      {probaEntries.length > 0 && (
+        <div style={{ marginTop: 8, fontSize: 11, color: 'var(--at-ink3)' }}>
+          Probabilités calibrées :{' '}
+          {probaEntries.map(([cls, p]) => `${riskClassLabel(cls)} ${Math.round(p * 100)}%`).join(' · ')}
+        </div>
+      )}
+      {heuristicReference && (
+        <Collapse
+          size="small"
+          style={{ marginTop: 12 }}
+          items={[
+            {
+              key: 'heuristic-ref',
+              label: 'Décomposition heuristique de référence (0,50 / 0,12 / 0,40)',
+              children: (
+                <div>
+                  {heuristicReference.description && (
+                    <div style={{ fontSize: 11, color: 'var(--at-ink3)', marginBottom: 8 }}>
+                      {heuristicReference.description}
+                    </div>
+                  )}
+                  {(heuristicReference.factors ?? []).map((f) => (
+                    <RiskFactorRow key={f.code ?? f.nom} facteur={f} />
+                  ))}
+                  {heuristicReference.weights && (
+                    <div style={{ fontSize: 11, color: 'var(--at-ink3)', marginTop: 8 }}>
+                      Poids : {Object.entries(heuristicReference.weights).map(([k, v]) => `${k} ${v}`).join(' · ')}
+                    </div>
+                  )}
+                </div>
+              ),
+            },
+          ]}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ── Contenu onglet Gaps ──────────────────────────────────────── */
 /* ── Contenu onglet Gaps ──────────────────────────────────────── */
 function GapsTab({
   gaps,

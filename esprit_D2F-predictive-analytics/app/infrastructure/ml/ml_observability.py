@@ -1,18 +1,46 @@
-"""Observabilité du serving ML — compteurs, latence, raisons de fallback.
+"""Observabilité du serving ML — journal par appel, compteurs, latence, fallback.
 
-Ne logue jamais de données personnelles sensibles (identifiants enseignants
-exclus des métriques ; seuls des compteurs agrégés sont exposés).
+GOUVERNANCE 7.6 (limite 4) : chaque appel est journalisé avec l'identifiant
+enseignant, le mode effectif (PRODUCTION_ML / HEURISTIC_FALLBACK), la raison
+de repli et les features hors plage. Le journal est conservé en mémoire
+(fenêtre bornée) ET propagé vers la table ``analyse.ml_observability`` si une
+base est attachée. Aucune donnée personnelle sensible au-delà de l'identifiant
+enseignant (déjà présent dans les snapshots d'analyse) n'est journalisée.
 """
 from __future__ import annotations
 
 import time
-from collections import Counter
+from collections import Counter, deque
 from dataclasses import dataclass, field
+from datetime import date, datetime, timezone
 from threading import Lock
+from typing import Any
 
 from app.core.logging import get_logger
 
 logger = get_logger("ml_observability")
+
+MAX_CALL_LOG = 5000
+
+
+@dataclass
+class ServingCallRecord:
+    """Une ligne de journal par appel de serving."""
+
+    call_date: str
+    teacher_id: str | None
+    mode: str
+    fallback_reason: str | None
+    out_of_range_features: list[str]
+
+    def to_dict(self) -> dict:
+        return {
+            "call_date": self.call_date,
+            "teacher_id": self.teacher_id,
+            "mode": self.mode,
+            "fallback_reason": self.fallback_reason,
+            "out_of_range_features": self.out_of_range_features,
+        }
 
 
 @dataclass
@@ -61,12 +89,100 @@ class MlMetrics:
 
 
 class MlObservability:
-    """Registre thread-safe des métriques ML."""
+    """Registre thread-safe des métriques ML + journal par appel."""
 
     def __init__(self) -> None:
         self._metrics = MlMetrics()
         self._lock = Lock()
+        # Journal par appel (fenêtre bornée) — gouvernance 7.6 limite 4.
+        self._calls: deque[ServingCallRecord] = deque(maxlen=MAX_CALL_LOG)
+        # Sink optionnel vers analyse.ml_observability (posé au démarrage).
+        self._db_sink: Any | None = None
 
+    # ── Attachement du sink base (fail-safe : le journal reste en mémoire) ──
+    def attach_db_sink(self, database: Any) -> None:
+        """Attache une base de données pour persister chaque appel (best-effort)."""
+        self._db_sink = database
+
+    def _persist_call(self, record: ServingCallRecord) -> None:
+        if self._db_sink is None:
+            return
+        try:
+            from sqlalchemy import text
+
+            with self._db_sink.session() as session:
+                session.execute(
+                    text(
+                        'INSERT INTO "analyse".ml_observability '
+                        "(call_date, teacher_id, mode, fallback_reason, out_of_range_features) "
+                        "VALUES (:call_date, :teacher_id, :mode, :fallback_reason, :out_of_range_features)"
+                    ),
+                    {
+                        "call_date": record.call_date,
+                        "teacher_id": record.teacher_id,
+                        "mode": record.mode,
+                        "fallback_reason": record.fallback_reason,
+                        "out_of_range_features": (
+                            ", ".join(record.out_of_range_features)
+                            if record.out_of_range_features
+                            else None
+                        ),
+                    },
+                )
+        except Exception as exc:  # pragma: no cover - persistance best-effort
+            logger.warning("persistance ml_observability impossible (table absente ?)", error=str(exc))
+
+    # ── Enregistrement par appel (gouvernance 7.6, limite 4.1) ──
+    def record_serving_call(
+        self,
+        teacher_id: str | None,
+        mode: str,
+        fallback_reason: str | None = None,
+        out_of_range_features: list[str] | None = None,
+    ) -> None:
+        """Journalise UN appel : teacher_id, mode effectif, raison si repli,
+        features hors plage le cas échéant."""
+        record = ServingCallRecord(
+            call_date=date.today().isoformat(),
+            teacher_id=teacher_id,
+            mode=mode,
+            fallback_reason=fallback_reason,
+            out_of_range_features=list(out_of_range_features or []),
+        )
+        with self._lock:
+            self._calls.append(record)
+        logger.info(
+            "serving ml",
+            teacher_id=teacher_id,
+            mode=mode,
+            fallback_reason=fallback_reason,
+            out_of_range_features=record.out_of_range_features or None,
+        )
+        self._persist_call(record)
+
+    # ── Taux de fallback par jour (gouvernance 7.6, limite 4.1) ──
+    def fallback_rate_per_day(self, last_days: int = 30) -> list[dict]:
+        """Taux de fallback agrégé par jour (sur la fenêtre mémoire)."""
+        with self._lock:
+            calls = list(self._calls)
+        per_day: dict[str, Counter] = {}
+        for call in calls:
+            bucket = per_day.setdefault(call.call_date, Counter())
+            bucket["total"] += 1
+            if call.mode == "HEURISTIC_FALLBACK":
+                bucket["fallback"] += 1
+        days = sorted(per_day.keys())[-last_days:]
+        return [
+            {
+                "date": d,
+                "total_calls": per_day[d]["total"],
+                "fallback_calls": per_day[d]["fallback"],
+                "fallback_rate": round(per_day[d]["fallback"] / max(1, per_day[d]["total"]), 4),
+            }
+            for d in days
+        ]
+
+    # ── API historique (compteurs) ──
     def record_prediction(self, model_version: str | None, latency_ms: float, values: list[float]) -> None:
         with self._lock:
             self._metrics.predictions_count += 1
@@ -93,7 +209,26 @@ class MlObservability:
 
     def snapshot(self) -> dict:
         with self._lock:
-            return self._metrics.to_dict()
+            base = self._metrics.to_dict()
+            calls = list(self._calls)
+        fallback_today = date.today().isoformat()
+        today_calls = [c for c in calls if c.call_date == fallback_today]
+        base["daily_fallback_rate"] = {
+            "date": fallback_today,
+            "total_calls": len(today_calls),
+            "fallback_calls": sum(1 for c in today_calls if c.mode == "HEURISTIC_FALLBACK"),
+        }
+        base["daily_fallback_rate"]["fallback_rate"] = round(
+            base["daily_fallback_rate"]["fallback_calls"] / max(1, base["daily_fallback_rate"]["total_calls"]),
+            4,
+        )
+        return base
+
+    def recent_calls(self, limit: int = 100) -> list[dict]:
+        """Derniers appels journalisés (le plus récent d'abord)."""
+        with self._lock:
+            calls = list(self._calls)
+        return [c.to_dict() for c in reversed(calls[-limit:])]
 
 
 # Instance globale partagée par le service.

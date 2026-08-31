@@ -41,7 +41,7 @@ export default function AtRiskTeachersTable({
       },
       { title: 'UP', dataIndex: 'up', render: (v) => formatUP(v) || 'Non affecté' },
       {
-        title: 'Score de risque',
+        title: 'Indice de risque',
         dataIndex: 'score_risque',
         render: (v: number) => (
           <Progress

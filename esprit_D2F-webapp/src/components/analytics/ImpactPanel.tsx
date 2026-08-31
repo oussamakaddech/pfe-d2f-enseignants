@@ -246,7 +246,7 @@ export default function ImpactPanel({ enseignantId, gaps, recommendations }: Pro
             percent={Math.round(res.risk_reduction * 100)}
             status="active"
             strokeColor="#52c41a"
-            format={(p) => `−${p}% risque`}
+            format={(p) => `−${p} pts d'indice`}
           />
 
           <Table

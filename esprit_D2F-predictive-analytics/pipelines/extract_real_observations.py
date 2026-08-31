@@ -293,7 +293,12 @@ def extract_raw_corpus(engine) -> pd.DataFrame:
         ref_month = dates[-1]
 
         # --- Cible : observation réelle à ref_month + 3 mois ---
+        # GOUVERNANCE 7.6 (limite 1) : la ligne porte target_observation_date
+        # uniquement si une re-mesure REELLE existe dans la fenêtre cible ;
+        # is_extrapolated=true sinon (aucune cible n'est calculée dans ce cas).
         target = np.nan
+        target_observation_date = ""
+        is_extrapolated = True
         horizon = ref_month + pd.Timedelta(days=TARGET_HORIZON_DAYS)
         lo = horizon - pd.Timedelta(days=TARGET_WINDOW_DAYS)
         hi = horizon + pd.Timedelta(days=TARGET_WINDOW_DAYS)
@@ -302,6 +307,8 @@ def extract_raw_corpus(engine) -> pd.DataFrame:
         matching = [e for e in fut if lo <= e["date"] <= hi]
         if matching:
             target = float(max(0, required - matching[0]["niveau"]))
+            target_observation_date = matching[0]["date"].strftime("%Y-%m-%d")
+            is_extrapolated = False
 
         tr = teachers.get(tid)
         hist = levels[-4:] if n_savoirs >= 4 else ([levels[0]] * (4 - n_savoirs) + levels)
@@ -311,6 +318,8 @@ def extract_raw_corpus(engine) -> pd.DataFrame:
             "competence_id": cid,
             "ref_month": ref_month.strftime("%Y-%m-%d"),
             "date_t": ref_month.strftime("%Y-%m-%d"),
+            "target_observation_date": target_observation_date,
+            "is_extrapolated": is_extrapolated,
             "observed_result": cur_t,
             "knowledge_difficulty_level": required,
             "observed_at": ref_month.strftime("%Y-%m-%d"),
@@ -372,10 +381,28 @@ def main() -> int:
     )
 
     print("[5/5] Couverture de cible...")
+    # GOUVERNANCE 7.6 (limite 1) : comptage séparé des re-mesures futures
+    # réelles vs cibles extrapolées — jamais de fabrication pour franchir
+    # le seuil de promotion (30 observations réelles sur >= 3 mois distincts).
+    extrapolated_count = int(raw["is_extrapolated"].astype(bool).sum()) if "is_extrapolated" in raw.columns else n_total - n_target
+    real_future_count = n_total - extrapolated_count
+    distinct_obs_months = 0
+    if "target_observation_date" in raw.columns:
+        obs_dates = pd.to_datetime(raw.loc[~raw["is_extrapolated"].astype(bool) if "is_extrapolated" in raw.columns else slice(None), "target_observation_date"], errors="coerce").dropna()
+        distinct_obs_months = int(obs_dates.dt.to_period("M").nunique())
     coverage = {
         "lignes_totales": n_total,
         "lignes_avec_cible": n_target,
         "lignes_sans_cible": n_total - n_target,
+        "real_future_observation_count": real_future_count,
+        "extrapolated_count": extrapolated_count,
+        "distinct_observation_months": distinct_obs_months,
+        "promotion_policy": {
+            "required_target_validity": "REAL_VALIDATED_TARGET",
+            "min_real_future_observations": 30,
+            "min_distinct_observation_months": 3,
+            "current_eligible": bool(real_future_count >= 30 and distinct_obs_months >= 3),
+        },
         "periodes_utilisables": [] if n_target else "aucune — aucune observation de niveau future réelle à ref_month+3 mois",
         "periodes_insuffisantes": "toute la période — chaque paire (enseignant, competence) n'a qu'UNE seule observation de niveau",
         "explication": (

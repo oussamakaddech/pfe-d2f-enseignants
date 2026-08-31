@@ -5,6 +5,8 @@ from app.domain.entities.alert import Alert
 from app.domain.entities.competency import Competency, Savoir
 from app.domain.entities.recommendation import Recommendation
 from app.domain.entities.risk_profile import RiskProfile
+from app.domain.value_objects.enums import RiskLevel
+
 from app.domain.entities.skill_gap import SkillGap
 from app.domain.entities.teacher import Teacher
 from app.domain.entities.training_need import TrainingNeed
@@ -139,18 +141,34 @@ class FakeModelPort:
     def predict_risk(self, teacher_id: str) -> RiskProfile | None:
         return None
 
+    def predict_risk_serving(self, teacher_id: str) -> tuple[RiskProfile | None, dict | None, str | None]:
+        """Serving du risque : ML desactive dans le fake -> (None, raison),
+        le use case replie sur predict_risk puis l'heuristique comportementale."""
+        return None, None, "modele de risque indisponible (fake)"
+
+
+    def heuristic_risk_reference(self, teacher_id: str) -> RiskProfile:
+        return RiskProfile(teacher_id=teacher_id, risk_score=0.0, risk_level=RiskLevel.LOW, factors=())
+
+    def risk_ml_status(self) -> dict:
+        return {"risk_ml_active": False, "risk_fallback_reason": "modele de risque indisponible (fake)"}
+
     def status(self) -> dict:
         return {
             "name": "gap_predictor",
             "available": False,
             "version": None,
             "mode": "HEURISTIC_FALLBACK",
+
             "model_mode": "HEURISTIC_FALLBACK",
             "model_version": None,
             "artifact_name": "gap_predictor",
             "model_name": "gap_predictor",
             "fallback_reason": "faux port de test",
             "prediction_horizon": None,
+            "target_validity": None,
+            "data_origin": None,
+            "validation_scope": None,
             "provenance": {
                 "synthetic_share_pct": 0.0,
                 "dataset_version": "test",

@@ -330,5 +330,8 @@
     }
   },
   "decision": "accept",
+  "target_validity": "EXTRAPOLATED_TARGET",
+  "target_validity_note": "Cible gap_next_3m derivee de l'historique (tendance glissante). Aucune re-mesure future reelle (target_observation_date) n'existe dans le corpus : le RMSE mesure la qualite de l'extrapolation, pas une prediction observee. Promotion REAL_VALIDATED_TARGET conditionnee a >= 30 observations reelles sur >= 3 mois distincts.",
+  "real_future_observation_count": 0,
   "notes": "Pipeline reproductible : dataset provenancé, split temporel strict, seed 42, anti-fuite (knowledge_difficulty_level/gap_next_3m exclus), normalisation capturée sur train, sidecar SHA-256."
 }

@@ -1,4 +1,4 @@
-import { Card, Progress, Tag, Typography } from 'antd';
+import { Card, Progress, Tag, Tooltip, Typography } from 'antd';
 import { riskColor, riskLabel } from '@/utils/analytics/format';
 import type { RiskScore } from '@/models/analyse/analyticsFeature';
 
@@ -7,7 +7,13 @@ interface RiskScoreCardProps {
   readonly loading?: boolean;
 }
 
-/** Carte affichant le score de risque multi-facteurs et sa catégorie. */
+const INDEX_TOOLTIP =
+  'Indice de risque pondéré explicable : facteurs normalisés × poids ' +
+  '(gaps critiques, gaps de haute urgence, profondeur moyenne des gaps), ' +
+  'caps documentés et profil comportemental. Il s\'agit d\'un indice d\'aide ' +
+  'au classement, PAS d\'une probabilité calibrée.';
+
+/** Carte affichant l'indice de risque multi-facteurs (non calibré) et sa catégorie. */
 export default function RiskScoreCard({ risk, loading }: RiskScoreCardProps) {
   const score = risk?.score ?? 0;
   const level = risk?.niveau ?? 'FAIBLE';
@@ -16,17 +22,26 @@ export default function RiskScoreCard({ risk, loading }: RiskScoreCardProps) {
   const label = risk?.level_label ?? riskLabel(level);
 
   return (
-    <Card loading={loading} title="Score de risque" style={{ borderRadius: 12 }}>
+    <Card
+      loading={loading}
+      title="Indice de risque (non calibré)"
+      style={{ borderRadius: 12 }}
+    >
       <div style={{ textAlign: 'center' }}>
-        <Progress type="dashboard" percent={pct} strokeColor={color} format={() => `${pct}%`} />
+        <Tooltip title={INDEX_TOOLTIP}>
+          <Progress type="dashboard" percent={pct} strokeColor={color} format={() => `${pct}/100`} />
+        </Tooltip>
         <div style={{ marginTop: 8 }}>
           <Tag color={color} style={{ fontSize: 14, padding: '2px 12px' }}>
             {label}
           </Tag>
         </div>
+        <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+          Indice pondéré explicable — pas une probabilité
+        </Typography.Text>
         {risk?.precedent_score !== null && risk?.precedent_score !== undefined && (
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            Précédent : {Math.round(risk.precedent_score * 100)}% · Tendance : {risk.tendance}
+            Précédent : {Math.round(risk.precedent_score * 100)}/100 · Tendance : {risk.tendance}
           </Typography.Text>
         )}
       </div>
