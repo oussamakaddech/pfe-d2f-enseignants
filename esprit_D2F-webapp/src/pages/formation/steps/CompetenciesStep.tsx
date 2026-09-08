@@ -8,6 +8,7 @@ import {
 import type { CompetencyRow, NullableId } from '../hooks/useFormationWorkflow';
 
 export type SavoirItem = { id?: unknown; nom?: string; type?: string };
+export type SousCompetenceItem = { id?: unknown; nom?: string; code?: string };
 
 export type CompetenciesStepProps = {
   compDomaines: { id?: string | number | null; nom?: string }[];
@@ -18,6 +19,8 @@ export type CompetenciesStepProps = {
   }[];
   compRows: CompetencyRow[];
   savoirsByCompetence: Record<number, SavoirItem[]>;
+  sousCompetencesByCompetence: Record<number, SousCompetenceItem[]>;
+  savoirsBySousCompetence: Record<number, SavoirItem[]>;
   compSearch: string;
   setCompSearch: (v: string) => void;
   addCompRow: () => void;
@@ -27,7 +30,9 @@ export type CompetenciesStepProps = {
     val: number | string | null | undefined,
   ) => void;
   handleRowCompetencesChange: (idx: number, vals: NullableId[]) => void;
+  handleRowSousCompetencesChange: (idx: number, vals: NullableId[]) => void;
   handleRowSavoirsChange: (idx: number, vals: NullableId[]) => void;
+  getRowSousCompetenceOptions: (row: CompetencyRow) => SousCompetenceItem[];
   getRowSavoirOptions: (row: CompetencyRow) => SavoirItem[];
   getCompetenceOptions: (
     domaineId: number | string | null | undefined,
@@ -39,19 +44,25 @@ export default function CompetenciesStep({
   compCompetences,
   compRows,
   savoirsByCompetence,
+  sousCompetencesByCompetence,
+  savoirsBySousCompetence,
   compSearch,
   setCompSearch,
   addCompRow,
   removeCompRow,
   handleRowDomaineChange,
   handleRowCompetencesChange,
+  handleRowSousCompetencesChange,
   handleRowSavoirsChange,
+  getRowSousCompetenceOptions,
   getRowSavoirOptions,
   getCompetenceOptions,
 }: Readonly<CompetenciesStepProps>) {
   const totalLinks = compRows.reduce((acc, row) => {
     const comps = row.competenceIds.filter(Boolean).length;
+    const scs = row.sousCompetenceIds.filter(Boolean).length;
     const savs = row.savoirIds.filter(Boolean).length;
+    if (scs > 0) return acc + comps * scs * Math.max(savs, 1);
     return acc + comps * Math.max(savs, 1);
   }, 0);
 
@@ -147,6 +158,35 @@ export default function CompetenciesStep({
                         />
                       </div>
                       <div className="creation-field creation-comp-select">
+                        <label className="creation-field-label" htmlFor={`comp-scs-${idx}`}>
+                          Sous-compétence{row.sousCompetenceIds.length > 1 ? 's' : ''}
+                        </label>
+                        <Select
+                          id={`comp-scs-${idx}`}
+                          mode="multiple"
+                          showSearch
+                          allowClear
+                          size="large"
+                          style={{ width: '100%' }}
+                          value={row.sousCompetenceIds.filter(Boolean)}
+                          onChange={(vals) => handleRowSousCompetencesChange(idx, vals)}
+                          options={getRowSousCompetenceOptions(row).map((sc) => ({
+                            value: sc.id,
+                            label: `${sc.code ? sc.code + ' · ' : ''}${sc.nom}`,
+                          }))}
+                          optionFilterProp="label"
+                          placeholder="Choisir des sous-compétences…"
+                          disabled={row.competenceIds.length === 0}
+                          maxTagCount={2}
+                          notFoundContent={
+                            row.competenceIds.length === 0
+                              ? 'Choisissez d’abord des compétences'
+                              : 'Aucune sous-compétence trouvée'
+                          }
+                          aria-label={`Sous-compétences — ligne ${idx + 1}`}
+                        />
+                      </div>
+                      <div className="creation-field creation-comp-select">
                         <label className="creation-field-label" htmlFor={`comp-savoirs-${idx}`}>
                           Savoir{row.savoirIds.length > 1 ? 's' : ''}
                         </label>
@@ -165,11 +205,13 @@ export default function CompetenciesStep({
                           }))}
                           optionFilterProp="label"
                           placeholder="Choisir des savoirs…"
-                          disabled={row.competenceIds.length === 0}
+                          disabled={
+                            row.competenceIds.length === 0 && row.sousCompetenceIds.length === 0
+                          }
                           maxTagCount={2}
                           notFoundContent={
-                            row.competenceIds.length === 0
-                              ? 'Choisissez d’abord des compétences'
+                            row.competenceIds.length === 0 && row.sousCompetenceIds.length === 0
+                              ? 'Choisissez d’abord des compétences / sous-compétences'
                               : 'Aucun savoir trouvé'
                           }
                           aria-label={`Savoirs — ligne ${idx + 1}`}
@@ -200,15 +242,16 @@ export default function CompetenciesStep({
             </Button>
             {totalLinks > 0 && (
               <span className="creation-field-help" style={{ display: 'block', marginTop: 8 }}>
-                {totalLinks} liaison{totalLinks > 1 ? 's' : ''} compétence/savoir au total — chaque
-                savoir coché est rattaché aux compétences qui le possèdent.
+                {totalLinks} liaison{totalLinks > 1 ? 's' : ''} compétence/sous-compétence/savoir au
+                total — chaque savoir coché est rattaché aux compétences (et sous-compétences) qui
+                le possèdent.
               </span>
             )}
             <span className="creation-field-help" style={{ display: 'block', marginTop: 8 }}>
               Chaque ligne associe un <strong>Domaine</strong> → <strong>Compétence</strong> →{' '}
-              <strong>Savoir</strong> du référentiel RICE Esprit à cette formation. Vous pouvez
-              sélectionner <strong>plusieurs compétences</strong> et{' '}
-              <strong>plusieurs savoirs</strong> par ligne.
+              <strong>Sous-compétence</strong> → <strong>Savoir</strong> du référentiel RICE Esprit
+              à cette formation. Vous pouvez sélectionner <strong>plusieurs</strong> compétences,
+              sous-compétences et savoirs par ligne.
             </span>
           </>
         )}

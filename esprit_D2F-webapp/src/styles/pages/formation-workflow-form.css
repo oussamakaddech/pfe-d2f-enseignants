@@ -706,6 +706,7 @@
 
 .creation-competence-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: 12px;
   padding: 14px 16px;
@@ -743,8 +744,8 @@
 
 /* Colonne domaine (un peu plus étroite que les selects compétence/savoir) */
 .creation-comp-domain {
-  flex: 0 0 170px;
-  min-width: 150px;
+  flex: 0 0 150px;
+  min-width: 140px;
 }
 
 /* Bouton supprimer aligné avec les selects */

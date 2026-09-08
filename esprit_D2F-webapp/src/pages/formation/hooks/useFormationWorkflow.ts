@@ -80,9 +80,10 @@ export type BesoinLinkRaw = {
   domaineId?: number | null;
   competenceId?: number | null;
   competenceNom?: string;
+  sousCompetenceId?: number | null;
+  sousCompetenceNom?: string;
   savoirId?: number | null;
   savoirNom?: string;
-  sousCompetenceId?: number | null;
 };
 
 /**
@@ -94,6 +95,7 @@ export type CompetencyRow = {
   _id: string;
   domaineId: NullableId | null;
   competenceIds: NullableId[];
+  sousCompetenceIds: NullableId[];
   savoirIds: NullableId[];
 };
 
@@ -152,7 +154,7 @@ export type BesoinInfoShape = {
   priorite?: string;
 };
 
-/** Convertit des liens plats (1 compétence × 1 savoir) en lignes structurées. */
+/** Convertit des liens plats (1 compétence × 1 sous-compétence × 1 savoir) en lignes structurées. */
 export function linksToCompRows(links: BesoinLinkRaw[]): CompetencyRow[] {
   const byDomaine = new Map<string, CompetencyRow>();
   links.forEach((l) => {
@@ -162,6 +164,7 @@ export function linksToCompRows(links: BesoinLinkRaw[]): CompetencyRow[] {
         _id: crypto.randomUUID(),
         domaineId: l.domaineId ?? null,
         competenceIds: [],
+        sousCompetenceIds: [],
         savoirIds: [],
       });
     }
@@ -169,6 +172,13 @@ export function linksToCompRows(links: BesoinLinkRaw[]): CompetencyRow[] {
     const compId = Number(l.competenceId);
     if (l.competenceId != null && !row.competenceIds.some((c) => Number(c) === compId)) {
       row.competenceIds.push(compId);
+    }
+    const scId = Number(l.sousCompetenceId);
+    if (
+      l.sousCompetenceId != null &&
+      !row.sousCompetenceIds.some((sc) => Number(sc) === scId)
+    ) {
+      row.sousCompetenceIds.push(scId);
     }
     const savId = Number(l.savoirId);
     if (l.savoirId != null && !row.savoirIds.some((s) => Number(s) === savId)) {
@@ -587,6 +597,12 @@ export function useFormationWorkflow({
   const [savoirsByCompetence, setSavoirsByCompetence] = useState<
     Record<number, { id?: unknown; nom?: string; type?: string }[]>
   >({});
+  const [sousCompetencesByCompetence, setSousCompetencesByCompetence] = useState<
+    Record<number, { id?: unknown; nom?: string; code?: string }[]>
+  >({});
+  const [savoirsBySousCompetence, setSavoirsBySousCompetence] = useState<
+    Record<number, { id?: unknown; nom?: string; type?: string }[]>
+  >({});
   const [compSearch, setCompSearch] = useState('');
 
   const [seances, setSeances] = useState([
@@ -611,7 +627,10 @@ export function useFormationWorkflow({
   type FormationId = number | string | null;
   const [newFormationId, setNewFormationId] = useState<FormationId>(null);
 
-  const enseignantsList = Array.isArray(enseignants) ? enseignants : [];
+  const enseignantsList = useMemo(
+    () => (Array.isArray(enseignants) ? enseignants : []) as PersonItem[],
+    [enseignants],
+  );
 
   const optionsAnim = [...formateursList, ...manualAnimateurs].filter(
     (x) =>
@@ -847,14 +866,52 @@ export function useFormationWorkflow({
   const addCompRow = () =>
     setCompRows((prev) => [
       ...prev,
-      { _id: crypto.randomUUID(), domaineId: null, competenceIds: [], savoirIds: [] },
+      {
+        _id: crypto.randomUUID(),
+        domaineId: null,
+        competenceIds: [],
+        sousCompetenceIds: [],
+        savoirIds: [],
+      },
     ]);
 
   const removeCompRow = (idx: number) =>
     setCompRows((prev) => prev.filter((_, i) => i !== idx));
 
   const handleRowDomaineChange = (idx: number, val: number | string | null | undefined) =>
-    updateCompRow(idx, { domaineId: val ?? null, competenceIds: [], savoirIds: [] });
+    updateCompRow(idx, {
+      domaineId: val ?? null,
+      competenceIds: [],
+      sousCompetenceIds: [],
+      savoirIds: [],
+    });
+
+  /** Chargement cache : sous-compétences d'une compétence. */
+  const loadSousCompetencesForCompetence = useCallback(
+    async (competenceId: NullableId) => {
+      if (competenceId == null) return;
+      const cid = Number(competenceId);
+      if (sousCompetencesByCompetence[cid]) return;
+      const sc = await CompetenceService.sousCompetence.getByCompetence(cid);
+      setSousCompetencesByCompetence((prev) => ({
+        ...prev,
+        [cid]: Array.isArray(sc) ? sc : [],
+      }));
+    },
+    [sousCompetencesByCompetence],
+  );
+
+  /** Chargement cache : savoirs d'une sous-compétence. */
+  const loadSavoirsForSousCompetence = useCallback(
+    async (sousCompetenceId: NullableId) => {
+      if (sousCompetenceId == null) return;
+      const sid = Number(sousCompetenceId);
+      if (savoirsBySousCompetence[sid]) return;
+      const sv = await CompetenceService.savoir.getBySousCompetence(sid);
+      setSavoirsBySousCompetence((prev) => ({ ...prev, [sid]: Array.isArray(sv) ? sv : [] }));
+    },
+    [savoirsBySousCompetence],
+  );
 
   /** Charge les savoirs d'une compétence en cache (déclenché au besoin). */
   const loadSavoirsForCompetence = useCallback(
@@ -868,39 +925,90 @@ export function useFormationWorkflow({
     [savoirsByCompetence],
   );
 
-  // Charge les savoirs de toutes les compétences des lignes (même pré-remplies).
+  // Charge sous-compétences + savoirs de toutes les compétences des lignes
+  // (y compris pré-remplies) et savoirs des sous-compétences cochées.
   useEffect(() => {
+    const compIds = compRows.flatMap((r) => r.competenceIds).filter(Boolean);
+    compIds.forEach((cid) => {
+      void loadSousCompetencesForCompetence(cid).catch(() => {});
+      void loadSavoirsForCompetence(cid).catch(() => {});
+    });
     compRows
-      .flatMap((r) => r.competenceIds)
+      .flatMap((r) => r.sousCompetenceIds)
       .filter(Boolean)
-      .forEach((cid) => void loadSavoirsForCompetence(cid).catch(() => {}));
-  }, [compRows, loadSavoirsForCompetence]);
+      .forEach((sid) => void loadSavoirsForSousCompetence(sid).catch(() => {}));
+  }, [
+    compRows,
+    loadSousCompetencesForCompetence,
+    loadSavoirsForCompetence,
+    loadSavoirsForSousCompetence,
+  ]);
 
   const handleRowCompetencesChange = (idx: number, vals: NullableId[]) => {
-    updateCompRow(idx, { competenceIds: vals.filter(Boolean), savoirIds: [] });
-    vals.filter(Boolean).forEach((cid) => void loadSavoirsForCompetence(cid).catch(() => {}));
+    updateCompRow(idx, {
+      competenceIds: vals.filter(Boolean),
+      sousCompetenceIds: [],
+      savoirIds: [],
+    });
+    vals.filter(Boolean).forEach((cid) => {
+      void loadSousCompetencesForCompetence(cid).catch(() => {});
+      void loadSavoirsForCompetence(cid).catch(() => {});
+    });
+  };
+
+  const handleRowSousCompetencesChange = (idx: number, vals: NullableId[]) => {
+    updateCompRow(idx, { sousCompetenceIds: vals.filter(Boolean), savoirIds: [] });
+    vals.filter(Boolean).forEach((sid) => void loadSavoirsForSousCompetence(sid).catch(() => {}));
   };
 
   const handleRowSavoirsChange = (idx: number, vals: NullableId[]) =>
     updateCompRow(idx, { savoirIds: vals.filter(Boolean) });
 
-  /** Union (dédupliquée) des savoirs de toutes les compétences d'une ligne. */
-  const getRowSavoirOptions = (row: CompetencyRow) => {
-    const unique = new Map<string | number, { id?: unknown; nom?: string; type?: string }>();
+  /** Union (dédupliquée) des sous-compétences de toutes les compétences d'une ligne. */
+  const getRowSousCompetenceOptions = (row: CompetencyRow) => {
+    const unique = new Map<
+      string | number,
+      { id?: unknown; nom?: string; code?: string }
+    >();
     row.competenceIds
       .filter(Boolean)
       .forEach((cid) => {
-        (savoirsByCompetence[Number(cid)] || []).forEach((s) => {
-          if (s?.id != null) unique.set(String(s.id), s);
+        (sousCompetencesByCompetence[Number(cid)] || []).forEach((sc) => {
+          if (sc?.id != null) unique.set(String(sc.id), sc);
         });
       });
     return Array.from(unique.values());
   };
 
   /**
-   * Liens plats (1 compétence × 1 savoir) dérivés des lignes multi.
-   * Un savoir cochée n'est associé qu'aux compétences qui le possèdent ;
-   * une compétence sans savoir coché est émise seule (savoirId null).
+   * Union des savoirs d'une ligne.
+   * Si des sous-compétences sont cochées → savoirs de ces sous-compétences ;
+   * sinon → savoirs des compétences cochées.
+   */
+  const getRowSavoirOptions = (row: CompetencyRow) => {
+    const unique = new Map<string | number, { id?: unknown; nom?: string; type?: string }>();
+    const scIds = row.sousCompetenceIds.filter(Boolean);
+    if (scIds.length > 0) {
+      scIds.forEach((sid) => {
+        (savoirsBySousCompetence[Number(sid)] || []).forEach((s) => {
+          if (s?.id != null) unique.set(String(s.id), s);
+        });
+      });
+    } else {
+      row.competenceIds.filter(Boolean).forEach((cid) => {
+        (savoirsByCompetence[Number(cid)] || []).forEach((s) => {
+          if (s?.id != null) unique.set(String(s.id), s);
+        });
+      });
+    }
+    return Array.from(unique.values());
+  };
+
+  /**
+   * Liens plats (1 compétence × 1 sous-compétence × 1 savoir) dérivés des
+   * lignes multi. Les sous-compétences/savoirs cochés ne sont associés qu'aux
+   * compétences qui les possèdent ; une compétence sans sous-compétence/savoir
+   * coché est émise seule.
    */
   const selectedCompLinks = useMemo<BesoinLinkRaw[]>(() => {
     const links: BesoinLinkRaw[] = [];
@@ -911,22 +1019,69 @@ export function useFormationWorkflow({
           const comp = compCompetences.find((c) => Number(c.id) === Number(cid));
           const domainId = comp?.domaineId == null ? null : Number(comp.domaineId);
           const compName = comp?.nom || '';
-          const rowSavIds = row.savoirIds.filter(Boolean).map((s) => Number(s));
-          const compSavoirs = savoirsByCompetence[Number(cid)] || [];
-          const matchedSavoirs = rowSavIds.filter((sid) =>
-            compSavoirs.some((s) => Number(s.id) === sid),
+          const rowScIds = row.sousCompetenceIds.filter(Boolean).map((s) => Number(s));
+          const compScs = sousCompetencesByCompetence[Number(cid)] || [];
+          const matchedScs = rowScIds.filter((sid) =>
+            compScs.some((sc) => Number(sc.id) === sid),
           );
+          const rowSavIds = row.savoirIds.filter(Boolean).map((s) => Number(s));
+
+          // Scope des savoirs pour cette compétence : ses sous-compétences si
+          // cochées, sinon les savoirs directs de la compétence.
+          const scToSavoirIds = new Map<number, number[]>();
+          let savoirScope: { id?: unknown; nom?: string; type?: string }[] = [];
+          const uniqScope = new Map<string, { id?: unknown; nom?: string; type?: string }>();
+          if (matchedScs.length > 0) {
+            matchedScs.forEach((scId) => {
+              const scSavoirs = savoirsBySousCompetence[scId] || [];
+              scToSavoirIds.set(scId, scSavoirs.map((s) => Number(s.id)).filter(Boolean));
+              scSavoirs.forEach((s) => {
+                if (s?.id != null) uniqScope.set(String(s.id), s);
+              });
+            });
+            savoirScope = Array.from(uniqScope.values());
+          } else {
+            savoirScope = savoirsByCompetence[Number(cid)] || [];
+          }
+
+          const matchedSavoirs = rowSavIds.filter((sid) =>
+            savoirScope.some((s) => Number(s.id) === sid),
+          );
+
+          const subNom = (scId: number) =>
+            compScs.find((sc) => Number(sc.id) === scId)?.nom || '';
+
           if (matchedSavoirs.length > 0) {
             matchedSavoirs.forEach((sid) => {
-              const sv = compSavoirs.find((s) => Number(s.id) === sid);
+              // la sous-compétence qui possède ce savoir (première trouvée)
+              let ownerSc: number | null = null;
+              scToSavoirIds.forEach((sids, scId) => {
+                if (ownerSc == null && sids.includes(sid)) ownerSc = scId;
+              });
+              const sv = savoirScope.find((s) => Number(s.id) === sid);
               links.push({
                 _id: crypto.randomUUID(),
                 domaineId: domainId,
                 competenceId: Number(cid),
                 competenceNom: compName,
+                sousCompetenceId: ownerSc,
+                sousCompetenceNom: ownerSc == null ? '' : subNom(ownerSc),
                 savoirId: sid,
                 savoirNom: sv?.nom || '',
-                sousCompetenceId: null,
+              });
+            });
+          } else if (matchedScs.length > 0) {
+            // sous-compétences cochées mais aucun savoir coché pour celles-ci
+            matchedScs.forEach((scId) => {
+              links.push({
+                _id: crypto.randomUUID(),
+                domaineId: domainId,
+                competenceId: Number(cid),
+                competenceNom: compName,
+                sousCompetenceId: scId,
+                sousCompetenceNom: subNom(scId),
+                savoirId: null,
+                savoirNom: '',
               });
             });
           } else {
@@ -935,15 +1090,22 @@ export function useFormationWorkflow({
               domaineId: domainId,
               competenceId: Number(cid),
               competenceNom: compName,
+              sousCompetenceId: null,
+              sousCompetenceNom: '',
               savoirId: null,
               savoirNom: '',
-              sousCompetenceId: null,
             });
           }
         });
     });
     return links;
-  }, [compRows, compCompetences, savoirsByCompetence]);
+  }, [
+    compRows,
+    compCompetences,
+    savoirsByCompetence,
+    sousCompetencesByCompetence,
+    savoirsBySousCompetence,
+  ]);
 
   const getCompetenceOptions = (domaineId: number | string | null | undefined) => {
     const kw = compSearch.trim().toLowerCase();
@@ -1518,6 +1680,8 @@ export function useFormationWorkflow({
     compRows,
     setCompRows,
     savoirsByCompetence,
+    sousCompetencesByCompetence,
+    savoirsBySousCompetence,
     compSearch,
     setCompSearch,
     seances,
@@ -1536,7 +1700,9 @@ export function useFormationWorkflow({
     removeCompRow,
     handleRowDomaineChange,
     handleRowCompetencesChange,
+    handleRowSousCompetencesChange,
     handleRowSavoirsChange,
+    getRowSousCompetenceOptions,
     getRowSavoirOptions,
     getCompetenceOptions,
     getEnseignantLabel,
