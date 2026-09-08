@@ -741,6 +741,12 @@
   min-width: 140px;
 }
 
+/* Colonne domaine (un peu plus étroite que les selects compétence/savoir) */
+.creation-comp-domain {
+  flex: 0 0 170px;
+  min-width: 150px;
+}
+
 /* Bouton supprimer aligné avec les selects */
 .creation-comp-del-btn {
   flex-shrink: 0;

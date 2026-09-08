@@ -83,9 +83,12 @@ class RegistryEntry:
     # aujourd'hui — une promotion REAL_VALIDATED sans attestation est refusee.
     attestation_dsi: str | None = None
 
+    # Sérialise l'entrée du registre en dictionnaire (pour écriture JSON).
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
+    # Reconstruit une RegistryEntry depuis un dictionnaire JSON en ignorant
+    # les clés inconnues (compatibilité entre versions du registre).
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "RegistryEntry":
         known = {f.name for f in cls.__dataclass_fields__.values()}
@@ -96,10 +99,13 @@ class RegistryEntry:
 class ModelRegistry:
     """Persistance JSON du registre + mécanisme de promotion/rollback."""
 
+    # Initialise le registre : chemin du fichier JSON + dossier des artefacts.
     def __init__(self, registry_path: Path, models_dir: Path) -> None:
         self._registry_path = Path(registry_path)
         self._models_dir = Path(models_dir)
 
+    # Charge toutes les entrées du registre depuis le JSON
+    # (liste vide si fichier absent ou illisible).
     def _load(self) -> list[RegistryEntry]:
         if not self._registry_path.exists():
             return []
@@ -111,6 +117,7 @@ class ModelRegistry:
             return [RegistryEntry.from_dict(item) for item in data]
         return []
 
+    # Écrit toutes les entrées du registre dans le fichier JSON (indenté).
     def _save(self, entries: list[RegistryEntry]) -> None:
         payload = [entry.to_dict() for entry in entries]
         self._registry_path.parent.mkdir(parents=True, exist_ok=True)
@@ -119,15 +126,18 @@ class ModelRegistry:
             encoding="utf-8",
         )
 
+    # Renvoie toutes les entrées du registre.
     def entries(self) -> list[RegistryEntry]:
         return self._load()
 
+    # Recherche une entrée par sa version de modèle (None si absente).
     def get(self, model_version: str) -> RegistryEntry | None:
         for entry in self._load():
             if entry.model_version == model_version:
                 return entry
         return None
 
+    # Renvoie l'entrée actuellement ACTIVE (celle servie en production), sinon None.
     def active(self) -> RegistryEntry | None:
         entries = self._load()
         active_list = [e for e in entries if e.status == STATUS_ACTIVE]

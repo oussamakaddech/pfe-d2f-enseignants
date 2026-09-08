@@ -208,6 +208,17 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
 
     private List<String> getFormationRoles(String path, HttpMethod method) {
         if (path.contains("/kpi")) return NO_FORMATEUR;
+        // ── Documents de formation ────────────────────────────────────────────
+        // Parité avec AuthorizationMatrix.DOCUMENT_* : le RESPONSABLE_DOSSIER gère
+        // les documents (création/mise à jour/suppression) au même titre que ADMIN
+        // et CUP (cahier des charges, US#47). Les GET/DOWNLOAD restent FORMATION_READ.
+        if (path.contains("/documents")) {
+            if (method == HttpMethod.POST || method == HttpMethod.PUT
+                    || method == HttpMethod.PATCH || method == HttpMethod.DELETE) {
+                return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_RESPONSABLE_DOSSIER);
+            }
+            return ALL_ROLES;
+        }
         if (method == HttpMethod.DELETE) return ADMIN_ONLY;
         if (path.contains("/inscription/inscriptions") && method == HttpMethod.POST) return ALL_ROLES;
         // Présences d'une séance : marquage autorisé à l'animateur/formateur de la

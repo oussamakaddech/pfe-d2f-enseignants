@@ -93,6 +93,10 @@ def _cleanup_stale() -> None:
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Fixed-window rate limiter applied to configured path prefixes."""
 
+    # Middleware de limitation de débit : applique uniquement les chemins
+    # configurés (/rice/analyze, /rice/validate) ; compteur par IP en fenêtre
+    # fixe. Au-delà de la limite → 429 avec Retry-After ; sinon ajoute les
+    # en-têtes X-RateLimit-* à la réponse.
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
         path = request.url.path
 

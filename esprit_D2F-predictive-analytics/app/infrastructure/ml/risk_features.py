@@ -90,6 +90,8 @@ def gap_score_from_levels(required: float, observed: float) -> float:
     return float(min(1.0, max(0.0, required - observed) / 4.0))
 
 
+# Convertit un score de gap (0..1) en sévérité : >= 0.75 CRITICAL,
+# >= 0.50 HIGH, >= 0.25 MEDIUM, sinon LOW (mêmes seuils que l'heuristique).
 def severity_from_gap_score(score: float) -> str:
     if score >= SEUIL_GAP_CRITIQUE:
         return "CRITICAL"
@@ -114,6 +116,8 @@ def risk_score_from_gaps(scores: list[float]) -> float:
     )
 
 
+# Convertit un score de risque (0..1) en classe : >= 0.75 CRITICAL,
+# >= 0.50 HIGH, >= 0.30 MEDIUM, sinon LOW.
 def risk_class_from_score(score: float) -> str:
     if score >= 0.75:
         return "CRITICAL"
@@ -154,6 +158,10 @@ def build_training_frame(df: pd.DataFrame) -> pd.DataFrame:
         _gap_fut_score=score_fut,
     )
 
+    # Agrège les features de risque pour un groupe (enseignant × mois) :
+    # compte les gaps par sévérité, moyennes/max, tendance, indicateurs
+    # comportementaux (assiduité, formations, évaluations…) puis calcule la
+    # cible (classe de risque à t+3 observée) et la baseline à t.
     def _agg(g: pd.DataFrame) -> pd.Series:
         scores = g.loc[g["_is_gap"], "_gap_score_t"]
         prev_scores = g.loc[g["_is_gap"], "_gap_score_t1"]
@@ -163,6 +171,7 @@ def build_training_frame(df: pd.DataFrame) -> pd.DataFrame:
         n_med = int(((scores >= SEUIL_GAP_MOYENNE) & (scores < SEUIL_GAP_HAUTE)).sum())
         trend = float(np.mean(np.sign(scores.values - prev_scores.values))) if n_tot else 0.0
 
+        # Médiane numérique d'une colonne du groupe (0.0 si vide/non numérique).
         def _med(col: str) -> float:
             v = pd.to_numeric(g[col], errors="coerce").median()
             return float(v) if pd.notna(v) else 0.0
@@ -298,6 +307,8 @@ def features_to_vector(features: dict[str, float]) -> list[float]:
     return [float(features[c]) for c in RISK_FEATURES]
 
 
+# Extrait (note moyenne, nombre d'évaluations) d'une ligne d'évaluation,
+# avec valeurs par défaut sûres si la donnée est absente.
 def _safe_eval_row(row: Any) -> tuple[float, int]:
     if not row:
         return 0.0, 0
@@ -305,6 +316,8 @@ def _safe_eval_row(row: Any) -> tuple[float, int]:
     return avg, int(row["nb"] or 0)
 
 
+# Extrait (nombre de besoins exprimés, nombre approuvés) d'une ligne de besoins,
+# avec valeurs par défaut sûres si la donnée est absente.
 def _safe_needs_row(row: Any) -> tuple[int, int]:
     if not row:
         return 0, 0

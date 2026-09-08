@@ -42,9 +42,11 @@ if APP_ENV not in ("production", "prod"):
 class JWTAuthMiddleware(BaseHTTPMiddleware):
     """Middleware that validates JWT tokens on protected routes."""
 
+    # Middleware d'authentification : laisse passer si l'auth est désactivée
+    # (dev) ou si le chemin est public ; sinon lit le token (header Bearer ou
+    # cookie d2f_auth_token), le décode HS512 et expose sub/scope/email dans
+    # request.state. Token expiré/invalide → 401 avec enveloppe standard.
     async def dispatch(self, request: Request, call_next):
-        if not JWT_AUTH_ENABLED:
-            return await call_next(request)
 
         path = request.url.path
 

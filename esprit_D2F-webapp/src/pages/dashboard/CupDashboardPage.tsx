@@ -39,6 +39,7 @@ import { useAuth } from '@/hooks/auth/useAuth';
 import { useCupDashboard } from '@/hooks/dashboard/useCupDashboard';
 import FormationService from '@/services/formation/FormationService';
 import InscriptionService from '@/services/formation/InscriptionService';
+import { normalizeRole } from '@/utils/constants/roles';
 import type { Formation } from '@/models/formation';
 import { brand } from '@/styles/themes/tokens';
 import { Card } from '@/redesign/components/Section';
@@ -66,6 +67,13 @@ export default function CupDashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Les appels analytics prédictifs (overview, in-demand) sont réservés au
+  // pilotage (ADMIN/CUP/CHEF_DEPARTEMENT) côté gateway : on ne les déclenche
+  // pas pour RESPONSABLE_DOSSIER (évite les 403 en console sur /home).
+  const isPilotage = ['admin', 'cup', 'chefdepartement'].includes(
+    normalizeRole(user?.role),
+  );
+
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<PeriodKey>('annee');
   const [besoinSearch, setBesoinSearch] = useState('');
@@ -83,7 +91,7 @@ export default function CupDashboardPage() {
     formationsByDomaineLoading,
     formationsByCompetence,
     formationsByCompetenceLoading,
-  } = useCupDashboard();
+  } = useCupDashboard(isPilotage);
 
   // Formations à venir (données réelles, filtrées depuis le référentiel formations).
   const { data: formationsRaw, isLoading: formationsLoading } = useQuery({
@@ -319,19 +327,25 @@ export default function CupDashboardPage() {
       detail: { label: 'Détail complétion', onClick: () => scrollTo('cd-couverture') },
       spark: [pct(kpis.tauxReussiteGlobal)],
     },
-    {
-      id: 'couv',
-      label: 'Taux de couverture des compétences',
-      value: pct(kpis.couverture),
-      suffix: '%',
-      delta: deltaLabel,
-      up: deltaUp,
-      caption: kpis.couvertureDelta == null ? `${kpis.couverture ?? 0}% couverts` : undefined,
-      tone: 'blue' as const,
-      icon: <SafetyCertificateOutlined />,
-      detail: { label: 'Voir le référentiel', onClick: () => scrollTo('cd-couverture') },
-      spark: [pct(kpis.couverture)],
-    },
+    // Couverture (analytics prédictif) : réservé au pilotage.
+    ...(isPilotage
+      ? [
+          {
+            id: 'couv',
+            label: 'Taux de couverture des compétences',
+            value: pct(kpis.couverture),
+            suffix: '%',
+            delta: deltaLabel,
+            up: deltaUp,
+            caption:
+              kpis.couvertureDelta == null ? `${kpis.couverture ?? 0}% couverts` : undefined,
+            tone: 'blue' as const,
+            icon: <SafetyCertificateOutlined />,
+            detail: { label: 'Voir le référentiel', onClick: () => scrollTo('cd-couverture') },
+            spark: [pct(kpis.couverture)],
+          },
+        ]
+      : []),
   ];
 
   const prioColor = (v: string) => {
@@ -627,13 +641,14 @@ export default function CupDashboardPage() {
         </Card>
       </Section>
 
-      {/* ── Couverture et compétences ──────────────────────── */}
-      <Section
-        index={4}
-        id="cd-couverture"
-        title="Couverture et compétences"
-        subtitle="Niveau de couverture de l'UP et compétences à renforcer"
-      >
+      {/* ── Couverture et compétences (réservé au pilotage) ───── */}
+      {isPilotage && (
+        <Section
+          index={4}
+          id="cd-couverture"
+          title="Couverture et compétences"
+          subtitle="Niveau de couverture de l'UP et compétences à renforcer"
+        >
         <Card
           className="cd-span-5"
           title="Couverture globale"
@@ -689,28 +704,31 @@ export default function CupDashboardPage() {
             ))}
           </ol>
         </Card>
-      </Section>
+        </Section>
+      )}
 
-      {/* ── Analyse prédictive ─────────────────────────────── */}
-      <Section title="Analyse prédictive">
-        <Card className="cd-span-12" title={undefined}>
-          <Alert
-            type="info"
-            showIcon
-            message="Analyse prédictive détaillée"
-            description="Pour la liste nominative des enseignants à risque, l'historique des alertes et les recommandations IA, consultez l'Analyse Prédictive."
-            action={
-              <Button
-                type="primary"
-                size="small"
-                onClick={() => navigate('/home/AnalysePredictive')}
-              >
-                Ouvrir <RightOutlined />
-              </Button>
-            }
-          />
-        </Card>
-      </Section>
+      {/* ── Analyse prédictive (réservé au pilotage) ─────────── */}
+      {isPilotage && (
+        <Section title="Analyse prédictive">
+          <Card className="cd-span-12" title={undefined}>
+            <Alert
+              type="info"
+              showIcon
+              message="Analyse prédictive détaillée"
+              description="Pour la liste nominative des enseignants à risque, l'historique des alertes et les recommandations IA, consultez l'Analyse Prédictive."
+              action={
+                <Button
+                  type="primary"
+                  size="small"
+                  onClick={() => navigate('/home/AnalysePredictive')}
+                >
+                  Ouvrir <RightOutlined />
+                </Button>
+              }
+            />
+          </Card>
+        </Section>
+      )}
     </div>
   );
 }

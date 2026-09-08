@@ -34,10 +34,9 @@ HEURISTIC_WEIGHTS = {"critical_gaps": 0.50, "high_gaps": 0.12, "avg_gap_score": 
 class RiskMLResult:
     """Résultat d'une prédiction de risque ML servie."""
 
+    # Construit le résultat ML : classe de risque prédite, probabilités
+    # calibrées, contributions top-3 et métadonnées (version, origine, scope).
     def __init__(
-        self,
-        risk_class: str,
-        probabilities: dict[str, float],
         contributions: list[dict],
         explanation_method: str,
         model_version: str,
@@ -55,6 +54,8 @@ class RiskMLResult:
         self.validation_scope = validation_scope
         self.data_origin = data_origin
 
+    # Sérialise le résultat ML en payload JSON pour la réponse API
+    # (mode="ML", aucune fallback_reason car le ML a bien servi).
     def to_payload(self) -> dict[str, Any]:
         return {
             "mode": "ML",
@@ -74,6 +75,8 @@ class RiskMLResult:
 class RiskMLPredictor:
     """Port de serving du modele de risque (fail-closed vers l'heuristique)."""
 
+    # Initialise le port ML : chemin des modèles, artefact non chargé,
+    # compteurs de serving et des replis heuristiques (exposés dans /health).
     def __init__(self, models_dir: Path) -> None:
         self._models_dir = Path(models_dir)
         self._artifact: dict | None = None
@@ -85,14 +88,19 @@ class RiskMLPredictor:
         self.heuristic_fallback_count = 0
         self.fallback_reasons: list[str] = []
 
+    # Chemin de l'artefact du modèle de risque (joblib).
     @property
     def artifact_path(self) -> Path:
         return self._models_dir / "risk_predictor_simulation.joblib"
 
+    # Chemin des métadonnées d'entraînement du modèle de risque (JSON).
     @property
     def metadata_path(self) -> Path:
         return self._models_dir / "risk_training_metadata.json"
 
+    # Chargement fail-closed de l'artefact : refuse si fichier absent,
+    # intégrité non validée (SHA-256/HMAC) ou decision != "accept".
+    # En cas de refus, _load_error contient la raison du repli heuristique.
     def _load(self) -> None:
         self._load_attempted = True
         if not self.artifact_path.exists():
@@ -127,6 +135,8 @@ class RiskMLPredictor:
         self._metadata = metadata
         self._load_error = None
 
+    # État de serving du modèle de risque pour /health : actif ou non,
+    # version, décision, métriques (Brier, macro-F1) et compteurs fallback.
     def status(self) -> dict[str, Any]:
         if not self._load_attempted:
             self._load()
@@ -219,6 +229,8 @@ class RiskMLPredictor:
             self._record_fallback(reason)
             return None, reason
 
+    # Journalise un repli heuristique : garde les 50 dernières raisons en
+    # mémoire (diagnostic) et incrémente le compteur de fallback.
     def _record_fallback(self, reason: str) -> None:
         self.fallback_reasons.append(reason)
         if len(self.fallback_reasons) > 50:

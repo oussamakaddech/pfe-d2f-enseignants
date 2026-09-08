@@ -1,6 +1,13 @@
 import { Button, Input, Select } from 'antd';
-import { ReadOutlined, PlusOutlined, DeleteOutlined, FilterOutlined } from '@ant-design/icons';
-import type { BesoinLinkRaw } from '../hooks/useFormationWorkflow';
+import {
+  ReadOutlined,
+  PlusOutlined,
+  DeleteOutlined,
+  FilterOutlined,
+} from '@ant-design/icons';
+import type { CompetencyRow, NullableId } from '../hooks/useFormationWorkflow';
+
+export type SavoirItem = { id?: unknown; nom?: string; type?: string };
 
 export type CompetenciesStepProps = {
   compDomaines: { id?: string | number | null; nom?: string }[];
@@ -9,14 +16,19 @@ export type CompetenciesStepProps = {
     nom?: string;
     domaineId?: string | number | null;
   }[];
-  selectedCompLinks: BesoinLinkRaw[];
-  setSelectedCompLinks: (v: BesoinLinkRaw[]) => void;
-  rowSavoirs: Record<number, { id?: unknown; nom?: string; type?: string }[]>;
+  compRows: CompetencyRow[];
+  savoirsByCompetence: Record<number, SavoirItem[]>;
   compSearch: string;
   setCompSearch: (v: string) => void;
-  handleCompetenceSelect: (idx: number, val: number | string | null) => void;
-  handleSavoirSelect: (idx: number, val: number | null) => void;
-  handleRemoveCompetenceLink: (idx: number) => void;
+  addCompRow: () => void;
+  removeCompRow: (idx: number) => void;
+  handleRowDomaineChange: (
+    idx: number,
+    val: number | string | null | undefined,
+  ) => void;
+  handleRowCompetencesChange: (idx: number, vals: NullableId[]) => void;
+  handleRowSavoirsChange: (idx: number, vals: NullableId[]) => void;
+  getRowSavoirOptions: (row: CompetencyRow) => SavoirItem[];
   getCompetenceOptions: (
     domaineId: number | string | null | undefined,
   ) => { value: string | number | null | undefined; label: string | undefined }[];
@@ -25,16 +37,24 @@ export type CompetenciesStepProps = {
 export default function CompetenciesStep({
   compDomaines,
   compCompetences,
-  selectedCompLinks,
-  setSelectedCompLinks,
-  rowSavoirs,
+  compRows,
+  savoirsByCompetence,
   compSearch,
   setCompSearch,
-  handleCompetenceSelect,
-  handleSavoirSelect,
-  handleRemoveCompetenceLink,
+  addCompRow,
+  removeCompRow,
+  handleRowDomaineChange,
+  handleRowCompetencesChange,
+  handleRowSavoirsChange,
+  getRowSavoirOptions,
   getCompetenceOptions,
 }: Readonly<CompetenciesStepProps>) {
+  const totalLinks = compRows.reduce((acc, row) => {
+    const comps = row.competenceIds.filter(Boolean).length;
+    const savs = row.savoirIds.filter(Boolean).length;
+    return acc + comps * Math.max(savs, 1);
+  }, 0);
+
   return (
     <div>
       <div className="creation-section-box">
@@ -75,119 +95,123 @@ export default function CompetenciesStep({
                 </span>
               )}
             </div>
-            {selectedCompLinks.length === 0 ? (
-              <div className="creation-comp-empty">
-                <ReadOutlined aria-hidden="true" />
-                <span>
-                  Aucune compétence liée — cliquez sur &laquo;&nbsp;Ajouter&nbsp;&raquo; pour en
-                  associer une.
-                </span>
+            {compRows.length === 0 ? (
+              <div
+                className="creation-field-help"
+                style={{ display: 'block', marginTop: 4, fontStyle: 'italic' }}
+              >
+                Aucune compétence rattachée pour l'instant. Cliquez sur « Ajouter une compétence
+                RICE » pour commencer.
               </div>
             ) : (
-              <div className="creation-competence-card">
-                {selectedCompLinks.map((link, idx) => (
-                  <div key={link._id} className="creation-competence-row">
-                    <span className="creation-competence-num" aria-hidden="true">
-                      {idx + 1}
-                    </span>
-                    <div className="creation-field creation-comp-select">
-                      <label className="creation-field-label" htmlFor={`comp-domaine-${idx}`}>
-                        Domaine (filtre)
-                      </label>
-                      <Select
-                        id={`comp-domaine-${idx}`}
-                        showSearch
-                        allowClear
-                        size="large"
-                        style={{ width: '100%' }}
-                        value={link.domaineId}
-                        onChange={(val) => {
-                          const u = [...selectedCompLinks];
-                          u[idx] = {
-                            ...u[idx],
-                            domaineId: val ?? null,
-                            competenceId: null,
-                            savoirId: null,
-                          };
-                          setSelectedCompLinks(u);
-                        }}
-                        options={compDomaines.map((d) => ({ value: d.id, label: d.nom }))}
-                        optionFilterProp="label"
-                        placeholder="Filtrer par domaine…"
-                        aria-label={`Domaine — ligne ${idx + 1}`}
+              <div className="creation-comp-rows">
+                {compRows.map((row, idx) => {
+                  const rowSavoirs = getRowSavoirOptions(row);
+                  return (
+                    <div key={row._id || idx} className="creation-competence-row">
+                      <div className="creation-field creation-comp-domain">
+                        <label className="creation-field-label" htmlFor={`comp-domaine-${idx}`}>
+                          Domaine
+                        </label>
+                        <Select
+                          id={`comp-domaine-${idx}`}
+                          showSearch
+                          size="large"
+                          style={{ width: '100%' }}
+                          value={row.domaineId}
+                          onChange={(val) => handleRowDomaineChange(idx, val)}
+                          options={compDomaines.map((d) => ({ value: d.id, label: d.nom }))}
+                          optionFilterProp="label"
+                          placeholder="Filtrer par domaine…"
+                          aria-label={`Domaine — ligne ${idx + 1}`}
+                        />
+                      </div>
+                      <div className="creation-field creation-comp-select">
+                        <label className="creation-field-label" htmlFor={`comp-comps-${idx}`}>
+                          Compétence{row.competenceIds.length > 1 ? 's' : ''}
+                        </label>
+                        <Select
+                          id={`comp-comps-${idx}`}
+                          mode="multiple"
+                          showSearch
+                          allowClear
+                          size="large"
+                          style={{ width: '100%' }}
+                          value={row.competenceIds.filter(Boolean)}
+                          onChange={(vals) => handleRowCompetencesChange(idx, vals)}
+                          options={getCompetenceOptions(row.domaineId)}
+                          optionFilterProp="label"
+                          placeholder="Rechercher des compétences…"
+                          maxTagCount={2}
+                          aria-label={`Compétences — ligne ${idx + 1}`}
+                        />
+                      </div>
+                      <div className="creation-field creation-comp-select">
+                        <label className="creation-field-label" htmlFor={`comp-savoirs-${idx}`}>
+                          Savoir{row.savoirIds.length > 1 ? 's' : ''}
+                        </label>
+                        <Select
+                          id={`comp-savoirs-${idx}`}
+                          mode="multiple"
+                          showSearch
+                          allowClear
+                          size="large"
+                          style={{ width: '100%' }}
+                          value={row.savoirIds.filter(Boolean)}
+                          onChange={(vals) => handleRowSavoirsChange(idx, vals)}
+                          options={rowSavoirs.map((s) => ({
+                            value: s.id,
+                            label: `${s.nom} (${s.type})`,
+                          }))}
+                          optionFilterProp="label"
+                          placeholder="Choisir des savoirs…"
+                          disabled={row.competenceIds.length === 0}
+                          maxTagCount={2}
+                          notFoundContent={
+                            row.competenceIds.length === 0
+                              ? 'Choisissez d’abord des compétences'
+                              : 'Aucun savoir trouvé'
+                          }
+                          aria-label={`Savoirs — ligne ${idx + 1}`}
+                        />
+                      </div>
+                      <Button
+                        type="text"
+                        danger
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        onClick={() => removeCompRow(idx)}
+                        aria-label={`Supprimer la ligne ${idx + 1}`}
+                        className="creation-comp-del-btn"
                       />
                     </div>
-                    <div className="creation-field creation-comp-select">
-                      <label className="creation-field-label" htmlFor={`comp-comp-${idx}`}>
-                        Compétence
-                      </label>
-                      <Select
-                        id={`comp-comp-${idx}`}
-                        showSearch
-                        size="large"
-                        style={{ width: '100%' }}
-                        value={link.competenceId}
-                        onChange={(val) => handleCompetenceSelect(idx, val)}
-                        options={getCompetenceOptions(link.domaineId)}
-                        optionFilterProp="label"
-                        placeholder="Rechercher une compétence…"
-                        aria-label={`Compétence — ligne ${idx + 1}`}
-                      />
-                    </div>
-                    <div className="creation-field creation-comp-select">
-                      <label className="creation-field-label" htmlFor={`comp-savoir-${idx}`}>
-                        Savoir
-                      </label>
-                      <Select
-                        id={`comp-savoir-${idx}`}
-                        showSearch
-                        size="large"
-                        style={{ width: '100%' }}
-                        value={link.savoirId}
-                        onChange={(val) => handleSavoirSelect(idx, val)}
-                        options={(rowSavoirs[idx] || []).map((s) => ({
-                          value: s.id,
-                          label: `${s.nom} (${s.type})`,
-                        }))}
-                        optionFilterProp="label"
-                        placeholder="Choisir un savoir…"
-                        disabled={!link.competenceId}
-                        aria-label={`Savoir — ligne ${idx + 1}`}
-                      />
-                    </div>
-                    <Button
-                      type="text"
-                      danger
-                      size="small"
-                      icon={<DeleteOutlined />}
-                      onClick={() => handleRemoveCompetenceLink(idx)}
-                      aria-label={`Supprimer la ligne ${idx + 1}`}
-                      className="creation-comp-del-btn"
-                    />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
+          <Button
+              type="dashed"
+              onClick={addCompRow}
+              icon={<PlusOutlined />}
+              className="creation-btn-add-seance"
+              style={{ marginTop: 12, width: '100%' }}
+            >
+              Ajouter une compétence RICE
+            </Button>
+            {totalLinks > 0 && (
+              <span className="creation-field-help" style={{ display: 'block', marginTop: 8 }}>
+                {totalLinks} liaison{totalLinks > 1 ? 's' : ''} compétence/savoir au total — chaque
+                savoir coché est rattaché aux compétences qui le possèdent.
+              </span>
+            )}
+            <span className="creation-field-help" style={{ display: 'block', marginTop: 8 }}>
+              Chaque ligne associe un <strong>Domaine</strong> → <strong>Compétence</strong> →{' '}
+              <strong>Savoir</strong> du référentiel RICE Esprit à cette formation. Vous pouvez
+              sélectionner <strong>plusieurs compétences</strong> et{' '}
+              <strong>plusieurs savoirs</strong> par ligne.
+            </span>
           </>
         )}
-        <Button
-          type="dashed"
-          onClick={() =>
-            setSelectedCompLinks([
-              ...selectedCompLinks,
-              { _id: crypto.randomUUID(), domaineId: null, competenceId: null, savoirId: null },
-            ])
-          }
-          icon={<PlusOutlined />}
-          className="creation-btn-add-seance"
-          style={{ marginTop: 12, width: '100%' }}
-        >
-          Ajouter une compétence RICE
-        </Button>
-        <span className="creation-field-help" style={{ display: 'block', marginTop: 8 }}>
-          Chaque ligne associe un <strong>Domaine</strong> → <strong>Compétence</strong> →{' '}
-          <strong>Savoir</strong> du référentiel RICE Esprit à cette formation.
-        </span>
       </div>
     </div>
   );

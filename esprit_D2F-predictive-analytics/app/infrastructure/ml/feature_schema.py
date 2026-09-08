@@ -18,10 +18,12 @@ LEAK_COLUMNS = {"knowledge_difficulty_level", "required_level", "required_level_
 
 @dataclass
 class FeatureValidationResult:
+    # Résultat d'une validation de features : valide ou non + erreurs/warnings.
     valid: bool = False
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
+    # Enregistre une erreur bloquante et marque le résultat comme invalide.
     def fail(self, message: str) -> None:
         self.valid = False
         self.errors.append(message)

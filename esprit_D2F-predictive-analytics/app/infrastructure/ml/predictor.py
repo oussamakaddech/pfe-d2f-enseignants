@@ -43,6 +43,7 @@ from app.infrastructure.ml.feature_schema import (
     validate_feature_vector,
 )
 from app.infrastructure.ml.ml_observability import ml_observability
+from app.infrastructure.ml.skew_guard import SkewGuard
 from app.infrastructure.ml.model_registry import (
     APPROVAL_APPROVED,
     STATUS_ACTIVE,
@@ -253,7 +254,19 @@ class ArtifactModelPort:
 
         # Provenance calculee depuis les lignes du corpus reel a l'entrainement.
         self._provenance_report: DatasetProvenanceReport | None = None
+        self._corpus_path: Path | None = None
         self._load_provenance()
+
+        # Skew guard actif (test KS, p < seuil) : derive de distribution entre
+        # les features servies (fenetre glissante) et le corpus d'entrainement.
+        # p < seuil sur au moins une feature => repli heuristique fail-closed.
+        self._skew_guard = SkewGuard(
+            feature_names=TEMPORAL_FEATURE_COLS,
+            p_threshold=float(getattr(settings, "ml_skew_p_threshold", 0.01)),
+            window_size=int(getattr(settings, "ml_skew_window", 30)),
+            min_window=int(getattr(settings, "ml_skew_min_window", 10)),
+            enabled=bool(getattr(settings, "ml_skew_guard_enabled", True)),
+        )
 
         # Mode effectif : determine par les controles, jamais force par config.
         self._mode: str = HEURISTIC_FALLBACK
@@ -293,6 +306,8 @@ class ArtifactModelPort:
                         path=str(path),
                         errors=self._provenance_report.errors,
                     )
+                # Memoire du corpus resolu : sert de reference au skew guard KS.
+                self._corpus_path = path
                 return
         self._provenance_report = DatasetProvenanceReport()
         self._provenance_report.errors.append("aucun corpus d'entrainement trouve")
@@ -769,6 +784,7 @@ class ArtifactModelPort:
             "risk_engine": self._risk_engine,
             "risk_model": self.risk_status(),
             "risk_ml": self.risk_ml_status(),
+            "skew_guard": self._skew_guard.status(),
 
             "relevance_model": {
                 "name": "relevance_model",
@@ -865,6 +881,8 @@ class ArtifactModelPort:
                 path=str(self._artifact_path),
                 n_features=n_features_model,
             )
+            # Skew guard : capture de la reference d'entrainement (test KS).
+            self._load_skew_reference()
         except ArtifactIntegrityError as exc:
             logger.error("artefact ML refuse pour integrite non validee", error=str(exc))
             self._fallback_reason = f"integrite invalide : {exc}"
@@ -873,6 +891,86 @@ class ArtifactModelPort:
             logger.error("chargement modele ML impossible", error=str(exc))
             self._fallback_reason = f"chargement impossible : {exc}"
             self._model = None
+
+    def _load_skew_reference(self) -> None:
+        """Capture l'échantillon de référence du skew guard depuis le corpus.
+
+        Ordre de résolution : corpus résolu par la provenance, puis corpus de
+        simulation documenté (registre SIMULATED). Consultatif : un échec de
+        capture n'interdit PAS le serving, le statut honnête est exposé.
+        """
+        try:
+            import pandas as pd
+        except ImportError:  # pragma: no cover - pandas requis par le pipeline
+            logger.warning("skew guard : pandas indisponible — contrôle KS consultatif")
+            return
+        try:
+            candidates: list[Path] = []
+            if self._corpus_path is not None:
+                candidates.append(self._corpus_path)
+            base_dir = self._artifact_path.parent.parent
+            candidates.append(base_dir / "clean" / "simulation_dataset.csv")
+            sim_dir = base_dir / "simulation"
+            if sim_dir.exists():
+                candidates.extend(sorted(sim_dir.glob("simulation_dataset*.csv")))
+            path = next((p for p in candidates if p is not None and p.exists()), None)
+            if path is None:
+                logger.warning("skew guard : corpus de référence introuvable — contrôle KS consultatif")
+                return
+            df = _read_csv_safe(path)
+            if df is None or df.empty:
+                logger.warning("skew guard : corpus illisible — contrôle KS consultatif", path=str(path))
+                return
+            missing = [c for c in TEMPORAL_FEATURE_COLS if c not in df.columns]
+            if missing:
+                logger.warning(
+                    "skew guard : features absentes du corpus — contrôle KS consultatif",
+                    missing=missing,
+                    path=str(path),
+                )
+                return
+            M = (
+                df[TEMPORAL_FEATURE_COLS]
+                .apply(lambda s: pd.to_numeric(s, errors="coerce"))
+                .dropna()
+                .to_numpy(dtype=float)
+            )
+            rows = self._skew_guard.set_reference_from_matrix(M)
+            logger.info(
+                "skew guard : référence d'entraînement capturée (test KS armé)",
+                rows=rows,
+                corpus=str(path),
+            )
+        except Exception as exc:  # pragma: no cover - consultatif
+            logger.warning("skew guard : capture de référence impossible", error=str(exc))
+
+    def model_health(self) -> dict[str, Any]:
+        """Santé du modèle servi : métriques test (r2, mae, rmse) + skew guard KS.
+
+        Exposé via ``GET /api/v1/analytics/model-health`` pour le suivi de
+        dérive documenté (gouvernance MLOps, observabilité des modèles).
+        """
+        mode = self._effective_mode()
+        meta = self._metadata or {}
+        metrics = meta.get("metrics") or {}
+        entry = self._registry.active()
+        skew = self._skew_guard.last_verdict
+        return {
+            "mode": mode,
+            "model_name": meta.get("model_name") or (entry.model_name if entry else None),
+            "model_version": entry.model_version if entry else None,
+            "r2": metrics.get("test_r2"),
+            "mae": metrics.get("test_mae"),
+            "rmse": metrics.get("test_rmse"),
+            "skew_detected": bool(skew.skew_detected),
+            "skew_features": list(skew.features),
+            "skew_checked": bool(skew.checked),
+            "skew_p_threshold": self._skew_guard.p_threshold,
+            "skew_window_rows": skew.window_rows,
+            "skew_reason": skew.reason,
+            "fallback_reason": self._fallback_reason,
+            "skew_guard": self._skew_guard.status(),
+        }
 
     def _widened_ranges_error(self) -> str | None:
         """Erreur si les plages de l'artefact chargé dépassent celles de la
@@ -1207,6 +1305,20 @@ class ArtifactModelPort:
         vector_error = self._serving_vector_error(X, teacher_id)
         if vector_error:
             self._fallback_reason = vector_error
+            return None
+        # Skew guard actif (test KS, p < seuil) : accumulation des features
+        # servies puis contrôle de dérive contre la référence d'entraînement.
+        # Dérive détectée => repli heuristique fail-closed avec raison tracée.
+        self._skew_guard.record_serving(X)
+        skew = self._skew_guard.evaluate()
+        if skew.skew_detected:
+            self._fallback_reason = skew.reason
+            logger.warning(
+                "skew guard KS : dérive de distribution — fallback heuristique",
+                features=skew.features,
+                min_p_value=skew.min_p_value,
+                teacher_id=teacher_id,
+            )
             return None
         synthetic_error = self._declared_synthetic_share_error()
         if synthetic_error:

@@ -105,6 +105,14 @@ class Settings(BaseSettings):
     ml_registry_path: str = "model_registry.json"
     ml_feature_schema_path: str = "feature_schema.json"
 
+    # Skew guard actif : test KS (deux échantillons) entre les features servies
+    # (fenêtre glissante) et le corpus d'entraînement. p < seuil sur au moins
+    # une feature => dérive de distribution => repli heuristique fail-closed.
+    ml_skew_guard_enabled: bool = True
+    ml_skew_p_threshold: float = 0.01
+    ml_skew_window: int = 30
+    ml_skew_min_window: int = 10
+
     analysis_cache_ttl_hours: int = 24
 
     need_detection_threshold: float = 0.5

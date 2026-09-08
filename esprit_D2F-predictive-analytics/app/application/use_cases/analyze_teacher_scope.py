@@ -61,6 +61,8 @@ class AnalyzeTeacherScope:
       compétences vide), jamais de fallback silencieux sur le global.
     """
 
+    # Injecte les dépendances : source des compétences, use case de
+    # recommandation, configuration et bornes (recos par gap, max de gaps traités).
     def __init__(
         self,
         competency_source: CompetencySource,
@@ -75,6 +77,8 @@ class AnalyzeTeacherScope:
         self._recommendations_per_gap = recommendations_per_gap
         self._max_gaps_for_recommendations = max_gaps_for_recommendations
 
+    # Construit le libellé affichable d'un périmètre, ex. "Département GC".
+    # Évite de doubler le préfixe si le libellé commence déjà par celui-ci.
     @staticmethod
     def _scope_label(prefix: str, libelle: str | None, fallback: str | None) -> str:
         value = (libelle or fallback or "").strip()
@@ -85,6 +89,8 @@ class AnalyzeTeacherScope:
             return value
         return f"{prefix} {value}"
 
+    # Détermine le périmètre d'analyse de l'enseignant : DEPARTMENT si un
+    # département est connu, sinon UP, sinon GLOBAL (seulement sans rattachement).
     @staticmethod
     def _scope_info(teacher: Teacher) -> ScopeInfo:
         if teacher.dept_id:
@@ -96,6 +102,10 @@ class AnalyzeTeacherScope:
             return ScopeInfo(type="UP", is_global=False, label=label)
         return ScopeInfo(type="GLOBAL", is_global=True, label="Périmètre global")
 
+    # Analyse complète du périmètre d'un enseignant : récupère les compétences
+    # de son périmètre (spécialité/UP/département), calcule les gaps pour
+    # chacune, les trie par score décroissant et associe des recommandations
+    # de formations aux gaps les plus critiques.
     def execute(self, teacher: Teacher) -> TeacherScopeAnalysis:
         all_competencies = self._competency_source.list_competencies()
         scoped_competencies = self._competency_source.list_competencies_for_scope(
@@ -127,6 +137,8 @@ class AnalyzeTeacherScope:
             scope=scope,
         )
 
+    # Calcule le SkillGap d'une compétence : niveau moyen actuel vs niveau
+    # précédent (pour la tendance), puis score + sévérité via compute_gap().
     def _compute_gap(
         self,
         teacher_id: str,
@@ -157,6 +169,9 @@ class AnalyzeTeacherScope:
             as_of=today,
         )
 
+    # Génère des recommandations pour les N gaps les plus critiques
+    # (max_gaps_for_recommendations), en dédupliquant par formation
+    # (on garde la recommandation au meilleur score).
     def _recommendations_for_top_gaps(self, teacher_id: str, gaps: list[SkillGap]) -> list[Recommendation]:
         top_gaps = [g for g in gaps if g.gap_score > 0][: self._max_gaps_for_recommendations]
         merged: dict[int, Recommendation] = {}
@@ -169,6 +184,8 @@ class AnalyzeTeacherScope:
                     merged[rec.formation_id] = rec
         return sorted(merged.values(), key=lambda r: r.rank_score, reverse=True)
 
+    # Moyenne des niveaux de l'enseignant sur les savoirs d'une compétence
+    # (niveau par défaut si pas de savoirs, 0 si aucun niveau connu).
     @staticmethod
     def _average_level(competency: Competency, savoir_levels: dict[int, int]) -> float:
         ids = competency.savoir_ids()

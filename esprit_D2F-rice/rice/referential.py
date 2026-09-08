@@ -292,6 +292,8 @@ _GENERIC_FALLBACK_REF: Dict = {
 }
 
 
+# Charge les savoirs d'un département depuis ref_savoirs (code → mots-clés).
+# Gère l'absence de colonne "departement" et ajoute le nom du savoir aux keywords.
 def _fetch_savoirs_from_db(cur, dept_key: str) -> Dict[str, List]:
     cur.execute("""
         SELECT column_name FROM information_schema.columns
@@ -319,6 +321,8 @@ def _fetch_savoirs_from_db(cur, dept_key: str) -> Dict[str, List]:
     return override
 
 
+# Charge les compétences (code → {nom, keywords}) depuis ref_competences
+# (silencieux si la table n'existe pas).
 def _fetch_competences_from_db(cur, dept_key: str) -> Dict[str, Any]:
     db_competences: Dict[str, Any] = {}
     try:
@@ -341,6 +345,7 @@ def _fetch_competences_from_db(cur, dept_key: str) -> Dict[str, Any]:
     return db_competences
 
 
+# Charge les domaines (code → nom) depuis ref_domaines.
 def _fetch_domaines_from_db(cur, dept_key: str) -> Dict[str, str]:
     db_domaines: Dict[str, str] = {}
     try:
@@ -360,6 +365,7 @@ def _fetch_domaines_from_db(cur, dept_key: str) -> Dict[str, str]:
     return db_domaines
 
 
+# Charge le mapping code savoir → niveau officiel (N1..N5) depuis ref_savoirs.
 def _fetch_niveaux_from_db(dept_key: str) -> Dict[str, str]:
     db_niveaux: Dict[str, str] = {}
     try:
@@ -380,6 +386,7 @@ def _fetch_niveaux_from_db(dept_key: str) -> Dict[str, str]:
     return db_niveaux
 
 
+# Fusionne le fallback GC intégré avec les données DB (les overrides DB gagnent).
 def _merge_gc_ref(base: Dict, override: Dict, db_competences: Dict, db_domaines: Dict) -> Dict:
     return {
         **base,
@@ -389,6 +396,8 @@ def _merge_gc_ref(base: Dict, override: Dict, db_competences: Dict, db_domaines:
     }
 
 
+# Construit le référentiel d'un département NON-GC à partir des données DB
+# (savoirs + compétences + domaines + niveaux) — structure vide de base.
 def _merge_non_gc_ref(override: Dict, db_competences: Dict, db_domaines: Dict, dept_key: str) -> Dict:
     merged = {
         **_EMPTY_REFERENTIAL,
@@ -403,6 +412,8 @@ def _merge_non_gc_ref(override: Dict, db_competences: Dict, db_domaines: Dict, d
     return merged
 
 
+# Charge le référentiel d'un département depuis la base (cache 1h) :
+# vérifie l'existence des tables ref_*, fetch tout et fusionne. None si absent.
 def _load_ref_from_db(departement: str = "gc") -> Optional[Dict]:
     global _SEMANTIC_CORPUS_BUILT
     dept_key = departement.lower().strip()
@@ -500,6 +511,7 @@ def _get_effective_referential(departement: str = "gc") -> Dict:
     return _load_generic_ref(dept_key)
 
 
+# Raccourci : référentiel effectif du GC uniquement.
 def _get_effective_gc_referential() -> Dict:
     return _get_effective_referential("gc")
 
@@ -542,6 +554,8 @@ def _match_gc_savoir(text: str, departement: str = "gc") -> List[str]:
     return semantic_codes
 
 
+# Renvoie le niveau officiel (N1..N5) du premier code de savoir trouvé dans
+# le mapping "niveaux" du référentiel du département.
 def _gc_ref_niveau(gc_codes: List[str], departement: str = "gc") -> Optional[str]:
     niveaux_map = _get_effective_referential(departement).get("niveaux", {})
     for code in gc_codes:
@@ -550,6 +564,8 @@ def _gc_ref_niveau(gc_codes: List[str], departement: str = "gc") -> Optional[str
     return None
 
 
+# Matche un texte contre les COMPÉTENCES du référentiel (scoring mots-clés)
+# et renvoie le code de la meilleure compétence, ou None si score nul.
 def _match_gc_competence(text: str, departement: str = "gc") -> Optional[str]:
     ref = _get_effective_referential(departement)
     norm = _normalize(text)
@@ -563,6 +579,8 @@ def _match_gc_competence(text: str, departement: str = "gc") -> Optional[str]:
     return best_code if best_score > 0 else None
 
 
+# Suggère les enseignants de la base dont les savoirs affectés correspondent
+# aux codes de savoir donnés (matching tolérant aux préfixes de département).
 def _suggest_gc_enseignants(savoir_codes: List[str]) -> List[str]:
     affectations = _fetch_enseignant_affectations()
     suggested = set()
@@ -597,38 +615,48 @@ class _DepartmentReferentialManager:
 
     KNOWN_DEPARTMENTS: List[str] = ["gc", "info", "ge", "meca", "telecom"]
 
+    # Façade : référentiel effectif d'un département.
     def get_referential(self, department: str) -> Dict:
         return _get_effective_referential(department)
 
+    # Façade : matching savoir (sémantique + mots-clés).
     def match_savoir(self, text: str, department: str) -> List[str]:
         return _match_gc_savoir(text, departement=department)
 
+    # Façade : meilleure compétence correspondant à un texte.
     def match_competence(self, text: str, department: str) -> Optional[str]:
         return _match_gc_competence(text, departement=department)
 
+    # Façade : niveau officiel de codes de savoir.
     def get_niveau(self, savoir_codes: List[str], department: str) -> Optional[str]:
         return _gc_ref_niveau(savoir_codes, departement=department)
 
+    # Façade : enseignants suggérés pour des codes de savoir.
     def suggest_teachers(self, savoir_codes: List[str]) -> List[str]:
         return _suggest_gc_enseignants(savoir_codes)
 
+    # Façade : classification PRATIQUE / THEORIQUE.
     def detect_type(self, text: str, department: str) -> str:
         return _detect_type(text, departement=department)
 
+    # Invalide le cache du référentiel d'un seul département.
     def invalidate(self, department: str) -> None:
         dept_key = department.lower().strip()
         _REF_DB_CACHE.pop(dept_key)
         logger.info("Referential cache invalidated for [%s]", dept_key)
 
+    # Invalide TOUS les caches référentiels + force la reconstruction du corpus sémantique.
     def invalidate_all(self) -> None:
         global _SEMANTIC_CORPUS_BUILT
         _REF_DB_CACHE.clear()
         _SEMANTIC_CORPUS_BUILT = False
         logger.info("All referential caches invalidated")
 
+    # Liste les départements connus (gc, info, ge, meca, telecom).
     def list_departments(self) -> List[str]:
         return list(self.KNOWN_DEPARTMENTS)
 
+    # Statistiques d'un référentiel : nombre de savoirs / compétences / domaines.
     def stats(self, department: str) -> Dict[str, int]:
         ref = self.get_referential(department)
         return {
@@ -653,6 +681,8 @@ _SEMANTIC_CORPUS_DEPT: str = ""
 _SEMANTIC_CORPUS_LOCK = _threading.Lock()
 
 
+# Charge (lazy, thread-safe) le modèle sentence-transformers ; révision
+# épinglée via RICE_SEMANTIC_MODEL_REVISION. None si indisponible.
 def _get_semantic_model():
     global _SEMANTIC_MODEL
     if _SEMANTIC_MODEL is None and _SEMANTIC_OK:
@@ -728,6 +758,9 @@ def _build_semantic_corpus(departement: str = "gc") -> None:
             logger.warning(f"Cannot build semantic corpus: {exc}")
 
 
+# Matching SÉMANTIQUE : encode le texte, calcule la similarité cosinus avec
+# les embeddings du corpus (mots-clés des savoirs) et renvoie les top-k codes
+# au-dessus du seuil (0.35 par défaut).
 def _match_gc_savoir_semantic(text: str, threshold: float = 0.35, top_k: int = 5,
                                departement: str = "gc") -> List[str]:
     if not _SEMANTIC_OK:
@@ -794,10 +827,13 @@ _UP_TO_DEPT = {
 }
 
 
+# Teste si le texte contient au moins un des éléments cherchés.
 def _contains_any(text: str, needles: List[str]) -> bool:
     return any(needle in text for needle in needles)
 
 
+# Détection du département par le NOM de fichier (mots "GC", "INFO",
+# "TELECOM", suffixes -GC-/-GL-…). None si aucun signal.
 def _detect_by_filename(fname_upper: str) -> Optional[str]:
     if (
         " GC " in f" {fname_upper} "
@@ -818,6 +854,8 @@ def _detect_by_filename(fname_upper: str) -> Optional[str]:
     return None
 
 
+# Détection du département par le CODE de l'unité pédagogique dans le texte
+# ("UPGC", "UPIL", "UPTELECOM"…) via la table _UP_TO_DEPT.
 def _detect_by_up_code(combined: str) -> Optional[str]:
     up_match = re.search(
         r'^(?:unit[eé][ \t]+p[eé]dagogique|UP)[ \t]*+:?+[ \t]*+[-_]?+[ \t]*+([A-Z0-9_\-]{2,10})',
@@ -829,6 +867,7 @@ def _detect_by_up_code(combined: str) -> Optional[str]:
     return _UP_TO_DEPT.get(up_code)
 
 
+# Détection du département par le préfixe du CODE d'UE ("INF…", "GC…", "GE…").
 def _detect_by_ue_code(combined: str) -> Optional[str]:
     ue_match = re.search(
         r'^(?:unit[eé][ \t]+d[\x27\u2019]enseignement|UE)[ \t]*+:?+[ \t]*+([A-Z]{2,6}\w{2,10})',
@@ -846,6 +885,8 @@ def _detect_by_ue_code(combined: str) -> Optional[str]:
     return None
 
 
+# Détection du département par le préfixe du CODE de module ("Code: MT-34",
+# "Module: GC05-F"…) via une table de préfixes par département.
 def _detect_by_module_code(combined: str) -> Optional[str]:
     meta_code_match = None
     for pattern in (
@@ -877,6 +918,9 @@ def _detect_by_module_code(combined: str) -> Optional[str]:
     return None
 
 
+# Dernier recours : scoring pondéré par mots-clés spécifiques à chaque
+# département (voir _DEPT_SIGNALS_WEIGHTED). Renvoie toujours un département
+# ("gc" par défaut).
 def _detect_by_keywords(combined: str) -> str:
     best_dept, best_score = "gc", 0
     for dept_code, weighted_keywords in _DEPT_SIGNALS_WEIGHTED:
@@ -891,6 +935,8 @@ def _detect_by_keywords(combined: str) -> str:
     return best_dept
 
 
+# Concatène noms de fichiers + premiers 4 Ko de chaque contenu en texte
+# minuscule unique, matière brute de la détection automatique.
 def _build_combined_text(filenames: List[str], contents: List[bytes]) -> str:
     combined = "\n".join(f.lower() for f in filenames)
     for data in contents:
@@ -901,6 +947,8 @@ def _build_combined_text(filenames: List[str], contents: List[bytes]) -> str:
     return combined
 
 
+# ── Détection AUTOMATIQUE du département d'une fiche ────────────────────────
+# Cascade : nom de fichier → code UP → code UE → code module → mots-clés.
 def _detect_departement(filenames: List[str], contents: List[bytes]) -> str:
     fname_upper = " ".join(filenames).upper()
     dept = _detect_by_filename(fname_upper)

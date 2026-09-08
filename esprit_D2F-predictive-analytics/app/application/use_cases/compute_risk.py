@@ -8,6 +8,8 @@ STAGNATION_LOOKBACK_MONTHS = 18
 
 
 class ComputeRisk:
+    # Injecte les sources de données (compétences, formations, évaluations,
+    # besoins) + dépôt d'analyse, port ML et configuration (poids du risque).
     def __init__(
         self,
         competency_source: CompetencySource,
@@ -26,6 +28,7 @@ class ComputeRisk:
         self._model_port = model_port
         self._settings = settings
 
+    # Point d'entrée simple : délègue à execute_serving et ignore l'état de serving.
     def execute(self, teacher_id: str) -> tuple[RiskProfile, str, str | None, str | None]:
         profile, mode, version, name, _serving = self.execute_serving(teacher_id)
         return profile, mode, version, name
@@ -73,6 +76,9 @@ class ComputeRisk:
         # historique, conserve pour coherence avec les gaps affiches).
         return profile, "HEURISTIC", model_version, model_name, serving
 
+    # Version legacy conservée pour compatibilité : tente le ML (modèle de
+    # risque dédié), sinon règles sur les gaps, sinon heuristique — le mode
+    # exposé reflète TOUJOURS le moteur qui a réellement servi.
     def execute_legacy(self, teacher_id: str) -> tuple[RiskProfile, str, str | None, str | None]:
         status = self._model_port.status()
 
@@ -97,6 +103,9 @@ class ComputeRisk:
         self._analysis_repository.save_risk_snapshot(profile)
         return profile, "HEURISTIC_FALLBACK", model_version, model_name
 
+    # Heuristique comportementale : collecte les données réelles de
+    # l'enseignant (stagnation, régression, assiduité, évaluations, besoins,
+    # dernière activité) puis applique le moteur de règles compute_risk().
     def _heuristic(self, teacher_id: str) -> RiskProfile:
         history = self._competency_source.get_teacher_savoir_levels_history(teacher_id)
         has_decline = self._has_decline(history)
@@ -124,6 +133,8 @@ class ComputeRisk:
         )
         return compute_risk(inputs, self._settings.risk_weights)
 
+    # Nombre de mois depuis la dernière mise à jour de niveau de l'enseignant
+    # (= stagnation). Aucune donnée → valeur de référence 18 mois.
     def _stagnation_months(self, latest_date: str | None) -> float:
         if latest_date is None:
             return float(STAGNATION_LOOKBACK_MONTHS)
@@ -135,6 +146,8 @@ class ComputeRisk:
             return float(STAGNATION_LOOKBACK_MONTHS)
         return (date.today() - last).days / 30.44
 
+    # Détecte une régression de niveau : True si au moins un savoir a un
+    # niveau actuel strictement inférieur à son premier niveau enregistré.
     def _has_decline(self, history: dict[int, list[tuple[str, int]]]) -> bool:
         for events in history.values():
             levels = [level for _, level in events]

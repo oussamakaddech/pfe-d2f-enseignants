@@ -30,26 +30,37 @@ class RiskInputs:
     days_since_last_activity: float | None
 
 
+# Normalise le nombre de mois de stagnation en score 0..1
+# (24 mois de référence → score 1.0, valeurs supérieures plafonnées à 1).
 def _normalize_stagnation(months: float, ref_months: float = STAGNATION_REF_MONTHS) -> float:
     return min(1.0, max(0.0, months / ref_months))
 
 
+# Normalise le nombre de jours sans activité en score 0..1 (180 jours → 1.0).
+# Si l'information est inconnue (None), on renvoie un score neutre de 0.5.
 def _normalize_engagement(days: float | None, ref_days: float = ENGAGEMENT_REF_DAYS) -> float:
     if days is None:
         return 0.5
     return min(1.0, max(0.0, days / ref_days))
 
 
+# Normalise un score d'évaluation (sur 5) en score de risque 0..1 :
+# plus la note est basse, plus le risque est élevé. Note inconnue → 0.5 (neutre).
 def _normalize_eval(score: float | None, ref: float = EVAL_REF_SCORE) -> float:
     if score is None:
         return 0.5
     return min(1.0, max(0.0, (ref - score) / ref))
 
 
+# Normalise le nombre de besoins de formation répétés en score 0..1
+# (3 besoins de référence → 1.0).
 def _normalize_need(count: float, ref: float = NEED_REF_COUNT) -> float:
     return min(1.0, max(0.0, count / ref))
 
 
+# Calcule les 6 sous-scores de risque normalisés (0..1) pour un enseignant :
+# stagnation, régression de niveau, assiduité faible, évaluations faibles,
+# besoins répétés et faible engagement. Base du calcul du score global.
 def compute_sub_scores(inputs: RiskInputs) -> dict[str, float]:
     return {
         "stagnation": _normalize_stagnation(inputs.stagnation_months),
@@ -61,6 +72,9 @@ def compute_sub_scores(inputs: RiskInputs) -> dict[str, float]:
     }
 
 
+# Moteur principal du risque : combine les sous-scores pondérés (poids configurables)
+# en un score global 0..100, construit la liste des facteurs contributeurs triés
+# (du plus impactant au moins impactant) et détermine le niveau de risque final.
 def compute_risk(inputs: RiskInputs, weights: dict[str, float]) -> RiskProfile:
     sub_scores = compute_sub_scores(inputs)
     total_weight = sum(weights.values()) or 1.0
@@ -97,6 +111,8 @@ def compute_risk(inputs: RiskInputs, weights: dict[str, float]) -> RiskProfile:
     return RiskProfile(teacher_id=inputs.teacher_id or "", risk_score=score, risk_level=level, factors=factors)
 
 
+# Convertit un score de risque (0..100) en niveau métier :
+# >= 70 → CRITICAL, >= 55 → HIGH, >= 30 → MEDIUM, sinon LOW.
 def risk_level(score: float, threshold_medium: float = 30.0, threshold_high: float = 70.0) -> RiskLevel:
     if score >= threshold_high:
         return RiskLevel.CRITICAL

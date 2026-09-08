@@ -45,6 +45,7 @@ class DatasetProvenanceReport:
     dataset_hash: str = ""
     errors: list[str] = field(default_factory=list)
 
+    # Sérialise le rapport de provenance en dictionnaire prêt pour l'API/JSON.
     def to_dict(self) -> dict[str, Any]:
         return {
             "total_rows": self.total_rows,
@@ -96,6 +97,7 @@ def file_hash(df: pd.DataFrame) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+# Convertit une valeur "is_synthetic" hétérogène (0/1, "true"/"vrai"…) en booléen strict.
 def _coerce_bool(value: Any) -> bool:
     if value is None:
         return False
@@ -145,6 +147,8 @@ def compute_provenance(df: pd.DataFrame, dataset_version: str | None = None) -> 
     return report
 
 
+# Remplit les statistiques du rapport : distribution de la cible gap_next_3m,
+# valeurs manquantes, doublons, distributions par enseignant et par compétence.
 def _fill_stats(df: pd.DataFrame, report: DatasetProvenanceReport) -> None:
     if "gap_next_3m" in df.columns:
         target = pd.to_numeric(df["gap_next_3m"], errors="coerce")

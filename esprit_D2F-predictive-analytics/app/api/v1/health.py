@@ -1,14 +1,21 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
+from typing import Annotated
+
+from fastapi import Depends
 
 from app.api.deps import ContainerDependency
 from app.core.config import Settings, get_settings
+from app.core.envelope import ok
+from app.core.security import CurrentUser, require_roles
 from app.infrastructure.db.database import ping_database
 from app.infrastructure.ml.ml_observability import ml_observability
 from app.schemas.analytics import HealthOut
 
 
 router = APIRouter(tags=["health"])
+
+ADMIN_ROLES = ("ADMIN", "CUP")
 
 
 def _build_health(container, settings: Settings) -> tuple[HealthOut, bool]:
@@ -79,3 +86,30 @@ def health(container: ContainerDependency, settings: Settings = get_settings()) 
 def ready(container: ContainerDependency, settings: Settings = get_settings()) -> JSONResponse:
     health_out, ready_ok = _build_health(container, settings)
     return JSONResponse(status_code=200 if ready_ok else 503, content=health_out.model_dump())
+
+
+@router.get("/model-health", include_in_schema=True)
+def model_health(
+    container: ContainerDependency,
+    user: Annotated[CurrentUser, Depends(require_roles(*ADMIN_ROLES))],
+):
+    """Santé du modèle ML servi : métriques test (r2, mae, rmse) + skew guard KS.
+
+    Suivi de dérive documenté (gouvernance MLOps) : le test KS compare les
+    features servies (fenêtre glissante) au corpus d'entraînement —
+    ``skew_detected=true`` signifie que le serving a basculé en heuristique.
+    Réservé aux rôles d'administration (ADMIN / CUP).
+    """
+    try:
+        payload = container.model_port.model_health()
+    except Exception:
+        payload = {
+            "mode": "UNKNOWN",
+            "r2": None,
+            "mae": None,
+            "rmse": None,
+            "skew_detected": False,
+            "skew_checked": False,
+            "skew_reason": "port ML indisponible",
+        }
+    return ok(payload)

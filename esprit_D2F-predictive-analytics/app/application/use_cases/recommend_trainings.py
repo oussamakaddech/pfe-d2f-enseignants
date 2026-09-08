@@ -8,6 +8,8 @@ from app.domain.services.ranking_service import content_match, rank_candidates
 
 
 class RecommendTrainings:
+    # Injecte : source des compétences, source des formations, dépôt
+    # d'analyse et (optionnel) port ML pour le blending des scores.
     def __init__(
         self,
         competency_source: CompetencySource,
@@ -20,6 +22,10 @@ class RecommendTrainings:
         self._analysis_repository = analysis_repository
         self._model_port = model_port
 
+    # Recommande les `limit` meilleures formations pour une compétence donnée :
+    # construit l'état de compétence de l'enseignant, marque les formations
+    # déjà suivies, classe les candidates (heuristique) puis mélange
+    # éventuellement 70% heuristique / 30% ML, et persiste les recommandations.
     def execute(self, teacher_id: str, competence_id: int, limit: int) -> list[Recommendation]:
         competency = self._find_competency(competence_id)
         if competency is None:
@@ -59,9 +65,11 @@ class RecommendTrainings:
         self._analysis_repository.save_recommendations(recommendations)
         return recommendations
 
+    # Cherche une compétence par son ID dans la liste des compétences connues.
     def _find_competency(self, competence_id: int) -> Competency | None:
         return next((c for c in self._competency_source.list_competencies() if c.id == competence_id), None)
 
+    # Niveau actuel moyen de l'enseignant sur les savoirs de la compétence (0 si vide).
     def _current_level(self, competency: Competency, teacher_id: str) -> float:
         levels = self._competency_source.get_teacher_savoir_levels(teacher_id)
         ids = competency.savoir_ids()
@@ -70,6 +78,8 @@ class RecommendTrainings:
         values = [levels.get(sid, 0) for sid in ids]
         return sum(values) / len(ids) if any(values) else 0.0
 
+    # Marque une formation candidate comme "déjà suivie" si son ID figure
+    # dans l'historique des formations complétées de l'enseignant.
     @staticmethod
     def _mark_completed(candidate, completed: set[int]):
         from dataclasses import replace

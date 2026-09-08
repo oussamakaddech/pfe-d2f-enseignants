@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
 import { Calendar, dateFnsLocalizer, type View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { fr } from 'date-fns/locale/fr';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { Modal, Button, Steps, Spin, Space, Tooltip } from 'antd';
+import { Modal, Button, Steps, Spin, Space, Tooltip, Segmented } from 'antd';
 import {
   LeftOutlined,
   RightOutlined,
@@ -13,6 +13,8 @@ import {
   ClockCircleOutlined,
   CheckCircleOutlined,
   TeamOutlined,
+  CalendarOutlined,
+  EnvironmentOutlined,
 } from '@ant-design/icons';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 import '@/styles/pages/calendrier.css';
@@ -44,6 +46,79 @@ interface CalendarEvent {
   start: Date;
   end: Date;
   details: FormationEventDetail;
+}
+
+interface ToolbarProps {
+  label: string;
+  onNavigate: (navigate: 'PREV' | 'NEXT' | 'TODAY') => void;
+  onView: (view: View) => void;
+  view: View;
+}
+
+/** Barre d'outils personnalisée : navigation + libellé du mois + sélecteur de vue. */
+function CustomToolbar({ label, onNavigate, onView, view }: ToolbarProps) {
+  return (
+    <div className="cal-toolbar">
+      <div className="cal-toolbar-nav">
+        <Button
+          shape="circle"
+          icon={<LeftOutlined />}
+          onClick={() => onNavigate('PREV')}
+          aria-label="Période précédente"
+        />
+        <Button
+          className="cal-toolbar-today"
+          icon={<CalendarOutlined />}
+          onClick={() => onNavigate('TODAY')}
+        >
+          Aujourd'hui
+        </Button>
+        <Button
+          shape="circle"
+          icon={<RightOutlined />}
+          onClick={() => onNavigate('NEXT')}
+          aria-label="Période suivante"
+        />
+      </div>
+      <div className="cal-toolbar-label">{label}</div>
+      <Segmented
+        className="cal-toolbar-views"
+        value={view}
+        onChange={(value) => onView(value as View)}
+        options={[
+          { value: 'month', label: 'Mois' },
+          { value: 'week', label: 'Semaine' },
+          { value: 'day', label: 'Jour' },
+        ]}
+      />
+    </div>
+  );
+}
+
+/** Contenu d'un événement : heure, titre et salle (week/jour). */
+function EventContent({ event }: { event: CalendarEvent }): ReactNode {
+  const seance = event.details.seance;
+  const etat = event.details?.formation?.etatFormation;
+  return (
+    <div className="cal-event-content">
+      <span className="cal-event-badge" data-etat={etat ?? 'default'} />
+      <div className="cal-event-texts">
+        <span className="cal-event-title">{event.title}</span>
+        {seance && (
+          <span className="cal-event-meta">
+            <ClockCircleOutlined />
+            {`${seance.heureDebut ?? ''}–${seance.heureFin ?? ''}`}
+            {seance.salle && (
+              <span className="cal-event-salle">
+                <EnvironmentOutlined />
+                {seance.salle}
+              </span>
+            )}
+          </span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function CalendrierPage() {
@@ -95,11 +170,14 @@ export default function CalendrierPage() {
           });
         });
       } else {
+        // Formation sans séance planifiée : événement sur une SEULE journée
+        // (le jour de début). Un événement multi-semaines serait rendu comme
+        // une barre pleine largeur qui masque tout le mois.
         eventsData.push({
           id: f.idFormation,
           title: f.titreFormation,
-          start: new Date(`${f.dateDebut}T00:00:00`),
-          end: new Date(`${f.dateFin}T23:59:59`),
+          start: new Date(`${f.dateDebut}T09:00:00`),
+          end: new Date(`${f.dateDebut}T10:00:00`),
           details: { formation: f },
         });
       }
@@ -317,6 +395,13 @@ export default function CalendrierPage() {
           view={currentView}
           views={['month', 'week', 'day']}
           eventPropGetter={eventStyleGetter}
+          components={{ toolbar: CustomToolbar, event: EventContent }}
+          formats={{
+            monthHeaderFormat: (date: Date) => format(date, 'MMMM yyyy', { locale: fr }),
+            weekdayFormat: (date: Date) => format(date, 'EEE', { locale: fr }),
+            dayFormat: (date: Date) => format(date, 'd', { locale: fr }),
+            timeGutterFormat: (date: Date) => format(date, 'HH:mm', { locale: fr }),
+          }}
           style={{ height: '100%' }}
           popup
           messages={{
@@ -328,6 +413,7 @@ export default function CalendrierPage() {
             day: 'Jour',
             agenda: 'Agenda',
             noEventsInRange: 'Aucune formation sur cette période.',
+            showMore: (total) => `+${total} autre${total === 1 ? '' : 's'}`,
           }}
         />
       </div>

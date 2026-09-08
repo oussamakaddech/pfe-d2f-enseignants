@@ -12,6 +12,8 @@ logger = get_logger("build_dashboards")
 
 
 class BuildDashboards:
+    # Injecte : fournisseur de gaps, fournisseur de risque, périmètres des
+    # enseignants et dépôt de snapshots du dashboard.
     def __init__(
         self,
         gaps_provider: Callable[[str], list[SkillGap]],
@@ -24,6 +26,9 @@ class BuildDashboards:
         self._teacher_scopes_provider = teacher_scopes_provider
         self._dashboard_repository = dashboard_repository
 
+    # Construit le KPI dashboard d'un périmètre (GLOBAL ou département/UP) :
+    # parcourt les enseignants, agrège les tendances de déclin, la couverture,
+    # le score moyen et le nombre d'enseignants à risque, puis persiste le snapshot.
     def execute(self, scope: str = "GLOBAL", scope_id: str | None = None) -> dict:
         scopes = self._teacher_scopes_provider()
         teacher_ids = [tid for tid, s in scopes.items() if scope == "GLOBAL" or s.scope_id == scope_id or s.scope_type == scope]
@@ -63,6 +68,8 @@ class BuildDashboards:
         self._dashboard_repository.save_snapshot(scope, scope_id, kpis)
         return kpis
 
+    # Appel du fournisseur de gaps protégé : en cas d'erreur, log + liste vide
+    # (un enseignant en échec ne bloque pas tout le dashboard).
     def _gaps_provider_safe(self, teacher_id: str) -> list[SkillGap]:
         try:
             return self._gaps_provider(teacher_id)
@@ -70,6 +77,7 @@ class BuildDashboards:
             logger.warning("gaps indisponibles pour dashboard", teacher_id=teacher_id, error=str(exc))
             return []
 
+    # Appel du fournisseur de risque protégé : en cas d'erreur, log + None.
     def _risk_provider_safe(self, teacher_id: str) -> RiskProfile | None:
         try:
             return self._risk_provider(teacher_id)
@@ -77,6 +85,9 @@ class BuildDashboards:
             logger.warning("risque indisponible pour dashboard", teacher_id=teacher_id, error=str(exc))
             return None
 
+    # Transforme les gaps d'un enseignant en lignes pour l'agrégateur :
+    # (1) ligne "déclin" (niveau actuel vs précédent), (2) ligne "couverture"
+    # (savoir couvert ou non), (3) contribution au score moyen de la compétence.
     def _gap_rows(self, gaps: list[SkillGap], teacher_id: str):
         for gap in gaps:
             declining = {

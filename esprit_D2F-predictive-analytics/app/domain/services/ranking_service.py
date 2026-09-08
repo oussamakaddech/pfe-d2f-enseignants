@@ -22,6 +22,8 @@ class TrainingCandidate:
     already_completed: bool = False
 
 
+# Retourne l'ensemble des IDs de savoirs d'une compétence dont le niveau
+# actuel de l'enseignant est inférieur au niveau requis (les "savoirs manquants").
 def missing_savoirs(state: TeacherCompetencyState) -> set[int]:
     return {
         savoir.id
@@ -30,6 +32,9 @@ def missing_savoirs(state: TeacherCompetencyState) -> set[int]:
     }
 
 
+# Mesure la pertinence du CONTENU d'une formation candidate : proportion de
+# savoirs manquants couverts par la formation (0 → rien couvert, 1 → tout couvert,
+# 0.3 si la formation n'a pas de savoirs référencés mais est du bon domaine).
 def content_match(candidate: TrainingCandidate, state: TeacherCompetencyState) -> float:
     missing = missing_savoirs(state)
     if not missing:
@@ -39,12 +44,16 @@ def content_match(candidate: TrainingCandidate, state: TeacherCompetencyState) -
     return len(candidate.savoir_ids & missing) / len(missing)
 
 
+# Score de QUALITÉ d'une formation : note moyenne des évaluations normalisée sur 5.
+# Note inconnue → 0.5 (valeur neutre).
 def quality_score(candidate: TrainingCandidate) -> float:
     if candidate.avg_eval_score is None:
         return 0.5
     return min(1.0, max(0.0, candidate.avg_eval_score / 5.0))
 
 
+# Score de RÉCENCE d'une formation : décroît linéairement sur 1 an après sa fin.
+# Formation à venir ou en cours → 1.0.
 def recency_score(candidate: TrainingCandidate, today: date) -> float:
     if candidate.end_date and candidate.end_date < today:
         days_since = (today - candidate.end_date).days
@@ -52,6 +61,8 @@ def recency_score(candidate: TrainingCandidate, today: date) -> float:
     return 1.0
 
 
+# Score global de classement d'une formation candidate :
+# 70% pertinence du contenu + 20% qualité + 10% récence.
 def rank_score(candidate: TrainingCandidate, state: TeacherCompetencyState, today: date) -> float:
     return (
         WEIGHT_CONTENT * content_match(candidate, state)
@@ -60,6 +71,9 @@ def rank_score(candidate: TrainingCandidate, state: TeacherCompetencyState, toda
     )
 
 
+# Classe les formations candidates pour un état de compétence donné :
+# exclut celles déjà suivies, calcule le score de chaque, trie par score
+# décroissant et renvoie les `limit` meilleures sous forme de Recommendations.
 def rank_candidates(
     candidates: list[TrainingCandidate],
     state: TeacherCompetencyState,
@@ -88,6 +102,8 @@ def rank_candidates(
     return scored[:limit]
 
 
+# Construit la phrase d'explication humaine ("pourquoi cette formation ?")
+# affichée à côté de chaque recommandation.
 def _build_reason(candidate: TrainingCandidate, state: TeacherCompetencyState) -> str:
     match = content_match(candidate, state)
     if match >= 0.5:

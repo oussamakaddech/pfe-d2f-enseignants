@@ -79,7 +79,7 @@ const PRIORITE_RANK: Record<Priorite | 'NON_DEFINIE', number> = {
   NON_DEFINIE: 1,
 };
 
-export function useCupDashboard() {
+export function useCupDashboard(pilotage: boolean = true) {
   const { data: formationsByEtat, isLoading: etatLoading } = useQuery({
     queryKey: ['kpi', 'formations-by-etat', START, END],
     queryFn: () => KPIService.getFormationsByEtat(START, END),
@@ -153,6 +153,9 @@ export function useCupDashboard() {
     queryFn: () =>
       import('@/services/analyse/AnalysePredictiveService').then((m) => m.default.getOverview()),
     staleTime: STALE,
+    // Réserve le pilotage prédictif (overview) aux rôles pilotage :
+    // RESPONSABLE_DOSSIER n'y a pas accès côté backend (403).
+    enabled: pilotage,
   });
 
   const { data: inDemandCompetencies = [] } = useQuery({
@@ -162,6 +165,7 @@ export function useCupDashboard() {
         m.default.getInDemandCompetencies(),
       ),
     staleTime: STALE,
+    enabled: pilotage,
   });
 
   const timelineScope: DashboardScope = {
