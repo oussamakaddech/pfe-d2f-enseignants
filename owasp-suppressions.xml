@@ -208,4 +208,47 @@
         <notes><![CDATA[Android JSON Vaadin - CVE-2008-0986.]]></notes>
         <cve>CVE-2008-0986</cve>
     </suppress>
+    <!-- Spring Framework 6.2.19 : fix non disponible dans la ligne 6.x (EOL).
+         CVEs corrigées uniquement en Spring Framework 7.0.x (Spring Boot 4.0.x) —
+         migration majeure planifiée. Risque accepte en attente de migration (DSI 12.12). -->
+    <suppress>
+        <notes><![CDATA[Spring Core CVEs - 6.2.19 dernier 6.2.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-47890</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core CVEs - 6.2.19 dernier 6.2.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-47891</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core CVEs - 6.2.19 dernier 6.2.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-47892</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core CVEs - 6.2.19 dernier 6.2.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-47893</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core CVEs - 6.2.19 dernier 6.2.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-59282</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core CVEs - 6.2.19 dernier 6.2.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-59283</cve>
+    </suppress>
+    <!-- Spring Security 6.5.11 : fix non disponible dans la ligne 6.5.x (EOL).
+         CVEs corrigées uniquement en 7.0.x (Spring Boot 4.0.x) — migration planifiée. -->
+    <suppress>
+        <notes><![CDATA[Spring Security CVEs - 6.5.11 dernier 6.5.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-47841</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Security CVEs - 6.5.11 dernier 6.5.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-59270</cve>
+    </suppress>
+    <!-- Spring Cloud Commons/Context 4.3.3 : fix non disponible dans la ligne 4.3.x (EOL).
+         CVE corrigée uniquement en 5.0.x (Spring Boot 4.0.x / BOM 2025.1.x) — migration planifiée. -->
+    <suppress>
+        <notes><![CDATA[Spring Cloud CVEs - 4.3.3 dernier 4.3.x publie, fix en 5.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-59284</cve>
+    </suppress>
 </suppressions>
