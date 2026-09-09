@@ -116,7 +116,23 @@ export default function AppRoutes() {
                   <Route path="/home/skill-passport/:username" element={<SkillPassportPage />} />
                   <Route path="/home/edit-profile" element={<EditProfile />} />
                   <Route path="/home/update-password" element={<UpdatePassword />} />
-                  <Route path="/home/Inscriptions" element={<InscriptionsPage />} />
+                  {/* Parité INSCRIPTION_READ (AuthorizationMatrix) : ADMIN, CUP,
+                      ENSEIGNANT, ANIMATEUR (FORMATEUR = alias legacy). Le
+                      CHEF_DEPARTEMENT n'y a pas accès côté backend → 403 sinon. */}
+                  <Route
+                    element={
+                      <RoleGuard
+                        allowedRoles={[
+                          ROLES.ADMIN,
+                          ROLES.CUP,
+                          ROLES.ENSEIGNANT,
+                          ROLES.ANIMATEUR,
+                        ]}
+                      />
+                    }
+                  >
+                    <Route path="/home/Inscriptions" element={<InscriptionsPage />} />
+                  </Route>
                   <Route
                     path="/home/ListeFormation"
                     element={<Navigate to="/home/Inscriptions" replace />}
@@ -307,6 +323,9 @@ export default function AppRoutes() {
                           ROLES.ENSEIGNANT,
                           ROLES.ANIMATEUR,
                           ROLES.CHEF_DEPARTEMENT,
+                          // Parité BESOIN_FORMATION_READ_ALL (AuthorizationMatrix)
+                          // et FRONTEND_PERMISSIONS.BESOIN_FORMATION.READ_ALL.
+                          ROLES.RESPONSABLE_DOSSIER,
                         ]}
                       />
                     }
@@ -331,9 +350,19 @@ export default function AppRoutes() {
                     />
                   </Route>
 
+                  {/* Présences : CUP ajouté (parité PRESENCE_MARK backend + spec CUP
+                      « consulter les présences ») ; l'animateur/formateur de la séance
+                      et l'enseignant consultent leurs sessions. */}
                   <Route
                     element={
-                      <RoleGuard allowedRoles={[ROLES.ANIMATEUR, ROLES.ENSEIGNANT, ROLES.ADMIN]} />
+                      <RoleGuard
+                        allowedRoles={[
+                          ROLES.ANIMATEUR,
+                          ROLES.ENSEIGNANT,
+                          ROLES.ADMIN,
+                          ROLES.CUP,
+                        ]}
+                      />
                     }
                   >
                     <Route path="/home/animateur-formations" element={<FormationList />} />

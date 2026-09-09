@@ -136,7 +136,13 @@ export const cupMenu: MenuItem[] = [
   {
     type: 'group',
     label: 'SUIVI',
-    children: [{ label: 'Inscriptions', key: '/home/Inscriptions', icon: FileTextOutlined }],
+    children: [
+      { label: 'Inscriptions', key: '/home/Inscriptions', icon: FileTextOutlined },
+      // Parité spec CUP (« consulter les présences et les résultats des évaluations »)
+      // + AuthorizationMatrix.PRESENCE_MARK / EVALUATION_READ_CUP incluent ROLE_CUP.
+      { label: 'Présences', key: '/home/animateur-formations', icon: CheckSquareOutlined },
+      { label: 'Évaluations', key: '/home/Evaluations', icon: TrophyOutlined },
+    ],
   },
 ];
 
@@ -214,7 +220,9 @@ export const chefDepartementMenu: MenuItem[] = [
     label: 'DOCUMENTS & SUIVI',
     children: [
       { label: 'Dossiers de Formation', key: '/home/File', icon: FileTextOutlined },
-      { label: 'Inscriptions', key: '/home/Inscriptions', icon: AppstoreOutlined },
+      // « Inscriptions » retiré : INSCRIPTION_READ (AuthorizationMatrix) n'inclut pas
+      // ROLE_CHEF_DEPARTEMENT → la page provoquait des 403 (erreur front/back).
+      // Réintégrer plus tard avec une consultation d'inscriptions filtrée par département.
     ],
   },
 ];
