@@ -89,7 +89,11 @@ const FormationWorkflowService = {
 
   async getPresencesBySeance(seanceId: Id): Promise<Presence[]> {
     const response = await axios.get<Presence[]>(`${API_URL}/seances/${seanceId}/presences`);
-    return response.data;
+    // L'endpoint renvoie une Page Spring ({content:[...]}) — sans désencapsulation,
+    // FormationDetail crashait (« .map is not a function ») sur les présences.
+    if (Array.isArray(response.data)) return response.data;
+    const candidate = response.data as { content?: Presence[] } | null;
+    return Array.isArray(candidate?.content) ? candidate.content : [];
   },
 
   async batchUpdatePresences(
@@ -167,7 +171,11 @@ const FormationWorkflowService = {
 
   async getMesPresences(): Promise<MesPresence[]> {
     const response = await axios.get<MesPresence[]>(`${API_URL}/mes-presences`);
-    return Array.isArray(response.data) ? response.data : [];
+    // L'endpoint renvoie une Page Spring ({content:[...]}) : désencapsuler,
+    // sinon la page « Mes Présences » affiche une liste vide.
+    if (Array.isArray(response.data)) return response.data;
+    const candidate = response.data as { content?: MesPresence[] } | null;
+    return Array.isArray(candidate?.content) ? candidate.content : [];
   },
 
   async getFormationsParUp(upId: Id): Promise<Formation[]> {

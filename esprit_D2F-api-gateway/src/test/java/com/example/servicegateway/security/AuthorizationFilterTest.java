@@ -138,6 +138,9 @@ class AuthorizationFilterTest {
         "/api/account/update/1, PUT, ADMIN, true",
         "/api/formation/kpi, GET, ADMIN, true",
         "/api/formation/kpi, GET, ANIMATEUR, true",
+        // Parité DASHBOARD_ADMIN_LIMITED : le dashboard /home affiche les KPIs au
+        // RESPONSABLE_DOSSIER (l'analyse prédictive reste pilotage).
+        "/api/formation/kpi, GET, RESPONSABLE_DOSSIER, true",
         "/api/formation/kpi, GET, FORMATEUR, false",
         "/api/formation/any, DELETE, ADMIN, true",
         "/api/formation/any, DELETE, CUP, false",
@@ -171,6 +174,8 @@ class AuthorizationFilterTest {
         "/api/besoinsformation/approve/1, PUT, ENSEIGNANT, false",
         "/api/besoins-formation/any, GET, ENSEIGNANT, true",
         "/api/besoins-formation/any, GET, ANIMATEUR, true",
+        // Parité BESOIN_FORMATION_READ_ALL : RESPONSABLE_DOSSIER consulte les besoins.
+        "/api/besoins-formation/any, GET, RESPONSABLE_DOSSIER, true",
         "/api/besoins-formation/any, POST, ENSEIGNANT, true",
         "/api/besoins-formation/any, POST, ANIMATEUR, true",
         "/api/besoins-formation/any, POST, D2F, true",

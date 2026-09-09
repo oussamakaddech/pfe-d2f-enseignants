@@ -179,7 +179,8 @@ export const animateurMenu: MenuItem[] = [
 ];
 
 export const responsableDossierMenu: MenuItem[] = [
-  dashboardItem,
+  // Pas d'entrée « Tableau de bord » pour ce rôle (demande métier) : la page
+  // /home reste accessible par URL mais n'est plus exposée dans la navigation.
   { label: 'Catalogue Formations', key: '/home/Formation/Consulter', icon: AppstoreOutlined },
   { label: 'Gestion Documentaire', key: '/home/File', icon: FileTextOutlined },
 ];

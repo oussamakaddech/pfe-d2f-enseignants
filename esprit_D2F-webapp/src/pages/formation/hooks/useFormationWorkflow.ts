@@ -457,7 +457,7 @@ function extractErrorMsg(err: unknown): string {
  * auth-user animateur. Returns the real enseignant ID to be used in animateursIds.
  * On 409 (duplicate email), finds the existing enseignant by mail and returns their ID.
  */
-async function createOrFindEnseignant(anim: PersonItem): Promise<string | null> {
+export async function createOrFindEnseignant(anim: PersonItem): Promise<string | null> {
   if (!anim.isAuthUser) return null;
   try {
     const created = await EnseignantService.createEnseignant({

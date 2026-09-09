@@ -1,13 +1,8 @@
 import { useContext, useEffect, ReactNode } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { AuthContext } from '@/context/AuthContext';
+import { hasAnyRole } from '@/utils/constants/roles';
 import { notify } from '@/utils/helpers/notifications';
-
-const normalizeRole = (value: unknown): string =>
-  (typeof value === 'string' ? value : '')
-    .toLowerCase()
-    .replace(/^role_?/, '')
-    .replaceAll(/[\s_-]+/g, '');
 
 /**
  * Frontend Authorization Matrix.
@@ -29,7 +24,7 @@ export const FRONTEND_PERMISSIONS = {
     DELETE: ['admin'],
   },
   BESOIN_FORMATION: {
-    READ_ALL: ['admin', 'CHEF_DEPARTEMENT'],
+    READ_ALL: ['admin', 'CHEF_DEPARTEMENT', 'ResponsableDossier'],
     READ_CUP: ['admin', 'CUP'],
     READ_ENSEIGNANT: ['admin', 'Enseignant'],
     CREATE: ['admin', 'CUP', 'Enseignant', 'Animateur'],
@@ -48,7 +43,7 @@ export const FRONTEND_PERMISSIONS = {
     PRESENCE_MARK: ['admin', 'CUP', 'ResponsableDossier', 'Animateur', 'Enseignant'],
   },
   EVALUATION: {
-    READ_ALL: ['admin', 'CHEF_DEPARTEMENT', 'Enseignant'],
+    READ_ALL: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'Enseignant', 'Animateur'],
     READ_FORMATION: ['admin', 'CHEF_DEPARTEMENT', 'Enseignant', 'Animateur'],
     READ_CUP: ['admin', 'CUP'],
     READ_ENSEIGNANT: ['admin', 'Enseignant'],
@@ -81,7 +76,7 @@ export const FRONTEND_PERMISSIONS = {
   },
   DASHBOARD: {
     ADMIN_FULL: ['admin'],
-    ADMIN_LIMITED: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
+    ADMIN_LIMITED: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'ResponsableDossier'],
   },
   ACCOUNT: {
     READ: ['admin'],
@@ -127,9 +122,9 @@ export function RoleGuard({ allowedRoles }: Readonly<RoleGuardProps>) {
     return <Navigate to="/" replace />;
   }
   const { user } = auth;
-  const role = normalizeRole(user?.role);
-  const normalizedAllowedRoles = allowedRoles.map(normalizeRole);
-  if (!user || !normalizedAllowedRoles.includes(role)) {
+  // Le scope JWT peut être composé (ex. "ROLE_D2F ROLE_RESPONSABLE_DOSSIER") :
+  // l'accès est accordé si AU MOINS UN rôle du scope est autorisé.
+  if (!user || !hasAnyRole(user?.role, allowedRoles)) {
     return <ForbiddenRedirect />;
   }
   return <Outlet />;
@@ -138,8 +133,7 @@ export function RoleGuard({ allowedRoles }: Readonly<RoleGuardProps>) {
 export const useHasRole = (requiredRoles: string[]): boolean => {
   const auth = useContext(AuthContext);
   if (!auth?.user) return false;
-  const role = normalizeRole(auth.user.role);
-  return requiredRoles.map(normalizeRole).includes(role);
+  return hasAnyRole(auth.user.role, requiredRoles);
 };
 
 export const useHasPermission = (
@@ -152,8 +146,7 @@ export const useHasPermission = (
   if (!permissions) return false;
   const allowedRoles = (permissions as Record<string, string[] | undefined>)[action];
   if (!allowedRoles || !Array.isArray(allowedRoles)) return false;
-  const role = normalizeRole(auth.user.role);
-  return allowedRoles.map(normalizeRole).includes(role);
+  return hasAnyRole(auth.user.role, allowedRoles);
 };
 
 export const useUserRole = (): string | null => {

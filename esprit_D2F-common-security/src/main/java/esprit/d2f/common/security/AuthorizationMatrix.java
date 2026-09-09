@@ -16,7 +16,7 @@ public final class AuthorizationMatrix {
     public static final String AFFECTATION_UPDATE_ALL = "hasAnyRole('ROLE_ADMIN')";
     public static final String AFFECTATION_DELETE = "hasAnyRole('ROLE_ADMIN')";
 
-    public static final String BESOIN_FORMATION_READ_ALL = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT','ROLE_ANIMATEUR')";
+    public static final String BESOIN_FORMATION_READ_ALL = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT','ROLE_ANIMATEUR','ROLE_RESPONSABLE_DOSSIER')";
     public static final String BESOIN_FORMATION_READ_CUP = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
     public static final String BESOIN_FORMATION_READ_ENSEIGNANT = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT')";
     // ANIMATEUR inclus : un animateur interne est aussi un enseignant et peut donc
@@ -49,7 +49,9 @@ public final class AuthorizationMatrix {
     public static final String DOCUMENT_UPDATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_RESPONSABLE_DOSSIER')";
     public static final String DOCUMENT_DELETE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_RESPONSABLE_DOSSIER')";
 
-    public static final String EVALUATION_READ_ALL = "hasAnyRole('ROLE_ADMIN','ROLE_CHEF_DEPARTEMENT','ROLE_ENSEIGNANT')";
+    // Parité UI /home/Evaluations (RoleGuard) : CUP et ANIMATEUR consultent aussi
+    // les évaluations (CREATE/READ_FORMATION les incluent déjà).
+    public static final String EVALUATION_READ_ALL = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT','ROLE_ENSEIGNANT','ROLE_ANIMATEUR')";
     // Lecture des évaluations dans un périmètre formation : l'animateur/formateur
     // qui anime une formation doit pouvoir consulter ses évaluations.
     public static final String EVALUATION_READ_FORMATION =
@@ -73,7 +75,10 @@ public final class AuthorizationMatrix {
     public static final String RICE_DELETE = "hasAnyRole('ROLE_ADMIN')";
 
     public static final String DASHBOARD_ADMIN_FULL = "hasAnyRole('ROLE_ADMIN')";
-    public static final String DASHBOARD_ADMIN_LIMITED = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT','ROLE_ANIMATEUR')";
+    /** Dashboard (lecture KPI) : ADMIN + CUP + Chef de département + Animateur + Responsable dossier.
+     *  Parité AuthorizationMatrix.DASHBOARD_ADMIN_LIMITED — le dashboard /home affiche
+     *  les KPIs formation pour RESPONSABLE_DOSSIER (l'analyse prédictive reste pilotage). */
+    public static final String DASHBOARD_ADMIN_LIMITED = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT','ROLE_ANIMATEUR','ROLE_RESPONSABLE_DOSSIER')";
 
     public static final String ACCOUNT_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ANIMATEUR','ROLE_CHEF_DEPARTEMENT')";
     public static final String ACCOUNT_CREATE = "hasAnyRole('ROLE_ADMIN')";
