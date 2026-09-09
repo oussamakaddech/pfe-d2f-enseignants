@@ -118,14 +118,9 @@ function mergeAuthAccountAnimateurs(
  * mergeAuthAccountAnimateurs) afin d'éviter les doublons id compte / id
  * enseignant dans les options d'animateurs.
  */
-function dedupeAnimAccounts(
-  authList: EditPerson[],
-  enseignantsData: EditPerson[],
-): EditPerson[] {
+function dedupeAnimAccounts(authList: EditPerson[], enseignantsData: EditPerson[]): EditPerson[] {
   const key = (mail?: string): string => {
-    const v = (mail || '')
-      .trim()
-      .toLowerCase();
+    const v = (mail || '').trim().toLowerCase();
     return v ? `${v.split('@')[0]}@` : '';
   };
   const ensKeys = new Set(enseignantsData.map((e) => key(e.mail)).filter(Boolean));
@@ -696,7 +691,10 @@ export function useFormationWorkflowEdit(
       e.target.value = '';
       return;
     }
-    const norm = (v: unknown): string => String(v ?? '').trim().toLowerCase();
+    const norm = (v: unknown): string =>
+      String(v ?? '')
+        .trim()
+        .toLowerCase();
     const mailsSet = new Set(
       rows
         .slice(1)

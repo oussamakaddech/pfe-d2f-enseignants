@@ -130,7 +130,6 @@ export interface RiskContribution {
   method: string;
 }
 
-
 // ── Analyse contextuelle par spécialité/UP/département (scope-analysis) ──
 export interface TeacherContextInfo {
   teacher_id: string;
@@ -255,7 +254,6 @@ export interface RiskHistoryPoint {
   /** Probabilité calibrée (mode ML) — optionnel. */
   probability_calibrated?: number | null;
 }
-
 
 export interface RiskHistoryResponse {
   enseignant_id: string;

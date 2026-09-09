@@ -47,6 +47,10 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
     # cookie d2f_auth_token), le décode HS512 et expose sub/scope/email dans
     # request.state. Token expiré/invalide → 401 avec enveloppe standard.
     async def dispatch(self, request: Request, call_next):
+        # Laisse passer quand l'authentification est désactivée (dev/tests Uniquement).
+        # En production, JWT_AUTH_ENABLED est forcé à True à l'import (ligne 22).
+        if not JWT_AUTH_ENABLED:
+            return await call_next(request)
 
         path = request.url.path
 

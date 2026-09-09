@@ -1,10 +1,5 @@
 import { Button, Input, Select } from 'antd';
-import {
-  ReadOutlined,
-  PlusOutlined,
-  DeleteOutlined,
-  FilterOutlined,
-} from '@ant-design/icons';
+import { ReadOutlined, PlusOutlined, DeleteOutlined, FilterOutlined } from '@ant-design/icons';
 import type { CompetencyRow, NullableId } from '../hooks/useFormationWorkflow';
 
 export type SavoirItem = { id?: unknown; nom?: string; type?: string };
@@ -25,10 +20,7 @@ export type CompetenciesStepProps = {
   setCompSearch: (v: string) => void;
   addCompRow: () => void;
   removeCompRow: (idx: number) => void;
-  handleRowDomaineChange: (
-    idx: number,
-    val: number | string | null | undefined,
-  ) => void;
+  handleRowDomaineChange: (idx: number, val: number | string | null | undefined) => void;
   handleRowCompetencesChange: (idx: number, vals: NullableId[]) => void;
   handleRowSousCompetencesChange: (idx: number, vals: NullableId[]) => void;
   handleRowSavoirsChange: (idx: number, vals: NullableId[]) => void;
@@ -231,7 +223,7 @@ export default function CompetenciesStep({
                 })}
               </div>
             )}
-          <Button
+            <Button
               type="dashed"
               onClick={addCompRow}
               icon={<PlusOutlined />}

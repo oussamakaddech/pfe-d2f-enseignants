@@ -292,7 +292,6 @@ function mapHeuristicFactor(f: BackendRiskFactorItem): RiskFactor {
   };
 }
 
-
 function mapRiskProfile(raw: BackendRiskProfile): RiskScore {
   const facteurs: RiskFactor[] = (raw.factors ?? []).map(mapHeuristicFactor);
 
@@ -672,11 +671,12 @@ export const analyticsApi = {
             target_validity_label: (m.target_validity_label as string) ?? null,
             data_origin: (m.data_origin as string) ?? null,
             validation_scope: (m.validation_scope as string) ?? null,
-            near_boundary_warning: (m.near_boundary_warning as {
-              code: string;
-              message: string;
-              features: string[];
-            } | null) ?? null,
+            near_boundary_warning:
+              (m.near_boundary_warning as {
+                code: string;
+                message: string;
+                features: string[];
+              } | null) ?? null,
           },
           target_validity: (m.target_validity as string) ?? null,
           validation_scope: (m.validation_scope as string) ?? null,
@@ -776,7 +776,9 @@ export const analyticsApi = {
           risk_class?: string | null;
           probability_calibrated?: number | null;
           probabilities?: Record<string, number> | null;
-          contributions?: { feature: string; value: number; impact: number; method: string }[] | null;
+          contributions?:
+            | { feature: string; value: number; impact: number; method: string }[]
+            | null;
           explanation_method?: string | null;
           fallback_reason?: string | null;
           heuristic_reference?: {
@@ -811,7 +813,6 @@ export const analyticsApi = {
             }
           : null;
         return mapped;
-
       });
   },
 

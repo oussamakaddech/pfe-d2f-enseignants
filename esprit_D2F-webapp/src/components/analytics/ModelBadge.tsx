@@ -120,9 +120,12 @@ export default function ModelBadge({
   const scopeMeta = TARGET_VALIDITY_TEXTS[validationScope ?? ''] ?? null;
   // Priorite : targetValidity > validationScope > dataOrigin SIMULATED
   const simulationBadge =
-    targetMeta && (targetValidity === 'OBSERVED_IN_SIMULATION' || targetValidity === 'SIMULATION_VALIDATED')
+    targetMeta &&
+    (targetValidity === 'OBSERVED_IN_SIMULATION' || targetValidity === 'SIMULATION_VALIDATED')
       ? targetMeta
-      : scopeMeta && (validationScope === 'SIMULATION_VALIDATED' || validationScope === 'OBSERVED_IN_SIMULATION')
+      : scopeMeta &&
+          (validationScope === 'SIMULATION_VALIDATED' ||
+            validationScope === 'OBSERVED_IN_SIMULATION')
         ? scopeMeta
         : dataOrigin === 'SIMULATED'
           ? TARGET_VALIDITY_TEXTS['OBSERVED_IN_SIMULATION']
@@ -156,7 +159,14 @@ export default function ModelBadge({
         {simulationBadge ? (
           <span
             className="at-badge at-badge-heur"
-            style={{ marginLeft: 6, fontSize: size === 'small' ? 10 : 11, padding: '1px 6px', background: '#fff3cd', color: '#856404', borderColor: '#ffe69c' }}
+            style={{
+              marginLeft: 6,
+              fontSize: size === 'small' ? 10 : 11,
+              padding: '1px 6px',
+              background: '#fff3cd',
+              color: '#856404',
+              borderColor: '#ffe69c',
+            }}
             title={simulationBadge.description}
           >
             Validé sur données simulées

@@ -37,6 +37,9 @@ class RiskMLResult:
     # Construit le résultat ML : classe de risque prédite, probabilités
     # calibrées, contributions top-3 et métadonnées (version, origine, scope).
     def __init__(
+        self,
+        risk_class: str,
+        probabilities: dict[str, float],
         contributions: list[dict],
         explanation_method: str,
         model_version: str,

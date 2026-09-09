@@ -174,10 +174,7 @@ export function linksToCompRows(links: BesoinLinkRaw[]): CompetencyRow[] {
       row.competenceIds.push(compId);
     }
     const scId = Number(l.sousCompetenceId);
-    if (
-      l.sousCompetenceId != null &&
-      !row.sousCompetenceIds.some((sc) => Number(sc) === scId)
-    ) {
+    if (l.sousCompetenceId != null && !row.sousCompetenceIds.some((sc) => Number(sc) === scId)) {
       row.sousCompetenceIds.push(scId);
     }
     const savId = Number(l.savoirId);
@@ -875,8 +872,7 @@ export function useFormationWorkflow({
       },
     ]);
 
-  const removeCompRow = (idx: number) =>
-    setCompRows((prev) => prev.filter((_, i) => i !== idx));
+  const removeCompRow = (idx: number) => setCompRows((prev) => prev.filter((_, i) => i !== idx));
 
   const handleRowDomaineChange = (idx: number, val: number | string | null | undefined) =>
     updateCompRow(idx, {
@@ -966,17 +962,12 @@ export function useFormationWorkflow({
 
   /** Union (dédupliquée) des sous-compétences de toutes les compétences d'une ligne. */
   const getRowSousCompetenceOptions = (row: CompetencyRow) => {
-    const unique = new Map<
-      string | number,
-      { id?: unknown; nom?: string; code?: string }
-    >();
-    row.competenceIds
-      .filter(Boolean)
-      .forEach((cid) => {
-        (sousCompetencesByCompetence[Number(cid)] || []).forEach((sc) => {
-          if (sc?.id != null) unique.set(String(sc.id), sc);
-        });
+    const unique = new Map<string | number, { id?: unknown; nom?: string; code?: string }>();
+    row.competenceIds.filter(Boolean).forEach((cid) => {
+      (sousCompetencesByCompetence[Number(cid)] || []).forEach((sc) => {
+        if (sc?.id != null) unique.set(String(sc.id), sc);
       });
+    });
     return Array.from(unique.values());
   };
 
@@ -1013,90 +1004,85 @@ export function useFormationWorkflow({
   const selectedCompLinks = useMemo<BesoinLinkRaw[]>(() => {
     const links: BesoinLinkRaw[] = [];
     compRows.forEach((row) => {
-      row.competenceIds
-        .filter(Boolean)
-        .forEach((cid) => {
-          const comp = compCompetences.find((c) => Number(c.id) === Number(cid));
-          const domainId = comp?.domaineId == null ? null : Number(comp.domaineId);
-          const compName = comp?.nom || '';
-          const rowScIds = row.sousCompetenceIds.filter(Boolean).map((s) => Number(s));
-          const compScs = sousCompetencesByCompetence[Number(cid)] || [];
-          const matchedScs = rowScIds.filter((sid) =>
-            compScs.some((sc) => Number(sc.id) === sid),
-          );
-          const rowSavIds = row.savoirIds.filter(Boolean).map((s) => Number(s));
+      row.competenceIds.filter(Boolean).forEach((cid) => {
+        const comp = compCompetences.find((c) => Number(c.id) === Number(cid));
+        const domainId = comp?.domaineId == null ? null : Number(comp.domaineId);
+        const compName = comp?.nom || '';
+        const rowScIds = row.sousCompetenceIds.filter(Boolean).map((s) => Number(s));
+        const compScs = sousCompetencesByCompetence[Number(cid)] || [];
+        const matchedScs = rowScIds.filter((sid) => compScs.some((sc) => Number(sc.id) === sid));
+        const rowSavIds = row.savoirIds.filter(Boolean).map((s) => Number(s));
 
-          // Scope des savoirs pour cette compétence : ses sous-compétences si
-          // cochées, sinon les savoirs directs de la compétence.
-          const scToSavoirIds = new Map<number, number[]>();
-          let savoirScope: { id?: unknown; nom?: string; type?: string }[] = [];
-          const uniqScope = new Map<string, { id?: unknown; nom?: string; type?: string }>();
-          if (matchedScs.length > 0) {
-            matchedScs.forEach((scId) => {
-              const scSavoirs = savoirsBySousCompetence[scId] || [];
-              scToSavoirIds.set(scId, scSavoirs.map((s) => Number(s.id)).filter(Boolean));
-              scSavoirs.forEach((s) => {
-                if (s?.id != null) uniqScope.set(String(s.id), s);
-              });
+        // Scope des savoirs pour cette compétence : ses sous-compétences si
+        // cochées, sinon les savoirs directs de la compétence.
+        const scToSavoirIds = new Map<number, number[]>();
+        let savoirScope: { id?: unknown; nom?: string; type?: string }[] = [];
+        const uniqScope = new Map<string, { id?: unknown; nom?: string; type?: string }>();
+        if (matchedScs.length > 0) {
+          matchedScs.forEach((scId) => {
+            const scSavoirs = savoirsBySousCompetence[scId] || [];
+            scToSavoirIds.set(scId, scSavoirs.map((s) => Number(s.id)).filter(Boolean));
+            scSavoirs.forEach((s) => {
+              if (s?.id != null) uniqScope.set(String(s.id), s);
             });
-            savoirScope = Array.from(uniqScope.values());
-          } else {
-            savoirScope = savoirsByCompetence[Number(cid)] || [];
-          }
+          });
+          savoirScope = Array.from(uniqScope.values());
+        } else {
+          savoirScope = savoirsByCompetence[Number(cid)] || [];
+        }
 
-          const matchedSavoirs = rowSavIds.filter((sid) =>
-            savoirScope.some((s) => Number(s.id) === sid),
-          );
+        const matchedSavoirs = rowSavIds.filter((sid) =>
+          savoirScope.some((s) => Number(s.id) === sid),
+        );
 
-          const subNom = (scId: number) =>
-            compScs.find((sc) => Number(sc.id) === scId)?.nom || '';
+        const subNom = (scId: number) => compScs.find((sc) => Number(sc.id) === scId)?.nom || '';
 
-          if (matchedSavoirs.length > 0) {
-            matchedSavoirs.forEach((sid) => {
-              // la sous-compétence qui possède ce savoir (première trouvée)
-              let ownerSc: number | null = null;
-              scToSavoirIds.forEach((sids, scId) => {
-                if (ownerSc == null && sids.includes(sid)) ownerSc = scId;
-              });
-              const sv = savoirScope.find((s) => Number(s.id) === sid);
-              links.push({
-                _id: crypto.randomUUID(),
-                domaineId: domainId,
-                competenceId: Number(cid),
-                competenceNom: compName,
-                sousCompetenceId: ownerSc,
-                sousCompetenceNom: ownerSc == null ? '' : subNom(ownerSc),
-                savoirId: sid,
-                savoirNom: sv?.nom || '',
-              });
+        if (matchedSavoirs.length > 0) {
+          matchedSavoirs.forEach((sid) => {
+            // la sous-compétence qui possède ce savoir (première trouvée)
+            let ownerSc: number | null = null;
+            scToSavoirIds.forEach((sids, scId) => {
+              if (ownerSc == null && sids.includes(sid)) ownerSc = scId;
             });
-          } else if (matchedScs.length > 0) {
-            // sous-compétences cochées mais aucun savoir coché pour celles-ci
-            matchedScs.forEach((scId) => {
-              links.push({
-                _id: crypto.randomUUID(),
-                domaineId: domainId,
-                competenceId: Number(cid),
-                competenceNom: compName,
-                sousCompetenceId: scId,
-                sousCompetenceNom: subNom(scId),
-                savoirId: null,
-                savoirNom: '',
-              });
-            });
-          } else {
+            const sv = savoirScope.find((s) => Number(s.id) === sid);
             links.push({
               _id: crypto.randomUUID(),
               domaineId: domainId,
               competenceId: Number(cid),
               competenceNom: compName,
-              sousCompetenceId: null,
-              sousCompetenceNom: '',
+              sousCompetenceId: ownerSc,
+              sousCompetenceNom: ownerSc == null ? '' : subNom(ownerSc),
+              savoirId: sid,
+              savoirNom: sv?.nom || '',
+            });
+          });
+        } else if (matchedScs.length > 0) {
+          // sous-compétences cochées mais aucun savoir coché pour celles-ci
+          matchedScs.forEach((scId) => {
+            links.push({
+              _id: crypto.randomUUID(),
+              domaineId: domainId,
+              competenceId: Number(cid),
+              competenceNom: compName,
+              sousCompetenceId: scId,
+              sousCompetenceNom: subNom(scId),
               savoirId: null,
               savoirNom: '',
             });
-          }
-        });
+          });
+        } else {
+          links.push({
+            _id: crypto.randomUUID(),
+            domaineId: domainId,
+            competenceId: Number(cid),
+            competenceNom: compName,
+            sousCompetenceId: null,
+            sousCompetenceNom: '',
+            savoirId: null,
+            savoirNom: '',
+          });
+        }
+      });
     });
     return links;
   }, [

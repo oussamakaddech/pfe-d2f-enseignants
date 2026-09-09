@@ -23,11 +23,7 @@ import ModelBadge, { formatModelVersion } from '@/components/analytics/ModelBadg
 import RiskFactorRow from '@/components/analytics/RiskFactorRow';
 import TeacherScopePanel from '@/components/analytics/TeacherScopePanel';
 import { riskColor } from '@/utils/analytics/format';
-import type {
-  ModelMode,
-  RiskContribution,
-  RiskFactor,
-} from '@/models/analyse/analyticsFeature';
+import type { ModelMode, RiskContribution, RiskFactor } from '@/models/analyse/analyticsFeature';
 import './analyticsTeacher.redesign.css';
 
 const RISK_CLASS_LABELS: Record<string, string> = {
@@ -118,7 +114,10 @@ export default function AnalyticsTeacherPage() {
             <h1 className="at-hero-title">
               {risk.data?.enseignant_nom || scope.data?.context?.nom_complet || enseignantId}
             </h1>
-            <p className="at-hero-sub" title="Indice pondéré explicable (facteurs, caps, profil comportemental) — indice d'aide au classement, PAS une probabilité calibrée.">
+            <p
+              className="at-hero-sub"
+              title="Indice pondéré explicable (facteurs, caps, profil comportemental) — indice d'aide au classement, PAS une probabilité calibrée."
+            >
               Indice de risque : <b>{pct} / 100</b> (non calibré) · {levelLabel}
             </p>
             <span style={{ display: 'block', marginTop: 8 }}>
@@ -203,7 +202,10 @@ export default function AnalyticsTeacherPage() {
                       }}
                     />
                   </svg>
-                  <div className="at-score-label" title="Indice de risque (non calibré) — pas une probabilité">
+                  <div
+                    className="at-score-label"
+                    title="Indice de risque (non calibré) — pas une probabilité"
+                  >
                     <div className="at-score-pct">
                       {pct}
                       <span className="at-score-pct-sign">/100</span>
@@ -218,14 +220,15 @@ export default function AnalyticsTeacherPage() {
                   title={
                     risk.data?.mode === 'ML'
                       ? `Score servi par le modèle ML calibré : probabilité calibrée de la classe ${riskClassLabel(risk.data?.risk_class)} (validation sur données simulées). Décomposition : contributions du modèle (vue principale) + heuristique de référence (vue secondaire).`
-                      : 'Indice pondéré explicable : facteurs normalisés × poids (0,50 gaps critiques / 0,12 gaps haute urgence / 0,40 profondeur moyenne), plafonnement documenté, profil comportemental. Indice d\'aide au classement — PAS une probabilité calibrée.'
+                      : "Indice pondéré explicable : facteurs normalisés × poids (0,50 gaps critiques / 0,12 gaps haute urgence / 0,40 profondeur moyenne), plafonnement documenté, profil comportemental. Indice d'aide au classement — PAS une probabilité calibrée."
                   }
                 >
                   <div className="at-score-meta-row" style={{ fontSize: 11 }}>
                     {risk.data?.mode === 'ML' ? (
                       <>
                         Probabilité calibrée {pct}% · classe{' '}
-                        <b>{riskClassLabel(risk.data?.risk_class)}</b> (modèle ML, validé sur données simulées)
+                        <b>{riskClassLabel(risk.data?.risk_class)}</b> (modèle ML, validé sur
+                        données simulées)
                       </>
                     ) : (
                       <>Indice de risque {pct} / 100 (non calibré)</>
@@ -438,7 +441,7 @@ function FactorsPanel({
             </div>
             Classifier ML
           </div>
-              {probas.map((f) => (
+          {probas.map((f) => (
             <div key={f.nom} className="at-factor-row">
               <div>
                 <div className="at-factor-name">
@@ -508,7 +511,7 @@ const MODEL_MODE_TEXTS: Record<string, { titre: string; detail: string; warn: bo
   HEURISTIC: {
     titre: 'Heuristique (repli fail-closed)',
     detail:
-      'Le modèle ML est indisponible ou non déployé — score servi par l\'heuristique 0,50/0,12/0,40 (raison dans fallback_reason).',
+      "Le modèle ML est indisponible ou non déployé — score servi par l'heuristique 0,50/0,12/0,40 (raison dans fallback_reason).",
     warn: true,
   },
   HEURISTIC_FALLBACK: {
@@ -649,12 +652,14 @@ function ModelsInfoPanel({
           }}
         >
           Cible extrapolée — validation démonstration : la cible gap_next_3m est dérivée de
-          l'historique (tendance glissante), aucune re-mesure future réelle n'est encore
-          disponible. Les métriques mesurent la qualité de l'extrapolation, pas une
-          performance prédictive observée.
+          l'historique (tendance glissante), aucune re-mesure future réelle n'est encore disponible.
+          Les métriques mesurent la qualité de l'extrapolation, pas une performance prédictive
+          observée.
         </div>
       )}
-      {(targetValidity === 'OBSERVED_IN_SIMULATION' || validationScope === 'SIMULATION_VALIDATED' || dataOrigin === 'SIMULATED') && (
+      {(targetValidity === 'OBSERVED_IN_SIMULATION' ||
+        validationScope === 'SIMULATION_VALIDATED' ||
+        dataOrigin === 'SIMULATED') && (
         <div
           style={{
             marginTop: 10,
@@ -666,8 +671,8 @@ function ModelsInfoPanel({
             borderRadius: 8,
           }}
         >
-          Validé sur données simulées — Pipeline et gouvernance validés de bout en bout sur
-          données simulées réalistes (générateur documenté, seed 42, backtest M+3, IC bootstrap,
+          Validé sur données simulées — Pipeline et gouvernance validés de bout en bout sur données
+          simulées réalistes (générateur documenté, seed 42, backtest M+3, IC bootstrap,
           calibration) ; déploiement réel conditionné à l’accès aux données DSI.
         </div>
       )}
@@ -782,7 +787,9 @@ function RiskMLExplanationPanel({
       {probaEntries.length > 0 && (
         <div style={{ marginTop: 8, fontSize: 11, color: 'var(--at-ink3)' }}>
           Probabilités calibrées :{' '}
-          {probaEntries.map(([cls, p]) => `${riskClassLabel(cls)} ${Math.round(p * 100)}%`).join(' · ')}
+          {probaEntries
+            .map(([cls, p]) => `${riskClassLabel(cls)} ${Math.round(p * 100)}%`)
+            .join(' · ')}
         </div>
       )}
       {heuristicReference && (
@@ -805,7 +812,10 @@ function RiskMLExplanationPanel({
                   ))}
                   {heuristicReference.weights && (
                     <div style={{ fontSize: 11, color: 'var(--at-ink3)', marginTop: 8 }}>
-                      Poids : {Object.entries(heuristicReference.weights).map(([k, v]) => `${k} ${v}`).join(' · ')}
+                      Poids :{' '}
+                      {Object.entries(heuristicReference.weights)
+                        .map(([k, v]) => `${k} ${v}`)
+                        .join(' · ')}
                     </div>
                   )}
                 </div>

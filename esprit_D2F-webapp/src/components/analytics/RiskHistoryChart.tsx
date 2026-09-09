@@ -30,9 +30,11 @@ export default function RiskHistoryChart({ points, loading }: RiskHistoryChartPr
   // calibree quand elles sont servies par le modele (points ML), pas seulement le %.
   const hasMlInfo = points.some((p) => p.risk_class != null || p.probability_calibrated != null);
   const CLASS_LABELS: Record<string, string> = {
-    LOW: 'FAIBLE', MEDIUM: 'MODEREE', HIGH: 'HAUTE', CRITICAL: 'CRITIQUE',
+    LOW: 'FAIBLE',
+    MEDIUM: 'MODEREE',
+    HIGH: 'HAUTE',
+    CRITICAL: 'CRITIQUE',
   };
-
 
   const first = points[0].score;
   const lastPoint = points.at(-1)!;
@@ -83,10 +85,14 @@ export default function RiskHistoryChart({ points, loading }: RiskHistoryChartPr
                   const p = points[ctx.dataIndex];
                   const parts: string[] = [];
                   if (p.risk_class != null) {
-                    parts.push(`Classe : ${CLASS_LABELS[p.risk_class.toUpperCase()] ?? p.risk_class}`);
+                    parts.push(
+                      `Classe : ${CLASS_LABELS[p.risk_class.toUpperCase()] ?? p.risk_class}`,
+                    );
                   }
                   if (p.probability_calibrated != null) {
-                    parts.push(`Probabilité calibrée : ${Math.round(p.probability_calibrated * 100)}%`);
+                    parts.push(
+                      `Probabilité calibrée : ${Math.round(p.probability_calibrated * 100)}%`,
+                    );
                   }
                   return parts;
                 },
