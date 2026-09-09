@@ -8,6 +8,7 @@ import type { BesoinCompetenceLink } from '@/models/besoin';
 
 type ReferentielDomaine = { id?: string | number; nom?: string };
 type ReferentielCompetence = { id?: string | number; nom?: string; domaineId?: string | number };
+type ReferentielSousCompetence = { id?: string | number; nom?: string; competenceId?: string | number };
 type ReferentielSavoir = { id?: string | number; nom?: string; type?: string };
 
 interface BesoinCompetencesStepProps {
@@ -16,11 +17,14 @@ interface BesoinCompetencesStepProps {
   compCompetences: ReferentielCompetence[];
   selectedCompLinks: BesoinCompetenceLink[];
   setSelectedCompLinks: (links: BesoinCompetenceLink[]) => void;
+  rowSousCompetences: Record<number, ReferentielSousCompetence[]>;
   rowSavoirs: Record<number, ReferentielSavoir[]>;
   setRowSavoirs: (savoirs: Record<number, ReferentielSavoir[]>) => void;
   compSearch: string;
   setCompSearch: (v: string) => void;
   onCompetenceChange: (idx: number, competence: ReferentielCompetence | null) => void;
+  onSousCompetencesChange: (idx: number, ids: (string | number)[]) => void;
+  onSavoirsChange: (idx: number, ids: (string | number)[]) => void;
 }
 
 export default function BesoinCompetencesStep({
@@ -29,11 +33,14 @@ export default function BesoinCompetencesStep({
   compCompetences,
   selectedCompLinks,
   setSelectedCompLinks,
+  rowSousCompetences,
   rowSavoirs,
   setRowSavoirs,
   compSearch,
   setCompSearch,
   onCompetenceChange,
+  onSousCompetencesChange,
+  onSavoirsChange,
 }: Readonly<BesoinCompetencesStepProps>) {
   return (
     <div className="bf-step">
@@ -119,7 +126,11 @@ export default function BesoinCompetencesStep({
                           ...u[idx],
                           domaineId: val ?? null,
                           competenceId: null,
+                          competenceNom: '',
+                          sousCompetenceId: null,
+                          sousCompetenceIds: [],
                           savoirId: null,
+                          savoirIds: [],
                         };
                         setSelectedCompLinks(u);
                         const ns: Record<number, ReferentielSavoir[]> = { ...rowSavoirs };
@@ -151,29 +162,35 @@ export default function BesoinCompetencesStep({
                       optionFilterProp="label"
                     />
                     <Select
-                      placeholder="Savoir (optionnel)"
+                      mode="multiple"
+                      placeholder="Sous-compétences (optionnel)"
+                      allowClear
+                      style={{ minWidth: 220 }}
+                      value={link.sousCompetenceIds ?? []}
+                      disabled={!link.competenceId}
+                      onChange={(vals) => onSousCompetencesChange(idx, vals)}
+                      options={(Array.isArray(rowSousCompetences[idx]) ? rowSousCompetences[idx] : []).map(
+                        (sc) => ({ value: sc.id, label: sc.nom }),
+                      )}
+                      showSearch
+                      optionFilterProp="label"
+                      maxTagCount={2}
+                    />
+                    <Select
+                      mode="multiple"
+                      placeholder="Savoirs (optionnel)"
                       allowClear
                       style={{ minWidth: 200 }}
-                      value={link.savoirId}
+                      value={link.savoirIds ?? []}
                       disabled={!link.competenceId}
-                      onChange={(val) => {
-                        const u = [...selectedCompLinks];
-                        u[idx] = {
-                          ...u[idx],
-                          savoirId: val ?? null,
-                          savoirNom:
-                            (Array.isArray(rowSavoirs[idx]) ? rowSavoirs[idx] : []).find(
-                              (s) => s.id === val,
-                            )?.nom || '',
-                        };
-                        setSelectedCompLinks(u);
-                      }}
+                      onChange={(vals) => onSavoirsChange(idx, vals)}
                       options={(Array.isArray(rowSavoirs[idx]) ? rowSavoirs[idx] : []).map((s) => ({
                         value: s.id,
                         label: `${s.nom} (${s.type || ''})`,
                       }))}
                       showSearch
                       optionFilterProp="label"
+                      maxTagCount={2}
                     />
                   </div>
                   <Button
@@ -194,7 +211,13 @@ export default function BesoinCompetencesStep({
             onClick={() =>
               setSelectedCompLinks([
                 ...selectedCompLinks,
-                { domaineId: null, competenceId: null, savoirId: null },
+                {
+                  domaineId: null,
+                  competenceId: null,
+                  savoirId: null,
+                  sousCompetenceIds: [],
+                  savoirIds: [],
+                },
               ])
             }
             style={{ marginTop: 4 }}

@@ -49,4 +49,15 @@ export interface BesoinCompetenceLink {
   savoirId?: number | null;
   savoirNom?: string;
   sousCompetenceId?: number | null;
+  /** V27 — nom de la sous-compétence (persisté côté backend, parité savoirNom) */
+  sousCompetenceNom?: string;
+  /**
+   * UI uniquement (formulaire de création) — sélections multiples avant
+   * expansion en lignes plates à la soumission (une ligne par savoir).
+   */
+  sousCompetenceIds?: Id[];
+  savoirIds?: Id[];
+  /** UI uniquement — noms résolus pour le récapitulatif */
+  sousCompetenceNoms?: string[];
+  savoirNoms?: string[];
 }

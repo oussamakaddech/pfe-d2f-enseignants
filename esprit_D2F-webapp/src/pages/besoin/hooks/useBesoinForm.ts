@@ -13,6 +13,7 @@ import type { Id } from '@/models/common';
 import {
   useCompetenceDomaineApi,
   useCompetenceApi,
+  useSousCompetenceApi,
   useSavoirApi,
 } from '@/hooks/competence/useCompetenceService';
 import { useAllDepts } from '@/hooks/formation/useDeptCrud';
@@ -62,7 +63,8 @@ type BesoinPayloadValues = {
 
 type ReferentielDomaine = { id?: string | number; nom?: string };
 type ReferentielCompetence = { id?: string | number; nom?: string; domaineId?: string | number };
-type ReferentielSavoir = { id?: string | number; nom?: string; type?: string };
+type ReferentielSousCompetence = { id?: string | number; nom?: string; competenceId?: string | number };
+type ReferentielSavoir = { id?: string | number; nom?: string; type?: string; sousCompetenceId?: string | number };
 
 const toNum = (v: string | number | null | undefined): number | null =>
   v == null ? null : Number(v);
@@ -91,6 +93,7 @@ export function useBesoinForm() {
   const replaceBesoinCompetences = useReplaceBesoinCompetences();
   const competenceDomaineApi = useCompetenceDomaineApi();
   const competenceApiService = useCompetenceApi();
+  const sousCompetenceApiService = useSousCompetenceApi();
   const savoirApiService = useSavoirApi();
 
   const [submitting, setSubmitting] = useState(false);
@@ -111,6 +114,7 @@ export function useBesoinForm() {
   const [compDomaines, setCompDomaines] = useState<ReferentielDomaine[]>([]);
   const [compCompetences, setCompCompetences] = useState<ReferentielCompetence[]>([]);
   const [selectedCompLinks, setSelectedCompLinks] = useState<BesoinCompetenceLink[]>([]);
+  const [rowSousCompetences, setRowSousCompetences] = useState<Record<number, ReferentielSousCompetence[]>>({});
   const [rowSavoirs, setRowSavoirs] = useState<Record<number, ReferentielSavoir[]>>({});
   const [compLoaded, setCompLoaded] = useState(false);
   const [compSearch, setCompSearch] = useState('');
@@ -140,12 +144,28 @@ export function useBesoinForm() {
       competenceNom: competence?.nom || '',
       domaineId: toNum(competence?.domaineId ?? updated[idx]?.domaineId ?? null),
       sousCompetenceId: null,
+      sousCompetenceNom: undefined,
+      sousCompetenceIds: [],
+      sousCompetenceNoms: [],
       savoirId: null,
+      savoirIds: [],
+      savoirNoms: [],
     };
     setSelectedCompLinks(updated);
+    const newSous: Record<number, ReferentielSousCompetence[]> = { ...rowSousCompetences };
     const newSavoirs: Record<number, ReferentielSavoir[]> = { ...rowSavoirs };
+    newSous[idx] = [];
     newSavoirs[idx] = [];
     if (competence?.id) {
+      // Sous-compétences de la compétence + savoirs rattachés directement
+      // (affinés ensuite par les sous-compétences sélectionnées).
+      try {
+        newSous[idx] = (await sousCompetenceApiService.getByCompetence(
+          competence.id,
+        )) as ReferentielSousCompetence[];
+      } catch {
+        /* ignore */
+      }
       try {
         newSavoirs[idx] = (await savoirApiService.getByCompetence(
           competence.id,
@@ -154,7 +174,144 @@ export function useBesoinForm() {
         /* ignore */
       }
     }
+    setRowSousCompetences(newSous);
     setRowSavoirs(newSavoirs);
+  };
+
+  const handleSousCompetencesChange = async (idx: number, ids: (string | number)[]) => {
+    const options = Array.isArray(rowSousCompetences[idx]) ? rowSousCompetences[idx] : [];
+    const selected = options.filter((o) => ids.includes(o.id as string | number));
+    const updated = [...selectedCompLinks];
+    updated[idx] = {
+      ...updated[idx],
+      sousCompetenceId: selected.length === 1 ? toNum(selected[0].id) : null,
+      sousCompetenceNom: selected.length === 1 ? selected[0].nom || undefined : undefined,
+      sousCompetenceIds: ids,
+      sousCompetenceNoms: selected.map((o) => o.nom || ''),
+      savoirId: null,
+      savoirIds: [],
+      savoirNoms: [],
+    };
+    setSelectedCompLinks(updated);
+    // Savoirs proposés = union des savoirs des sous-compétences choisies ;
+    // sans sous-compétence → savoirs rattachés directement à la compétence.
+    const newSavoirs: Record<number, ReferentielSavoir[]> = { ...rowSavoirs };
+    if (selected.length > 0) {
+      try {
+        const perSousComp = await Promise.all(
+          selected.map((sc) =>
+            savoirApiService
+              .getBySousCompetence(sc.id as string | number)
+              .catch(() => [] as ReferentielSavoir[]),
+          ),
+        );
+        const merged = new Map<string | number, ReferentielSavoir>();
+        perSousComp.flat().forEach((s) => {
+          if (s?.id != null) merged.set(s.id, s);
+        });
+        newSavoirs[idx] = Array.from(merged.values());
+      } catch {
+        /* ignore */
+      }
+    } else if (updated[idx].competenceId != null) {
+      const competenceId = updated[idx].competenceId as string | number;
+      try {
+        newSavoirs[idx] = (await savoirApiService.getByCompetence(
+          competenceId,
+        )) as ReferentielSavoir[];
+      } catch {
+        /* ignore */
+      }
+    } else {
+      newSavoirs[idx] = [];
+    }
+    setRowSavoirs(newSavoirs);
+  };
+
+  const handleSavoirsChange = (idx: number, ids: (string | number)[]) => {
+    const options = Array.isArray(rowSavoirs[idx]) ? rowSavoirs[idx] : [];
+    const selected = options.filter((o) => ids.includes(o.id as string | number));
+    const updated = [...selectedCompLinks];
+    updated[idx] = {
+      ...updated[idx],
+      // savoirId unique conservé (parité API) : premier savoir sélectionné
+      savoirId: selected.length > 0 ? toNum(selected[0].id) : null,
+      savoirNom: selected.length > 0 ? selected[0].nom || '' : '',
+      savoirIds: ids,
+      savoirNoms: selected.map((o) => o.nom || ''),
+    };
+    setSelectedCompLinks(updated);
+  };
+
+  /**
+   * V27 — expansion des sélections multiples en lignes plates persistées :
+   *  - savoirs sélectionnés   → une ligne par savoir (sous-compétence résolue via le savoir) ;
+   *  - sinon sous-compétences → une ligne par sous-compétence ;
+   *  - sinon                  → une ligne compétence seule.
+   */
+  const buildFlatLinks = (): BesoinCompetenceLink[] => {
+    const links: BesoinCompetenceLink[] = [];
+    selectedCompLinks.forEach((row, idx) => {
+      if (!row.competenceId) return;
+      const savoirOptions = Array.isArray(rowSavoirs[idx]) ? rowSavoirs[idx] : [];
+      const savoirById = new Map(savoirOptions.map((s) => [String(s.id), s]));
+      const sousOptions = Array.isArray(rowSousCompetences[idx]) ? rowSousCompetences[idx] : [];
+      const sousById = new Map(sousOptions.map((s) => [String(s.id), s]));
+      const base = {
+        domaineId: row.domaineId,
+        competenceId: row.competenceId,
+        competenceNom: row.competenceNom,
+      };
+      const savoirIds = row.savoirIds ?? [];
+      const sousIds = row.sousCompetenceIds ?? [];
+      if (savoirIds.length > 0) {
+        savoirIds.forEach((sid) => {
+          const s = savoirById.get(String(sid));
+          let sousCompetenceId = s?.sousCompetenceId != null ? toNum(s.sousCompetenceId) : null;
+          let sousCompetenceNom: string | undefined =
+            sousCompetenceId != null
+              ? sousById.get(String(sousCompetenceId))?.nom || undefined
+              : undefined;
+          if (sousCompetenceId == null && sousIds.length === 1) {
+            sousCompetenceId = toNum(sousIds[0]);
+            sousCompetenceNom = sousById.get(String(sousIds[0]))?.nom || undefined;
+          }
+          links.push({
+            ...base,
+            savoirId: toNum(s?.id ?? sid),
+            savoirNom: s?.nom || '',
+            sousCompetenceId,
+            sousCompetenceNom,
+          });
+        });
+      } else if (sousIds.length > 0) {
+        sousIds.forEach((scid) => {
+          links.push({
+            ...base,
+            sousCompetenceId: toNum(scid),
+            sousCompetenceNom: sousById.get(String(scid))?.nom || undefined,
+            savoirId: null,
+            savoirNom: '',
+          });
+        });
+      } else {
+        links.push({
+          ...base,
+          sousCompetenceId: null,
+          sousCompetenceNom: undefined,
+          savoirId: null,
+          savoirNom: '',
+        });
+      }
+    });
+    // Déduplication défensive (miroir de l'index unique V27)
+    const seen = new Set<string>();
+    return links.filter((l) => {
+      const key = `${l.competenceId}:${l.sousCompetenceId}:${l.savoirId}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   };
 
   const getStepFields = (step: number): string[] => {
@@ -310,8 +467,8 @@ export function useBesoinForm() {
       const payload = buildPayload(values);
       const created = await addBesoin.mutateAsync(payload);
       const besoinId = created?.idBesoinFormation;
-      if (besoinId && selectedCompLinks.length > 0) {
-        const links = selectedCompLinks.filter((l) => l.competenceId).map((l) => ({ ...l }));
+      if (besoinId) {
+        const links = buildFlatLinks();
         if (links.length > 0) {
           await replaceBesoinCompetences.mutateAsync({ besoinId: Number(besoinId), links });
         }
@@ -320,6 +477,7 @@ export function useBesoinForm() {
       setSubmitted(true);
       form.resetFields();
       setSelectedCompLinks([]);
+      setRowSousCompetences({});
       setRowSavoirs({});
       setCompLoaded(false);
       setCompSearch('');
@@ -351,6 +509,7 @@ export function useBesoinForm() {
     compCompetences,
     selectedCompLinks,
     setSelectedCompLinks,
+    rowSousCompetences,
     rowSavoirs,
     setRowSavoirs,
     compLoaded,
@@ -361,6 +520,8 @@ export function useBesoinForm() {
     acteurOptions,
     enseignantsLoading,
     handleCompetenceChange,
+    handleSousCompetencesChange,
+    handleSavoirsChange,
     handleSubmit,
     next,
     prev,

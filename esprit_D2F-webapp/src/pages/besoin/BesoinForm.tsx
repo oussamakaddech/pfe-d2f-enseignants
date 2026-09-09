@@ -163,11 +163,14 @@ export default function BesoinForm() {
       compCompetences={ctx.compCompetences}
       selectedCompLinks={ctx.selectedCompLinks}
       setSelectedCompLinks={ctx.setSelectedCompLinks}
+      rowSousCompetences={ctx.rowSousCompetences}
       rowSavoirs={ctx.rowSavoirs}
       setRowSavoirs={ctx.setRowSavoirs}
       compSearch={ctx.compSearch}
       setCompSearch={ctx.setCompSearch}
       onCompetenceChange={ctx.handleCompetenceChange}
+      onSousCompetencesChange={ctx.handleSousCompetencesChange}
+      onSavoirsChange={ctx.handleSavoirsChange}
     />,
     <BesoinParametresStep key="parametres" />,
   ];

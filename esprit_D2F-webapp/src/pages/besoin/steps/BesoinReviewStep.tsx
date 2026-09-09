@@ -213,7 +213,15 @@ export function buildSummarySections(
               .filter((l) => l.competenceId)
               .map((l, i) => ({
                 label: `Compétence ${i + 1}`,
-                value: [l.competenceNom, l.savoirNom].filter(Boolean).join(' → ') || '—',
+                value:
+                  [
+                    l.competenceNom,
+                    ...(l.sousCompetenceNoms ??
+                      (l.sousCompetenceNom ? [l.sousCompetenceNom] : [])),
+                    ...(l.savoirNoms ?? (l.savoirNom ? [l.savoirNom] : [])),
+                  ]
+                    .filter(Boolean)
+                    .join(' → ') || '—',
               })),
     },
     {
