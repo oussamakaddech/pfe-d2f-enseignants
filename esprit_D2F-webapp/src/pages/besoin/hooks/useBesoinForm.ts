@@ -63,8 +63,17 @@ type BesoinPayloadValues = {
 
 type ReferentielDomaine = { id?: string | number; nom?: string };
 type ReferentielCompetence = { id?: string | number; nom?: string; domaineId?: string | number };
-type ReferentielSousCompetence = { id?: string | number; nom?: string; competenceId?: string | number };
-type ReferentielSavoir = { id?: string | number; nom?: string; type?: string; sousCompetenceId?: string | number };
+type ReferentielSousCompetence = {
+  id?: string | number;
+  nom?: string;
+  competenceId?: string | number;
+};
+type ReferentielSavoir = {
+  id?: string | number;
+  nom?: string;
+  type?: string;
+  sousCompetenceId?: string | number;
+};
 
 const toNum = (v: string | number | null | undefined): number | null =>
   v == null ? null : Number(v);
@@ -114,7 +123,9 @@ export function useBesoinForm() {
   const [compDomaines, setCompDomaines] = useState<ReferentielDomaine[]>([]);
   const [compCompetences, setCompCompetences] = useState<ReferentielCompetence[]>([]);
   const [selectedCompLinks, setSelectedCompLinks] = useState<BesoinCompetenceLink[]>([]);
-  const [rowSousCompetences, setRowSousCompetences] = useState<Record<number, ReferentielSousCompetence[]>>({});
+  const [rowSousCompetences, setRowSousCompetences] = useState<
+    Record<number, ReferentielSousCompetence[]>
+  >({});
   const [rowSavoirs, setRowSavoirs] = useState<Record<number, ReferentielSavoir[]>>({});
   const [compLoaded, setCompLoaded] = useState(false);
   const [compSearch, setCompSearch] = useState('');

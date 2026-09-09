@@ -8,7 +8,11 @@ import type { BesoinCompetenceLink } from '@/models/besoin';
 
 type ReferentielDomaine = { id?: string | number; nom?: string };
 type ReferentielCompetence = { id?: string | number; nom?: string; domaineId?: string | number };
-type ReferentielSousCompetence = { id?: string | number; nom?: string; competenceId?: string | number };
+type ReferentielSousCompetence = {
+  id?: string | number;
+  nom?: string;
+  competenceId?: string | number;
+};
 type ReferentielSavoir = { id?: string | number; nom?: string; type?: string };
 
 interface BesoinCompetencesStepProps {
@@ -169,9 +173,10 @@ export default function BesoinCompetencesStep({
                       value={link.sousCompetenceIds ?? []}
                       disabled={!link.competenceId}
                       onChange={(vals) => onSousCompetencesChange(idx, vals)}
-                      options={(Array.isArray(rowSousCompetences[idx]) ? rowSousCompetences[idx] : []).map(
-                        (sc) => ({ value: sc.id, label: sc.nom }),
-                      )}
+                      options={(Array.isArray(rowSousCompetences[idx])
+                        ? rowSousCompetences[idx]
+                        : []
+                      ).map((sc) => ({ value: sc.id, label: sc.nom }))}
                       showSearch
                       optionFilterProp="label"
                       maxTagCount={2}

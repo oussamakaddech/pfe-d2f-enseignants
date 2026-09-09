@@ -216,8 +216,7 @@ export function buildSummarySections(
                 value:
                   [
                     l.competenceNom,
-                    ...(l.sousCompetenceNoms ??
-                      (l.sousCompetenceNom ? [l.sousCompetenceNom] : [])),
+                    ...(l.sousCompetenceNoms ?? (l.sousCompetenceNom ? [l.sousCompetenceNom] : [])),
                     ...(l.savoirNoms ?? (l.savoirNom ? [l.savoirNom] : [])),
                   ]
                     .filter(Boolean)

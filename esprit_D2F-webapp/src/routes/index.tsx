@@ -122,12 +122,7 @@ export default function AppRoutes() {
                   <Route
                     element={
                       <RoleGuard
-                        allowedRoles={[
-                          ROLES.ADMIN,
-                          ROLES.CUP,
-                          ROLES.ENSEIGNANT,
-                          ROLES.ANIMATEUR,
-                        ]}
+                        allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.ENSEIGNANT, ROLES.ANIMATEUR]}
                       />
                     }
                   >
@@ -356,12 +351,7 @@ export default function AppRoutes() {
                   <Route
                     element={
                       <RoleGuard
-                        allowedRoles={[
-                          ROLES.ANIMATEUR,
-                          ROLES.ENSEIGNANT,
-                          ROLES.ADMIN,
-                          ROLES.CUP,
-                        ]}
+                        allowedRoles={[ROLES.ANIMATEUR, ROLES.ENSEIGNANT, ROLES.ADMIN, ROLES.CUP]}
                       />
                     }
                   >
