@@ -92,11 +92,11 @@ export default function BesoinTable({
         const id = getBesoinId(r);
         const isFullyApproved = !!r.approuveAdmin;
         const isMyTurnToApprove =
-          canApprove && !isFullyApproved && (
-            (userRole === 'CUP' && !r.approuveCUP) ||
+          canApprove &&
+          !isFullyApproved &&
+          ((userRole === 'CUP' && !r.approuveCUP) ||
             (userRole === 'CHEF_DEPARTEMENT' && !!r.approuveCUP && !r.approuveChefDep) ||
-            (userRole === 'admin' && !!r.approuveCUP && !!r.approuveChefDep && !r.approuveAdmin)
-          );
+            (userRole === 'admin' && !!r.approuveCUP && !!r.approuveChefDep && !r.approuveAdmin));
         return (
           <Space size={4}>
             {isMyTurnToApprove && (

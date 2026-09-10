@@ -50,7 +50,9 @@ const AffectationEnseignantPage = lazy(
 const RicePage = lazy(() => import('@/pages/competence/RicePage'));
 const CompetenceMatchingPage = lazy(() => import('@/pages/competence/CompetenceMatchingPage'));
 const EvaluationGlobalePage = lazy(() => import('@/pages/evaluation/EvaluationGlobalePage'));
-const EvaluationParticipantPage = lazy(() => import('@/pages/evaluation/EvaluationParticipantPage'));
+const EvaluationParticipantPage = lazy(
+  () => import('@/pages/evaluation/EvaluationParticipantPage'),
+);
 const TeacherAnalyticsPage = lazy(() => import('@/pages/analyse/AnalyticsTeacherPage'));
 const AnalysePredictivePage = lazy(() => import('@/pages/analyse/AnalyticsPage'));
 const EnseignantsInactifsPage = lazy(() => import('@/pages/analyse/EnseignantsInactifsPage'));
@@ -122,7 +124,13 @@ export default function AppRoutes() {
                   <Route
                     element={
                       <RoleGuard
-                        allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.ENSEIGNANT, ROLES.ANIMATEUR, ROLES.CHEF_DEPARTEMENT]}
+                        allowedRoles={[
+                          ROLES.ADMIN,
+                          ROLES.CUP,
+                          ROLES.ENSEIGNANT,
+                          ROLES.ANIMATEUR,
+                          ROLES.CHEF_DEPARTEMENT,
+                        ]}
                       />
                     }
                   >
@@ -274,7 +282,10 @@ export default function AppRoutes() {
                     }
                   >
                     <Route path="/home/Evaluations" element={<EvaluationGlobalePage />} />
-                    <Route path="/home/Evaluations/Participants" element={<EvaluationParticipantPage />} />
+                    <Route
+                      path="/home/Evaluations/Participants"
+                      element={<EvaluationParticipantPage />}
+                    />
                   </Route>
 
                   {/* Référentiel Compétences : masqué aux ENSEIGNANT et ANIMATEUR (pas de besoin métier). */}
@@ -309,7 +320,11 @@ export default function AppRoutes() {
                     />
                   </Route>
 
-                  <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />}>
+                  <Route
+                    element={
+                      <RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />
+                    }
+                  >
                     <Route path="/home/affectations" element={<AffectationEnseignantPage />} />
                     <Route path="/home/rice/matchmaking" element={<CompetenceMatchingPage />} />
                     <Route

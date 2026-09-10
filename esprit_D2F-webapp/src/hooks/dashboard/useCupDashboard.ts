@@ -92,7 +92,13 @@ export interface CupDashboardAccess {
 
 // Rôles autorisés à lire les KPI / besoins globaux (parité DASHBOARD_ADMIN_LIMITED
 // et BESOIN_FORMATION_READ_ALL). L'ENSEIGNANT en est exclu (403 backend).
-const CAN_READ_KPIS = ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'Animateur', 'ResponsableDossier'] as const;
+const CAN_READ_KPIS = [
+  'admin',
+  'CUP',
+  'CHEF_DEPARTEMENT',
+  'Animateur',
+  'ResponsableDossier',
+] as const;
 
 export function useCupDashboard(pilotage: boolean = true, access: CupDashboardAccess = {}) {
   // Sans garde, ces requêtes partaient en 403 pour l'enseignant (KPI + besoins)

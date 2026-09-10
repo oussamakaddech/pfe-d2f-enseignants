@@ -282,32 +282,38 @@ export default function EnseignantCompetencePage() {
       render: (c: string | undefined) => <span style={truncateCellStyle}>{c || '—'}</span>,
     },
     ...(canEdit || canDelete
-      ? [{
-          title: 'Actions',
-          key: 'actions',
-          width: 100,
-          render: (_: unknown, record: EnseignantCompetenceRecord) => (
-            <Space>
-              {canEdit && (
-                <Tooltip title="Modifier le niveau">
-                  <Button size="small" icon={<EditOutlined />} onClick={() => openNiveauModal(record)} />
-                </Tooltip>
-              )}
-              {canDelete && (
-                <Tooltip title="Retirer">
-                  <Popconfirm
-                    title="Retirer cette compétence ?"
-                    okText="Oui"
-                    cancelText="Non"
-                    onConfirm={() => record.id != null && handleDelete(record.id)}
-                  >
-                    <Button size="small" danger icon={<DeleteOutlined />} />
-                  </Popconfirm>
-                </Tooltip>
-              )}
-            </Space>
-          ),
-        }]
+      ? [
+          {
+            title: 'Actions',
+            key: 'actions',
+            width: 100,
+            render: (_: unknown, record: EnseignantCompetenceRecord) => (
+              <Space>
+                {canEdit && (
+                  <Tooltip title="Modifier le niveau">
+                    <Button
+                      size="small"
+                      icon={<EditOutlined />}
+                      onClick={() => openNiveauModal(record)}
+                    />
+                  </Tooltip>
+                )}
+                {canDelete && (
+                  <Tooltip title="Retirer">
+                    <Popconfirm
+                      title="Retirer cette compétence ?"
+                      okText="Oui"
+                      cancelText="Non"
+                      onConfirm={() => record.id != null && handleDelete(record.id)}
+                    >
+                      <Button size="small" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                  </Tooltip>
+                )}
+              </Space>
+            ),
+          },
+        ]
       : []),
   ];
 

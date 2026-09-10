@@ -234,7 +234,13 @@ export default function AffectationEnseignantPage() {
     }
   };
 
-  const columns = buildMainColumns({ openNiveauModal, handleDeleteSavoir, handleDeleteAll, canEdit, canDelete });
+  const columns = buildMainColumns({
+    openNiveauModal,
+    handleDeleteSavoir,
+    handleDeleteAll,
+    canEdit,
+    canDelete,
+  });
 
   const expandedRowRender = (record: EnseignantRow) => (
     <Table

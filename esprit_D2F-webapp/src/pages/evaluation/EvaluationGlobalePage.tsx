@@ -479,8 +479,8 @@ export default function EvaluationGlobalePage() {
 
       <Alert
         message={
-            isEnseignantRole
-              ? 'Vous évaluez les formations que vous avez suivies. Votre identifiant est pré-rempli.'
+          isEnseignantRole
+            ? 'Vous évaluez les formations que vous avez suivies. Votre identifiant est pré-rempli.'
             : 'Une seule évaluation globale est autorisée par formation.'
         }
         type={isEnseignantRole ? 'info' : 'info'}
@@ -571,13 +571,21 @@ export default function EvaluationGlobalePage() {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item name="noteGlobale" label="Note Globale (/20)" rules={[{ required: true, message: 'Note obligatoire' }]}>
+          <Form.Item
+            name="noteGlobale"
+            label="Note Globale (/20)"
+            rules={[{ required: true, message: 'Note obligatoire' }]}
+          >
             <InputNumber min={0} max={20} step={0.5} className="w-full" />
           </Form.Item>
           <Form.Item name="commentaireGeneral" label="Commentaire Général">
             <TextArea rows={4} placeholder="Commentaire général sur la formation" />
           </Form.Item>
-          <Form.Item name="dateEvaluation" label="Date d'Évaluation" rules={[{ required: true, message: 'Date obligatoire' }]}>
+          <Form.Item
+            name="dateEvaluation"
+            label="Date d'Évaluation"
+            rules={[{ required: true, message: 'Date obligatoire' }]}
+          >
             <DatePicker className="w-full" />
           </Form.Item>
           <Form.Item name="recommandation" label="Recommandation">

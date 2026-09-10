@@ -158,23 +158,25 @@ export function buildMainColumns(opts: BuildColumnsOpts): TableColumnsType<Ensei
       ),
     },
     ...(canDelete
-      ? [{
-          title: '',
-          key: 'actions',
-          width: 60,
-          align: 'center' as const,
-          render: (_: unknown, rec: EnseignantRow) => (
-            <Popconfirm
-              title={`Supprimer toutes les affectations de ${rec.nom} ?`}
-              okText="Supprimer"
-              okButtonProps={{ danger: true }}
-              cancelText="Annuler"
-              onConfirm={() => handleDeleteAll(rec)}
-            >
-              <Button size="small" danger icon={<DeleteOutlined />} />
-            </Popconfirm>
-          ),
-        }]
+      ? [
+          {
+            title: '',
+            key: 'actions',
+            width: 60,
+            align: 'center' as const,
+            render: (_: unknown, rec: EnseignantRow) => (
+              <Popconfirm
+                title={`Supprimer toutes les affectations de ${rec.nom} ?`}
+                okText="Supprimer"
+                okButtonProps={{ danger: true }}
+                cancelText="Annuler"
+                onConfirm={() => handleDeleteAll(rec)}
+              >
+                <Button size="small" danger icon={<DeleteOutlined />} />
+              </Popconfirm>
+            ),
+          },
+        ]
       : []),
   ];
 }
@@ -196,33 +198,39 @@ export function buildExpandedColumns(
         <Tag color={NIVEAU_COLOR[niveau] ?? 'default'}>{NIVEAU_LABEL[niveau] ?? niveau ?? '—'}</Tag>
       ),
     },
-    ...((canEdit || canDelete)
-      ? [{
-          title: 'Actions',
-          key: 'actions',
-          width: 100,
-          render: (_: unknown, sRec: AffectationSavoirRow) => (
-            <Space>
-              {canEdit && (
-                <Tooltip title="Modifier le niveau">
-                  <Button size="small" icon={<EditOutlined />} onClick={() => openNiveauModal(sRec)} />
-                </Tooltip>
-              )}
-              {canDelete && (
-                <Tooltip title="Retirer">
-                  <Popconfirm
-                    title="Retirer ce savoir ?"
-                    onConfirm={() => handleDeleteSavoir(sRec.affId)}
-                    okText="Oui"
-                    cancelText="Non"
-                  >
-                    <Button size="small" danger icon={<DeleteOutlined />} />
-                  </Popconfirm>
-                </Tooltip>
-              )}
-            </Space>
-          ),
-        }]
+    ...(canEdit || canDelete
+      ? [
+          {
+            title: 'Actions',
+            key: 'actions',
+            width: 100,
+            render: (_: unknown, sRec: AffectationSavoirRow) => (
+              <Space>
+                {canEdit && (
+                  <Tooltip title="Modifier le niveau">
+                    <Button
+                      size="small"
+                      icon={<EditOutlined />}
+                      onClick={() => openNiveauModal(sRec)}
+                    />
+                  </Tooltip>
+                )}
+                {canDelete && (
+                  <Tooltip title="Retirer">
+                    <Popconfirm
+                      title="Retirer ce savoir ?"
+                      onConfirm={() => handleDeleteSavoir(sRec.affId)}
+                      okText="Oui"
+                      cancelText="Non"
+                    >
+                      <Button size="small" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                  </Tooltip>
+                )}
+              </Space>
+            ),
+          },
+        ]
       : []),
   ];
 }

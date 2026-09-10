@@ -185,35 +185,41 @@ export default function CrudTab<T extends object = Record<string, unknown>>({
         columns={[
           ...columns,
           ...(canEdit || canDelete
-            ? [{
-                title: 'Actions',
-                key: 'actions',
-                width: 120,
-                render: (_: unknown, record: T) => (
-                  <Space>
-                    {canEdit && (
-                      <Tooltip title="Modifier">
-                        <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(record)} />
-                      </Tooltip>
-                    )}
-                    {canDelete && (
-                      <Tooltip title="Supprimer">
-                        <Popconfirm
-                          title="Confirmer la suppression ?"
-                          okText="Oui"
-                          cancelText="Non"
-                          onConfirm={() => {
-                            const id = (record as { id?: Id }).id;
-                            if (id != null) onDelete(id);
-                          }}
-                        >
-                          <Button size="small" danger icon={<DeleteOutlined />} />
-                        </Popconfirm>
-                      </Tooltip>
-                    )}
-                  </Space>
-                ),
-              }]
+            ? [
+                {
+                  title: 'Actions',
+                  key: 'actions',
+                  width: 120,
+                  render: (_: unknown, record: T) => (
+                    <Space>
+                      {canEdit && (
+                        <Tooltip title="Modifier">
+                          <Button
+                            size="small"
+                            icon={<EditOutlined />}
+                            onClick={() => onEdit(record)}
+                          />
+                        </Tooltip>
+                      )}
+                      {canDelete && (
+                        <Tooltip title="Supprimer">
+                          <Popconfirm
+                            title="Confirmer la suppression ?"
+                            okText="Oui"
+                            cancelText="Non"
+                            onConfirm={() => {
+                              const id = (record as { id?: Id }).id;
+                              if (id != null) onDelete(id);
+                            }}
+                          >
+                            <Button size="small" danger icon={<DeleteOutlined />} />
+                          </Popconfirm>
+                        </Tooltip>
+                      )}
+                    </Space>
+                  ),
+                },
+              ]
             : []),
         ]}
         rowKey="id"

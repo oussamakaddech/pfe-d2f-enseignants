@@ -130,14 +130,17 @@ export default function BesoinCard({
 
   const isFullyApproved = !!besoin.approuveAdmin;
   const isMyTurnToApprove =
-    canApprove && !isFullyApproved && (
-      // CUP can approve step 1
-      (userRole === 'CUP' && !besoin.approuveCUP) ||
+    canApprove &&
+    !isFullyApproved &&
+    // CUP can approve step 1
+    ((userRole === 'CUP' && !besoin.approuveCUP) ||
       // Chef de département can approve step 2
       (userRole === 'CHEF_DEPARTEMENT' && !!besoin.approuveCUP && !besoin.approuveChefDep) ||
       // Admin can approve step 3
-      (userRole === 'admin' && !!besoin.approuveCUP && !!besoin.approuveChefDep && !besoin.approuveAdmin)
-    );
+      (userRole === 'admin' &&
+        !!besoin.approuveCUP &&
+        !!besoin.approuveChefDep &&
+        !besoin.approuveAdmin));
 
   const bRecord = besoin as unknown as Record<string, unknown>;
   const stopProp = (fn: () => void) => (e?: React.SyntheticEvent) => {

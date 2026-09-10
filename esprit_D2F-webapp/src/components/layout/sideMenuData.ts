@@ -234,9 +234,7 @@ export const chefDepartementMenu: MenuItem[] = [
   {
     type: 'group',
     label: 'DOCUMENTS',
-    children: [
-      { label: 'Dossiers de Formation', key: '/home/File', icon: FileTextOutlined },
-    ],
+    children: [{ label: 'Dossiers de Formation', key: '/home/File', icon: FileTextOutlined }],
   },
 ];
 

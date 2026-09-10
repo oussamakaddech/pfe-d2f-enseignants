@@ -40,11 +40,7 @@ const DashboardUpcomingFormations = memo(function DashboardUpcomingFormations() 
       title="Prochaines formations"
       icon={<CalendarOutlined />}
       footer={
-        <Button
-          type="link"
-          style={{ paddingInline: 0 }}
-          onClick={() => navigate(formationsLink)}
-        >
+        <Button type="link" style={{ paddingInline: 0 }} onClick={() => navigate(formationsLink)}>
           Consulter les formations <RightOutlined />
         </Button>
       }

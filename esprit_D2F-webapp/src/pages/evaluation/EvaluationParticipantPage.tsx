@@ -113,7 +113,9 @@ export default function EvaluationParticipantPage() {
         (e) =>
           getFormationTitre(e.formationId).toLowerCase().includes(filterText.toLowerCase()) ||
           getEnseignantLabel(e.enseignantId).toLowerCase().includes(filterText.toLowerCase()) ||
-          String(e.commentaire || '').toLowerCase().includes(filterText.toLowerCase()),
+          String(e.commentaire || '')
+            .toLowerCase()
+            .includes(filterText.toLowerCase()),
       );
     }
     if (formationFilter) res = res.filter((e) => e.formationId === formationFilter);
@@ -188,9 +190,7 @@ export default function EvaluationParticipantPage() {
 
   const avgNote =
     evaluations.length > 0
-      ? (
-          evaluations.reduce((s, e) => s + (Number(e.note) || 0), 0) / evaluations.length
-        ).toFixed(1)
+      ? (evaluations.reduce((s, e) => s + (Number(e.note) || 0), 0) / evaluations.length).toFixed(1)
       : '—';
   const satisfiedCount = evaluations.filter((e) => e.satisfaisant).length;
   const notSatisfiedCount = evaluations.filter((e) => e.satisfaisant === false).length;
@@ -201,9 +201,7 @@ export default function EvaluationParticipantPage() {
       dataIndex: 'formationId',
       key: 'formationId',
       width: 220,
-      render: (id) => (
-        <div className="evaluation-col-title">{getFormationTitre(id)}</div>
-      ),
+      render: (id) => <div className="evaluation-col-title">{getFormationTitre(id)}</div>,
       sorter: (a, b) =>
         (getFormationTitre(a.formationId) || '').localeCompare(
           getFormationTitre(b.formationId) || '',
@@ -277,7 +275,7 @@ export default function EvaluationParticipantPage() {
       ellipsis: true,
       render: (c) => c || '—',
     },
-    ...((canEdit || canDelete)
+    ...(canEdit || canDelete
       ? [
           {
             title: 'Actions',
@@ -465,9 +463,7 @@ export default function EvaluationParticipantPage() {
 
       <Drawer
         title={
-          editingEval
-            ? "Modifier l'Évaluation Participant"
-            : 'Nouvelle Évaluation Participant'
+          editingEval ? "Modifier l'Évaluation Participant" : 'Nouvelle Évaluation Participant'
         }
         placement="right"
         width={600}
