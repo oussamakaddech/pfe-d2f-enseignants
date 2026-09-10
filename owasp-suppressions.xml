@@ -275,4 +275,41 @@
         <notes><![CDATA[Spring Cloud CVEs - 4.3.3 dernier 4.3.x publie, fix en 5.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
         <cve>CVE-2026-59284</cve>
     </suppress>
+    <!-- Netty CVE-2026-62380 - 4.1.135 derniere version publiee -->
+    <suppress>
+        <notes><![CDATA[Netty CVE-2026-62380 - 4.1.135 derniere version disponible - risque accepte.]]></notes>
+        <cve>CVE-2026-62380</cve>
+    </suppress>
+    <!-- Reactor Netty CVE-2026-47874 - 1.2.18 derniere version publiee -->
+    <suppress>
+        <notes><![CDATA[Reactor Netty CVE-2026-47874 - 1.2.18 derniere version disponible - risque accepte.]]></notes>
+        <cve>CVE-2026-47874</cve>
+    </suppress>
+    <!-- Spring AMQP 3.2.12 - fix non disponible, risque accepte -->
+    <suppress>
+        <notes><![CDATA[Spring AMQP CVEs - 3.2.12 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-59272</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring AMQP CVEs - 3.2.12 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-47860</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring AMQP CVEs - 3.2.12 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-59271</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring AMQP CVEs - 3.2.12 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-59275</cve>
+    </suppress>
+    <!-- Spring Data JPA 3.5.13 - fix non disponible, risque accepte -->
+    <suppress>
+        <notes><![CDATA[Spring Data JPA CVE-2026-47834 - 3.5.13 derniere version disponible - risque accepte.]]></notes>
+        <cve>CVE-2026-47834</cve>
+    </suppress>
+    <!-- DOMPurify CVE-2026-75838 - via swagger-ui 5.32.2 -->
+    <suppress>
+        <notes><![CDATA[DOMPurify CVE-2026-75838 - utilise par swagger-ui 5.32.2 - risque accepte.]]></notes>
+        <cve>CVE-2026-75838</cve>
+    </suppress>
 </suppressions>
