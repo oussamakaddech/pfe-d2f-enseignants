@@ -106,6 +106,3 @@ launch-all.ps1
 load-env.ps1
 generate_collecte_besoins.py
 seed_analyse_tables.py
-
-# --- Root package-lock (keep webapp's) ---
-/package-lock.json
