@@ -1,25 +1,34 @@
 export interface EvaluationGlobale {
-  id?: number;
+  idEvalGlobale?: number;
   formationId?: number;
   formationTitre?: string;
+  enseignantId?: string;
   noteGlobale?: number;
-  commentaire?: string;
+  commentaireGeneral?: string;
   dateEvaluation?: string;
-  evaluePar?: string;
+  recommandation?: string;
 }
 
 export interface EvaluationFormateur {
-  id?: number;
+  idEvalParticipant?: number;
   formationId?: number;
   enseignantId?: string;
-  nomEnseignant?: string;
-  prenomEnseignant?: string;
   note?: number;
+  satisfaisant?: boolean;
   commentaire?: string;
-  creeLe?: string;
 }
 
-export interface EvaluationEnriched extends EvaluationFormateur {
-  presence?: boolean;
-  seanceIds?: number[];
+export interface EvaluationEnseignant {
+  idEvalParticipant?: number;
+  note?: number;
+  satisfaisant?: boolean;
+  commentaire?: string;
+  enseignantId?: string;
+  nom?: string;
+  prenom?: string;
+  mail?: string;
+  type?: string;
+  deptLibelle?: string;
+  upLibelle?: string;
+  formationId?: number;
 }

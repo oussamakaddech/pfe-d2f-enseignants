@@ -50,6 +50,7 @@ const AffectationEnseignantPage = lazy(
 const RicePage = lazy(() => import('@/pages/competence/RicePage'));
 const CompetenceMatchingPage = lazy(() => import('@/pages/competence/CompetenceMatchingPage'));
 const EvaluationGlobalePage = lazy(() => import('@/pages/evaluation/EvaluationGlobalePage'));
+const EvaluationParticipantPage = lazy(() => import('@/pages/evaluation/EvaluationParticipantPage'));
 const TeacherAnalyticsPage = lazy(() => import('@/pages/analyse/AnalyticsTeacherPage'));
 const AnalysePredictivePage = lazy(() => import('@/pages/analyse/AnalyticsPage'));
 const EnseignantsInactifsPage = lazy(() => import('@/pages/analyse/EnseignantsInactifsPage'));
@@ -273,6 +274,7 @@ export default function AppRoutes() {
                     }
                   >
                     <Route path="/home/Evaluations" element={<EvaluationGlobalePage />} />
+                    <Route path="/home/Evaluations/Participants" element={<EvaluationParticipantPage />} />
                   </Route>
 
                   {/* Référentiel Compétences : masqué aux ENSEIGNANT et ANIMATEUR (pas de besoin métier). */}

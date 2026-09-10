@@ -7,81 +7,58 @@ import {
   Drawer,
   Form,
   Input,
-  DatePicker,
   InputNumber,
   Select,
   Popconfirm,
   Tag,
   Card,
-  Alert,
   Statistic,
   Row,
   Col,
+  Switch,
 } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-  TrophyOutlined,
+  CheckCircleOutlined,
   UserOutlined,
   FilterOutlined,
   ReloadOutlined,
   StarFilled,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import { AppPageHeader, EmptyState } from '@/components/common';
 import '@/styles/pages/evaluation-globale-page.css';
-import dayjs from 'dayjs';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 import {
-  useEvaluationsGlobales,
-  useCreateEvaluationGlobale,
-  useUpdateEvaluationGlobale,
-  useDeleteEvaluationGlobale,
+  useEvaluationsParticipants,
+  useCreateEvaluationParticipant,
+  useUpdateEvaluationParticipant,
+  useDeleteEvaluationParticipant,
+  useValiderCompetences,
 } from '@/hooks/evaluation/useEvaluations';
 import { useAllFormations } from '@/hooks/formation/useFormations';
 import { useProfile } from '@/hooks/formation/useFormationExtras';
 import { useEnseignants } from '@/hooks/enseignant';
-import { normalizeRole } from '@/utils/constants/roles';
 import { useHasPermission } from '@/routes/guards';
 
 const { Option } = Select;
 const { TextArea } = Input;
 
-const truncateCellStyle = {
-  display: 'block',
-  maxWidth: 360,
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-};
-
-interface RecoColor {
-  color: string;
-  bg: string;
-  border: string;
-  label: string;
-}
-
-const RECO_COLORS: Record<string, RecoColor> = {
-  EXCELLENTE: { color: '#059669', bg: '#ecfdf5', border: '#a7f3d0', label: 'Excellente' },
-  A_CONTINUER: { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', label: 'A continuer' },
-  A_AMELIORER: { color: '#d97706', bg: '#fffbeb', border: '#fde68a', label: 'A ameliorer' },
-  A_ARRETER: { color: '#dc2626', bg: '#fef2f2', border: '#fecaca', label: 'A arreter' },
-};
-
-interface EvalRecord {
-  idEvalGlobale?: number;
+interface ParticipantRecord {
+  idEvalParticipant?: number;
   enseignantId?: string;
-  recommandation?: string;
-  commentaireGeneral?: string;
-  dateEvaluation?: string;
+  formationId?: number;
+  note?: number;
+  satisfaisant?: boolean;
+  commentaire?: string;
   [key: string]: unknown;
 }
 
 interface FormationRecord {
   idFormation: number;
   titreFormation: string;
-  [key: string]: unknown;
 }
 
 interface EnseignantRecord {
@@ -91,19 +68,36 @@ interface EnseignantRecord {
   mail?: string;
 }
 
-export default function EvaluationGlobalePage() {
+export default function EvaluationParticipantPage() {
   const { message: msgApi } = useAppNotification();
-  const { data: evaluationsData = [], isLoading: loading } = useEvaluationsGlobales();
+  const { data: evaluationsData = [], isLoading: loading } = useEvaluationsParticipants();
   const { data: formationsData = [] } = useAllFormations();
   const { data: enseignantsData = [] } = useEnseignants();
-  const createMut = useCreateEvaluationGlobale();
-  const updateMut = useUpdateEvaluationGlobale();
-  const deleteMut = useDeleteEvaluationGlobale();
+  const createMut = useCreateEvaluationParticipant();
+  const updateMut = useUpdateEvaluationParticipant();
+  const deleteMut = useDeleteEvaluationParticipant();
+  const validerMut = useValiderCompetences();
   const { data: profile } = useProfile();
 
-  const evaluations = evaluationsData as EvalRecord[];
+  const evaluations = evaluationsData as ParticipantRecord[];
   const formations = formationsData as FormationRecord[];
   const enseignants = enseignantsData as EnseignantRecord[];
+
+  const canCreate = useHasPermission('EVALUATION', 'CREATE');
+  const canEdit = useHasPermission('EVALUATION', 'UPDATE');
+  const canDelete = useHasPermission('EVALUATION', 'DELETE');
+
+  const [openForm, setOpenForm] = useState(false);
+  const [editingEval, setEditingEval] = useState<ParticipantRecord | null>(null);
+  const [form] = Form.useForm();
+
+  const [filterText, setFilterText] = useState('');
+  const [formationFilter, setFormationFilter] = useState<number | undefined>();
+
+  function getFormationTitre(formationId: unknown) {
+    const f = formations.find((f) => f.idFormation === formationId);
+    return f ? f.titreFormation : `Formation #${formationId}`;
+  }
 
   function getEnseignantLabel(enseignantId?: string) {
     if (!enseignantId) return '—';
@@ -112,68 +106,35 @@ export default function EvaluationGlobalePage() {
     return `${e.prenom || ''} ${e.nom || ''}`.trim() || String(e.id);
   }
 
-  const role = normalizeRole(profile?.role ?? '');
-  const isEnseignantRole = role === 'enseignant' || role === 'animateur';
-  const canManageAll = !isEnseignantRole && role !== 'chefdepartement';
-  const canCreate = useHasPermission('EVALUATION', 'CREATE');
-  const canEdit = useHasPermission('EVALUATION', 'UPDATE');
-  const canDelete = useHasPermission('EVALUATION', 'DELETE');
-
-  const [openForm, setOpenForm] = useState(false);
-  const [editingEval, setEditingEval] = useState<EvalRecord | null>(null);
-  const [form] = Form.useForm();
-
-  const [filterText, setFilterText] = useState('');
-  const [recoFilter, setRecoFilter] = useState<string | undefined>();
-  const [formationFilter, setFormationFilter] = useState<number | undefined>();
-
-  function getFormationTitre(formationId: unknown) {
-    const f = formations.find((f) => f.idFormation === formationId);
-    return f ? f.titreFormation : `Formation #${formationId}`;
-  }
-
   const filtered = useMemo(() => {
     let res = [...evaluations];
-    // L'enseignant/animateur ne voit que ses propres évaluations
-    if (isEnseignantRole && profile?.idUtilisateur) {
-      res = res.filter((e) => e.utilisateurId === profile.idUtilisateur);
-    }
     if (filterText) {
       res = res.filter(
         (e) =>
-          (getFormationTitre(e.formationId) || '')
-            .toLowerCase()
-            .includes(filterText.toLowerCase()) ||
-          String(e.commentaireGeneral || '')
-            .toLowerCase()
-            .includes(filterText.toLowerCase()),
+          getFormationTitre(e.formationId).toLowerCase().includes(filterText.toLowerCase()) ||
+          getEnseignantLabel(e.enseignantId).toLowerCase().includes(filterText.toLowerCase()) ||
+          String(e.commentaire || '').toLowerCase().includes(filterText.toLowerCase()),
       );
     }
-    if (recoFilter) res = res.filter((e) => e.recommandation === recoFilter);
     if (formationFilter) res = res.filter((e) => e.formationId === formationFilter);
     return res;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [evaluations, filterText, recoFilter, formationFilter, formations, isEnseignantRole, profile]);
+  }, [evaluations, filterText, formationFilter, formations]);
 
   function openCreate() {
     setEditingEval(null);
     form.resetFields();
-    // Pré-remplir l'enseignant pour le rôle ENSEIGNANT/ANIMATEUR
-    if (isEnseignantRole && profile?.idUtilisateur) {
-      form.setFieldsValue({ enseignantId: String(profile.idUtilisateur) });
-    }
     setOpenForm(true);
   }
 
-  function openEdit(record: EvalRecord) {
+  function openEdit(record: ParticipantRecord) {
     setEditingEval(record);
     form.setFieldsValue({
       formationId: record.formationId,
       enseignantId: record.enseignantId,
-      commentaireGeneral: record.commentaireGeneral,
-      dateEvaluation: record.dateEvaluation ? dayjs(record.dateEvaluation) : null,
-      noteGlobale: record.noteGlobale,
-      recommandation: record.recommandation,
+      note: record.note,
+      satisfaisant: record.satisfaisant,
+      commentaire: record.commentaire,
     });
     setOpenForm(true);
   }
@@ -181,16 +142,12 @@ export default function EvaluationGlobalePage() {
   async function handleSubmit() {
     try {
       const values = await form.validateFields();
-      const payload = {
-        ...values,
-        dateEvaluation: values.dateEvaluation ? values.dateEvaluation.toDate() : null,
-      };
       if (editingEval) {
-        await updateMut.mutateAsync({ id: editingEval.idEvalGlobale as number, data: payload });
-        msgApi.success('Évaluation globale mise à jour !');
+        await updateMut.mutateAsync({ id: editingEval.idEvalParticipant as number, data: values });
+        msgApi.success('Évaluation participant mise à jour !');
       } else {
-        await createMut.mutateAsync(payload);
-        msgApi.success('Évaluation globale créée !');
+        await createMut.mutateAsync(values);
+        msgApi.success('Évaluation participant créée !');
       }
       setOpenForm(false);
     } catch (err: unknown) {
@@ -213,33 +170,39 @@ export default function EvaluationGlobalePage() {
     }
   }
 
+  async function handleValiderCompetences(id: number) {
+    try {
+      await validerMut.mutateAsync(id);
+      msgApi.success('Compétences validées !');
+    } catch {
+      msgApi.error('Erreur validation compétences');
+    }
+  }
+
   function resetFilters() {
     setFilterText('');
-    setRecoFilter(undefined);
     setFormationFilter(undefined);
   }
 
-  const hasActiveFilters = !!(filterText || recoFilter || formationFilter);
+  const hasActiveFilters = !!(filterText || formationFilter);
 
   const avgNote =
     evaluations.length > 0
       ? (
-          evaluations.reduce((s, e) => s + (Number(e.noteGlobale) || 0), 0) / evaluations.length
+          evaluations.reduce((s, e) => s + (Number(e.note) || 0), 0) / evaluations.length
         ).toFixed(1)
-      : '\u2014';
-  const excellentCount = evaluations.filter((e) => e.recommandation === 'EXCELLENTE').length;
-  const toImproveCount = evaluations.filter((e) => e.recommandation === 'A_AMELIORER').length;
+      : '—';
+  const satisfiedCount = evaluations.filter((e) => e.satisfaisant).length;
+  const notSatisfiedCount = evaluations.filter((e) => e.satisfaisant === false).length;
 
-  const columns: TableColumnType<EvalRecord>[] = [
+  const columns: TableColumnType<ParticipantRecord>[] = [
     {
       title: 'Formation',
       dataIndex: 'formationId',
       key: 'formationId',
-      width: 240,
+      width: 220,
       render: (id) => (
-        <div>
-          <div className="evaluation-col-title">{getFormationTitre(id)}</div>
-        </div>
+        <div className="evaluation-col-title">{getFormationTitre(id)}</div>
       ),
       sorter: (a, b) =>
         (getFormationTitre(a.formationId) || '').localeCompare(
@@ -247,13 +210,27 @@ export default function EvaluationGlobalePage() {
         ),
     },
     {
+      title: 'Enseignant',
+      dataIndex: 'enseignantId',
+      key: 'enseignantId',
+      width: 200,
+      render: (id) => (
+        <span>
+          <UserOutlined className="mr-4" style={{ color: '#a0aec0' }} />
+          {getEnseignantLabel(id)}
+        </span>
+      ),
+      sorter: (a, b) =>
+        getEnseignantLabel(a.enseignantId).localeCompare(getEnseignantLabel(b.enseignantId)),
+    },
+    {
       title: 'Note',
-      dataIndex: 'noteGlobale',
-      key: 'noteGlobale',
+      dataIndex: 'note',
+      key: 'note',
       width: 100,
       align: 'center',
       render: (n) => {
-        if (n == null) return '\u2014';
+        if (n == null) return '—';
         let color = '#dc2626';
         if (n >= 16) color = '#059669';
         else if (n >= 10) color = '#2563eb';
@@ -272,91 +249,78 @@ export default function EvaluationGlobalePage() {
           </Tag>
         );
       },
-      sorter: (a, b) => (Number(a.noteGlobale) || 0) - (Number(b.noteGlobale) || 0),
+      sorter: (a, b) => (Number(a.note) || 0) - (Number(b.note) || 0),
     },
     {
-      title: 'Recommandation',
-      dataIndex: 'recommandation',
-      key: 'recommandation',
-      width: 140,
-      render: (r) => {
-        if (!r) return '\u2014';
-        const c = RECO_COLORS[r] || {
-          color: '#6b7280',
-          bg: '#f9fafb',
-          border: '#e5e7eb',
-          label: r,
-        };
-        return (
-          <Tag
-            style={{
-              color: c.color,
-              background: c.bg,
-              borderColor: c.border,
-              borderRadius: 8,
-              fontWeight: 600,
-              fontSize: 12,
-            }}
-          >
-            {c.label}
+      title: 'Satisfaisant',
+      dataIndex: 'satisfaisant',
+      key: 'satisfaisant',
+      width: 120,
+      align: 'center',
+      render: (s) =>
+        s ? (
+          <Tag color="success" style={{ borderRadius: 8, fontWeight: 600 }}>
+            <CheckCircleOutlined className="mr-4" />
+            Oui
           </Tag>
-        );
-      },
-      sorter: (a, b) => (a.recommandation || '').localeCompare(b.recommandation || ''),
+        ) : (
+          <Tag color="error" style={{ borderRadius: 8, fontWeight: 600 }}>
+            Non
+          </Tag>
+        ),
+      sorter: (a, b) => (a.satisfaisant ? 1 : 0) - (b.satisfaisant ? 1 : 0),
     },
     {
       title: 'Commentaire',
-      dataIndex: 'commentaireGeneral',
-      key: 'commentaireGeneral',
+      dataIndex: 'commentaire',
+      key: 'commentaire',
       ellipsis: true,
-      render: (c) => c || '\u2014',
+      render: (c) => c || '—',
     },
-    {
-      title: 'Date',
-      dataIndex: 'dateEvaluation',
-      key: 'dateEvaluation',
-      width: 120,
-      render: (d) => (d ? dayjs(d).format('DD/MM/YYYY') : '\u2014'),
-      sorter: (a, b) => dayjs(a.dateEvaluation).valueOf() - dayjs(b.dateEvaluation).valueOf(),
-    },
-    ...((canEdit || canDelete) && canManageAll
+    ...((canEdit || canDelete)
       ? [
           {
             title: 'Actions',
             key: 'actions',
-            width: 90,
+            width: 140,
             align: 'center' as const,
-            render: (_: unknown, r: EvalRecord) => {
-              const isOwn = !isEnseignantRole || r.utilisateurId === profile?.idUtilisateur;
-              if (!isOwn) return null;
-              return (
-                <Space size={4}>
-                  {canEdit && (
+            render: (_: unknown, r: ParticipantRecord) => (
+              <Space size={4}>
+                {canEdit && (
+                  <Button
+                    type="text"
+                    shape="circle"
+                    icon={<EditOutlined />}
+                    onClick={() => openEdit(r)}
+                    className="evaluation-btn-edit"
+                  />
+                )}
+                {canEdit && (
+                  <Button
+                    type="text"
+                    shape="circle"
+                    icon={<SafetyCertificateOutlined />}
+                    title="Valider compétences"
+                    onClick={() => handleValiderCompetences(r.idEvalParticipant!)}
+                    style={{ color: '#059669', background: '#ecfdf5' }}
+                  />
+                )}
+                {canDelete && (
+                  <Popconfirm
+                    title="Supprimer cette évaluation ?"
+                    onConfirm={() => handleDelete(r.idEvalParticipant!)}
+                  >
                     <Button
                       type="text"
                       shape="circle"
-                      icon={<EditOutlined />}
-                      onClick={() => openEdit(r)}
-                      className="evaluation-btn-edit"
+                      icon={<DeleteOutlined />}
+                      danger
+                      className="evaluation-btn-delete"
                     />
-                  )}
-                  {canDelete && (
-                    <Popconfirm
-                      title="Supprimer cette évaluation ?"
-                      onConfirm={() => handleDelete(r.idEvalGlobale!)}
-                    >
-                      <Button
-                        type="text"
-                        shape="circle"
-                        icon={<DeleteOutlined />}
-                        danger
-                        className="evaluation-btn-delete"
-                      />
-                    </Popconfirm>
-                  )}
-                </Space>
-              );
-            },
+                  </Popconfirm>
+                )}
+              </Space>
+            ),
           },
         ]
       : []),
@@ -365,8 +329,8 @@ export default function EvaluationGlobalePage() {
   return (
     <div className="evaluation-page">
       <AppPageHeader
-        icon={<TrophyOutlined />}
-        title={isEnseignantRole ? 'Mes Évaluations' : 'Évaluation Globale des Formations'}
+        icon={<SafetyCertificateOutlined />}
+        title="Évaluations des Participants"
         subtitle={`${filtered.length} évaluation${filtered.length === 1 ? '' : 's'}${hasActiveFilters ? ' (filtrées)' : ''}`}
         actions={
           canCreate ? (
@@ -398,8 +362,8 @@ export default function EvaluationGlobalePage() {
         <Col xs={24} sm={8}>
           <Card className="evaluation-stat-card">
             <Statistic
-              title="Excellentes"
-              value={excellentCount}
+              title="Satisfaisants"
+              value={satisfiedCount}
               suffix={`/ ${evaluations.length}`}
               valueStyle={{ color: '#059669', fontWeight: 700 }}
             />
@@ -408,10 +372,10 @@ export default function EvaluationGlobalePage() {
         <Col xs={24} sm={8}>
           <Card className="evaluation-stat-card">
             <Statistic
-              title="À améliorer"
-              value={toImproveCount}
+              title="Non satisfaisants"
+              value={notSatisfiedCount}
               suffix={`/ ${evaluations.length}`}
-              valueStyle={{ color: '#d97706', fontWeight: 700 }}
+              valueStyle={{ color: '#dc2626', fontWeight: 700 }}
             />
           </Card>
         </Col>
@@ -439,26 +403,13 @@ export default function EvaluationGlobalePage() {
         </div>
         <div className="evaluation-filter-row">
           <Input.Search
-            placeholder="Rechercher par formation ou commentaire..."
+            placeholder="Rechercher par formation, enseignant ou commentaire..."
             allowClear
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
             onSearch={setFilterText}
-            style={{ width: 280 }}
+            style={{ width: 300 }}
           />
-          <Select
-            placeholder="Recommandation"
-            allowClear
-            value={recoFilter}
-            onChange={setRecoFilter}
-            style={{ width: 160 }}
-          >
-            {Object.entries(RECO_COLORS).map(([k, v]) => (
-              <Option key={k} value={k}>
-                {v.label}
-              </Option>
-            ))}
-          </Select>
           <Select
             placeholder="Formation"
             allowClear
@@ -477,39 +428,28 @@ export default function EvaluationGlobalePage() {
         </div>
       </div>
 
-      <Alert
-        message={
-            isEnseignantRole
-              ? 'Vous évaluez les formations que vous avez suivies. Votre identifiant est pré-rempli.'
-            : 'Une seule évaluation globale est autorisée par formation.'
-        }
-        type={isEnseignantRole ? 'info' : 'info'}
-        showIcon
-        className="evaluation-info-alert"
-      />
-
       {/* ── Tableau ── */}
       <div className="evaluation-table-wrapper">
         <Table
           dataSource={filtered}
           columns={columns}
-          rowKey="idEvalGlobale"
+          rowKey="idEvalParticipant"
           loading={loading}
           size="middle"
           pagination={{
-            pageSize: 8,
+            pageSize: 10,
             showSizeChanger: true,
             showTotal: (total) => `${total} évaluation${total === 1 ? '' : 's'}`,
           }}
           locale={{
             emptyText: (
               <EmptyState
-                icon={<TrophyOutlined />}
-                title="Aucune évaluation trouvée"
+                icon={<SafetyCertificateOutlined />}
+                title="Aucune évaluation participant trouvée"
                 description={
                   hasActiveFilters
                     ? 'Aucun résultat ne correspond aux filtres.'
-                    : 'Aucune évaluation enregistrée.'
+                    : 'Aucune évaluation participant enregistrée.'
                 }
                 action={
                   hasActiveFilters
@@ -524,7 +464,11 @@ export default function EvaluationGlobalePage() {
       </div>
 
       <Drawer
-        title={editingEval ? "Modifier l'Évaluation Globale" : 'Nouvelle Évaluation Globale'}
+        title={
+          editingEval
+            ? "Modifier l'Évaluation Participant"
+            : 'Nouvelle Évaluation Participant'
+        }
         placement="right"
         width={600}
         onClose={() => setOpenForm(false)}
@@ -555,13 +499,16 @@ export default function EvaluationGlobalePage() {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item name="enseignantId" label="Enseignant évalué (formateur)">
+          <Form.Item
+            name="enseignantId"
+            label="Enseignant"
+            rules={[{ required: true, message: 'Enseignant obligatoire' }]}
+          >
             <Select
-              placeholder="Sélectionner l'enseignant à évaluer"
-              allowClear
+              placeholder="Sélectionner l'enseignant"
               showSearch
               optionFilterProp="children"
-              disabled={isEnseignantRole}
+              disabled={!!editingEval}
             >
               {enseignants.map((e) => (
                 <Option key={e.id} value={String(e.id)}>
@@ -571,23 +518,22 @@ export default function EvaluationGlobalePage() {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item name="noteGlobale" label="Note Globale (/20)" rules={[{ required: true, message: 'Note obligatoire' }]}>
+          <Form.Item
+            name="note"
+            label="Note (/20)"
+            rules={[{ required: true, message: 'Note obligatoire' }]}
+          >
             <InputNumber min={0} max={20} step={0.5} className="w-full" />
           </Form.Item>
-          <Form.Item name="commentaireGeneral" label="Commentaire Général">
-            <TextArea rows={4} placeholder="Commentaire général sur la formation" />
+          <Form.Item name="satisfaisant" label="Satisfaisant" valuePropName="checked">
+            <Switch checkedChildren="Oui" unCheckedChildren="Non" />
           </Form.Item>
-          <Form.Item name="dateEvaluation" label="Date d'Évaluation" rules={[{ required: true, message: 'Date obligatoire' }]}>
-            <DatePicker className="w-full" />
-          </Form.Item>
-          <Form.Item name="recommandation" label="Recommandation">
-            <Select placeholder="Sélectionner une recommandation" allowClear>
-              {Object.entries(RECO_COLORS).map(([k, v]) => (
-                <Option key={k} value={k}>
-                  {v.label}
-                </Option>
-              ))}
-            </Select>
+          <Form.Item
+            name="commentaire"
+            label="Commentaire"
+            rules={[{ max: 500, message: 'Max 500 caractères' }]}
+          >
+            <TextArea rows={3} placeholder="Commentaire sur l'évaluation du participant" />
           </Form.Item>
         </Form>
       </Drawer>

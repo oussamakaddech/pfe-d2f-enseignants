@@ -69,6 +69,7 @@ export const adminMenu: MenuItem[] = [
       { label: 'Nouvelle Formation', key: '/home/Formation/Creer', icon: PlusCircleOutlined },
       { label: 'Catalogue', key: '/home/Formation/Consulter', icon: AppstoreOutlined },
       { label: 'Évaluations', key: '/home/Evaluations', icon: TrophyOutlined },
+      { label: 'Éval. Participants', key: '/home/Evaluations/Participants', icon: UserOutlined },
       { label: 'Présences', key: '/home/animateur-formations', icon: CheckSquareOutlined },
       { label: 'Gestion Documentaire', key: '/home/File', icon: FileTextOutlined },
       { label: 'Calendrier Global', key: '/home/Calendrier', icon: CalendarOutlined },
@@ -143,6 +144,7 @@ export const cupMenu: MenuItem[] = [
       // + AuthorizationMatrix.PRESENCE_MARK / EVALUATION_READ_CUP incluent ROLE_CUP.
       { label: 'Présences', key: '/home/animateur-formations', icon: CheckSquareOutlined },
       { label: 'Évaluations', key: '/home/Evaluations', icon: TrophyOutlined },
+      { label: 'Éval. Participants', key: '/home/Evaluations/Participants', icon: UserOutlined },
     ],
   },
 ];
@@ -162,6 +164,7 @@ export const enseignantMenu: MenuItem[] = [
   { label: 'Mes Présences', key: '/home/mes-presences', icon: EyeOutlined },
   { label: 'Présence & Évaluation', key: '/home/animateur-formations', icon: ReadOutlined },
   { label: 'Évaluations', key: '/home/Evaluations', icon: TrophyOutlined },
+  { label: 'Éval. Participants', key: '/home/Evaluations/Participants', icon: UserOutlined },
   { label: 'Inscriptions', key: '/home/Inscriptions', icon: AppstoreOutlined },
   { label: 'Mes Certificats', key: '/home/MyCertificate', icon: SafetyCertificateOutlined },
 ];
@@ -172,6 +175,7 @@ export const animateurMenu: MenuItem[] = [
   { label: "Sessions d'Animation", key: '/home/animateur-formations', icon: ReadOutlined },
   { label: 'Mes Présences', key: '/home/mes-presences', icon: EyeOutlined },
   { label: 'Évaluations', key: '/home/Evaluations', icon: TrophyOutlined },
+  { label: 'Éval. Participants', key: '/home/Evaluations/Participants', icon: UserOutlined },
   {
     label: 'Besoins de Formation',
     key: 'besoin_formation_menu',
@@ -224,6 +228,7 @@ export const chefDepartementMenu: MenuItem[] = [
     children: [
       { label: 'Inscriptions', key: '/home/Inscriptions', icon: FileTextOutlined },
       { label: 'Évaluations', key: '/home/Evaluations', icon: TrophyOutlined },
+      { label: 'Éval. Participants', key: '/home/Evaluations/Participants', icon: UserOutlined },
     ],
   },
   {
