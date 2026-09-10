@@ -44,6 +44,8 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
     private static final String ROLE_ADMIN    = "ROLE_ADMIN";
     private static final String ROLE_CUP      = "ROLE_CUP";
     private static final String ROLE_CHEF_DEP = "ROLE_CHEF_DEPARTEMENT";
+    private static final String ROLE_ENSEIGNANT = "ROLE_ENSEIGNANT";
+    private static final String ROLE_ANIMATEUR  = "ROLE_ANIMATEUR";
     private static final String NOT_FOUND_SUFFIX = " not found";
     private static final String BESOIN_FORMATION_WITH_ID_PREFIX = "BesoinFormation with id ";
 
@@ -97,6 +99,7 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         BesoinFormation b = besoinFormationRepository.findById(idBesoinFormation)
                 .orElseThrow(() -> new ResourceNotFoundException(
                 BESOIN_FORMATION_WITH_ID_PREFIX + idBesoinFormation + NOT_FOUND_SUFFIX));
+        ensureOwnershipOrAdmin(b);
         // Fix 5: Soft delete — ne jamais hard-delete un besoin
         b.setDeletedAt(Instant.now());
         besoinFormationRepository.save(b);
@@ -110,6 +113,7 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         BesoinFormation existing = besoinFormationRepository.findById(b.getIdBesoinFormation())
                 .orElseThrow(() -> new ResourceNotFoundException(
                 BESOIN_FORMATION_WITH_ID_PREFIX + b.getIdBesoinFormation() + NOT_FOUND_SUFFIX));
+        ensureOwnershipOrAdmin(existing);
         updateDataFields(b, existing);
         updateApprovalFields(b, existing);
         handleNotifications(existing, b.getCommentaire());
@@ -199,6 +203,23 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
     }
 
     // ── Helpers privés ────────────────────────────────────────────────────────
+
+    /**
+     * Vérifie que l'utilisateur courant est ADMIN ou bien le propriétaire du besoin.
+     * Les rôles ENSEIGNANT et ANIMATEUR ne peuvent modifier/supprimer que leurs propres besoins.
+     */
+    private void ensureOwnershipOrAdmin(BesoinFormation b) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Collection<? extends GrantedAuthority> authorities = auth.getAuthorities();
+        if (hasRole(authorities, ROLE_ADMIN)) {
+            return;
+        }
+        boolean isOwnerRole = hasRole(authorities, ROLE_ENSEIGNANT) || hasRole(authorities, ROLE_ANIMATEUR);
+        if (isOwnerRole && auth.getName() != null && auth.getName().equals(b.getUsername())) {
+            return;
+        }
+        throw new AccessDeniedException("Vous ne pouvez modifier ou supprimer que vos propres besoins de formation.");
+    }
 
     private boolean hasRole(Collection<? extends GrantedAuthority> authorities, String role) {
         return authorities.stream().anyMatch(a -> role.equals(a.getAuthority()));

@@ -17,7 +17,7 @@ export const FRONTEND_PERMISSIONS = {
     ASSIGN: ['admin'],
   },
   AFFECTATION: {
-    READ: ['admin', 'CUP'],
+    READ: ['admin', 'CUP', 'Enseignant', 'CHEF_DEPARTEMENT'],
     CREATE: ['admin'],
     UPDATE_SELF: ['admin', 'CUP', 'Enseignant'],
     UPDATE_ALL: ['admin'],
@@ -28,8 +28,8 @@ export const FRONTEND_PERMISSIONS = {
     READ_CUP: ['admin', 'CUP'],
     READ_ENSEIGNANT: ['admin', 'Enseignant'],
     CREATE: ['admin', 'CUP', 'Enseignant', 'Animateur'],
-    UPDATE: ['admin'],
-    DELETE: ['admin'],
+    UPDATE: ['admin', 'Enseignant', 'Animateur'],
+    DELETE: ['admin', 'Enseignant', 'Animateur'],
     APPROVE: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
   },
   FORMATION: {
@@ -54,7 +54,7 @@ export const FRONTEND_PERMISSIONS = {
     MARK_ENTRY: ['admin', 'Animateur'],
   },
   CERTIFICAT: {
-    READ: ['admin', 'CUP', 'Enseignant', 'Animateur'],
+    READ: ['admin', 'CUP', 'Enseignant', 'Animateur', 'CHEF_DEPARTEMENT'],
     CREATE: ['admin'],
     UPDATE: ['admin'],
     DELETE: ['admin'],
@@ -69,14 +69,14 @@ export const FRONTEND_PERMISSIONS = {
     EXPORT: ['admin', 'ResponsableDossier'],
   },
   RICE: {
-    READ: ['admin'],
+    READ: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
     CREATE: ['admin'],
     UPDATE: ['admin'],
     DELETE: ['admin'],
   },
   DASHBOARD: {
     ADMIN_FULL: ['admin'],
-    ADMIN_LIMITED: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'ResponsableDossier'],
+    ADMIN_LIMITED: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'Animateur', 'ResponsableDossier'],
   },
   ACCOUNT: {
     READ: ['admin'],
@@ -84,11 +84,11 @@ export const FRONTEND_PERMISSIONS = {
     UPDATE: ['admin'],
     DELETE: ['admin'],
     BAN: ['admin'],
-    VIEW_PROFILE: ['admin', 'CUP', 'Enseignant', 'Animateur'],
-    EDIT_OWN: ['admin', 'CUP', 'Enseignant', 'Animateur'],
+    VIEW_PROFILE: ['admin', 'CUP', 'Enseignant', 'Animateur', 'CHEF_DEPARTEMENT'],
+    EDIT_OWN: ['admin', 'CUP', 'Enseignant', 'Animateur', 'CHEF_DEPARTEMENT'],
   },
   INSCRIPTION: {
-    READ: ['admin', 'CUP', 'Enseignant', 'Animateur'],
+    READ: ['admin', 'CUP', 'Enseignant', 'Animateur', 'CHEF_DEPARTEMENT'],
     CREATE: ['admin', 'CUP', 'Enseignant', 'Animateur'],
     APPROVE: ['admin', 'CUP'],
   },

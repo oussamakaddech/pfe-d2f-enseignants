@@ -10,7 +10,7 @@ public final class AuthorizationMatrix {
     public static final String COMPETENCE_DELETE = "hasAnyRole('ROLE_ADMIN')";
     public static final String COMPETENCE_ASSIGN = "hasAnyRole('ROLE_ADMIN')";
 
-    public static final String AFFECTATION_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
+    public static final String AFFECTATION_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_CHEF_DEPARTEMENT')";
     public static final String AFFECTATION_CREATE = "hasAnyRole('ROLE_ADMIN')";
     public static final String AFFECTATION_UPDATE_SELF = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT')";
     public static final String AFFECTATION_UPDATE_ALL = "hasAnyRole('ROLE_ADMIN')";
@@ -22,8 +22,8 @@ public final class AuthorizationMatrix {
     // ANIMATEUR inclus : un animateur interne est aussi un enseignant et peut donc
     // exprimer un besoin de formation (symétrique d'INSCRIPTION_CREATE).
     public static final String BESOIN_FORMATION_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_ANIMATEUR')";
-    public static final String BESOIN_FORMATION_UPDATE = "hasAnyRole('ROLE_ADMIN')";
-    public static final String BESOIN_FORMATION_DELETE = "hasAnyRole('ROLE_ADMIN')";
+    public static final String BESOIN_FORMATION_UPDATE = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT','ROLE_ANIMATEUR')";
+    public static final String BESOIN_FORMATION_DELETE = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT','ROLE_ANIMATEUR')";
     public static final String BESOIN_FORMATION_APPROVE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
 
     public static final String FORMATION_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_RESPONSABLE_DOSSIER','ROLE_CHEF_DEPARTEMENT')";
@@ -69,7 +69,7 @@ public final class AuthorizationMatrix {
     public static final String CERTIFICAT_UPDATE = "hasAnyRole('ROLE_ADMIN')";
     public static final String CERTIFICAT_DELETE = "hasAnyRole('ROLE_ADMIN')";
 
-    public static final String RICE_READ = "hasAnyRole('ROLE_ADMIN')";
+    public static final String RICE_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
     public static final String RICE_CREATE = "hasAnyRole('ROLE_ADMIN')";
     public static final String RICE_UPDATE = "hasAnyRole('ROLE_ADMIN')";
     public static final String RICE_DELETE = "hasAnyRole('ROLE_ADMIN')";
@@ -125,7 +125,7 @@ public final class AuthorizationMatrix {
     public static final String FORMATION_COMPETENCE_DELETE = "hasAnyRole('ROLE_ADMIN')";
 
     // ── Inscription ─────────────────────────────────────────────────────
-    public static final String INSCRIPTION_READ    = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR')";
+    public static final String INSCRIPTION_READ    = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_CHEF_DEPARTEMENT')";
     // ANIMATEUR/FORMATEUR inclus : un animateur interne est aussi un enseignant et
     // peut donc s'inscrire aux formations (symétrique de INSCRIPTION_READ).
     public static final String INSCRIPTION_CREATE  = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_ANIMATEUR','ROLE_FORMATEUR')";

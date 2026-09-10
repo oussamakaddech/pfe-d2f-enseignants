@@ -56,10 +56,12 @@ interface BuildColumnsOpts {
   openNiveauModal: (record: AffectationSavoirRow) => void;
   handleDeleteSavoir: (affId: Id) => Promise<void>;
   handleDeleteAll: (rec: EnseignantRow) => Promise<void>;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 export function buildMainColumns(opts: BuildColumnsOpts): TableColumnsType<EnseignantRow> {
-  const { handleDeleteAll } = opts;
+  const { handleDeleteAll, canEdit = true, canDelete = true } = opts;
 
   return [
     {
@@ -155,29 +157,33 @@ export function buildMainColumns(opts: BuildColumnsOpts): TableColumnsType<Ensei
         </Space>
       ),
     },
-    {
-      title: '',
-      key: 'actions',
-      width: 60,
-      align: 'center' as const,
-      render: (_: unknown, rec) => (
-        <Popconfirm
-          title={`Supprimer toutes les affectations de ${rec.nom} ?`}
-          okText="Supprimer"
-          okButtonProps={{ danger: true }}
-          cancelText="Annuler"
-          onConfirm={() => handleDeleteAll(rec)}
-        >
-          <Button size="small" danger icon={<DeleteOutlined />} />
-        </Popconfirm>
-      ),
-    },
+    ...(canDelete
+      ? [{
+          title: '',
+          key: 'actions',
+          width: 60,
+          align: 'center' as const,
+          render: (_: unknown, rec: EnseignantRow) => (
+            <Popconfirm
+              title={`Supprimer toutes les affectations de ${rec.nom} ?`}
+              okText="Supprimer"
+              okButtonProps={{ danger: true }}
+              cancelText="Annuler"
+              onConfirm={() => handleDeleteAll(rec)}
+            >
+              <Button size="small" danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          ),
+        }]
+      : []),
   ];
 }
 
 export function buildExpandedColumns(
   openNiveauModal: (record: AffectationSavoirRow) => void,
   handleDeleteSavoir: (affId: Id) => Promise<void>,
+  canEdit = true,
+  canDelete = true,
 ): TableColumnsType<AffectationSavoirRow> {
   return [
     { title: 'Code', dataIndex: 'code', key: 'code' },
@@ -190,27 +196,33 @@ export function buildExpandedColumns(
         <Tag color={NIVEAU_COLOR[niveau] ?? 'default'}>{NIVEAU_LABEL[niveau] ?? niveau ?? '—'}</Tag>
       ),
     },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: 100,
-      render: (_: unknown, sRec) => (
-        <Space>
-          <Tooltip title="Modifier le niveau">
-            <Button size="small" icon={<EditOutlined />} onClick={() => openNiveauModal(sRec)} />
-          </Tooltip>
-          <Tooltip title="Retirer">
-            <Popconfirm
-              title="Retirer ce savoir ?"
-              onConfirm={() => handleDeleteSavoir(sRec.affId)}
-              okText="Oui"
-              cancelText="Non"
-            >
-              <Button size="small" danger icon={<DeleteOutlined />} />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
-      ),
-    },
+    ...((canEdit || canDelete)
+      ? [{
+          title: 'Actions',
+          key: 'actions',
+          width: 100,
+          render: (_: unknown, sRec: AffectationSavoirRow) => (
+            <Space>
+              {canEdit && (
+                <Tooltip title="Modifier le niveau">
+                  <Button size="small" icon={<EditOutlined />} onClick={() => openNiveauModal(sRec)} />
+                </Tooltip>
+              )}
+              {canDelete && (
+                <Tooltip title="Retirer">
+                  <Popconfirm
+                    title="Retirer ce savoir ?"
+                    onConfirm={() => handleDeleteSavoir(sRec.affId)}
+                    okText="Oui"
+                    cancelText="Non"
+                  >
+                    <Button size="small" danger icon={<DeleteOutlined />} />
+                  </Popconfirm>
+                </Tooltip>
+              )}
+            </Space>
+          ),
+        }]
+      : []),
   ];
 }

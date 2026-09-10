@@ -176,7 +176,7 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         if (path.startsWith("/api/competence/")) return getCompetenceRoles(path, method);
         if (path.startsWith("/api/evaluation/")) return getEvaluationRoles(method);
         if (path.startsWith("/api/certificat/")) return getCertificatRoles(method);
-        if (path.startsWith("/api/rice/")) return ADMIN_ONLY;
+        if (path.startsWith("/api/rice/")) return getRiceRoles(path, method);
         if (path.startsWith("/api/analyse/")) return getAnalyseRoles(path);
         // BFF analyse predictive (vues consolidees de pilotage) : ADMIN/CUP/Chef de département.
         if (path.startsWith("/api/v1/analyse-predictive/") || path.startsWith("/api/v2/analytics/"))
@@ -237,8 +237,9 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
 
     private List<String> getBesoinRoles(String path, HttpMethod method) {
         if (path.contains("/approve")) return ADMIN_CUP;
-        if (method == HttpMethod.DELETE) return ADMIN_ONLY;
-        if (path.contains("/modify") && method == HttpMethod.PUT) return ADMIN_ONLY;
+        if (method == HttpMethod.DELETE) return List.of(ROLE_ADMIN, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
+        if (path.contains("/modify") && method == HttpMethod.PUT) return List.of(ROLE_ADMIN, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
+        if (method == HttpMethod.PUT) return List.of(ROLE_ADMIN, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
         if (method == HttpMethod.POST) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
         return ALL_ROLES;
     }
@@ -258,6 +259,11 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     private List<String> getCertificatRoles(HttpMethod method) {
         if (method == HttpMethod.DELETE || method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH) return ADMIN_ONLY;
         return ALL_ROLES;
+    }
+
+    private List<String> getRiceRoles(String path, HttpMethod method) {
+        if (method == HttpMethod.GET) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT);
+        return ADMIN_ONLY;
     }
 
     private List<String> getAnalyseRoles(String path) {

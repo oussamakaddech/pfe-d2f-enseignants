@@ -21,6 +21,7 @@ public class EvaluationGlobaleService {
         EvaluationGlobaleDTO dto = new EvaluationGlobaleDTO();
         dto.setIdEvalGlobale(entity.getIdEvalGlobale());
         dto.setFormationId(entity.getFormationId());
+        dto.setEnseignantId(entity.getEnseignantId());
         dto.setCommentaireGeneral(entity.getCommentaireGeneral());
         dto.setDateEvaluation(entity.getDateEvaluation());
         dto.setNoteGlobale(entity.getNoteGlobale());
@@ -32,6 +33,7 @@ public class EvaluationGlobaleService {
         EvaluationGlobale entity = new EvaluationGlobale();
         entity.setIdEvalGlobale(dto.getIdEvalGlobale());
         entity.setFormationId(dto.getFormationId());
+        entity.setEnseignantId(dto.getEnseignantId());
         entity.setCommentaireGeneral(dto.getCommentaireGeneral());
         entity.setDateEvaluation(dto.getDateEvaluation());
         entity.setNoteGlobale(dto.getNoteGlobale());
@@ -51,6 +53,7 @@ public class EvaluationGlobaleService {
         EvaluationGlobale existing = evaluationGlobaleRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(MSG_NOT_FOUND + id));
         existing.setCommentaireGeneral(dto.getCommentaireGeneral());
+        existing.setEnseignantId(dto.getEnseignantId());
         existing.setDateEvaluation(dto.getDateEvaluation());
         existing.setNoteGlobale(dto.getNoteGlobale());
         existing.setRecommandation(dto.getRecommandation());

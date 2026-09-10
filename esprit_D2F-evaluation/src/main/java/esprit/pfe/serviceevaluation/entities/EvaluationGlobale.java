@@ -29,6 +29,10 @@ public class EvaluationGlobale extends BaseAuditEntity {
     @Column(nullable = false)
     private Long formationId;
 
+    /** Enseignant / formateur évalué (identifiant format ENS###, autre service). */
+    @Column(name = "enseignant_id")
+    private String enseignantId;
+
     @Column(length = 3000, nullable = true)
     private String commentaireGeneral;
 

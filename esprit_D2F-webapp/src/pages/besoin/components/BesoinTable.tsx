@@ -10,6 +10,10 @@ interface BesoinTableProps {
   data: Record<string, unknown>[];
   loading: boolean;
   approvingId: string | number | null;
+  canApprove?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  userRole?: string;
   getBesoinId: (r: Record<string, unknown>) => unknown;
   onApprove: (r: Record<string, unknown>) => void;
   onOpenMail: (r: Record<string, unknown>) => void;
@@ -21,6 +25,10 @@ export default function BesoinTable({
   data,
   loading,
   approvingId,
+  canApprove = true,
+  canEdit = true,
+  canDelete = true,
+  userRole = '',
   getBesoinId,
   onApprove,
   onOpenMail,
@@ -82,9 +90,16 @@ export default function BesoinTable({
       fixed: 'right' as const,
       render: (_: unknown, r: Record<string, unknown>) => {
         const id = getBesoinId(r);
+        const isFullyApproved = !!r.approuveAdmin;
+        const isMyTurnToApprove =
+          canApprove && !isFullyApproved && (
+            (userRole === 'CUP' && !r.approuveCUP) ||
+            (userRole === 'CHEF_DEPARTEMENT' && !!r.approuveCUP && !r.approuveChefDep) ||
+            (userRole === 'admin' && !!r.approuveCUP && !!r.approuveChefDep && !r.approuveAdmin)
+          );
         return (
           <Space size={4}>
-            {!r.approuveAdmin && (
+            {isMyTurnToApprove && (
               <Popconfirm
                 title="Approuver ce besoin ?"
                 onConfirm={() => onApprove(r)}
@@ -110,30 +125,34 @@ export default function BesoinTable({
                 className="bf-iconbtn bf-iconbtn--mail"
               />
             </Tooltip>
-            <Tooltip title="Modifier">
-              <Button
-                size="small"
-                icon={<EditOutlined />}
-                onClick={() => onEdit(r)}
-                className="bf-iconbtn"
-              />
-            </Tooltip>
-            <Popconfirm
-              title="Supprimer ?"
-              onConfirm={() => onDelete(id)}
-              okText="Oui"
-              cancelText="Non"
-              okButtonProps={{ danger: true }}
-            >
-              <Tooltip title="Supprimer">
+            {canEdit && (
+              <Tooltip title="Modifier">
                 <Button
-                  danger
                   size="small"
-                  icon={<DeleteOutlined />}
-                  className="bf-iconbtn bf-iconbtn--danger"
+                  icon={<EditOutlined />}
+                  onClick={() => onEdit(r)}
+                  className="bf-iconbtn"
                 />
               </Tooltip>
-            </Popconfirm>
+            )}
+            {canDelete && (
+              <Popconfirm
+                title="Supprimer ?"
+                onConfirm={() => onDelete(id)}
+                okText="Oui"
+                cancelText="Non"
+                okButtonProps={{ danger: true }}
+              >
+                <Tooltip title="Supprimer">
+                  <Button
+                    danger
+                    size="small"
+                    icon={<DeleteOutlined />}
+                    className="bf-iconbtn bf-iconbtn--danger"
+                  />
+                </Tooltip>
+              </Popconfirm>
+            )}
           </Space>
         );
       },

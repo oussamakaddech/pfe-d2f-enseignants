@@ -5,10 +5,13 @@ import type { ActeurOption } from '@/utils/besoin/acteurs';
 
 const { TextArea } = Input;
 const { Option } = Select;
+// Parité PeriodCode.java (WINTER, SUMMER, SPRINT, WORKSHOP, OTHER) — les
+// anciennes valeurs S1/S2/S3 étaient rejetées par Jackson (enum inconnu, 500).
 const PERIOD_OPTIONS = [
-  { value: 'S1', label: 'Semestre 1 (Septembre-Janvier)' },
-  { value: 'S2', label: 'Semestre 2 (Février-Juin)' },
-  { value: 'S3', label: 'Semestre 3 (Été)' },
+  { value: 'WINTER', label: 'Hiver' },
+  { value: 'SUMMER', label: 'Été' },
+  { value: 'SPRINT', label: 'Sprint' },
+  { value: 'WORKSHOP', label: 'Workshop' },
   { value: 'OTHER', label: 'Autre' },
 ];
 
@@ -49,7 +52,16 @@ const BesoinEditModal = memo(function BesoinEditModal({
       <Form form={form} layout="vertical">
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <Form.Item label="Nom de la formation" name="titre" rules={[{ required: true }]}>
+            <Form.Item
+              label="Nom de la formation"
+              name="titre"
+              rules={[
+                { required: true, message: 'Le titre est obligatoire' },
+                // Parité BesoinFormationRequest (@Size min=5, max=200).
+                { min: 5, message: 'Le titre doit contenir au moins 5 caractères' },
+                { max: 200, message: 'Le titre ne peut pas dépasser 200 caractères' },
+              ]}
+            >
               <Input size="large" prefix={<FileTextOutlined />} />
             </Form.Item>
           </Col>

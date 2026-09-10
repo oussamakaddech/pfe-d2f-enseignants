@@ -33,7 +33,7 @@ const CertificatesByEmailPage = lazy(() => import('@/pages/certificat/Certificat
 const UpDeptDataGrid = lazy(() => import('@/pages/enseignant/UpDeptDataGrid'));
 const Register = lazy(() => import('@/pages/auth/Register'));
 const Forbidden403 = lazy(() => import('@/pages/error/Forbidden403'));
-const DashboardPage = lazy(() => import('@/pages/dashboard/CupDashboardPage'));
+const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
 const Login = lazy(() => import('@/pages/admin/gererComptes/Login'));
 const PasswordRecovery = lazy(() => import('@/pages/admin/gererComptes/PasswordRecovery'));
 const Profile = lazy(() => import('@/pages/auth/Profile'));
@@ -117,12 +117,11 @@ export default function AppRoutes() {
                   <Route path="/home/edit-profile" element={<EditProfile />} />
                   <Route path="/home/update-password" element={<UpdatePassword />} />
                   {/* Parité INSCRIPTION_READ (AuthorizationMatrix) : ADMIN, CUP,
-                      ENSEIGNANT, ANIMATEUR (FORMATEUR = alias legacy). Le
-                      CHEF_DEPARTEMENT n'y a pas accès côté backend → 403 sinon. */}
+                      ENSEIGNANT, ANIMATEUR, CHEF_DEPARTEMENT. */}
                   <Route
                     element={
                       <RoleGuard
-                        allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.ENSEIGNANT, ROLES.ANIMATEUR]}
+                        allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.ENSEIGNANT, ROLES.ANIMATEUR, ROLES.CHEF_DEPARTEMENT]}
                       />
                     }
                   >
@@ -157,11 +156,19 @@ export default function AppRoutes() {
                       path="/home/Enseignants"
                       element={<Navigate to="/home/administration" replace />}
                     />
-                    <Route path="/home/rice" element={<RicePage />} />
                     <Route path="/home/UpDept" element={<UpDeptDataGrid />} />
                     <Route path="/home/certificate" element={<CertificatePage />} />
                     <Route path="/home/certificate/:formationId" element={<CertificatePage />} />
                     <Route path="/home/bureaux" element={<BureauPage />} />
+                  </Route>
+
+                  {/* RICE_READ = ADMIN, CUP, CHEF_DEPARTEMENT (parité AuthorizationMatrix) */}
+                  <Route
+                    element={
+                      <RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />
+                    }
+                  >
+                    <Route path="/home/rice" element={<RicePage />} />
                   </Route>
 
                   {/* FORMATION_CREATE = ADMIN, CUP (cf. AuthorizationMatrix) */}
@@ -300,7 +307,7 @@ export default function AppRoutes() {
                     />
                   </Route>
 
-                  <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP]} />}>
+                  <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />}>
                     <Route path="/home/affectations" element={<AffectationEnseignantPage />} />
                     <Route path="/home/rice/matchmaking" element={<CompetenceMatchingPage />} />
                     <Route

@@ -67,10 +67,30 @@ export default function CupDashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Les appels analytics prédictifs (overview, in-demand) sont réservés au
-  // pilotage (ADMIN/CUP/CHEF_DEPARTEMENT) côté gateway : on ne les déclenche
-  // pas pour RESPONSABLE_DOSSIER (évite les 403 en console sur /home).
+  // Les appels analytics prédictifs (overview) sont réservés au pilotage
+  // ADMIN/CUP (DASHBOARD_ADMIN_FULL) : pour le chef de département et
+  // RESPONSABLE_DOSSIER ils renvoient 403 — on ne les déclenche donc pas.
+  // Les KPI / besoins globaux (DASHBOARD_ADMIN_LIMITED / READ_ALL) sont
+  // autorisés pour ADMIN/CUP/CHEF_DEPARTEMENT/ANIMATEUR/RESPONSABLE_DOSSIER,
+  // mais PAS pour l'ENSEIGNANT — on les garde pour éviter les 403 sur /home.
   const isPilotage = hasAnyRole(user?.role, ['admin', 'CUP', 'CHEF_DEPARTEMENT']);
+  const canReadKpis = hasAnyRole(user?.role, [
+    'admin',
+    'CUP',
+    'CHEF_DEPARTEMENT',
+    'Animateur',
+    'ResponsableDossier',
+  ]);
+  const canReadBesoins = hasAnyRole(user?.role, [
+    'admin',
+    'CUP',
+    'CHEF_DEPARTEMENT',
+    'Animateur',
+    'ResponsableDossier',
+  ]);
+  const canReadOverview = hasAnyRole(user?.role, ['admin', 'CUP']);
+  // L'endpoint legacy in-demand est ouvert à ADMIN/CUP/CHEF_DEPARTEMENT (200 testé).
+  const canReadInDemand = hasAnyRole(user?.role, ['admin', 'CUP', 'CHEF_DEPARTEMENT']);
 
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<PeriodKey>('annee');
@@ -89,7 +109,12 @@ export default function CupDashboardPage() {
     formationsByDomaineLoading,
     formationsByCompetence,
     formationsByCompetenceLoading,
-  } = useCupDashboard(isPilotage);
+  } = useCupDashboard(isPilotage, {
+    readKpis: canReadKpis,
+    readBesoins: canReadBesoins,
+    readOverview: canReadOverview,
+    readInDemand: canReadInDemand,
+  });
 
   // Formations à venir (données réelles, filtrées depuis le référentiel formations).
   const { data: formationsRaw, isLoading: formationsLoading } = useQuery({

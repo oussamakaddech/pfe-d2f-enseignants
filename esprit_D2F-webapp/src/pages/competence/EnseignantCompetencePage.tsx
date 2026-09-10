@@ -19,6 +19,7 @@ import {
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, TrophyOutlined } from '@ant-design/icons';
 import { useAuth } from '@/hooks/auth/useAuth';
+import { useHasPermission } from '@/routes/guards';
 import {
   useEnseignantCompetenceApi,
   useCompetenceDomaineApi,
@@ -74,6 +75,9 @@ function niveauTag(niveau: string | undefined) {
 export default function EnseignantCompetencePage() {
   const { enseignantId: paramId } = useParams();
   const { user } = useAuth();
+  const canCreate = useHasPermission('AFFECTATION', 'CREATE');
+  const canEdit = useHasPermission('AFFECTATION', 'UPDATE_SELF');
+  const canDelete = useHasPermission('AFFECTATION', 'DELETE');
 
   // Resolve the enseignant to display: URL param (admin) or current user
   const enseignantId = paramId || user?.username;
@@ -277,28 +281,34 @@ export default function EnseignantCompetencePage() {
       key: 'commentaire',
       render: (c: string | undefined) => <span style={truncateCellStyle}>{c || '—'}</span>,
     },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: 100,
-      render: (_, record) => (
-        <Space>
-          <Tooltip title="Modifier le niveau">
-            <Button size="small" icon={<EditOutlined />} onClick={() => openNiveauModal(record)} />
-          </Tooltip>
-          <Tooltip title="Retirer">
-            <Popconfirm
-              title="Retirer cette compétence ?"
-              okText="Oui"
-              cancelText="Non"
-              onConfirm={() => record.id != null && handleDelete(record.id)}
-            >
-              <Button size="small" danger icon={<DeleteOutlined />} />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
-      ),
-    },
+    ...(canEdit || canDelete
+      ? [{
+          title: 'Actions',
+          key: 'actions',
+          width: 100,
+          render: (_: unknown, record: EnseignantCompetenceRecord) => (
+            <Space>
+              {canEdit && (
+                <Tooltip title="Modifier le niveau">
+                  <Button size="small" icon={<EditOutlined />} onClick={() => openNiveauModal(record)} />
+                </Tooltip>
+              )}
+              {canDelete && (
+                <Tooltip title="Retirer">
+                  <Popconfirm
+                    title="Retirer cette compétence ?"
+                    okText="Oui"
+                    cancelText="Non"
+                    onConfirm={() => record.id != null && handleDelete(record.id)}
+                  >
+                    <Button size="small" danger icon={<DeleteOutlined />} />
+                  </Popconfirm>
+                </Tooltip>
+              )}
+            </Space>
+          ),
+        }]
+      : []),
   ];
 
   return (
@@ -356,14 +366,16 @@ export default function EnseignantCompetencePage() {
           ))}
         </Select>
 
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={openAssignModal}
-          disabled={!enseignantId}
-        >
-          Ajouter une compétence
-        </Button>
+        {canCreate && (
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={openAssignModal}
+            disabled={!enseignantId}
+          >
+            Ajouter une compétence
+          </Button>
+        )}
       </Space>
 
       <Divider />

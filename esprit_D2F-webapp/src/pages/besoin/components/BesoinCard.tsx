@@ -35,6 +35,8 @@ interface BesoinData {
   objectifFormation?: string;
   typeBesoin?: string;
   dateCreation?: string;
+  approuveCUP?: boolean;
+  approuveChefDep?: boolean;
   approuveAdmin?: boolean;
   propositionAnimateur?: string;
   horaireSouhaite?: string;
@@ -47,6 +49,10 @@ interface BesoinCardProps {
   deptLabel?: string | null;
   periodLabel?: string | null;
   approvingId?: string | number | null;
+  canApprove?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  userRole?: string;
   onApprove: (besoin: Record<string, unknown>) => void;
   onOpenMail: (besoin: Record<string, unknown>) => void;
   onEdit: (besoin: Record<string, unknown>) => void;
@@ -103,6 +109,10 @@ export default function BesoinCard({
   deptLabel,
   periodLabel,
   approvingId,
+  canApprove = true,
+  canEdit = true,
+  canDelete = true,
+  userRole = '',
   onApprove,
   onOpenMail,
   onEdit,
@@ -117,6 +127,17 @@ export default function BesoinCard({
   const typeTone = TYPE_TONES[besoin.typeBesoin ?? ''] || 'info';
   const typeLabel = TYPE_LABELS[besoin.typeBesoin ?? ''] || besoin.typeBesoin?.replaceAll('_', ' ');
   const recent = isRecent(besoin.dateCreation);
+
+  const isFullyApproved = !!besoin.approuveAdmin;
+  const isMyTurnToApprove =
+    canApprove && !isFullyApproved && (
+      // CUP can approve step 1
+      (userRole === 'CUP' && !besoin.approuveCUP) ||
+      // Chef de département can approve step 2
+      (userRole === 'CHEF_DEPARTEMENT' && !!besoin.approuveCUP && !besoin.approuveChefDep) ||
+      // Admin can approve step 3
+      (userRole === 'admin' && !!besoin.approuveCUP && !!besoin.approuveChefDep && !besoin.approuveAdmin)
+    );
 
   const bRecord = besoin as unknown as Record<string, unknown>;
   const stopProp = (fn: () => void) => (e?: React.SyntheticEvent) => {
@@ -223,7 +244,7 @@ export default function BesoinCard({
 
       {/* Actions */}
       <div className="bf-card__actions">
-        {!besoin.approuveAdmin && (
+        {isMyTurnToApprove && (
           <Popconfirm
             title="Approuver ce besoin ?"
             description="Cela lance la création de la formation associée."
@@ -254,35 +275,39 @@ export default function BesoinCard({
             aria-label="Email CUP"
           />
         </Tooltip>
-        <Tooltip title="Modifier">
-          <Button
-            size="small"
-            icon={<EditOutlined />}
-            onClick={stopProp(() => onEdit(bRecord))}
-            className="bf-iconbtn"
-            aria-label="Modifier"
-          />
-        </Tooltip>
-        <Popconfirm
-          title="Supprimer ce besoin ?"
-          description="Cette action est irréversible."
-          onConfirm={stopProp(() => {
-            if (id != null) onDelete(id);
-          })}
-          onCancel={(e) => e?.stopPropagation()}
-          okText="Supprimer"
-          cancelText="Annuler"
-          okButtonProps={{ danger: true }}
-        >
-          <Button
-            danger
-            size="small"
-            icon={<DeleteOutlined />}
-            className="bf-iconbtn bf-iconbtn--danger"
-            onClick={(e) => e.stopPropagation()}
-            aria-label="Supprimer"
-          />
-        </Popconfirm>
+        {canEdit && (
+          <Tooltip title="Modifier">
+            <Button
+              size="small"
+              icon={<EditOutlined />}
+              onClick={stopProp(() => onEdit(bRecord))}
+              className="bf-iconbtn"
+              aria-label="Modifier"
+            />
+          </Tooltip>
+        )}
+        {canDelete && (
+          <Popconfirm
+            title="Supprimer ce besoin ?"
+            description="Cette action est irréversible."
+            onConfirm={stopProp(() => {
+              if (id != null) onDelete(id);
+            })}
+            onCancel={(e) => e?.stopPropagation()}
+            okText="Supprimer"
+            cancelText="Annuler"
+            okButtonProps={{ danger: true }}
+          >
+            <Button
+              danger
+              size="small"
+              icon={<DeleteOutlined />}
+              className="bf-iconbtn bf-iconbtn--danger"
+              onClick={(e) => e.stopPropagation()}
+              aria-label="Supprimer"
+            />
+          </Popconfirm>
+        )}
       </div>
     </div>
   );

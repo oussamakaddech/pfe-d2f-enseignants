@@ -7,6 +7,7 @@ import { InboxOutlined, PlusOutlined, ClearOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
 import { useHasPermission } from '@/routes/guards';
+import { useUserRole } from '@/routes/guards';
 import { useBesoinList, INITIAL_FILTERS } from './hooks/useBesoinList';
 import BesoinHeader from './components/BesoinHeader';
 import BesoinStatsRow from './components/BesoinStatsRow';
@@ -25,6 +26,10 @@ type BfRefItem = { id: string | number; name?: string; libelle?: string };
 export default function BesoinList() {
   const navigate = useNavigate();
   const canAdd = useHasPermission('BESOIN_FORMATION', 'CREATE');
+  const canApprove = useHasPermission('BESOIN_FORMATION', 'APPROVE');
+  const canEdit = useHasPermission('BESOIN_FORMATION', 'UPDATE');
+  const canDelete = useHasPermission('BESOIN_FORMATION', 'DELETE');
+  const userRole = useUserRole() ?? '';
   const ctx = useBesoinList();
 
   const {
@@ -210,6 +215,10 @@ export default function BesoinList() {
                     deptLabel={getLabel(findById(typedDepts, b.departement))}
                     periodLabel={periodLabelOf(br)}
                     approvingId={approvingId}
+                    canApprove={canApprove}
+                    canEdit={canEdit}
+                    canDelete={canDelete}
+                    userRole={userRole}
                     onApprove={handleApprove}
                     onOpenMail={openMailModal}
                     onEdit={openEdit}
@@ -242,6 +251,10 @@ export default function BesoinList() {
           data={filtered as unknown as Record<string, unknown>[]}
           loading={loading}
           approvingId={approvingId}
+          canApprove={canApprove}
+          canEdit={canEdit}
+          canDelete={canDelete}
+          userRole={userRole}
           getBesoinId={getBesoinId}
           onApprove={handleApprove}
           onOpenMail={openMailModal}

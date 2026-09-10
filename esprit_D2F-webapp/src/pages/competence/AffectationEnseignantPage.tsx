@@ -18,6 +18,7 @@ import { useEnseignants } from '@/hooks/enseignant/useEnseignants';
 import AppPageHeader from '@/components/common/AppPageHeader';
 import '@/styles/pages/affectation-enseignant-page.css';
 import useAppNotification from '@/hooks/ui/useAppNotification';
+import { useHasPermission } from '@/routes/guards';
 import { NIVEAU_OPTIONS } from '@/utils/constants/competenceOptions';
 import type { EnseignantCompetence, Savoir } from '@/models/competence';
 import type { Id } from '@/models/common';
@@ -43,6 +44,9 @@ interface AssignFormValues {
 export default function AffectationEnseignantPage() {
   const { message: msgApi } = useAppNotification();
   const navigate = useNavigate();
+  const canCreate = useHasPermission('AFFECTATION', 'CREATE');
+  const canEdit = useHasPermission('AFFECTATION', 'UPDATE_ALL');
+  const canDelete = useHasPermission('AFFECTATION', 'DELETE');
 
   const ecApi = useEnseignantCompetenceApi();
   const savoirApi = useSavoirApi();
@@ -230,11 +234,11 @@ export default function AffectationEnseignantPage() {
     }
   };
 
-  const columns = buildMainColumns({ openNiveauModal, handleDeleteSavoir, handleDeleteAll });
+  const columns = buildMainColumns({ openNiveauModal, handleDeleteSavoir, handleDeleteAll, canEdit, canDelete });
 
   const expandedRowRender = (record: EnseignantRow) => (
     <Table
-      columns={buildExpandedColumns(openNiveauModal, handleDeleteSavoir)}
+      columns={buildExpandedColumns(openNiveauModal, handleDeleteSavoir, canEdit, canDelete)}
       dataSource={record.savoirs}
       pagination={false}
       rowKey={(r) => String(r.affId)}
@@ -276,13 +280,15 @@ export default function AffectationEnseignantPage() {
         title="Affectations Enseignants"
         subtitle="Résultat de l'analyse RICE : enseignants et leurs savoirs associés. Ajoutez des affectations manuellement."
         actions={
-          <Button
-            className="d2f-btn-primary"
-            icon={<PlusOutlined />}
-            onClick={() => setAssignModal(true)}
-          >
-            Nouvelle Affectation
-          </Button>
+          canCreate ? (
+            <Button
+              className="d2f-btn-primary"
+              icon={<PlusOutlined />}
+              onClick={() => setAssignModal(true)}
+            >
+              Nouvelle Affectation
+            </Button>
+          ) : undefined
         }
       />
       <Row gutter={[16, 16]} className="affectation-stats-row">

@@ -7,7 +7,7 @@ import { getActiveRole } from '@/utils/storage/storage';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useAddBesoin, useReplaceBesoinCompetences } from '@/hooks/besoin/useBesoins';
 import { useEnseignants } from '@/hooks/enseignant/useEnseignants';
-import { buildActeurOptions } from '@/utils/besoin/acteurs';
+import { buildActeurOptions, serializeActeurs } from '@/utils/besoin/acteurs';
 import type { BesoinCompetenceLink, BesoinFormation } from '@/models/besoin';
 import type { Id } from '@/models/common';
 import {
@@ -45,6 +45,12 @@ type BesoinPayloadValues = {
   titre?: string;
   typeBesoin?: string;
   description?: string;
+  up?: string;
+  departement?: string;
+  objectifFormation?: string;
+  propositionAnimateur?: string | string[];
+  animateurs?: string | string[];
+  enseignants?: string | string[];
   dateDebut?: DayjsLike;
   dateFin?: DayjsLike;
   priorite?: string;
@@ -446,9 +452,18 @@ export function useBesoinForm() {
     return {
       idBesoinFormation: values.idBesoinFormation,
       codeBesoin: values.codeBesoin,
+      // Demandeur : résolu depuis le JWT côté auth (le service besoin n'assume
+      // plus la déduction du username) — sans ce champ, `GET /mine` est vide.
+      username: user?.username ?? user?.userName,
       titre: values.titre,
       typeBesoin: values.typeBesoin as BesoinFormation['typeBesoin'],
       description: values.description,
+      up: values.up,
+      departement: values.departement,
+      objectifFormation: values.objectifFormation,
+      propositionAnimateur: serializeActeurs(values.propositionAnimateur),
+      animateurs: serializeActeurs(values.animateurs),
+      enseignants: serializeActeurs(values.enseignants),
       dateDebut: values.dateDebut ? values.dateDebut.format('YYYY-MM-DD') : undefined,
       dateFin: values.dateFin ? values.dateFin.format('YYYY-MM-DD') : undefined,
       priorite: values.priorite as BesoinFormation['priorite'],
@@ -474,6 +489,11 @@ export function useBesoinForm() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
+      // Validation globale avant envoi : le bouton « Enregistrer » du récapitulatif
+      // appelle handleSubmit directement (onClick), hors onFinish — sans ce garde,
+      // un payload incomplet partait au backend et recevait un 400 BESOIN_VALIDATION_ERROR
+      // (ex. « titre: entre 5 et 200 caractères », « dateDebut: doit être dans le futur »).
+      await form.validateFields();
       const values = form.getFieldsValue(true) as unknown as BesoinPayloadValues;
       const payload = buildPayload(values);
       const created = await addBesoin.mutateAsync(payload);
@@ -495,6 +515,12 @@ export function useBesoinForm() {
       setLastImportCount(0);
       setCurrentStep(0);
     } catch (err: unknown) {
+      if ((err as { errorFields?: unknown })?.errorFields) {
+        // Échec de la validation globale form.validateFields() : les champs
+        // fautifs sont signalés en rouge dans le formulaire.
+        msgApi.error('Veuillez corriger les champs signalés avant d\u2019enregistrer le besoin.');
+        return;
+      }
       msgApi.error(`Erreur lors de l'ajout du besoin — ${getErrorMessage(err)}`);
     } finally {
       setSubmitting(false);

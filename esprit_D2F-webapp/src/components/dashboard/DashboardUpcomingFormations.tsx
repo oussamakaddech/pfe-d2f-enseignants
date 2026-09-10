@@ -5,13 +5,26 @@ import { CalendarOutlined, RightOutlined, ClockCircleOutlined } from '@ant-desig
 import dayjs from 'dayjs';
 import { InfoCard, EmptyState } from '@/components/ui';
 import { useAllFormations } from '@/hooks/formation/useFormations';
+import { useAuth } from '@/hooks/auth/useAuth';
+import { hasAnyRole } from '@/utils/constants/roles';
 import type { Formation } from '@/models/formation';
 
 const UPCOMING_STATES = new Set(['PLANIFIE', 'PLANIFIEE', 'ENREGISTRE', 'VISIBLE']);
 
 const DashboardUpcomingFormations = memo(function DashboardUpcomingFormations() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data, isLoading } = useAllFormations();
+
+  // Lien adapté selon le rôle : ADMIN/CUP → gestion formations, ENSEIGNANT → inscriptions,
+  // CHEF_DEPARTEMENT → catalogue consultation.
+  const formationsLink = useMemo(() => {
+    const role = user?.role;
+    if (hasAnyRole(role, ['admin', 'CUP'])) return '/home/Formation';
+    if (hasAnyRole(role, ['Enseignant', 'Animateur'])) return '/home/Inscriptions';
+    if (hasAnyRole(role, ['CHEF_DEPARTEMENT'])) return '/home/Formation/Consulter';
+    return '/home/Formation/Consulter';
+  }, [user?.role]);
 
   const upcoming = useMemo<Formation[]>(() => {
     const today = dayjs().startOf('day');
@@ -30,9 +43,9 @@ const DashboardUpcomingFormations = memo(function DashboardUpcomingFormations() 
         <Button
           type="link"
           style={{ paddingInline: 0 }}
-          onClick={() => navigate('/home/Formation')}
+          onClick={() => navigate(formationsLink)}
         >
-          Gérer les formations <RightOutlined />
+          Consulter les formations <RightOutlined />
         </Button>
       }
     >

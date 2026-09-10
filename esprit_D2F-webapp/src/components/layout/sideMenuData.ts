@@ -131,6 +131,7 @@ export const cupMenu: MenuItem[] = [
         ],
       },
       { label: 'Suivi des Affectations', key: '/home/affectations', icon: SolutionOutlined },
+      { label: 'Vue RICE', key: '/home/rice', icon: ClusterOutlined },
     ],
   },
   {
@@ -212,17 +213,24 @@ export const chefDepartementMenu: MenuItem[] = [
     label: 'COMPÉTENCES & BESOINS',
     children: [
       { label: 'Référentiel Compétences', key: '/home/competences', icon: BookOutlined },
+      { label: 'Affectations', key: '/home/affectations', icon: SolutionOutlined },
       { label: 'Besoins de Formation', key: '/home/besoins', icon: ReadOutlined },
+      { label: 'Vue RICE', key: '/home/rice', icon: ClusterOutlined },
     ],
   },
   {
     type: 'group',
-    label: 'DOCUMENTS & SUIVI',
+    label: 'SUIVI',
+    children: [
+      { label: 'Inscriptions', key: '/home/Inscriptions', icon: FileTextOutlined },
+      { label: 'Évaluations', key: '/home/Evaluations', icon: TrophyOutlined },
+    ],
+  },
+  {
+    type: 'group',
+    label: 'DOCUMENTS',
     children: [
       { label: 'Dossiers de Formation', key: '/home/File', icon: FileTextOutlined },
-      // « Inscriptions » retiré : INSCRIPTION_READ (AuthorizationMatrix) n'inclut pas
-      // ROLE_CHEF_DEPARTEMENT → la page provoquait des 403 (erreur front/back).
-      // Réintégrer plus tard avec une consultation d'inscriptions filtrée par département.
     ],
   },
 ];

@@ -21,6 +21,9 @@ public class EvaluationGlobaleDTO {
     @Positive(message = "L'ID formation doit etre positif")
     private Long formationId;
 
+    @Size(max = 10, message = "L'enseignant evalue ne peut depasser 10 caracteres")
+    private String enseignantId;
+
     @Size(max = 2000, message = "Le commentaire general ne peut depasser 2000 caracteres")
     private String commentaireGeneral;
 

@@ -204,8 +204,14 @@ export function useBesoinList() {
     setApprovingId(id as string | number);
     try {
       await approveMut.mutateAsync(id as Id);
-      msgApi.success('Besoin approuvé — redirection vers la création de formation...');
-      setTimeout(() => navigate('/home/Formation/Creer', { state: { besoinInfo: record } }), 800);
+      msgApi.success('Besoin approuvé');
+      // CHEF_DEPARTEMENT n'a pas accès à /Formation/Creer → rediriger vers le catalogue.
+      const role = normalizeRole(user?.role);
+      const target =
+        role === normalizeRole(ROLES.CHEF_DEPARTEMENT)
+          ? '/home/Formation/Consulter'
+          : '/home/Formation/Creer';
+      setTimeout(() => navigate(target, { state: { besoinInfo: record } }), 800);
     } catch {
       msgApi.error("Erreur lors de l'approbation");
     } finally {

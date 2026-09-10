@@ -5,11 +5,6 @@ import type { BesoinFormation } from '@/models/besoin';
 
 const API_URL = `${config.BESOIN_URL}/besoins-formation`;
 
-interface ModifyBesoinPayload {
-  besoinFormation: Partial<BesoinFormation>;
-  commentaire: string;
-}
-
 export interface BesoinNotification {
   id?: Id;
   message?: string;
@@ -78,11 +73,14 @@ const BesoinFormationService = {
     besoinFormation: Partial<BesoinFormation>,
     commentaire: string,
   ): Promise<BesoinFormation> {
-    const payload: ModifyBesoinPayload = {
-      besoinFormation,
+    // Backend PUT /api/v1/besoins-formations attend un BesoinFormationRequest
+    // PLAT (+ commentaire pour la notification) — pas le wrapper imbriqué
+    // { besoinFormation } : celui-ci était silencieusement ignoré par Jackson,
+    // laissant un DTO vide rejeté en 400 BESOIN_VALIDATION_ERROR.
+    const response = await axios.put<BesoinFormation>(`${API_URL}`, {
+      ...besoinFormation,
       commentaire,
-    };
-    const response = await axios.put<BesoinFormation>(`${API_URL}`, payload);
+    });
     return response.data;
   },
 
