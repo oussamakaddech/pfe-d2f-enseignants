@@ -26,6 +26,13 @@ import java.io.Serializable;
 @Schema(description = "Événement RabbitMQ émis à la validation complète d'un besoin de formation")
 public class BesoinFormationApprovedEvent implements Serializable {
 
+    /** Identifiant unique de l'événement (idempotence / traçabilité). */
+    @Schema(description = "Identifiant unique de l'événement (UUID)", example = "3fa85f64-5717-4562-b3fc-2c963f66afa6")
+    private String eventId;
+
+    @Schema(description = "Type d'événement", example = "BesoinFormationApprovedEvent")
+    private String eventType;
+
     @Schema(description = "Identifiant technique du besoin", example = "42")
     private Long idBesoinFormation;
 
@@ -66,5 +73,31 @@ public class BesoinFormationApprovedEvent implements Serializable {
     private String customPeriodLabel;
     private String dateDebut;
     private String dateFin;
+
+    // ── Workflow sécurisé (§7) ─────────────────────────────────────────────
+
+    /** Rôle fonctionnel du créateur (ENSEIGNANT / CUP / CHEF_DEPARTEMENT / ADMIN). */
+    @Schema(description = "Rôle du créateur du besoin", example = "CUP")
+    private String createdByRole;
+
+    /** Code UP (upId métier) — renseigné pour les besoins rattachés à une UP. */
+    @Schema(description = "Code UP", example = "UP_INFO")
+    private String upId;
+
+    /** Code département (departmentId métier). */
+    @Schema(description = "Code département", example = "DEPT_GL")
+    private String departmentId;
+
+    /** IDs des compétences liées au besoin (table besoin_competences). */
+    @Schema(description = "Compétences liées au besoin")
+    private java.util.List<Long> competenceIds;
+
+    /** Username du validateur final (ADMIN). */
+    @Schema(description = "Approbateur final", example = "admin")
+    private String approvedBy;
+
+    /** Horodatage UTC ISO-8601 d'émission de l'événement. */
+    @Schema(description = "Horodatage d'émission (UTC ISO-8601)")
+    private String occurredAt;
 }
 

@@ -42,6 +42,11 @@ public class EvaluationFormateurService {
         dto.setNote(entity.getNote());
         dto.setSatisfaisant(entity.isSatisfaisant());
         dto.setCommentaire(entity.getCommentaire());
+        dto.setMaitriseSujet(entity.getMaitriseSujet());
+        dto.setClarte(entity.getClarte());
+        dto.setPedagogie(entity.getPedagogie());
+        dto.setInteraction(entity.getInteraction());
+        dto.setGestionTemps(entity.getGestionTemps());
         return dto;
     }
 
@@ -53,6 +58,11 @@ public class EvaluationFormateurService {
         entity.setNote(dto.getNote());
         entity.setSatisfaisant(dto.isSatisfaisant());
         entity.setCommentaire(dto.getCommentaire());
+        entity.setMaitriseSujet(dto.getMaitriseSujet());
+        entity.setClarte(dto.getClarte());
+        entity.setPedagogie(dto.getPedagogie());
+        entity.setInteraction(dto.getInteraction());
+        entity.setGestionTemps(dto.getGestionTemps());
         return entity;
     }
 
@@ -74,8 +84,18 @@ public class EvaluationFormateurService {
         existingEval.setCommentaire(updatedDto.getCommentaire());
         existingEval.setEnseignantId(updatedDto.getEnseignantId());
         existingEval.setFormationId(updatedDto.getFormationId());
+        applyTrainerCriteria(existingEval, updatedDto);
 
         return mapToDto(evaluationRepository.save(existingEval));
+    }
+
+    /** Applique les critères structurés de l'évaluation du formateur. */
+    private void applyTrainerCriteria(EvaluationFormateur entity, EvaluationFormateurDTO dto) {
+        entity.setMaitriseSujet(dto.getMaitriseSujet());
+        entity.setClarte(dto.getClarte());
+        entity.setPedagogie(dto.getPedagogie());
+        entity.setInteraction(dto.getInteraction());
+        entity.setGestionTemps(dto.getGestionTemps());
     }
 
     // DELETE
@@ -111,9 +131,7 @@ public class EvaluationFormateurService {
 
 
     public void createEvaluationsBulk(List<EvaluationFormateurDTO> dtos) {
-        if (!dtos.isEmpty()) {
-            verifierExistence(dtos.get(0).getEnseignantId(), dtos.get(0).getFormationId());
-        }
+        validateBulkReferences(dtos);
         List<EvaluationFormateur> entities = new ArrayList<>();
         for (EvaluationFormateurDTO dto : dtos) {
             EvaluationFormateur entity = new EvaluationFormateur();
@@ -158,9 +176,7 @@ public class EvaluationFormateurService {
 
     @Transactional
     public void updateEvaluationsBulkByFormation(Long formationId, List<EvaluationFormateurDTO> dtos) {
-        if (!dtos.isEmpty()) {
-            verifierExistence(dtos.get(0).getEnseignantId(), formationId);
-        }
+        validateBulkReferencesForFormation(formationId, dtos);
         // 1) Charger toutes les évaluations existantes de la formation
         List<EvaluationFormateur> existing = evaluationRepository.findByFormationId(formationId);
 
@@ -186,6 +202,7 @@ public class EvaluationFormateurService {
                 ev.setNote(dto.getNote());
                 ev.setSatisfaisant(dto.isSatisfaisant());
                 ev.setCommentaire(dto.getCommentaire());
+                applyTrainerCriteria(ev, dto);
             } else {
                 // Création
                 ev = new EvaluationFormateur();
@@ -197,6 +214,53 @@ public class EvaluationFormateurService {
             }
             evaluationRepository.save(ev);
         }
+    }
+
+    private void validateBulkReferences(List<EvaluationFormateurDTO> dtos) {
+        Set<Long> formationIds = new HashSet<>();
+        Set<String> enseignantIds = new HashSet<>();
+        for (EvaluationFormateurDTO dto : dtos) {
+            if (dto == null || dto.getFormationId() == null || dto.getEnseignantId() == null
+                    || dto.getEnseignantId().isBlank()) {
+                throw new IllegalArgumentException("Chaque évaluation doit préciser une formation et un enseignant.");
+            }
+            formationIds.add(dto.getFormationId());
+            enseignantIds.add(dto.getEnseignantId());
+        }
+        formationIds.forEach(formationId -> {
+            if (Boolean.FALSE.equals(formationClient.getFormation(formationId))) {
+                throw new esprit.pfe.serviceevaluation.exception.ResourceNotFoundException("Formation introuvable");
+            }
+        });
+        enseignantIds.forEach(enseignantId -> {
+            if (!authClient.enseignantExists(enseignantId)) {
+                throw new esprit.pfe.serviceevaluation.exception.ResourceNotFoundException("Enseignant introuvable");
+            }
+        });
+    }
+
+    private void validateBulkReferencesForFormation(Long formationId, List<EvaluationFormateurDTO> dtos) {
+        if (formationId == null) {
+            throw new IllegalArgumentException("La formation est obligatoire.");
+        }
+        if (dtos.isEmpty()) {
+            return;
+        }
+        if (Boolean.FALSE.equals(formationClient.getFormation(formationId))) {
+            throw new esprit.pfe.serviceevaluation.exception.ResourceNotFoundException("Formation introuvable");
+        }
+        Set<String> enseignantIds = new HashSet<>();
+        for (EvaluationFormateurDTO dto : dtos) {
+            if (dto == null || dto.getEnseignantId() == null || dto.getEnseignantId().isBlank()) {
+                throw new IllegalArgumentException("Chaque évaluation doit préciser un enseignant.");
+            }
+            enseignantIds.add(dto.getEnseignantId());
+        }
+        enseignantIds.forEach(enseignantId -> {
+            if (!authClient.enseignantExists(enseignantId)) {
+                throw new esprit.pfe.serviceevaluation.exception.ResourceNotFoundException("Enseignant introuvable");
+            }
+        });
     }
 
 

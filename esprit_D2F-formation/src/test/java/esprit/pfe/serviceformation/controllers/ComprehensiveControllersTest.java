@@ -44,6 +44,7 @@ class ComprehensiveControllersTest {
 
     @Mock private FormationCompetenceService fcService;
     @Mock private FormationClosureService fCustomService;
+    @Mock private CertificateEligibilityService certificateEligibilityService;
     @Mock private OutlookMailService mailService;
     @Mock private ParticipantKpiService pkpiService;
     @Mock private EnseignantService ensService;

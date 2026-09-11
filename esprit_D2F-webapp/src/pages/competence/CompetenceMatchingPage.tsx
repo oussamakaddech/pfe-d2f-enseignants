@@ -41,12 +41,15 @@ import '@/styles/pages/competence-matching-page.css';
 import {
   type RiceSavoirEntry,
   type RiceEnseignantEntry,
+  type SavoirHierarchy,
   initialState,
   getAvatarColor,
   normalizePending,
   normalizeNiveauForAssignment,
   reducer,
+  resolveSavoirHierarchy,
 } from './components/matchingTypes';
+import { useMatchingReferential } from './hooks/useMatchingReferential';
 
 const { Text } = Typography;
 
@@ -74,24 +77,111 @@ export default function CompetenceMatchingPage() {
     return map;
   }, [state.enseignants]);
 
+  const { domaines, competences, sousCompetences } = useMatchingReferential();
+
+  /** Hiérarchie résolue de chaque savoir (id → domaine › compétence › sous-compétence). */
+  const hierarchies = useMemo(() => {
+    const map = new Map<string, SavoirHierarchy>();
+    (state.savoirs || []).forEach((s) => {
+      map.set(String(s.id), resolveSavoirHierarchy(s, { domaines, competences, sousCompetences }));
+    });
+    return map;
+  }, [state.savoirs, domaines, competences, sousCompetences]);
+
+  const emptyHierarchy: SavoirHierarchy = useMemo(
+    () => ({
+      domaineId: '',
+      domaineNom: '',
+      competenceId: '',
+      competenceNom: '',
+      sousCompetenceId: '',
+      sousCompetenceNom: '',
+    }),
+    [],
+  );
+
+  const hierarchyOf = useCallback(
+    (s: RiceSavoirEntry): SavoirHierarchy => hierarchies.get(String(s.id)) ?? emptyHierarchy,
+    [hierarchies, emptyHierarchy],
+  );
+
   const domainOptions = useMemo(() => {
     const map = new Map<string, string>();
+    domaines.forEach((d) => {
+      if (d.id === undefined || d.id === null) return;
+      map.set(String(d.id), String(d.nom ?? d.code ?? String(d.id)));
+    });
+    // Repli : domaines legacy portés par les savoirs (référentiel RICE)
     (state.savoirs || []).forEach((s) => {
-      const domaine = s.domaine;
-      const code =
-        typeof domaine === 'object' && domaine !== null ? (domaine.code ?? domaine.nom) : domaine;
-      if (!code) return;
-      const label =
-        typeof domaine === 'object' && domaine !== null
-          ? (domaine.nom ?? domaine.code ?? String(code))
-          : String(code);
-      map.set(String(code), String(label));
+      const h = hierarchies.get(String(s.id));
+      if (h && h.domaineId && !map.has(h.domaineId)) {
+        map.set(h.domaineId, h.domaineNom || h.domaineId);
+      }
     });
     return [
       { value: 'all', label: 'Tous les domaines' },
       ...Array.from(map.entries()).map(([value, label]) => ({ value, label })),
     ];
-  }, [state.savoirs]);
+  }, [domaines, state.savoirs, hierarchies]);
+
+  const competenceOptions = useMemo(() => {
+    const selectedDomaine = state.filters.domaine;
+    const list = (competences || []).filter((c) => {
+      if (selectedDomaine === 'all') return true;
+      return String(c.domaineId ?? '') === String(selectedDomaine);
+    });
+    return [
+      { value: 'all', label: 'Toutes les compétences' },
+      ...list.map((c) => ({
+        value: String(c.id),
+        label: String(c.nom ?? c.code ?? String(c.id)),
+      })),
+    ];
+  }, [competences, state.filters.domaine]);
+
+  const sousCompetenceOptions = useMemo(() => {
+    const selectedCompetence = state.filters.competence;
+    const selectedDomaine = state.filters.domaine;
+    const list = (sousCompetences || []).filter((sc) => {
+      if (selectedCompetence !== 'all') {
+        return String(sc.competenceId ?? '') === String(selectedCompetence);
+      }
+      if (selectedDomaine !== 'all') {
+        const comp = (competences || []).find((c) => String(c.id) === String(sc.competenceId));
+        return String(comp?.domaineId ?? '') === String(selectedDomaine);
+      }
+      return true;
+    });
+    return [
+      { value: 'all', label: 'Toutes les sous-compétences' },
+      ...list.map((sc) => ({
+        value: String(sc.id),
+        label: String(sc.nom ?? sc.code ?? String(sc.id)),
+      })),
+    ];
+  }, [sousCompetences, competences, state.filters.competence, state.filters.domaine]);
+
+  const handleDomaineChange = useCallback((v: string) => {
+    dispatch({ type: 'SET_FILTER', payload: { key: 'domaine', value: v } });
+    dispatch({ type: 'SET_FILTER', payload: { key: 'competence', value: 'all' } });
+    dispatch({ type: 'SET_FILTER', payload: { key: 'sousCompetence', value: 'all' } });
+  }, []);
+
+  const handleCompetenceChange = useCallback((v: string) => {
+    dispatch({ type: 'SET_FILTER', payload: { key: 'competence', value: v } });
+    dispatch({ type: 'SET_FILTER', payload: { key: 'sousCompetence', value: 'all' } });
+  }, []);
+
+  const handleResetHierarchyFilters = useCallback(() => {
+    dispatch({ type: 'SET_FILTER', payload: { key: 'domaine', value: 'all' } });
+    dispatch({ type: 'SET_FILTER', payload: { key: 'competence', value: 'all' } });
+    dispatch({ type: 'SET_FILTER', payload: { key: 'sousCompetence', value: 'all' } });
+  }, []);
+
+  const hasActiveHierarchyFilter =
+    state.filters.domaine !== 'all' ||
+    state.filters.competence !== 'all' ||
+    state.filters.sousCompetence !== 'all';
 
   const dept = state.filters.departement;
   const normalizedDept = dept === 'all' ? null : dept;
@@ -274,19 +364,32 @@ export default function CompetenceMatchingPage() {
     const q = (state.filters.search ?? '').toLowerCase();
     return (state.savoirs || []).filter((s) => {
       if (q && !`${s.nom} ${s.code}`.toLowerCase().includes(q)) return false;
+      const h = hierarchies.get(String(s.id));
       if (state.filters.domaine !== 'all') {
+        // Clé référentiel (id) ou repli legacy (code / nom du champ `domaine`)
         const domaine = s.domaine;
-        const sd =
+        const legacy =
           typeof domaine === 'object' && domaine !== null
             ? (domaine.code ?? domaine.nom ?? '')
             : (domaine ?? '');
-        if (String(sd) !== String(state.filters.domaine)) return false;
+        const keys = [h?.domaineId, String(legacy ?? '')].map(String);
+        if (!keys.includes(String(state.filters.domaine))) return false;
       }
+      if (
+        state.filters.competence !== 'all' &&
+        String(h?.competenceId ?? '') !== String(state.filters.competence)
+      )
+        return false;
+      if (
+        state.filters.sousCompetence !== 'all' &&
+        String(h?.sousCompetenceId ?? '') !== String(state.filters.sousCompetence)
+      )
+        return false;
       if (state.filters.showUnassignedOnly && (state.assignments[String(s.id)] ?? []).length > 0)
         return false;
       return true;
     });
-  }, [state.savoirs, state.filters, state.assignments]);
+  }, [state.savoirs, state.filters, state.assignments, hierarchies]);
 
   const pendingTotal = useMemo(
     () => state.pendingChanges.add.length + state.pendingChanges.remove.length,
@@ -381,6 +484,23 @@ export default function CompetenceMatchingPage() {
             <span className="savoir-code-label">{s.code as string}</span>
             <span className="savoir-name-inline">{s.nom as string}</span>
           </div>
+          {(() => {
+            const h = hierarchyOf(s);
+            const crumbs = [
+              h.domaineNom ? { label: h.domaineNom, color: 'purple' } : null,
+              h.competenceNom ? { label: h.competenceNom, color: 'blue' } : null,
+              h.sousCompetenceNom ? { label: h.sousCompetenceNom, color: 'cyan' } : null,
+            ].filter(Boolean) as { label: string; color: string }[];
+            return crumbs.length > 0 ? (
+              <div className="savoir-hierarchy-tags">
+                {crumbs.map((c) => (
+                  <Tag key={c.label} color={c.color} style={{ marginBottom: 2 }}>
+                    {c.label}
+                  </Tag>
+                ))}
+              </div>
+            ) : null;
+          })()}
           {assigned.length > 0 && (
             <div className="savoir-assigned-teachers">
               {assigned.map((ens) => (
@@ -528,9 +648,7 @@ export default function CompetenceMatchingPage() {
             />
             <Select
               value={state.filters.domaine ?? 'all'}
-              onChange={(v) =>
-                dispatch({ type: 'SET_FILTER', payload: { key: 'domaine', value: v } })
-              }
+              onChange={handleDomaineChange}
               style={{ width: 180, maxWidth: '100%' }}
               options={domainOptions}
             />
@@ -551,6 +669,39 @@ export default function CompetenceMatchingPage() {
           </Space>
         }
       />
+      <div className="matching-hierarchy-filterbar">
+        <Space size="middle" wrap>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            Hiérarchie :
+          </Text>
+          <Select
+            value={state.filters.competence ?? 'all'}
+            onChange={handleCompetenceChange}
+            style={{ width: 220, maxWidth: '100%' }}
+            options={competenceOptions}
+            placeholder="Compétence"
+          />
+          <Select
+            value={state.filters.sousCompetence ?? 'all'}
+            onChange={(v) =>
+              dispatch({ type: 'SET_FILTER', payload: { key: 'sousCompetence', value: v } })
+            }
+            style={{ width: 220, maxWidth: '100%' }}
+            options={sousCompetenceOptions}
+            placeholder="Sous-compétence"
+          />
+          {hasActiveHierarchyFilter && (
+            <Button size="small" type="link" onClick={handleResetHierarchyFilters}>
+              Réinitialiser
+            </Button>
+          )}
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {filteredSavoirs.length} savoir(s) · {domainOptions.length - 1} domaine(s) ·{' '}
+            {competenceOptions.length - 1} compétence(s) · {sousCompetenceOptions.length - 1}{' '}
+            sous-compétence(s)
+          </Text>
+        </Space>
+      </div>
       <div className="matching-main-content">
         <section className="matching-panel savoirs-list-panel">
           <div className="panel-header-section">

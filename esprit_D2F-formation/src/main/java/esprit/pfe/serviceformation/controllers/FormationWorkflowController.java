@@ -352,4 +352,21 @@ public class FormationWorkflowController {
         int to = Math.min(from + pageable.getPageSize(), all.size());
         return ResponseEntity.ok(new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size()));
     }
+
+    /**
+     * Catalogue scopé serveur (§8 droits) : un CUP ne voit que les formations
+     * de son UP, un chef de département celles de son département. Le périmètre
+     * est résolu depuis le JWT côté serveur — non falsifiable par le client.
+     */
+    @GetMapping("/mes-formations-pilote")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    public ResponseEntity<Page<FormationResponseDTO>> getMesFormationsPilote(
+            @AuthenticationPrincipal Jwt jwt,
+            @PageableDefault(size = 20, sort = "idFormation") Pageable pageable) {
+        List<FormationResponseDTO> all = formationWorkflowService
+                .getMesFormationsPilote(CurrentUser.fromJwt(jwt));
+        int from = (int) pageable.getOffset();
+        int to = Math.min(from + pageable.getPageSize(), all.size());
+        return ResponseEntity.ok(new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size()));
+    }
 }

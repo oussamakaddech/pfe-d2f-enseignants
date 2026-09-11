@@ -19,11 +19,14 @@ import tn.esprit.d2f.dto.BesoinFormationRequest;
 import tn.esprit.d2f.dto.BesoinFormationResponse;
 import tn.esprit.d2f.entity.BesoinFormation;
 import tn.esprit.d2f.entity.Notification;
+import tn.esprit.d2f.entity.enumerations.CreatorRole;
 import tn.esprit.d2f.entity.enumerations.PeriodCode;
 import tn.esprit.d2f.entity.enumerations.Priorite;
 import tn.esprit.d2f.entity.enumerations.TypeBesoin;
 import tn.esprit.d2f.exception.ResourceNotFoundException;
 import tn.esprit.d2f.mapper.BesoinFormationMapper;
+import tn.esprit.d2f.repository.BesoinApprovalHistoryRepository;
+import tn.esprit.d2f.repository.BesoinCompetenceRepository;
 import tn.esprit.d2f.repository.BesoinFormationRepository;
 import tn.esprit.d2f.repository.NotificationRepository;
 
@@ -49,8 +52,18 @@ class BesoinFormationServiceImplCoverageTest {
     private BesoinFormationEventPublisher eventPublisher;
     @Mock
     private NotificationRepository notificationRepository;
+    @Mock
+    private ReviewerScopeService reviewerScopeService;
+    @Mock
+    private BesoinApprovalHistoryRepository historyRepository;
+    @Mock
+    private BesoinCompetenceRepository besoinCompetenceRepository;
 
     private final BesoinFormationMapper besoinFormationMapper = new BesoinFormationMapper();
+
+    /** Périmètre ADMIN de l'utilisateur de test (test-admin). */
+    private static final ReviewerScopeService.ResolvedScope ADMIN_SCOPE =
+            new ReviewerScopeService.ResolvedScope("test-admin", "test-admin", CreatorRole.ADMIN, null, null, true);
 
     private BesoinFormationServiceImpl service;
 
@@ -60,7 +73,10 @@ class BesoinFormationServiceImplCoverageTest {
                 besoinFormationRepository,
                 eventPublisher,
                 notificationRepository,
-                besoinFormationMapper
+                besoinFormationMapper,
+                reviewerScopeService,
+                historyRepository,
+                besoinCompetenceRepository
         );
         // Provide an ADMIN security context for service methods that read SecurityContextHolder
         SecurityContextHolder.getContext().setAuthentication(
@@ -281,7 +297,7 @@ class BesoinFormationServiceImplCoverageTest {
 
     @Test
     void approuverBesoin_whenNotFound_shouldThrow() {
-        when(besoinFormationRepository.findById(999L)).thenReturn(Optional.empty());
+        when(besoinFormationRepository.findByIdForUpdate(999L)).thenReturn(Optional.empty());
 
         // Service now throws ResourceNotFoundException (→ HTTP 404) instead of IllegalArgumentException
         // Exception is thrown before SecurityContextHolder is accessed, so no auth setup needed
@@ -307,7 +323,8 @@ class BesoinFormationServiceImplCoverageTest {
         besoin.setNbMaxParticipants(20);
         besoin.setDureeFormation(10);
 
-        when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
+        when(besoinFormationRepository.findByIdForUpdate(id)).thenReturn(Optional.of(besoin));
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(besoin);
 
         BesoinFormationResponse result = service.approuverBesoin(id);
@@ -336,7 +353,8 @@ class BesoinFormationServiceImplCoverageTest {
         besoin.setNbMaxParticipants(20);
         besoin.setDureeFormation(10);
 
-        when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
+        when(besoinFormationRepository.findByIdForUpdate(id)).thenReturn(Optional.of(besoin));
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(besoin);
 
         BesoinFormationResponse result = service.approuverBesoin(id);
@@ -363,7 +381,8 @@ class BesoinFormationServiceImplCoverageTest {
         besoin.setNbMaxParticipants(20);
         besoin.setDureeFormation(10);
 
-        when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
+        when(besoinFormationRepository.findByIdForUpdate(id)).thenReturn(Optional.of(besoin));
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(besoin);
 
         BesoinFormationResponse result = service.approuverBesoin(id);

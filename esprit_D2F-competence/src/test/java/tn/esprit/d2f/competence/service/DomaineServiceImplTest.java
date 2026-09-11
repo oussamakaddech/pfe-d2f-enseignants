@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
 import tn.esprit.d2f.competence.dto.DomaineDTO;
 import tn.esprit.d2f.competence.entity.Domaine;
+import tn.esprit.d2f.competence.repository.CompetencePrerequisiteRepository;
 import tn.esprit.d2f.competence.repository.DomaineRepository;
 import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
 import tn.esprit.d2f.competence.repository.NiveauSavoirRequisRepository;
@@ -33,6 +34,7 @@ class DomaineServiceImplTest {
     @Mock private EnseignantCompetenceRepository enseignantCompetenceRepository;
     @Mock private NiveauSavoirRequisRepository niveauRepo;
     @Mock private SavoirRepository savoirRepository;
+    @Mock private CompetencePrerequisiteRepository prerequisiteRepository;
     @Mock private CompetenceMapper  competenceMapper;
 
     @InjectMocks private DomaineServiceImpl domaineService;
@@ -148,12 +150,42 @@ class DomaineServiceImplTest {
                     .competences(List.of()).build();
 
             when(domaineRepository.findById(1L)).thenReturn(Optional.of(domaine));
+            when(domaineRepository.existsByCode("GC-UPDATED")).thenReturn(false);
             when(domaineRepository.save(any(Domaine.class))).thenReturn(updated);
             when(competenceMapper.toDTO(updated)).thenReturn(updatedDTO);
 
             DomaineDTO result = domaineService.updateDomaine(1L, req);
 
             assertThat(result.getCode()).isEqualTo("GC-UPDATED");
+            verify(domaineRepository).save(any(Domaine.class));
+        }
+
+        @Test @DisplayName("leve une exception si le code existe deja")
+        void shouldThrowIfCodeExists() {
+            DomaineRequest req = DomaineRequest.builder()
+                    .code("EXISTING").nom("n").description("d").actif(true).build();
+            when(domaineRepository.findById(1L)).thenReturn(Optional.of(domaine));
+            when(domaineRepository.existsByCode("EXISTING")).thenReturn(true);
+
+            assertThatThrownBy(() -> domaineService.updateDomaine(1L, req))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("existe déjà");
+            verify(domaineRepository, never()).save(any());
+        }
+
+        @Test @DisplayName("pas de verification si le code n a pas change")
+        void shouldSkipCodeCheckWhenCodeUnchanged() {
+            DomaineRequest req = DomaineRequest.builder()
+                    .code("GC-TECH").nom("Nouveau nom")
+                    .description("nouvelle desc").actif(true).build();
+
+            when(domaineRepository.findById(1L)).thenReturn(Optional.of(domaine));
+            when(domaineRepository.save(any(Domaine.class))).thenReturn(domaine);
+            when(competenceMapper.toDTO(any(Domaine.class))).thenReturn(domaineDTO);
+
+            domaineService.updateDomaine(1L, req);
+
+            verify(domaineRepository, never()).existsByCode(anyString());
             verify(domaineRepository).save(any(Domaine.class));
         }
 
@@ -235,10 +267,11 @@ class DomaineServiceImplTest {
 
             domaineService.deleteDomaine(1L);
 
+            verify(enseignantCompetenceRepository).deleteByDomaineId(1L);
             verify(niveauRepo).deleteByCompetence_DomaineId(1L);
             verify(niveauRepo).deleteBySousCompetence_Competence_DomaineId(1L);
             verify(niveauRepo).deleteBySavoirIdIn(List.of(10L));
-            verify(enseignantCompetenceRepository).deleteBySavoirIdIn(List.of(10L));
+            verify(prerequisiteRepository).deleteByCompetence_DomaineId(1L);
             verify(domaineRepository).deleteById(1L);
         }
 
@@ -257,10 +290,11 @@ class DomaineServiceImplTest {
 
             domaineService.deleteDomaine(1L);
 
+            verify(enseignantCompetenceRepository).deleteByDomaineId(1L);
             verify(niveauRepo).deleteByCompetence_DomaineId(1L);
             verify(niveauRepo).deleteBySousCompetence_Competence_DomaineId(1L);
             verify(niveauRepo, never()).deleteBySavoirIdIn(anyList());
-            verify(enseignantCompetenceRepository, never()).deleteBySavoirIdIn(anyList());
+            verify(prerequisiteRepository).deleteByCompetence_DomaineId(1L);
             verify(domaineRepository).deleteById(1L);
         }
     }

@@ -27,10 +27,12 @@ export const FRONTEND_PERMISSIONS = {
     READ_ALL: ['admin', 'CHEF_DEPARTEMENT', 'ResponsableDossier'],
     READ_CUP: ['admin', 'CUP'],
     READ_ENSEIGNANT: ['admin', 'Enseignant'],
-    CREATE: ['admin', 'CUP', 'Enseignant', 'Animateur'],
+    CREATE: ['admin', 'CUP', 'Enseignant', 'Animateur', 'CHEF_DEPARTEMENT'],
     UPDATE: ['admin', 'Enseignant', 'Animateur'],
     DELETE: ['admin', 'Enseignant', 'Animateur'],
     APPROVE: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
+    REJECT: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
+    MANAGE_SCOPES: ['admin'],
   },
   FORMATION: {
     READ: ['admin', 'CUP', 'Enseignant', 'Animateur', 'ResponsableDossier', 'CHEF_DEPARTEMENT'],

@@ -1,7 +1,9 @@
 package esprit.pfe.servicecertificat.controllers;
 
+import esprit.pfe.servicecertificat.dto.CertificateIndicatorDTO;
 import esprit.pfe.servicecertificat.dto.CertificateRequest;
 import esprit.pfe.servicecertificat.dto.CertificateResponse;
+import esprit.pfe.servicecertificat.dto.CertificateRevocationRequest;
 import esprit.pfe.servicecertificat.services.CertificateService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -117,6 +119,71 @@ class CertificateControllerTest {
                 .thenThrow(new RuntimeException("Certificat introuvable : 999"));
 
         assertThrows(RuntimeException.class, () -> controller.deliver(999L));
+    }
+
+    @Test
+    void revoke_shouldReturnRevokedCertificate() {
+        CertificateRevocationRequest revocationRequest = new CertificateRevocationRequest();
+        revocationRequest.setReason("Fraude détectée");
+
+        CertificateResponse revoked = new CertificateResponse();
+        revoked.setId(1L);
+        revoked.setCertificateStatus("REVOKED");
+        revoked.setRevocationReason("Fraude détectée");
+
+        var mockJwt = Jwt.withTokenValue("test-token")
+                .header("alg", "RS256")
+                .claim("preferred_username", "admin")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
+                .build();
+
+        when(certificateService.revoke(1L, "Fraude détectée", "admin")).thenReturn(revoked);
+
+        var result = controller.revoke(1L, revocationRequest, mockJwt);
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertEquals("REVOKED", result.getBody().getCertificateStatus());
+        assertEquals("Fraude détectée", result.getBody().getRevocationReason());
+        verify(certificateService).revoke(1L, "Fraude détectée", "admin");
+    }
+
+    @Test
+    void getIndicators_shouldReturnAggregatedCounts() {
+        CertificateIndicatorDTO indicators = CertificateIndicatorDTO.builder()
+                .eligibleCount(10L)
+                .deliveredCount(6L)
+                .pendingCount(3L)
+                .revokedCount(1L)
+                .build();
+
+        when(certificateService.getIndicators()).thenReturn(indicators);
+
+        var result = controller.getIndicators();
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertEquals(10L, result.getBody().getEligibleCount());
+        assertEquals(6L, result.getBody().getDeliveredCount());
+        assertEquals(3L, result.getBody().getPendingCount());
+        assertEquals(1L, result.getBody().getRevokedCount());
+    }
+
+    @Test
+    void getIndicatorsByFormation_shouldReturnFormationScopedCounts() {
+        CertificateIndicatorDTO indicators = CertificateIndicatorDTO.builder()
+                .eligibleCount(5L)
+                .deliveredCount(4L)
+                .pendingCount(1L)
+                .revokedCount(0L)
+                .build();
+
+        when(certificateService.getIndicatorsByFormation(10L)).thenReturn(indicators);
+
+        var result = controller.getIndicatorsByFormation(10L);
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertEquals(5L, result.getBody().getEligibleCount());
+        verify(certificateService).getIndicatorsByFormation(10L);
     }
 
     @Test

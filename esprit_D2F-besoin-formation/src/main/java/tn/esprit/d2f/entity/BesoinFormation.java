@@ -6,6 +6,9 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
+import tn.esprit.d2f.entity.enumerations.ApprovalStep;
+import tn.esprit.d2f.entity.enumerations.BesoinStatus;
+import tn.esprit.d2f.entity.enumerations.CreatorRole;
 import tn.esprit.d2f.entity.enumerations.PeriodCode;
 import tn.esprit.d2f.entity.enumerations.Priorite;
 import tn.esprit.d2f.entity.enumerations.TypeBesoin;
@@ -116,6 +119,61 @@ public class BesoinFormation extends BaseAuditEntity implements Serializable {
     @Column(name = "event_published", nullable = false)
     @JsonProperty("eventPublished")
     Boolean eventPublished = false;
+
+    // ── Workflow sécurisé : créateur, étape courante, statut, traçabilité ──
+    // Règles métier appliquées côté serveur (jamais depuis le frontend) :
+    // INDIVIDUEL (enseignant) : CUP → CHEF_DEPARTEMENT → ADMIN
+    // COLLECTIF (CUP) : CHEF_DEPARTEMENT → ADMIN (le créateur ne valide jamais)
+    // COLLECTIF (chef) : ADMIN (le créateur ne valide jamais)
+
+    /** Identifiant technique du créateur (claim JWT "userId", repli = username). */
+    @Column(name = "created_by_user_id")
+    @JsonProperty("createdByUserId")
+    String createdByUserId;
+
+    /** Rôle fonctionnel du créateur, figé côté serveur à la création. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "created_by_role", length = 20)
+    @JsonProperty("createdByRole")
+    CreatorRole createdByRole;
+
+    /** Étape courante du workflow (qui doit traiter le besoin). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "current_approval_step", length = 20)
+    @JsonProperty("currentApprovalStep")
+    ApprovalStep currentApprovalStep;
+
+    /** Statut métier détaillé (progression + états terminaux). */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 25)
+    @JsonProperty("status")
+    BesoinStatus status;
+
+    /** Motif du refus (obligatoire en cas de REJECTED). */
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    @JsonProperty("rejectionReason")
+    String rejectionReason;
+
+    @Column(name = "rejected_by", length = 150)
+    @JsonProperty("rejectedBy")
+    String rejectedBy;
+
+    @Column(name = "rejected_at")
+    @JsonProperty("rejectedAt")
+    Instant rejectedAt;
+
+    /** Username du validateur à chaque étape (piste d'audit requise §3). */
+    @Column(name = "approved_by_cup", length = 150)
+    @JsonProperty("approvedByCup")
+    String approvedByCup;
+
+    @Column(name = "approved_by_chef_dep", length = 150)
+    @JsonProperty("approvedByChefDepartement")
+    String approvedByChefDepartement;
+
+    @Column(name = "approved_by_admin", length = 150)
+    @JsonProperty("approvedByAdmin")
+    String approvedByAdmin;
 
     // ── Nouveaux champs : priorité et impact stratégique (§2.2.2) ──
 

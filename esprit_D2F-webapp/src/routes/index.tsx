@@ -49,10 +49,7 @@ const AffectationEnseignantPage = lazy(
 );
 const RicePage = lazy(() => import('@/pages/competence/RicePage'));
 const CompetenceMatchingPage = lazy(() => import('@/pages/competence/CompetenceMatchingPage'));
-const EvaluationGlobalePage = lazy(() => import('@/pages/evaluation/EvaluationGlobalePage'));
-const EvaluationParticipantPage = lazy(
-  () => import('@/pages/evaluation/EvaluationParticipantPage'),
-);
+const EvaluationsPage = lazy(() => import('@/pages/evaluation/EvaluationsPage'));
 const TeacherAnalyticsPage = lazy(() => import('@/pages/analyse/AnalyticsTeacherPage'));
 const AnalysePredictivePage = lazy(() => import('@/pages/analyse/AnalyticsPage'));
 const EnseignantsInactifsPage = lazy(() => import('@/pages/analyse/EnseignantsInactifsPage'));
@@ -281,11 +278,8 @@ export default function AppRoutes() {
                       />
                     }
                   >
-                    <Route path="/home/Evaluations" element={<EvaluationGlobalePage />} />
-                    <Route
-                      path="/home/Evaluations/Participants"
-                      element={<EvaluationParticipantPage />}
-                    />
+                    <Route path="/home/Evaluations" element={<EvaluationsPage />} />
+                    <Route path="/home/Evaluations/Participants" element={<EvaluationsPage />} />
                   </Route>
 
                   {/* Référentiel Compétences : masqué aux ENSEIGNANT et ANIMATEUR (pas de besoin métier). */}
@@ -354,7 +348,13 @@ export default function AppRoutes() {
                   <Route
                     element={
                       <RoleGuard
-                        allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.ENSEIGNANT, ROLES.ANIMATEUR]}
+                        allowedRoles={[
+                          ROLES.ADMIN,
+                          ROLES.CUP,
+                          ROLES.ENSEIGNANT,
+                          ROLES.ANIMATEUR,
+                          ROLES.CHEF_DEPARTEMENT,
+                        ]}
                       />
                     }
                   >

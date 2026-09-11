@@ -236,7 +236,14 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     }
 
     private List<String> getBesoinRoles(String path, HttpMethod method) {
-        if (path.contains("/approve")) return ADMIN_CUP;
+        // Workflow : approve + reject réservés aux valideurs (ADMIN/CUP/D2F/Chef).
+        // Le contrôle fin (étape, périmètre, créateur ≠ décideur) est fait par le microservice.
+        if (path.contains("/approve") || path.contains("/reject")) return ADMIN_CUP;
+        // Annulation : tout authentifié peut appeler, le service vérifie
+        // créateur-ou-admin (parité BESOIN_FORMATION_CANCEL).
+        if (path.contains("/cancel")) return ALL_ROLES;
+        // Périmètres validateurs : ADMIN uniquement.
+        if (path.contains("/reviewer-scopes") && !path.contains("/reviewer-scopes/me")) return ADMIN_ONLY;
         if (method == HttpMethod.DELETE) return List.of(ROLE_ADMIN, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
         if (path.contains("/modify") && method == HttpMethod.PUT) return List.of(ROLE_ADMIN, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
         if (method == HttpMethod.PUT) return List.of(ROLE_ADMIN, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);

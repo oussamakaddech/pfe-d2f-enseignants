@@ -184,11 +184,13 @@ class EvaluationFormateurServiceCoverageTest {
 
         when(formationClient.getFormation(10L)).thenReturn(true);
         when(authClient.enseignantExists("ENS001")).thenReturn(true);
+        when(authClient.enseignantExists("ENS002")).thenReturn(true);
 
         service.createEvaluationsBulk(Arrays.asList(dto, dto2));
 
         verify(formationClient).getFormation(10L);
         verify(authClient).enseignantExists("ENS001");
+        verify(authClient).enseignantExists("ENS002");
         verify(evaluationRepository).saveAll(anyList());
     }
 

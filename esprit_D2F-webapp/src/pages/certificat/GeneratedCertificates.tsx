@@ -24,7 +24,7 @@ function GeneratedCertificates() {
     if (!formationId) return;
     setLoading(true);
     void generateMut
-      .mutateAsync(formationId)
+      .mutateAsync({ formationId, typeCertif: 'CERTIF' })
       .then((data) => setPdfFiles(data || []))
       .catch(() => {})
       .finally(() => setLoading(false));

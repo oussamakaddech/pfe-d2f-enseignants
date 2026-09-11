@@ -26,6 +26,11 @@ public class EvaluationGlobaleService {
         dto.setDateEvaluation(entity.getDateEvaluation());
         dto.setNoteGlobale(entity.getNoteGlobale());
         dto.setRecommandation(entity.getRecommandation());
+        dto.setPertinenceContenu(entity.getPertinenceContenu());
+        dto.setOrganisation(entity.getOrganisation());
+        dto.setQualiteSupports(entity.getQualiteSupports());
+        dto.setDureeAdaptee(entity.getDureeAdaptee());
+        dto.setSatisfactionGlobale(entity.getSatisfactionGlobale());
         return dto;
     }
 
@@ -38,7 +43,17 @@ public class EvaluationGlobaleService {
         entity.setDateEvaluation(dto.getDateEvaluation());
         entity.setNoteGlobale(dto.getNoteGlobale());
         entity.setRecommandation(dto.getRecommandation());
+        applyCriteria(entity, dto);
         return entity;
+    }
+
+    /** Applique les critères structurés de l'évaluation de la formation. */
+    private void applyCriteria(EvaluationGlobale entity, EvaluationGlobaleDTO dto) {
+        entity.setPertinenceContenu(dto.getPertinenceContenu());
+        entity.setOrganisation(dto.getOrganisation());
+        entity.setQualiteSupports(dto.getQualiteSupports());
+        entity.setDureeAdaptee(dto.getDureeAdaptee());
+        entity.setSatisfactionGlobale(dto.getSatisfactionGlobale());
     }
 
     public EvaluationGlobaleDTO createEvaluationGlobale(EvaluationGlobaleDTO dto) {
@@ -57,6 +72,7 @@ public class EvaluationGlobaleService {
         existing.setDateEvaluation(dto.getDateEvaluation());
         existing.setNoteGlobale(dto.getNoteGlobale());
         existing.setRecommandation(dto.getRecommandation());
+        applyCriteria(existing, dto);
         return mapToDto(evaluationGlobaleRepository.save(existing));
     }
 

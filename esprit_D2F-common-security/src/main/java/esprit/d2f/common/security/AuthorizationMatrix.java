@@ -21,10 +21,19 @@ public final class AuthorizationMatrix {
     public static final String BESOIN_FORMATION_READ_ENSEIGNANT = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT')";
     // ANIMATEUR inclus : un animateur interne est aussi un enseignant et peut donc
     // exprimer un besoin de formation (symétrique d'INSCRIPTION_CREATE).
-    public static final String BESOIN_FORMATION_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_ANIMATEUR')";
+    public static final String BESOIN_FORMATION_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_ANIMATEUR','ROLE_CHEF_DEPARTEMENT')";
     public static final String BESOIN_FORMATION_UPDATE = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT','ROLE_ANIMATEUR')";
     public static final String BESOIN_FORMATION_DELETE = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT','ROLE_ANIMATEUR')";
     public static final String BESOIN_FORMATION_APPROVE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
+    // Workflow sécurisé : refus / annulation / périmètres.
+    // Le contrôle fin (étape, périmètre UP/département, créateur ≠ décideur)
+    // est appliqué applicativement dans BesoinFormationServiceImpl.
+    public static final String BESOIN_FORMATION_REJECT = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
+    public static final String BESOIN_FORMATION_CANCEL = "isAuthenticated()";
+    public static final String BESOIN_FORMATION_PENDING = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
+    public static final String BESOIN_FORMATION_SCOPE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
+    public static final String BESOIN_FORMATION_HISTORY = "hasAnyRole('ROLE_ADMIN')";
+    public static final String BESOIN_FORMATION_REVIEWER_SCOPE = "hasAnyRole('ROLE_ADMIN')";
 
     public static final String FORMATION_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_RESPONSABLE_DOSSIER','ROLE_CHEF_DEPARTEMENT')";
     public static final String FORMATION_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";

@@ -5,7 +5,12 @@ import { useEffect, useRef, useState } from 'react';
 import { Form } from 'antd';
 import { getActiveRole } from '@/utils/storage/storage';
 import { useAuth } from '@/hooks/auth/useAuth';
-import { useAddBesoin, useReplaceBesoinCompetences } from '@/hooks/besoin/useBesoins';
+import {
+  useAddBesoin,
+  useReplaceBesoinCompetences,
+  useMyReviewerScope,
+} from '@/hooks/besoin/useBesoins';
+import { hasAnyRole, normalizeRole } from '@/utils/constants/roles';
 import { useEnseignants } from '@/hooks/enseignant/useEnseignants';
 import { buildActeurOptions, serializeActeurs } from '@/utils/besoin/acteurs';
 import type { BesoinCompetenceLink, BesoinFormation } from '@/models/besoin';
@@ -88,16 +93,52 @@ export function useBesoinForm() {
   const { user } = useAuth();
   const [form] = Form.useForm();
   const activeRole = String(getActiveRole() || '').toUpperCase();
-  const userRole = String(user?.role || '').toUpperCase();
   const canManageParticipants =
-    [ROLES.CUP.toUpperCase(), ROLES.ADMIN.toUpperCase()].includes(userRole) ||
-    [ROLES.CUP.toUpperCase(), ROLES.ADMIN.toUpperCase()].includes(activeRole);
+    hasAnyRole(user?.role, [ROLES.CUP, ROLES.ADMIN]) ||
+    hasAnyRole(activeRole, [ROLES.CUP, ROLES.ADMIN]);
 
   const { message: msgApi } = useAppNotification();
   const { data: departements = [], isLoading: deptsLoading } = useAllDepts();
   const { data: ups = [], isLoading: upsLoading } = useAllUps();
   const { data: enseignants = [], isLoading: enseignantsLoading } = useEnseignants();
   const loading = deptsLoading || upsLoading;
+
+  // ── Verrous de création par rôle (workflow sécurisé) ─────────────────────
+  // ENSEIGNANT/ANIMATEUR → INDIVIDUEL ; CUP/CHEF → COLLECTIF verrouillé sur
+  // leur périmètre serveur (le backend recalcule et ignore les valeurs libres).
+  const normalizedUserRole = normalizeRole(user?.role);
+  const isCupCreator =
+    normalizedUserRole === normalizeRole(ROLES.CUP) || activeRole === normalizeRole(ROLES.CUP);
+  const isChefCreator =
+    normalizedUserRole === normalizeRole(ROLES.CHEF_DEPARTEMENT) ||
+    activeRole === normalizeRole(ROLES.CHEF_DEPARTEMENT);
+  const isTeacherCreator =
+    [normalizeRole(ROLES.ENSEIGNANT), normalizeRole(ROLES.ANIMATEUR)].includes(
+      normalizedUserRole,
+    ) ||
+    [normalizeRole(ROLES.ENSEIGNANT), normalizeRole(ROLES.ANIMATEUR)].includes(
+      normalizeRole(activeRole),
+    );
+  const { data: myScope, isLoading: scopeLoading } = useMyReviewerScope(
+    isCupCreator || isChefCreator || isTeacherCreator,
+  );
+  const lockedType =
+    isCupCreator || isChefCreator ? 'COLLECTIF' : isTeacherCreator ? 'INDIVIDUEL' : undefined;
+  const lockedUp = isCupCreator || isTeacherCreator ? myScope?.upCode : undefined;
+  const lockedDepartement = isChefCreator || isTeacherCreator ? myScope?.departmentCode : undefined;
+
+  const applyCreationLocks = () => {
+    const preset: Record<string, unknown> = {};
+    if (lockedType) preset.typeBesoin = lockedType;
+    if (lockedUp) preset.up = lockedUp;
+    if (lockedDepartement) preset.departement = lockedDepartement;
+    if (Object.keys(preset).length > 0) form.setFieldsValue(preset);
+  };
+
+  useEffect(() => {
+    applyCreationLocks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lockedType, lockedUp, lockedDepartement]);
 
   // Options des sélecteurs Animateurs / Enseignants (base enseignants).
   const acteurOptions = buildActeurOptions(enseignants);
@@ -507,6 +548,7 @@ export function useBesoinForm() {
       msgApi.success('Besoin de formation ajouté avec succès !');
       setSubmitted(true);
       form.resetFields();
+      applyCreationLocks();
       setSelectedCompLinks([]);
       setRowSousCompetences({});
       setRowSavoirs({});
@@ -531,6 +573,14 @@ export function useBesoinForm() {
     form,
     user,
     canManageParticipants,
+    lockedType,
+    lockedUp,
+    lockedDepartement,
+    myScope,
+    scopeLoading,
+    isCupCreator,
+    isChefCreator,
+    applyCreationLocks,
     loading,
     submitting,
     currentStep,

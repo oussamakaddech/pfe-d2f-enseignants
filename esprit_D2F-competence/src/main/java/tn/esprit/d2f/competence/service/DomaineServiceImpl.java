@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import tn.esprit.d2f.competence.dto.DomaineDTO;
 import tn.esprit.d2f.competence.dto.DomaineRequest;
 import tn.esprit.d2f.competence.entity.Domaine;
+import tn.esprit.d2f.competence.repository.CompetencePrerequisiteRepository;
 import tn.esprit.d2f.competence.repository.DomaineRepository;
 import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
 import tn.esprit.d2f.competence.repository.NiveauSavoirRequisRepository;
@@ -31,6 +32,7 @@ public class DomaineServiceImpl implements IDomaineService {
     private final EnseignantCompetenceRepository enseignantCompetenceRepository;
     private final NiveauSavoirRequisRepository niveauRepo;
     private final SavoirRepository savoirRepository;
+    private final CompetencePrerequisiteRepository prerequisiteRepository;
     private final CompetenceMapper competenceMapper;
 
     @Override
@@ -104,6 +106,9 @@ public class DomaineServiceImpl implements IDomaineService {
     public DomaineDTO updateDomaine(Long id, DomaineRequest request) {
         Domaine existing = domaineRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(DOMAINE_NOT_FOUND + id));
+        if (!existing.getCode().equals(request.getCode()) && domaineRepository.existsByCode(request.getCode())) {
+            throw new IllegalArgumentException("Un domaine avec le code '" + request.getCode() + "' existe déjà");
+        }
         existing.setCode(request.getCode());
         existing.setNom(request.getNom());
         existing.setDescription(request.getDescription());
@@ -140,17 +145,18 @@ public class DomaineServiceImpl implements IDomaineService {
         if (!domaineRepository.existsById(id)) {
             throw new EntityNotFoundException(DOMAINE_NOT_FOUND + id);
         }
-        // 1. Supprimer les niveau_savoir_requis liés directement aux compétences du domaine
+        // 1. Supprimer les affectations enseignant-compétence (couvre les deux chemins)
+        enseignantCompetenceRepository.deleteByDomaineId(id);
+        // 2. Supprimer les niveau_savoir_requis (tous les chemins)
         niveauRepo.deleteByCompetence_DomaineId(id);
-        // 2. Supprimer les niveau_savoir_requis liés via les sous-compétences du domaine
         niveauRepo.deleteBySousCompetence_Competence_DomaineId(id);
-        // 3. Supprimer les niveau_savoir_requis référençant les savoirs du domaine (sécurité)
         List<Long> allSavoirIds = savoirRepository.findIdsByDomaineId(id);
         if (!allSavoirIds.isEmpty()) {
             niveauRepo.deleteBySavoirIdIn(allSavoirIds);
-            // 4. Supprimer les affectations enseignant-compétence
-            enseignantCompetenceRepository.deleteBySavoirIdIn(allSavoirIds);
         }
+        // 3. Supprimer les prérequis liés aux compétences du domaine
+        prerequisiteRepository.deleteByCompetence_DomaineId(id);
+        // 4. Hibernate cascade: domaines → competences → sous_competences, savoirs
         domaineRepository.deleteById(id);
         log.info("Domaine supprimé: {}", id);
     }

@@ -2,12 +2,15 @@
  * BesoinList — Page shell (thin orchestrator, ≤ 200 lines)
  * State & logic: useBesoinList | Table: BesoinTable | Mail: BesoinMailCupModal
  * ─────────────────────────────────────────────────────────────────────── */
-import { Row, Col, Skeleton, Button, Pagination } from 'antd';
-import { InboxOutlined, PlusOutlined, ClearOutlined } from '@ant-design/icons';
+import { useState } from 'react';
+import { Row, Col, Skeleton, Button, Pagination, Space } from 'antd';
+import { InboxOutlined, PlusOutlined, ClearOutlined, ApartmentOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
 import { useHasPermission } from '@/routes/guards';
 import { useUserRole } from '@/routes/guards';
+import { useAuth } from '@/hooks/auth/useAuth';
+import { hasAnyRole, ROLES } from '@/utils/constants/roles';
 import { useBesoinList, INITIAL_FILTERS } from './hooks/useBesoinList';
 import BesoinHeader from './components/BesoinHeader';
 import BesoinStatsRow from './components/BesoinStatsRow';
@@ -16,6 +19,8 @@ import ViewModeToggle from './components/ViewModeToggle';
 import BesoinCard from './components/BesoinCard';
 import BesoinTable from './components/BesoinTable';
 import BesoinMailCupModal from './components/BesoinMailCupModal';
+import BesoinRejectModal from './components/BesoinRejectModal';
+import BesoinScopesModal from './components/BesoinScopesModal';
 import BesoinEditModal from '@/components/besoin/BesoinEditModal';
 
 import '@/styles/pages/besoin-tokens.css';
@@ -27,9 +32,23 @@ export default function BesoinList() {
   const navigate = useNavigate();
   const canAdd = useHasPermission('BESOIN_FORMATION', 'CREATE');
   const canApprove = useHasPermission('BESOIN_FORMATION', 'APPROVE');
+  const canReject = useHasPermission('BESOIN_FORMATION', 'REJECT');
   const canEdit = useHasPermission('BESOIN_FORMATION', 'UPDATE');
   const canDelete = useHasPermission('BESOIN_FORMATION', 'DELETE');
+  const canManageScopes = useHasPermission('BESOIN_FORMATION', 'MANAGE_SCOPES');
   const userRole = useUserRole() ?? '';
+  const { user } = useAuth();
+  const addLabel = hasAnyRole(userRole, [ROLES.ENSEIGNANT, ROLES.ANIMATEUR])
+    ? 'Déposer un besoin individuel'
+    : hasAnyRole(userRole, [ROLES.CUP])
+      ? 'Créer un besoin collectif pour mon UP'
+      : hasAnyRole(userRole, [ROLES.CHEF_DEPARTEMENT])
+        ? 'Créer un besoin collectif pour mon département'
+        : 'Ajouter un besoin';
+  const currentUsername = user?.username ?? user?.userName ?? null;
+  const currentUserId = user?.userId ?? user?.id ?? null;
+  const [rejectRecord, setRejectRecord] = useState<Record<string, unknown> | null>(null);
+  const [scopesOpen, setScopesOpen] = useState(false);
   const ctx = useBesoinList();
 
   const {
@@ -69,6 +88,7 @@ export default function BesoinList() {
     periodLabelOf,
     handleDelete,
     handleApprove,
+    handleReject,
     openEdit,
     handleEditSave,
     openMailModal,
@@ -130,6 +150,7 @@ export default function BesoinList() {
           loading={loading}
           exportDisabled={filtered.length === 0}
           canAdd={canAdd}
+          addLabel={addLabel}
           onRefresh={() => refetchBesoins()}
           onExport={exportToExcel}
           onAdd={() => navigate('/home/besoins/ajouter')}
@@ -158,6 +179,14 @@ export default function BesoinList() {
         count={filtered.length}
         total={stats.total}
       />
+
+      {canManageScopes && (
+        <Space style={{ marginBottom: 12 }}>
+          <Button icon={<ApartmentOutlined />} onClick={() => setScopesOpen(true)}>
+            Périmètres utilisateurs (UP / départements)
+          </Button>
+        </Space>
+      )}
 
       {filtered.length === 0 && !loading && (
         <output className="bf-empty">
@@ -194,7 +223,7 @@ export default function BesoinList() {
                 onClick={() => navigate('/home/besoins/ajouter')}
                 className="bf-btn bf-btn--primary"
               >
-                Ajouter un besoin
+                {addLabel}
               </Button>
             )}
           </div>
@@ -216,10 +245,14 @@ export default function BesoinList() {
                     periodLabel={periodLabelOf(br)}
                     approvingId={approvingId}
                     canApprove={canApprove}
+                    canReject={canReject}
                     canEdit={canEdit}
                     canDelete={canDelete}
                     userRole={userRole}
+                    currentUsername={currentUsername}
+                    currentUserId={currentUserId}
                     onApprove={handleApprove}
+                    onReject={setRejectRecord}
                     onOpenMail={openMailModal}
                     onEdit={openEdit}
                     onDelete={handleDelete}
@@ -252,11 +285,15 @@ export default function BesoinList() {
           loading={loading}
           approvingId={approvingId}
           canApprove={canApprove}
+          canReject={canReject}
           canEdit={canEdit}
           canDelete={canDelete}
           userRole={userRole}
+          currentUsername={currentUsername}
+          currentUserId={currentUserId}
           getBesoinId={getBesoinId}
           onApprove={handleApprove}
+          onReject={setRejectRecord}
           onOpenMail={openMailModal}
           onEdit={openEdit}
           onDelete={handleDelete}
@@ -285,6 +322,31 @@ export default function BesoinList() {
         onConfirm={handleSendMail}
         onCancel={() => setMailModalOpen(false)}
       />
+
+      {/* Reject Modal (motif obligatoire) */}
+      <BesoinRejectModal
+        open={rejectRecord !== null}
+        title={
+          rejectRecord
+            ? String(rejectRecord.titre ?? rejectRecord.objectifFormation ?? 'Besoin de formation')
+            : undefined
+        }
+        onConfirm={(reason) => {
+          if (rejectRecord) handleReject(rejectRecord, reason);
+          setRejectRecord(null);
+        }}
+        onCancel={() => setRejectRecord(null)}
+      />
+
+      {/* Périmètres validateurs (ADMIN) */}
+      {canManageScopes && (
+        <BesoinScopesModal
+          open={scopesOpen}
+          ups={typedUps}
+          departements={typedDepts}
+          onClose={() => setScopesOpen(false)}
+        />
+      )}
     </div>
   );
 }

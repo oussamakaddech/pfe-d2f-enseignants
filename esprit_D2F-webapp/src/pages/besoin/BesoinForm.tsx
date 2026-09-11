@@ -114,6 +114,7 @@ export default function BesoinForm() {
                   onClick={() => {
                     ctx.setSubmitted(false);
                     ctx.form.resetFields();
+                    ctx.applyCreationLocks();
                     ctx.setCurrentStep(0);
                   }}
                 >
@@ -149,6 +150,10 @@ export default function BesoinForm() {
       participantsFileInputRef={ctx.participantsFileInputRef}
       onImportExcel={ctx.importParticipantsFromExcel}
       onClearParticipants={ctx.clearParticipants}
+      lockedType={ctx.lockedType}
+      lockedUp={ctx.lockedUp}
+      lockedDepartement={ctx.lockedDepartement}
+      scopeMissing={(ctx.isCupCreator || ctx.isChefCreator) && !ctx.scopeLoading && !ctx.myScope}
     />,
     <BesoinFormationStep key="formation" />,
     <BesoinDetailsStep

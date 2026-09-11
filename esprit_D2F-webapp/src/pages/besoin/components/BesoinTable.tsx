@@ -2,20 +2,32 @@
  * BesoinTable — Ant Design Table with columns for the list view
  * ─────────────────────────────────────────────────────────────────────── */
 import { Table, Tag, Button, Tooltip, Popconfirm, Space } from 'antd';
-import { EditOutlined, DeleteOutlined, CheckCircleOutlined, MailOutlined } from '@ant-design/icons';
+import {
+  EditOutlined,
+  DeleteOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  MailOutlined,
+} from '@ant-design/icons';
 import BesoinPriorityBadge from './BesoinPriorityBadge';
 import BesoinStatusBadge from './BesoinStatusBadge';
+import { getDecisionState } from '@/utils/besoin/workflow';
+import type { BesoinFormation } from '@/models/besoin';
 
 interface BesoinTableProps {
   data: Record<string, unknown>[];
   loading: boolean;
   approvingId: string | number | null;
   canApprove?: boolean;
+  canReject?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
   userRole?: string;
+  currentUsername?: string | null;
+  currentUserId?: string | number | null;
   getBesoinId: (r: Record<string, unknown>) => unknown;
   onApprove: (r: Record<string, unknown>) => void;
+  onReject: (r: Record<string, unknown>) => void;
   onOpenMail: (r: Record<string, unknown>) => void;
   onEdit: (r: Record<string, unknown>) => void;
   onDelete: (id: unknown) => void;
@@ -26,11 +38,15 @@ export default function BesoinTable({
   loading,
   approvingId,
   canApprove = true,
+  canReject = true,
   canEdit = true,
   canDelete = true,
   userRole = '',
+  currentUsername = null,
+  currentUserId = null,
   getBesoinId,
   onApprove,
+  onReject,
   onOpenMail,
   onEdit,
   onDelete,
@@ -78,28 +94,31 @@ export default function BesoinTable({
     {
       title: 'Statut',
       key: 'statut',
-      width: 130,
+      width: 140,
       render: (_: unknown, r: Record<string, unknown>) => (
-        <BesoinStatusBadge approved={!!r.approuveAdmin} />
+        <BesoinStatusBadge
+          approved={!!r.approuveAdmin}
+          status={typeof r.status === 'string' ? r.status : null}
+        />
       ),
     },
     {
       title: 'Actions',
       key: 'actions',
-      width: 200,
+      width: 230,
       fixed: 'right' as const,
       render: (_: unknown, r: Record<string, unknown>) => {
         const id = getBesoinId(r);
-        const isFullyApproved = !!r.approuveAdmin;
-        const isMyTurnToApprove =
-          canApprove &&
-          !isFullyApproved &&
-          ((userRole === 'CUP' && !r.approuveCUP) ||
-            (userRole === 'CHEF_DEPARTEMENT' && !!r.approuveCUP && !r.approuveChefDep) ||
-            (userRole === 'admin' && !!r.approuveCUP && !!r.approuveChefDep && !r.approuveAdmin));
+        const decision = getDecisionState(r as unknown as BesoinFormation, {
+          username: currentUsername,
+          userId: currentUserId,
+          role: userRole,
+        });
+        const showApprove = canApprove && decision.canApprove;
+        const showReject = canReject && decision.canReject;
         return (
           <Space size={4}>
-            {isMyTurnToApprove && (
+            {showApprove && (
               <Popconfirm
                 title="Approuver ce besoin ?"
                 onConfirm={() => onApprove(r)}
@@ -116,6 +135,17 @@ export default function BesoinTable({
                   />
                 </Tooltip>
               </Popconfirm>
+            )}
+            {showReject && (
+              <Tooltip title="Refuser (motif obligatoire)">
+                <Button
+                  danger
+                  size="small"
+                  icon={<CloseCircleOutlined />}
+                  loading={approvingId === id}
+                  onClick={() => onReject(r)}
+                />
+              </Tooltip>
             )}
             <Tooltip title="Email CUP">
               <Button

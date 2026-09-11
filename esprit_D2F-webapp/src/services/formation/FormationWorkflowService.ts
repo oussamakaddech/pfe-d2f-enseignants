@@ -169,6 +169,17 @@ const FormationWorkflowService = {
     return normalizeListResponse(response.data);
   },
 
+  /**
+   * Catalogue scopé serveur (§8 droits) : CUP → formations de son UP,
+   * chef de département → formations de son département. Le périmètre est
+   * résolu depuis le JWT côté backend — non contournable côté client.
+   * Renvoie une page Spring ({content:[...]}) comme /visibles.
+   */
+  async getMesFormationsPilote(): Promise<Formation[]> {
+    const response = await axios.get<Formation[]>(`${API_URL}/mes-formations-pilote`);
+    return normalizeListResponse(response.data);
+  },
+
   async getMesPresences(): Promise<MesPresence[]> {
     const response = await axios.get<MesPresence[]>(`${API_URL}/mes-presences`);
     // L'endpoint renvoie une Page Spring ({content:[...]}) : désencapsuler,

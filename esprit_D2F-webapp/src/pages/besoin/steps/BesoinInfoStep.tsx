@@ -46,7 +46,18 @@ interface BesoinInfoStepProps {
   participantsFileInputRef: React.RefObject<HTMLInputElement | null>;
   onImportExcel: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onClearParticipants: () => void;
+  /** Verrous workflow : type / UP / département imposés par le rôle + périmètre. */
+  lockedType?: string | null;
+  lockedUp?: string | null;
+  lockedDepartement?: string | null;
+  /** Bandeau affiché quand le périmètre validateur est absent (création 403). */
+  scopeMissing?: boolean;
 }
+
+const LOCKED_TYPE_LABELS: Record<string, string> = {
+  INDIVIDUEL: 'Individuel (verrouillé : enseignant)',
+  COLLECTIF: 'Collectif (verrouillé : validateur)',
+};
 
 export default function BesoinInfoStep({
   ups,
@@ -57,6 +68,10 @@ export default function BesoinInfoStep({
   participantsFileInputRef,
   onImportExcel,
   onClearParticipants,
+  lockedType = null,
+  lockedUp = null,
+  lockedDepartement = null,
+  scopeMissing = false,
 }: Readonly<BesoinInfoStepProps>) {
   return (
     <div className="bf-step">
@@ -65,6 +80,14 @@ export default function BesoinInfoStep({
         title="Identification de la demande"
         hint="Précisez l'unité pédagogique et le département concernés"
       />
+      {scopeMissing && (
+        <div style={{ marginBottom: 16 }}>
+          <Tag color="warning">
+            Périmètre validateur non configuré — contactez l&apos;administrateur avant de créer un
+            besoin collectif.
+          </Tag>
+        </div>
+      )}
       <div className="ant-row" style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 45%' }}>
           <Form.Item
@@ -73,10 +96,11 @@ export default function BesoinInfoStep({
             rules={[{ required: true, message: "Sélectionnez l'UP" }]}
           >
             <Select
-              placeholder="Sélectionner l'UP"
+              placeholder={lockedUp ? `UP verrouillée : ${lockedUp}` : "Sélectionner l'UP"}
               size="large"
               showSearch
               optionFilterProp="children"
+              disabled={!!lockedUp}
             >
               {ups.map((u) => (
                 <Option key={u.id} value={String(u.id)}>
@@ -93,10 +117,15 @@ export default function BesoinInfoStep({
             rules={[{ required: true, message: 'Sélectionnez le département' }]}
           >
             <Select
-              placeholder="Sélectionner le département"
+              placeholder={
+                lockedDepartement
+                  ? `Département verrouillé : ${lockedDepartement}`
+                  : 'Sélectionner le département'
+              }
               size="large"
               showSearch
               optionFilterProp="children"
+              disabled={!!lockedDepartement}
             >
               {departements.map((d) => (
                 <Option key={d.id} value={String(d.id)}>
@@ -113,21 +142,32 @@ export default function BesoinInfoStep({
         title="Nature du besoin"
         hint="Une formation pour un enseignant ou un groupe ?"
       />
-      <Form.Item
-        name="typeBesoin"
-        rules={[{ required: true, message: 'Sélectionnez le type de besoin' }]}
-      >
-        <Form.Item noStyle shouldUpdate={(p, c) => p.typeBesoin !== c.typeBesoin}>
-          {({ getFieldValue, setFieldsValue }) => (
-            <ChoiceCardGroup
-              variant="type"
-              options={typeOptions}
-              value={getFieldValue('typeBesoin')}
-              onChange={(v) => setFieldsValue({ typeBesoin: v })}
-            />
-          )}
+      {lockedType ? (
+        <>
+          <Form.Item name="typeBesoin" hidden rules={[{ required: true }]}>
+            <Input type="hidden" />
+          </Form.Item>
+          <Tag color="blue" style={{ fontSize: 13, padding: '6px 12px' }}>
+            {LOCKED_TYPE_LABELS[lockedType] ?? lockedType}
+          </Tag>
+        </>
+      ) : (
+        <Form.Item
+          name="typeBesoin"
+          rules={[{ required: true, message: 'Sélectionnez le type de besoin' }]}
+        >
+          <Form.Item noStyle shouldUpdate={(p, c) => p.typeBesoin !== c.typeBesoin}>
+            {({ getFieldValue, setFieldsValue }) => (
+              <ChoiceCardGroup
+                variant="type"
+                options={typeOptions}
+                value={getFieldValue('typeBesoin')}
+                onChange={(v) => setFieldsValue({ typeBesoin: v })}
+              />
+            )}
+          </Form.Item>
         </Form.Item>
-      </Form.Item>
+      )}
 
       <Form.Item noStyle shouldUpdate={(p, c) => p.typeBesoin !== c.typeBesoin}>
         {({ getFieldValue }) => {

@@ -12,6 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -56,6 +59,14 @@ public class CertificateListenerService {
             cert.setDeptEnseignant(info.getDeptEnseignantLibelle());
             cert.setRoleEnFormation(info.getRole());
             cert.setDelivered(false);
+                String token = UUID.randomUUID().toString();
+                cert.setVerificationToken(token);
+                cert.setVerificationHash(sha256(token + ":" + message.getFormationId()
+                    + ":" + info.getEnseignantId()));
+                cert.setIssuedAt(OffsetDateTime.now(ZoneOffset.UTC));
+                cert.setCertificateNumber("CERT-%d-%06d".formatted(
+                    cert.getIssuedAt().getYear(), Math.abs(token.hashCode()) % 1_000_000));
+                cert.setCertificateStatus("ISSUED");
             certificateRepository.save(cert);
             log.debug("→ Enregistré Certificate pour enseignantId={} (role={}).", info.getEnseignantId(), info.getRole());
         }
@@ -74,5 +85,16 @@ public class CertificateListenerService {
         log.info("✅ Fin traitement: {} certificats créés pour la formationId={}.",
                 message.getEnseignants().size(),
                 message.getFormationId());
+    }
+
+    /** Hash SHA-256 (hexadécimal) du triplet token:formationId:enseignantId. */
+    private String sha256(String value) {
+        try {
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return java.util.HexFormat.of().formatHex(digest);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 indisponible", e);
+        }
     }
 }

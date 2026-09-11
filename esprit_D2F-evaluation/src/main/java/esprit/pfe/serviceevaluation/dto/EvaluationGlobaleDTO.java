@@ -38,4 +38,25 @@ public class EvaluationGlobaleDTO {
 
     @Size(max = 1000, message = "La recommandation ne peut depasser 1000 caracteres")
     private String recommandation;
+
+    // ── Critères structurés : Évaluation de la formation (0-5) ──
+    @DecimalMin(value = "0.0", message = "La pertinence doit etre >= 0")
+    @DecimalMax(value = "5.0", message = "La pertinence doit etre <= 5")
+    private Float pertinenceContenu;
+
+    @DecimalMin(value = "0.0", message = "L'organisation doit etre >= 0")
+    @DecimalMax(value = "5.0", message = "L'organisation doit etre <= 5")
+    private Float organisation;
+
+    @DecimalMin(value = "0.0", message = "La qualité des supports doit etre >= 0")
+    @DecimalMax(value = "5.0", message = "La qualité des supports doit etre <= 5")
+    private Float qualiteSupports;
+
+    @DecimalMin(value = "0.0", message = "La durée doit etre >= 0")
+    @DecimalMax(value = "5.0", message = "La durée doit etre <= 5")
+    private Float dureeAdaptee;
+
+    @DecimalMin(value = "0.0", message = "La satisfaction doit etre >= 0")
+    @DecimalMax(value = "5.0", message = "La satisfaction doit etre <= 5")
+    private Float satisfactionGlobale;
 }

@@ -50,6 +50,12 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
                                      @Param("startDate") LocalDate startDate,
                                      @Param("endDate") LocalDate endDate);
 
+    // ===== Task 4: Presence Indicators =====
+    // Formation.id n'existe pas : la clé est idFormation (traversée explicite).
+    List<Presence> findByEnseignant_IdAndSeanceFormation_Formation_IdFormation(String enseignantId, Long formationId);
+
+    List<Presence> findBySeanceFormation_Formation_IdFormation(Long formationId);
+
     @Query("SELECT COUNT(p) FROM Presence p WHERE p.seanceFormation.formation.idFormation = :formationId " +
             "AND p.seanceFormation.dateSeance BETWEEN :startDate AND :endDate " +
             "AND p.present = true")

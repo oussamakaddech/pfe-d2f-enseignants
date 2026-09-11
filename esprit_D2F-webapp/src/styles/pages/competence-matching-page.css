@@ -117,6 +117,15 @@
   background: var(--text-muted);
 }
 
+/* ─── Barre de filtres hiérarchiques (domaine › compétence › sous-compétence) */
+.matching-hierarchy-filterbar {
+  background: var(--bg-card);
+  border: 1px solid var(--border-ui);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 10px 16px;
+}
+
 /* ─── Savoir Cards ────────────────────────────────────────────────────── */
 .savoir-assignment-card {
   background: var(--bg-card);
@@ -187,6 +196,13 @@
   font-size: 12px;
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+.savoir-hierarchy-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
 }
 
 .savoir-name-inline {

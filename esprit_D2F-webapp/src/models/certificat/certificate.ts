@@ -1,15 +1,62 @@
 import type { Id } from '../common';
 
+/**
+ * Certificat — aligné sur le DTO backend CertificateResponse
+ * (service-certificat). Champs de cycle de vie : statut ISSUED/REVOKED,
+ * révocation (motif, auteur, date) et vérification publique.
+ */
 export interface Certificate {
   idCertificate?: Id;
+  certificateNumber?: string;
+  verificationToken?: string;
+  verificationHash?: string;
+  issuedAt?: string;
+  certificateStatus?: 'ISSUED' | 'REVOKED' | string;
+  formationId?: Id;
   titreFormation?: string;
   typeCertif?: string;
   dateDebutFormation?: string;
   dateFinFormation?: string;
+  chargeHoraireGlobal?: number;
+  enseignantId?: string;
   nomEnseignant?: string;
   prenomEnseignant?: string;
+  mailEnseignant?: string;
+  deptEnseignant?: string;
   roleEnFormation?: string;
+  delivered?: boolean;
   pdfFile?: string;
+  pdfFilePath?: string;
+  revokedAt?: string;
+  revokedBy?: string;
+  revocationReason?: string;
+}
+
+/** Réponse de GET /certificates/verify/{certificateNumber} (page publique). */
+export interface CertificateVerification {
+  certificateNumber: string;
+  nomEnseignant?: string;
+  prenomEnseignant?: string;
+  titreFormation?: string;
+  chargeHoraireGlobal?: number;
+  dateDebutFormation?: string;
+  dateFinFormation?: string;
+  issuedAt?: string;
+  certificateStatus?: string;
+  competencesValidees?: string;
+}
+
+/** Indicateurs de certification (étape 7) — GET /certificates/indicators. */
+export interface CertificateIndicators {
+  eligibleCount: number;
+  deliveredCount: number;
+  pendingCount: number;
+  revokedCount: number;
+}
+
+/** Demande de révocation — PUT /certificates/{id}/revoke (motif obligatoire). */
+export interface CertificateRevocationPayload {
+  reason: string;
 }
 
 export interface TeacherIdentityDTO {

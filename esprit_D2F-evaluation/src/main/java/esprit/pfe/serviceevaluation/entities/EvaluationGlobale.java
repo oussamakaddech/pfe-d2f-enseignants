@@ -45,6 +45,22 @@ public class EvaluationGlobale extends BaseAuditEntity {
     @Column(length = 100, nullable = true)
     private String recommandation;
 
+    // ── Critères structurés : Évaluation de la formation (échelle 0-5) ──
+    /** Pertinence du contenu par rapport aux objectifs. */
+    @Column(name = "pertinence_contenu")
+    private Float pertinenceContenu;
+    /** Organisation et logistique. */
+    private Float organisation;
+    /** Qualité des supports pédagogiques. */
+    @Column(name = "qualite_supports")
+    private Float qualiteSupports;
+    /** Durée adaptée au volume et au rythme. */
+    @Column(name = "duree_adaptee")
+    private Float dureeAdaptee;
+    /** Satisfaction globale du participant. */
+    @Column(name = "satisfaction_globale")
+    private Float satisfactionGlobale;
+
     @Column(name = "last_refresh_date")
     private java.time.OffsetDateTime lastRefreshDate;
 

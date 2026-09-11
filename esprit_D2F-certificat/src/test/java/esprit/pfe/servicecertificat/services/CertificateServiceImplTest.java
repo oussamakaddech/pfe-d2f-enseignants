@@ -128,6 +128,85 @@ class CertificateServiceImplTest {
     }
 
     @Test
+    @DisplayName("revoke - devrait révoquer le certificat avec motif, auteur et horodatage")
+    void revoke() {
+        certificate.setCertificateStatus("ISSUED");
+        when(certificateRepository.findById(100L)).thenReturn(Optional.of(certificate));
+        when(certificateRepository.save(any(Certificate.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CertificateResponse response = certificateService.revoke(100L, "Fraude détectée", "admin");
+
+        assertThat(response.getCertificateStatus()).isEqualTo("REVOKED");
+        assertThat(response.isDelivered()).isFalse();
+        assertThat(response.getRevokedAt()).isNotNull();
+        assertThat(response.getRevokedBy()).isEqualTo("admin");
+        assertThat(response.getRevocationReason()).isEqualTo("Fraude détectée");
+        verify(certificateRepository).save(certificate);
+    }
+
+    @Test
+    @DisplayName("revoke - motif obligatoire")
+    void revoke_BlankReason() {
+        assertThatThrownBy(() -> certificateService.revoke(100L, "  ", "admin"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("motif");
+    }
+
+    @Test
+    @DisplayName("revoke - un certificat révoqué ne peut pas être révoqué deux fois")
+    void revoke_AlreadyRevoked() {
+        certificate.setCertificateStatus("REVOKED");
+        when(certificateRepository.findById(100L)).thenReturn(Optional.of(certificate));
+
+        assertThatThrownBy(() -> certificateService.revoke(100L, "second motif", "admin"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("déjà révoqué");
+    }
+
+    @Test
+    @DisplayName("revoke - un certificat révoqué ne peut pas être délivré")
+    void deliver_Revoked() {
+        certificate.setCertificateStatus("REVOKED");
+        when(certificateRepository.findById(100L)).thenReturn(Optional.of(certificate));
+
+        assertThatThrownBy(() -> certificateService.deliver(100L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("révoqué");
+    }
+
+    @Test
+    @DisplayName("getIndicators - devrait agréger éligibles/délivrés/en attente/révoqués")
+    void getIndicators() {
+        when(certificateRepository.count()).thenReturn(10L);
+        when(certificateRepository.countByDeliveredTrue()).thenReturn(6L);
+        when(certificateRepository.countByDeliveredFalse()).thenReturn(3L);
+        when(certificateRepository.countByCertificateStatus("REVOKED")).thenReturn(1L);
+
+        var indicators = certificateService.getIndicators();
+
+        assertThat(indicators.getEligibleCount()).isEqualTo(10L);
+        assertThat(indicators.getDeliveredCount()).isEqualTo(6L);
+        assertThat(indicators.getPendingCount()).isEqualTo(3L);
+        assertThat(indicators.getRevokedCount()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("getIndicatorsByFormation - indicateurs filtrés par formation")
+    void getIndicatorsByFormation() {
+        when(certificateRepository.countByFormationId(1L)).thenReturn(5L);
+        when(certificateRepository.countByFormationIdAndDeliveredTrue(1L)).thenReturn(4L);
+        when(certificateRepository.countByFormationIdAndDeliveredFalse(1L)).thenReturn(1L);
+        when(certificateRepository.countByFormationIdAndCertificateStatus(1L, "REVOKED")).thenReturn(0L);
+
+        var indicators = certificateService.getIndicatorsByFormation(1L);
+
+        assertThat(indicators.getEligibleCount()).isEqualTo(5L);
+        assertThat(indicators.getDeliveredCount()).isEqualTo(4L);
+        assertThat(indicators.getPendingCount()).isEqualTo(1L);
+        assertThat(indicators.getRevokedCount()).isEqualTo(0L);
+    }
+
+    @Test
     @DisplayName("findByEmail - devrait retourner des certificats")
     void findByEmail() {
         when(certificateRepository.findByMailEnseignant("john.doe@test.com")).thenReturn(List.of(certificate));
