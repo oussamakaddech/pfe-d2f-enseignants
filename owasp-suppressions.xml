@@ -251,6 +251,36 @@
         <notes><![CDATA[Spring Core CVEs - 6.2.19 dernier 6.2.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
         <cve>CVE-2026-59314</cve>
     </suppress>
+    <!-- Spring Framework 6.2.19 : nouvelles CVEs (aout 2026) non applicables aux
+         services D2F et non corrigeables en 6.2.x (fix OSS en 7.0.9 / Boot 4) :
+         - CVE-2026-47884 : XsltView (SSRF/RCE) - aucun rendu XSLT dans les services ;
+         - CVE-2026-47885 : PartEventHttpMessageReader maxPartSize - aucun endpoint
+           Flux<PartEvent> (services MVC/Tomcat, gateway Netty sans multipart) ;
+         - CVE-2026-47886 : DoS SpEL operateur ^ avec BigDecimal/BigInteger - aucune
+           evaluation d'expressions SpEL fournies par l'utilisateur ;
+         - CVE-2026-47888 : DoS SpEL - idem non applicable ;
+         - CVE-2026-47889 : sameSite omis sur Jetty Core reactif - aucun service
+           WebFlux sur Jetty (Tomcat servlet / Netty gateway). -->
+    <suppress>
+        <notes><![CDATA[Spring Core 6.2.19 - CVE-2026-47884 XsltView : aucun rendu XSLT dans les services D2F - non applicable, fix OSS en 7.0.x (Boot 4).]]></notes>
+        <cve>CVE-2026-47884</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core 6.2.19 - CVE-2026-47885 PartEventHttpMessageReader : aucun endpoint Flux<PartEvent> - non applicable, fix OSS en 7.0.x (Boot 4).]]></notes>
+        <cve>CVE-2026-47885</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core 6.2.19 - CVE-2026-47886 DoS SpEL (^ BigDecimal) : aucune evaluation SpEL utilisateur - non applicable, fix OSS en 7.0.x (Boot 4).]]></notes>
+        <cve>CVE-2026-47886</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core 6.2.19 - CVE-2026-47888 DoS SpEL : aucune evaluation SpEL utilisateur - non applicable, fix OSS en 7.0.x (Boot 4).]]></notes>
+        <cve>CVE-2026-47888</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core 6.2.19 - CVE-2026-47889 Jetty sameSite : aucun service WebFlux sur Jetty (Tomcat servlet, gateway Netty) - non applicable, fix OSS en 7.0.x (Boot 4).]]></notes>
+        <cve>CVE-2026-47889</cve>
+    </suppress>
     <!-- Spring Security 6.5.11 : fix non disponible dans la ligne 6.5.x (EOL).
          CVEs corrigées uniquement en 7.0.x (Spring Boot 4.0.x) — migration planifiée. -->
     <suppress>

@@ -65,7 +65,9 @@ public class CertificateListenerService {
                     + ":" + info.getEnseignantId()));
                 cert.setIssuedAt(OffsetDateTime.now(ZoneOffset.UTC));
                 cert.setCertificateNumber("CERT-%d-%06d".formatted(
-                    cert.getIssuedAt().getYear(), Math.abs(token.hashCode()) % 1_000_000));
+                    cert.getIssuedAt().getYear(),
+                    // floorMod : Math.abs(Integer.MIN_VALUE) reste negatif (RV_ABSOLUTE_VALUE_OF_HASHCODE)
+                    Math.floorMod(token.hashCode(), 1_000_000)));
                 cert.setCertificateStatus("ISSUED");
             certificateRepository.save(cert);
             log.debug("→ Enregistré Certificate pour enseignantId={} (role={}).", info.getEnseignantId(), info.getRole());

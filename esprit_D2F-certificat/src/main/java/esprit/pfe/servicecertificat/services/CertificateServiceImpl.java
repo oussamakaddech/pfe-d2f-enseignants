@@ -229,7 +229,9 @@ public class CertificateServiceImpl implements CertificateService {
         certificate.setIssuedAt(OffsetDateTime.now(ZoneOffset.UTC));
         certificate.setCertificateStatus("ISSUED");
         certificate.setCertificateNumber("CERT-%d-%06d".formatted(
-                certificate.getIssuedAt().getYear(), Math.abs(token.hashCode()) % 1_000_000));
+                certificate.getIssuedAt().getYear(),
+                // floorMod : Math.abs(Integer.MIN_VALUE) reste negatif (RV_ABSOLUTE_VALUE_OF_HASHCODE)
+                Math.floorMod(token.hashCode(), 1_000_000)));
     }
 
     private String sha256(String value) {
