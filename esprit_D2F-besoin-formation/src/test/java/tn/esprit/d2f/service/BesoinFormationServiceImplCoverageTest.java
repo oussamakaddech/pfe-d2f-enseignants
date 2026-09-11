@@ -218,13 +218,11 @@ class BesoinFormationServiceImplCoverageTest {
 
         service.modifyBesoinFormation(request);
 
-        // Only CUP refusal notification (not admin approval)
-        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository, times(1)).save(captor.capture());
-        Notification savedNotif = captor.getValue();
-        assertEquals("testuser", savedNotif.getUsername());
-        assertTrue(savedNotif.getMessage().contains("refusée"));
-        assertEquals("Reason for refusal", savedNotif.getCommentaire());
+        // Workflow sécurisé : les flags d'approbation reçus via PUT /modify sont
+        // ignorés (décisions via /approve et /reject uniquement) — les
+        // notifications de refus/acceptation partent uniquement si l'entité
+        // était déjà dans cet état.
+        verify(notificationRepository, never()).save(any(Notification.class));
     }
 
     @Test
@@ -246,13 +244,8 @@ class BesoinFormationServiceImplCoverageTest {
 
         service.modifyBesoinFormation(request);
 
-        // Only admin approval notification
-        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository, times(1)).save(captor.capture());
-        Notification savedNotif = captor.getValue();
-        assertEquals("testuser", savedNotif.getUsername());
-        assertTrue(savedNotif.getMessage().contains("acceptée"));
-        assertEquals("Approved", savedNotif.getCommentaire());
+        // Workflow sécurisé : flags ignorés sur /modify → pas de notification.
+        verify(notificationRepository, never()).save(any(Notification.class));
     }
 
     @Test
@@ -488,9 +481,9 @@ class BesoinFormationServiceImplCoverageTest {
 
         service.modifyBesoinFormation(request);
 
-        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository, times(1)).save(captor.capture());
-        assertNull(captor.getValue().getCommentaire());
+        // Workflow sécurisé : flags ignorés sur /modify (refus via /reject)
+        // → aucune notification, même avec un commentaire null.
+        verify(notificationRepository, never()).save(any(Notification.class));
     }
 
     // ──────────────────────────────────────────────
