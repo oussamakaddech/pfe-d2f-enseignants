@@ -281,6 +281,16 @@
         <notes><![CDATA[Spring Core 6.2.19 - CVE-2026-47889 Jetty sameSite : aucun service WebFlux sur Jetty (Tomcat servlet, gateway Netty) - non applicable, fix OSS en 7.0.x (Boot 4).]]></notes>
         <cve>CVE-2026-47889</cve>
     </suppress>
+    <!-- Spring Cloud Gateway 4.3.5 (CVE-2026-47879, CVSS 8.7) :
+         JsonToGrpcGatewayFilterFactory autorise des resource locations arbitraires
+         pour les descripteurs proto (SSRF + acces fichiers). Le filtre JsonToGrpc
+         n'est configure nulle part dans la gateway D2F (aucune route gRPC, aucun
+         descripteur proto) - non exploitable. Fix 4.3.6 Enterprise Only ;
+         fix OSS 5.0.3 (Spring Cloud 2025.1 / Boot 4 - migration planifiee). -->
+    <suppress>
+        <notes><![CDATA[Spring Cloud Gateway 4.3.5 - CVE-2026-47879 JsonToGrpc SSRF : filtre JsonToGrpc non configure dans la gateway D2F (aucune route gRPC) - non applicable, fix OSS en 5.0.x (Boot 4).]]></notes>
+        <cve>CVE-2026-47879</cve>
+    </suppress>
     <!-- Spring Security 6.5.11 : fix non disponible dans la ligne 6.5.x (EOL).
          CVEs corrigées uniquement en 7.0.x (Spring Boot 4.0.x) — migration planifiée. -->
     <suppress>
