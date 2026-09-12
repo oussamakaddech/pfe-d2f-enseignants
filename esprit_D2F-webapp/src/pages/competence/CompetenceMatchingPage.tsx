@@ -43,11 +43,13 @@ import {
   type RiceEnseignantEntry,
   type SavoirHierarchy,
   initialState,
+  dataSignature,
   getAvatarColor,
   normalizePending,
   normalizeNiveauForAssignment,
   reducer,
   resolveSavoirHierarchy,
+  shouldHydrateData,
 } from './components/matchingTypes';
 import { useMatchingReferential } from './hooks/useMatchingReferential';
 
@@ -70,6 +72,8 @@ export default function CompetenceMatchingPage() {
   const [form] = Form.useForm<RiceEnseignantEntry>();
   const stateRef = useRef(state);
   stateRef.current = state;
+  /** Signature du dernier contenu hydraté (garde anti-boucle de l'effet LOAD). */
+  const hydratedSigRef = useRef<string>('');
 
   const teacherById = useMemo(() => {
     const map = new Map<string, RiceEnseignantEntry>();
@@ -194,20 +198,23 @@ export default function CompetenceMatchingPage() {
   }, [refetchSavoirs, refetchEnseignants]);
 
   useEffect(() => {
-    if (savoirsData.length > 0 || enseignantsData.length > 0) {
-      const assignments: Record<string, string[]> = {};
-      ((savoirsData as RiceSavoirEntry[]) || []).forEach((s) => {
-        assignments[String(s.id)] = (s.enseignants ?? s.enseignantIds ?? []).map(String);
-      });
-      dispatch({
-        type: 'LOAD_SUCCESS',
-        payload: {
-          savoirs: (savoirsData as RiceSavoirEntry[]) || [],
-          enseignants: (enseignantsData as RiceEnseignantEntry[]) || [],
-          assignments,
-        },
-      });
-    }
+    // Hydratation idempotente (anti-boucle #185) : ne re-dispatch que si le
+    // CONTENU a changé (signature par ids). Insensible aux recréations de
+    // tableaux, sensible aux vrais refetch via reloadData.
+    if (!shouldHydrateData(hydratedSigRef.current, savoirsData, enseignantsData)) return;
+    hydratedSigRef.current = `${dataSignature(savoirsData)}|${dataSignature(enseignantsData)}`;
+    const assignments: Record<string, string[]> = {};
+    ((savoirsData as RiceSavoirEntry[]) || []).forEach((s) => {
+      assignments[String(s.id)] = (s.enseignants ?? s.enseignantIds ?? []).map(String);
+    });
+    dispatch({
+      type: 'LOAD_SUCCESS',
+      payload: {
+        savoirs: (savoirsData as RiceSavoirEntry[]) || [],
+        enseignants: (enseignantsData as RiceEnseignantEntry[]) || [],
+        assignments,
+      },
+    });
   }, [savoirsData, enseignantsData]);
 
   const handleDragEnd = useCallback(() => {

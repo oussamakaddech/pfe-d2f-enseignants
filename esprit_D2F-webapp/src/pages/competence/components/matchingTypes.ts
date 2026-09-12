@@ -213,6 +213,36 @@ export const normalizeNiveauForAssignment = (niveau: unknown): string => {
   return 'N1_DEBUTANT';
 };
 
+/**
+ * Signature de contenu d'une liste (ids joints) : stable même si le producteur
+ * recrée les tableaux à chaque appel, contrairement aux références.
+ */
+export function dataSignature(list: unknown[] | undefined): string {
+  if (!Array.isArray(list)) return '';
+  return list.map((s) => String((s as { id?: unknown })?.id ?? '')).join(',');
+}
+
+/**
+ * Garde d'hydratation idempotente : l'effet LOAD_SUCCESS ne doit re-dispatcher
+ * que si le CONTENU a réellement changé. Comparer les références ne suffit
+ * pas : toute instabilité d'identité (refetch, normalisation non mémoïsée,
+ * filtre client) re-déclenche l'effet → dispatch → render → boucle infinie
+ * (React #185). La signature par ids casse la boucle tout en re-hydratant
+ * après un vrai refetch (reloadData).
+ */
+export function shouldHydrateData(
+  prevSignature: string,
+  nextSavoirs: unknown[] | undefined,
+  nextEnseignants: unknown[] | undefined,
+): boolean {
+  const hasData =
+    (Array.isArray(nextSavoirs) && nextSavoirs.length > 0) ||
+    (Array.isArray(nextEnseignants) && nextEnseignants.length > 0);
+  if (!hasData) return false;
+  const next = `${dataSignature(nextSavoirs)}|${dataSignature(nextEnseignants)}`;
+  return prevSignature !== next;
+}
+
 export function reducer(state: MatchingState, action: MatchingAction): MatchingState {
   switch (action.type) {
     case 'LOAD_SUCCESS': {
