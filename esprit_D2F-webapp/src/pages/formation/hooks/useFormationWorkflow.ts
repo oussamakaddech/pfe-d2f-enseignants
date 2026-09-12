@@ -123,11 +123,16 @@ export function buildCompetenceLinks(
     const matchedScs = rowScIds.filter((sid) => compScs.some((sc) => Number(sc.id) === sid));
     const rowSavIds = row.savoirIds.filter(Boolean).map(Number);
     const savoirScope = resolveSavoirScope(matchedScs, cid, ctx);
-    const matchedSavoirs = rowSavIds.filter((sid) =>
-      savoirScope.some((s) => Number(s.id) === sid),
-    );
+    const matchedSavoirs = rowSavIds.filter((sid) => savoirScope.some((s) => Number(s.id) === sid));
     appendCompetenceLinks(links, {
-      cid, domainId, compName, compScs, matchedScs, matchedSavoirs, savoirScope, ctx,
+      cid,
+      domainId,
+      compName,
+      compScs,
+      matchedScs,
+      matchedSavoirs,
+      savoirScope,
+      ctx,
     });
   });
   return links;

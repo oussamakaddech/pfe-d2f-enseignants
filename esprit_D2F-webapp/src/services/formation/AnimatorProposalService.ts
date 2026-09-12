@@ -28,7 +28,10 @@ export interface ManagerProposalPayload {
  */
 const AnimatorProposalService = {
   /** Auto-proposition (ENSEIGNANT / ANIMATEUR). */
-  async createSelfProposal(formationId: number, payload: SelfProposalPayload): Promise<AnimatorProposal> {
+  async createSelfProposal(
+    formationId: number,
+    payload: SelfProposalPayload,
+  ): Promise<AnimatorProposal> {
     const response = await axios.post(
       `${API_URL}/formations/${formationId}/self-animator-proposals`,
       payload,

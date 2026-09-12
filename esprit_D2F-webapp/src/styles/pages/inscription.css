@@ -641,7 +641,6 @@
   transition: all 0.2s !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
-}
 .suv-toggle:hover {
   transform: translateY(-1px) !important;
 }

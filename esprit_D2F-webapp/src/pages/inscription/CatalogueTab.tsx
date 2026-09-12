@@ -133,9 +133,7 @@ export default function CatalogueTab() {
   const { mutateAsync: updateOuvertes } = useUpdateInscriptionsOuvertes();
   const { mutateAsync: demanderMutation } = useDemanderInscription();
 
-  const { data: enseignantSelf } = useEnseignantById(
-    isInscribableRole ? identifier : undefined,
-  );
+  const { data: enseignantSelf } = useEnseignantById(isInscribableRole ? identifier : undefined);
   const { data: myInscriptions = [] } = useInscriptionsByEnseignant(
     (enseignantSelf as { id?: Id } | undefined)?.id,
   );
@@ -256,12 +254,12 @@ export default function CatalogueTab() {
   if (!formationsList.length) {
     return (
       <EmptyStateStandard
-      title={isInscribableRole ? 'Aucune formation ouverte' : 'Aucune formation disponible'}
-      description={
-        isInscribableRole
-          ? 'Aucune formation inscriptible dans votre périmètre (UP ou département).'
-          : 'Créez une formation pour commencer.'
-      }
+        title={isInscribableRole ? 'Aucune formation ouverte' : 'Aucune formation disponible'}
+        description={
+          isInscribableRole
+            ? 'Aucune formation inscriptible dans votre périmètre (UP ou département).'
+            : 'Créez une formation pour commencer.'
+        }
       />
     );
   }

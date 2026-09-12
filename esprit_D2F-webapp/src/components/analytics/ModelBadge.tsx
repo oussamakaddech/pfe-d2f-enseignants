@@ -65,7 +65,10 @@ const MODE_META: Record<
   },
 };
 
-const SIMULATION_VALIDITIES: ReadonlySet<string> = new Set(['OBSERVED_IN_SIMULATION', 'SIMULATION_VALIDATED']);
+const SIMULATION_VALIDITIES: ReadonlySet<string> = new Set([
+  'OBSERVED_IN_SIMULATION',
+  'SIMULATION_VALIDATED',
+]);
 
 /** Badge de simulation : priorité targetValidity > validationScope > dataOrigin. */
 function resolveSimulationBadge(
@@ -165,7 +168,13 @@ export default function ModelBadge({
   const simulationBadge = resolveSimulationBadge(targetValidity, validationScope, dataOrigin);
   const displayBadge = simulationBadge || targetMeta;
   const tooltip = buildTooltipParts(
-    meta.description, modelMode, artifact, modelVersion, version, modelAlgorithm, displayBadge,
+    meta.description,
+    modelMode,
+    artifact,
+    modelVersion,
+    version,
+    modelAlgorithm,
+    displayBadge,
   ).join(' ');
 
   const fontSize = size === 'small' ? 11 : 12;

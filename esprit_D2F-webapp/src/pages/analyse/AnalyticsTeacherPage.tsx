@@ -684,7 +684,13 @@ function ModelsInfoPanel({
   const dataOrigin = risk.data?.data_origin ?? model?.data_origin ?? null;
 
   const detailRows = buildModelDetailRows(risk, gaps, {
-    mode, version, modelName, algorithm, targetValidity, validationScope, dataOrigin,
+    mode,
+    version,
+    modelName,
+    algorithm,
+    targetValidity,
+    validationScope,
+    dataOrigin,
   });
   return (
     <div style={{ padding: '6px 2px' }}>

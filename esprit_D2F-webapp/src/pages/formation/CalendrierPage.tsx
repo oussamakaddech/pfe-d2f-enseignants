@@ -154,15 +154,19 @@ export default function CalendrierPage() {
   const role = normalizeRole(profile?.role);
   const isAdmin = role === 'admin';
   const identifier = profile?.emailAddress || profile?.email || profile?.id;
-  const { data: enseignantSelf } = useEnseignantById(
-    !isAdmin ? identifier : undefined,
-  );
+  const { data: enseignantSelf } = useEnseignantById(!isAdmin ? identifier : undefined);
   const { data: myCalendar = { asAnimateur: [], asParticipant: [] }, isLoading: myLoading } =
     useFormationsForCalendar(
-      !isAdmin ? ((enseignantSelf as { id?: string } | undefined)?.id as string | undefined) : undefined,
+      !isAdmin
+        ? ((enseignantSelf as { id?: string } | undefined)?.id as string | undefined)
+        : undefined,
     );
 
-  const { data: formations = [], isLoading: allLoading, refetch: refetchFormations } = useAllFormations();
+  const {
+    data: formations = [],
+    isLoading: allLoading,
+    refetch: refetchFormations,
+  } = useAllFormations();
 
   // ADMIN → toutes les formations ; autre rôle → animées + participées.
   const scopedFormations = useMemo<Formation[]>(() => {

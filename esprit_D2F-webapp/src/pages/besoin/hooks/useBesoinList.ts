@@ -58,7 +58,13 @@ type LookupItem = {
 };
 
 /** Sélection de la requête besoins selon le périmètre (self / scopé / tout). */
-function selectBesoinsQuery<T>(isSelfService: boolean, isScoped: boolean, myQuery: T, scopeQuery: T, allQuery: T): T {
+function selectBesoinsQuery<T>(
+  isSelfService: boolean,
+  isScoped: boolean,
+  myQuery: T,
+  scopeQuery: T,
+  allQuery: T,
+): T {
   if (isSelfService) {
     return myQuery;
   }
@@ -100,7 +106,13 @@ export function useBesoinList() {
     data: besoinsData = [],
     isLoading: loading,
     refetch: refetchBesoins,
-  } = selectBesoinsQuery(isSelfService, isScoped, myBesoinsQuery, scopeBesoinsQuery, allBesoinsQuery);
+  } = selectBesoinsQuery(
+    isSelfService,
+    isScoped,
+    myBesoinsQuery,
+    scopeBesoinsQuery,
+    allBesoinsQuery,
+  );
   const { data: departements = [] } = useDepartements();
   const { data: ups = [] } = useUps();
   const { data: accountsData = [] } = useAllAccounts(false, !isSelfService);

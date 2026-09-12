@@ -140,7 +140,10 @@ export function AnimatorProposalsPanel({
   );
 
   const respondProposal = useCallback(
-    async (proposalId: number, action: 'accept' | 'reject' | 'withdraw' | 'approve' | 'manager-reject') => {
+    async (
+      proposalId: number,
+      action: 'accept' | 'reject' | 'withdraw' | 'approve' | 'manager-reject',
+    ) => {
       setBusyId(proposalId);
       try {
         if (action === 'accept') {
@@ -177,7 +180,11 @@ export function AnimatorProposalsPanel({
         render: (_: unknown, p: AnimatorProposal) =>
           `${p.proposerPrenom ?? ''} ${p.proposerNom ?? ''}`.trim() || p.proposerId,
       },
-      { title: 'Rôle', key: 'role', render: (_: unknown, p: AnimatorProposal) => ROLE_LABELS[p.role] },
+      {
+        title: 'Rôle',
+        key: 'role',
+        render: (_: unknown, p: AnimatorProposal) => ROLE_LABELS[p.role],
+      },
       {
         title: 'Type',
         key: 'type',
