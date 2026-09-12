@@ -5,6 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,7 +21,20 @@ public class Presence extends BaseAuditEntity {
 
     @Column(name = "presence")
     private boolean present;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 20)
+    private PresenceStatus status = PresenceStatus.ABSENT;
+    @Column(name = "arrival_time")
+    private LocalTime arrivalTime;
+    @Column(name = "departure_time")
+    private LocalTime departureTime;
+    @Column(length = 500)
+    private String justification;
     private String commentaire;
+    @Column(name = "recorded_by", length = 150)
+    private String recordedBy;
+    @Column(name = "recorded_at")
+    private LocalDateTime recordedAt;
 
     // Relation vers la séance à laquelle la présence est associée
     @ManyToOne(fetch = FetchType.LAZY)

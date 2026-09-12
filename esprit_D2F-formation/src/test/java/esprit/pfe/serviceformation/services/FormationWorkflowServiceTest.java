@@ -47,6 +47,10 @@ class FormationWorkflowServiceTest {
     @InjectMocks
     private FormationWorkflowService formationWorkflowService;
 
+    /** Utilisateur à portée globale : contourne le contrôle row-level présences. */
+    private static final CurrentUser ADMIN_USER =
+            new CurrentUser("admin", "1", "admin@esprit.tn", Set.of("ADMIN"));
+
     private FormationWorkflowRequest request;
 
     @BeforeEach
@@ -254,7 +258,7 @@ class FormationWorkflowServiceTest {
         presence.setIdParticipation(1L);
         lenient().when(presenceRepository.findById(1L)).thenReturn(Optional.of(presence));
         
-        formationWorkflowService.updatePresence(1L, true, "OK");
+        formationWorkflowService.updatePresence(1L, true, "OK", ADMIN_USER);
         
         assertThat(presence.isPresent()).isTrue();
         assertThat(presence.getCommentaire()).isEqualTo("OK");
@@ -350,6 +354,100 @@ class FormationWorkflowServiceTest {
         
         List<FormationResponseDTO> list = formationWorkflowService.getFormationsParDepartement("D1");
         assertThat(list).isNotEmpty();
+    }
+
+    private CurrentUser cupUser() {
+        return new CurrentUser("fbenhassen", "u1", "f.benhassen@esprit.tn", java.util.Set.of("CUP"));
+    }
+
+    private CurrentUser chefUser() {
+        return new CurrentUser("sbouazizi", "u2", "s.bouazizi@esprit.tn",
+                java.util.Set.of("CHEF_DEPARTEMENT"));
+    }
+
+    private CurrentUser adminUser() {
+        return new CurrentUser("admin", "u3", "admin@d2f.tn", java.util.Set.of("ADMIN"));
+    }
+
+    private Enseignant enseignantWith(Up up, Dept dept) {
+        Enseignant e = new Enseignant();
+        e.setId("ENS001");
+        e.setMail("x@esprit.tn");
+        e.setUp(up);
+        e.setDept(dept);
+        return e;
+    }
+
+    @Test
+    @DisplayName("getMesFormationsPilote - CUP : formations de son UP uniquement")
+    void shouldGetMesFormationsPilote_cupScopedToUp() {
+        Formation f = createFullFormation();
+        Up up = new Up();
+        up.setId("UP1");
+        Enseignant ens = enseignantWith(up, null);
+        when(enseignantRepository.findByMailIgnoreCase("f.benhassen@esprit.tn"))
+                .thenReturn(Optional.of(ens));
+        when(formationRepository.findByUp_Id("UP1")).thenReturn(List.of(f));
+
+        List<FormationResponseDTO> list = formationWorkflowService.getMesFormationsPilote(cupUser());
+
+        assertThat(list).isNotEmpty();
+        verify(formationRepository).findByUp_Id("UP1");
+        verify(formationRepository, never()).findAll();
+    }
+
+    @Test
+    @DisplayName("getMesFormationsPilote - Chef : formations de son département uniquement")
+    void shouldGetMesFormationsPilote_chefScopedToDept() {
+        Formation f = createFullFormation();
+        Dept dept = new Dept();
+        dept.setId("D1");
+        Enseignant ens = enseignantWith(null, dept);
+        when(enseignantRepository.findByMailIgnoreCase("s.bouazizi@esprit.tn"))
+                .thenReturn(Optional.of(ens));
+        when(formationRepository.findByDepartement_Id("D1")).thenReturn(List.of(f));
+
+        List<FormationResponseDTO> list = formationWorkflowService.getMesFormationsPilote(chefUser());
+
+        assertThat(list).isNotEmpty();
+        verify(formationRepository).findByDepartement_Id("D1");
+        verify(formationRepository, never()).findAll();
+    }
+
+    @Test
+    @DisplayName("getMesFormationsPilote - Admin : vue complète")
+    void shouldGetMesFormationsPilote_adminSeesAll() {
+        Formation f = createFullFormation();
+        when(formationRepository.findAll()).thenReturn(List.of(f));
+
+        List<FormationResponseDTO> list = formationWorkflowService.getMesFormationsPilote(adminUser());
+
+        assertThat(list).isNotEmpty();
+        verify(formationRepository).findAll();
+        verifyNoInteractions(enseignantRepository);
+    }
+
+    @Test
+    @DisplayName("getMesFormationsPilote - profil enseignant introuvable : erreur explicite")
+    void shouldGetMesFormationsPilote_unknownProfile() {
+        when(enseignantRepository.findByMailIgnoreCase("f.benhassen@esprit.tn"))
+                .thenReturn(Optional.empty());
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> formationWorkflowService.getMesFormationsPilote(cupUser()));
+        assertThat(ex.getMessage()).contains("Profil enseignant introuvable");
+    }
+
+    @Test
+    @DisplayName("getMesFormationsPilote - CUP sans UP rattachée : erreur explicite")
+    void shouldGetMesFormationsPilote_cupWithoutUp() {
+        Enseignant ens = enseignantWith(null, null);
+        when(enseignantRepository.findByMailIgnoreCase("f.benhassen@esprit.tn"))
+                .thenReturn(Optional.of(ens));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> formationWorkflowService.getMesFormationsPilote(cupUser()));
+        assertThat(ex.getMessage()).contains("Aucune UP rattachée");
     }
 
     @Test

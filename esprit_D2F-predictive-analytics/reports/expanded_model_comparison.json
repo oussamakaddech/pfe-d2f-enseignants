@@ -1,0 +1,9 @@
+{
+  "statut": "AUCUNE_AUGMENTATION",
+  "message": "Aucune augmentation réelle possible sans nouvelles données métier.",
+  "generated_at": "2026-08-20T02:20:15.845737+00:00",
+  "comparaison": "NON RÉALISÉE — aucun modèle v1.2.0 entraîné",
+  "modeles_compares": [
+    "aucun"
+  ]
+}

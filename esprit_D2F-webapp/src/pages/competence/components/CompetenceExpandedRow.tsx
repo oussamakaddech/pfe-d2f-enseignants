@@ -45,6 +45,9 @@ interface SousCompNodeProps {
   onAddSavoir: (node: SousComp) => void;
   onEdit: (node: SousComp) => void;
   onDelete: (id: Id) => void;
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 function SousCompNode({
@@ -54,6 +57,9 @@ function SousCompNode({
   onAddSavoir,
   onEdit,
   onDelete,
+  canCreate = true,
+  canEdit = true,
+  canDelete = true,
 }: Readonly<SousCompNodeProps>) {
   const enfants = node.enfants ?? [];
   const isLeaf = enfants.length === 0;
@@ -71,43 +77,49 @@ function SousCompNode({
           <Tag color="geekblue">{enfants.length} enfant(s)</Tag>
         )}
 
-        <Tooltip
-          title={
-            hasSavoirs
-              ? "Impossible d'ajouter un enfant: ce noeud contient des savoirs"
-              : 'Ajouter une sous-compétence'
-          }
-        >
-          <Button
-            size="small"
-            icon={<PlusOutlined />}
-            disabled={hasSavoirs}
-            onClick={() => onAddChild(node)}
-          />
-        </Tooltip>
+        {canCreate && (
+          <Tooltip
+            title={
+              hasSavoirs
+                ? "Impossible d'ajouter un enfant: ce noeud contient des savoirs"
+                : 'Ajouter une sous-compétence'
+            }
+          >
+            <Button
+              size="small"
+              icon={<PlusOutlined />}
+              disabled={hasSavoirs}
+              onClick={() => onAddChild(node)}
+            />
+          </Tooltip>
+        )}
 
-        {isLeaf && (
+        {canCreate && isLeaf && (
           <Tooltip title="Ajouter un savoir">
             <Button size="small" icon={<PlusOutlined />} onClick={() => onAddSavoir(node)} />
           </Tooltip>
         )}
 
-        <Tooltip title="Modifier">
-          <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(node)} />
-        </Tooltip>
+        {canEdit && (
+          <Tooltip title="Modifier">
+            <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(node)} />
+          </Tooltip>
+        )}
 
-        <Tooltip title="Supprimer">
-          <Popconfirm
-            title="Confirmer la suppression ?"
-            okText="Oui"
-            cancelText="Non"
-            onConfirm={() => {
-              if (node.id != null) onDelete(node.id);
-            }}
-          >
-            <Button size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </Tooltip>
+        {canDelete && (
+          <Tooltip title="Supprimer">
+            <Popconfirm
+              title="Confirmer la suppression ?"
+              okText="Oui"
+              cancelText="Non"
+              onConfirm={() => {
+                if (node.id != null) onDelete(node.id);
+              }}
+            >
+              <Button size="small" danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          </Tooltip>
+        )}
       </Space>
 
       {enfants.map((child) => (
@@ -119,6 +131,9 @@ function SousCompNode({
           onAddSavoir={onAddSavoir}
           onEdit={onEdit}
           onDelete={onDelete}
+          canCreate={canCreate}
+          canEdit={canEdit}
+          canDelete={canDelete}
         />
       ))}
     </div>
@@ -134,6 +149,9 @@ interface CompetenceExpandedRowProps {
   onAddSavoir: (node: SousComp) => void;
   onEdit: (node: SousComp) => void;
   onDelete: (id: Id) => void;
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 export default function CompetenceExpandedRow({
@@ -145,6 +163,9 @@ export default function CompetenceExpandedRow({
   onAddSavoir,
   onEdit,
   onDelete,
+  canCreate = true,
+  canEdit = true,
+  canDelete = true,
 }: Readonly<CompetenceExpandedRowProps>) {
   const allNodesForComp = flattenSousCompList(sousComps ?? []).filter(
     (sc) => String(sc.competenceId) === String(competence.id),
@@ -168,14 +189,16 @@ export default function CompetenceExpandedRow({
     <Card size="small" style={{ margin: 8 }}>
       <Space style={{ marginBottom: 12 }} wrap>
         <Text strong>Sous-compétences de {competence.nom}</Text>
-        <Button
-          size="small"
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => onAddRoot(competence)}
-        >
-          Ajouter une sous-compétence
-        </Button>
+        {canCreate && (
+          <Button
+            size="small"
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => onAddRoot(competence)}
+          >
+            Ajouter une sous-compétence
+          </Button>
+        )}
       </Space>
 
       {roots.length === 0 ? (
@@ -200,6 +223,9 @@ export default function CompetenceExpandedRow({
               onAddSavoir={onAddSavoir}
               onEdit={onEdit}
               onDelete={onDelete}
+              canCreate={canCreate}
+              canEdit={canEdit}
+              canDelete={canDelete}
             />
           ))}
         </div>

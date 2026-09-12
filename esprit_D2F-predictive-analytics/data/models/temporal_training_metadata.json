@@ -1,6 +1,8 @@
 {
-  "model_name": "gradient_boosting",
-  "trained_at": "2026-08-06T03:44:59.524764",
+  "model_name": "gap_predictor_temporal",
+  "algorithm": "gradient_boosting",
+  "model_version": "v1.0.0",
+  "trained_at": "2026-08-22T05:29:01.033299",
   "n_features": 29,
   "feature_cols": [
     "current_level_t3",
@@ -33,18 +35,19 @@
     "months_since_last_training",
     "engagement_score"
   ],
-  "n_samples": 107,
-  "n_train": 86,
-  "n_test": 21,
+  "feature_schema_version": "1.0",
+  "n_samples": 147,
+  "n_train": 118,
+  "n_test": 29,
   "data_sources": {
-    "synthetic": 0,
-    "real_db": 107,
-    "combined": 107,
-    "real_weight_applied": 1,
-    "synthetic_included": false,
+    "total_rows": 147,
+    "real_rows": 147,
+    "synthetic_rows": 0,
+    "synthetic_share_pct": 0.0,
     "real_share_pct": 100.0,
-    "synthetic_share_pct": 0.0
+    "dataset_version": "v1.0.0"
   },
+  "dataset_version": "v1.0.0",
   "hyperparameters": {
     "random_state": 42,
     "cv": {
@@ -54,7 +57,7 @@
       "random_state": 42
     },
     "split": {
-      "type": "temporal_ordered_no_shuffle",
+      "type": "temporal_strict_cutoff_2026-07-22",
       "train_frac": 0.8,
       "test_frac": 0.2
     },
@@ -80,6 +83,35 @@
         "tol": 0.0001,
         "validation_fraction": 0.1,
         "verbose": 0,
+        "warm_start": false
+      },
+      "mlp": {
+        "activation": "relu",
+        "alpha": 0.01,
+        "batch_size": "auto",
+        "beta_1": 0.9,
+        "beta_2": 0.999,
+        "early_stopping": true,
+        "epsilon": 1e-08,
+        "hidden_layer_sizes": [
+          32,
+          16
+        ],
+        "learning_rate": "constant",
+        "learning_rate_init": 0.001,
+        "loss": "squared_error",
+        "max_fun": 15000,
+        "max_iter": 400,
+        "momentum": 0.9,
+        "n_iter_no_change": 20,
+        "nesterovs_momentum": true,
+        "power_t": 0.5,
+        "random_state": 42,
+        "shuffle": true,
+        "solver": "adam",
+        "tol": 0.0001,
+        "validation_fraction": 0.1,
+        "verbose": false,
         "warm_start": false
       },
       "xgboost": {
@@ -127,57 +159,57 @@
   },
   "cv_folds": 5,
   "split": {
-    "type": "temporal_strict_cutoff_2026-07-22",
-    "note": "corpus dote de date_t (generate_corpus_from_db.py) : split temporel strict au quantile 80% des dates d'acquisition ; fallback sequentiel si date_t absente"
+    "type": "temporal_strict_cutoff_2026-07-22"
   },
   "candidate_cv_scores": {
-    "gradient_boosting": 0.8689,
-    "xgboost": 0.8689
+    "gradient_boosting": 1.2971,
+    "mlp": 1.4889,
+    "xgboost": 1.325
   },
   "metrics": {
-    "test_r2": 0.6582,
-    "test_rmse": 0.7426,
-    "test_mae": 0.4692,
-    "baseline_rmse": 2.852,
-    "baseline_mae": 2.4484,
-    "lift_rmse": 2.1094,
+    "test_r2": 0.1958,
+    "test_rmse": 1.3053,
+    "test_mae": 1.1643,
+    "baseline_rmse": 2.187,
+    "baseline_mae": 1.7259,
+    "lift_rmse": 0.8817,
     "lift_rmse_ci95": [
-      1.3237,
-      2.8088
+      0.4204,
+      1.2916
     ],
-    "lift_ci95_method": "bootstrap 1000 replicas on test sample (n=21), percentile 2.5-97.5",
+    "lift_ci95_method": "bootstrap 1000 replicas on test sample (n=29), percentile 2.5-97.5",
     "lift_significant_95": true
   },
   "feature_importances": {
-    "current_level_t3": 0.023997,
-    "current_level_t2": 0.020226,
-    "current_level_t1": 0.003937,
-    "current_level_t": 0.283852,
-    "lag_gap_t3_t2": 0.026901,
-    "lag_gap_t2_t1": 0.02142,
-    "lag_gap_t1_t": 0.056388,
-    "rolling_tendance": 0.117792,
-    "days_since_last_training": 0.024212,
-    "training_frequency_per_month": 0.012093,
-    "is_long_absent": 0.004227,
-    "is_stagnant": 0.0,
-    "avg_level": 0.063936,
-    "min_level": 0.063305,
-    "max_level": 0.044724,
-    "nb_level_5": 0.0,
-    "nb_level_1": 0.032622,
-    "nb_savoirs": 0.028291,
-    "nb_competences": 0.05365,
-    "competency_coverage_rate": 0.047064,
-    "nb_formations_completed": 0.006837,
-    "nb_formations_in_progress": 0.0,
-    "taux_assiduite": 0.006283,
+    "current_level_t3": 0.022212,
+    "current_level_t2": 0.017907,
+    "current_level_t1": 0.042392,
+    "current_level_t": 0.181085,
+    "lag_gap_t3_t2": 0.005238,
+    "lag_gap_t2_t1": 0.030747,
+    "lag_gap_t1_t": 0.130005,
+    "rolling_tendance": 0.093876,
+    "days_since_last_training": 0.024383,
+    "training_frequency_per_month": 0.00195,
+    "is_long_absent": 0.01,
+    "is_stagnant": 0.01182,
+    "avg_level": 0.090972,
+    "min_level": 0.061054,
+    "max_level": 0.097066,
+    "nb_level_5": 0.006302,
+    "nb_level_1": 0.00596,
+    "nb_savoirs": 0.032081,
+    "nb_competences": 0.03785,
+    "competency_coverage_rate": 0.040213,
+    "nb_formations_completed": 0.004851,
+    "nb_formations_in_progress": 0.002635,
+    "taux_assiduite": 0.004464,
     "nb_besoins_exprimes": 0.0,
     "nb_besoins_approuves": 0.0,
-    "avg_eval_score": 0.002942,
-    "nb_evaluations": 0.004077,
-    "months_since_last_training": 0.023901,
-    "engagement_score": 0.027323
+    "avg_eval_score": 0.002782,
+    "nb_evaluations": 0.007182,
+    "months_since_last_training": 0.021791,
+    "engagement_score": 0.013181
   },
   "feature_ranges": {
     "current_level_t3": {
@@ -194,31 +226,31 @@
     },
     "current_level_t": {
       "min": 1.0,
-      "max": 4.0
+      "max": 5.0
     },
     "lag_gap_t3_t2": {
-      "min": -2.0,
-      "max": 2.0
+      "min": -4.0,
+      "max": 1.0
     },
     "lag_gap_t2_t1": {
-      "min": -2.0,
-      "max": 2.0
+      "min": -3.0,
+      "max": 3.0
     },
     "lag_gap_t1_t": {
-      "min": -3.0,
-      "max": 2.0
+      "min": -4.0,
+      "max": 4.0
     },
     "rolling_tendance": {
-      "min": -1.0,
-      "max": 0.6666666666666666
+      "min": -1.3333333333333333,
+      "max": 1.0
     },
     "days_since_last_training": {
-      "min": 1.0,
-      "max": 365.0
+      "min": 31.0,
+      "max": 2639.0
     },
     "training_frequency_per_month": {
       "min": 0.0,
-      "max": 3.0
+      "max": 0.4918032786885246
     },
     "is_long_absent": {
       "min": 0.0,
@@ -226,15 +258,15 @@
     },
     "is_stagnant": {
       "min": 0.0,
-      "max": 0.0
+      "max": 1.0
     },
     "avg_level": {
       "min": 1.0,
-      "max": 4.5
+      "max": 5.0
     },
     "min_level": {
       "min": 1.0,
-      "max": 4.0
+      "max": 5.0
     },
     "max_level": {
       "min": 1.0,
@@ -242,7 +274,7 @@
     },
     "nb_level_5": {
       "min": 0.0,
-      "max": 1.0
+      "max": 2.0
     },
     "nb_level_1": {
       "min": 0.0,
@@ -250,23 +282,23 @@
     },
     "nb_savoirs": {
       "min": 2.0,
-      "max": 6.0
+      "max": 7.0
     },
     "nb_competences": {
       "min": 2.0,
-      "max": 6.0
+      "max": 9.0
     },
     "competency_coverage_rate": {
-      "min": 0.3333333333333333,
+      "min": 0.2857142857142857,
       "max": 1.0
     },
     "nb_formations_completed": {
       "min": 0.0,
-      "max": 3.0
+      "max": 2.0
     },
     "nb_formations_in_progress": {
       "min": 0.0,
-      "max": 0.0
+      "max": 3.0
     },
     "taux_assiduite": {
       "min": 0.0,
@@ -289,8 +321,8 @@
       "max": 3.0
     },
     "months_since_last_training": {
-      "min": 0.0328515111695138,
-      "max": 11.990801576872537
+      "min": 1.0183968462549278,
+      "max": 86.69513797634691
     },
     "engagement_score": {
       "min": 0.0,
@@ -298,5 +330,8 @@
     }
   },
   "decision": "accept",
-  "notes": "Corrigé par audit DSI : corpus exclusivement réel (training_corpus_from_db.csv), split temporel strict sur date_t (quantile 80%), KFold pour régression, seed 42. Le synthétique random.randint n'est pas utilisé (EXCLUDE_SYNTHETIC=True). Lift documenté avec IC 95% par bootstrap (1000 réplicas) sur l'échantillon de test."
+  "target_validity": "EXTRAPOLATED_TARGET",
+  "target_validity_note": "Cible gap_next_3m derivee de l'historique (tendance glissante). Aucune re-mesure future reelle (target_observation_date) n'existe dans le corpus : le RMSE mesure la qualite de l'extrapolation, pas une prediction observee. Promotion REAL_VALIDATED_TARGET conditionnee a >= 30 observations reelles sur >= 3 mois distincts.",
+  "real_future_observation_count": 0,
+  "notes": "Pipeline reproductible : dataset provenancé, split temporel strict, seed 42, anti-fuite (knowledge_difficulty_level/gap_next_3m exclus), normalisation capturée sur train, sidecar SHA-256."
 }

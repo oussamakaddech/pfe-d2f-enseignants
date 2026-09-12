@@ -32,17 +32,76 @@ def list_gaps(
     gaps = container.analysis_repository.list_gaps_by_teacher(teacher_id)
     model_mode = None
     model_version = None
+    fallback_reason = None
+    dataset_version = None
+    prediction_horizon = None
+    synthetic_share_pct = None
+    target_validity = None
+    target_validity_label = None
+    data_origin = None
+    validation_scope = None
+    provenance = {}
+    predictions: list[dict] = []
     try:
         status = container.model_port.status()
-        model_mode = status.get("mode")
-        model_version = status.get("version")
+        model_mode = status.get("model_mode") or status.get("mode")
+        model_version = status.get("model_version") or status.get("version")
+        fallback_reason = status.get("fallback_reason")
+        prediction_horizon = status.get("prediction_horizon")
+        target_validity = status.get("target_validity")
+        target_validity_label = status.get("target_validity_label")
+        data_origin = status.get("data_origin")
+        validation_scope = status.get("validation_scope")
+        provenance = status.get("provenance") or {}
+        if isinstance(provenance, dict):
+            dataset_version = provenance.get("dataset_version")
+            synthetic_share_pct = provenance.get("synthetic_share_pct")
     except Exception:
         pass
+    # Mode effectif des lignes servies : les marqueurs DECLARED_ML / WORSENING
+    # ne sont produits que par le modèle ; STABLE / DECLINING uniquement par le
+    # moteur heuristique (compute_gaps._heuristic_on). Si les lignes persistées
+    # portent des tendances heuristiques alors que le statut global annonce un
+    # mode ML (ex : features hors plages au dernier calcul), on expose
+    # HEURISTIC_FALLBACK — jamais un mode ML mensonger.
+    if gaps and model_mode in ("PRODUCTION_ML", "DEMO_ML"):
+        trends = {getattr(g.trend, "value", str(g.trend)) for g in gaps}
+        rows_from_ml = bool(trends & {"DECLARED_ML", "WORSENING"})
+        rows_heuristic_only = bool(trends & {"STABLE", "DECLINING"})
+        if not rows_from_ml and rows_heuristic_only:
+            model_mode = "HEURISTIC_FALLBACK"
+            fallback_reason = (
+                fallback_reason
+                or "dernier calcul hors plages d'entraînement : moteur heuristique explicable appliqué"
+            )
     if severity:
         gaps = [gap for gap in gaps if gap.severity.api_value() == severity.upper()]
+    # GOUVERNANCE 7.6 (limite 4.2) : avertissement non bloquant quand une
+    # feature servie est proche des bornes d'entraînement (< 5 %).
+    near_boundary = None
+    try:
+        near_boundary = container.model_port.near_boundary_warning(teacher_id)
+    except Exception:
+        near_boundary = None
     page_result = paginate([GapOut(**gap.to_dict()) for gap in gaps], page, size)
+    if model_mode in ("PRODUCTION_ML", "DEMO_ML"):
+        predictions = [gap.to_dict() for gap in gaps]
     return ok_page(
         page_result.data,
         page_result.meta,
-        {"model_mode": model_mode, "model_version": model_version},
+        {
+            "model_mode": model_mode,
+            "model_version": model_version,
+            "fallback_reason": fallback_reason,
+            "dataset_version": dataset_version,
+            "prediction_horizon": prediction_horizon,
+            "target_validity": target_validity,
+            "target_validity_label": target_validity_label,
+            "data_origin": data_origin,
+            "validation_scope": validation_scope,
+            "synthetic_share_pct": synthetic_share_pct,
+            "provenance": provenance,
+            "predictions": predictions,
+            "near_boundary_warning": near_boundary,
+        },
     )

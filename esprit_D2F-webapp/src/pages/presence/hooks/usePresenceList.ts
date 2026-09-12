@@ -13,7 +13,7 @@ export function usePresenceList(seanceId: number | string) {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
 
-  const { data: rawPresences = [], isLoading: loading } = useSeancePresences(seanceId);
+  const { data: rawPresences = [], isLoading: loading, refetch } = useSeancePresences(seanceId);
   const batchUpdateMut = useBatchUpdatePresences();
   const markAllMut = useMarkAllPresences();
 
@@ -117,6 +117,19 @@ export function usePresenceList(seanceId: number | string) {
     }
   };
 
+  const handleRefresh = () => {
+    void refetch();
+  };
+
+  const handleCancel = () => {
+    setPresences((prev) =>
+      prev.map((p) => {
+        const o = originalById[p.idParticipation];
+        return o ? { ...p, presence: o.presence, commentaire: o.commentaire } : p;
+      }),
+    );
+  };
+
   const exportExcel = () => {
     const rows = presences.map((p) => ({
       Nom: p.enseignant?.nom || '',
@@ -161,6 +174,8 @@ export function usePresenceList(seanceId: number | string) {
     setCommentaire,
     handleSave,
     handleMarkAll,
+    handleRefresh,
+    handleCancel,
     exportExcel,
   };
 }

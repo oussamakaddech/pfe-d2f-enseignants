@@ -12,6 +12,11 @@ import {
 import { useEnseignants } from '@/hooks/enseignant';
 import { useAuth } from '@/hooks/auth/useAuth';
 import type { Id } from '@/models/common';
+import {
+  createOrFindEnseignant,
+  getAnimateurStableId,
+  type PersonItem,
+} from './useFormationWorkflow';
 
 export type EditSeance = {
   idSeance?: unknown;
@@ -105,6 +110,25 @@ function mergeAuthAccountAnimateurs(
       : f;
   });
   return enriched;
+}
+
+/**
+ * Retire des comptes auth toute personne déjà présente côté enseignants
+ * (mail identique ou préfixe mail identique — même logique que
+ * mergeAuthAccountAnimateurs) afin d'éviter les doublons id compte / id
+ * enseignant dans les options d'animateurs.
+ */
+function dedupeAnimAccounts(authList: EditPerson[], enseignantsData: EditPerson[]): EditPerson[] {
+  const key = (mail?: string): string => {
+    const v = (mail || '').trim().toLowerCase();
+    return v ? `${v.split('@')[0]}@` : '';
+  };
+  const ensKeys = new Set(enseignantsData.map((e) => key(e.mail)).filter(Boolean));
+  const filtered = authList.filter((a) => {
+    const k = key(a.mail);
+    return !k || !ensKeys.has(k);
+  });
+  return filtered.length === authList.length ? authList : filtered;
 }
 
 function toMinutes(timeValue: unknown): number | null {
@@ -354,7 +378,7 @@ export function useFormationWorkflowEdit(
     );
   };
   const optionsAnim = unionById(
-    [...formateursList, ...ens].filter(
+    [...dedupeAnimAccounts(formateursList, ens), ...ens].filter(
       (x) =>
         (!animFilterUp ||
           x.upLibelle === (animFilterUp as EditLookup & { libelle?: string }).libelle) &&
@@ -667,14 +691,25 @@ export function useFormationWorkflowEdit(
       e.target.value = '';
       return;
     }
+    const norm = (v: unknown): string =>
+      String(v ?? '')
+        .trim()
+        .toLowerCase();
     const mailsSet = new Set(
       rows
         .slice(1)
-        .map((r) => r[idx])
+        .map((r) => norm(r[idx]))
         .filter(Boolean),
     );
-    const matched = ens.filter((x) => mailsSet.has(x.mail));
-    setPartSel(matched);
+    // Pool élargi : enseignants + comptes auth participants (fallback).
+    const pool = [...ens, ...accountsFallbackForParticipants];
+    const matched = pool.filter((x) => mailsSet.has(norm(x.mail)));
+    // Fusion avec la sélection existante au lieu de la remplacer : en édition,
+    // importer un fichier ne doit pas écraser les participants déjà affectés.
+    setPartSel((prev) => {
+      const seen = new Set(matched.map((m) => String(m.id)));
+      return [...matched, ...prev.filter((p) => !seen.has(String(p.id)))];
+    });
     message.success(
       `${matched.length} participant${matched.length > 1 ? 's' : ''} importé${matched.length > 1 ? 's' : ''}`,
     );
@@ -693,7 +728,7 @@ export function useFormationWorkflowEdit(
     return `${opt.nom} ${opt.prenom} (${opt.mail})${roleStr}`;
   };
 
-  function buildEditPayload() {
+  function buildEditPayload(resolveAnimId: (a: EditPerson) => unknown = (a) => a.id) {
     return {
       titreFormation: titre,
       dateDebut,
@@ -710,8 +745,8 @@ export function useFormationWorkflowEdit(
       chargeHoraireGlobal: Number.parseInt(String(chargeH), 10),
       upId: selectedUp?.id,
       departementId: selectedDept?.id,
-      participantsIds: partSel.map((p) => p.id),
-      animateursIds: animSel.map((a) => a.id),
+      participantsIds: partSel.map((p) => p.id).filter(Boolean),
+      animateursIds: animSel.map(resolveAnimId).filter(Boolean).map(String),
       domaine,
       populationCible,
       objectifs,
@@ -731,7 +766,10 @@ export function useFormationWorkflowEdit(
         heureDebut: s.heureDebut,
         heureFin: s.heureFin,
         salle: s.salle,
-        animateursIds: s.animateurs.map((a) => a.id),
+        animateursIds: s.animateurs
+          .map((a) => resolveAnimId(a as EditPerson))
+          .filter(Boolean)
+          .map(String),
         typeSeance: s.typeSeance,
         contenus: s.contenus,
         methodes: s.methodes,
@@ -765,9 +803,27 @@ export function useFormationWorkflowEdit(
       return;
     }
     try {
+      // Les animateurs issus des comptes auth (isAuthUser) doivent être créés ou
+      // récupérés côté service formation pour obtenir un vrai id enseignant,
+      // comme à la création (cf. useFormationWorkflow.handleSubmit).
+      const authAnimIdMap = new Map<string, string>();
+      await Promise.all(
+        animSel
+          .filter((a) => a.isAuthUser)
+          .map(async (a) => {
+            const realId = await createOrFindEnseignant(a as unknown as PersonItem);
+            if (realId) authAnimIdMap.set(String(a.id ?? a.mail ?? ''), realId);
+          }),
+      );
+      const resolveAnimId = (a: EditPerson): unknown =>
+        a.isAuthUser
+          ? (authAnimIdMap.get(String(a.id ?? a.mail ?? '')) ??
+            getAnimateurStableId(a as unknown as PersonItem))
+          : a.id;
+
       const res = await updateMut.mutateAsync({
         id: formation.idFormation as Id,
-        data: buildEditPayload(),
+        data: buildEditPayload(resolveAnimId),
       });
       message.success('Formation mise à jour !');
       onFormationUpdated(res);

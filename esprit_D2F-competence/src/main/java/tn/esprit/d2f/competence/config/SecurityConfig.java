@@ -1,5 +1,6 @@
 package tn.esprit.d2f.competence.config;
 
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -51,6 +52,25 @@ public class SecurityConfig {
 
     @Value("${jwt.secret}")
     private String jwtSecret;
+
+    private static final int MIN_JWT_SECRET_LENGTH = 64;
+
+    @PostConstruct
+    void validateJwtSecret() {
+        if (jwtSecret == null || jwtSecret.isBlank()) {
+            throw new IllegalStateException(
+                "JWT_SECRET est obligatoire et doit etre injecte via variable d'environnement.");
+        }
+        if (jwtSecret.length() < MIN_JWT_SECRET_LENGTH) {
+            throw new IllegalStateException(
+                "JWT_SECRET trop court (" + jwtSecret.length() + " chars). Minimum requis : "
+                    + MIN_JWT_SECRET_LENGTH + " caracteres pour HS512.");
+        }
+        if (jwtSecret.contains("CHANGE_ME") || jwtSecret.contains("change-me")) {
+            throw new IllegalStateException(
+                "JWT_SECRET contient un placeholder (CHANGE_ME). Configurer une valeur reelle en environnement.");
+        }
+    }
 
     @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
     private String allowedOriginsRaw;

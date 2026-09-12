@@ -1,0 +1,73 @@
+{
+  "dataset_version": "synthetic-v1.0.0",
+  "source_path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\synthetic\\demo_dataset_synthetic-v1.0.0.csv",
+  "clean_path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\synthetic\\demo_dataset_synthetic-v1.0.0_clean.csv",
+  "quarantine_path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\reports\\demo_quarantine.csv",
+  "rows_before": 1013,
+  "rows_after": 1000,
+  "rows_corrected": 25,
+  "rows_imputed": 12,
+  "rows_removed": 8,
+  "rows_quarantined": 5,
+  "reasons": {
+    "date_invalide": 2,
+    "valeur_non_numerique": 3,
+    "conversion_types": 0,
+    "hors_plage_gap_next_3m": 4,
+    "hors_plage_attendance_rate": 9,
+    "hors_plage_evaluation_score": 12,
+    "manquant_evaluation_score": 12,
+    "doublon_exact": 8
+  },
+  "operations": [
+    {
+      "action": "quarantine",
+      "reason": "date_invalide",
+      "count": 2,
+      "detail": ""
+    },
+    {
+      "action": "quarantine",
+      "reason": "valeur_non_numerique",
+      "count": 3,
+      "detail": ""
+    },
+    {
+      "action": "convert",
+      "reason": "conversion_types",
+      "count": 0,
+      "detail": ""
+    },
+    {
+      "action": "correction",
+      "reason": "hors_plage_gap_next_3m",
+      "count": 4,
+      "detail": ""
+    },
+    {
+      "action": "correction",
+      "reason": "hors_plage_attendance_rate",
+      "count": 9,
+      "detail": ""
+    },
+    {
+      "action": "correction",
+      "reason": "hors_plage_evaluation_score",
+      "count": 12,
+      "detail": ""
+    },
+    {
+      "action": "imputation",
+      "reason": "manquant_evaluation_score",
+      "count": 12,
+      "detail": "median=2.769"
+    },
+    {
+      "action": "removal",
+      "reason": "doublon_exact",
+      "count": 8,
+      "detail": ""
+    }
+  ],
+  "dataset_hash": "f56dd8c49005734a7df33b66a4777528164ede06759745c34b7fe64a30d0e4ec"
+}

@@ -37,12 +37,12 @@ const TILES: readonly TileDef[] = [
   },
   {
     key: 'score_risque_moyen',
-    label: 'Risque moyen',
+    label: 'Indice de risque moyen',
     icon: <FireOutlined />,
     higherBetter: false,
-    fmt: (v) => `${Math.round(v * 100)}%`,
+    fmt: (v) => `${Math.round(v * 100)}/100`,
     fmtDelta: (d) => `${Math.abs(d * 100).toFixed(0)} pts`,
-    hint: "Score d'attrition moyen de tous les enseignants suivis (0 = aucun risque, 100 = risque maximal).",
+    hint: "Indice de risque moyen (non calibré) de tous les enseignants suivis (0 = aucun risque signalé, 100 = risque maximal). Indice d'aide au classement — pas une probabilité.",
   },
   {
     key: 'nb_gaps_critiques',

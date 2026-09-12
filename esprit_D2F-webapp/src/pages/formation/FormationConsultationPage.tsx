@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Table,
@@ -39,13 +39,12 @@ import dayjs from 'dayjs';
 import { useAuth } from '@/hooks/auth/useAuth';
 import {
   useAllFormations,
-  useFormationsParDepartement,
+  useMesFormationsPilote,
   useFormationsWithDocuments,
   useDeleteFormation,
   useExportFormations,
   useUps,
   useDepartements,
-  useProfile,
 } from '@/hooks/formation';
 import type { Formation } from '@/models/formation';
 import type { FormationDocument } from '@/models/document';
@@ -113,25 +112,36 @@ export default function FormationConsultationPage() {
   const { user } = useAuth();
   const canManageFormations = normalizeRole(user?.role) === 'admin';
   const isChefDept = normalizeRole(user?.role) === 'chefdepartement';
+  const isCup = normalizeRole(user?.role) === 'cup';
+  // Scoping serveur (§8) : CUP → son UP, chef → son département.
+  const isScopedPilote = (isCup || isChefDept) && !canManageFormations;
   const { message: msgApi } = useAppNotification();
-
-  const { data: profile } = useProfile();
-  const deptId = (user?.deptId ?? profile?.deptId ?? profile?.departementId) as Id | undefined;
 
   const {
     data: formationsAll = [],
     isLoading: loadingAll,
     refetch: refetchAll,
-  } = useAllFormations();
+  } = useAllFormations(!isScopedPilote);
   const {
-    data: formationsDept = [],
-    isLoading: loadingDept,
-    refetch: refetchDept,
-  } = useFormationsParDepartement(isChefDept ? deptId : undefined);
-  const loading = loadingAll || loadingDept;
+    data: formationsScoped = [],
+    isLoading: loadingScoped,
+    refetch: refetchScoped,
+    error: scopedError,
+  } = useMesFormationsPilote(isScopedPilote);
+  useEffect(() => {
+    if (scopedError) {
+      const e = scopedError as { response?: { data?: { message?: string } }; message?: string };
+      msgApi.error(
+        e.response?.data?.message || e.message || 'Impossible de charger vos formations.',
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopedError]);
+  const loading = loadingAll || loadingScoped;
+  const refetchFormations = isScopedPilote ? refetchScoped : refetchAll;
   const formations = useMemo(
-    () => (isChefDept && deptId ? formationsDept : formationsAll),
-    [isChefDept, deptId, formationsDept, formationsAll],
+    () => (isScopedPilote ? formationsScoped : formationsAll),
+    [isScopedPilote, formationsScoped, formationsAll],
   );
 
   const { data: formationsWithDocs = [] } = useFormationsWithDocuments();
@@ -750,8 +760,7 @@ export default function FormationConsultationPage() {
                 type="text"
                 icon={<ReloadOutlined />}
                 onClick={() => {
-                  void refetchAll();
-                  if (isChefDept && deptId) void refetchDept();
+                  void refetchFormations();
                 }}
                 loading={loading}
               />
@@ -838,8 +847,7 @@ export default function FormationConsultationPage() {
               }
               onFormationUpdated={() => {
                 setOpenEdit(false);
-                void refetchAll();
-                if (isChefDept && deptId) void refetchDept();
+                void refetchFormations();
               }}
             />
           )}

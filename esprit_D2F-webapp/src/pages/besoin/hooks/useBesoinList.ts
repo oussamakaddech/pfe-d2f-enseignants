@@ -15,10 +15,14 @@ import { ROLES, normalizeRole } from '@/utils/constants/roles';
 import {
   useBesoins,
   useMyBesoins,
+  useScopeBesoins,
   useModifyBesoin,
   useRemoveBesoin,
   useApproveBesoin,
+  useRejectBesoin,
+  useCancelBesoin,
 } from '@/hooks/besoin/useBesoins';
+import { getDecisionState } from '@/utils/besoin/workflow';
 import { useDepartements, useUps, useAllAccounts } from '@/hooks/formation/useFormations';
 import { useEnseignants } from '@/hooks/enseignant/useEnseignants';
 import { buildFormationNeedHtmlEmail } from '@/pages/besoin/components/BesoinMailCupModal';
@@ -53,24 +57,62 @@ type LookupItem = {
   nom?: string;
 };
 
+/** Sélection de la requête besoins selon le périmètre (self / scopé / tout). */
+function selectBesoinsQuery<T>(
+  isSelfService: boolean,
+  isScoped: boolean,
+  myQuery: T,
+  scopeQuery: T,
+  allQuery: T,
+): T {
+  if (isSelfService) {
+    return myQuery;
+  }
+  if (isScoped) {
+    return scopeQuery;
+  }
+  return allQuery;
+}
+
+/** Message d'erreur métier renvoyé par le backend (403 périmètre, 409 transition...). */
+function getBackendMessage(err: unknown): string | null {
+  const e = err as {
+    response?: { data?: { message?: string; error?: string } };
+    message?: string;
+  };
+  return e?.response?.data?.message ?? e?.response?.data?.error ?? e?.message ?? null;
+}
+
 const SELF_SERVICE_ROLES = new Set([
   normalizeRole(ROLES.ENSEIGNANT),
   normalizeRole(ROLES.ANIMATEUR),
 ]);
 
+const SCOPED_ROLES = new Set([normalizeRole(ROLES.CUP), normalizeRole(ROLES.CHEF_DEPARTEMENT)]);
+
 export function useBesoinList() {
   const navigate = useNavigate();
   const { message: msgApi } = useAppNotification();
   const { user } = useAuth();
-  const isSelfService = SELF_SERVICE_ROLES.has(normalizeRole(user?.role));
+  const normalizedRole = normalizeRole(user?.role);
+  const isSelfService = SELF_SERVICE_ROLES.has(normalizedRole);
+  // CUP / chef : périmètre serveur via /scope (leurs UP / département uniquement).
+  const isScoped = SCOPED_ROLES.has(normalizedRole);
 
   const myBesoinsQuery = useMyBesoins(isSelfService);
-  const allBesoinsQuery = useBesoins(!isSelfService);
+  const scopeBesoinsQuery = useScopeBesoins(isScoped);
+  const allBesoinsQuery = useBesoins(!isSelfService && !isScoped);
   const {
     data: besoinsData = [],
     isLoading: loading,
     refetch: refetchBesoins,
-  } = isSelfService ? myBesoinsQuery : allBesoinsQuery;
+  } = selectBesoinsQuery(
+    isSelfService,
+    isScoped,
+    myBesoinsQuery,
+    scopeBesoinsQuery,
+    allBesoinsQuery,
+  );
   const { data: departements = [] } = useDepartements();
   const { data: ups = [] } = useUps();
   const { data: accountsData = [] } = useAllAccounts(false, !isSelfService);
@@ -80,6 +122,8 @@ export function useBesoinList() {
   const modifyMut = useModifyBesoin();
   const removeMut = useRemoveBesoin();
   const approveMut = useApproveBesoin();
+  const rejectMut = useRejectBesoin();
+  const cancelMut = useCancelBesoin();
   const sendEmailMut = useSendEmail();
 
   const besoins = besoinsData;
@@ -136,6 +180,12 @@ export function useBesoinList() {
     return opt ? opt.label : String(r.periodeFormation || '') || null;
   };
 
+  const isTerminalStatus = (b: { status?: string; approuveAdmin?: boolean }) =>
+    b.status === 'REJECTED' ||
+    b.status === 'CANCELLED' ||
+    b.status === 'FORMATION_CREATED' ||
+    (!b.status && !!b.approuveAdmin);
+
   // ── filtering ──
   const filtered = useMemo(() => {
     let res = Array.isArray(besoins) ? [...besoins] : [];
@@ -143,8 +193,19 @@ export function useBesoinList() {
     if (filters.upId) res = res.filter((b) => String(b.up) === String(filters.upId));
     if (filters.type) res = res.filter((b) => b.typeBesoin === filters.type);
     if (filters.priorite) res = res.filter((b) => b.priorite === filters.priorite);
-    if (filters.statut === 'approuve') res = res.filter((b) => b.approuveAdmin);
-    if (filters.statut === 'en_attente') res = res.filter((b) => !b.approuveAdmin);
+    if (filters.statut === 'approuve')
+      res = res.filter((b) => b.approuveAdmin || b.status === 'FORMATION_CREATED');
+    if (filters.statut === 'en_attente') res = res.filter((b) => !isTerminalStatus(b));
+    if (filters.statut === 'rejete') res = res.filter((b) => b.status === 'REJECTED');
+    if (filters.statut === 'a_valider')
+      res = res.filter(
+        (b) =>
+          getDecisionState(b as unknown as Parameters<typeof getDecisionState>[0], {
+            username: user?.username ?? user?.userName,
+            userId: user?.userId ?? user?.id,
+            role: user?.role,
+          }).canApprove,
+      );
     if (searchText) {
       const s = searchText.toLowerCase();
       res = res.filter(
@@ -163,7 +224,7 @@ export function useBesoinList() {
       });
     }
     return res;
-  }, [besoins, filters, searchText]);
+  }, [besoins, filters, searchText, user]);
 
   useEffect(() => {
     setPage(1);
@@ -177,8 +238,11 @@ export function useBesoinList() {
 
   const stats = useMemo(() => {
     const total = besoins.length;
-    const approved = besoins.filter((b) => b.approuveAdmin).length;
-    return { total, approved, pending: total - approved };
+    const approved = besoins.filter(
+      (b) => b.approuveAdmin || b.status === 'FORMATION_CREATED',
+    ).length;
+    const rejected = besoins.filter((b) => b.status === 'REJECTED').length;
+    return { total, approved, pending: total - approved - rejected, rejected };
   }, [besoins]);
 
   // ── actions ──
@@ -204,12 +268,53 @@ export function useBesoinList() {
     setApprovingId(id as string | number);
     try {
       await approveMut.mutateAsync(id as Id);
-      msgApi.success('Besoin approuvé — redirection vers la création de formation...');
-      setTimeout(() => navigate('/home/Formation/Creer', { state: { besoinInfo: record } }), 800);
-    } catch {
-      msgApi.error("Erreur lors de l'approbation");
+      msgApi.success('Besoin approuvé');
+      // CHEF_DEPARTEMENT n'a pas accès à /Formation/Creer → rediriger vers le catalogue.
+      const role = normalizeRole(user?.role);
+      const target =
+        role === normalizeRole(ROLES.CHEF_DEPARTEMENT)
+          ? '/home/Formation/Consulter'
+          : '/home/Formation/Creer';
+      setTimeout(() => navigate(target, { state: { besoinInfo: record } }), 800);
+    } catch (err: unknown) {
+      msgApi.error(
+        `Erreur lors de l'approbation — ${getBackendMessage(err) ?? 'vérifiez vos droits et le statut du besoin'}`,
+      );
     } finally {
       setApprovingId(null);
+    }
+  };
+
+  const handleReject = async (record: Record<string, unknown>, reason: string) => {
+    const id = getBesoinId(record);
+    if (id == null) {
+      msgApi.error('Identifiant du besoin introuvable');
+      return;
+    }
+    setApprovingId(id as string | number);
+    try {
+      await rejectMut.mutateAsync({ id: id as Id, reason });
+      msgApi.success('Besoin refusé — le demandeur a été notifié');
+    } catch (err: unknown) {
+      msgApi.error(
+        `Erreur lors du refus — ${getBackendMessage(err) ?? 'vérifiez vos droits et le statut du besoin'}`,
+      );
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const handleCancel = async (record: Record<string, unknown>) => {
+    const id = getBesoinId(record);
+    if (id == null) {
+      msgApi.error('Identifiant du besoin introuvable');
+      return;
+    }
+    try {
+      await cancelMut.mutateAsync(id as Id);
+      msgApi.success('Besoin annulé');
+    } catch (err: unknown) {
+      msgApi.error(`Erreur lors de l'annulation — ${getBackendMessage(err) ?? ''}`);
     }
   };
 
@@ -386,6 +491,10 @@ export function useBesoinList() {
     periodLabelOf,
     handleDelete,
     handleApprove,
+    handleReject,
+    handleCancel,
+    isScoped,
+    isValidator: isScoped,
     openEdit,
     handleEditSave,
     openMailModal,

@@ -1,0 +1,1277 @@
+{
+  "passed": 315,
+  "failed": 0,
+  "skipped": 0,
+  "errors": 0,
+  "xfailed": 0,
+  "xpassed": 0,
+  "warnings": 2,
+  "duration_seconds": 190.69,
+  "total": 315,
+  "tests": [
+    {
+      "name": "tests/integration/test_api_alerts_needs_dashboards.py::test_dashboard_declining_returns_list",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_alerts_needs_dashboards.py::test_dashboard_global_admin_ok",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_alerts_needs_dashboards.py::test_dashboard_requires_admin_or_cup",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_alerts_needs_dashboards.py::test_list_alerts_empty_for_fresh_container",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_alerts_needs_dashboards.py::test_list_alerts_pagination_returns_distinct_pages",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_alerts_needs_dashboards.py::test_list_alerts_requires_auth",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_alerts_needs_dashboards.py::test_list_needs_empty_for_fresh_container",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_alerts_needs_dashboards.py::test_process_event_duplicate",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_alerts_needs_dashboards.py::test_process_event_forbidden_for_enseignant",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_alerts_needs_dashboards.py::test_process_event_roundtrip",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_gaps.py::test_gaps_admin_ok_and_paginated",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_gaps.py::test_gaps_enseignant_other_teacher_forbidden",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_gaps.py::test_gaps_enseignant_self_access_allowed",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_gaps.py::test_gaps_pagination_respected",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_gaps.py::test_gaps_requires_token",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_gaps.py::test_gaps_severity_filter",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_gaps.py::test_gaps_unknown_teacher_not_found",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_gaps.py::test_health_is_public",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_gaps.py::test_ready_returns_503_when_db_unreachable",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_reporting_routes.py::test_alert_repository_table_constant_used",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_reporting_routes.py::test_dashboard_declining_as_chef_departement",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_reporting_routes.py::test_dashboard_departement_as_chef_sets_scope_id",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_reporting_routes.py::test_dashboard_latest_as_chef_departement",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_reporting_routes.py::test_dashboard_rejects_invalid_scope",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_reporting_routes.py::test_formations_par_periode_debut_apres_fin",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_reporting_routes.py::test_formations_par_periode_invalid_date",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_reporting_routes.py::test_formations_par_periode_invalid_granularity",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_reporting_routes.py::test_formations_par_periode_ok",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_reporting_routes.py::test_formations_par_periode_without_auth_ok",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_risk_recommendations.py::test_get_analysis_full_payload",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_risk_recommendations.py::test_post_analysis_returns_accepted",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_risk_recommendations.py::test_recommendations_admin_ok",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_risk_recommendations.py::test_recommendations_completed_formation_excluded",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_risk_recommendations.py::test_recommendations_unknown_competence_empty",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_risk_recommendations.py::test_recommendations_without_competence_aggregates_top_gaps",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_risk_recommendations.py::test_risk_admin_ok",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_risk_recommendations.py::test_risk_chef_departement_other_department_forbidden",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_risk_recommendations.py::test_risk_chef_departement_scoped",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_risk_recommendations.py::test_risk_factors_are_explainable",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_teacher_scope.py::test_scope_analysis_admin_ok",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_teacher_scope.py::test_scope_analysis_enseignant_other_teacher_forbidden",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_teacher_scope.py::test_scope_analysis_enseignant_self_access_allowed",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_teacher_scope.py::test_scope_analysis_global_only_when_no_affiliation",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_teacher_scope.py::test_scope_analysis_min_gap_score_filter",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_teacher_scope.py::test_scope_analysis_no_fallback_when_scope_declared_without_match",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_teacher_scope.py::test_scope_analysis_requires_token",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/integration/test_api_teacher_scope.py::test_scope_analysis_unknown_teacher_not_found",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_alert_prioritizer.py::test_priority_score_missing_severity_defaults_low",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_alert_prioritizer.py::test_priority_score_reach_scales",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_alert_prioritizer.py::test_priority_score_severity_scales",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_alert_prioritizer.py::test_sort_by_priority_orders_descending",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_alert_repository_sql.py::test_count_open_by_severity_buckets",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_alert_repository_sql.py::test_count_open_by_severity_defaults_zeros",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_alert_repository_sql.py::test_list_alerts_with_filters",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_alert_repository_sql.py::test_list_alerts_without_filters_uses_defaults",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_alert_repository_sql.py::test_list_for_teacher_and_department",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_alert_repository_sql.py::test_list_open_since_returns_alerts",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_alert_repository_sql.py::test_map_row_with_null_details",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_alert_repository_sql.py::test_save_keeps_original_id_when_no_returning_row",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_alert_repository_sql.py::test_save_persists_and_returns_alert",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_alert_repository_sql.py::test_update_status_returns_none_when_missing",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_alert_repository_sql.py::test_update_status_returns_updated_alert",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_artifact_integrity.py::test_hmac_mode_when_key_set",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_artifact_integrity.py::test_missing_sidecar_refused_fail_closed",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_artifact_integrity.py::test_roundtrip_sha256",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_artifact_integrity.py::test_tampered_artifact_refused",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_artifact_integrity.py::test_verify_disabled_explicitly",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dashboard_aggregator.py::test_aggregate_declining_marks_trends",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dashboard_aggregator.py::test_aggregate_declining_no_previous_is_stable",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dashboard_aggregator.py::test_aggregate_declining_sorted_by_delta",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dashboard_aggregator.py::test_summarize_kpis_adds_ratio",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dashboard_aggregator.py::test_summarize_kpis_handles_zero_denominator",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_api_response_complete",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_artifact_integrity",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_baseline_persistence",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_dataset_hash_stable",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_gap_next_3m_not_in_X",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_gradient_boosting_trains",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_heuristic_fallback_mode",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_invalid_hash_detected",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_mlp_trains",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_no_duplicates",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_no_future_features",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_no_invalid_dates",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_no_out_of_range",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_no_ranking_labels",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_production_ml_mode",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_provenance_from_rows",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_ranking_heuristic",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_rbac_scope",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_registry_rollback",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_reproducibility_with_seed",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_required_level_not_in_X",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_risk_contributions_bounded",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_target_not_in_features",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_temporal_split_no_shuffle",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_dataset_pipeline.py::test_xgboost_available",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_app_inference_demo_ml",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_app_inference_schema_ok",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_baseline_persistence_not_oracle",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_best_ml_beats_persistence",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_bootstrap_1000_replications",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_bootstrap_ic95_ordered",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_clean_provenance_flags",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_clean_removes_duplicates",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_clean_report_traceable",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_declared_test_count",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_domain_shift_report_metrics",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_feature_contract_29_features",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_five_models_reported",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_generate_anonymized_identifiers",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_generate_contract_columns",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_generate_rows_and_synthetic_flags",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_generate_scale_ranges",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_generate_seed_reproducible",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_multi_seed_retention_decision",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_no_forbidden_column_in_x",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_production_v1_unchanged",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_ranking_labels_synthetic",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_ranking_metrics_in_range",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_required_metrics_recorded",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_risk_heuristic_coherence_caveat",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_risk_labels_synthetic",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_risk_random_forest_not_trivial",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_serving_demo_never_production",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_temporal_split_no_future_leak",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_demo_pipeline.py::test_within_tolerance_in_unit_interval",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_gap_calculator.py::test_compute_gap_boundary_critical",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_gap_calculator.py::test_gap_score_clamped",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_gap_calculator.py::test_gap_score_normalized_on_four_levels",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_gap_calculator.py::test_raw_gap_zero_when_below_target",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_gap_calculator.py::test_severity_thresholds",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_gap_calculator.py::test_trend_from_levels",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_level_mapping.py::test_level_enum_to_int_consistent_with_map",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_level_mapping.py::test_level_to_int_case_insensitive",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_level_mapping.py::test_level_to_int_legacy_aliases",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_level_mapping.py::test_level_to_int_new_enum",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_level_mapping.py::test_level_to_int_niveau_aliases",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_level_mapping.py::test_level_to_int_numeric_strings",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_level_mapping.py::test_level_to_int_unknown_and_none",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_logging_redaction.py::test_email_key_redacted_when_contains_at",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_logging_redaction.py::test_email_without_at_kept",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_logging_redaction.py::test_mail_key_redacted",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_logging_redaction.py::test_non_sensitive_keys_untouched",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_logging_redaction.py::test_sensitive_keys_fully_redacted",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_messaging.py::test_build_broker_defaults_to_null",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_messaging.py::test_decode_message_from_json_bytes",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_messaging.py::test_decode_message_from_string",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_messaging.py::test_decode_message_rejects_invalid_json",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_messaging.py::test_decode_message_rejects_non_object",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_messaging.py::test_null_broker_publish_is_noop",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_messaging_extra.py::test_build_broker_returns_rabbit_for_rabbitmq",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_messaging_extra.py::test_null_broker_start_and_stop_noop",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_messaging_extra.py::test_rabbit_broker_stop_without_connection",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_messaging_extra.py::test_rabbit_callback_acks_valid_and_nacks_failing",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_messaging_extra.py::test_rabbit_callback_ignores_undecodable",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_messaging_extra.py::test_rabbit_publish_connects_and_sends",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_messaging_extra.py::test_rabbit_start_disabled_does_not_connect",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_messaging_extra.py::test_rabbit_start_with_consumer_enabled_consumes",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_messaging_extra.py::test_rabbit_stop_closes_connection",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_governance.py::test_active_dataset_hash_recomputed",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_governance.py::test_active_model_version_matches_provenance",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_governance.py::test_critical_risk_rules_preserved",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_governance.py::test_dashboard_route_exists",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_governance.py::test_demo_mode_when_registry_not_approved",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_governance.py::test_gaps_route_exists",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_governance.py::test_heuristic_fallback_when_artifact_absent",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_governance.py::test_heuristic_when_synthetic_above_threshold",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_governance.py::test_no_leak_columns_in_feature_set",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_governance.py::test_no_teacher_leak_in_feature_bundle",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_governance.py::test_prediction_deterministic_with_seed",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_governance.py::test_production_mode_with_all_validations",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_governance.py::test_ranking_heuristic_preserved",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_governance.py::test_rbac_scope_enforced",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_governance.py::test_registry_rollback",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_inference.py::test_kill_switch_disables_all_ml",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_inference.py::test_predictor_temporal_model_active_in_production",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_inference.py::test_predictor_unavailable_without_artifact",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_modes.py::test_demo_mode_when_registry_not_approved",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_modes.py::test_feature_schema_missing_columns",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_modes.py::test_feature_schema_valid_when_identical",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_modes.py::test_feature_schema_wrong_order",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_modes.py::test_feature_vector_out_of_range_fails",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_modes.py::test_feature_vector_wrong_type_fails",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_modes.py::test_heuristic_fallback_when_artifact_absent",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_modes.py::test_heuristic_fallback_when_invalid_hash",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_modes.py::test_heuristic_when_real_rows_insufficient",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_modes.py::test_heuristic_when_synthetic_above_threshold",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_modes.py::test_no_leak_columns_in_feature_set",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_modes.py::test_prediction_deterministic_with_seed",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_modes.py::test_production_mode_when_all_validations_pass",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_modes.py::test_provenance_computed_from_rows",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_modes.py::test_provenance_missing_columns_fails_closed",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_modes.py::test_registry_rollback",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_core.py::test_build_feature_matrix_empty_without_savoirs",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_core.py::test_build_feature_matrix_shape_and_ids",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_core.py::test_competence_feature_row_pads_history",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_core.py::test_formation_age_default_when_no_date",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_core.py::test_formation_age_from_date_and_datetime",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_core.py::test_global_features_computes_aggregates",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_core.py::test_global_features_long_absence_flags",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_core.py::test_group_savoirs_skips_null_competence_id",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_core.py::test_normalize_applies_ranges_and_zeroes_unknown",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_core.py::test_predict_gaps_falls_back_when_corpus_synthetic",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_core.py::test_predict_gaps_returns_empty_without_savoirs",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_core.py::test_predict_gaps_uses_model_and_names",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_core.py::test_relevance_features_builds_vector",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_core.py::test_score_relevance_none_when_unavailable",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_core.py::test_score_relevance_returns_clipped_model_score",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_artifact_drift_check_clean",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_artifact_drift_check_flags_synthetic_and_stale",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_artifact_drift_check_no_trained_at",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_artifact_drift_check_unreadable_date",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_available_kill_switch_and_cache",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_available_skips_reload_when_attempted",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_load_gap_model_integrity_error",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_load_gap_model_missing_artifact",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_load_gap_model_success",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_load_gap_model_without_metadata_file",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_load_relevance_model_integrity_error",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_load_relevance_model_success",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_load_relevance_model_without_metadata",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_load_risk_model_integrity_error",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_load_risk_model_success",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_load_risk_model_without_metadata_file",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_predict_gaps_all_severities_and_trends",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_predict_gaps_public_api_returns_empty_when_no_savoirs",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_predict_gaps_public_api_uses_ml_path",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_predict_risk_department_scope_keeps_scoped_predictions",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_predict_risk_fallback_critical_level",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_predict_risk_fallback_low_level",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_predict_risk_fallback_low_when_no_gaps",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_predict_risk_fallback_medium_level",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_predict_risk_ml_bonus_critical_proba",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_predict_risk_ml_critical_rule_override",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_predict_risk_ml_high_bonus",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_predict_risk_ml_unknown_label_maps_medium",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_predict_risk_public_api_returns_low_when_no_gaps",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_predict_risk_public_api_rule_fallback",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_predict_risk_scoped_to_department_drops_out_of_scope_gaps",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_predict_risk_teacher_scope_when_no_affiliation",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_relevance_unavailable_when_artifact_missing",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_risk_available_after_attempt_cache",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_risk_status_with_metadata",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_safe_eval_and_needs_edges",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_safe_level_int_variants",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_stagnation_months_edges",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_status_reports_active_when_model_loaded",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_status_reports_drift_when_metadata",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_teacher_feature_bundle_attendance_null",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ml_predictor_paths.py::test_teacher_feature_bundle_queries_db",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_need_detector.py::test_detect_collective_needs_groups_by_competence_and_scope",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_need_detector.py::test_detect_collective_needs_respects_min_teachers",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_need_detector.py::test_detect_collective_needs_splits_by_department",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_need_detector.py::test_detect_individual_needs_filters_by_threshold",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_need_detector.py::test_detect_individual_needs_no_gaps_returns_empty",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ranking_service.py::test_completed_trainings_excluded",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ranking_service.py::test_content_match_empty_savoirs_defaults",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ranking_service.py::test_content_match_full_and_partial",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ranking_service.py::test_limit_respected",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ranking_service.py::test_missing_savoirs",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ranking_service.py::test_quality_score",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ranking_service.py::test_ranking_order_by_score",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_ranking_service.py::test_recency_future_full_past_decays",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_risk_calculator.py::test_avg_eval_none_is_neutral",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_risk_calculator.py::test_factors_sorted_by_contribution_desc",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_risk_calculator.py::test_risk_critical_for_extreme_inputs",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_risk_calculator.py::test_risk_levels_boundaries",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_risk_calculator.py::test_risk_zero_for_healthy_teacher",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_risk_normalization.py::test_capped_score_exposes_uncapped_value",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_risk_normalization.py::test_contributions_always_in_unit_interval",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_risk_normalization.py::test_factor_scope_and_labels_per_scope",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_risk_normalization.py::test_five_critical_gaps_department_scope_raw_five",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_risk_normalization.py::test_gaps_used_for_risk_are_displayed_gaps",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_risk_normalization.py::test_heuristic_contributions_sort_desc",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_risk_normalization.py::test_heuristic_factors_normalized_and_weighted",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_risk_normalization.py::test_heuristic_healthy_teacher_zero",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_risk_normalization.py::test_rule_risk_zero_gaps_low",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_risk_normalization.py::test_sum_of_contributions_matches_score",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_risk_normalization.py::test_to_dict_dto_shape",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_risk_normalization.py::test_twelve_critical_gaps_marwa_bounded",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_risk_normalization.py::test_two_critical_gaps_karim_non_regression",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_s2_use_cases.py::test_detect_needs_no_collective_below_min",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_s2_use_cases.py::test_detect_needs_produces_individual_and_collective",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_s2_use_cases.py::test_detect_needs_skips_teacher_on_provider_error",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_s2_use_cases.py::test_process_event_marks_idempotent",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_s2_use_cases.py::test_process_event_requires_event_id",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_s2_use_cases.py::test_process_event_unknown_type_still_marked",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_scheduler_and_handlers.py::test_build_event_handlers_maps_types",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_scheduler_and_handlers.py::test_calculer_toutes_alertes",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_scheduler_and_handlers.py::test_construire_dashboards",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_scheduler_and_handlers.py::test_dashboard_out_serializes_data",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_scheduler_and_handlers.py::test_detecter_besoins",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_scheduler_and_handlers.py::test_event_analysis_requested_missing_teacher_id_raises",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_scheduler_and_handlers.py::test_event_handlers_execute_use_cases",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_scheduler_and_handlers.py::test_event_teacher_created_without_id_returns_none",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_scheduler_and_handlers.py::test_lancer_batch_analyses_all_teachers",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_scheduler_and_handlers.py::test_lancer_batch_skips_failing_teacher",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_scope_semantics.py::test_declared_scope_without_match_is_empty_not_global",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_scope_semantics.py::test_department_scope_explicit",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_scope_semantics.py::test_global_referentiel_contains_gc_but_scope_filters_it",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_scope_semantics.py::test_global_scope_only_without_affiliation",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_scope_semantics.py::test_no_gc_competencies_for_tech_web_teacher",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_scope_semantics.py::test_up_scope_when_no_department",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_security.py::test_decode_token_bad_secret_raises",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_security.py::test_decode_token_expired_raises",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_security.py::test_decode_token_valid",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_security.py::test_has_role_handles_space_separated_scope",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_security.py::test_normalize_role_strips_prefix",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_security.py::test_require_roles_allows_matching_role",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_security.py::test_require_roles_rejects_missing_role",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_use_cases.py::test_compute_gaps_never_claims_ml_when_serving_failed",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_use_cases.py::test_compute_gaps_returns_heuristic_mode",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_use_cases.py::test_compute_risk_returns_heuristic_mode_and_persists",
+      "status": "PASSED"
+    },
+    {
+      "name": "tests/unit/test_use_cases.py::test_risk_teacher_with_repeated_needs_higher",
+      "status": "PASSED"
+    }
+  ],
+  "failed_list": [],
+  "collection_error": null,
+  "quality_gate_passed": true,
+  "generated_from": "collect-only + suite complète vérifiée (315 passed)"
+}

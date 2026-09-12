@@ -753,6 +753,40 @@
 .bf-status--pending .bf-status__dot {
   animation: bf-pulse 1.8s ease-in-out infinite;
 }
+.bf-status--progress {
+  color: var(--bf-info-fg, #0958d9);
+  background: var(--bf-info-bg, #e6f4ff);
+  border-color: var(--bf-info-border, #91caff);
+}
+.bf-status--progress .bf-status__dot {
+  animation: bf-pulse 1.8s ease-in-out infinite;
+}
+.bf-status--rejected {
+  color: var(--bf-error-fg, #cf1322);
+  background: var(--bf-error-bg, #fff1f0);
+  border-color: var(--bf-error-border, #ffa39e);
+}
+
+/* Motif de refus affiché sur la carte */
+.bf-card__reject-reason {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: var(--bf-r-md, 8px);
+  background: var(--bf-error-bg, #fff1f0);
+  border: 1px solid var(--bf-error-border, #ffa39e);
+  color: var(--bf-error-fg, #cf1322);
+  font-size: var(--bf-text-xs);
+  line-height: 1.45;
+}
+
+/* Étape courante du workflow */
+.bf-step-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--bf-text-xs);
+  color: var(--bf-text-muted, #718096);
+}
 @keyframes bf-pulse {
   0%,
   100% {

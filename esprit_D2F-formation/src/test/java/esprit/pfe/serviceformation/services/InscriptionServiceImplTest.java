@@ -115,19 +115,77 @@ class InscriptionServiceImplTest {
         }
 
         @Test
-        @DisplayName("refuse si UP ne correspond pas (formation non ouverte)")
+        @DisplayName("refuse si hors périmètre (UP et département différents)")
         void shouldRejectWhenUpMismatch() {
             formation.setOuverte(false);
             Up otherUp = new Up();
             otherUp.setId("UP_OTHER");
             enseignant.setUp(otherUp);
+            Dept otherDept = new Dept();
+            otherDept.setId("DEPT_OTHER");
+            enseignant.setDept(otherDept);
 
             when(formationRepo.findById(1L)).thenReturn(Optional.of(formation));
             when(enseignantRepo.findById("ENS001")).thenReturn(Optional.of(enseignant));
 
             assertThatThrownBy(() -> inscriptionService.demanderInscription(1L, "ENS001"))
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("pas autorisé");
+                    .hasMessageContaining("n’appartenez");
+        }
+
+        @Test
+        @DisplayName("accepte si l'enseignant appartient au département de la formation")
+        void shouldAcceptWhenDepartmentMatches() {
+            // Formation réservée (ouverte=false), UP différente, mais MÊME département.
+            formation.setOuverte(false);
+            Up otherUp = new Up();
+            otherUp.setId("UP_OTHER");
+            formation.setUp(otherUp);
+            Dept dept = new Dept();
+            dept.setId("DEPT001");
+            formation.setDepartement(dept);
+
+            Inscription saved = new Inscription();
+            saved.setId(2L);
+            saved.setFormation(formation);
+            saved.setEnseignant(enseignant);
+            saved.setEtat(EtatInscription.PENDING);
+
+            when(formationRepo.findById(1L)).thenReturn(Optional.of(formation));
+            when(enseignantRepo.findById("ENS001")).thenReturn(Optional.of(enseignant));
+            when(inscriptionRepo.findByEnseignant_Id("ENS001")).thenReturn(new ArrayList<>());
+            when(inscriptionRepo.save(any())).thenReturn(saved);
+
+            Inscription result = inscriptionService.demanderInscription(1L, "ENS001");
+
+            assertThat(result).isNotNull();
+            verify(inscriptionRepo).save(any());
+        }
+
+        @Test
+        @DisplayName("accepte si l'enseignant appartient à l'UP de la formation")
+        void shouldAcceptWhenUpMatches() {
+            formation.setOuverte(false);
+            // UP de la formation == UP de l'enseignant (UP001), départements différents.
+            Dept otherDept = new Dept();
+            otherDept.setId("DEPT_OTHER");
+            formation.setDepartement(otherDept);
+
+            Inscription saved = new Inscription();
+            saved.setId(3L);
+            saved.setFormation(formation);
+            saved.setEnseignant(enseignant);
+            saved.setEtat(EtatInscription.PENDING);
+
+            when(formationRepo.findById(1L)).thenReturn(Optional.of(formation));
+            when(enseignantRepo.findById("ENS001")).thenReturn(Optional.of(enseignant));
+            when(inscriptionRepo.findByEnseignant_Id("ENS001")).thenReturn(new ArrayList<>());
+            when(inscriptionRepo.save(any())).thenReturn(saved);
+
+            Inscription result = inscriptionService.demanderInscription(1L, "ENS001");
+
+            assertThat(result).isNotNull();
+            verify(inscriptionRepo).save(any());
         }
     }
 

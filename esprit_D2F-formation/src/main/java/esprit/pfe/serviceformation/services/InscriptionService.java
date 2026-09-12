@@ -47,9 +47,30 @@ public class InscriptionService {
 
 
     /**
+     * Appartenance au périmètre d'une formation : UP OU département.
+     *
+     * <p>Spécification entreprise : un membre du personnel (CUP, enseignant,
+     * animateur, formateur, chef de département) peut s'inscrire à une
+     * formation si elle est ouverte à tous OU s'il appartient à son
+     * périmètre — l'UP de la formation OU son département.</p>
+     *
+     * @return true si l'enseignant appartient au périmètre de la formation
+     */
+    private boolean belongsToFormationScope(Enseignant ens, Formation f) {
+        String upEns = ens.getUp() != null ? ens.getUp().getId() : null;
+        String deptEns = ens.getDept() != null ? ens.getDept().getId() : null;
+        String upForm = f.getUp() != null ? f.getUp().getId() : null;
+        String deptForm = f.getDepartement() != null ? f.getDepartement().getId() : null;
+        boolean sameUp = upForm != null && upForm.equals(upEns);
+        boolean sameDept = deptForm != null && deptForm.equals(deptEns);
+        return sameUp || sameDept;
+    }
+
+    /**
      * 1. Lister les formations accessibles pour un formateur
      * - doit être visible (inscriptionsOuvertes == true)
-     * - et soit ouverte à tous (ouverte == true), soit liée à son UP
+     * - et soit ouverte à tous (ouverte == true), soit dans son périmètre
+     *   (UP de la formation OU département de la formation)
      */
     @Transactional
     public List<FormationResponseDTO> listerFormationsAccessibles(String enseignantId) {
@@ -57,12 +78,11 @@ public class InscriptionService {
                 .or(() -> enseignantRepo.findByMail(enseignantId))
                 .or(() -> enseignantRepo.findByMailIgnoreCase(enseignantId))
                 .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable"));
-        String upEns = ens.getUp() != null ? ens.getUp().getId() : null;
 
         return formationRepo.findAll().stream()
                 .filter(Formation::isInscriptionsOuvertes) // visibles
                 .filter(f -> f.isOuverte() // ouvertes à tous
-                        || (f.getUp() != null && f.getUp().getId().equals(upEns)) // ou UP correspond
+                        || belongsToFormationScope(ens, f) // ou périmètre UP/département
                 )
                 .map(formationMapper::toResponseDTO)
                 .toList();
@@ -71,7 +91,8 @@ public class InscriptionService {
     /**
      * 2. Créer une demande d’inscription
      * - vérifie d’abord la visibilité
-     * - puis si pas ouverte à tous, s’assure que l’UP matche
+     * - puis si pas ouverte à tous, s’assure que l’enseignant appartient
+     *   au périmètre de la formation (UP OU département)
      */
     @Transactional
     public Inscription demanderInscription(Long formationId, String enseignantId) {
@@ -88,15 +109,14 @@ public class InscriptionService {
                 .or(() -> enseignantRepo.findByMailIgnoreCase(enseignantId))
                 .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable"));
 
-        String upForm = f.getUp() != null ? f.getUp().getId() : null;
-        String upEns = e.getUp() != null ? e.getUp().getId() : null;
-
-        if (!f.isOuverte() && (upForm == null || !upForm.equals(upEns))) {
-            throw new IllegalStateException("Vous n’êtes pas autorisé à vous inscrire à cette formation");
+        if (!f.isOuverte() && !belongsToFormationScope(e, f)) {
+            throw new IllegalStateException(
+                    "Vous n’appartenez ni à l’UP ni au département de cette formation : "
+                    + "inscription non autorisée.");
         }
 
-        // 2. Vérification du chevauchement de dates
-        validateNoOverlap(enseignantId, f);
+        // 2. Vérification du chevauchement de dates (sur l'id réel de la fiche)
+        validateNoOverlap(e.getId(), f);
 
         // 3. Création de l'entité
         Inscription ins = new Inscription();

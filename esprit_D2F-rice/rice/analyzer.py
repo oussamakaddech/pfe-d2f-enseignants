@@ -115,6 +115,8 @@ def _get_niveau_from_referentiel(
     return niveau_bloom
 
 
+# Itère sur tous les savoirs d'une compétence : ceux des sous-compétences
+# puis ceux attachés directement à la compétence (utilisé pour les stats).
 def _iter_comp_savoirs(comp: CompetenceProposition):
     for sc in (comp.sousCompetences or []):
         for s in (sc.savoirs or []):
@@ -127,6 +129,8 @@ def _iter_comp_savoirs(comp: CompetenceProposition):
 # Single-fiche analysis
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Détecte un mauvais candidat de nom de domaine (trop court, style "Code – ..."
+# ou phrase en minuscules) pour éviter de nommer un domaine avec du bruit.
 def _is_bad_domain_candidate(value: Optional[str]) -> bool:
     if not value:
         return True
@@ -140,6 +144,9 @@ def _is_bad_domain_candidate(value: Optional[str]) -> bool:
     return False
 
 
+# Détermine le nom du domaine du module : première métadonnée valide
+# (nom module / UE / UP), sinon déduit du nom de fichier, sinon "Domaine Général".
+# Renvoie (domain_name, module_name, module_code, domain_code).
 def _resolve_domain(meta: Dict, filename: str) -> Tuple[str, str, str, str]:
     domain_candidates = [
         meta.get("nom_module"),
@@ -156,6 +163,8 @@ def _resolve_domain(meta: Dict, filename: str) -> Tuple[str, str, str, str]:
     return domain_name, module_name, module_code, domain_code
 
 
+# Construit les objets FicheEnseignantExtrait : un par nom trouvé dans la fiche,
+# avec son rôle (responsable, coordinateur…) et le match éventuel en base.
 def _build_extracted_ens(fiche_ens_names: List[str], roles_map: Dict, name_match_map: Dict, filename: str) -> List[FicheEnseignantExtrait]:
     extracted_ens: List[FicheEnseignantExtrait] = []
     for name in fiche_ens_names:
@@ -169,6 +178,8 @@ def _build_extracted_ens(fiche_ens_names: List[str], roles_map: Dict, name_match
     return extracted_ens
 
 
+# Ajoute aux enseignants extraits ceux suggérés par matching référentiel
+# (sans doublons), pour une couverture maximale des compétences.
 def _add_ref_matched_ens(all_matched: List[str], extracted_ens: List[FicheEnseignantExtrait], all_ens_by_id: Dict, filename: str) -> None:
     already_extracted_ids = {ex.matched_id for ex in extracted_ens if ex.matched_id}
     for eid in all_matched:
@@ -186,6 +197,9 @@ def _add_ref_matched_ens(all_matched: List[str], extracted_ens: List[FicheEnseig
         already_extracted_ids.add(eid_str)
 
 
+# Construit un Savoir à partir d'un acquis d'apprentissage (AA) :
+# matche le texte contre le référentiel (codes), déduit le type et le niveau
+# (Bloom), et rassemble les enseignants suggérés (nom, module, référentiel).
 def _build_savoir_from_aa(aa: Dict, comp_code: str, domain_code: str, departement: str, matched_by_name: List, matched_by_module: List, all_matched: List, extracted_ids: List, j: int) -> SavoirProposition:
     aa_num = aa.get("id", j + 1)
     gc_codes = _match_gc_savoir(aa["text"], departement=departement)
@@ -205,6 +219,8 @@ def _build_savoir_from_aa(aa: Dict, comp_code: str, domain_code: str, departemen
     )
 
 
+# Variante de _build_savoir_from_aa avec directToCompetence=True :
+# le savoir est rattaché DIRECTEMENT à la compétence (pas de sous-compétence).
 def _build_savoir_from_aa_direct(aa: Dict, comp_code: str, domain_code: str, departement: str, matched_by_name: List, matched_by_module: List, all_matched: List, extracted_ids: List, j: int) -> SavoirProposition:
     aa_num = aa.get("id", j + 1)
     gc_codes = _match_gc_savoir(aa["text"], departement=departement)
@@ -224,6 +240,9 @@ def _build_savoir_from_aa_direct(aa: Dict, comp_code: str, domain_code: str, dep
     )
 
 
+# Construit une compétence à partir des acquis d'apprentissage extraits :
+# si des titres de sous-compétences existent, regroupe les AA par bloc de
+# texte dans des sous-compétences ; sinon les AA deviennent des savoirs directs.
 def _build_competence_from_acquis(acquis: List, subcomp_titles: List, text: str, module_code: str, module_name: str, domain_code: str, comp_idx: int, departement: str, matched_by_name: List, matched_by_module: List, all_matched: List, extracted_ids: List, meta: Dict) -> CompetenceProposition:
     # Filter out any metadata lines that slipped through AA extraction
     acquis = [aa for aa in acquis if not _is_metadata_line(aa["text"])]
@@ -273,6 +292,9 @@ def _build_competence_from_acquis(acquis: List, subcomp_titles: List, text: str,
     )
 
 
+# Construit un Savoir à partir d'un item de référentiel (format
+# "référentiel de compétences" des fiches) : niveau depuis le référentiel
+# officiel (via _get_niveau_from_referentiel), match GC + enseignants suggérés.
 def _build_savoir_from_ref_item(item: Dict, comp_code: str, domain_code: str, departement: str, matched_by_name: List, matched_by_module: List, all_matched: List, extracted_ids: List) -> SavoirProposition:
     item_text = item["text"]
     gc_codes = _match_gc_savoir(item_text, departement=departement)
@@ -287,6 +309,8 @@ def _build_savoir_from_ref_item(item: Dict, comp_code: str, domain_code: str, de
     )
 
 
+# Construit des compétences à partir d'un document au format "référentiel de
+# compétences" (pas une fiche UE) : une compétence par groupe d'items.
 def _build_competences_from_referentiel(referentiel_items: List, comp_idx: int, domain_code: str, departement: str, matched_by_name: List, matched_by_module: List, all_matched: List, extracted_ids: List) -> Tuple[List[CompetenceProposition], int]:
     grouped: Dict[str, List[Dict[str, Any]]] = {}
     for it in referentiel_items:
@@ -334,6 +358,9 @@ def _auto_create_teachers(
             logger.warning(f"Could not auto-create teacher '{name}': {e}")
 
 
+# Rassemble tous les enseignants liés à une fiche : match par nom, match par
+# module enseigné, match par codes référentiels + auto-création des nouveaux
+# noms non reconnus en base (_create_enseignant_if_new).
 def _match_all_enseignants(fiche_ens_names: List[str], roles_map: Dict, text: str, enseignants: List[EnseignantInfo], departement: str, filename: str, meta: Dict) -> Tuple[List[FicheEnseignantExtrait], List[str], List[str], List[str], List[str]]:
     if meta.get("responsable"):
         if meta["responsable"] not in fiche_ens_names:
@@ -371,6 +398,10 @@ def _match_all_enseignants(fiche_ens_names: List[str], roles_map: Dict, text: st
     return extracted_ens, matched_by_name, matched_by_module, all_matched, extracted_ids
 
 
+# Analyse UNE fiche : extrait le texte + tableaux, les métadonnées (module,
+# responsable, objectifs…), matche les enseignants, puis choisit la stratégie
+# de construction : acquis d'apprentissage > format référentiel > fallback
+# regex/Bloom. Renvoie (DomaineProposition, enseignants extraits).
 def _analyze_single_fiche(
     filename: str,
     text: str,

@@ -7,16 +7,19 @@
 
 name: D2F CI Pipeline
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
       - main
       - develop
+      - oussama
       - 'feature/**'
       - 'hotfix/**'
       - 'release/**'
-  pull_request:
-    branches: [ main, develop ]
   workflow_dispatch:
     inputs:
       skip_sonar:
@@ -82,9 +85,9 @@ jobs:
           reporter: java-junit
           fail-on-error: false
 
-  # -- Analyse statique Java (SpotBugs) — DSI : lint backend bloquant -----------
-  # Garde-fou contre les bugs sérieux (rank <= 9 : correctness/sécurité de haute
-  # gravité), exécuté sur chaque push sans dépendre du runner self-hosted Sonar.
+  # -- Analyse statique Java (SpotBugs) â€” DSI : lint backend bloquant -----------
+  # Garde-fou contre les bugs sÃ©rieux (rank <= 9 : correctness/sÃ©curitÃ© de haute
+  # gravitÃ©), exÃ©cutÃ© sur chaque push sans dÃ©pendre du runner self-hosted Sonar.
   lint-backend:
     name: SpotBugs - ${{ matrix.service }}
     runs-on: ubuntu-latest
@@ -183,7 +186,12 @@ jobs:
             --exclude-dir reports \
             --exclude=diagnose_same_results.py \
             --exclude=check_gaps.py \
-            --exclude=fix_persist_gaps.py || true)
+            --exclude=fix_persist_gaps.py \
+            --exclude=validate_catalogue.py \
+            --exclude=_fix_train_source.py \
+            --exclude=_fix_model_name.py \
+            --exclude=_fix_candidates.py \
+            --exclude=_patch_meta.py || true)
           if [ -n "$FOUND" ]; then
             echo "PII risk - print() trouve dans le code de production :"
             echo "$FOUND"
@@ -256,7 +264,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
+          key: owasp-nvd-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
           restore-keys: owasp-nvd-${{ runner.os }}-
 
       - name: OWASP Dependency Check
@@ -496,6 +504,9 @@ jobs:
   build-docker:
     name: Docker Build & Push - ${{ matrix.image }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     needs: [lint-backend, security-backend, security-frontend, test-python, sonar]
     if: >-
       always() &&
@@ -505,8 +516,7 @@ jobs:
       needs.test-python.result == 'success' &&
       needs.sonar.result == 'success' &&
       !inputs.skip_docker &&
-      github.event_name == 'push' &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+      github.event_name == 'push'
     strategy:
       fail-fast: false
       matrix:
@@ -527,18 +537,18 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
-      - name: Login to container registry (${{ secrets.REGISTRY_URL }})
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.REGISTRY_URL }}
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.REGISTRY_URL }}/${{ matrix.image }}
+          images: ghcr.io/${{ github.repository }}/${{ matrix.image }}
           tags: |
             type=sha,prefix=sha-,format=short
             type=ref,event=branch

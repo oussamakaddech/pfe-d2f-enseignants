@@ -1,0 +1,127 @@
+{
+  "audit_type": "demo_pipeline_audit_before",
+  "audited_at": "2026-08-20T00:00:00+00:00",
+  "auditor": "demo-ml-pipeline (pre-modification audit)",
+  "purpose": "Snapshot de l'existant AVANT ajout du pipeline DEMO_ML synthétique. Aucune valeur institutionnelle.",
+  "feature_builder": {
+    "shared_class": null,
+    "note": "Pas de classe FeatureBuilder unique. Le contrat de features existe en deux variantes : pipelines/build_features.py:36 (observed_result_*) utilisé par predictor.py:170/train_gap_model.py:39, et data/models/feature_schema.json (current_level_*) correspondant à l'artefact servi v1.0.0.",
+    "locations": {
+      "pipelines/build_features.py": {"feature_list_const": "FEATURE_COLS_TEMPORAL", "n_features": 29, "prefix": "observed_result_*", "line": 36},
+      "pipelines/train_gap_model.py": {"feature_list_const": "FEATURE_COLS", "n_features": 29, "prefix": "observed_result_*", "line": 39},
+      "app/infrastructure/ml/predictor.py": {"feature_list_const": "TEMPORAL_FEATURE_COLS", "n_features": 29, "prefix": "observed_result_*", "line": 170},
+      "data/models/feature_schema.json": {"n_features": 29, "prefix": "current_level_*", "served_with_artifact_v1.0.0": true}
+    },
+    "helpers": {
+      "compute_feature_ranges": "pipelines/build_features.py:146",
+      "normalize_with_ranges": "pipelines/build_features.py:161",
+      "build_temporal_split": "pipelines/build_features.py:88"
+    },
+    "feature_columns_served": [
+      "current_level_t3", "current_level_t2", "current_level_t1", "current_level_t",
+      "lag_gap_t3_t2", "lag_gap_t2_t1", "lag_gap_t1_t", "rolling_tendance",
+      "days_since_last_training", "training_frequency_per_month", "is_long_absent", "is_stagnant",
+      "avg_level", "min_level", "max_level", "nb_level_5", "nb_level_1",
+      "nb_savoirs", "nb_competences", "competency_coverage_rate",
+      "nb_formations_completed", "nb_formations_in_progress", "taux_assiduite",
+      "nb_besoins_exprimes", "nb_besoins_approuves", "avg_eval_score", "nb_evaluations",
+      "months_since_last_training", "engagement_score"
+    ],
+    "target": "gap_next_3m",
+    "forbidden_in_x": {
+      "train_gap_model.py": ["knowledge_difficulty_level", "required_level", "required_level_t", "gap_next_3m"],
+      "feature_schema.json": ["gap_next_3m", "required_level", "required_level_t"],
+      "note": "knowledge_difficulty_level décrit la difficulté pédagogique du savoir (difficulté structurale), jamais le niveau de maîtrise de l'enseignant. Utilisé uniquement pour le gap structural à l'inférence (predictor.py:800), jamais comme feature."
+    }
+  },
+  "active_gap_model": {
+    "model_name": "gap_predictor_temporal",
+    "model_version": "v1.0.0",
+    "algorithm": "gradient_boosting (GradientBoostingRegressor 120 est., depth 3, lr 0.08)",
+    "status": "ACTIVE",
+    "approval_status": "APPROVED",
+    "approval_actor": "ml-engineer",
+    "artifact": "data/models/gap_predictor_temporal.joblib",
+    "artifact_sha256": "6bbb396c1e28087deeeb402ecf856388510f54a08895dae5415132b08fb35bbe",
+    "metrics": {"rmse": 0.9883, "mae": 0.6388, "r2": 0.1897},
+    "n_samples": 107,
+    "split": "temporal_strict_cutoff_2026-07-22 (train 86 / test 21)",
+    "synthetic_share_pct": 0.0,
+    "sha256_files": {
+      "model_registry.json": "74f3355302a369dd01cdd8b2b9f1e625e421e6d2140ac65d673d7975f2921eec",
+      "gap_predictor_temporal.joblib": "6bbb396c1e28087deeeb402ecf856388510f54a08895dae5415132b08fb35bbe",
+      "gap_predictor_temporal.joblib.sha256_sidecar": "9b12a972e140c4cc564c80803670a7155ea9e5c62c7d6ecca0cde69e0e4750ea",
+      "temporal_training_metadata.json": "708110a5a4f64f0b9a247b43365fd92fd12bb57065114bd084a3d4b9a5a245ff",
+      "feature_schema.json": "d88dca3c86d164fab420a0aab04af7c246272d4278cc8ac487475d320ab73a8c",
+      "training_corpus_from_db.csv": "da863b23a3f5600c58b780c3bfcccb102cac5ac0fec782344d386e71c2268fe1"
+    }
+  },
+  "registry": {
+    "file": "data/models/model_registry.json",
+    "entries": [
+      {"model_version": "v1.0.0", "status": "ACTIVE", "approval": "APPROVED", "synthetic_share_pct": 0.0},
+      {"model_version": "v1.1.0", "status": "CANDIDATE", "approval": "PENDING", "synthetic_share_pct": 0.0}
+    ],
+    "implementation": "app/infrastructure/ml/model_registry.py (ModelRegistry.register/approve/rollback/promote_to_active/requires_demo)",
+    "promotion_guard": "register() force CANDIDATE; ACTIVE uniquement via approve(actor) explicite; requires_demo()=True si synthetic_share_pct>0. Aucune promotion automatique.",
+    "has_data_origin_fields": false,
+    "demo_entry_planned": "demo-gap-synthetic-v1.0.0 (status DEMO_ONLY, data_origin SYNTHETIC, institutional_verified false)"
+  },
+  "risk_model": {
+    "classifier_trainer": "pipelines/train_risk_classifier.py (RandomForestClassifier 200 est., 4 classes)",
+    "trained_classifier_status": "REJECTED (macro_f1 0.2847 < seuil 0.45) — artefact risk_classifier.joblib absent, serving = règles",
+    "heuristic_engine_six_factors": {
+      "implementation": "app/domain/services/risk_calculator.py",
+      "factors": ["stagnation", "decline", "attendance", "low_eval", "repeated_need", "low_engagement"],
+      "weights": {"stagnation": 0.25, "decline": 0.2, "attendance": 0.2, "low_eval": 0.15, "repeated_need": 0.1, "low_engagement": 0.1},
+      "explainability": "RiskProfile.factors (normalized_value, weight, contribution, label) conservé"
+    }
+  },
+  "recommendation_ranking": {
+    "implementation": "app/domain/services/ranking_service.py",
+    "formula": "0.70*contenu + 0.20*qualité + 0.10*fraîcheur",
+    "trained_model_status": "REJECTED (lift -0.0081) — heuristique active",
+    "relevance_labels": "absents (aucun label de pertinence réel) -> N/A par défaut"
+  },
+  "fallback_mode": {
+    "constants": "app/core/ml_status.py (PRODUCTION_ML / DEMO_ML / HEURISTIC_FALLBACK)",
+    "decision_logic": "app/infrastructure/ml/predictor.py:281-382 (_decide_mode, fail-closed)",
+    "demo_ml_path": "existant (registry non approuvé ou synthetic_share_pct>0 => DEMO_ML)"
+  },
+  "application_data_format": {
+    "inference_corpus": "data/clean/training_corpus_from_db.csv (107 lignes réelles)",
+    "granularity": "1 ligne = teacher_id × competence_id à la date date_t (historique t-3..t embarqué)",
+    "provenance_columns": ["source_type", "source_id", "is_synthetic", "created_at", "dataset_version"],
+    "note": "data_origin / institutional_verified absents des datasets existants — ajoutés uniquement au dataset démo, marqués SYNTHETIC/false."
+  },
+  "artifact_format": {
+    "serialization": "joblib + sidecar SHA-256 (ou HMAC si MODEL_SIGNING_KEY)",
+    "helpers": "app/infrastructure/ml/artifact_integrity.py (save_with_integrity/verify/load_with_integrity_check)",
+    "dataset_hash": "SHA-256 du CSV canonique (sort_values toutes colonnes + reset_index + utf-8), dataset_provenance.file_hash"
+  },
+  "api_routes": {
+    "prefix": "/api/v1/analytics",
+    "exposing_model_mode": ["GET /teachers/{id}/gaps", "POST|GET /analysis/{id}", "GET /teachers/{id}/risk", "GET /health"]
+  },
+  "environment": {
+    "python": "3.13.2 (.venv)",
+    "scikit_learn": "1.8.0",
+    "pandas": "2.2.3",
+    "numpy": "2.1.3",
+    "joblib": "1.4.2",
+    "xgboost": "2.1.3",
+    "pytest": "9.1.1"
+  },
+  "tests": {
+    "config": "pytest.ini (testpaths=tests, -q --disable-warnings)",
+    "unit": 24,
+    "integration": 5,
+    "existing_relevant": ["test_ml_modes.py", "test_ml_governance.py", "test_dataset_pipeline.py", "test_artifact_integrity.py", "test_risk_calculator.py", "test_ranking_service.py"]
+  },
+  "demo_design_decisions": {
+    "granularity": "Le contrat réel du projet est 1 ligne = teacher × competence × mois observable (date_t) car la cible gap_next_3m est mesurée mois par mois. Le dataset démo adopte donc teacher_id + competence_id + ref_month (chaque ligne porte son historique snapshot t-3..t + date_t). Colonnes additionnelles demandées (department_id, unit_id, current_observation, knowledge_difficulty_level, attendance_rate, evaluation_score, training_count, stagnation_months, need_count, engagement_score, data_origin, institutional_verified, generation_seed, generator_version) conservées en métadonnées — jamais dans X si contemporaines de la cible.",
+    "feature_contract": "feature_names identiques à celles servies (current_level_*, schéma 1.0) via pipelines/demo_feature_builder.py (FeatureBuilder partagé du pipeline démo, canonique unique).",
+    "registry": "Nouvelle entrée model_version=demo-gap-synthetic-v1.0.0, status DEMO_ONLY, approval PENDING (jamais ACTIVE). v1.0.0 active inchangée.",
+    "artifacts": "data/models/demo/demo-gap-synthetic-v1.0.0.joblib + .sha256 (jamais gap_predictor_temporal.joblib)."
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "risk_labels_origin": "SYNTHETIC",
+  "note": "Labels de risque dérivés du moteur heuristique (score + bruit). Aucun label institutionnel réel. Métriques = démonstration technique.",
+  "caveat_heuristic_accuracy": "L'accuracy de l'heuristique est triviale (~1.0) car les labels dérivent du même score ; c'est un contrôle de cohérence interne, PAS une mesure de performance institutionnelle. Le RandomForest, entraîné sur les seuls 6 facteurs normalisés, fournit l'évaluation discriminative honnête.",
+  "n_rows": 1000,
+  "label_distribution": {
+    "MEDIUM": 548,
+    "LOW": 435,
+    "HIGH": 17
+  },
+  "heuristic_six_factors": {
+    "accuracy": 1.0,
+    "balanced_accuracy": 1.0,
+    "precision_macro": 1.0,
+    "recall_macro": 1.0,
+    "f1_macro": 1.0,
+    "f1_weighted": 1.0,
+    "confusion_matrix": [
+      [
+        51,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        122,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        9,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "roc_auc": 0.9952,
+    "pr_auc": 0.9982,
+    "test_rows": 182,
+    "weights": {
+      "stagnation": 0.25,
+      "decline": 0.2,
+      "attendance": 0.2,
+      "low_eval": 0.15,
+      "repeated_need": 0.1,
+      "low_engagement": 0.1
+    },
+    "explainability": "RiskProfile.factors : normalized_value, weight, contribution, label (app/domain/services/risk_calculator.py)"
+  },
+  "random_forest": {
+    "model": "RandomForestClassifier(n_estimators=200, max_depth=5, class_weight=balanced_subsample)",
+    "accuracy": 0.8242,
+    "balanced_accuracy": 0.581,
+    "precision_macro": 0.5336,
+    "recall_macro": 0.581,
+    "f1_macro": 0.5547,
+    "f1_weighted": 0.8049,
+    "confusion_matrix": [
+      [
+        45,
+        6,
+        0,
+        0
+      ],
+      [
+        17,
+        105,
+        0,
+        0
+      ],
+      [
+        0,
+        9,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "roc_auc": 0.9463,
+    "pr_auc": 0.977,
+    "test_rows": 182,
+    "n_classes": 3
+  }
+}

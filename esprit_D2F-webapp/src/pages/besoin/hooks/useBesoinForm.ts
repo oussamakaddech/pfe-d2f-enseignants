@@ -5,20 +5,40 @@ import { useEffect, useRef, useState } from 'react';
 import { Form } from 'antd';
 import { getActiveRole } from '@/utils/storage/storage';
 import { useAuth } from '@/hooks/auth/useAuth';
-import { useAddBesoin, useReplaceBesoinCompetences } from '@/hooks/besoin/useBesoins';
+import {
+  useAddBesoin,
+  useReplaceBesoinCompetences,
+  useMyReviewerScope,
+} from '@/hooks/besoin/useBesoins';
+import { hasAnyRole, normalizeRole, ROLES } from '@/utils/constants/roles';
 import { useEnseignants } from '@/hooks/enseignant/useEnseignants';
-import { buildActeurOptions } from '@/utils/besoin/acteurs';
+import { buildActeurOptions, serializeActeurs } from '@/utils/besoin/acteurs';
 import type { BesoinCompetenceLink, BesoinFormation } from '@/models/besoin';
 import type { Id } from '@/models/common';
 import {
   useCompetenceDomaineApi,
   useCompetenceApi,
+  useSousCompetenceApi,
   useSavoirApi,
 } from '@/hooks/competence/useCompetenceService';
 import { useAllDepts } from '@/hooks/formation/useDeptCrud';
 import { useAllUps } from '@/hooks/formation/useUpCrud';
 import useAppNotification from '@/hooks/ui/useAppNotification';
-import { ROLES } from '@/utils/constants/roles';
+
+/** Type de besoin verrouillé par rôle créateur (COLLECTIF vs INDIVIDUEL). */
+function resolveLockedType(
+  isCupCreator: boolean,
+  isChefCreator: boolean,
+  isTeacherCreator: boolean,
+): 'COLLECTIF' | 'INDIVIDUEL' | undefined {
+  if (isCupCreator || isChefCreator) {
+    return 'COLLECTIF';
+  }
+  if (isTeacherCreator) {
+    return 'INDIVIDUEL';
+  }
+  return undefined;
+}
 
 function getErrorMessage(err: unknown): string {
   const e = err as {
@@ -44,6 +64,12 @@ type BesoinPayloadValues = {
   titre?: string;
   typeBesoin?: string;
   description?: string;
+  up?: string;
+  departement?: string;
+  objectifFormation?: string;
+  propositionAnimateur?: string | string[];
+  animateurs?: string | string[];
+  enseignants?: string | string[];
   dateDebut?: DayjsLike;
   dateFin?: DayjsLike;
   priorite?: string;
@@ -62,7 +88,17 @@ type BesoinPayloadValues = {
 
 type ReferentielDomaine = { id?: string | number; nom?: string };
 type ReferentielCompetence = { id?: string | number; nom?: string; domaineId?: string | number };
-type ReferentielSavoir = { id?: string | number; nom?: string; type?: string };
+type ReferentielSousCompetence = {
+  id?: string | number;
+  nom?: string;
+  competenceId?: string | number;
+};
+type ReferentielSavoir = {
+  id?: string | number;
+  nom?: string;
+  type?: string;
+  sousCompetenceId?: string | number;
+};
 
 const toNum = (v: string | number | null | undefined): number | null =>
   v == null ? null : Number(v);
@@ -71,16 +107,51 @@ export function useBesoinForm() {
   const { user } = useAuth();
   const [form] = Form.useForm();
   const activeRole = String(getActiveRole() || '').toUpperCase();
-  const userRole = String(user?.role || '').toUpperCase();
   const canManageParticipants =
-    [ROLES.CUP.toUpperCase(), ROLES.ADMIN.toUpperCase()].includes(userRole) ||
-    [ROLES.CUP.toUpperCase(), ROLES.ADMIN.toUpperCase()].includes(activeRole);
+    hasAnyRole(user?.role, [ROLES.CUP, ROLES.ADMIN]) ||
+    hasAnyRole(activeRole, [ROLES.CUP, ROLES.ADMIN]);
 
   const { message: msgApi } = useAppNotification();
   const { data: departements = [], isLoading: deptsLoading } = useAllDepts();
   const { data: ups = [], isLoading: upsLoading } = useAllUps();
   const { data: enseignants = [], isLoading: enseignantsLoading } = useEnseignants();
   const loading = deptsLoading || upsLoading;
+
+  // ── Verrous de création par rôle (workflow sécurisé) ─────────────────────
+  // ENSEIGNANT/ANIMATEUR → INDIVIDUEL ; CUP/CHEF → COLLECTIF verrouillé sur
+  // leur périmètre serveur (le backend recalcule et ignore les valeurs libres).
+  const normalizedUserRole = normalizeRole(user?.role);
+  const isCupCreator =
+    normalizedUserRole === normalizeRole(ROLES.CUP) || activeRole === normalizeRole(ROLES.CUP);
+  const isChefCreator =
+    normalizedUserRole === normalizeRole(ROLES.CHEF_DEPARTEMENT) ||
+    activeRole === normalizeRole(ROLES.CHEF_DEPARTEMENT);
+  const isTeacherCreator =
+    [normalizeRole(ROLES.ENSEIGNANT), normalizeRole(ROLES.ANIMATEUR)].includes(
+      normalizedUserRole,
+    ) ||
+    [normalizeRole(ROLES.ENSEIGNANT), normalizeRole(ROLES.ANIMATEUR)].includes(
+      normalizeRole(activeRole),
+    );
+  const { data: myScope, isLoading: scopeLoading } = useMyReviewerScope(
+    isCupCreator || isChefCreator || isTeacherCreator,
+  );
+  const lockedType = resolveLockedType(isCupCreator, isChefCreator, isTeacherCreator);
+  const lockedUp = isCupCreator || isTeacherCreator ? myScope?.upCode : undefined;
+  const lockedDepartement = isChefCreator || isTeacherCreator ? myScope?.departmentCode : undefined;
+
+  const applyCreationLocks = () => {
+    const preset: Record<string, unknown> = {};
+    if (lockedType) preset.typeBesoin = lockedType;
+    if (lockedUp) preset.up = lockedUp;
+    if (lockedDepartement) preset.departement = lockedDepartement;
+    if (Object.keys(preset).length > 0) form.setFieldsValue(preset);
+  };
+
+  useEffect(() => {
+    applyCreationLocks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lockedType, lockedUp, lockedDepartement]);
 
   // Options des sélecteurs Animateurs / Enseignants (base enseignants).
   const acteurOptions = buildActeurOptions(enseignants);
@@ -91,6 +162,7 @@ export function useBesoinForm() {
   const replaceBesoinCompetences = useReplaceBesoinCompetences();
   const competenceDomaineApi = useCompetenceDomaineApi();
   const competenceApiService = useCompetenceApi();
+  const sousCompetenceApiService = useSousCompetenceApi();
   const savoirApiService = useSavoirApi();
 
   const [submitting, setSubmitting] = useState(false);
@@ -111,6 +183,9 @@ export function useBesoinForm() {
   const [compDomaines, setCompDomaines] = useState<ReferentielDomaine[]>([]);
   const [compCompetences, setCompCompetences] = useState<ReferentielCompetence[]>([]);
   const [selectedCompLinks, setSelectedCompLinks] = useState<BesoinCompetenceLink[]>([]);
+  const [rowSousCompetences, setRowSousCompetences] = useState<
+    Record<number, ReferentielSousCompetence[]>
+  >({});
   const [rowSavoirs, setRowSavoirs] = useState<Record<number, ReferentielSavoir[]>>({});
   const [compLoaded, setCompLoaded] = useState(false);
   const [compSearch, setCompSearch] = useState('');
@@ -140,12 +215,28 @@ export function useBesoinForm() {
       competenceNom: competence?.nom || '',
       domaineId: toNum(competence?.domaineId ?? updated[idx]?.domaineId ?? null),
       sousCompetenceId: null,
+      sousCompetenceNom: undefined,
+      sousCompetenceIds: [],
+      sousCompetenceNoms: [],
       savoirId: null,
+      savoirIds: [],
+      savoirNoms: [],
     };
     setSelectedCompLinks(updated);
+    const newSous: Record<number, ReferentielSousCompetence[]> = { ...rowSousCompetences };
     const newSavoirs: Record<number, ReferentielSavoir[]> = { ...rowSavoirs };
+    newSous[idx] = [];
     newSavoirs[idx] = [];
     if (competence?.id) {
+      // Sous-compétences de la compétence + savoirs rattachés directement
+      // (affinés ensuite par les sous-compétences sélectionnées).
+      try {
+        newSous[idx] = (await sousCompetenceApiService.getByCompetence(
+          competence.id,
+        )) as ReferentielSousCompetence[];
+      } catch {
+        /* ignore */
+      }
       try {
         newSavoirs[idx] = (await savoirApiService.getByCompetence(
           competence.id,
@@ -154,7 +245,144 @@ export function useBesoinForm() {
         /* ignore */
       }
     }
+    setRowSousCompetences(newSous);
     setRowSavoirs(newSavoirs);
+  };
+
+  const handleSousCompetencesChange = async (idx: number, ids: (string | number)[]) => {
+    const options = Array.isArray(rowSousCompetences[idx]) ? rowSousCompetences[idx] : [];
+    const selected = options.filter((o) => ids.includes(o.id as string | number));
+    const updated = [...selectedCompLinks];
+    updated[idx] = {
+      ...updated[idx],
+      sousCompetenceId: selected.length === 1 ? toNum(selected[0].id) : null,
+      sousCompetenceNom: selected.length === 1 ? selected[0].nom || undefined : undefined,
+      sousCompetenceIds: ids,
+      sousCompetenceNoms: selected.map((o) => o.nom || ''),
+      savoirId: null,
+      savoirIds: [],
+      savoirNoms: [],
+    };
+    setSelectedCompLinks(updated);
+    // Savoirs proposés = union des savoirs des sous-compétences choisies ;
+    // sans sous-compétence → savoirs rattachés directement à la compétence.
+    const newSavoirs: Record<number, ReferentielSavoir[]> = { ...rowSavoirs };
+    if (selected.length > 0) {
+      try {
+        const perSousComp = await Promise.all(
+          selected.map((sc) =>
+            savoirApiService
+              .getBySousCompetence(sc.id as string | number)
+              .catch(() => [] as ReferentielSavoir[]),
+          ),
+        );
+        const merged = new Map<string | number, ReferentielSavoir>();
+        perSousComp.flat().forEach((s) => {
+          if (s?.id != null) merged.set(s.id, s);
+        });
+        newSavoirs[idx] = Array.from(merged.values());
+      } catch {
+        /* ignore */
+      }
+    } else if (updated[idx].competenceId != null) {
+      const competenceId = updated[idx].competenceId as string | number;
+      try {
+        newSavoirs[idx] = (await savoirApiService.getByCompetence(
+          competenceId,
+        )) as ReferentielSavoir[];
+      } catch {
+        /* ignore */
+      }
+    } else {
+      newSavoirs[idx] = [];
+    }
+    setRowSavoirs(newSavoirs);
+  };
+
+  const handleSavoirsChange = (idx: number, ids: (string | number)[]) => {
+    const options = Array.isArray(rowSavoirs[idx]) ? rowSavoirs[idx] : [];
+    const selected = options.filter((o) => ids.includes(o.id as string | number));
+    const updated = [...selectedCompLinks];
+    updated[idx] = {
+      ...updated[idx],
+      // savoirId unique conservé (parité API) : premier savoir sélectionné
+      savoirId: selected.length > 0 ? toNum(selected[0].id) : null,
+      savoirNom: selected.length > 0 ? selected[0].nom || '' : '',
+      savoirIds: ids,
+      savoirNoms: selected.map((o) => o.nom || ''),
+    };
+    setSelectedCompLinks(updated);
+  };
+
+  /**
+   * V27 — expansion des sélections multiples en lignes plates persistées :
+   *  - savoirs sélectionnés   → une ligne par savoir (sous-compétence résolue via le savoir) ;
+   *  - sinon sous-compétences → une ligne par sous-compétence ;
+   *  - sinon                  → une ligne compétence seule.
+   */
+  const buildFlatLinks = (): BesoinCompetenceLink[] => {
+    const links: BesoinCompetenceLink[] = [];
+    selectedCompLinks.forEach((row, idx) => {
+      if (!row.competenceId) return;
+      const savoirOptions = Array.isArray(rowSavoirs[idx]) ? rowSavoirs[idx] : [];
+      const savoirById = new Map(savoirOptions.map((s) => [String(s.id), s]));
+      const sousOptions = Array.isArray(rowSousCompetences[idx]) ? rowSousCompetences[idx] : [];
+      const sousById = new Map(sousOptions.map((s) => [String(s.id), s]));
+      const base = {
+        domaineId: row.domaineId,
+        competenceId: row.competenceId,
+        competenceNom: row.competenceNom,
+      };
+      const savoirIds = row.savoirIds ?? [];
+      const sousIds = row.sousCompetenceIds ?? [];
+      if (savoirIds.length > 0) {
+        savoirIds.forEach((sid) => {
+          const s = savoirById.get(String(sid));
+          let sousCompetenceId = s?.sousCompetenceId != null ? toNum(s.sousCompetenceId) : null;
+          let sousCompetenceNom: string | undefined =
+            sousCompetenceId != null
+              ? sousById.get(String(sousCompetenceId))?.nom || undefined
+              : undefined;
+          if (sousCompetenceId == null && sousIds.length === 1) {
+            sousCompetenceId = toNum(sousIds[0]);
+            sousCompetenceNom = sousById.get(String(sousIds[0]))?.nom || undefined;
+          }
+          links.push({
+            ...base,
+            savoirId: toNum(s?.id ?? sid),
+            savoirNom: s?.nom || '',
+            sousCompetenceId,
+            sousCompetenceNom,
+          });
+        });
+      } else if (sousIds.length > 0) {
+        sousIds.forEach((scid) => {
+          links.push({
+            ...base,
+            sousCompetenceId: toNum(scid),
+            sousCompetenceNom: sousById.get(String(scid))?.nom || undefined,
+            savoirId: null,
+            savoirNom: '',
+          });
+        });
+      } else {
+        links.push({
+          ...base,
+          sousCompetenceId: null,
+          sousCompetenceNom: undefined,
+          savoirId: null,
+          savoirNom: '',
+        });
+      }
+    });
+    // Déduplication défensive (miroir de l'index unique V27)
+    const seen = new Set<string>();
+    return links.filter((l) => {
+      const key = `${l.competenceId}:${l.sousCompetenceId}:${l.savoirId}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   };
 
   const getStepFields = (step: number): string[] => {
@@ -278,9 +506,18 @@ export function useBesoinForm() {
     return {
       idBesoinFormation: values.idBesoinFormation,
       codeBesoin: values.codeBesoin,
+      // Demandeur : résolu depuis le JWT côté auth (le service besoin n'assume
+      // plus la déduction du username) — sans ce champ, `GET /mine` est vide.
+      username: user?.username ?? user?.userName,
       titre: values.titre,
       typeBesoin: values.typeBesoin as BesoinFormation['typeBesoin'],
       description: values.description,
+      up: values.up,
+      departement: values.departement,
+      objectifFormation: values.objectifFormation,
+      propositionAnimateur: serializeActeurs(values.propositionAnimateur),
+      animateurs: serializeActeurs(values.animateurs),
+      enseignants: serializeActeurs(values.enseignants),
       dateDebut: values.dateDebut ? values.dateDebut.format('YYYY-MM-DD') : undefined,
       dateFin: values.dateFin ? values.dateFin.format('YYYY-MM-DD') : undefined,
       priorite: values.priorite as BesoinFormation['priorite'],
@@ -306,12 +543,17 @@ export function useBesoinForm() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
+      // Validation globale avant envoi : le bouton « Enregistrer » du récapitulatif
+      // appelle handleSubmit directement (onClick), hors onFinish — sans ce garde,
+      // un payload incomplet partait au backend et recevait un 400 BESOIN_VALIDATION_ERROR
+      // (ex. « titre: entre 5 et 200 caractères », « dateDebut: doit être dans le futur »).
+      await form.validateFields();
       const values = form.getFieldsValue(true) as unknown as BesoinPayloadValues;
       const payload = buildPayload(values);
       const created = await addBesoin.mutateAsync(payload);
       const besoinId = created?.idBesoinFormation;
-      if (besoinId && selectedCompLinks.length > 0) {
-        const links = selectedCompLinks.filter((l) => l.competenceId).map((l) => ({ ...l }));
+      if (besoinId) {
+        const links = buildFlatLinks();
         if (links.length > 0) {
           await replaceBesoinCompetences.mutateAsync({ besoinId: Number(besoinId), links });
         }
@@ -319,13 +561,21 @@ export function useBesoinForm() {
       msgApi.success('Besoin de formation ajouté avec succès !');
       setSubmitted(true);
       form.resetFields();
+      applyCreationLocks();
       setSelectedCompLinks([]);
+      setRowSousCompetences({});
       setRowSavoirs({});
       setCompLoaded(false);
       setCompSearch('');
       setLastImportCount(0);
       setCurrentStep(0);
     } catch (err: unknown) {
+      if ((err as { errorFields?: unknown })?.errorFields) {
+        // Échec de la validation globale form.validateFields() : les champs
+        // fautifs sont signalés en rouge dans le formulaire.
+        msgApi.error('Veuillez corriger les champs signalés avant d\u2019enregistrer le besoin.');
+        return;
+      }
       msgApi.error(`Erreur lors de l'ajout du besoin — ${getErrorMessage(err)}`);
     } finally {
       setSubmitting(false);
@@ -336,6 +586,14 @@ export function useBesoinForm() {
     form,
     user,
     canManageParticipants,
+    lockedType,
+    lockedUp,
+    lockedDepartement,
+    myScope,
+    scopeLoading,
+    isCupCreator,
+    isChefCreator,
+    applyCreationLocks,
     loading,
     submitting,
     currentStep,
@@ -351,6 +609,7 @@ export function useBesoinForm() {
     compCompetences,
     selectedCompLinks,
     setSelectedCompLinks,
+    rowSousCompetences,
     rowSavoirs,
     setRowSavoirs,
     compLoaded,
@@ -361,6 +620,8 @@ export function useBesoinForm() {
     acteurOptions,
     enseignantsLoading,
     handleCompetenceChange,
+    handleSousCompetencesChange,
+    handleSavoirsChange,
     handleSubmit,
     next,
     prev,

@@ -3,6 +3,7 @@ package esprit.pfe.serviceformation.controllers;
 import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.services.CurrentUser;
 import esprit.pfe.serviceformation.services.ExportExcelService;
 import esprit.pfe.serviceformation.services.FormationService;
 import esprit.pfe.serviceformation.services.FormationWorkflowService;
@@ -160,11 +161,15 @@ public class FormationWorkflowController {
     }
 
     @PutMapping("/presence/{id}")
-    @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
-    public ResponseEntity<Object> updatePresence(@PathVariable Long id, @RequestParam boolean present, @RequestParam String commentaire) {
+    @PreAuthorize(AuthorizationMatrix.PRESENCE_MARK)
+    public ResponseEntity<Object> updatePresence(@PathVariable Long id, @RequestParam boolean present,
+                                                 @RequestParam String commentaire,
+                                                 @AuthenticationPrincipal Jwt jwt) {
         try {
-            formationWorkflowService.updatePresence(id, present, commentaire);
+            formationWorkflowService.updatePresence(id, present, commentaire, CurrentUser.fromJwt(jwt));
             return ResponseEntity.ok("Presence mise a jour avec succes !");
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, e.getMessage()));
         }
@@ -216,12 +221,15 @@ public class FormationWorkflowController {
     }
 
     @PutMapping("/seances/{seanceId}/presences/batch")
-    @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
+    @PreAuthorize(AuthorizationMatrix.PRESENCE_MARK)
     public ResponseEntity<Object> batchUpdatePresences(@PathVariable("seanceId") Long seanceId,
-                                                       @RequestBody BatchPresenceUpdateRequest request) {
+                                                       @RequestBody BatchPresenceUpdateRequest request,
+                                                       @AuthenticationPrincipal Jwt jwt) {
         try {
-            List<PresenceDTO> updated = formationWorkflowService.batchUpdatePresences(seanceId, request);
+            List<PresenceDTO> updated = formationWorkflowService.batchUpdatePresences(seanceId, request, CurrentUser.fromJwt(jwt));
             return ResponseEntity.ok(updated);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
@@ -232,12 +240,15 @@ public class FormationWorkflowController {
     }
 
     @PutMapping("/seances/{seanceId}/presences/mark-all")
-    @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
+    @PreAuthorize(AuthorizationMatrix.PRESENCE_MARK)
     public ResponseEntity<Object> markAllPresences(@PathVariable("seanceId") Long seanceId,
-                                                   @RequestParam("present") boolean present) {
+                                                   @RequestParam("present") boolean present,
+                                                   @AuthenticationPrincipal Jwt jwt) {
         try {
-            List<PresenceDTO> updated = formationWorkflowService.markAllPresences(seanceId, present);
+            List<PresenceDTO> updated = formationWorkflowService.markAllPresences(seanceId, present, CurrentUser.fromJwt(jwt));
             return ResponseEntity.ok(updated);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
@@ -337,6 +348,23 @@ public class FormationWorkflowController {
             @RequestParam String deptId,
             @PageableDefault(size = 20, sort = "idFormation") Pageable pageable) {
         List<FormationResponseDTO> all = formationWorkflowService.getFormationsParDepartement(deptId);
+        int from = (int) pageable.getOffset();
+        int to = Math.min(from + pageable.getPageSize(), all.size());
+        return ResponseEntity.ok(new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size()));
+    }
+
+    /**
+     * Catalogue scopé serveur (§8 droits) : un CUP ne voit que les formations
+     * de son UP, un chef de département celles de son département. Le périmètre
+     * est résolu depuis le JWT côté serveur — non falsifiable par le client.
+     */
+    @GetMapping("/mes-formations-pilote")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    public ResponseEntity<Page<FormationResponseDTO>> getMesFormationsPilote(
+            @AuthenticationPrincipal Jwt jwt,
+            @PageableDefault(size = 20, sort = "idFormation") Pageable pageable) {
+        List<FormationResponseDTO> all = formationWorkflowService
+                .getMesFormationsPilote(CurrentUser.fromJwt(jwt));
         int from = (int) pageable.getOffset();
         int to = Math.min(from + pageable.getPageSize(), all.size());
         return ResponseEntity.ok(new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size()));

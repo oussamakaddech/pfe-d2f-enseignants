@@ -3,6 +3,8 @@ import EvaluationGlobaleService from '@/services/evaluation/EvaluationGlobaleSer
 import EvaluationFormateurService from '@/services/evaluation/EvaluationFormateurService';
 import type { Id } from '@/models/common';
 
+// ── Évaluations globales ──
+
 export function useEvaluationsGlobales() {
   return useQuery<unknown[]>({
     queryKey: ['evaluations-globales'],
@@ -41,6 +43,48 @@ export function useDeleteEvaluationGlobale() {
   return useMutation({
     mutationFn: (id: Id) => EvaluationGlobaleService.deleteEvaluationGlobale(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['evaluations-globales'] }),
+  });
+}
+
+// ── Évaluations participants (formateur) ──
+
+export function useEvaluationsParticipants() {
+  return useQuery<unknown[]>({
+    queryKey: ['evaluations-participants'],
+    queryFn: () => EvaluationFormateurService.listAll(),
+  });
+}
+
+export function useCreateEvaluationParticipant() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => EvaluationFormateurService.create(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['evaluations-participants'] }),
+  });
+}
+
+export function useUpdateEvaluationParticipant() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: Id; data: Record<string, unknown> }) =>
+      EvaluationFormateurService.update(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['evaluations-participants'] }),
+  });
+}
+
+export function useDeleteEvaluationParticipant() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: Id) => EvaluationFormateurService.remove(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['evaluations-participants'] }),
+  });
+}
+
+export function useValiderCompetences() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: Id) => EvaluationFormateurService.validerCompetences(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['evaluations-participants'] }),
   });
 }
 

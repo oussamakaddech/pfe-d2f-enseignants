@@ -10,21 +10,30 @@ public final class AuthorizationMatrix {
     public static final String COMPETENCE_DELETE = "hasAnyRole('ROLE_ADMIN')";
     public static final String COMPETENCE_ASSIGN = "hasAnyRole('ROLE_ADMIN')";
 
-    public static final String AFFECTATION_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
+    public static final String AFFECTATION_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_CHEF_DEPARTEMENT')";
     public static final String AFFECTATION_CREATE = "hasAnyRole('ROLE_ADMIN')";
     public static final String AFFECTATION_UPDATE_SELF = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT')";
     public static final String AFFECTATION_UPDATE_ALL = "hasAnyRole('ROLE_ADMIN')";
     public static final String AFFECTATION_DELETE = "hasAnyRole('ROLE_ADMIN')";
 
-    public static final String BESOIN_FORMATION_READ_ALL = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT','ROLE_ANIMATEUR')";
+    public static final String BESOIN_FORMATION_READ_ALL = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT','ROLE_ANIMATEUR','ROLE_RESPONSABLE_DOSSIER')";
     public static final String BESOIN_FORMATION_READ_CUP = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
     public static final String BESOIN_FORMATION_READ_ENSEIGNANT = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT')";
     // ANIMATEUR inclus : un animateur interne est aussi un enseignant et peut donc
     // exprimer un besoin de formation (symétrique d'INSCRIPTION_CREATE).
-    public static final String BESOIN_FORMATION_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_ANIMATEUR')";
-    public static final String BESOIN_FORMATION_UPDATE = "hasAnyRole('ROLE_ADMIN')";
-    public static final String BESOIN_FORMATION_DELETE = "hasAnyRole('ROLE_ADMIN')";
+    public static final String BESOIN_FORMATION_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_ANIMATEUR','ROLE_CHEF_DEPARTEMENT')";
+    public static final String BESOIN_FORMATION_UPDATE = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT','ROLE_ANIMATEUR')";
+    public static final String BESOIN_FORMATION_DELETE = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT','ROLE_ANIMATEUR')";
     public static final String BESOIN_FORMATION_APPROVE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
+    // Workflow sécurisé : refus / annulation / périmètres.
+    // Le contrôle fin (étape, périmètre UP/département, créateur ≠ décideur)
+    // est appliqué applicativement dans BesoinFormationServiceImpl.
+    public static final String BESOIN_FORMATION_REJECT = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
+    public static final String BESOIN_FORMATION_CANCEL = "isAuthenticated()";
+    public static final String BESOIN_FORMATION_PENDING = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
+    public static final String BESOIN_FORMATION_SCOPE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
+    public static final String BESOIN_FORMATION_HISTORY = "hasAnyRole('ROLE_ADMIN')";
+    public static final String BESOIN_FORMATION_REVIEWER_SCOPE = "hasAnyRole('ROLE_ADMIN')";
 
     public static final String FORMATION_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_RESPONSABLE_DOSSIER','ROLE_CHEF_DEPARTEMENT')";
     public static final String FORMATION_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
@@ -32,6 +41,13 @@ public final class AuthorizationMatrix {
     public static final String FORMATION_DELETE = "hasAnyRole('ROLE_ADMIN')";
     public static final String FORMATION_APPROVE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
     public static final String FORMATION_READ_OWN = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_ENSEIGNANT')";
+    // Marquage des présences d'une séance : l'animateur/formateur de la séance (et,
+    // par symétrie métier, l'enseignant-animateur interne) saisit la feuille de
+    // présence ; les rôles de gestion (ADMIN/CUP/RESPONSABLE_DOSSIER) conservent
+    // l'accès hérité de FORMATION_UPDATE. Le contrôle fin (appartenance à la séance)
+    // est assuré applicativement dans FormationWorkflowService.
+    public static final String PRESENCE_MARK =
+            "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_RESPONSABLE_DOSSIER','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_ENSEIGNANT')";
 
     // ── Documents de formation ─────────────────────────────────────────
     // Périmètre RESPONSABLE_DOSSIER : CRUD docs + consultation formations.
@@ -42,7 +58,13 @@ public final class AuthorizationMatrix {
     public static final String DOCUMENT_UPDATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_RESPONSABLE_DOSSIER')";
     public static final String DOCUMENT_DELETE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_RESPONSABLE_DOSSIER')";
 
-    public static final String EVALUATION_READ_ALL = "hasAnyRole('ROLE_ADMIN','ROLE_CHEF_DEPARTEMENT','ROLE_ENSEIGNANT')";
+    // Parité UI /home/Evaluations (RoleGuard) : CUP et ANIMATEUR consultent aussi
+    // les évaluations (CREATE/READ_FORMATION les incluent déjà).
+    public static final String EVALUATION_READ_ALL = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT','ROLE_ENSEIGNANT','ROLE_ANIMATEUR')";
+    // Lecture des évaluations dans un périmètre formation : l'animateur/formateur
+    // qui anime une formation doit pouvoir consulter ses évaluations.
+    public static final String EVALUATION_READ_FORMATION =
+            "hasAnyRole('ROLE_ADMIN','ROLE_CHEF_DEPARTEMENT','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR')";
     public static final String EVALUATION_READ_CUP = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
     public static final String EVALUATION_READ_ENSEIGNANT = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT')";
     public static final String EVALUATION_READ_FORMATEUR = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR','ROLE_ANIMATEUR')";
@@ -56,13 +78,16 @@ public final class AuthorizationMatrix {
     public static final String CERTIFICAT_UPDATE = "hasAnyRole('ROLE_ADMIN')";
     public static final String CERTIFICAT_DELETE = "hasAnyRole('ROLE_ADMIN')";
 
-    public static final String RICE_READ = "hasAnyRole('ROLE_ADMIN')";
+    public static final String RICE_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
     public static final String RICE_CREATE = "hasAnyRole('ROLE_ADMIN')";
     public static final String RICE_UPDATE = "hasAnyRole('ROLE_ADMIN')";
     public static final String RICE_DELETE = "hasAnyRole('ROLE_ADMIN')";
 
     public static final String DASHBOARD_ADMIN_FULL = "hasAnyRole('ROLE_ADMIN')";
-    public static final String DASHBOARD_ADMIN_LIMITED = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT','ROLE_ANIMATEUR')";
+    /** Dashboard (lecture KPI) : ADMIN + CUP + Chef de département + Animateur + Responsable dossier.
+     *  Parité AuthorizationMatrix.DASHBOARD_ADMIN_LIMITED — le dashboard /home affiche
+     *  les KPIs formation pour RESPONSABLE_DOSSIER (l'analyse prédictive reste pilotage). */
+    public static final String DASHBOARD_ADMIN_LIMITED = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT','ROLE_ANIMATEUR','ROLE_RESPONSABLE_DOSSIER')";
 
     public static final String ACCOUNT_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ANIMATEUR','ROLE_CHEF_DEPARTEMENT')";
     public static final String ACCOUNT_CREATE = "hasAnyRole('ROLE_ADMIN')";
@@ -109,13 +134,30 @@ public final class AuthorizationMatrix {
     public static final String FORMATION_COMPETENCE_DELETE = "hasAnyRole('ROLE_ADMIN')";
 
     // ── Inscription ─────────────────────────────────────────────────────
-    public static final String INSCRIPTION_READ    = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR')";
-    // ANIMATEUR/FORMATEUR inclus : un animateur interne est aussi un enseignant et
-    // peut donc s'inscrire aux formations (symétrique de INSCRIPTION_READ).
-    public static final String INSCRIPTION_CREATE  = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_ANIMATEUR','ROLE_FORMATEUR')";
+    public static final String INSCRIPTION_READ    = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_CHEF_DEPARTEMENT')";
+    // Spécification entreprise : TOUS les rôles peuvent s'inscrire et
+    // participer à une formation SAUF l'ADMIN et le RESPONSABLE_DOSSIER
+    // (rôles purement gestionnaires). CUP et CHEF_DEPARTEMENT sont des
+    // enseignants à part entière et s'inscrivent comme les autres, sous
+    // réserve d'appartenir au périmètre de la formation (UP ou département).
+    public static final String INSCRIPTION_CREATE  = "hasAnyRole('ROLE_CUP','ROLE_ENSEIGNANT','ROLE_ANIMATEUR','ROLE_FORMATEUR','ROLE_CHEF_DEPARTEMENT')";
     public static final String INSCRIPTION_APPROVE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
 
     public static final String GATEWAY_ACCESS = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_CHEF_DEPARTEMENT','ROLE_RESPONSABLE_DOSSIER')";
+
+    // ── Workflow propositions d'animateurs ─────────────────────────────
+    /** Consulter les propositions et affectations d'animation. */
+    public static final String ANIMATOR_PROPOSAL_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_ANIMATEUR','ROLE_CHEF_DEPARTEMENT')";
+    /** Auto-proposition (ENSEIGNANT / ANIMATEUR). */
+    public static final String ANIMATOR_PROPOSAL_SELF = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT','ROLE_ANIMATEUR')";
+    /** Proposer un animateur (CUP / ADMIN / CHEF_DEPARTEMENT). */
+    public static final String ANIMATOR_PROPOSAL_MANAGER = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
+    /** Valider / refuser une proposition (jamais le créateur lui-même, contrôlé service). */
+    public static final String ANIMATOR_PROPOSAL_VALIDATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
+    /** Créer / gérer les affectations définitives. */
+    public static final String ANIMATOR_ASSIGNMENT_MANAGE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
+    /** Répondre (accept/refuse/withdraw) à ses propres propositions. */
+    public static final String ANIMATOR_PROPOSAL_RESPOND = "isAuthenticated()";
 
     // ── Gestion unifiée (comptes + enseignants) ─────────────────────────
     // Page d'administration unifiée. ENSEIGNANT et ANIMATEUR n'y ont pas accès

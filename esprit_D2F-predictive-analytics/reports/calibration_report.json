@@ -1,0 +1,163 @@
+{
+  "status": "OK",
+  "task": "risk_index_calibration",
+  "score_type": "WEIGHTED_HEURISTIC_INDEX",
+  "calibration_status_before": "NOT_CALIBRATED",
+  "n_samples": 2184,
+  "n_events": 404,
+  "min_events_required": 30,
+  "methods": {
+    "platt_scaling": {
+      "coefficients": {
+        "a": 22.822,
+        "b": -6.5735
+      },
+      "brier_score": 0.0449,
+      "brier_ci": {
+        "brier_ci95": [
+          0.0391,
+          0.0506
+        ]
+      },
+      "calibration_curve": [
+        {
+          "bin": "[0.0,0.1]",
+          "mean_predicted_proba": 0.0113,
+          "observed_event_rate": 0.0108,
+          "n": 1575
+        },
+        {
+          "bin": "[0.1,0.2]",
+          "mean_predicted_proba": 0.1365,
+          "observed_event_rate": 0.1146,
+          "n": 96
+        },
+        {
+          "bin": "[0.2,0.3]",
+          "mean_predicted_proba": 0.2487,
+          "observed_event_rate": 0.2632,
+          "n": 57
+        },
+        {
+          "bin": "[0.3,0.4]",
+          "mean_predicted_proba": 0.3529,
+          "observed_event_rate": 0.4211,
+          "n": 38
+        },
+        {
+          "bin": "[0.4,0.5]",
+          "mean_predicted_proba": 0.4494,
+          "observed_event_rate": 0.72,
+          "n": 25
+        },
+        {
+          "bin": "[0.5,0.6]",
+          "mean_predicted_proba": 0.5512,
+          "observed_event_rate": 0.5957,
+          "n": 47
+        },
+        {
+          "bin": "[0.6,0.7]",
+          "mean_predicted_proba": 0.6431,
+          "observed_event_rate": 0.575,
+          "n": 40
+        },
+        {
+          "bin": "[0.7,0.8]",
+          "mean_predicted_proba": 0.7456,
+          "observed_event_rate": 0.675,
+          "n": 40
+        },
+        {
+          "bin": "[0.8,0.9]",
+          "mean_predicted_proba": 0.8608,
+          "observed_event_rate": 0.8167,
+          "n": 60
+        },
+        {
+          "bin": "[0.9,1.0]",
+          "mean_predicted_proba": 0.9767,
+          "observed_event_rate": 0.9709,
+          "n": 206
+        }
+      ]
+    },
+    "isotonic_regression": {
+      "brier_score": 0.0426,
+      "brier_ci": {
+        "brier_ci95": [
+          0.037,
+          0.0477
+        ]
+      },
+      "calibration_curve": [
+        {
+          "bin": "[0.0,0.1]",
+          "mean_predicted_proba": 0.004,
+          "observed_event_rate": 0.004,
+          "n": 1500
+        },
+        {
+          "bin": "[0.1,0.2]",
+          "mean_predicted_proba": 0.125,
+          "observed_event_rate": 0.125,
+          "n": 176
+        },
+        {
+          "bin": "[0.2,0.3]",
+          "mean_predicted_proba": 0.25,
+          "observed_event_rate": 0.25,
+          "n": 44
+        },
+        {
+          "bin": "[0.3,0.4]",
+          "mean_predicted_proba": 0.3714,
+          "observed_event_rate": 0.3714,
+          "n": 35
+        },
+        {
+          "bin": "[0.5,0.6]",
+          "mean_predicted_proba": 0.5556,
+          "observed_event_rate": 0.5556,
+          "n": 9
+        },
+        {
+          "bin": "[0.6,0.7]",
+          "mean_predicted_proba": 0.6204,
+          "observed_event_rate": 0.6204,
+          "n": 137
+        },
+        {
+          "bin": "[0.7,0.8]",
+          "mean_predicted_proba": 0.7556,
+          "observed_event_rate": 0.7556,
+          "n": 45
+        },
+        {
+          "bin": "[0.8,0.9]",
+          "mean_predicted_proba": 0.8485,
+          "observed_event_rate": 0.8485,
+          "n": 33
+        },
+        {
+          "bin": "[0.9,1.0]",
+          "mean_predicted_proba": 0.9756,
+          "observed_event_rate": 0.9756,
+          "n": 205
+        }
+      ]
+    },
+    "uncalibrated_index_baseline": {
+      "brier_score": 0.08,
+      "brier_ci": {
+        "brier_ci95": [
+          0.0738,
+          0.0866
+        ]
+      }
+    }
+  },
+  "best_method": "isotonic_regression",
+  "calibration_status_after_study": "CALIBRATION_CANDIDATE_FOUND",
+  "note": "Indice pondéré conservé : calibration transforme echelle en proba d'evenement observe SIMULE (is_extrapolated=false), sans masquer facteurs."
+}

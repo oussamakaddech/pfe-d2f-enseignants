@@ -1,0 +1,162 @@
+{
+  "feature_schema_version": "1.0",
+  "feature_names": [
+    "current_level_t3",
+    "current_level_t2",
+    "current_level_t1",
+    "current_level_t",
+    "lag_gap_t3_t2",
+    "lag_gap_t2_t1",
+    "lag_gap_t1_t",
+    "rolling_tendance",
+    "days_since_last_training",
+    "training_frequency_per_month",
+    "is_long_absent",
+    "is_stagnant",
+    "avg_level",
+    "min_level",
+    "max_level",
+    "nb_level_5",
+    "nb_level_1",
+    "nb_savoirs",
+    "nb_competences",
+    "competency_coverage_rate",
+    "nb_formations_completed",
+    "nb_formations_in_progress",
+    "taux_assiduite",
+    "nb_besoins_exprimes",
+    "nb_besoins_approuves",
+    "avg_eval_score",
+    "nb_evaluations",
+    "months_since_last_training",
+    "engagement_score"
+  ],
+  "target": "gap_next_3m",
+  "forbidden_in_X": [
+    "gap_next_3m",
+    "knowledge_difficulty_level",
+    "required_level",
+    "required_level_t"
+  ],
+  "feature_ranges": {
+    "current_level_t3": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "current_level_t2": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "current_level_t1": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "current_level_t": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "lag_gap_t3_t2": {
+      "min": -4.0,
+      "max": 2.0
+    },
+    "lag_gap_t2_t1": {
+      "min": -3.0,
+      "max": 3.0
+    },
+    "lag_gap_t1_t": {
+      "min": -4.0,
+      "max": 4.0
+    },
+    "rolling_tendance": {
+      "min": -1.333334,
+      "max": 1.0
+    },
+    "days_since_last_training": {
+      "min": 0.0,
+      "max": 2639.0
+    },
+    "training_frequency_per_month": {
+      "min": 0.0,
+      "max": 0.491804
+    },
+    "is_long_absent": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "is_stagnant": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "avg_level": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "min_level": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "max_level": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "nb_level_5": {
+      "min": 0.0,
+      "max": 4.0
+    },
+    "nb_level_1": {
+      "min": 0.0,
+      "max": 4.0
+    },
+    "nb_savoirs": {
+      "min": 2.0,
+      "max": 7.0
+    },
+    "nb_competences": {
+      "min": 2.0,
+      "max": 10.0
+    },
+    "competency_coverage_rate": {
+      "min": 0.285714,
+      "max": 1.0
+    },
+    "nb_formations_completed": {
+      "min": 0.0,
+      "max": 12.0
+    },
+    "nb_formations_in_progress": {
+      "min": 0.0,
+      "max": 3.0
+    },
+    "taux_assiduite": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "nb_besoins_exprimes": {
+      "min": 0.0,
+      "max": 10.0
+    },
+    "nb_besoins_approuves": {
+      "min": 0.0,
+      "max": 6.0
+    },
+    "avg_eval_score": {
+      "min": 0.0,
+      "max": 4.5
+    },
+    "nb_evaluations": {
+      "min": 0.0,
+      "max": 33.0
+    },
+    "months_since_last_training": {
+      "min": 0.0,
+      "max": 86.695138
+    },
+    "engagement_score": {
+      "min": 0.0,
+      "max": 21.245099
+    }
+  },
+  "feature_ranges_source": "union (quantiles 0.001-0.999 sur simulation_dataset.csv, corpus complet 10920 lignes) x (etendue observee du corpus de demonstration training_corpus_from_db.csv) — justifiee par les deux distributions observees, sans valeur forcee",
+  "feature_ranges_source_simulation": "union (quantiles 0.001-0.999 sur simulation_dataset.csv, corpus complet 10920 lignes) x (etendue observee du corpus de demonstration training_corpus_from_db.csv) — justifiee par les deux distributions observees, sans valeur forcee",
+  "model_version": "simulation-v1.0.0"
+}

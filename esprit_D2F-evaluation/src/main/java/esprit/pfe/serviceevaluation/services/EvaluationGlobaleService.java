@@ -21,10 +21,16 @@ public class EvaluationGlobaleService {
         EvaluationGlobaleDTO dto = new EvaluationGlobaleDTO();
         dto.setIdEvalGlobale(entity.getIdEvalGlobale());
         dto.setFormationId(entity.getFormationId());
+        dto.setEnseignantId(entity.getEnseignantId());
         dto.setCommentaireGeneral(entity.getCommentaireGeneral());
         dto.setDateEvaluation(entity.getDateEvaluation());
         dto.setNoteGlobale(entity.getNoteGlobale());
         dto.setRecommandation(entity.getRecommandation());
+        dto.setPertinenceContenu(entity.getPertinenceContenu());
+        dto.setOrganisation(entity.getOrganisation());
+        dto.setQualiteSupports(entity.getQualiteSupports());
+        dto.setDureeAdaptee(entity.getDureeAdaptee());
+        dto.setSatisfactionGlobale(entity.getSatisfactionGlobale());
         return dto;
     }
 
@@ -32,11 +38,22 @@ public class EvaluationGlobaleService {
         EvaluationGlobale entity = new EvaluationGlobale();
         entity.setIdEvalGlobale(dto.getIdEvalGlobale());
         entity.setFormationId(dto.getFormationId());
+        entity.setEnseignantId(dto.getEnseignantId());
         entity.setCommentaireGeneral(dto.getCommentaireGeneral());
         entity.setDateEvaluation(dto.getDateEvaluation());
         entity.setNoteGlobale(dto.getNoteGlobale());
         entity.setRecommandation(dto.getRecommandation());
+        applyCriteria(entity, dto);
         return entity;
+    }
+
+    /** Applique les critères structurés de l'évaluation de la formation. */
+    private void applyCriteria(EvaluationGlobale entity, EvaluationGlobaleDTO dto) {
+        entity.setPertinenceContenu(dto.getPertinenceContenu());
+        entity.setOrganisation(dto.getOrganisation());
+        entity.setQualiteSupports(dto.getQualiteSupports());
+        entity.setDureeAdaptee(dto.getDureeAdaptee());
+        entity.setSatisfactionGlobale(dto.getSatisfactionGlobale());
     }
 
     public EvaluationGlobaleDTO createEvaluationGlobale(EvaluationGlobaleDTO dto) {
@@ -51,9 +68,11 @@ public class EvaluationGlobaleService {
         EvaluationGlobale existing = evaluationGlobaleRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(MSG_NOT_FOUND + id));
         existing.setCommentaireGeneral(dto.getCommentaireGeneral());
+        existing.setEnseignantId(dto.getEnseignantId());
         existing.setDateEvaluation(dto.getDateEvaluation());
         existing.setNoteGlobale(dto.getNoteGlobale());
         existing.setRecommandation(dto.getRecommandation());
+        applyCriteria(existing, dto);
         return mapToDto(evaluationGlobaleRepository.save(existing));
     }
 

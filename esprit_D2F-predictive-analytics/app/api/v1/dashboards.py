@@ -20,7 +20,9 @@ def get_dashboard(
     scope: ScopeParam = "GLOBAL",
     scope_id: Annotated[str | None, Query()] = None,
 ):
-    if scope == "DEPARTEMENT" and user.is_chef_departement:
+    # CHEF_DEPARTEMENT is always scoped to their own department
+    if user.is_chef_departement and not user.is_admin and not user.is_cup:
+        scope = "DEPARTEMENT"
         user_teacher = resolve_user_teacher(container, user)
         if user_teacher and user_teacher.dept_id:
             scope_id = user_teacher.dept_id
@@ -35,7 +37,8 @@ def get_latest_dashboard(
     scope: ScopeParam = "GLOBAL",
     scope_id: Annotated[str | None, Query()] = None,
 ):
-    if scope == "DEPARTEMENT" and user.is_chef_departement:
+    if user.is_chef_departement and not user.is_admin and not user.is_cup:
+        scope = "DEPARTEMENT"
         user_teacher = resolve_user_teacher(container, user)
         if user_teacher and user_teacher.dept_id:
             scope_id = user_teacher.dept_id
@@ -52,7 +55,8 @@ def get_declining_trends(
     scope: ScopeParam = "GLOBAL",
     scope_id: Annotated[str | None, Query()] = None,
 ):
-    if scope == "DEPARTEMENT" and user.is_chef_departement:
+    if user.is_chef_departement and not user.is_admin and not user.is_cup:
+        scope = "DEPARTEMENT"
         user_teacher = resolve_user_teacher(container, user)
         if user_teacher and user_teacher.dept_id:
             scope_id = user_teacher.dept_id

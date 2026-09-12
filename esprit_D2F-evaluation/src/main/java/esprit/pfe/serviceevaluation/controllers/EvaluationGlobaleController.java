@@ -43,7 +43,7 @@ public class EvaluationGlobaleController {
     }
 
     @GetMapping("/formation/{formationId}")
-    @PreAuthorize(AuthorizationMatrix.EVALUATION_READ_ALL)
+    @PreAuthorize(AuthorizationMatrix.EVALUATION_READ_FORMATION)
     public ResponseEntity<EvaluationGlobaleDTO> getEvaluationGlobaleByFormationId(@PathVariable Long formationId) {
         return ResponseEntity.ok(evaluationGlobaleService.getEvaluationGlobaleByFormationId(formationId));
     }

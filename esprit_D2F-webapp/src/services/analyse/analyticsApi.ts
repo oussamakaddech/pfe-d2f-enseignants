@@ -24,6 +24,7 @@
  */
 import { defaultApi as axios } from '@/services/httpClient';
 import { config } from '@/config/env';
+import { riskLabel } from '@/utils/analytics/format';
 import type {
   AnalyseResult,
   AlertEvent,
@@ -38,6 +39,7 @@ import type {
   DriftReport,
   GapsResponse,
   HeatmapCell,
+  ModelMode,
   ModelStatus,
   NiveauRisque,
   NiveauUrgence,
@@ -95,14 +97,35 @@ function unpack<T>(envelope: ApiEnvelope<T> | T): T {
 
 interface BackendRiskFactor {
   feature: string;
-  value: number;
+  code: string;
+  label: string;
+  raw_value: number;
+  normalized_value: number;
+  weight: number;
   contribution: number;
+  contribution_percent: number;
+  /** Périmètre des gaps comptés (TEACHER / DEPARTMENT), fourni par le backend. */
+  scope?: string;
+  /** Type du scope (TEACHER / DEPARTMENT / UP), fourni par le backend. */
+  scope_type?: string;
+  /** Identifiant du scope (ex : ENS024, DEP_RESEAUX), fourni par le backend. */
+  scope_id?: string | null;
+  /** Libellé affichable du scope (ex : « Département Réseaux »), fourni par le backend. */
+  scope_label?: string | null;
+  /** Compat ancien DTO (valeur brute) — prioritaire sur rien, simple repli. */
+  value?: number;
 }
 
 interface BackendRiskProfile {
   teacher_id: string;
-  risk_score: number; // 0..100
-  risk_level: string; // LOW/MEDIUM/HIGH/CRITICAL
+  risk_score: number; // 0..100 (compat)
+  risk_level: string; // LOW/MEDIUM/HIGH/CRITICAL (compat)
+  score: number; // 0..1
+  score_percent: number; // 0..100
+  level: string; // LOW/MEDIUM/HIGH/CRITICAL
+  level_label: string; // FAIBLE/MODERE/ELEVE/CRITIQUE
+  is_capped: boolean;
+  uncapped_score: number;
   factors: BackendRiskFactor[];
   computed_at: string;
 }
@@ -111,8 +134,8 @@ interface BackendGapDiagnostic {
   competence_id: number;
   competence_code: string;
   competence_nom: string;
-  current_level: number;
-  target_level: number;
+  observed_result: number; // Résultat réel observé de l'enseignant
+  knowledge_difficulty_level: number; // Niveau de difficulté du savoir (référentiel)
   gap_score: number; // 0..1
   severity: string; // FAIBLE/MOYENNE/HAUTE/CRITIQUE
   trend: string; // IMPROVING/STABLE/DECLINING
@@ -188,6 +211,16 @@ function mapUrgence(level: string | null | undefined): NiveauUrgence {
   return mapped ?? 'FAIBLE';
 }
 
+/** Mappe le mode d'exécution du modèle (backend app/core/ml_status.py). */
+function mapModelMode(mode: string | null | undefined): ModelMode {
+  const m = (mode ?? '').toUpperCase();
+  if (m === 'PRODUCTION_ML' || m === 'ML') return m === 'PRODUCTION_ML' ? 'PRODUCTION_ML' : 'ML';
+  if (m === 'DEMO_ML') return 'DEMO_ML';
+  // Moteur de risque en repli fail-closed : etiquete explicitement.
+  if (m === 'HEURISTIC') return 'HEURISTIC';
+  return 'HEURISTIC_FALLBACK';
+}
+
 /** Hash numérique stable (les IDs backend sont des chaînes de caractères). */
 function hashId(input: string): number {
   let h = 0;
@@ -208,34 +241,87 @@ const FACTOR_LABELS: Record<string, string> = {
   low_eval: 'Évaluations faibles',
   repeated_need: 'Besoins répétés',
   low_engagement: 'Faible engagement',
+  // Noms réels des features du backend predictive-analytics :
+  critical_gaps: 'Gaps critiques',
+  high_gaps: 'Gaps de haute urgence',
+  avg_gap_score: 'Score moyen des gaps',
+  critical_gaps_rule: 'Règle métier (≥ 3 gaps critiques)',
+  n_critical_gaps: 'Nombre de gaps critiques',
+  stagnation_months: 'Mois de stagnation',
 };
 
+const PROBA_CLASS_LABELS: Record<string, string> = {
+  LOW: 'Probabilité classe Faible',
+  MEDIUM: 'Probabilité classe Modérée',
+  HIGH: 'Probabilité classe Élevée',
+  CRITICAL: 'Probabilité classe Critique',
+};
+
+function mapFactorNom(feature: string): string {
+  const probaMatch = /^(.+)_proba$/i.exec(feature);
+  if (probaMatch) {
+    const classe = probaMatch[1].toUpperCase();
+    if (PROBA_CLASS_LABELS[classe]) return PROBA_CLASS_LABELS[classe];
+  }
+  return FACTOR_LABELS[feature] ?? feature;
+}
+
+type BackendRiskFactorItem = BackendRiskProfile['factors'][number];
+
+function mapHeuristicFactor(f: BackendRiskFactorItem): RiskFactor {
+  const isProba = /_proba$/i.test(f.code || f.feature);
+  const displayNom = f.label?.trim() ? f.label : mapFactorNom(f.code || f.feature);
+  return {
+    nom: displayNom,
+    code: f.code ?? f.feature,
+    valeur_brute: f.raw_value ?? f.value ?? 0,
+    valeur_normalisee: clamp01(f.normalized_value ?? 0),
+    poids: f.weight ?? 0,
+    contribution: clamp01(f.contribution ?? 0),
+    contribution_percent: Math.round(
+      Math.max(0, Math.min(100, f.contribution_percent ?? (f.contribution ?? 0) * 100)),
+    ),
+    explication: `${displayNom} (valeur ${formatRaw(f.raw_value ?? 0)}, normalisée ${clamp01(
+      f.normalized_value ?? 0,
+    ).toFixed(2)})`,
+    categorie: isProba ? 'PROBABILITE_ML' : 'FACTEUR',
+    scope: f.scope ?? '',
+    scope_type: f.scope_type ?? '',
+    scope_id: f.scope_id ?? null,
+    scope_label: f.scope_label ?? null,
+  };
+}
+
 function mapRiskProfile(raw: BackendRiskProfile): RiskScore {
-  const facteurs: RiskFactor[] = (raw.factors ?? []).map((f) => {
-    const poids = f.value > 0 ? Number((f.contribution / f.value).toFixed(4)) : 0;
-    return {
-      nom: FACTOR_LABELS[f.feature] ?? f.feature,
-      valeur_brute: f.value,
-      poids,
-      contribution: f.contribution,
-      explication: `${FACTOR_LABELS[f.feature] ?? f.feature} (valeur ${(f.value * 100).toFixed(0)}%)`,
-    };
-  });
+  const facteurs: RiskFactor[] = (raw.factors ?? []).map(mapHeuristicFactor);
+
+  const level = raw.level ?? raw.risk_level;
+  const niveau = mapRiskLevel(level);
+  const score01 = clamp01(raw.score ?? (raw.risk_score ?? 0) / 100);
   return {
     enseignant_id: raw.teacher_id,
     enseignant_nom: null,
     analysis_status: 'READY',
     data_source: 'heuristic',
-    score: clamp01(raw.risk_score / 100),
-    niveau: mapRiskLevel(raw.risk_level),
+    score: score01,
+    score_percent: Math.round(raw.score_percent ?? raw.risk_score ?? score01 * 100),
+    level_label: raw.level_label ?? riskLabel(niveau),
+    niveau,
     model_mode: undefined, // sera positionne par getRisk depuis meta
     model_version: null,
+    model_name: null,
     facteurs,
     tendance: 'STABLE',
     precedent_score: null,
     computed_at: raw.computed_at ?? new Date().toISOString(),
     warnings: [],
+    is_capped: raw.is_capped ?? false,
+    uncapped_score: raw.uncapped_score ?? undefined,
   };
+}
+
+function formatRaw(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2);
 }
 
 function mapGap(raw: BackendGapDiagnostic): SkillGap {
@@ -246,9 +332,8 @@ function mapGap(raw: BackendGapDiagnostic): SkillGap {
     competence_code: raw.competence_code || String(raw.competence_id),
     competence_nom: raw.competence_nom || String(raw.competence_id),
     domaine_nom: null,
-    niveau_actuel: raw.current_level ?? 0,
-    niveau_requis: raw.target_level ?? 5,
-    niveau_vise: raw.target_level ?? 5,
+    observed_result: raw.observed_result ?? 0,
+    knowledge_difficulty_level: raw.knowledge_difficulty_level ?? 5,
     gap_score: gapScore,
     priorite_score: gapScore,
     niveau_urgence: mapUrgence(raw.severity),
@@ -279,7 +364,11 @@ interface BackendTeacherScopeAnalysis {
   recommendations: BackendRecommendation[];
   scoped_competencies_count: number;
   total_competencies_count: number;
-  is_fallback_global: boolean;
+  scope: {
+    type: 'GLOBAL' | 'DEPARTMENT' | 'UP';
+    is_global: boolean;
+    label: string;
+  };
   computed_at: string;
 }
 
@@ -540,17 +629,58 @@ export const analyticsApi = {
       .then((r) => {
         const list = unpack(r.data) ?? [];
         const mapped = list.map(mapGap);
+        const unique = new Map<number, SkillGap>();
+        for (const g of mapped) {
+          const existing = unique.get(g.competence_id);
+          if (!existing || g.gap_score > existing.gap_score) unique.set(g.competence_id, g);
+        }
+        const deduped = Array.from(unique.values());
         const filtered = opts.urgence
           ? mapped.filter((g) => g.niveau_urgence === opts.urgence)
           : mapped;
         const size = opts.size ?? filtered.length;
         const start = (opts.page ?? 0) * size;
+        const meta = (r.data as ApiEnvelope<unknown> | undefined)?.meta ?? {};
+        const m = meta as Record<string, unknown>;
+        const provenance = (m.provenance ?? {}) as Record<string, unknown>;
         return {
           enseignant_id: enseignantId,
           total: filtered.length,
           page: opts.page ?? 0,
           size,
           gaps: filtered.slice(start, start + size),
+          gaps_summary: {
+            total: deduped.length,
+            critical: deduped.filter((g) => g.niveau_urgence === 'CRITIQUE').length,
+            high: deduped.filter((g) => g.niveau_urgence === 'HAUTE').length,
+            stagnant: deduped.filter((g) => g.mois_stagnation > 0).length,
+            declining: deduped.filter((g) => g.en_regression).length,
+          },
+          model: {
+            model_mode: mapModelMode((m.model_mode as string) ?? undefined),
+            model_version: (m.model_version as string) ?? undefined,
+            fallback_reason: (m.fallback_reason as string) ?? undefined,
+            dataset_version: (provenance.dataset_version as string) ?? undefined,
+            prediction_horizon: (m.prediction_horizon as string) ?? undefined,
+            synthetic_share_pct:
+              typeof m.synthetic_share_pct === 'number' ? m.synthetic_share_pct : undefined,
+            total_rows:
+              typeof provenance.total_rows === 'number' ? provenance.total_rows : undefined,
+            real_rows: typeof provenance.real_rows === 'number' ? provenance.real_rows : undefined,
+            target_validity: (m.target_validity as string) ?? null,
+            target_validity_label: (m.target_validity_label as string) ?? null,
+            data_origin: (m.data_origin as string) ?? null,
+            validation_scope: (m.validation_scope as string) ?? null,
+            near_boundary_warning:
+              (m.near_boundary_warning as {
+                code: string;
+                message: string;
+                features: string[];
+              } | null) ?? null,
+          },
+          target_validity: (m.target_validity as string) ?? null,
+          validation_scope: (m.validation_scope as string) ?? null,
+          data_origin: (m.data_origin as string) ?? null,
         };
       });
   },
@@ -608,7 +738,11 @@ export const analyticsApi = {
           recommendations: (raw.recommendations ?? []).map(mapRecommendation),
           scoped_competencies_count: raw.scoped_competencies_count,
           total_competencies_count: raw.total_competencies_count,
-          is_fallback_global: raw.is_fallback_global,
+          scope: {
+            type: raw.scope?.type ?? 'GLOBAL',
+            is_global: raw.scope?.is_global ?? true,
+            label: raw.scope?.label ?? 'Périmètre global',
+          },
           computed_at: raw.computed_at,
         };
       });
@@ -626,9 +760,58 @@ export const analyticsApi = {
       .get<ApiEnvelope<BackendRiskProfile>>(`${BASE}/teachers/${enseignantId}/risk`)
       .then((r) => {
         const mapped = mapRiskProfile(unpack(r.data));
-        const meta = (r.data.meta ?? {}) as { model_mode?: string; model_version?: string | null };
-        mapped.model_mode = meta.model_mode === 'ML' ? 'ML' : 'HEURISTIC_FALLBACK';
+        const meta = (r.data.meta ?? {}) as {
+          model_mode?: string;
+          model_version?: string | null;
+          model_name?: string | null;
+          model_algorithm?: string | null;
+          target_validity?: string | null;
+          validation_scope?: string | null;
+          data_origin?: string | null;
+        };
+        const data = (r.data.data ?? {}) as {
+          score_type?: string | null;
+          calibration_status?: string | null;
+          mode?: string | null;
+          risk_class?: string | null;
+          probability_calibrated?: number | null;
+          probabilities?: Record<string, number> | null;
+          contributions?:
+            | { feature: string; value: number; impact: number; method: string }[]
+            | null;
+          explanation_method?: string | null;
+          fallback_reason?: string | null;
+          heuristic_reference?: {
+            description?: string;
+            weights?: Record<string, number>;
+            factors?: BackendRiskProfile['factors'];
+          } | null;
+        };
+        mapped.model_mode = mapModelMode(meta.model_mode);
         mapped.model_version = meta.model_version ?? null;
+        mapped.model_name = meta.model_name ?? null;
+        mapped.model_algorithm = (meta.model_algorithm ?? null) as string | null;
+        mapped.target_validity = meta.target_validity ?? null;
+        mapped.validation_scope = meta.validation_scope ?? null;
+        mapped.data_origin = meta.data_origin ?? null;
+        mapped.score_type = data.score_type ?? 'WEIGHTED_HEURISTIC_INDEX';
+        mapped.calibration_status = data.calibration_status ?? 'NOT_CALIBRATED';
+        // Mode reellement servi : ML (modele calibre) ou HEURISTIC (repli fail-closed).
+        mapped.mode = data.mode === 'ML' ? 'ML' : 'HEURISTIC';
+        mapped.data_source = mapped.mode === 'ML' ? 'ml_model' : 'heuristic';
+        mapped.risk_class = data.risk_class ?? null;
+        mapped.probability_calibrated = data.probability_calibrated ?? null;
+        mapped.probabilities = data.probabilities ?? null;
+        mapped.contributions = data.contributions ?? null;
+        mapped.explanation_method = data.explanation_method ?? null;
+        mapped.fallback_reason = data.fallback_reason ?? null;
+        mapped.heuristic_reference = data.heuristic_reference
+          ? {
+              description: data.heuristic_reference.description,
+              weights: data.heuristic_reference.weights,
+              factors: (data.heuristic_reference.factors ?? []).map(mapHeuristicFactor),
+            }
+          : null;
         return mapped;
       });
   },

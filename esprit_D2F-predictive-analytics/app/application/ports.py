@@ -63,7 +63,18 @@ class ModelPort(Protocol):
 
     def predict_risk(self, teacher_id: str) -> RiskProfile | None: ...
 
+    def predict_risk_serving(self, teacher_id: str) -> tuple[RiskProfile | None, dict | None, str | None]:
+        """Risque servi : (profil, payload ML | None, fallback_reason | None)."""
+        ...
+
+    def heuristic_risk_reference(self, teacher_id: str) -> RiskProfile:
+        """Decomposition heuristique de reference (0.50/0.12/0.40)."""
+        ...
+
+    def risk_ml_status(self) -> dict: ...
+
     def status(self) -> dict: ...
+
 
 
 class AlertRepository(Protocol):

@@ -34,6 +34,8 @@ public class GlobalExceptionHandler {
     private static final String ERR_ACCESS_DENIED      = "BESOIN_ACCESS_DENIED";
     private static final String ERR_UNAUTHORIZED        = "BESOIN_UNAUTHORIZED";
     private static final String ERR_BUSINESS_RULE      = "BESOIN_BUSINESS_RULE_VIOLATION";
+    private static final String ERR_WORKFLOW_CONFLICT  = "BESOIN_WORKFLOW_CONFLICT";
+    private static final String ERR_CONCURRENT_MODIF    = "BESOIN_CONCURRENT_MODIFICATION";
     private static final String ERR_DATA_CONFLICT      = "BESOIN_DATA_CONFLICT";
     private static final String ERR_INTERNAL            = "BESOIN_INTERNAL_ERROR";
 
@@ -82,11 +84,37 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAccessDenied(
             AccessDeniedException ex, HttpServletRequest request) {
         log.warn("Access denied at {} : {}", request.getRequestURI(), ex.getMessage());
-        // Return the workflow-specific message if it is one of ours; otherwise generic
-        String msg = ex.getMessage() != null && ex.getMessage().startsWith("Étape")
-                ? ex.getMessage()
+        // Fait passer les messages métier du workflow (périmètre, créateur,
+        // étape) ; les refus Spring par défaut restent génériques.
+        String raw = ex.getMessage();
+        String msg = (raw != null && !raw.isBlank()
+                && !raw.equals("Access Denied") && !raw.startsWith("Access is denied"))
+                ? raw
                 : "Accès refusé : vous n'avez pas les permissions nécessaires pour cette opération.";
         return build(HttpStatus.FORBIDDEN, ERR_ACCESS_DENIED, msg, request);
+    }
+
+    // ── 409 — Transition de workflow invalide ───────────────────────────────
+
+    @ExceptionHandler(InvalidWorkflowTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleWorkflowConflict(
+            InvalidWorkflowTransitionException ex, HttpServletRequest request) {
+        log.warn("Workflow conflict at {}: {}", request.getRequestURI(), ex.getMessage());
+        return build(HttpStatus.CONFLICT, ERR_WORKFLOW_CONFLICT, ex.getMessage(), request);
+    }
+
+    // ── 409 — Modification concurrente (verrou optimiste @Version) ──────────
+
+    @ExceptionHandler({
+            org.springframework.orm.ObjectOptimisticLockingFailureException.class,
+            jakarta.persistence.OptimisticLockException.class
+    })
+    public ResponseEntity<ErrorResponse> handleOptimisticLock(
+            RuntimeException ex, HttpServletRequest request) {
+        log.warn("Concurrent modification at {}: {}", request.getRequestURI(), ex.getMessage());
+        return build(HttpStatus.CONFLICT, ERR_CONCURRENT_MODIF,
+                "Traitement concurrent : le besoin a été modifié entre-temps, rechargez puis réessayez.",
+                request);
     }
 
     // ── 401 — Authentification échouée ────────────────────────────────────────

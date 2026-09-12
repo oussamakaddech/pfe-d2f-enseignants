@@ -17,10 +17,10 @@ COMPETENCY = Competency(
     nom="Pedagogie",
     domaine_id=None,
     domaine_nom=None,
-    savoirs=(Savoir(id=101, code="S101", nom="S1", required_level=4), Savoir(id=102, code="S102", nom="S2", required_level=3)),
+    savoirs=(Savoir(id=101, code="S101", nom="S1", knowledge_difficulty_level=4), Savoir(id=102, code="S102", nom="S2", knowledge_difficulty_level=3)),
 )
 
-STATE = TeacherCompetencyState(teacher_id="T001", competency=COMPETENCY, current_level=1.5, previous_level=None, savoir_levels={101: 1, 102: 2})
+STATE = TeacherCompetencyState(teacher_id="T001", competency=COMPETENCY, observed_result=1.5, previous_observed_result=None, savoir_levels={101: 1, 102: 2})
 
 
 def _candidate(savoir_ids: set[int], completed: bool = False, avg_eval: float | None = 4.0) -> TrainingCandidate:

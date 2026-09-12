@@ -14,6 +14,24 @@ public interface IBesoinFormationService {
     public void removeBesoinFormation(long idBesoinFormation) ;
     public BesoinFormationResponse modifyBesoinFormation(BesoinFormationRequest request) ;
     public BesoinFormationResponse approuverBesoin(Long id);
+
+    /** Refuse un besoin à l'étape courante (motif obligatoire). */
+    public BesoinFormationResponse refuserBesoin(Long id, String motif);
+
+    /** Annule son propre besoin avant toute approbation (ou ADMIN). */
+    public BesoinFormationResponse annulerBesoin(Long id);
+
+    /** Besoins en attente à l'étape de l'utilisateur connecté (rôle + périmètre serveur). */
+    Page<BesoinFormationResponse> retrievePendingApproval(Pageable pageable);
+
+    /** Besoins du périmètre de l'utilisateur connecté (CUP → son UP, chef → son département). */
+    Page<BesoinFormationResponse> retrieveScope(Pageable pageable);
+
+    /** Historique d'audit des transitions d'un besoin (ADMIN). */
+    java.util.List<tn.esprit.d2f.entity.BesoinApprovalHistory> getApprovalHistory(Long id);
+
+    /** Republication différée des événements non partis (scheduler). */
+    int republishPendingEvents();
     Page<BesoinFormationResponse> retrieveApprovedBesoinFormations(Pageable pageable);
 
     /** §2.2.2 — Consulter les besoins par UP */

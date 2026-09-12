@@ -1,0 +1,710 @@
+{
+  "dataset_synthetic": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\synthetic\\demo_dataset_synthetic-v1.0.0_clean.csv",
+  "dataset_application": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\clean\\training_corpus_from_db.csv",
+  "n_rows_synthetic": 1000,
+  "n_rows_application": 107,
+  "drift_indicator": {
+    "method": "Wasserstein distance par feature (distribution synth vs application)",
+    "mean_wasserstein": 0.2486,
+    "interpretation": "shift faible (<0.2) : distributions proches ; shift élevé : les données application diffèrent du corpus d'entraînement synthétique — résultats à interpréter avec précaution (inférence de démonstration)."
+  },
+  "features": [
+    {
+      "feature": "current_level_t3",
+      "synthetic": {
+        "mean": 3.237,
+        "std": 0.9894,
+        "min": 1.0,
+        "max": 5.0,
+        "q25": 3.0,
+        "median": 3.0,
+        "q75": 4.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 2.243,
+        "std": 0.9748,
+        "min": 1.0,
+        "max": 5.0,
+        "q25": 1.0,
+        "median": 2.0,
+        "q75": 3.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "current_level_t2",
+      "synthetic": {
+        "mean": 3.28,
+        "std": 1.0028,
+        "min": 1.0,
+        "max": 5.0,
+        "q25": 3.0,
+        "median": 3.0,
+        "q75": 4.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 2.2523,
+        "std": 0.9676,
+        "min": 1.0,
+        "max": 5.0,
+        "q25": 1.0,
+        "median": 2.0,
+        "q75": 3.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "current_level_t1",
+      "synthetic": {
+        "mean": 3.319,
+        "std": 1.0096,
+        "min": 1.0,
+        "max": 5.0,
+        "q25": 3.0,
+        "median": 3.0,
+        "q75": 4.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 2.3645,
+        "std": 0.9801,
+        "min": 1.0,
+        "max": 5.0,
+        "q25": 2.0,
+        "median": 2.0,
+        "q75": 3.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "current_level_t",
+      "synthetic": {
+        "mean": 3.37,
+        "std": 1.0369,
+        "min": 1.0,
+        "max": 5.0,
+        "q25": 3.0,
+        "median": 3.0,
+        "q75": 4.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 2.1308,
+        "std": 0.8763,
+        "min": 1.0,
+        "max": 4.0,
+        "q25": 1.0,
+        "median": 2.0,
+        "q75": 3.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "lag_gap_t3_t2",
+      "synthetic": {
+        "mean": 0.043,
+        "std": 0.3273,
+        "min": -1.0,
+        "max": 1.0,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 0.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 0.0093,
+        "std": 0.4429,
+        "min": -2.0,
+        "max": 2.0,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 0.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "lag_gap_t2_t1",
+      "synthetic": {
+        "mean": 0.039,
+        "std": 0.3485,
+        "min": -1.0,
+        "max": 1.0,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 0.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 0.1121,
+        "std": 0.6164,
+        "min": -2.0,
+        "max": 2.0,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 0.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "lag_gap_t1_t",
+      "synthetic": {
+        "mean": 0.051,
+        "std": 0.3412,
+        "min": -1.0,
+        "max": 1.0,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 0.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": -0.2336,
+        "std": 1.1567,
+        "min": -3.0,
+        "max": 2.0,
+        "q25": -1.0,
+        "median": 0.0,
+        "q75": 0.5,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "rolling_tendance",
+      "synthetic": {
+        "mean": 0.0443,
+        "std": 0.1595,
+        "min": -0.333,
+        "max": 0.667,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 0.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": -0.0374,
+        "std": 0.3767,
+        "min": -1.0,
+        "max": 0.6667,
+        "q25": -0.3333,
+        "median": 0.0,
+        "q75": 0.3333,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "days_since_last_training",
+      "synthetic": {
+        "mean": 276.993,
+        "std": 387.9164,
+        "min": 0.0,
+        "max": 999.0,
+        "q25": 30.0,
+        "median": 89.0,
+        "q75": 274.25,
+        "missing": 0
+      },
+      "application": {
+        "mean": 300.8037,
+        "std": 129.7863,
+        "min": 1.0,
+        "max": 365.0,
+        "q25": 365.0,
+        "median": 365.0,
+        "q75": 365.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "training_frequency_per_month",
+      "synthetic": {
+        "mean": 0.1412,
+        "std": 0.1074,
+        "min": 0.0,
+        "max": 0.667,
+        "q25": 0.0612,
+        "median": 0.143,
+        "q75": 0.211,
+        "missing": 0
+      },
+      "application": {
+        "mean": 0.1887,
+        "std": 0.463,
+        "min": 0.0,
+        "max": 3.0,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 0.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "is_long_absent",
+      "synthetic": {
+        "mean": 0.358,
+        "std": 0.4794,
+        "min": 0.0,
+        "max": 1.0,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 1.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 0.8131,
+        "std": 0.3898,
+        "min": 0.0,
+        "max": 1.0,
+        "q25": 1.0,
+        "median": 1.0,
+        "q75": 1.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "is_stagnant",
+      "synthetic": {
+        "mean": 0.711,
+        "std": 0.4533,
+        "min": 0.0,
+        "max": 1.0,
+        "q25": 0.0,
+        "median": 1.0,
+        "q75": 1.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 0.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "avg_level",
+      "synthetic": {
+        "mean": 3.3015,
+        "std": 0.98,
+        "min": 1.0,
+        "max": 5.0,
+        "q25": 3.0,
+        "median": 3.0,
+        "q75": 4.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 2.2313,
+        "std": 0.6895,
+        "min": 1.0,
+        "max": 4.5,
+        "q25": 1.75,
+        "median": 2.0,
+        "q75": 2.5,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "min_level",
+      "synthetic": {
+        "mean": 3.151,
+        "std": 1.0021,
+        "min": 1.0,
+        "max": 5.0,
+        "q25": 3.0,
+        "median": 3.0,
+        "q75": 4.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 1.6636,
+        "std": 0.7847,
+        "min": 1.0,
+        "max": 4.0,
+        "q25": 1.0,
+        "median": 1.0,
+        "q75": 2.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "max_level",
+      "synthetic": {
+        "mean": 3.444,
+        "std": 1.0044,
+        "min": 1.0,
+        "max": 5.0,
+        "q25": 3.0,
+        "median": 3.0,
+        "q75": 4.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 2.8037,
+        "std": 0.7543,
+        "min": 1.0,
+        "max": 5.0,
+        "q25": 2.0,
+        "median": 3.0,
+        "q75": 3.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "nb_level_5",
+      "synthetic": {
+        "mean": 0.534,
+        "std": 1.2684,
+        "min": 0.0,
+        "max": 4.0,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 0.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 0.0093,
+        "std": 0.0962,
+        "min": 0.0,
+        "max": 1.0,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 0.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "nb_level_1",
+      "synthetic": {
+        "mean": 0.12,
+        "std": 0.598,
+        "min": 0.0,
+        "max": 4.0,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 0.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 0.757,
+        "std": 0.8737,
+        "min": 0.0,
+        "max": 4.0,
+        "q25": 0.0,
+        "median": 1.0,
+        "q75": 1.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "nb_savoirs",
+      "synthetic": {
+        "mean": 3.443,
+        "std": 1.0596,
+        "min": 2.0,
+        "max": 5.0,
+        "q25": 3.0,
+        "median": 3.0,
+        "q75": 4.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 2.785,
+        "std": 1.0768,
+        "min": 2.0,
+        "max": 7.0,
+        "q25": 2.0,
+        "median": 2.0,
+        "q75": 3.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "nb_competences",
+      "synthetic": {
+        "mean": 7.19,
+        "std": 0.9869,
+        "min": 5.0,
+        "max": 10.0,
+        "q25": 7.0,
+        "median": 7.0,
+        "q75": 8.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 4.729,
+        "std": 1.3154,
+        "min": 2.0,
+        "max": 6.0,
+        "q25": 4.0,
+        "median": 5.0,
+        "q75": 6.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "competency_coverage_rate",
+      "synthetic": {
+        "mean": 0.5529,
+        "std": 0.0757,
+        "min": 0.385,
+        "max": 0.769,
+        "q25": 0.538,
+        "median": 0.538,
+        "q75": 0.615,
+        "missing": 0
+      },
+      "application": {
+        "mean": 0.7562,
+        "std": 0.2415,
+        "min": 0.2857,
+        "max": 1.0,
+        "q25": 0.5,
+        "median": 0.6667,
+        "q75": 1.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "nb_formations_completed",
+      "synthetic": {
+        "mean": 1.882,
+        "std": 1.555,
+        "min": 0.0,
+        "max": 8.0,
+        "q25": 1.0,
+        "median": 2.0,
+        "q75": 3.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 0.2617,
+        "std": 0.5693,
+        "min": 0.0,
+        "max": 3.0,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 0.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "nb_formations_in_progress",
+      "synthetic": {
+        "mean": 0.448,
+        "std": 0.6223,
+        "min": 0.0,
+        "max": 3.0,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 1.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 0.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "taux_assiduite",
+      "synthetic": {
+        "mean": 0.5702,
+        "std": 0.2029,
+        "min": 0.0,
+        "max": 1.0,
+        "q25": 0.4347,
+        "median": 0.5865,
+        "q75": 0.704,
+        "missing": 0
+      },
+      "application": {
+        "mean": 0.0479,
+        "std": 0.1977,
+        "min": 0.0,
+        "max": 0.9412,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 0.0,
+        "missing": 0
+      },
+      "wasserstein": 0.5442
+    },
+    {
+      "feature": "nb_besoins_exprimes",
+      "synthetic": {
+        "mean": 5.546,
+        "std": 5.5203,
+        "min": 0.0,
+        "max": 18.0,
+        "q25": 0.0,
+        "median": 4.0,
+        "q75": 10.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 0.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "nb_besoins_approuves",
+      "synthetic": {
+        "mean": 3.315,
+        "std": 3.498,
+        "min": 0.0,
+        "max": 14.0,
+        "q25": 0.0,
+        "median": 2.0,
+        "q75": 6.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 0.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "avg_eval_score",
+      "synthetic": {
+        "mean": 2.6584,
+        "std": 0.422,
+        "min": 1.377,
+        "max": 3.912,
+        "q25": 2.3558,
+        "median": 2.673,
+        "q75": 2.957,
+        "missing": 0
+      },
+      "application": {
+        "mean": 0.2905,
+        "std": 1.0345,
+        "min": 0.0,
+        "max": 4.5,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 0.0,
+        "missing": 0
+      },
+      "wasserstein": 4.7082
+    },
+    {
+      "feature": "nb_evaluations",
+      "synthetic": {
+        "mean": 9.522,
+        "std": 5.2266,
+        "min": 1.0,
+        "max": 18.0,
+        "q25": 5.0,
+        "median": 9.0,
+        "q75": 14.0,
+        "missing": 0
+      },
+      "application": {
+        "mean": 0.1308,
+        "std": 0.5131,
+        "min": 0.0,
+        "max": 3.0,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 0.0,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "months_since_last_training",
+      "synthetic": {
+        "mean": 4.7941,
+        "std": 5.0036,
+        "min": 0.0,
+        "max": 13.0,
+        "q25": 0.986,
+        "median": 2.924,
+        "q75": 9.0092,
+        "missing": 0
+      },
+      "application": {
+        "mean": 9.8819,
+        "std": 4.2637,
+        "min": 0.0329,
+        "max": 11.9908,
+        "q25": 11.9908,
+        "median": 11.9908,
+        "q75": 11.9908,
+        "missing": 0
+      },
+      "wasserstein": 0.0
+    },
+    {
+      "feature": "engagement_score",
+      "synthetic": {
+        "mean": 0.585,
+        "std": 0.1768,
+        "min": 0.021,
+        "max": 1.0,
+        "q25": 0.4557,
+        "median": 0.601,
+        "q75": 0.7255,
+        "missing": 0
+      },
+      "application": {
+        "mean": 1.5401,
+        "std": 4.485,
+        "min": 0.0,
+        "max": 21.2451,
+        "q25": 0.0,
+        "median": 0.0,
+        "q75": 0.0,
+        "missing": 0
+      },
+      "wasserstein": 1.9557
+    }
+  ],
+  "warning": "Le corpus d'entraînement est 100 % synthétique ; la dérive mesurée reflète l'écart synthétique vs application réelle."
+}

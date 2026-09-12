@@ -225,6 +225,7 @@ public class FormationWorkflowServiceHelper {
                         p.setSeanceFormation(sf);
                         p.setEnseignant(anim);
                         p.setPresent(false);
+                        p.setStatus(PresenceStatus.ABSENT);
                         p.setCommentaire("Presence animateur a valider");
                         allPresences.add(p);
                     }
@@ -239,6 +240,7 @@ public class FormationWorkflowServiceHelper {
                         p.setSeanceFormation(sf);
                         p.setEnseignant(pt);
                         p.setPresent(false);
+                        p.setStatus(PresenceStatus.ABSENT);
                         p.setCommentaire("Presence a valider");
                         allPresences.add(p);
                     }

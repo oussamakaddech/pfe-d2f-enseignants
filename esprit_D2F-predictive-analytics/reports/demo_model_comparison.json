@@ -1,0 +1,57 @@
+[
+  {
+    "Mod\u00e8le":"baseline_persistence",
+    "RMSE":1.1203,
+    "MAE":0.6808,
+    "R\u00b2":-0.4882,
+    "Tol\u00e9rance \u00b10,10":0.3901,
+    "Tol\u00e9rance \u00b10,20":0.456,
+    "Gain vs baseline (%)":0.0,
+    "Temps inf\u00e9rence (ms)":0.0,
+    "D\u00e9cision":"baseline"
+  },
+  {
+    "Mod\u00e8le":"baseline_mean",
+    "RMSE":0.9531,
+    "MAE":0.7838,
+    "R\u00b2":-0.0772,
+    "Tol\u00e9rance \u00b10,10":0.0769,
+    "Tol\u00e9rance \u00b10,20":0.1758,
+    "Gain vs baseline (%)":14.9246,
+    "Temps inf\u00e9rence (ms)":0.0,
+    "D\u00e9cision":"baseline"
+  },
+  {
+    "Mod\u00e8le":"gradient_boosting",
+    "RMSE":0.749,
+    "MAE":0.4642,
+    "R\u00b2":0.3348,
+    "Tol\u00e9rance \u00b10,10":0.2967,
+    "Tol\u00e9rance \u00b10,20":0.4066,
+    "Gain vs baseline (%)":33.1474,
+    "Temps inf\u00e9rence (ms)":1.7,
+    "D\u00e9cision":"retenu_demo"
+  },
+  {
+    "Mod\u00e8le":"xgboost",
+    "RMSE":0.7632,
+    "MAE":0.47,
+    "R\u00b2":0.3092,
+    "Tol\u00e9rance \u00b10,10":0.3132,
+    "Tol\u00e9rance \u00b10,20":0.4176,
+    "Gain vs baseline (%)":31.8754,
+    "Temps inf\u00e9rence (ms)":9.0425,
+    "D\u00e9cision":"retenu_demo"
+  },
+  {
+    "Mod\u00e8le":"mlp",
+    "RMSE":0.7402,
+    "MAE":0.4316,
+    "R\u00b2":0.3495,
+    "Tol\u00e9rance \u00b10,10":0.3626,
+    "Tol\u00e9rance \u00b10,20":0.4725,
+    "Gain vs baseline (%)":33.9329,
+    "Temps inf\u00e9rence (ms)":1.69,
+    "D\u00e9cision":"retenu_demo"
+  }
+]

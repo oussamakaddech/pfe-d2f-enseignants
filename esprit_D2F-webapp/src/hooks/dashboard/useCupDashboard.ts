@@ -79,23 +79,54 @@ const PRIORITE_RANK: Record<Priorite | 'NON_DEFINIE', number> = {
   NON_DEFINIE: 1,
 };
 
-export function useCupDashboard() {
+export interface CupDashboardAccess {
+  /** KPI formations (DASHBOARD_ADMIN_LIMITED : ADMIN/CUP/CHEF_DEP/ANIMATEUR/ResponsableDossier). */
+  readKpis?: boolean;
+  /** Liste globale des besoins (BESOIN_FORMATION_READ_ALL : ADMIN/CUP/CHEF_DEP/ANIMATEUR/ResponsableDossier). */
+  readBesoins?: boolean;
+  /** Pilotage prédictif (overview — DASHBOARD_ADMIN_FULL : ADMIN/CUP). */
+  readOverview?: boolean;
+  /** Compétences en demande (endpoint legacy, ouvert ADMIN/CUP/CHEF_DEP). */
+  readInDemand?: boolean;
+}
+
+// Rôles autorisés à lire les KPI / besoins globaux (parité DASHBOARD_ADMIN_LIMITED
+// et BESOIN_FORMATION_READ_ALL). L'ENSEIGNANT en est exclu (403 backend).
+const CAN_READ_KPIS = [
+  'admin',
+  'CUP',
+  'CHEF_DEPARTEMENT',
+  'Animateur',
+  'ResponsableDossier',
+] as const;
+
+export function useCupDashboard(pilotage: boolean = true, access: CupDashboardAccess = {}) {
+  // Sans garde, ces requêtes partaient en 403 pour l'enseignant (KPI + besoins)
+  // et en 403 pour le chef (overview — ADMIN/CUP uniquement).
+  const readKpis = access.readKpis ?? pilotage;
+  const readBesoins = access.readBesoins ?? pilotage;
+  const readOverview = access.readOverview ?? pilotage;
+  const readInDemand = access.readInDemand ?? pilotage;
+
   const { data: formationsByEtat, isLoading: etatLoading } = useQuery({
     queryKey: ['kpi', 'formations-by-etat', START, END],
     queryFn: () => KPIService.getFormationsByEtat(START, END),
     staleTime: STALE,
+    enabled: readKpis,
   });
 
   const { data: formationsByType, isLoading: typeLoading } = useQuery({
     queryKey: ['kpi', 'formations-by-type', START, END],
     queryFn: () => KPIService.getFormationsByTypeFiltered({ start: START, end: END }),
     staleTime: STALE,
+    enabled: readKpis,
   });
 
   const { data: formationsByDomaineRaw = [], isLoading: domaineLoading } = useQuery({
     queryKey: ['kpi', 'formations-by-domaine', START, END],
     queryFn: () => KPIService.getFormationsByDomaine(START, END),
     staleTime: STALE,
+    enabled: readKpis,
   });
   const formationsByDomaine = formationsByDomaineRaw.filter(
     (d) =>
@@ -108,6 +139,7 @@ export function useCupDashboard() {
     queryKey: ['kpi', 'formations-by-competence', START, END],
     queryFn: () => KPIService.getFormationsByCompetence(START, END),
     staleTime: STALE,
+    enabled: readKpis,
   });
   const formationsByCompetence = formationsByCompetenceRaw.filter(
     (c) =>
@@ -120,12 +152,14 @@ export function useCupDashboard() {
     queryKey: ['kpi', 'heures', START, END],
     queryFn: () => KPIService.getTotalHeures(START, END),
     staleTime: STALE,
+    enabled: readKpis,
   });
 
   const { data: participants } = useQuery({
     queryKey: ['kpi', 'participants', START, END],
     queryFn: () => KPIService.getUniqueParticipants(START, END),
     staleTime: STALE,
+    enabled: readKpis,
   });
 
   const { data: deptAnalytics, isLoading: deptLoading } = useQuery({
@@ -146,6 +180,8 @@ export function useCupDashboard() {
     queryKey: ['besoins'],
     queryFn: () => BesoinFormationService.getAllBesoinFormations(),
     staleTime: STALE,
+    // READ_ALL : l'enseignant n'y a pas accès (il consulte /mine).
+    enabled: readBesoins,
   });
 
   const { data: overview } = useQuery({
@@ -153,6 +189,9 @@ export function useCupDashboard() {
     queryFn: () =>
       import('@/services/analyse/AnalysePredictiveService').then((m) => m.default.getOverview()),
     staleTime: STALE,
+    // Réserve le pilotage prédictif (overview) au périmètre ADMIN/CUP :
+    // le chef de département et RESPONSABLE_DOSSIER reçoivent 403 côté backend.
+    enabled: readOverview,
   });
 
   const { data: inDemandCompetencies = [] } = useQuery({
@@ -162,6 +201,7 @@ export function useCupDashboard() {
         m.default.getInDemandCompetencies(),
       ),
     staleTime: STALE,
+    enabled: readInDemand,
   });
 
   const timelineScope: DashboardScope = {

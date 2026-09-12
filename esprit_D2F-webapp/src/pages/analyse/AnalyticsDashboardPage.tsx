@@ -35,6 +35,10 @@ import {
   BulbOutlined,
   AppstoreOutlined,
   FilterOutlined,
+  BankOutlined,
+  ApartmentOutlined,
+  FireOutlined,
+  UndoOutlined,
 } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -70,6 +74,15 @@ import {
   formatCount,
 } from '@/utils/analytics/format';
 import './analyticsDashboard.redesign.css';
+
+/** Libellé du compteur de filtres actifs (« 2 critères actifs » / « Aucun critère actif »). */
+function formatActiveFilterLabel(count: number): string {
+  if (count <= 0) {
+    return 'Aucun critère actif';
+  }
+  const plural = count > 1 ? 's' : '';
+  return `${count} critère${plural} actif${plural}`;
+}
 
 /* ── Définitions métier des KPI (affichées en tooltip) ──────── */
 const KPI_DEFS: Record<string, string> = {
@@ -197,6 +210,32 @@ const WINDOWS: { label: string; days: number }[] = [
   { label: 'Semestre', days: 180 },
 ];
 
+/** Libellés lisibles des niveaux de risque (valeurs base : FAIBLE/MODERE/ELEVE/CRITIQUE). */
+const RISK_LABELS: Record<NiveauRisque, string> = {
+  FAIBLE: 'Faible',
+  MODERE: 'Modéré',
+  ELEVE: 'Élevé',
+  CRITIQUE: 'Critique',
+};
+
+const RISK_TONES: { value: NiveauRisque; label: string; tone: string }[] = [
+  { value: 'FAIBLE', label: 'Faible', tone: 'faible' },
+  { value: 'MODERE', label: 'Modéré', tone: 'modere' },
+  { value: 'ELEVE', label: 'Élevé', tone: 'eleve' },
+  { value: 'CRITIQUE', label: 'Critique', tone: 'critique' },
+];
+
+/** Options du filtre « niveau de risque » avec pastille colorée. */
+const RISK_OPTIONS = RISK_TONES.map((r) => ({
+  value: r.value,
+  label: (
+    <span className={`ad-risk-opt ad-risk-opt--${r.tone}`}>
+      <span className="ad-risk-opt__dot" aria-hidden="true" />
+      {r.label}
+    </span>
+  ),
+}));
+
 /** Niveau de risque (valeurs base) → niveau UI. */
 function toNiveauRisque(raw: string | null | undefined): NiveauRisque {
   const v = (raw ?? '').toUpperCase();
@@ -218,7 +257,7 @@ function toAtRiskTeacher(row: RealDashboardImpact['at_risk_teachers'][number]): 
     score_risque: row.score_risque ?? 0,
     niveau_risque: toNiveauRisque(row.niveau_risque),
     nb_gaps_critiques: row.nb_gaps_critiques ?? 0,
-    tendance: 'STABLE',
+    tendance: row.tendance ?? 'STABLE',
   };
 }
 
@@ -318,31 +357,36 @@ export default function AnalyticsDashboardPage() {
     [data],
   );
 
+  /** Libellés officiels fournis par l'API (formation.departements / formation.ups),
+   *  avec repli sur formatDepartment()/formatUP() si absent. */
   const departmentOptions = useMemo(() => {
-    const seen = new Set<string>();
-    const add = (d?: string | null) => {
-      if (d && d !== 'non_affecte' && d !== 'NON_AFFECTE') seen.add(d);
+    const labels = new Map<string, string>();
+    const add = (code?: string | null, libelle?: string | null) => {
+      if (!code || code === 'non_affecte' || code === 'NON_AFFECTE') return;
+      if (!labels.has(code)) labels.set(code, libelle ?? formatDepartment(code));
     };
-    allHeatmap.forEach((h) => add(h.departement));
-    allAtRisk.forEach((t) => add(t.departement));
-    return Array.from(seen)
-      .sort((a, b) => a.localeCompare(b))
-      .map((v) => ({ value: v, label: formatDepartment(v) }));
-  }, [allHeatmap, allAtRisk]);
+    (data?.heatmap ?? []).forEach((r) => add(r.dept_id, r.dept_libelle));
+    (data?.at_risk_teachers ?? []).forEach((r) => add(r.dept_id, r.dept_libelle));
+    return Array.from(labels.entries())
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .map(([value, label]) => ({ value, label }));
+  }, [data]);
 
   const upOptions = useMemo(() => {
-    const seen = new Set<string>();
-    allAtRisk.forEach((t) => {
-      if (t.up && t.up !== 'non_affecte') seen.add(t.up);
+    const labels = new Map<string, string>();
+    (data?.at_risk_teachers ?? []).forEach((r) => {
+      if (!r.up_id || r.up_id === 'non_affecte') return;
+      if (!labels.has(r.up_id)) labels.set(r.up_id, r.up_libelle ?? formatUP(r.up_id));
     });
-    return Array.from(seen)
-      .sort((a, b) => a.localeCompare(b))
-      .map((v) => ({ value: v, label: formatUP(v) }));
-  }, [allAtRisk]);
+    return Array.from(labels.entries())
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .map(([value, label]) => ({ value, label }));
+  }, [data]);
 
   const filteredAtRisk = useMemo<AtRiskTeacher[]>(() => {
     return allAtRisk.filter(
       (t) =>
+        t.score_risque >= 0.5 &&
         (!filters.departement_id || t.departement === filters.departement_id) &&
         (!filters.up_id || t.up === filters.up_id) &&
         (!filters.niveau_risque || t.niveau_risque === filters.niveau_risque),
@@ -366,6 +410,11 @@ export default function AnalyticsDashboardPage() {
   }, [alerts.data?.severity_open, kpis?.nb_alertes_non_traitees]);
 
   const hasActiveFilters = !!(filters.departement_id || filters.up_id || filters.niveau_risque);
+  const activeFilterCount = [filters.departement_id, filters.up_id, filters.niveau_risque].filter(
+    Boolean,
+  ).length;
+  const activeFilterLabel = formatActiveFilterLabel(activeFilterCount);
+  const periodResetNeeded = windowDays !== 30;
 
   const clearFilters = () => {
     setFilters({});
@@ -477,42 +526,88 @@ export default function AnalyticsDashboardPage() {
 
       {/* ── Barre de filtres ─────────────── */}
       <div className="ad-filters">
-        <span className="ad-filters__label">Filtres</span>
-        <Segmented
-          value={String(windowDays)}
-          onChange={(v) => setWindowDays(Number(v))}
-          options={WINDOWS.map((w) => ({ label: w.label, value: String(w.days) }))}
-        />
-        <Select
-          allowClear
-          placeholder="Département"
-          className="ad-filter-select"
-          value={filters.departement_id}
-          onChange={(v) => setFilters((f) => ({ ...f, departement_id: v }))}
-          options={departmentOptions}
-          notFoundContent="Aucun département"
-        />
-        <Select
-          allowClear
-          placeholder="UP"
-          className="ad-filter-select"
-          value={filters.up_id}
-          onChange={(v) => setFilters((f) => ({ ...f, up_id: v }))}
-          options={upOptions}
-          notFoundContent="Aucune UP"
-        />
-        <Select
-          allowClear
-          placeholder="Niveau de risque"
-          className="ad-filter-select"
-          value={filters.niveau_risque}
-          onChange={(v) => setFilters((f) => ({ ...f, niveau_risque: v as NiveauRisque }))}
-          options={['FAIBLE', 'MODERE', 'ELEVE', 'CRITIQUE'].map((r) => ({ value: r, label: r }))}
-        />
+        <div className="ad-filters__head">
+          <span className="ad-filters__badge" aria-hidden="true">
+            <FilterOutlined />
+          </span>
+          <div className="ad-filters__head-text">
+            <span className="ad-filters__label">Filtres</span>
+            <span className="ad-filters__sub">{activeFilterLabel}</span>
+          </div>
+        </div>
+
+        <div className="ad-filter-group">
+          <span className="ad-filter-group__label">
+            <ClockCircleOutlined /> Période
+          </span>
+          <div className="ad-segmented-wrap">
+            <Segmented
+              value={String(windowDays)}
+              onChange={(v) => setWindowDays(Number(v))}
+              options={WINDOWS.map((w) => ({ label: w.label, value: String(w.days) }))}
+            />
+          </div>
+        </div>
+
+        <div className="ad-filter-group">
+          <span className="ad-filter-group__label">
+            <BankOutlined /> Département
+          </span>
+          <Select
+            allowClear
+            placeholder="Tous les départements"
+            className={`ad-filter-select${filters.departement_id ? ' ad-filter-select--active' : ''}`}
+            prefix={<BankOutlined />}
+            value={filters.departement_id}
+            onChange={(v) => setFilters((f) => ({ ...f, departement_id: v }))}
+            options={departmentOptions}
+            notFoundContent="Aucun département"
+          />
+        </div>
+
+        <div className="ad-filter-group">
+          <span className="ad-filter-group__label">
+            <ApartmentOutlined /> UP
+          </span>
+          <Select
+            allowClear
+            placeholder="Toutes les UP"
+            className={`ad-filter-select${filters.up_id ? ' ad-filter-select--active' : ''}`}
+            prefix={<ApartmentOutlined />}
+            value={filters.up_id}
+            onChange={(v) => setFilters((f) => ({ ...f, up_id: v }))}
+            options={upOptions}
+            notFoundContent="Aucune UP"
+          />
+        </div>
+
+        <div className="ad-filter-group">
+          <span className="ad-filter-group__label">
+            <FireOutlined /> Niveau de risque
+          </span>
+          <Select
+            allowClear
+            placeholder="Tous les niveaux"
+            className={`ad-filter-select${filters.niveau_risque ? ' ad-filter-select--active' : ''}`}
+            prefix={<FireOutlined />}
+            value={filters.niveau_risque}
+            onChange={(v) => setFilters((f) => ({ ...f, niveau_risque: v as NiveauRisque }))}
+            options={RISK_OPTIONS}
+            notFoundContent="Aucun niveau"
+          />
+        </div>
+
         <span className="ad-filters__spacer" />
-        <Button type="text" onClick={clearFilters}>
-          Réinitialiser
-        </Button>
+        <Tooltip title="Rétablir la période (30 j) et effacer les filtres">
+          <Button
+            className="ad-filters__reset"
+            icon={<UndoOutlined />}
+            onClick={clearFilters}
+            disabled={!hasActiveFilters && !periodResetNeeded}
+          >
+            Réinitialiser
+          </Button>
+        </Tooltip>
       </div>
 
       {hasActiveFilters && (
@@ -544,7 +639,7 @@ export default function AnalyticsDashboardPage() {
               closable
               onClose={() => setFilters((f) => ({ ...f, niveau_risque: undefined }))}
             >
-              Risque {filters.niveau_risque}
+              Risque {RISK_LABELS[filters.niveau_risque]}
             </Tag>
           )}
           <span className="ad-filters-active__hint">
@@ -658,7 +753,13 @@ export default function AnalyticsDashboardPage() {
             title="Enseignants à risque (score ≥ 0,5)"
             icon={<SafetyCertificateOutlined />}
             extra={
-              <Tag color={filteredAtRisk.length ? 'red' : 'default'}>{filteredAtRisk.length}</Tag>
+              <Tooltip
+                title={`${filteredAtRisk.length} enseignant(s) avec score ≥ 0,5 sur ${allAtRisk.length} suivis`}
+              >
+                <Tag color={filteredAtRisk.length ? 'red' : 'default'}>
+                  {filteredAtRisk.length} / {allAtRisk.length}
+                </Tag>
+              </Tooltip>
             }
             loading={impact.isLoading}
           >
@@ -814,7 +915,8 @@ export default function AnalyticsDashboardPage() {
         open={!!drill}
         onCancel={() => setDrill(null)}
         footer={null}
-        width={640}
+        width={720}
+        styles={{ body: { overflowX: 'auto' } }}
       >
         {drillQuery.isLoading && (
           <div className="ad-loading">

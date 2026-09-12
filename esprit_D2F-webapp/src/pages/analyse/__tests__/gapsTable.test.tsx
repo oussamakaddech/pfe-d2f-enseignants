@@ -9,9 +9,8 @@ const gap: SkillGap = {
   competence_code: 'C1',
   competence_nom: 'Python',
   domaine_nom: 'DEV',
-  niveau_actuel: 2,
-  niveau_requis: 4,
-  niveau_vise: 4,
+  observed_result: 2,
+  knowledge_difficulty_level: 4,
   gap_score: 0.5,
   priorite_score: 1,
   niveau_urgence: 'HAUTE',
@@ -32,6 +31,19 @@ describe('GapsTable', () => {
     render(<GapsTable gaps={[gap]} />);
     expect(screen.getByText('Python')).toBeInTheDocument();
     expect(screen.getByText('HAUTE')).toBeInTheDocument();
+  });
+
+  it("n'affiche pas le niveau de compétence du référentiel", () => {
+    render(<GapsTable gaps={[gap]} />);
+    expect(screen.queryByText('Niveau actuel')).not.toBeInTheDocument();
+    expect(screen.queryByText('Niveau requis')).not.toBeInTheDocument();
+    expect(screen.queryByText('2 / 4')).not.toBeInTheDocument();
+  });
+
+  it("n'affiche pas le libellé Manquante, même avec observed_result = 0", () => {
+    render(<GapsTable gaps={[{ ...gap, observed_result: 0 }]} />);
+    expect(screen.queryByText('Manquante')).not.toBeInTheDocument();
+    expect(screen.queryByText('Python')).toBeInTheDocument();
   });
 
   it('appelle onRowClick au clic', () => {

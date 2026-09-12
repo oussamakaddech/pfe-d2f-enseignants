@@ -20,9 +20,9 @@
 | competence_code | string | FK to competences catalog |
 | competence_nom | string | Competency label in French |
 | domaine | string | Department domain |
-| current_level | int | 1-5 scale |
-| required_level | int | 1-5 scale |
-| gap_value | int | max(0, required_level - current_level) |
+| observed_result | int | Résultat réel observé de l'enseignant (1-5) |
+| knowledge_difficulty_level | int | Niveau de difficulté du savoir (1-5, référentiel) |
+| gap_value | int | max(0, knowledge_difficulty_level - observed_result) |
 | is_critical_gap | bool | True if gap_value >= 3 |
 
 ### `alerts` (alerts.csv)
@@ -92,4 +92,21 @@ where:
 | FAIBLE | 0.00 - 0.24 |
 
 ## Coverage Rule
-covered = count(competencies where current_level >= required_level) / count(tracked_competencies) * 100
+covered = count(competencies where observed_result >= knowledge_difficulty_level) / count(tracked_competencies) * 100
+
+## Règle métier fondamentale
+
+Le **niveau de difficulté** d'un savoir (knowledge_difficulty_level) décrit
+uniquement la **complexité pédagogique** du savoir dans le référentiel. Il ne
+représente **jamais** le niveau de maîtrise de l'enseignant.
+
+Le **résultat réel observé** (observed_result) est la seule mesure de la
+maîtrise effective de l'enseignant, issue d'une observation datée.
+
+Le dataset distingue :
+- enseignant
+- savoir
+- niveau de difficulté du savoir
+- résultat réel observé de l'enseignant
+- date de l'observation
+- source de l'observation

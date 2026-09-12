@@ -1,0 +1,467 @@
+{
+  "audited_at": "2026-08-20T05:35:11.579575",
+  "dataset_path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\synthetic\\demo_dataset_synthetic-v1.0.0.csv",
+  "rows_total": 1013,
+  "columns_total": 54,
+  "missing_required_columns": [],
+  "identifiers": {
+    "n_teachers": 100,
+    "sample_teachers": [
+      "SYN_T0001",
+      "SYN_T0002",
+      "SYN_T0003",
+      "SYN_T0004",
+      "SYN_T0005"
+    ],
+    "all_synthetic_prefix": true,
+    "real_like_prefix_found": [],
+    "n_competencies": 13
+  },
+  "duplicates": {
+    "exact_duplicates": 8,
+    "functional_duplicates": 11,
+    "keys": [
+      "teacher_id",
+      "competence_id",
+      "ref_month"
+    ]
+  },
+  "types": {
+    "current_observation": {
+      "stored_dtype": "float64",
+      "n_non_numeric": 0
+    },
+    "attendance_rate": {
+      "stored_dtype": "float64",
+      "n_non_numeric": 0
+    },
+    "evaluation_score": {
+      "stored_dtype": "float64",
+      "n_non_numeric": 0
+    },
+    "training_count": {
+      "stored_dtype": "int64",
+      "n_non_numeric": 0
+    },
+    "stagnation_months": {
+      "stored_dtype": "float64",
+      "n_non_numeric": 0
+    },
+    "need_count": {
+      "stored_dtype": "float64",
+      "n_non_numeric": 0
+    },
+    "engagement_score": {
+      "stored_dtype": "float64",
+      "n_non_numeric": 0
+    },
+    "gap_next_3m": {
+      "stored_dtype": "float64",
+      "n_non_numeric": 0
+    }
+  },
+  "dates": {
+    "n_invalid_ref_month": 2,
+    "n_invalid_date_t": 2,
+    "min_ref_month": "2025-01-01",
+    "max_ref_month": "2026-06-01",
+    "n_months": 18,
+    "ordered_monotonic_per_pair": false
+  },
+  "missing_values": {
+    "evaluation_score": 12
+  },
+  "out_of_range": {
+    "gap_next_3m": {
+      "range": [
+        0.0,
+        5.0
+      ],
+      "n_out_of_range": 4,
+      "sample": [
+        5.7,
+        5.7,
+        5.7,
+        5.7
+      ]
+    },
+    "attendance_rate": {
+      "range": [
+        0.0,
+        1.0
+      ],
+      "n_out_of_range": 9,
+      "sample": [
+        -0.05,
+        -0.05,
+        1.5,
+        -0.05,
+        1.5
+      ]
+    },
+    "evaluation_score": {
+      "range": [
+        0.0,
+        5.0
+      ],
+      "n_out_of_range": 12,
+      "sample": [
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN
+      ]
+    }
+  },
+  "feature_distribution": {
+    "current_level_t3": {
+      "mean": 3.2399,
+      "std": 0.9904,
+      "min": 1.0,
+      "q25": 3.0,
+      "median": 3.0,
+      "q75": 4.0,
+      "max": 5.0,
+      "missing": 0
+    },
+    "current_level_t2": {
+      "mean": 3.2823,
+      "std": 1.0036,
+      "min": 1.0,
+      "q25": 3.0,
+      "median": 3.0,
+      "q75": 4.0,
+      "max": 5.0,
+      "missing": 0
+    },
+    "current_level_t1": {
+      "mean": 3.3208,
+      "std": 1.0102,
+      "min": 1.0,
+      "q25": 3.0,
+      "median": 3.0,
+      "q75": 4.0,
+      "max": 5.0,
+      "missing": 0
+    },
+    "current_level_t": {
+      "mean": 3.3722,
+      "std": 1.0382,
+      "min": 1.0,
+      "q25": 3.0,
+      "median": 3.0,
+      "q75": 4.0,
+      "max": 5.0,
+      "missing": 0
+    },
+    "lag_gap_t3_t2": {
+      "mean": 0.0424,
+      "std": 0.3254,
+      "min": -1.0,
+      "q25": 0.0,
+      "median": 0.0,
+      "q75": 0.0,
+      "max": 1.0,
+      "missing": 0
+    },
+    "lag_gap_t2_t1": {
+      "mean": 0.0385,
+      "std": 0.3493,
+      "min": -1.0,
+      "q25": 0.0,
+      "median": 0.0,
+      "q75": 0.0,
+      "max": 1.0,
+      "missing": 0
+    },
+    "lag_gap_t1_t": {
+      "mean": 0.0513,
+      "std": 0.3405,
+      "min": -1.0,
+      "q25": 0.0,
+      "median": 0.0,
+      "q75": 0.0,
+      "max": 1.0,
+      "missing": 0
+    },
+    "rolling_tendance": {
+      "mean": 0.0441,
+      "std": 0.1589,
+      "min": -0.333,
+      "q25": 0.0,
+      "median": 0.0,
+      "q75": 0.0,
+      "max": 0.667,
+      "missing": 0
+    },
+    "days_since_last_training": {
+      "mean": 277.7493,
+      "std": 388.0197,
+      "min": 0.0,
+      "q25": 30.0,
+      "median": 89.0,
+      "q75": 275.0,
+      "max": 999.0,
+      "missing": 0
+    },
+    "training_frequency_per_month": {
+      "mean": 0.141,
+      "std": 0.1075,
+      "min": 0.0,
+      "q25": 0.059,
+      "median": 0.143,
+      "q75": 0.211,
+      "max": 0.667,
+      "missing": 0
+    },
+    "is_long_absent": {
+      "mean": 0.3593,
+      "std": 0.48,
+      "min": 0.0,
+      "q25": 0.0,
+      "median": 0.0,
+      "q75": 1.0,
+      "max": 1.0,
+      "missing": 0
+    },
+    "is_stagnant": {
+      "mean": 0.7127,
+      "std": 0.4527,
+      "min": 0.0,
+      "q25": 0.0,
+      "median": 1.0,
+      "q75": 1.0,
+      "max": 1.0,
+      "missing": 0
+    },
+    "avg_level": {
+      "mean": 3.3038,
+      "std": 0.9811,
+      "min": 1.0,
+      "q25": 3.0,
+      "median": 3.0,
+      "q75": 4.0,
+      "max": 5.0,
+      "missing": 0
+    },
+    "min_level": {
+      "mean": 3.154,
+      "std": 1.002,
+      "min": 1.0,
+      "q25": 3.0,
+      "median": 3.0,
+      "q75": 4.0,
+      "max": 5.0,
+      "missing": 0
+    },
+    "max_level": {
+      "mean": 3.4452,
+      "std": 1.006,
+      "min": 1.0,
+      "q25": 3.0,
+      "median": 3.0,
+      "q75": 4.0,
+      "max": 5.0,
+      "missing": 0
+    },
+    "nb_level_5": {
+      "mean": 0.54,
+      "std": 1.2744,
+      "min": 0.0,
+      "q25": 0.0,
+      "median": 0.0,
+      "q75": 0.0,
+      "max": 4.0,
+      "missing": 0
+    },
+    "nb_level_1": {
+      "mean": 0.1185,
+      "std": 0.5946,
+      "min": 0.0,
+      "q25": 0.0,
+      "median": 0.0,
+      "q75": 0.0,
+      "max": 4.0,
+      "missing": 0
+    },
+    "nb_savoirs": {
+      "mean": 3.4501,
+      "std": 1.0663,
+      "min": 2.0,
+      "q25": 3.0,
+      "median": 3.0,
+      "q75": 4.0,
+      "max": 5.0,
+      "missing": 0
+    },
+    "nb_competences": {
+      "mean": 7.1925,
+      "std": 0.9848,
+      "min": 5.0,
+      "q25": 7.0,
+      "median": 7.0,
+      "q75": 8.0,
+      "max": 10.0,
+      "missing": 0
+    },
+    "competency_coverage_rate": {
+      "mean": 0.5531,
+      "std": 0.0755,
+      "min": 0.385,
+      "q25": 0.538,
+      "median": 0.538,
+      "q75": 0.615,
+      "max": 0.769,
+      "missing": 0
+    },
+    "nb_formations_completed": {
+      "mean": 1.8825,
+      "std": 1.5588,
+      "min": 0.0,
+      "q25": 1.0,
+      "median": 2.0,
+      "q75": 3.0,
+      "max": 8.0,
+      "missing": 0
+    },
+    "nb_formations_in_progress": {
+      "mean": 0.4472,
+      "std": 0.6211,
+      "min": 0.0,
+      "q25": 0.0,
+      "median": 0.0,
+      "q75": 1.0,
+      "max": 3.0,
+      "missing": 0
+    },
+    "taux_assiduite": {
+      "mean": 0.5689,
+      "std": 0.2045,
+      "min": 0.0,
+      "q25": 0.433,
+      "median": 0.5855,
+      "q75": 0.704,
+      "max": 1.0,
+      "missing": 3
+    },
+    "nb_besoins_exprimes": {
+      "mean": 5.5617,
+      "std": 5.5233,
+      "min": 0.0,
+      "q25": 0.0,
+      "median": 4.0,
+      "q75": 10.0,
+      "max": 18.0,
+      "missing": 0
+    },
+    "nb_besoins_approuves": {
+      "mean": 3.3307,
+      "std": 3.5013,
+      "min": 0.0,
+      "q25": 0.0,
+      "median": 2.0,
+      "q75": 6.0,
+      "max": 14.0,
+      "missing": 0
+    },
+    "avg_eval_score": {
+      "mean": 2.6608,
+      "std": 0.4233,
+      "min": 1.377,
+      "q25": 2.356,
+      "median": 2.674,
+      "q75": 2.957,
+      "max": 3.912,
+      "missing": 0
+    },
+    "nb_evaluations": {
+      "mean": 9.5331,
+      "std": 5.2265,
+      "min": 1.0,
+      "q25": 5.0,
+      "median": 10.0,
+      "q75": 14.0,
+      "max": 18.0,
+      "missing": 0
+    },
+    "months_since_last_training": {
+      "mean": 4.8155,
+      "std": 5.0075,
+      "min": 0.0,
+      "q25": 0.986,
+      "median": 2.924,
+      "q75": 9.034,
+      "max": 13.0,
+      "missing": 0
+    },
+    "engagement_score": {
+      "mean": 0.5839,
+      "std": 0.1784,
+      "min": 0.021,
+      "q25": 0.454,
+      "median": 0.6,
+      "q75": 0.725,
+      "max": 1.0,
+      "missing": 0
+    }
+  },
+  "target_distribution": {
+    "mean": 0.83,
+    "std": 1.0008,
+    "min": 0.0,
+    "q25": 0.0,
+    "median": 0.351,
+    "q75": 1.225,
+    "max": 5.7,
+    "histogram": {
+      "0.0": 412,
+      "0.1": 62,
+      "0.2": 28,
+      "0.3": 4,
+      "0.4": 4,
+      "0.5": 1,
+      "0.6": 4,
+      "0.7": 15,
+      "0.8": 27,
+      "0.9": 53,
+      "1.0": 68,
+      "1.1": 64
+    }
+  },
+  "provenance": {
+    "data_origin_values": {
+      "SYNTHETIC": 1013
+    },
+    "is_synthetic_true_share": 1.0,
+    "institutional_verified_false_share": 1.0,
+    "source_type_values": {
+      "synthetic_generator": 1013
+    },
+    "generation_seed_values": {
+      "42": 1013
+    }
+  },
+  "granularity": {
+    "rows_per_teacher_mean": 10.13,
+    "rows_per_teacher_min": 10,
+    "rows_per_teacher_max": 11,
+    "rows_per_competence_mean": 77.92,
+    "rows_per_competence_min": 63,
+    "rows_per_competence_max": 90
+  },
+  "extremes": {
+    "nb_level_1": [
+      10,
+      76,
+      208,
+      260,
+      261,
+      278,
+      349,
+      408,
+      487,
+      542
+    ]
+  }
+}

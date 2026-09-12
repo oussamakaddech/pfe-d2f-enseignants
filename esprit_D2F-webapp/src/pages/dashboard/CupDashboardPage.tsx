@@ -39,6 +39,7 @@ import { useAuth } from '@/hooks/auth/useAuth';
 import { useCupDashboard } from '@/hooks/dashboard/useCupDashboard';
 import FormationService from '@/services/formation/FormationService';
 import InscriptionService from '@/services/formation/InscriptionService';
+import { hasAnyRole } from '@/utils/constants/roles';
 import type { Formation } from '@/models/formation';
 import { brand } from '@/styles/themes/tokens';
 import { Card } from '@/redesign/components/Section';
@@ -66,6 +67,31 @@ export default function CupDashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Les appels analytics prédictifs (overview) sont réservés au pilotage
+  // ADMIN/CUP (DASHBOARD_ADMIN_FULL) : pour le chef de département et
+  // RESPONSABLE_DOSSIER ils renvoient 403 — on ne les déclenche donc pas.
+  // Les KPI / besoins globaux (DASHBOARD_ADMIN_LIMITED / READ_ALL) sont
+  // autorisés pour ADMIN/CUP/CHEF_DEPARTEMENT/ANIMATEUR/RESPONSABLE_DOSSIER,
+  // mais PAS pour l'ENSEIGNANT — on les garde pour éviter les 403 sur /home.
+  const isPilotage = hasAnyRole(user?.role, ['admin', 'CUP', 'CHEF_DEPARTEMENT']);
+  const canReadKpis = hasAnyRole(user?.role, [
+    'admin',
+    'CUP',
+    'CHEF_DEPARTEMENT',
+    'Animateur',
+    'ResponsableDossier',
+  ]);
+  const canReadBesoins = hasAnyRole(user?.role, [
+    'admin',
+    'CUP',
+    'CHEF_DEPARTEMENT',
+    'Animateur',
+    'ResponsableDossier',
+  ]);
+  const canReadOverview = hasAnyRole(user?.role, ['admin', 'CUP']);
+  // L'endpoint legacy in-demand est ouvert à ADMIN/CUP/CHEF_DEPARTEMENT (200 testé).
+  const canReadInDemand = hasAnyRole(user?.role, ['admin', 'CUP', 'CHEF_DEPARTEMENT']);
+
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<PeriodKey>('annee');
   const [besoinSearch, setBesoinSearch] = useState('');
@@ -83,7 +109,12 @@ export default function CupDashboardPage() {
     formationsByDomaineLoading,
     formationsByCompetence,
     formationsByCompetenceLoading,
-  } = useCupDashboard();
+  } = useCupDashboard(isPilotage, {
+    readKpis: canReadKpis,
+    readBesoins: canReadBesoins,
+    readOverview: canReadOverview,
+    readInDemand: canReadInDemand,
+  });
 
   // Formations à venir (données réelles, filtrées depuis le référentiel formations).
   const { data: formationsRaw, isLoading: formationsLoading } = useQuery({
@@ -105,10 +136,15 @@ export default function CupDashboardPage() {
     }
     return [];
   }, [formationsRaw]);
+  // Compteur inscriptions : GET /inscription/inscriptions exige INSCRIPTION_APPROVE
+  // (ADMIN/CUP, cf. AuthorizationMatrix) — on ne déclenche pas la requête pour les
+  // autres rôles (RESPONSABLE_DOSSIER etc.) afin d'éviter les 403 sur /home.
+  const canReadInscriptions = hasAnyRole(user?.role, ['admin', 'CUP']);
   const { data: inscriptionsRaw } = useQuery({
     queryKey: ['cup', 'inscriptions'],
     queryFn: () => InscriptionService.getAllInscriptions(500),
     staleTime: 5 * 60 * 1000,
+    enabled: canReadInscriptions,
   });
   const inscriptions = useMemo(() => {
     if (!inscriptionsRaw) return [];
@@ -297,17 +333,23 @@ export default function CupDashboardPage() {
       detail: { label: 'Voir les formations', onClick: () => navigate('/home/Formation') },
       spark: [kpis.enCours ?? 0],
     },
-    {
-      id: 'insc',
-      label: 'Inscriptions en attente',
-      value: nbInscriptionsAttente,
-      suffix: '',
-      caption: `${nbInscriptionsAttente} à valider`,
-      tone: 'orange' as const,
-      icon: <TeamOutlined />,
-      detail: { label: 'Gérer les inscriptions', onClick: () => scrollTo('cd-suivi') },
-      spark: [nbInscriptionsAttente],
-    },
+    // KPI « Inscriptions en attente » : nécessite l'accès à la liste des
+    // inscriptions (INSCRIPTION_APPROVE = ADMIN/CUP) — masqué pour les autres rôles.
+    ...(canReadInscriptions
+      ? [
+          {
+            id: 'insc',
+            label: 'Inscriptions en attente',
+            value: nbInscriptionsAttente,
+            suffix: '',
+            caption: `${nbInscriptionsAttente} à valider`,
+            tone: 'orange' as const,
+            icon: <TeamOutlined />,
+            detail: { label: 'Gérer les inscriptions', onClick: () => scrollTo('cd-suivi') },
+            spark: [nbInscriptionsAttente],
+          },
+        ]
+      : []),
     {
       id: 'completion',
       label: 'Taux de complétion moyen',
@@ -319,19 +361,24 @@ export default function CupDashboardPage() {
       detail: { label: 'Détail complétion', onClick: () => scrollTo('cd-couverture') },
       spark: [pct(kpis.tauxReussiteGlobal)],
     },
-    {
-      id: 'couv',
-      label: 'Taux de couverture des compétences',
-      value: pct(kpis.couverture),
-      suffix: '%',
-      delta: deltaLabel,
-      up: deltaUp,
-      caption: kpis.couvertureDelta == null ? `${kpis.couverture ?? 0}% couverts` : undefined,
-      tone: 'blue' as const,
-      icon: <SafetyCertificateOutlined />,
-      detail: { label: 'Voir le référentiel', onClick: () => scrollTo('cd-couverture') },
-      spark: [pct(kpis.couverture)],
-    },
+    // Couverture (analytics prédictif) : réservé au pilotage.
+    ...(isPilotage
+      ? [
+          {
+            id: 'couv',
+            label: 'Taux de couverture des compétences',
+            value: pct(kpis.couverture),
+            suffix: '%',
+            delta: deltaLabel,
+            up: deltaUp,
+            caption: kpis.couvertureDelta == null ? `${kpis.couverture ?? 0}% couverts` : undefined,
+            tone: 'blue' as const,
+            icon: <SafetyCertificateOutlined />,
+            detail: { label: 'Voir le référentiel', onClick: () => scrollTo('cd-couverture') },
+            spark: [pct(kpis.couverture)],
+          },
+        ]
+      : []),
   ];
 
   const prioColor = (v: string) => {
@@ -627,90 +674,94 @@ export default function CupDashboardPage() {
         </Card>
       </Section>
 
-      {/* ── Couverture et compétences ──────────────────────── */}
-      <Section
-        index={4}
-        id="cd-couverture"
-        title="Couverture et compétences"
-        subtitle="Niveau de couverture de l'UP et compétences à renforcer"
-      >
-        <Card
-          className="cd-span-5"
-          title="Couverture globale"
-          subtitle="Part des compétences au niveau requis"
-          icon={<SafetyCertificateOutlined />}
-          iconColor="#16a34a"
-          iconBg="rgba(22,163,74,.12)"
+      {/* ── Couverture et compétences (réservé au pilotage) ───── */}
+      {isPilotage && (
+        <Section
+          index={4}
+          id="cd-couverture"
+          title="Couverture et compétences"
+          subtitle="Niveau de couverture de l'UP et compétences à renforcer"
         >
-          <div className="cd-coverage-global">
-            <Progress type="dashboard" percent={pct(kpis.couverture)} strokeColor="#16a34a" />
-            <div className="cd-coverage-global-note">
-              <div className="cd-coverage-global-val">{pct(kpis.couverture)} %</div>
-              <div className="cd-coverage-global-lbl">
-                des compétences de l'UP sont couvertes au niveau requis.
-              </div>
-              <Button
-                size="small"
-                type="link"
-                icon={<RightOutlined />}
-                onClick={() => navigate('/home/competences')}
-              >
-                Voir le référentiel
-              </Button>
-            </div>
-          </div>
-        </Card>
-        <Card
-          className="cd-span-7"
-          title="Top 5 compétences à renforcer"
-          subtitle="Les plus demandées et les moins couvertes"
-          icon={<ThunderboltOutlined />}
-          iconColor="#ea580c"
-          iconBg="rgba(234,88,12,.12)"
-        >
-          <ol className="cd-coverage-list">
-            {top5.map((c, i) => (
-              <li key={`${c.name}-${i}`} className="cd-coverage-item">
-                <span className="cd-coverage-rank">{i + 1}</span>
-                <div className="cd-coverage-main">
-                  <div className="cd-coverage-name">{c.name}</div>
-                  <div className="cd-coverage-meta">
-                    <Tag color={topPrioriteTag(c).color}>{topPrioriteTag(c).label}</Tag>
-                    <span>
-                      {c.count} enseignant{c.count > 1 ? 's' : ''} impacté{c.count > 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <Progress percent={densityFor(c.count)} size="small" strokeColor="#ea580c" />
+          <Card
+            className="cd-span-5"
+            title="Couverture globale"
+            subtitle="Part des compétences au niveau requis"
+            icon={<SafetyCertificateOutlined />}
+            iconColor="#16a34a"
+            iconBg="rgba(22,163,74,.12)"
+          >
+            <div className="cd-coverage-global">
+              <Progress type="dashboard" percent={pct(kpis.couverture)} strokeColor="#16a34a" />
+              <div className="cd-coverage-global-note">
+                <div className="cd-coverage-global-val">{pct(kpis.couverture)} %</div>
+                <div className="cd-coverage-global-lbl">
+                  des compétences de l'UP sont couvertes au niveau requis.
                 </div>
-                <Button size="small" onClick={() => navigate('/home/Formation')}>
-                  Planifier
+                <Button
+                  size="small"
+                  type="link"
+                  icon={<RightOutlined />}
+                  onClick={() => navigate('/home/competences')}
+                >
+                  Voir le référentiel
                 </Button>
-              </li>
-            ))}
-          </ol>
-        </Card>
-      </Section>
+              </div>
+            </div>
+          </Card>
+          <Card
+            className="cd-span-7"
+            title="Top 5 compétences à renforcer"
+            subtitle="Les plus demandées et les moins couvertes"
+            icon={<ThunderboltOutlined />}
+            iconColor="#ea580c"
+            iconBg="rgba(234,88,12,.12)"
+          >
+            <ol className="cd-coverage-list">
+              {top5.map((c, i) => (
+                <li key={`${c.name}-${i}`} className="cd-coverage-item">
+                  <span className="cd-coverage-rank">{i + 1}</span>
+                  <div className="cd-coverage-main">
+                    <div className="cd-coverage-name">{c.name}</div>
+                    <div className="cd-coverage-meta">
+                      <Tag color={topPrioriteTag(c).color}>{topPrioriteTag(c).label}</Tag>
+                      <span>
+                        {c.count} enseignant{c.count > 1 ? 's' : ''} impacté{c.count > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <Progress percent={densityFor(c.count)} size="small" strokeColor="#ea580c" />
+                  </div>
+                  <Button size="small" onClick={() => navigate('/home/Formation')}>
+                    Planifier
+                  </Button>
+                </li>
+              ))}
+            </ol>
+          </Card>
+        </Section>
+      )}
 
-      {/* ── Analyse prédictive ─────────────────────────────── */}
-      <Section title="Analyse prédictive">
-        <Card className="cd-span-12" title={undefined}>
-          <Alert
-            type="info"
-            showIcon
-            message="Analyse prédictive détaillée"
-            description="Pour la liste nominative des enseignants à risque, l'historique des alertes et les recommandations IA, consultez l'Analyse Prédictive."
-            action={
-              <Button
-                type="primary"
-                size="small"
-                onClick={() => navigate('/home/AnalysePredictive')}
-              >
-                Ouvrir <RightOutlined />
-              </Button>
-            }
-          />
-        </Card>
-      </Section>
+      {/* ── Analyse prédictive (réservé au pilotage) ─────────── */}
+      {isPilotage && (
+        <Section title="Analyse prédictive">
+          <Card className="cd-span-12" title={undefined}>
+            <Alert
+              type="info"
+              showIcon
+              message="Analyse prédictive détaillée"
+              description="Pour la liste nominative des enseignants à risque, l'historique des alertes et les recommandations IA, consultez l'Analyse Prédictive."
+              action={
+                <Button
+                  type="primary"
+                  size="small"
+                  onClick={() => navigate('/home/AnalysePredictive')}
+                >
+                  Ouvrir <RightOutlined />
+                </Button>
+              }
+            />
+          </Card>
+        </Section>
+      )}
     </div>
   );
 }

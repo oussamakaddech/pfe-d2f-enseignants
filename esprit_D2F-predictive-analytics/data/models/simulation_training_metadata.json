@@ -1,0 +1,181 @@
+{
+  "model_name": "gap_predictor_temporal",
+  "model_version": "simulation-v1.0.0",
+  "trained_at": "2026-08-31T17:46:59.569346",
+  "n_features": 29,
+  "feature_cols": [
+    "current_level_t3",
+    "current_level_t2",
+    "current_level_t1",
+    "current_level_t",
+    "lag_gap_t3_t2",
+    "lag_gap_t2_t1",
+    "lag_gap_t1_t",
+    "rolling_tendance",
+    "days_since_last_training",
+    "training_frequency_per_month",
+    "is_long_absent",
+    "is_stagnant",
+    "avg_level",
+    "min_level",
+    "max_level",
+    "nb_level_5",
+    "nb_level_1",
+    "nb_savoirs",
+    "nb_competences",
+    "competency_coverage_rate",
+    "nb_formations_completed",
+    "nb_formations_in_progress",
+    "taux_assiduite",
+    "nb_besoins_exprimes",
+    "nb_besoins_approuves",
+    "avg_eval_score",
+    "nb_evaluations",
+    "months_since_last_training",
+    "engagement_score"
+  ],
+  "feature_schema_version": "1.0",
+  "n_samples": 10920,
+  "n_train": 8736,
+  "n_test": 2184,
+  "data_sources": {
+    "total_rows": 10920,
+    "real_rows": 0,
+    "synthetic_rows": 10920,
+    "synthetic_share_pct": 100.0,
+    "real_share_pct": 0.0,
+    "dataset_version": "simulation-v1.0.0"
+  },
+  "dataset_version": "simulation-v1.0.0",
+  "data_origin": "SIMULATED",
+  "target_validity": "OBSERVED_IN_SIMULATION",
+  "validation_scope": "SIMULATION_VALIDATED",
+  "is_extrapolated": false,
+  "metrics": {
+    "test_rmse": 0.5115,
+    "test_mae": 0.3596,
+    "test_r2": 0.7113
+  },
+  "feature_ranges": {
+    "current_level_t3": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "current_level_t2": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "current_level_t1": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "current_level_t": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "lag_gap_t3_t2": {
+      "min": -4.0,
+      "max": 2.0
+    },
+    "lag_gap_t2_t1": {
+      "min": -3.0,
+      "max": 3.0
+    },
+    "lag_gap_t1_t": {
+      "min": -4.0,
+      "max": 4.0
+    },
+    "rolling_tendance": {
+      "min": -1.333334,
+      "max": 1.0
+    },
+    "days_since_last_training": {
+      "min": 0.0,
+      "max": 2639.0
+    },
+    "training_frequency_per_month": {
+      "min": 0.0,
+      "max": 0.491804
+    },
+    "is_long_absent": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "is_stagnant": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "avg_level": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "min_level": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "max_level": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "nb_level_5": {
+      "min": 0.0,
+      "max": 4.0
+    },
+    "nb_level_1": {
+      "min": 0.0,
+      "max": 4.0
+    },
+    "nb_savoirs": {
+      "min": 2.0,
+      "max": 7.0
+    },
+    "nb_competences": {
+      "min": 2.0,
+      "max": 10.0
+    },
+    "competency_coverage_rate": {
+      "min": 0.285714,
+      "max": 1.0
+    },
+    "nb_formations_completed": {
+      "min": 0.0,
+      "max": 12.0
+    },
+    "nb_formations_in_progress": {
+      "min": 0.0,
+      "max": 3.0
+    },
+    "taux_assiduite": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "nb_besoins_exprimes": {
+      "min": 0.0,
+      "max": 10.0
+    },
+    "nb_besoins_approuves": {
+      "min": 0.0,
+      "max": 6.0
+    },
+    "avg_eval_score": {
+      "min": 0.0,
+      "max": 4.5
+    },
+    "nb_evaluations": {
+      "min": 0.0,
+      "max": 33.0
+    },
+    "months_since_last_training": {
+      "min": 0.0,
+      "max": 86.695138
+    },
+    "engagement_score": {
+      "min": 0.0,
+      "max": 21.245099
+    }
+  },
+  "decision": "accept",
+  "notes": "Modele SIMULATION_VALIDATED entraine sur corpus simule documente (seed 42, 10920 lignes, re-mesures M+3 observees). Utilisable en demonstration, jamais presente comme REAL_VALIDATED.",
+  "feature_ranges_source": "union (quantiles 0.001-0.999 sur simulation_dataset.csv, corpus complet 10920 lignes) x (etendue observee du corpus de demonstration training_corpus_from_db.csv) — justifiee par les deux distributions observees, sans valeur forcee",
+  "feature_ranges_recomputed_at": "2026-08-31T18:35:47.998098+00:00"
+}

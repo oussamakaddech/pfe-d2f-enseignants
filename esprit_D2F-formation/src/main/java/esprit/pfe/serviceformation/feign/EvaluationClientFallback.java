@@ -27,4 +27,28 @@ public class EvaluationClientFallback implements EvaluationClient {
         log.warn("Service d'évaluation indisponible (circuit ouvert) : "
                 + "{} évaluation(s) non transmise(s), à rejouer ultérieurement.", count);
     }
+
+    @Override
+    public boolean hasEvaluationSubmitted(Long trainingId, String participantId) {
+        log.warn("Service d'évaluation indisponible : vérification évaluation échouée (fallback false)");
+        return false;
+    }
+
+    @Override
+    public Float getParticipantPostTestScore(Long trainingId, String participantId) {
+        log.warn("Service d'évaluation indisponible : récupération score post-test échouée (fallback null)");
+        return null;
+    }
+
+    @Override
+    public boolean hasPostTestPassed(Long trainingId, String participantId, double threshold) {
+        log.warn("Service d'évaluation indisponible : vérification post-test échouée (fallback false)");
+        return false;
+    }
+
+    @Override
+    public List<String> getAllParticipantsForTraining(Long trainingId) {
+        log.warn("Service d'évaluation indisponible : récupération participants échouée (fallback empty list)");
+        return List.of();
+    }
 }

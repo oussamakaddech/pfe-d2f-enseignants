@@ -2,10 +2,55 @@ import type { Id } from '../common';
 
 export type Priorite = 'BASSE' | 'MOYENNE' | 'HAUTE' | 'CRITIQUE';
 
+export type BesoinStatus =
+  | 'SUBMITTED'
+  | 'CUP_APPROVED'
+  | 'DEPARTMENT_APPROVED'
+  | 'ADMIN_APPROVED'
+  | 'FORMATION_CREATED'
+  | 'REJECTED'
+  | 'CANCELLED';
+
+export type ApprovalStep = 'CUP' | 'CHEF_DEPARTEMENT' | 'ADMIN' | 'COMPLETED' | 'REJECTED';
+
+export type CreatorRole = 'ENSEIGNANT' | 'CUP' | 'CHEF_DEPARTEMENT' | 'ADMIN';
+
+export interface ReviewerScope {
+  username?: string;
+  role?: string;
+  upCode?: string;
+  departmentCode?: string;
+}
+
+export interface BesoinApprovalHistoryEntry {
+  id?: Id;
+  besoinId?: Id;
+  actorUsername?: string;
+  actorRole?: string;
+  action?: 'CREATE' | 'APPROVE' | 'REJECT' | 'CANCEL';
+  fromStep?: ApprovalStep | null;
+  toStep?: ApprovalStep | null;
+  reason?: string;
+  createdAt?: string;
+}
+
 export interface BesoinFormation {
   idBesoinFormation?: Id;
   username?: string;
   typeBesoin?: 'INDIVIDUEL' | 'COLLECTIF' | 'ANIMER_UNE_FORMATION';
+  /** Rôle fonctionnel du créateur (figé côté serveur). */
+  createdByRole?: CreatorRole;
+  createdByUserId?: string;
+  /** Étape courante du workflow (qui doit traiter le besoin). */
+  currentApprovalStep?: ApprovalStep;
+  /** Statut métier détaillé. */
+  status?: BesoinStatus;
+  rejectionReason?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
+  approvedByCup?: string;
+  approvedByChefDepartement?: string;
+  approvedByAdmin?: string;
   titre?: string;
   objectifFormation?: string;
   propositionAnimateur?: string;
@@ -49,4 +94,15 @@ export interface BesoinCompetenceLink {
   savoirId?: number | null;
   savoirNom?: string;
   sousCompetenceId?: number | null;
+  /** V27 — nom de la sous-compétence (persisté côté backend, parité savoirNom) */
+  sousCompetenceNom?: string;
+  /**
+   * UI uniquement (formulaire de création) — sélections multiples avant
+   * expansion en lignes plates à la soumission (une ligne par savoir).
+   */
+  sousCompetenceIds?: Id[];
+  savoirIds?: Id[];
+  /** UI uniquement — noms résolus pour le récapitulatif */
+  sousCompetenceNoms?: string[];
+  savoirNoms?: string[];
 }

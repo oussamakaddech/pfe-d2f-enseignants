@@ -13,11 +13,11 @@ INSERT_GAPS = """
     INSERT INTO "analyse".skill_gaps
         (enseignant_id, competence_id, competence_code, competence_nom, niveau_actuel,
          niveau_requis, niveau_vise, gap_score, impact_score, urgence_score, priorite_score,
-         niveau_urgence, mois_stagnation, en_regression, nb_besoins_exprimes, computed_at)
+         niveau_urgence, mois_stagnation, en_regression, nb_besoins_exprimes, tendance, computed_at)
     VALUES
         (:enseignant_id, :competence_id, :competence_code, :competence_nom, :niveau_actuel,
          :niveau_requis, :niveau_vise, :gap_score, :impact_score, :urgence_score, :priorite_score,
-         :niveau_urgence, :mois_stagnation, :en_regression, :nb_besoins_exprimes, now())
+         :niveau_urgence, :mois_stagnation, :en_regression, :nb_besoins_exprimes, :tendance, now())
 """
 
 INSERT_RISK = """
@@ -40,7 +40,9 @@ INSERT_RECOMMENDATION = """
 
 SELECT_GAPS_BY_TEACHER = """
     SELECT competence_id, competence_code, competence_nom, niveau_actuel,
-           niveau_requis, gap_score, niveau_urgence, computed_at::date AS computed_at
+           niveau_requis, gap_score, niveau_urgence,
+           COALESCE(tendance, 'STABLE') AS tendance,
+           computed_at::date AS computed_at
     FROM "analyse".skill_gaps
     WHERE enseignant_id = :id
     ORDER BY gap_score DESC, competence_id
@@ -71,9 +73,9 @@ class SqlAnalysisRepository:
                             "competence_id": gap.competence_id,
                             "competence_code": gap.competence_code,
                             "competence_nom": gap.competence_nom,
-                            "niveau_actuel": int(gap.current_level),
-                            "niveau_requis": int(gap.target_level),
-                            "niveau_vise": int(gap.target_level),
+                            "niveau_actuel": int(gap.observed_result),
+                            "niveau_requis": int(gap.knowledge_difficulty_level),
+                            "niveau_vise": int(gap.knowledge_difficulty_level),
                             "gap_score": gap.gap_score,
                             # Les colonnes suivantes sont NOT NULL sans default en base.
                             # On fournit des valeurs derivees coherentes (impact=urgence=priorite=gap).
@@ -84,6 +86,9 @@ class SqlAnalysisRepository:
                             "mois_stagnation": 0,
                             "en_regression": False,
                             "nb_besoins_exprimes": 0,
+                            # Trace l'origine du calcul (ML vs heuristique) :
+                            # DECLARED_ML/WORSENING => ML, sinon heuristique.
+                            "tendance": gap.trend.value,
                         },
                     )
         except Exception as exc:
@@ -106,11 +111,11 @@ class SqlAnalysisRepository:
                 competence_id=row["competence_id"],
                 competence_code=row["competence_code"],
                 competence_nom=row["competence_nom"],
-                current_level=row["niveau_actuel"],
-                target_level=row["niveau_requis"],
+                observed_result=row["niveau_actuel"],
+                knowledge_difficulty_level=row["niveau_requis"],
                 gap_score=float(row["gap_score"]),
                 severity=Severity(row["niveau_urgence"].upper()),
-                trend=Trend.STABLE,
+                trend=Trend(str(row["tendance"]).upper()),
                 as_of=row["computed_at"],
             )
             for row in rows

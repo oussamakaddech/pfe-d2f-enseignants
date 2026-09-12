@@ -2,6 +2,7 @@ package esprit.pfe.auth.security;
 
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -45,6 +46,25 @@ import java.util.List;
 public class SecurityConfig {
     @Value("${jwt.secret}")
     private String secretKey;
+
+    private static final int MIN_JWT_SECRET_LENGTH = 64;
+
+    @PostConstruct
+    void validateJwtSecret() {
+        if (secretKey == null || secretKey.isBlank()) {
+            throw new IllegalStateException(
+                "JWT_SECRET est obligatoire et doit etre injecte via variable d'environnement.");
+        }
+        if (secretKey.length() < MIN_JWT_SECRET_LENGTH) {
+            throw new IllegalStateException(
+                "JWT_SECRET trop court (" + secretKey.length() + " chars). Minimum requis : "
+                    + MIN_JWT_SECRET_LENGTH + " caracteres pour HS512.");
+        }
+        if (secretKey.contains("CHANGE_ME") || secretKey.contains("change-me")) {
+            throw new IllegalStateException(
+                "JWT_SECRET contient un placeholder (CHANGE_ME). Configurer une valeur reelle en environnement.");
+        }
+    }
 
     /** Origines autorisées — lues depuis application.properties (conformité DSI §2.3 CORS) */
     @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000}")

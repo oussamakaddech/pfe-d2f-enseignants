@@ -1,0 +1,20 @@
+{
+  "relevance_labels_origin": "SYNTHETIC",
+  "note": "Labels de pertinence générés de façon synthétique (couverture de compétence + gap courant). Aucune donnée réelle. Métriques = démonstration technique.",
+  "formula": {
+    "content_weight": 0.7,
+    "quality_weight": 0.2,
+    "recency_weight": 0.1
+  },
+  "n_queries": 60,
+  "n_candidates_per_query": 8,
+  "metrics": {
+    "precision_at_1": 0.9833,
+    "precision_at_3": 0.8167,
+    "precision_at_5": 0.6833,
+    "recall_at_3": 0.7623,
+    "ndcg_at_3": 0.9833,
+    "map_at_3": 0.9833
+  },
+  "warning": "Résultats de démonstration sur labels synthétiques uniquement."
+}

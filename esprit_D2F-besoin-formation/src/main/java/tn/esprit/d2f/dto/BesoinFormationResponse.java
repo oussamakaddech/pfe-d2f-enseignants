@@ -78,6 +78,38 @@ public class BesoinFormationResponse {
 
     private String notificationMessage;
 
+    // ── Workflow sécurisé ───────────────────────────────────────────────────
+
+    @Schema(description = "Identifiant technique du créateur (claim JWT)", example = "9d1f...")
+    private String createdByUserId;
+
+    @Schema(description = "Rôle fonctionnel du créateur (figé serveur)", example = "ENSEIGNANT")
+    private tn.esprit.d2f.entity.enumerations.CreatorRole createdByRole;
+
+    @Schema(description = "Étape courante du workflow", example = "CUP")
+    private tn.esprit.d2f.entity.enumerations.ApprovalStep currentApprovalStep;
+
+    @Schema(description = "Statut métier", example = "SUBMITTED")
+    private tn.esprit.d2f.entity.enumerations.BesoinStatus status;
+
+    @Schema(description = "Motif du refus (si REJECTED)")
+    private String rejectionReason;
+
+    @Schema(description = "Auteur du refus")
+    private String rejectedBy;
+
+    @Schema(description = "Horodatage du refus (UTC)")
+    private String rejectedAt;
+
+    @Schema(description = "Validateur étape CUP")
+    private String approvedByCup;
+
+    @Schema(description = "Validateur étape département")
+    private String approvedByChefDepartement;
+
+    @Schema(description = "Validateur final (admin)")
+    private String approvedByAdmin;
+
     @Schema(description = "Événement RabbitMQ publié (true = événement envoyé au service Formation)", example = "false")
     private Boolean eventPublished;
 

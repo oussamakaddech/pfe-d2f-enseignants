@@ -33,7 +33,7 @@ const CertificatesByEmailPage = lazy(() => import('@/pages/certificat/Certificat
 const UpDeptDataGrid = lazy(() => import('@/pages/enseignant/UpDeptDataGrid'));
 const Register = lazy(() => import('@/pages/auth/Register'));
 const Forbidden403 = lazy(() => import('@/pages/error/Forbidden403'));
-const DashboardPage = lazy(() => import('@/pages/dashboard/CupDashboardPage'));
+const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
 const Login = lazy(() => import('@/pages/admin/gererComptes/Login'));
 const PasswordRecovery = lazy(() => import('@/pages/admin/gererComptes/PasswordRecovery'));
 const Profile = lazy(() => import('@/pages/auth/Profile'));
@@ -49,7 +49,7 @@ const AffectationEnseignantPage = lazy(
 );
 const RicePage = lazy(() => import('@/pages/competence/RicePage'));
 const CompetenceMatchingPage = lazy(() => import('@/pages/competence/CompetenceMatchingPage'));
-const EvaluationGlobalePage = lazy(() => import('@/pages/evaluation/EvaluationGlobalePage'));
+const EvaluationsPage = lazy(() => import('@/pages/evaluation/EvaluationsPage'));
 const TeacherAnalyticsPage = lazy(() => import('@/pages/analyse/AnalyticsTeacherPage'));
 const AnalysePredictivePage = lazy(() => import('@/pages/analyse/AnalyticsPage'));
 const EnseignantsInactifsPage = lazy(() => import('@/pages/analyse/EnseignantsInactifsPage'));
@@ -116,7 +116,23 @@ export default function AppRoutes() {
                   <Route path="/home/skill-passport/:username" element={<SkillPassportPage />} />
                   <Route path="/home/edit-profile" element={<EditProfile />} />
                   <Route path="/home/update-password" element={<UpdatePassword />} />
-                  <Route path="/home/Inscriptions" element={<InscriptionsPage />} />
+                  {/* Parité INSCRIPTION_READ (AuthorizationMatrix) : ADMIN, CUP,
+                      ENSEIGNANT, ANIMATEUR, CHEF_DEPARTEMENT. */}
+                  <Route
+                    element={
+                      <RoleGuard
+                        allowedRoles={[
+                          ROLES.ADMIN,
+                          ROLES.CUP,
+                          ROLES.ENSEIGNANT,
+                          ROLES.ANIMATEUR,
+                          ROLES.CHEF_DEPARTEMENT,
+                        ]}
+                      />
+                    }
+                  >
+                    <Route path="/home/Inscriptions" element={<InscriptionsPage />} />
+                  </Route>
                   <Route
                     path="/home/ListeFormation"
                     element={<Navigate to="/home/Inscriptions" replace />}
@@ -146,11 +162,19 @@ export default function AppRoutes() {
                       path="/home/Enseignants"
                       element={<Navigate to="/home/administration" replace />}
                     />
-                    <Route path="/home/rice" element={<RicePage />} />
                     <Route path="/home/UpDept" element={<UpDeptDataGrid />} />
                     <Route path="/home/certificate" element={<CertificatePage />} />
                     <Route path="/home/certificate/:formationId" element={<CertificatePage />} />
                     <Route path="/home/bureaux" element={<BureauPage />} />
+                  </Route>
+
+                  {/* RICE_READ = ADMIN, CUP, CHEF_DEPARTEMENT (parité AuthorizationMatrix) */}
+                  <Route
+                    element={
+                      <RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />
+                    }
+                  >
+                    <Route path="/home/rice" element={<RicePage />} />
                   </Route>
 
                   {/* FORMATION_CREATE = ADMIN, CUP (cf. AuthorizationMatrix) */}
@@ -199,7 +223,17 @@ export default function AppRoutes() {
                   </Route>
 
                   <Route
-                    element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CHEF_DEPARTEMENT]} />}
+                    element={
+                      <RoleGuard
+                        allowedRoles={[
+                          ROLES.ADMIN,
+                          ROLES.CUP,
+                          ROLES.CHEF_DEPARTEMENT,
+                          ROLES.ENSEIGNANT,
+                          ROLES.ANIMATEUR,
+                        ]}
+                      />
+                    }
                   >
                     <Route path="/home/Calendrier" element={<CalendrierPage />} />
                     <Route path="/home/calendar/:enseignantId" element={<CalendarEnseignant />} />
@@ -249,11 +283,13 @@ export default function AppRoutes() {
                           ROLES.CUP,
                           ROLES.CHEF_DEPARTEMENT,
                           ROLES.ENSEIGNANT,
+                          ROLES.ANIMATEUR,
                         ]}
                       />
                     }
                   >
-                    <Route path="/home/Evaluations" element={<EvaluationGlobalePage />} />
+                    <Route path="/home/Evaluations" element={<EvaluationsPage />} />
+                    <Route path="/home/Evaluations/Participants" element={<EvaluationsPage />} />
                   </Route>
 
                   {/* Référentiel Compétences : masqué aux ENSEIGNANT et ANIMATEUR (pas de besoin métier). */}
@@ -288,7 +324,11 @@ export default function AppRoutes() {
                     />
                   </Route>
 
-                  <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP]} />}>
+                  <Route
+                    element={
+                      <RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />
+                    }
+                  >
                     <Route path="/home/affectations" element={<AffectationEnseignantPage />} />
                     <Route path="/home/rice/matchmaking" element={<CompetenceMatchingPage />} />
                     <Route
@@ -306,6 +346,9 @@ export default function AppRoutes() {
                           ROLES.ENSEIGNANT,
                           ROLES.ANIMATEUR,
                           ROLES.CHEF_DEPARTEMENT,
+                          // Parité BESOIN_FORMATION_READ_ALL (AuthorizationMatrix)
+                          // et FRONTEND_PERMISSIONS.BESOIN_FORMATION.READ_ALL.
+                          ROLES.RESPONSABLE_DOSSIER,
                         ]}
                       />
                     }
@@ -315,7 +358,13 @@ export default function AppRoutes() {
                   <Route
                     element={
                       <RoleGuard
-                        allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.ENSEIGNANT, ROLES.ANIMATEUR]}
+                        allowedRoles={[
+                          ROLES.ADMIN,
+                          ROLES.CUP,
+                          ROLES.ENSEIGNANT,
+                          ROLES.ANIMATEUR,
+                          ROLES.CHEF_DEPARTEMENT,
+                        ]}
                       />
                     }
                   >
@@ -330,16 +379,23 @@ export default function AppRoutes() {
                     />
                   </Route>
 
+                  {/* Présences : CUP ajouté (parité PRESENCE_MARK backend + spec CUP
+                      « consulter les présences ») ; l'animateur/formateur de la séance
+                      et l'enseignant consultent leurs sessions. */}
                   <Route
                     element={
-                      <RoleGuard allowedRoles={[ROLES.ANIMATEUR, ROLES.ENSEIGNANT, ROLES.ADMIN]} />
+                      <RoleGuard
+                        allowedRoles={[ROLES.ANIMATEUR, ROLES.ENSEIGNANT, ROLES.ADMIN, ROLES.CUP]}
+                      />
                     }
                   >
                     <Route path="/home/animateur-formations" element={<FormationList />} />
                     <Route path="/home/animateur-formations/:id" element={<FormationDetail />} />
                   </Route>
 
-                  <Route element={<RoleGuard allowedRoles={[ROLES.ENSEIGNANT]} />}>
+                  {/* Présences : consultation de sa feuille de présence (enseignant
+                      OU animateur — les présences animateurs sont créées par séance). */}
+                  <Route element={<RoleGuard allowedRoles={[ROLES.ENSEIGNANT, ROLES.ANIMATEUR]} />}>
                     <Route path="/home/mes-presences" element={<MaPresence />} />
                   </Route>
                 </Route>

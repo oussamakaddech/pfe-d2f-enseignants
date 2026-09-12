@@ -28,6 +28,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
@@ -1391,12 +1392,30 @@ public class FormationWorkflowService {
         }
     }
 
+    /**
+     * Contrôle row-level : seuls les rôles de gestion (ADMIN/CUP/RESPONSABLE_DOSSIER,
+     * cf. CurrentUser#hasGlobalScope) ou un animateur affecté à la séance peuvent
+     * modifier sa feuille de présence.
+     */
+    private void assertCanManageSeancePresences(SeanceFormation seance, CurrentUser user) {
+        if (user != null && user.hasGlobalScope()) {
+            return;
+        }
+        String email = user != null ? user.email() : null;
+        boolean membre = email != null && seance != null && seance.getAnimateurs() != null
+                && seance.getAnimateurs().stream().anyMatch(e -> email.equalsIgnoreCase(e.getMail()));
+        if (!membre) {
+            throw new AccessDeniedException("Vous n'êtes pas animateur de cette séance");
+        }
+    }
+
     @Transactional
-    public void updatePresence(Long idParticipation, boolean isPresent, String commentaire) {
+    public void updatePresence(Long idParticipation, boolean isPresent, String commentaire, CurrentUser user) {
         Presence presence = presenceRepository.findById(idParticipation)
                 .orElseThrow(() -> new IllegalArgumentException("Presence introuvable pour id " + idParticipation));
-        presence.setPresent(isPresent);
-        presence.setCommentaire(commentaire);
+        assertCanManageSeancePresences(presence.getSeanceFormation(), user);
+        applyPresenceUpdate(presence, isPresent ? PresenceStatus.PRESENT : PresenceStatus.ABSENT,
+            null, null, null, commentaire, user);
         presenceRepository.save(presence);
     }
 
@@ -1434,10 +1453,10 @@ public class FormationWorkflowService {
 
     public List<FormationResponseDTO> getFormationsByAnimateurEmail(String email) {
         List<Formation> allFormations = formationRepository.findDistinctBySeancesAnimateursMail(email);
-        List<Formation> enCours = allFormations.stream()
-                .filter(f -> f.getEtatFormation() == EtatFormation.EN_COURS)
-                .toList();
-        enCours.forEach(f -> {
+        // Toutes les formations animées (y compris ACHEVE) : l'animateur doit pouvoir
+        // consulter et finaliser la feuille de présence même après la fin de la
+        // formation — le filtrage par statut est fait côté interface.
+        allFormations.forEach(f -> {
             if (f.getSeances() != null) {
                 f.getSeances().forEach(s -> {
                     Hibernate.initialize(s.getAnimateurs());
@@ -1445,7 +1464,7 @@ public class FormationWorkflowService {
                 });
             }
         });
-        return enCours.stream().map(formationMapper::toResponseDTO).toList();
+        return allFormations.stream().map(formationMapper::toResponseDTO).toList();
     }
 
     public List<PresenceDTO> getPresencesBySeance(Long seanceId) {
@@ -1459,7 +1478,10 @@ public class FormationWorkflowService {
     }
 
     @Transactional
-    public List<PresenceDTO> batchUpdatePresences(Long seanceId, esprit.pfe.serviceformation.dto.BatchPresenceUpdateRequest request) {
+    public List<PresenceDTO> batchUpdatePresences(Long seanceId, esprit.pfe.serviceformation.dto.BatchPresenceUpdateRequest request, CurrentUser user) {
+        SeanceFormation seance = seanceFormationRepository.findById(seanceId)
+                .orElseThrow(() -> new IllegalArgumentException("Seance introuvable for id " + seanceId));
+        assertCanManageSeancePresences(seance, user);
         if (request == null || request.getUpdates() == null || request.getUpdates().isEmpty()) {
             return getPresencesBySeance(seanceId);
         }
@@ -1475,20 +1497,25 @@ public class FormationWorkflowService {
             if (existing == null) {
                 continue; // skip null items and presences that don't belong to this seance
             }
-            existing.setPresent(item.isPresent());
-            if (item.getCommentaire() != null) {
-                existing.setCommentaire(item.getCommentaire());
-            }
+                applyPresenceUpdate(existing,
+                    item.getStatus() != null ? item.getStatus()
+                        : (item.isPresent() ? PresenceStatus.PRESENT : PresenceStatus.ABSENT),
+                    item.getArrivalTime(), item.getDepartureTime(), item.getJustification(),
+                    item.getCommentaire(), user);
         }
         presenceRepository.saveAll(seancePresences);
         return seancePresences.stream().map(this::mapPresenceToDTO).toList();
     }
 
     @Transactional
-    public List<PresenceDTO> markAllPresences(Long seanceId, boolean present) {
+    public List<PresenceDTO> markAllPresences(Long seanceId, boolean present, CurrentUser user) {
+        SeanceFormation seance = seanceFormationRepository.findById(seanceId)
+                .orElseThrow(() -> new IllegalArgumentException("Seance introuvable for id " + seanceId));
+        assertCanManageSeancePresences(seance, user);
         List<Presence> seancePresences = presenceRepository.findBySeanceFormation_IdSeance(seanceId);
         for (Presence p : seancePresences) {
-            p.setPresent(present);
+            applyPresenceUpdate(p, present ? PresenceStatus.PRESENT : PresenceStatus.ABSENT,
+                    null, null, null, null, user);
             if (present && (p.getCommentaire() == null || p.getCommentaire().isBlank()
                     || "Presence a valider".equalsIgnoreCase(p.getCommentaire()))) {
                 p.setCommentaire("Presence confirmee");
@@ -1511,11 +1538,66 @@ public class FormationWorkflowService {
         PresenceDTO dto = new PresenceDTO();
         dto.setIdParticipation(presence.getIdParticipation());
         dto.setPresent(presence.isPresent());
+        dto.setStatus(presence.getStatus() != null ? presence.getStatus()
+            : (presence.isPresent() ? PresenceStatus.PRESENT : PresenceStatus.ABSENT));
+        dto.setArrivalTime(presence.getArrivalTime());
+        dto.setDepartureTime(presence.getDepartureTime());
+        dto.setJustification(presence.getJustification());
         dto.setCommentaire(presence.getCommentaire());
+        dto.setRecordedBy(presence.getRecordedBy());
+        dto.setRecordedAt(presence.getRecordedAt());
         if (presence.getEnseignant() != null) {
             dto.setEnseignant(mapEnseignantToDTO(presence.getEnseignant()));
         }
         return dto;
+    }
+
+    private void applyPresenceUpdate(Presence presence, PresenceStatus status, LocalTime arrival,
+                                     LocalTime departure, String justification, String comment,
+                                     CurrentUser user) {
+        SeanceFormation seance = presence.getSeanceFormation();
+        // Cohérence temporelle : l'heure de départ ne peut pas précéder l'heure d'arrivée.
+        if (arrival != null && departure != null && departure.isBefore(arrival)) {
+            throw new IllegalArgumentException("L'heure de départ ne peut pas précéder l'heure d'arrivée.");
+        }
+        // Cohérence avec la séance : arrivée pendant la séance, départ après le début.
+        if (seance != null) {
+            if (arrival != null && seance.getHeureFin() != null && arrival.isAfter(seance.getHeureFin())) {
+                throw new IllegalArgumentException("L'heure d'arrivée ne peut pas être postérieure à la fin de la séance.");
+            }
+            if (departure != null && seance.getHeureDebut() != null && departure.isBefore(seance.getHeureDebut())) {
+                throw new IllegalArgumentException("L'heure de départ ne peut pas être antérieure au début de la séance.");
+            }
+        }
+        // ABSENT / EXCUSED : aucune présence enregistrée → horaires réinitialisés.
+        if (status == PresenceStatus.ABSENT || status == PresenceStatus.EXCUSED) {
+            arrival = null;
+            departure = null;
+        }
+        // EXCUSED : absence justifiée → la justification est obligatoire.
+        if (status == PresenceStatus.EXCUSED && (justification == null || justification.isBlank())) {
+            throw new IllegalArgumentException("Une absence justifiée (EXCUSED) doit comporter une justification.");
+        }
+        // PRESENT : arrivée dans le délai prévu (défaut : début de séance).
+        if ((status == PresenceStatus.PRESENT || status == PresenceStatus.LATE)
+                && arrival == null && seance != null && seance.getHeureDebut() != null) {
+            arrival = seance.getHeureDebut();
+        }
+        // LATE : arrivée après l'heure de début de la séance.
+        if (status == PresenceStatus.PRESENT && arrival != null && seance != null
+                && seance.getHeureDebut() != null && arrival.isAfter(seance.getHeureDebut())) {
+            status = PresenceStatus.LATE;
+        }
+        presence.setStatus(status);
+        presence.setPresent(status == PresenceStatus.PRESENT || status == PresenceStatus.LATE);
+        presence.setArrivalTime(arrival);
+        presence.setDepartureTime(departure);
+        presence.setJustification(justification);
+        if (comment != null) {
+            presence.setCommentaire(comment);
+        }
+        presence.setRecordedBy(user != null ? user.username() : null);
+        presence.setRecordedAt(LocalDateTime.now());
     }
 
     public List<MesPresenceDTO> getMesPresences(String email) {
@@ -1526,7 +1608,14 @@ public class FormationWorkflowService {
             MesPresenceDTO dto = new MesPresenceDTO();
             dto.setIdParticipation(p.getIdParticipation());
             dto.setPresent(p.isPresent());
+                dto.setStatus(p.getStatus() != null ? p.getStatus()
+                    : (p.isPresent() ? PresenceStatus.PRESENT : PresenceStatus.ABSENT));
+                dto.setArrivalTime(p.getArrivalTime());
+                dto.setDepartureTime(p.getDepartureTime());
+                dto.setJustification(p.getJustification());
             dto.setCommentaire(p.getCommentaire());
+                dto.setRecordedBy(p.getRecordedBy());
+                dto.setRecordedAt(p.getRecordedAt());
             if (p.getSeanceFormation() != null) {
                 dto.setSeanceId(p.getSeanceFormation().getIdSeance());
                 dto.setDateSeance(p.getSeanceFormation().getDateSeance());
@@ -1652,6 +1741,59 @@ public class FormationWorkflowService {
     @Transactional(readOnly = true)
     public List<FormationResponseDTO> getFormationsParDepartement(String deptId) {
         List<Formation> formations = formationRepository.findByDepartement_Id(deptId);
+        formations.forEach(f -> {
+            if (f.getSeances() != null) {
+                f.getSeances().forEach(seance -> {
+                    if (seance.getAnimateurs() != null)
+                        Hibernate.initialize(seance.getAnimateurs());
+                    if (seance.getParticipants() != null)
+                        Hibernate.initialize(seance.getParticipants());
+                });
+            }
+            if (f.getFormationCompetences() != null)
+                Hibernate.initialize(f.getFormationCompetences());
+            if (f.getInscriptions() != null)
+                Hibernate.initialize(f.getInscriptions());
+        });
+        return formations.stream().map(formationMapper::toResponseDTO).toList();
+    }
+
+    /**
+     * Catalogue scopé serveur pour les pilotes (§8 droits) :
+     * un CUP ne voit que les formations de son UP, un chef de département
+     * celles de son département — périmètre résolu depuis l'email JWT via
+     * l'entité Enseignant, jamais depuis un paramètre client. Les autres
+     * rôles avec FORMATION_READ conservent la vue complète.
+     */
+    @Transactional(readOnly = true)
+    public List<FormationResponseDTO> getMesFormationsPilote(CurrentUser user) {
+        if (user == null || user.email() == null) {
+            throw new IllegalArgumentException("Utilisateur non identifiable");
+        }
+        boolean isCup = user.hasRole("CUP") && !user.isAdmin();
+        boolean isChef = user.hasRole("CHEF_DEPARTEMENT") && !user.isAdmin();
+        if (!isCup && !isChef) {
+            // Vue complète (admin et autres rôles FORMATION_READ).
+            return getAllFormationWorkflows();
+        }
+        Enseignant enseignant = enseignantRepository.findByMailIgnoreCase(user.email())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Profil enseignant introuvable pour l'email : " + user.email()
+                        + " — impossible de résoudre le périmètre (UP/département)."));
+        List<Formation> formations;
+        if (isCup) {
+            if (enseignant.getUp() == null || enseignant.getUp().getId() == null) {
+                throw new IllegalArgumentException(
+                        "Aucune UP rattachée à votre profil — contactez l'administrateur.");
+            }
+            formations = formationRepository.findByUp_Id(enseignant.getUp().getId());
+        } else {
+            if (enseignant.getDept() == null || enseignant.getDept().getId() == null) {
+                throw new IllegalArgumentException(
+                        "Aucun département rattaché à votre profil — contactez l'administrateur.");
+            }
+            formations = formationRepository.findByDepartement_Id(enseignant.getDept().getId());
+        }
         formations.forEach(f -> {
             if (f.getSeances() != null) {
                 f.getSeances().forEach(seance -> {

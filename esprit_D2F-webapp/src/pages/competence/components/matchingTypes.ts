@@ -4,6 +4,12 @@ export interface RiceSavoirEntry extends Record<string, unknown> {
   nom?: string;
   niveau?: string;
   domaine?: { code?: string; nom?: string } | string;
+  domaineId?: string | number;
+  domaineNom?: string;
+  competenceId?: string | number;
+  competenceNom?: string;
+  sousCompetenceId?: string | number;
+  sousCompetenceNom?: string;
   enseignants?: (string | number)[];
   enseignantIds?: (string | number)[];
 }
@@ -25,8 +31,87 @@ export interface PendingItem {
 export interface MatchingFilters {
   departement: string;
   domaine: string;
+  competence: string;
+  sousCompetence: string;
   search: string;
   showUnassignedOnly: boolean;
+}
+
+/** Hiérarchie résolue d'un savoir (domaine › compétence › sous-compétence). */
+export interface SavoirHierarchy {
+  domaineId: string;
+  domaineNom: string;
+  competenceId: string;
+  competenceNom: string;
+  sousCompetenceId: string;
+  sousCompetenceNom: string;
+}
+
+export interface ReferentialNode {
+  id?: string | number;
+  code?: string;
+  nom?: string;
+  domaineId?: string | number;
+  competenceId?: string | number;
+}
+
+const nodeKey = (v: unknown): string => (v === undefined || v === null ? '' : String(v));
+
+/**
+ * Résout la hiérarchie complète d'un savoir à partir du référentiel
+ * (domaines / compétences / sous-compétences) :
+ * - savoir direct → compétence → domaine ;
+ * - savoir via sous-compétence → sous-compétence → compétence → domaine.
+ * Bascule sur les champs dénormalisés du savoir (`competenceNom`, …) puis sur
+ * le champ legacy `domaine` (référentiel RICE) quand le référentiel ne couvre
+ * pas la ligne.
+ */
+export function resolveSavoirHierarchy(
+  savoir: RiceSavoirEntry,
+  referential: {
+    domaines: ReferentialNode[];
+    competences: ReferentialNode[];
+    sousCompetences: ReferentialNode[];
+  },
+): SavoirHierarchy {
+  const empty: SavoirHierarchy = {
+    domaineId: '',
+    domaineNom: '',
+    competenceId: '',
+    competenceNom: '',
+    sousCompetenceId: '',
+    sousCompetenceNom: '',
+  };
+  if (!savoir) return empty;
+
+  const scId = nodeKey(savoir.sousCompetenceId);
+  const compIdDirect = nodeKey(savoir.competenceId);
+  const sc = scId ? referential.sousCompetences.find((s) => nodeKey(s.id) === scId) : undefined;
+  const compId = nodeKey(sc?.competenceId ?? compIdDirect);
+  const comp = compId ? referential.competences.find((c) => nodeKey(c.id) === compId) : undefined;
+  const domId = nodeKey(comp?.domaineId ?? savoir.domaineId);
+  const dom = domId ? referential.domaines.find((d) => nodeKey(d.id) === domId) : undefined;
+
+  const legacyDomaine = savoir.domaine;
+  const legacyCode =
+    typeof legacyDomaine === 'object' && legacyDomaine !== null
+      ? (legacyDomaine.code ?? legacyDomaine.nom ?? '')
+      : (legacyDomaine ?? '');
+  const legacyLabel =
+    typeof legacyDomaine === 'object' && legacyDomaine !== null
+      ? (legacyDomaine.nom ?? legacyDomaine.code ?? '')
+      : String(legacyDomaine ?? '');
+
+  return {
+    domaineId: domId || String(legacyCode ?? ''),
+    domaineNom: dom?.nom ?? dom?.code ?? String(legacyLabel ?? ''),
+    competenceId: compId,
+    competenceNom:
+      comp?.nom ?? (typeof savoir.competenceNom === 'string' ? savoir.competenceNom : ''),
+    sousCompetenceId: scId,
+    sousCompetenceNom:
+      sc?.nom ?? (typeof savoir.sousCompetenceNom === 'string' ? savoir.sousCompetenceNom : ''),
+  };
 }
 
 export interface MatchingState {
@@ -61,7 +146,14 @@ export const initialState: MatchingState = {
   enseignants: [],
   assignments: {},
   pendingChanges: { add: [], remove: [] },
-  filters: { departement: 'all', domaine: 'all', search: '', showUnassignedOnly: false },
+  filters: {
+    departement: 'all',
+    domaine: 'all',
+    competence: 'all',
+    sousCompetence: 'all',
+    search: '',
+    showUnassignedOnly: false,
+  },
   loading: { data: false, saving: false },
   error: null,
 };

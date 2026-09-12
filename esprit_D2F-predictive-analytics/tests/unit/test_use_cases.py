@@ -40,6 +40,33 @@ def test_compute_gaps_returns_heuristic_mode(repositories):
     assert repositories["analyse"].gaps == gaps
 
 
+def test_compute_gaps_never_claims_ml_when_serving_failed(repositories):
+    """Modèle chargé (PRODUCTION_ML) mais serving indisponible (features
+    invalides) : les gaps renvoyés sont heuristiques -> le mode exposé doit
+    rester HEURISTIC_FALLBACK, jamais un mode ML mensonger."""
+    class LoadedButFailingPort(FakeModelPort):
+        def status(self) -> dict:
+            return {
+                **super().status(),
+                "available": True,
+                "model_mode": "PRODUCTION_ML",
+                "model_version": "v1.0.0",
+            }
+
+    settings = build_settings()
+    use_case = ComputeGaps(
+        repositories["competency"],
+        repositories["analyse"],
+        LoadedButFailingPort(),
+        settings,
+        teacher_source=repositories["teacher"],
+    )
+    gaps, mode, version = use_case.execute("T001")
+    assert mode == "HEURISTIC_FALLBACK"
+    assert version is None
+    assert len(gaps) == 1  # gaps heuristiques scopés, jamais 0
+
+
 def test_compute_risk_returns_heuristic_mode_and_persists(repositories):
     settings = build_settings()
     use_case = ComputeRisk(
@@ -51,8 +78,9 @@ def test_compute_risk_returns_heuristic_mode_and_persists(repositories):
         repositories["model"],
         settings,
     )
-    profile, mode, _ = use_case.execute("T002")
-    assert mode == "HEURISTIC_FALLBACK"
+    profile, mode, _, _ = use_case.execute("T002")
+    assert mode == "HEURISTIC"
+
     assert 0 <= profile.risk_score <= 100
     assert repositories["analyse"].risk[-1] is profile
 
@@ -68,6 +96,6 @@ def test_risk_teacher_with_repeated_needs_higher(repositories):
         repositories["model"],
         settings,
     )
-    low_profile, _, _ = use_case.execute("T001")
-    high_profile, _, _ = use_case.execute("T002")
+    low_profile, _, _, _ = use_case.execute("T001")
+    high_profile, _, _, _ = use_case.execute("T002")
     assert high_profile.risk_score > low_profile.risk_score

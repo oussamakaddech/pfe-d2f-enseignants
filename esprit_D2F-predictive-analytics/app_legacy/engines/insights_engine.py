@@ -17,7 +17,8 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import Integer, func
+from sqlalchemy import Integer, func, text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.observability import safe_kpi
@@ -111,24 +112,37 @@ class InsightsEngine:
         )
 
     def _taux_couverture_global(self) -> float:
-        """% de couples (enseignant, compétence) au niveau requis.
+        """% d'enseignants actifs ayant au moins une compétence affectée.
 
-        Calculé depuis ``teacher_competence_coverage`` (snapshot des niveaux réels),
-        et NON depuis ``skill_gaps`` qui ne contient que les écarts — sinon la
-        couverture serait structurellement ~0 %.
+        Source réelle `competence.enseignant_competences` (alignée sur le
+        calcul du dashboard réel `dashboard_real.py` COVERAGE_SQL).
+
+        L'ancienne implémentation lisait la table dénormalisée
+        `analyse.teacher_competence_coverage`, qui n'est plus recalculée par le
+        pipeline (dernier snapshot 2026-07-30) et affichait une couverture
+        fausse (1.3%) alors que la couverture réelle est totale (100%).
         """
-        row = (
-            self.db.query(
-                func.count(TeacherCompetenceCoverage.id).label("total"),
-                func.sum(
-                    func.cast(TeacherCompetenceCoverage.covered, Integer)
-                ).label("couverts"),
+        try:
+            row = self.db.execute(
+                text(
+                    """
+                    SELECT
+                      COUNT(DISTINCT e.id) AS nb_enseignants,
+                      COUNT(DISTINCT CASE WHEN ec.id IS NOT NULL THEN e.id END) AS avec_competences
+                    FROM formation.enseignants e
+                    LEFT JOIN competence.enseignant_competences ec ON ec.enseignant_id = e.id
+                    WHERE e.deleted_at IS NULL
+                    """
+                )
+            ).mappings().first()
+        except SQLAlchemyError as exc:  # pragma: no cover - log + repli 0
+            logging.getLogger(__name__).error(
+                "calcul couverture globale impossible", error=str(exc)
             )
-            .first()
-        )
-        total = int(getattr(row, "total", 0) or 0)
-        couverts = int(getattr(row, "couverts", 0) or 0)
-        return round(couverts / total * 100, 1) if total else 0.0
+            return 0.0
+        nb = int(row["nb_enseignants"] or 0)
+        avec_comp = int(row["avec_competences"] or 0)
+        return round(avec_comp / nb * 100, 1) if nb else 0.0
 
     def _precision_modele(self) -> float | None:
         from app.services.model_trainer import read_current_accuracy
@@ -379,11 +393,16 @@ class InsightsEngine:
 
     # ── Matrice offre / demande par compétence ───────────────
     def supply_demand(self) -> list[dict[str, Any]]:
+        # Groupement par compétence UNIQUEMENT (id + nom) : les gaps cohabitent
+        # avec `domaine_nom` NULL (pipeline d2f) et renseigné (pipeline ML) pour
+        # une même compétence — les compter séparément gonflait la liste
+        # (26 "compétences" pour 18 réelles) et scindait les quadrants.
+        # Le domaine affiché est le plus fréquent/non-null (MAX ignore les NULL).
         rows = (
             self.db.query(
                 SkillGap.competence_id,
                 SkillGap.competence_nom,
-                SkillGap.domaine_nom,
+                func.max(SkillGap.domaine_nom).label("domaine_nom"),
                 func.count(SkillGap.id).label("nb"),
                 func.sum(
                     func.cast(SkillGap.niveau_actuel >= SkillGap.niveau_requis, Integer)
@@ -395,7 +414,7 @@ class InsightsEngine:
                 ).label("nb_critiques"),
             )
             .filter(SkillGap.computed_at >= self._recent_cutoff())
-            .group_by(SkillGap.competence_id, SkillGap.competence_nom, SkillGap.domaine_nom)
+            .group_by(SkillGap.competence_id, SkillGap.competence_nom)
             .all()
         )
 

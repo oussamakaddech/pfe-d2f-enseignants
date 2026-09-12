@@ -6,13 +6,22 @@ evaluation.evaluation_formateur, besoin.besoin_formation, formation.presences.
 
 Pour chaque (enseignant, competence) avec suffisamment d'historique (>1 savoir),
 on reconstruit l'historique t-3..t depuis les vraies dates d'acquisition.
-Le target gap_next_3m est estime par la tendance observee sur l'historique
-(extrapolation simple d'un pas de 3 mois, bornee [0,5]).
 
 CORRECTION AUDIT DSI : le corpus exporte desormais une colonne `date_t`
 (date du point le plus recent de l'historique) et est trie chronologiquement
-(plus aucun shuffle) — ce qui permet au pipeline d'entrainement de realiser
+plus aucun shuffle) — ce qui permet au pipeline d'entrainement de realiser
 un split TEMPOREL strict (train = avant le seuil, test = apres).
+
+GOUVERNANCE 7.6 (limite 1) : la cible gap_next_3m est EXTRAPOLEE depuis la
+tendance glissante tant qu'aucune re-mesure future reelle n'existe. Le corpus
+exporte desormais :
+- ``target_observation_date`` : date de la re-mesure REELLE si elle existe
+  (niveau constate a date_t + 3 mois), sinon vide ;
+- ``is_extrapolated`` : true quand la cible est derivee de l'historique,
+  false seulement si une observation future reelle a ete mesuree.
+
+Aucune cible n'est jamais imputee, interpolee ou inventee : sans observation
+reelle, is_extrapolated=true et target_observation_date est vide.
 """
 from __future__ import annotations
 
@@ -30,6 +39,9 @@ OUTPUT_PATH = CLEAN_DIR / "training_corpus_from_db.csv"
 
 RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
+
+# Fenetre de la cible : re-mesure attendue a date_t + 3 mois (92 jours).
+TARGET_HORIZON_DAYS = 92
 
 FEATURE_COLS = [
     "current_level_t3", "current_level_t2", "current_level_t1", "current_level_t",
@@ -86,8 +98,10 @@ def main() -> pd.DataFrame:
         """)).mappings().all()
 
         insc = conn.execute(text("""
-            SELECT enseignant_id, formation_id, etat, date_demande
-            FROM formation.inscriptions WHERE date_demande IS NOT NULL
+            SELECT i.enseignant_id, i.formation_id, i.etat, i.date_demande, f.date_fin
+            FROM formation.inscriptions i
+            LEFT JOIN formation.formations f ON f.id_formation = i.formation_id
+            WHERE i.date_demande IS NOT NULL
         """)).mappings().all()
 
         pres = conn.execute(text("""
@@ -117,6 +131,44 @@ def main() -> pd.DataFrame:
 
     today = pd.Timestamp.today().normalize()
 
+    def _naive(ts):
+        ts = pd.Timestamp(ts)
+        return ts.tz_localize(None) if ts.tzinfo is not None else ts
+
+    # ── Features globales par enseignant : MÊMES définitions que le serving
+    # (predictor._teacher_feature_bundle / _global_features) pour éviter tout
+    # écart train/serving sur les plages de features.
+    last_acq_by_teacher: dict[str, pd.Timestamp] = {}
+    for r in savs:
+        if r["date_acquisition"]:
+            d = _naive(r["date_acquisition"])
+            t = r["enseignant_id"]
+            if t not in last_acq_by_teacher or d > last_acq_by_teacher[t]:
+                last_acq_by_teacher[t] = d
+
+    formations_by_teacher: dict[str, list[dict]] = {}
+    for i in insc:
+        formations_by_teacher.setdefault(i["enseignant_id"], []).append({
+            "etat": i["etat"],
+            "date_demande": _naive(i["date_demande"]) if i["date_demande"] else None,
+            "date_fin": _naive(i["date_fin"]) if i["date_fin"] else None,
+        })
+
+    n_done_by: dict[str, int] = {}
+    n_prog_by: dict[str, int] = {}
+    avg_delta_by: dict[str, float] = {}
+    for tid2, fs in formations_by_teacher.items():
+        comp = [f for f in fs if f["etat"] == "APPROVED" and f["date_fin"] and f["date_fin"] < today]
+        inpr = [f for f in fs if f["etat"] in ("APPROVED", "EN_COURS")]
+        n_done_by[tid2] = len(comp)
+        n_prog_by[tid2] = len(inpr)
+        ad = 0.0
+        if len(comp) >= 2:
+            ds_ = sorted(f["date_fin"] for f in comp if f["date_fin"])
+            deltas = [(ds_[k + 1] - ds_[k]).days for k in range(len(ds_) - 1)]
+            ad = float(np.mean(deltas)) if deltas else 0.0
+        avg_delta_by[tid2] = ad
+
     # Groupe par (enseignant, competence)
     by_tc: dict[tuple[str, int], list[dict]] = {}
     for r in savs:
@@ -127,11 +179,6 @@ def main() -> pd.DataFrame:
             "required": int(r["required_level"] or 3),
         })
 
-    # Formations par enseignant
-    formations_by_teacher: dict[str, list[dict]] = {}
-    for i in insc:
-        formations_by_teacher.setdefault(i["enseignant_id"], []).append(i)
-
     rows = []
     for (tid, cid), entries in sorted(by_tc.items()):
         if len(entries) < 2:
@@ -141,6 +188,31 @@ def main() -> pd.DataFrame:
         levels = [e["niveau"] for e in entries]
         dates = [e["date"] for e in entries]
         required = entries[0]["required"] or 3
+        date_t = dates[-1]
+
+        # ── Cible (gouvernance 7.6, limite 1) ────────────────────────
+        # Une observation future REELLE existe si un niveau a ete saisi
+        # apres date_t + horizon (3 mois). On ne JAMAIS interpoler :
+        # sans re-mesure, la cible reste extrapolée (is_extrapolated=true).
+        horizon_ts = date_t + pd.Timedelta(days=TARGET_HORIZON_DAYS)
+        future_entries = [
+            e for e in entries
+            if e["date"] > horizon_ts
+        ]
+        if future_entries:
+            # Première re-mesure réelle après la fenêtre cible.
+            obs = min(future_entries, key=lambda e: e["date"])
+            observed_future_level = float(obs["niveau"])
+            gap_next = float(max(0, required - observed_future_level))
+            target_observation_date = obs["date"].strftime("%Y-%m-%d")
+            is_extrapolated = False
+        else:
+            # Aucune re-mesure réelle : extrapolation de la tendance.
+            # (cur_t + rolling), bornée — étiquetée explicitement.
+            future_level = float(np.clip(levels[-1] + (levels[-1] - levels[-4]) / 3.0 if len(levels) >= 4 else levels[-1], 1, 5))
+            gap_next = float(max(0, required - future_level))
+            target_observation_date = ""
+            is_extrapolated = True
 
         # Historique t-3..t : 4 points (padding avec le plus ancien si besoin)
         hist = levels[-4:] if len(levels) >= 4 else ([levels[0]] * (4 - len(levels)) + levels)
@@ -150,20 +222,10 @@ def main() -> pd.DataFrame:
         lag1t = cur_t - cur_t1
         rolling = (cur_t - cur_t3) / 3.0
 
-        # Target : extrapolation de la tendance sur 3 mois (bornee)
-        future_level = float(np.clip(cur_t + rolling, 1, 5))
-        gap_next = float(max(0, required - future_level))
-
-        # Features engagement (depuis la vraie base)
-        tformations = formations_by_teacher.get(tid, [])
-        n_done = sum(1 for f in tformations if f["etat"] == "APPROVED")
-        n_prog = sum(1 for f in tformations if f["etat"] == "EN_COURS")
-        last_f_date = max((f["date_demande"] for f in tformations), default=None)
-        if last_f_date is not None:
-            ts = pd.Timestamp(last_f_date)
-            if ts.tzinfo is not None:
-                ts = ts.tz_localize(None)
-            days_since_f = (today - ts).days
+        # Features engagement (définitions serving — voir _global_features)
+        last_acq = last_acq_by_teacher.get(tid)
+        if last_acq is not None:
+            days_since_f = (today - last_acq).days
         else:
             days_since_f = 365
         months_since_f = days_since_f / 30.44
@@ -171,18 +233,24 @@ def main() -> pd.DataFrame:
         taux = attendance.get(tid, 0.0)
         avg_note, nb_eval = eval_map.get(tid, (0.0, 0))
         nb_needs, nb_needs_ok = need_map.get(tid, (0, 0))
+        n_done = n_done_by.get(tid, 0)
+        n_prog = n_prog_by.get(tid, 0)
+        ad = avg_delta_by.get(tid, 0.0)
+        freq_month = (n_done / max(1.0, ad / 30.0)) if ad else 0.0
 
         row = {
             "teacher_id": tid,
             "competence_id": cid,
             "competence_code": f"C{cid}",
-            "date_t": dates[-1].strftime("%Y-%m-%d"),
+            "date_t": date_t.strftime("%Y-%m-%d"),
+            "target_observation_date": target_observation_date,
+            "is_extrapolated": is_extrapolated,
             "current_level_t3": cur_t3, "current_level_t2": cur_t2,
             "current_level_t1": cur_t1, "current_level_t": cur_t,
             "lag_gap_t3_t2": lag32, "lag_gap_t2_t1": lag21, "lag_gap_t1_t": lag1t,
             "rolling_tendance": rolling,
             "days_since_last_training": float(days_since_f),
-            "training_frequency_per_month": min(10.0, n_done / max(1.0, months_since_f)),
+            "training_frequency_per_month": float(freq_month),
             "is_long_absent": int(days_since_f > 180),
             "is_stagnant": int(days_since_f > 365),
             "avg_level": float(np.mean(levels)),
@@ -217,9 +285,13 @@ def main() -> pd.DataFrame:
         df = df.head(5000)
 
     df.to_csv(OUTPUT_PATH, index=False)
+    extrapolated_count = int(df["is_extrapolated"].astype(bool).sum())
+    real_count = int(len(df) - extrapolated_count)
     print(f"[OK] {len(df)} lignes -> {OUTPUT_PATH}")
     print(f"    couverture par enseignant : {df['teacher_id'].nunique()} enseignants")
     print(f"    features : {len(FEATURE_COLS)}")
+    print(f"    cibles extrapolees : {extrapolated_count} (is_extrapolated=true)")
+    print(f"    observations futures reelles : {real_count} (target_observation_date renseignee)")
     return df
 
 
