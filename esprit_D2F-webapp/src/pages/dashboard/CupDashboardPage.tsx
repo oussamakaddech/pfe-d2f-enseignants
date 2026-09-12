@@ -472,7 +472,7 @@ export default function CupDashboardPage() {
               <span>Tableau de bord</span>
             </span>
             <div className="cd-header-title-row">
-              <h1 className="cd-header-title">Tableau de bord CUP</h1>
+              <h1 className="cd-header-title">Tableau de bord</h1>
               {actionCount > 0 && <span className="cd-header-badge">{actionCount}</span>}
             </div>
             <span className="cd-header-sub">Vue consolidée de votre unité pédagogique</span>
