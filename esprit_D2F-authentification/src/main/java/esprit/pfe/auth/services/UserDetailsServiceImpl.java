@@ -20,10 +20,13 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        // Login par identifiant (username), id technique ou email : le
+        // principal reste TOUJOURS le username canonique (scopes, /mine…).
         User user = userRepository.findByUsername(username)
             .or(() -> userRepository.findById(username))
-            .orElseThrow(() -> new UsernameNotFoundException("User Not Found with username or id: " + username));
-        
+            .or(() -> userRepository.findByEmail(username))
+            .orElseThrow(() -> new UsernameNotFoundException("User Not Found with username, id or email: " + username));
+
         return UserDetailsImpl.build(user);
     }
     
