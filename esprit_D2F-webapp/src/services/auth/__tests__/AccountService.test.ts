@@ -69,7 +69,11 @@ describe('accountService', () => {
 
   it('updates password', async () => {
     apiMocks.mockPost.mockResolvedValueOnce({ data: 'ok' });
-    const result = await accountService.updatePassword({ newPassword: 'p1', confirmation: 'p1' });
+    const result = await accountService.updatePassword({
+      oldPassword: 'old',
+      newPassword: 'p1',
+      confirmation: 'p1',
+    });
     expect(result).toBe('ok');
   });
 

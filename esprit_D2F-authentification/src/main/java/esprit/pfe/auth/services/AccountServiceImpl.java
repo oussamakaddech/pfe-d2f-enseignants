@@ -33,6 +33,9 @@ import java.util.Set;
 public class AccountServiceImpl implements AccountService {
 
     private static final String USER_NOT_FOUND = "User not found";
+    private static final int MIN_PASSWORD_LENGTH = 8;
+    private static final java.util.regex.Pattern EMAIL_PATTERN =
+            java.util.regex.Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$");
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -168,6 +171,11 @@ public class AccountServiceImpl implements AccountService {
         User user = userRepository.findByUsername(userName)
                 .orElseThrow(() -> new LoginException(USER_NOT_FOUND));
         String newEmail = editProfileRequest.getEmail();
+        // Email obligatoire et bien formé (le front peut être contourné).
+        if (newEmail == null || newEmail.isBlank() || !EMAIL_PATTERN.matcher(newEmail.trim()).matches()) {
+            throw new BadRequestException("Adresse email invalide");
+        }
+        newEmail = newEmail.trim();
         // Vérifier l'unicité de l'email seulement si modifié et appartenant à un autre utilisateur
         Optional<User> byEmail = userRepository.findByEmail(newEmail);
         if (byEmail.isPresent() && !byEmail.get().getUsername().equals(userName)) {
@@ -183,10 +191,19 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public String updatePassword(String userName, UpdatePasswordRequest updatePasswordRequest) {
-        if(!updatePasswordRequest.getNewPassword().equals(updatePasswordRequest.getConfirmation()))
+        if (updatePasswordRequest == null || updatePasswordRequest.getNewPassword() == null
+                || !updatePasswordRequest.getNewPassword().equals(updatePasswordRequest.getConfirmation()))
             throw new BadRequestException("Confirm your password again");
+        if (updatePasswordRequest.getNewPassword().length() < MIN_PASSWORD_LENGTH)
+            throw new BadRequestException(
+                    "Le nouveau mot de passe doit contenir au moins " + MIN_PASSWORD_LENGTH + " caractères.");
         User user = this.userRepository.findByUsername(userName)
                 .orElseThrow(() -> new LoginException(USER_NOT_FOUND));
+        // Le mot de passe actuel est exigé : une session volée ne suffit plus
+        // à imposer un nouveau mot de passe.
+        if (updatePasswordRequest.getOldPassword() == null
+                || !encoder.matches(updatePasswordRequest.getOldPassword(), user.getPassword()))
+            throw new BadRequestException("Le mot de passe actuel est incorrect.");
         user.setPassword(encoder.encode(updatePasswordRequest.getNewPassword()));
         this.userRepository.save(user);
         return "Password updated";
