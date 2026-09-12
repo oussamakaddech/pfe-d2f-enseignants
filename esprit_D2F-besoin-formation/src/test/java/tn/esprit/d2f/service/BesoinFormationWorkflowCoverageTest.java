@@ -517,6 +517,7 @@ class BesoinFormationWorkflowCoverageTest {
         when(besoinFormationRepository.findByUsername("ens-user", pageable))
                 .thenReturn(new PageImpl<>(Collections.emptyList()));
 
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         assertEquals(0, service.retrieveApprovedBesoinFormations(pageable).getTotalElements());
         assertEquals(0, service.retrieveByUp("UP_INFO", pageable).getTotalElements());
         assertEquals(0, service.retrieveByDepartement("DEPT_GL", pageable).getTotalElements());

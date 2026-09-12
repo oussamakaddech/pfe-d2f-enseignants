@@ -91,7 +91,9 @@ export const FRONTEND_PERMISSIONS = {
   },
   INSCRIPTION: {
     READ: ['admin', 'CUP', 'Enseignant', 'Animateur', 'CHEF_DEPARTEMENT'],
-    CREATE: ['admin', 'CUP', 'Enseignant', 'Animateur'],
+    // Parité AuthorizationMatrix.INSCRIPTION_CREATE : ADMIN et
+    // RESPONSABLE_DOSSIER explicitement exclus.
+    CREATE: ['CUP', 'Enseignant', 'Animateur', 'CHEF_DEPARTEMENT'],
     APPROVE: ['admin', 'CUP'],
   },
 };

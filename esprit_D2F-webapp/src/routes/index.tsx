@@ -112,8 +112,24 @@ export default function AppRoutes() {
                 <Route element={<AppLayout />}>
                   <Route path="/home" element={<DashboardPage />} />
                   <Route path="/home/profile" element={<Profile />} />
-                  <Route path="/home/skill-passport" element={<SkillPassportPage />} />
-                  <Route path="/home/skill-passport/:username" element={<SkillPassportPage />} />
+                  {/* Parité SKILL_PASSPORT_READ (AuthorizationMatrix) : tous les
+                      rôles applicatifs authentifiés sauf RESPONSABLE_DOSSIER. */}
+                  <Route
+                    element={
+                      <RoleGuard
+                        allowedRoles={[
+                          ROLES.ADMIN,
+                          ROLES.CUP,
+                          ROLES.ENSEIGNANT,
+                          ROLES.ANIMATEUR,
+                          ROLES.CHEF_DEPARTEMENT,
+                        ]}
+                      />
+                    }
+                  >
+                    <Route path="/home/skill-passport" element={<SkillPassportPage />} />
+                    <Route path="/home/skill-passport/:username" element={<SkillPassportPage />} />
+                  </Route>
                   <Route path="/home/edit-profile" element={<EditProfile />} />
                   <Route path="/home/update-password" element={<UpdatePassword />} />
                   {/* Parité INSCRIPTION_READ (AuthorizationMatrix) : ADMIN, CUP,
@@ -141,8 +157,41 @@ export default function AppRoutes() {
                     path="/home/MesInscriptions"
                     element={<Navigate to="/home/Inscriptions?tab=mes-inscriptions" replace />}
                   />
-                  <Route path="/home/ListeFormation/:id" element={<FicheFormation />} />
-                  <Route path="/home/MyCertificate" element={<CertificatesByEmailPage />} />
+                  {/* Parité INSCRIPTION_READ : FicheFormation affiche les listes
+                      d'inscriptions de la formation — même périmètre que
+                      /home/Inscriptions. */}
+                  <Route
+                    element={
+                      <RoleGuard
+                        allowedRoles={[
+                          ROLES.ADMIN,
+                          ROLES.CUP,
+                          ROLES.ENSEIGNANT,
+                          ROLES.ANIMATEUR,
+                          ROLES.CHEF_DEPARTEMENT,
+                        ]}
+                      />
+                    }
+                  >
+                    <Route path="/home/ListeFormation/:id" element={<FicheFormation />} />
+                  </Route>
+                  {/* Parité CERTIFICAT_READ : lecture réservée (hors
+                      RESPONSABLE_DOSSIER). */}
+                  <Route
+                    element={
+                      <RoleGuard
+                        allowedRoles={[
+                          ROLES.ADMIN,
+                          ROLES.CUP,
+                          ROLES.ENSEIGNANT,
+                          ROLES.ANIMATEUR,
+                          ROLES.CHEF_DEPARTEMENT,
+                        ]}
+                      />
+                    }
+                  >
+                    <Route path="/home/MyCertificate" element={<CertificatesByEmailPage />} />
+                  </Route>
 
                   <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN]} />}>
                     <Route path="/home/administration" element={<AdministrationPage />} />

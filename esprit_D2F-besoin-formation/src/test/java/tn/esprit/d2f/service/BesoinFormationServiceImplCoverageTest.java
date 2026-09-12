@@ -521,6 +521,7 @@ class BesoinFormationServiceImplCoverageTest {
         b.setDureeFormation(5);
         Page<BesoinFormation> page = new PageImpl<>(Collections.singletonList(b));
 
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.findByUp("UP1", pageable)).thenReturn(page);
 
         Page<BesoinFormationResponse> result = service.retrieveByUp("UP1", pageable);
@@ -543,6 +544,7 @@ class BesoinFormationServiceImplCoverageTest {
         b.setDureeFormation(5);
         Page<BesoinFormation> page = new PageImpl<>(Collections.singletonList(b));
 
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.findByDepartement("DEP1", pageable)).thenReturn(page);
 
         Page<BesoinFormationResponse> result = service.retrieveByDepartement("DEP1", pageable);

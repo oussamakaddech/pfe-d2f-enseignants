@@ -145,8 +145,11 @@ export function useBesoinForm() {
     isCupCreator || isChefCreator || isTeacherCreator,
   );
   const lockedType = resolveLockedType(isCupCreator, isChefCreator, isTeacherCreator);
+  // CUP : le back impose UP **et** département depuis le scope serveur → on
+  // verrouille les deux côté UI (le département libre était écrasé en silence).
   const lockedUp = isCupCreator || isTeacherCreator ? myScope?.upCode : undefined;
-  const lockedDepartement = isChefCreator || isTeacherCreator ? myScope?.departmentCode : undefined;
+  const lockedDepartement =
+    isCupCreator || isChefCreator || isTeacherCreator ? myScope?.departmentCode : undefined;
 
   const applyCreationLocks = () => {
     const preset: Record<string, unknown> = {};

@@ -87,13 +87,16 @@ public class ReviewerScopeService {
                 .orElseThrow(() -> new AccessDeniedException(
                         "Périmètre non configuré pour '" + username
                         + "' : demandez à l'administrateur d'assigner votre UP / département."));
+        // Un animateur est assimilé enseignant : son périmètre peut être
+        // enregistré indifféremment avec ROLE_ENSEIGNANT ou ROLE_ANIMATEUR.
         String expectedRole = switch (actorRole) {
             case CUP -> ROLE_CUP;
             case CHEF_DEPARTEMENT -> ROLE_CHEF_DEP;
             case ENSEIGNANT -> ROLE_ENSEIGNANT;
             case ADMIN -> null;
         };
-        if (!expectedRole.equals(scope.getRole())) {
+        if (expectedRole != null && !expectedRole.equals(scope.getRole())
+                && !(actorRole == CreatorRole.ENSEIGNANT && ROLE_ANIMATEUR.equals(scope.getRole()))) {
             throw new AccessDeniedException(
                 "Le rôle du périmètre ne correspond pas au rôle JWT pour '" + username + "'.");
         }
@@ -109,9 +112,10 @@ public class ReviewerScopeService {
                 "Périmètre incomplet : une UP et un département sont obligatoires pour ce compte enseignant.");
         }
         if (actorRole == CreatorRole.CUP
-                && (scope.getUpCode() == null || scope.getUpCode().isBlank())) {
+                && (scope.getUpCode() == null || scope.getUpCode().isBlank()
+                    || scope.getDepartmentCode() == null || scope.getDepartmentCode().isBlank())) {
             throw new AccessDeniedException(
-                    "Périmètre incomplet : aucune UP assignée à ce compte CUP.");
+                    "Périmètre incomplet : une UP et un département sont obligatoires pour ce compte CUP.");
         }
         if (actorRole == CreatorRole.CHEF_DEPARTEMENT
                 && (scope.getDepartmentCode() == null || scope.getDepartmentCode().isBlank())) {
@@ -161,14 +165,17 @@ public class ReviewerScopeService {
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("Le username est obligatoire.");
         }
-        if (!ROLE_CUP.equals(role) && !ROLE_CHEF_DEP.equals(role) && !ROLE_ENSEIGNANT.equals(role)) {
-            throw new IllegalArgumentException("Le rôle du périmètre doit être CUP, CHEF_DEPARTEMENT ou ENSEIGNANT.");
+        if (!ROLE_CUP.equals(role) && !ROLE_CHEF_DEP.equals(role) && !ROLE_ENSEIGNANT.equals(role)
+                && !ROLE_ANIMATEUR.equals(role)) {
+            throw new IllegalArgumentException(
+                    "Le rôle du périmètre doit être CUP, CHEF_DEPARTEMENT, ENSEIGNANT ou ANIMATEUR.");
         }
-        if ((ROLE_CUP.equals(role) || ROLE_ENSEIGNANT.equals(role))
+        if ((ROLE_CUP.equals(role) || ROLE_ENSEIGNANT.equals(role) || ROLE_ANIMATEUR.equals(role))
                 && (upCode == null || upCode.isBlank())) {
             throw new IllegalArgumentException("L'UP est obligatoire pour ce périmètre.");
         }
-        if ((ROLE_CHEF_DEP.equals(role) || ROLE_ENSEIGNANT.equals(role))
+        if ((ROLE_CHEF_DEP.equals(role) || ROLE_ENSEIGNANT.equals(role) || ROLE_ANIMATEUR.equals(role)
+                || ROLE_CUP.equals(role))
                 && (departmentCode == null || departmentCode.isBlank())) {
             throw new IllegalArgumentException("Le département est obligatoire pour ce périmètre.");
         }

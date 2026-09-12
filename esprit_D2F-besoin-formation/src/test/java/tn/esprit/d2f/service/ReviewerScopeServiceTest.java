@@ -182,12 +182,13 @@ class ReviewerScopeServiceTest {
         authenticate("cup1", "ROLE_CUP");
         ReviewerScope scope = ReviewerScope.builder()
                 .username("cup1").role("ROLE_CUP")
-                .upCode("UP_INFO").departmentCode(null).build();
+                .upCode("UP_INFO").departmentCode("DEPT_GL").build();
         when(reviewerScopeRepository.findById("cup1")).thenReturn(Optional.of(scope));
 
         ReviewerScopeService.ResolvedScope resolved = service.resolveCurrentUser();
         assertEquals(CreatorRole.CUP, resolved.actorRole());
         assertEquals("UP_INFO", resolved.upCode());
+        assertEquals("DEPT_GL", resolved.departmentCode());
         assertFalse(resolved.global());
     }
 
@@ -213,11 +214,23 @@ class ReviewerScopeServiceTest {
         authenticate("cup4", "ROLE_CUP");
         ReviewerScope scope = ReviewerScope.builder()
                 .username("cup4").role("ROLE_CUP")
-                .upCode("").departmentCode(null).build();
+                .upCode("").departmentCode("DEPT_GL").build();
         when(reviewerScopeRepository.findById("cup4")).thenReturn(Optional.of(scope));
         AccessDeniedException ex = assertThrows(AccessDeniedException.class,
                 () -> service.resolveCurrentUser());
-        assertTrue(ex.getMessage().contains("aucune UP"));
+        assertTrue(ex.getMessage().contains("une UP et un département"));
+    }
+
+    @Test
+    void resolveCurrentUser_cup_sansDepartement_doitLever403() {
+        authenticate("cup5", "ROLE_CUP");
+        ReviewerScope scope = ReviewerScope.builder()
+                .username("cup5").role("ROLE_CUP")
+                .upCode("UP_INFO").departmentCode(null).build();
+        when(reviewerScopeRepository.findById("cup5")).thenReturn(Optional.of(scope));
+        AccessDeniedException ex = assertThrows(AccessDeniedException.class,
+                () -> service.resolveCurrentUser());
+        assertTrue(ex.getMessage().contains("une UP et un département"));
     }
 
     @Test
@@ -368,11 +381,43 @@ class ReviewerScopeServiceTest {
         when(reviewerScopeRepository.save(any(ReviewerScope.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
 
-        ReviewerScope result = service.upsertScope("cup9", "ROLE_CUP", "UP_INFO", null);
+        ReviewerScope result = service.upsertScope("cup9", "ROLE_CUP", "UP_INFO", "DEPT_GL");
         assertEquals("cup9", result.getUsername());
         assertEquals("ROLE_CUP", result.getRole());
         assertEquals("UP_INFO", result.getUpCode());
+        assertEquals("DEPT_GL", result.getDepartmentCode());
         verify(reviewerScopeRepository).save(any(ReviewerScope.class));
+    }
+
+    @Test
+    void upsertScope_cup_sansDepartement_doitLever400() {
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> service.upsertScope("cup10", "ROLE_CUP", "UP_INFO", null));
+        assertTrue(ex.getMessage().contains("département"));
+    }
+
+    @Test
+    void upsertScope_animateur_upEtDepartementRequis() {
+        when(reviewerScopeRepository.findById("anim9")).thenReturn(Optional.empty());
+        when(reviewerScopeRepository.save(any(ReviewerScope.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        ReviewerScope result = service.upsertScope("anim9", "ROLE_ANIMATEUR", "UP_INFO", "DEPT_GL");
+        assertEquals("anim9", result.getUsername());
+        assertEquals("ROLE_ANIMATEUR", result.getRole());
+    }
+
+    @Test
+    void resolveCurrentUser_animateur_scopeAnimateur_accepte() {
+        authenticate("anim1", "ROLE_ANIMATEUR");
+        ReviewerScope scope = ReviewerScope.builder()
+                .username("anim1").role("ROLE_ANIMATEUR")
+                .upCode("UP_INFO").departmentCode("DEPT_GL").build();
+        when(reviewerScopeRepository.findById("anim1")).thenReturn(Optional.of(scope));
+
+        ReviewerScopeService.ResolvedScope resolved = service.resolveCurrentUser();
+        assertEquals(CreatorRole.ENSEIGNANT, resolved.actorRole());
+        assertEquals("UP_INFO", resolved.upCode());
     }
 
     @Test

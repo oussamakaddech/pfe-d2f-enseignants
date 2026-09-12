@@ -36,13 +36,36 @@ class InscriptionControllerTest {
     @Mock private InscriptionService inscriptionService;
     @InjectMocks private InscriptionController controller;
 
+    /** JWT d'enseignant avec enseignantId == son email (self). */
+    private static org.springframework.security.oauth2.jwt.Jwt enseignantJwt() {
+        return org.springframework.security.oauth2.jwt.Jwt
+                .withTokenValue("test-token")
+                .header("alg", "none")
+                .subject("e1@esprit.tn")
+                .claim("email", "e1@esprit.tn")
+                .claim("scope", "ROLE_ENSEIGNANT")
+                .build();
+    }
+
+    /** JWT d'un autre enseignant — doit être refusé sur les endpoints self. */
+    private static org.springframework.security.oauth2.jwt.Jwt autreEnseignantJwt() {
+        return org.springframework.security.oauth2.jwt.Jwt
+                .withTokenValue("test-token")
+                .header("alg", "none")
+                .subject("victim@esprit.tn")
+                .claim("email", "victim@esprit.tn")
+                .claim("scope", "ROLE_ENSEIGNANT")
+                .build();
+    }
+
     @BeforeEach
     void setup() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new org.springframework.data.web.config.SpringDataJacksonConfiguration.PageModule(new org.springframework.data.web.config.SpringDataWebSettings(org.springframework.data.web.config.EnableSpringDataWebSupport.PageSerializationMode.DIRECT)));
         MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter(mapper);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
-                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver(),
+                        new org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver())
                 .setMessageConverters(converter)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -141,6 +164,33 @@ class InscriptionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content").isEmpty());
+    }
+
+    // ── Non-régression sécurité (anti-inscription pour autrui / IDOR) ──
+
+    @Test
+    @DisplayName("selfOrAdmin : enseignant demandant l'id d'autrui = 403")
+    void testSelfOrAdmin_idorRefuse() throws Exception {
+        org.springframework.security.oauth2.jwt.Jwt jwt = autreEnseignantJwt();
+        java.lang.reflect.Method m = InscriptionController.class
+                .getDeclaredMethod("selfOrAdmin",
+                        org.springframework.security.oauth2.jwt.Jwt.class, String.class);
+        m.setAccessible(true);
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> m.invoke(null, jwt, "someone-else@esprit.tn"))
+                .hasCauseInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+    }
+
+    @Test
+    @DisplayName("selfOrAdmin : enseignant demandant son propre id = accepté")
+    void testSelfOrAdmin_selfAccepted() throws Exception {
+        org.springframework.security.oauth2.jwt.Jwt jwt = enseignantJwt();
+        java.lang.reflect.Method m = InscriptionController.class
+                .getDeclaredMethod("selfOrAdmin",
+                        org.springframework.security.oauth2.jwt.Jwt.class, String.class);
+        m.setAccessible(true);
+        Object result = m.invoke(null, jwt, "e1@esprit.tn");
+        org.assertj.core.api.Assertions.assertThat(result).isEqualTo("e1@esprit.tn");
     }
 }
 

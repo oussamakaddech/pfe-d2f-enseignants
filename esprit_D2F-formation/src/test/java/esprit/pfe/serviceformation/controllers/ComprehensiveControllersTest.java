@@ -130,7 +130,8 @@ class ComprehensiveControllersTest {
                 .setControllerAdvice(exceptionHandler)
                 .build();
         mockMvcInsc = MockMvcBuilders.standaloneSetup(inscController)
-                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver(),
+                        new org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver())
                 .setMessageConverters(new ByteArrayHttpMessageConverter(), new StringHttpMessageConverter(), converter)
                 .setControllerAdvice(exceptionHandler)
                 .build();

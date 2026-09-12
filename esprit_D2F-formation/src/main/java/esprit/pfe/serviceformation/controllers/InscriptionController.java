@@ -6,11 +6,13 @@ import esprit.pfe.serviceformation.dto.InscriptionDTO;
 import esprit.pfe.serviceformation.dto.InscriptionSummaryDTO;
 import esprit.pfe.serviceformation.dto.TraiterDemandeBulkRequest;
 import esprit.pfe.serviceformation.services.InscriptionService;
+import esprit.pfe.serviceformation.services.CurrentUser;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -28,21 +30,67 @@ public class InscriptionController {
         this.service = service;
     }
 
+    /**
+     * Identité LDAP de l'appelant : l'email est la clé fonctionnelle de la
+     * fiche enseignant ; repli sur le subject du JWT.
+     */
+    private static String callerIdentity(Jwt jwt) {
+        return CurrentUser.fromJwt(jwt).emailOrUsername();
+    }
+
+    private static boolean isAdminOrCup(Jwt jwt) {
+        CurrentUser user = CurrentUser.fromJwt(jwt);
+        return user.hasRole("ADMIN") || user.hasRole("CUP");
+    }
+
+    /**
+     * Un non-admin ne peut agir que pour lui-même : l'enseignantId client est
+     * ignoré et remplacé par l'identité du JWT (anti-inscription pour autrui).
+     * Sans JWT (tests standalone / appel interne), la requête est refusée.
+     */
+    private static String selfOrAdmin(Jwt jwt, String requestedEnseignantId) {
+        if (jwt == null) {
+            throw new AccessDeniedException("Authentification requise.");
+        }
+        if (isAdminOrCup(jwt)) {
+            return requestedEnseignantId;
+        }
+        String caller = callerIdentity(jwt);
+        if (requestedEnseignantId != null && !requestedEnseignantId.isBlank()
+                && !requestedEnseignantId.equalsIgnoreCase(caller)) {
+            throw new AccessDeniedException(
+                    "Vous ne pouvez agir que sur vos propres inscriptions.");
+        }
+        return caller;
+    }
+
     @GetMapping("/formations/accessibles")
     @PreAuthorize(AuthorizationMatrix.INSCRIPTION_READ)
     public ResponseEntity<Page<FormationResponseDTO>> getFormationsAccessibles(
-            @RequestParam String enseignantId,
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) String enseignantId,
             @PageableDefault(size = 20, sort = "idFormation") Pageable pageable) {
-        return ResponseEntity.ok(service.listerFormationsAccessibles(enseignantId, pageable));
+        String target = jwt == null
+                ? enseignantId
+                : (isAdminOrCup(jwt)
+                        ? (enseignantId != null && !enseignantId.isBlank() ? enseignantId : callerIdentity(jwt))
+                        : selfOrAdmin(jwt, enseignantId));
+        return ResponseEntity.ok(service.listerFormationsAccessibles(target, pageable));
     }
 
     @PostMapping("/inscriptions")
     @PreAuthorize(AuthorizationMatrix.INSCRIPTION_CREATE)
     @ResponseStatus(HttpStatus.CREATED)
     public InscriptionDTO postInscription(
+            @AuthenticationPrincipal Jwt jwt,
             @RequestParam Long formationId,
-            @RequestParam String enseignantId) {
-        return service.demanderInscriptionDTO(formationId, enseignantId);
+            @RequestParam(required = false) String enseignantId) {
+        String target = jwt == null
+                ? enseignantId
+                : (isAdminOrCup(jwt)
+                        ? (enseignantId != null && !enseignantId.isBlank() ? enseignantId : callerIdentity(jwt))
+                        : selfOrAdmin(jwt, enseignantId));
+        return service.demanderInscriptionDTO(formationId, target);
     }
 
     /**
@@ -93,16 +141,22 @@ public class InscriptionController {
 
     /**
      * Annulation par l'enseignant propriétaire d'une demande PENDING.
-     * L'enseignantId (id fonctionnel ou email) est obligatoire côté service pour
-     * vérifier la propriété ; on le passe en query param pour rester homogène
-     * avec les autres endpoints d'inscription.
+     * Anti-IDOR : un non-admin ne peut annuler QUE sa propre demande —
+     * l'enseignantId fourni est comparé à l'identité du JWT, le propriétaire
+     * réel de l'inscription est toujours revérifié côté service.
      */
     @DeleteMapping("/inscriptions/{id}")
     @PreAuthorize(AuthorizationMatrix.INSCRIPTION_CREATE)
     public ResponseEntity<Void> annuler(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long id,
-            @RequestParam String enseignantId) {
-        service.annulerInscriptionDTO(id, enseignantId);
+            @RequestParam(required = false) String enseignantId) {
+        String target = jwt == null
+                ? enseignantId
+                : (isAdminOrCup(jwt)
+                        ? (enseignantId != null && !enseignantId.isBlank() ? enseignantId : callerIdentity(jwt))
+                        : selfOrAdmin(jwt, enseignantId));
+        service.annulerInscriptionDTO(id, target);
         return ResponseEntity.noContent().build();
     }
 
@@ -116,18 +170,21 @@ public class InscriptionController {
     public ResponseEntity<Page<InscriptionSummaryDTO>> getMine(
             @AuthenticationPrincipal Jwt jwt,
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
-        String emailOrUsername = jwt.getClaimAsString("email");
-        if (emailOrUsername == null || emailOrUsername.isBlank()) {
-            emailOrUsername = jwt.getSubject();
-        }
+        String emailOrUsername = callerIdentity(jwt);
         return ResponseEntity.ok(service.findSummariesByCurrentUser(emailOrUsername, pageable));
     }
 
+    /**
+     * Inscriptions d'un enseignant donné. Anti-énumération : un non-admin
+     * ne peut consulter que ses propres inscriptions.
+     */
     @GetMapping("/enseignant/{enseignantId}")
     @PreAuthorize(AuthorizationMatrix.INSCRIPTION_READ)
     public ResponseEntity<Page<InscriptionSummaryDTO>> getByEnseignant(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable String enseignantId,
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(service.findSummariesByEnseignantId(enseignantId, pageable));
+        String target = jwt == null ? enseignantId : selfOrAdmin(jwt, enseignantId);
+        return ResponseEntity.ok(service.findSummariesByEnseignantId(target, pageable));
     }
 }

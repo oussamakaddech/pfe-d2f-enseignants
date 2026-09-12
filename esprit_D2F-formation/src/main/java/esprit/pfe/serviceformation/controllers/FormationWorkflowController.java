@@ -308,9 +308,25 @@ public class FormationWorkflowController {
         return ResponseEntity.ok(new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size()));
     }
 
+    /**
+     * Calendrier d'un enseignant. Anti-énumération : un non-admin ne peut
+     * consulter que SON calendrier — l'id fourni doit correspondre à
+     * l'identité du JWT (email ou subject).
+     */
     @GetMapping("/enseignants/{id}/calendar")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
-    public ResponseEntity<FormationsByRoleDTO> getCalendarFormations(@PathVariable("id") String enseignantId) {
+    public ResponseEntity<FormationsByRoleDTO> getCalendarFormations(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable("id") String enseignantId) {
+        // Anti-énumération : un non-admin ne consulte que SON calendrier.
+        // (JWT absent = appel interne/test standalone, contrôle sauté.)
+        if (jwt != null) {
+            CurrentUser user = CurrentUser.fromJwt(jwt);
+            if (!user.isAdmin() && !enseignantId.equalsIgnoreCase(user.emailOrUsername())) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "Vous ne pouvez consulter que votre propre calendrier.");
+            }
+        }
         FormationsByRoleDTO dto = formationWorkflowService.getFormationsForCalendar(enseignantId);
         return ResponseEntity.ok(dto);
     }

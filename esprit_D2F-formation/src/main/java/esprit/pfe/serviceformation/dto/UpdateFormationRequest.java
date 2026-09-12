@@ -135,8 +135,8 @@ public class UpdateFormationRequest {
     private String customPeriodLabel;
 
     @Schema(description = "UP ID")
-    private Long upId;
+    private String upId;
 
     @Schema(description = "Department ID")
-    private Long departementId;
+    private String departementId;
 }

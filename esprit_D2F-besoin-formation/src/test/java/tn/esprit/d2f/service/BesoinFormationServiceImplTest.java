@@ -391,6 +391,7 @@ class BesoinFormationServiceImplTest {
     @Test
     void retrieveByUp_shouldReturnPage() {
         Pageable pageable = PageRequest.of(0, 10);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.findByUp("UP1", pageable)).thenReturn(Page.empty());
         service.retrieveByUp("UP1", pageable);
         verify(besoinFormationRepository).findByUp("UP1", pageable);
@@ -399,9 +400,34 @@ class BesoinFormationServiceImplTest {
     @Test
     void retrieveByDepartement_shouldReturnPage() {
         Pageable pageable = PageRequest.of(0, 10);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.findByDepartement("DEP", pageable)).thenReturn(Page.empty());
         service.retrieveByDepartement("DEP", pageable);
         verify(besoinFormationRepository).findByDepartement("DEP", pageable);
+    }
+
+    @Test
+    void retrieveByUp_cupHorsPerimetre_doitLever403() {
+        Pageable pageable = PageRequest.of(0, 10);
+        ReviewerScopeService.ResolvedScope cup = new ReviewerScopeService.ResolvedScope(
+                "cup-user", "cup-user", CreatorRole.CUP, "UP1", "DEPT_GL", false);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(cup);
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.security.access.AccessDeniedException.class,
+                () -> service.retrieveByUp("UP_AUTRE", pageable));
+        verify(besoinFormationRepository, org.mockito.Mockito.never()).findByUp(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(Pageable.class));
+    }
+
+    @Test
+    void retrieveByDepartement_chefHorsPerimetre_doitLever403() {
+        Pageable pageable = PageRequest.of(0, 10);
+        ReviewerScopeService.ResolvedScope chef = new ReviewerScopeService.ResolvedScope(
+                "chef-user", "chef-user", CreatorRole.CHEF_DEPARTEMENT, null, "DEPT_GL", false);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(chef);
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.security.access.AccessDeniedException.class,
+                () -> service.retrieveByDepartement("DEPT_AUTRE", pageable));
+        verify(besoinFormationRepository, org.mockito.Mockito.never()).findByDepartement(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(Pageable.class));
     }
 
     @Test

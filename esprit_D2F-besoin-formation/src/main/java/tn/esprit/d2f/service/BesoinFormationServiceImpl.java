@@ -482,11 +482,40 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
 
     @Override
     public Page<BesoinFormationResponse> retrieveByUp(String up, Pageable pageable) {
+        // Anti-énumération inter-UP : le filtre demandé doit appartenir au
+        // périmètre de l'appelant (ADMIN global, CUP = son UP). Le chef, dont
+        // les besoins collectifs n'ont pas d'UP, est orienté vers /scope.
+        ResolvedScope scope = reviewerScopeService.resolveCurrentUser();
+        if (!scope.global() && scope.actorRole() == CreatorRole.CUP
+                && (scope.upCode() == null || !scope.upCode().equals(up))) {
+            throw new AccessDeniedException(
+                    "Périmètre interdit : vous ne pouvez consulter que les besoins de votre UP ("
+                    + scope.upCode() + ").");
+        }
+        if (scope.actorRole() == CreatorRole.CHEF_DEPARTEMENT) {
+            throw new AccessDeniedException(
+                    "Les besoins collectifs de votre périmètre n'ont pas d'UP : utilisez /scope.");
+        }
+        if (scope.actorRole() == CreatorRole.ENSEIGNANT) {
+            throw new AccessDeniedException("Utilisez /mine pour consulter vos propres besoins.");
+        }
         return besoinFormationRepository.findByUp(up, pageable).map(besoinFormationMapper::toResponse);
     }
 
     @Override
     public Page<BesoinFormationResponse> retrieveByDepartement(String departement, Pageable pageable) {
+        // Anti-énumération inter-départements : seul l'ADMIN (global) ou le chef
+        // de CE département peuvent filtrer. CUP/enseignant → refus.
+        ResolvedScope scope = reviewerScopeService.resolveCurrentUser();
+        if (!scope.global() && scope.actorRole() == CreatorRole.CHEF_DEPARTEMENT
+                && (scope.departmentCode() == null || !scope.departmentCode().equals(departement))) {
+            throw new AccessDeniedException(
+                    "Périmètre interdit : vous ne pouvez consulter que les besoins de votre département ("
+                    + scope.departmentCode() + ").");
+        }
+        if (scope.actorRole() == CreatorRole.CUP || scope.actorRole() == CreatorRole.ENSEIGNANT) {
+            throw new AccessDeniedException("Utilisez /scope ou /mine selon votre rôle.");
+        }
         return besoinFormationRepository.findByDepartement(departement, pageable)
                 .map(besoinFormationMapper::toResponse);
     }
