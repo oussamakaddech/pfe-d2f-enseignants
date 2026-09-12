@@ -7,7 +7,7 @@ import type {
   ProposerType,
 } from '@/models/animatorProposal';
 
-const API_URL = `${config.FORMATION_URL}/api/v1`;
+const API_URL = `${config.FORMATION_URL}/formation`;
 
 export interface SelfProposalPayload {
   role: AnimatorRole;

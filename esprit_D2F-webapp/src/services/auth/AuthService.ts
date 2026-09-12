@@ -43,10 +43,11 @@ export async function resetPassword({
   confirmationKey,
   newPassword,
 }: ResetPasswordRequest): Promise<AccountActionResponse> {
-  const response = await api.post(`${AUTH_BASE}/reset-password`, {
-    confirmationKey,
-    newPassword,
-  });
+  // Le back attend des query params (?token= &newPassword=), comme login.
+  const url =
+    `${AUTH_BASE}/reset-password?token=${encodeURIComponent(confirmationKey)}` +
+    `&newPassword=${encodeURIComponent(newPassword)}`;
+  const response = await api.post(url);
   return response.data;
 }
 

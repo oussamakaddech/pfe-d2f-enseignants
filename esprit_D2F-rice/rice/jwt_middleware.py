@@ -85,7 +85,7 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
             token = cookie_token
         try:
             payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-            request.state.user_id = payload.get("sub")
+            request.state.user_id = payload.get("userId") or payload.get("sub")
             request.state.user_role = payload.get("scope", "")
             request.state.user_email = payload.get("email", "")
         except jwt.ExpiredSignatureError:

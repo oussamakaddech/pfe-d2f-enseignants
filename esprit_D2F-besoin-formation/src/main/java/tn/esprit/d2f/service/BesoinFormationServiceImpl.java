@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tn.esprit.d2f.dto.BesoinFormationApprovedEvent;
 import tn.esprit.d2f.dto.BesoinFormationEventPublisher;
+import tn.esprit.d2f.dto.NotificationEventPublisher;
 import tn.esprit.d2f.dto.BesoinFormationRequest;
 import tn.esprit.d2f.dto.BesoinFormationResponse;
 import tn.esprit.d2f.entity.BesoinApprovalHistory;
@@ -75,6 +76,8 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
     private final ReviewerScopeService reviewerScopeService;
     private final BesoinApprovalHistoryRepository historyRepository;
     private final BesoinCompetenceRepository besoinCompetenceRepository;
+    /** Producteur optionnel vers l'exchange d2f.notifications (temps réel). */
+    private NotificationEventPublisher notificationEventPublisher;
 
     public BesoinFormationServiceImpl(BesoinFormationRepository besoinFormationRepository,
                                        BesoinFormationEventPublisher eventPublisher,
@@ -90,6 +93,12 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         this.reviewerScopeService = reviewerScopeService;
         this.historyRepository = historyRepository;
         this.besoinCompetenceRepository = besoinCompetenceRepository;
+    }
+
+    /** Injection optionnelle : les tests unitaires construisent le service sans broker. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setNotificationEventPublisher(NotificationEventPublisher notificationEventPublisher) {
+        this.notificationEventPublisher = notificationEventPublisher;
     }
 
     // ── Lecture ───────────────────────────────────────────────────────────────
@@ -755,5 +764,10 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         notif.setMessage(message);
         notif.setCommentaire(commentaire);
         notificationRepository.save(notif);
+        // Temps réel : relaie vers le service notification (best-effort, jamais bloquant).
+        if (notificationEventPublisher != null) {
+            String title = commentaire != null && !commentaire.isBlank() ? commentaire : "Besoin de formation";
+            notificationEventPublisher.publish(username, title, message, null, null);
+        }
     }
 }

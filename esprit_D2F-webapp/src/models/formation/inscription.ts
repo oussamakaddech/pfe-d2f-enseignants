@@ -1,6 +1,7 @@
 import type { Id } from '../common';
 
-export type EtatInscription = 'PENDING' | 'APPROVED' | 'REJECTED' | 'ANNULE';
+/** États renvoyés par le backend (EtatInscription.java) : pas de ANNULE côté API. */
+export type EtatInscription = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface Inscription {
   idInscription?: Id;

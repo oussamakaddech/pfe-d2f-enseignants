@@ -381,6 +381,9 @@ public class AuthService {
                 .claim("scope", scope)
                 .claim(EMAIL_KEY, email)
                 .claim(USER_ID_KEY, userId != null ? userId : "")
+                // Claim OIDC standard lu par les AuditorAwareConfig et le
+                // CertificateController (revokedBy) des services aval.
+                .claim("preferred_username", username)
                 .build();
 
         JwtEncoderParameters jwtEncoderParameters = JwtEncoderParameters.from(

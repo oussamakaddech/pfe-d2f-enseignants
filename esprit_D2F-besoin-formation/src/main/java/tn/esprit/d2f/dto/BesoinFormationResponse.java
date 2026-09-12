@@ -29,7 +29,7 @@ public class BesoinFormationResponse {
     @Schema(description = "Identifiant fonctionnel de l'enseignant", example = "jdupont")
     private String username;
 
-    @Schema(description = "Type de besoin (INTERNE / EXTERNE)", example = "INTERNE")
+    @Schema(description = "Type de besoin (INDIVIDUEL / COLLECTIF)", example = "COLLECTIF")
     private TypeBesoin typeBesoin;
 
     @Schema(description = "Titre du besoin", example = "Formation Spring Boot avancé")

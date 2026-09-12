@@ -51,7 +51,6 @@ const RicePage = lazy(() => import('@/pages/competence/RicePage'));
 const CompetenceMatchingPage = lazy(() => import('@/pages/competence/CompetenceMatchingPage'));
 const EvaluationsPage = lazy(() => import('@/pages/evaluation/EvaluationsPage'));
 const TeacherAnalyticsPage = lazy(() => import('@/pages/analyse/AnalyticsTeacherPage'));
-const AnalysePredictivePage = lazy(() => import('@/pages/analyse/AnalyticsPage'));
 const EnseignantsInactifsPage = lazy(() => import('@/pages/analyse/EnseignantsInactifsPage'));
 const FormationsParPeriodePage = lazy(() => import('@/pages/analyse/FormationsParPeriodePage'));
 const SkillPassportPage = lazy(() => import('@/pages/profile/SkillPassportPage'));

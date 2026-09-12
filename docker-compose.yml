@@ -365,6 +365,9 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      # Clients Feign inter-services (placeholders services.*.url)
+      SERVICES_FORMATION_URL: http://d2f-formation:8088
+      SERVICES_AUTH_URL: http://d2f-auth:8085
     depends_on:
       postgres:
         condition: service_healthy
@@ -499,9 +502,10 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       JWT_SECRET: ${JWT_SECRET}
-      # URLs des microservices appelés (clients REST)
-      AUTH_SERVICE_URL: http://d2f-auth:8085
-      CERTIFICAT_SERVICE_URL: http://d2f-certificat:8086
+      # URLs des microservices appelés (clients REST) — noms alignés sur
+      # application-prod.properties (SERVICES_*_URL), hôtes = noms compose.
+      SERVICES_AUTH_URL: http://d2f-auth:8085
+      SERVICES_CERTIFICAT_URL: http://d2f-certificat:8086
       SERVICES_EVALUATION_URL: http://d2f-evaluation:8087
       SERVICES_FORMATION_URL: http://d2f-formation:8088
       SERVICES_COMPETENCE_URL: http://d2f-competence:8005
@@ -649,6 +653,10 @@ services:
         VITE_API_URL: ${VITE_API_URL:-/api}
         VITE_NOTIFICATION_URL: ${VITE_NOTIFICATION_URL:-/api}
         VITE_NOTIFICATIONS_WS_URL: ${VITE_NOTIFICATIONS_WS_URL:-}
+        # RICE direct navigateur (dev) ou via gateway /api (prod, défaut) :
+        # RiceService tombe sur API_BASE_URL si vide.
+        VITE_RICE_URL: ${VITE_RICE_URL:-}
+        VITE_FORMATION_SERVICE_URL: ${VITE_FORMATION_SERVICE_URL:-}
     container_name: d2f-webapp
     restart: unless-stopped
     ports:
