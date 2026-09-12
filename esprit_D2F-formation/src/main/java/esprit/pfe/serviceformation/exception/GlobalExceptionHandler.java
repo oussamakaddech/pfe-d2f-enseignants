@@ -84,6 +84,20 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), ex.getErrorCode(), request);
     }
 
+    // ==================== ANIMATOR PROPOSAL WORKFLOW ====================
+
+    @ExceptionHandler(ProposalConflictException.class)
+    public ResponseEntity<ErrorResponse> handleProposalConflict(ProposalConflictException ex, HttpServletRequest request) {
+        log.warn("Animator proposal conflict: {}", ex.getMessage());
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), MODULE_PREFIX + "-PROPOSAL-409", request);
+    }
+
+    @ExceptionHandler(ProposalIncompatibilityException.class)
+    public ResponseEntity<ErrorResponse> handleProposalIncompatibility(ProposalIncompatibilityException ex, HttpServletRequest request) {
+        log.warn("Animator proposal incompatibility: {}", ex.getMessage());
+        return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), MODULE_PREFIX + "-PROPOSAL-422", request);
+    }
+
     // ==================== INSCRIPTION ERRORS ====================
     
     @ExceptionHandler(InscriptionException.class)

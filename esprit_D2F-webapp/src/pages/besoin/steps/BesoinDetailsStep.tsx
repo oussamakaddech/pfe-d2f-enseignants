@@ -121,7 +121,7 @@ export default function BesoinDetailsStep({
               // date passée ou du jour avec un 400 BESOIN_VALIDATION_ERROR.
               {
                 validator: (_, value?: Dayjs) =>
-                  value && value.isBefore(dayjs().startOf('day'))
+                  value?.isBefore(dayjs().startOf('day'))
                     ? Promise.reject(
                         new Error('La date de début doit être postérieure à aujourd\u2019hui'),
                       )

@@ -176,7 +176,7 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         if (path.startsWith("/api/competence/")) return getCompetenceRoles(path, method);
         if (path.startsWith("/api/evaluation/")) return getEvaluationRoles(method);
         if (path.startsWith("/api/certificat/")) return getCertificatRoles(method);
-        if (path.startsWith("/api/rice/")) return getRiceRoles(path, method);
+        if (path.startsWith("/api/rice/")) return getRiceRoles(method);
         if (path.startsWith("/api/analyse/")) return getAnalyseRoles(path);
         // BFF analyse predictive (vues consolidees de pilotage) : ADMIN/CUP/Chef de département.
         if (path.startsWith("/api/v1/analyse-predictive/") || path.startsWith("/api/v2/analytics/"))
@@ -268,7 +268,7 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         return ALL_ROLES;
     }
 
-    private List<String> getRiceRoles(String path, HttpMethod method) {
+    private List<String> getRiceRoles(HttpMethod method) {
         if (method == HttpMethod.GET) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT);
         return ADMIN_ONLY;
     }

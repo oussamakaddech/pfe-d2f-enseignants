@@ -521,6 +521,147 @@ const MODEL_MODE_TEXTS: Record<string, { titre: string; detail: string; warn: bo
   },
 };
 
+const TARGET_VALIDITY_LABELS: Record<string, string> = {
+  EXTRAPOLATED_TARGET: 'Cible extrapolée — validation démonstration',
+  OBSERVED_IN_SIMULATION: 'Cible observée en simulation — validation simulation',
+};
+
+const VALIDATION_SCOPE_LABELS: Record<string, string> = {
+  SIMULATION_VALIDATED: 'Validé sur données simulées',
+  REAL_VALIDATED: 'Validé sur données réelles DSI',
+};
+
+/** Libellé de validité de la cible (repli : valeur brute API). */
+function targetValidityLabel(targetValidity: string): string {
+  return TARGET_VALIDITY_LABELS[targetValidity] ?? 'Cible validée par re-mesures réelles';
+}
+
+/** Libellé de portée de validation (repli : valeur brute API). */
+function validationScopeLabel(validationScope: string): string {
+  return VALIDATION_SCOPE_LABELS[validationScope] ?? validationScope;
+}
+
+/** Contexte d'affichage du modèle (valeurs déjà résolues depuis l'API). */
+interface ModelDisplayContext {
+  mode: string;
+  version: string | null;
+  modelName: string | null;
+  algorithm: string | null;
+  targetValidity: string | null;
+  validationScope: string | null;
+  dataOrigin: string | null;
+}
+
+type RiskData = ReturnType<typeof useTeacherRisk>;
+type GapsData = ReturnType<typeof useTeacherGaps>;
+
+/** Lignes de détail du modèle : mode, algorithme, validité, risque, artefact. */
+function buildModelDetailRows(
+  risk: RiskData,
+  gaps: GapsData,
+  ctx: ModelDisplayContext,
+): Array<[string, string]> {
+  const model = gaps.data?.model;
+  const rows: Array<[string, string]> = [
+    ['Mode', ctx.mode],
+    ['Algorithme', ctx.algorithm || 'Non disponible'],
+  ];
+  appendValidityRows(rows, ctx);
+  appendRiskEngineRows(rows, risk);
+  appendArtifactRows(rows, ctx, model);
+  return rows;
+}
+
+function appendValidityRows(rows: Array<[string, string]>, ctx: ModelDisplayContext): void {
+  if (ctx.targetValidity) {
+    rows.push(['Validité de la cible', targetValidityLabel(ctx.targetValidity)]);
+  }
+  if (ctx.validationScope) {
+    rows.push(['Portée de validation', validationScopeLabel(ctx.validationScope)]);
+  }
+  if (ctx.dataOrigin) {
+    rows.push([
+      'Origine des données',
+      ctx.dataOrigin === 'SIMULATED' ? 'Données simulées (seed 42)' : ctx.dataOrigin,
+    ]);
+  }
+}
+
+function appendRiskEngineRows(rows: Array<[string, string]>, risk: RiskData): void {
+  if (risk.data?.score_type) {
+    rows.push(['Type de score', scoreTypeLabel(risk.data?.mode)]);
+  }
+  rows.push(['Moteur de risque', riskEngineLabel(risk)]);
+  if (risk.data?.mode === 'HEURISTIC' && risk.data?.fallback_reason) {
+    rows.push(['Raison du repli', risk.data.fallback_reason]);
+  }
+  if (risk.data?.mode === 'ML' && risk.data?.explanation_method) {
+    rows.push(['Explicabilité', risk.data.explanation_method]);
+  }
+}
+
+function scoreTypeLabel(mode: string | undefined): string {
+  if (mode === 'ML') {
+    return 'Probabilité calibrée par le modèle (isotonique sur CRITIQUE)';
+  }
+  return 'Indice pondéré explicable (non calibré)';
+}
+
+function riskEngineLabel(risk: RiskData): string {
+  if (risk.data?.mode === 'ML') {
+    const riskClass = risk.data?.risk_class ?? '—';
+    const pct = Math.round((risk.data?.probability_calibrated ?? 0) * 100);
+    return `ML calibré — classe ${riskClass} (${pct}%)`;
+  }
+  return 'Heuristique 0,50/0,12/0,40 (repli fail-closed)';
+}
+
+function appendArtifactRows(
+  rows: Array<[string, string]>,
+  ctx: ModelDisplayContext,
+  model: unknown,
+): void {
+  const isFallback = ctx.mode === 'HEURISTIC_FALLBACK';
+  if (ctx.modelName && !isFallback) {
+    rows.push(['Artefact du modèle', ctx.modelName]);
+  }
+  if (ctx.version && !isFallback) {
+    rows.push(["Version de l'artefact", formatModelVersion(ctx.version)]);
+  }
+  if (model == null || typeof model !== 'object') {
+    return;
+  }
+  const m = model as Record<string, unknown>;
+  appendModelMetaRows(rows, m);
+}
+
+function appendModelMetaRows(rows: Array<[string, string]>, m: Record<string, unknown>): void {
+  if (typeof m['dataset_version'] === 'string') {
+    rows.push(['Version du jeu de données', m['dataset_version']]);
+  }
+  if (typeof m['prediction_horizon'] === 'string') {
+    rows.push(['Horizon de prédiction', m['prediction_horizon']]);
+  }
+  if (typeof m['total_rows'] === 'number') {
+    rows.push(['Observations (total)', String(m['total_rows'])]);
+  }
+  if (typeof m['real_rows'] === 'number') {
+    rows.push(['Observations réelles', String(m['real_rows'])]);
+  }
+  if (typeof m['synthetic_share_pct'] === 'number') {
+    rows.push(['Part synthétique', `${m['synthetic_share_pct']}%`]);
+  }
+  if (typeof m['fallback_reason'] === 'string') {
+    rows.push(['Raison du fallback', m['fallback_reason']]);
+  }
+  const warning = m['near_boundary_warning'];
+  if (warning != null && typeof warning === 'object') {
+    const w = warning as { message?: unknown; features?: unknown };
+    const features = Array.isArray(w.features) ? w.features.join(', ') : '';
+    rows.push(['Proximité des bornes', `${String(w.message ?? '')} (features : ${features})`]);
+  }
+}
+
 function ModelsInfoPanel({
   risk,
   gaps,
@@ -542,88 +683,9 @@ function ModelsInfoPanel({
   const validationScope = risk.data?.validation_scope ?? model?.validation_scope ?? null;
   const dataOrigin = risk.data?.data_origin ?? model?.data_origin ?? null;
 
-  // Affichage clair du modèle : Mode, Algorithme, Artefact, Version (depuis l'API).
-  const detailRows: Array<[string, string]> = [
-    ['Mode', mode],
-    ['Algorithme', algorithm || 'Non disponible'],
-  ];
-  if (targetValidity) {
-    detailRows.push([
-      'Validité de la cible',
-      targetValidity === 'EXTRAPOLATED_TARGET'
-        ? 'Cible extrapolée — validation démonstration'
-        : targetValidity === 'OBSERVED_IN_SIMULATION'
-          ? 'Cible observée en simulation — validation simulation'
-          : 'Cible validée par re-mesures réelles',
-    ]);
-  }
-  if (validationScope) {
-    detailRows.push([
-      'Portée de validation',
-      validationScope === 'SIMULATION_VALIDATED'
-        ? 'Validé sur données simulées'
-        : validationScope === 'REAL_VALIDATED'
-          ? 'Validé sur données réelles DSI'
-          : validationScope,
-    ]);
-  }
-  if (dataOrigin) {
-    detailRows.push([
-      'Origine des données',
-      dataOrigin === 'SIMULATED' ? 'Données simulées (seed 42)' : dataOrigin,
-    ]);
-  }
-  if (risk.data?.score_type) {
-    detailRows.push([
-      'Type de score',
-      risk.data?.mode === 'ML'
-        ? 'Probabilité calibrée par le modèle (isotonique sur CRITIQUE)'
-        : 'Indice pondéré explicable (non calibré)',
-    ]);
-  }
-  // Modèle de risque ML (étape ML actif) : moteur, classe, repli éventuel.
-  detailRows.push([
-    'Moteur de risque',
-    risk.data?.mode === 'ML'
-      ? `ML calibré — classe ${risk.data?.risk_class ?? '—'} (${Math.round((risk.data?.probability_calibrated ?? 0) * 100)}%)`
-      : 'Heuristique 0,50/0,12/0,40 (repli fail-closed)',
-  ]);
-  if (risk.data?.mode === 'HEURISTIC' && risk.data?.fallback_reason) {
-    detailRows.push(['Raison du repli', risk.data.fallback_reason]);
-  }
-  if (risk.data?.mode === 'ML' && risk.data?.explanation_method) {
-    detailRows.push(['Explicabilité', risk.data.explanation_method]);
-  }
-  if (modelName && mode !== 'HEURISTIC_FALLBACK') {
-    detailRows.push(['Artefact du modèle', modelName]);
-  }
-  if (version && mode !== 'HEURISTIC_FALLBACK') {
-    detailRows.push(["Version de l'artefact", formatModelVersion(version)]);
-  }
-  if (model?.dataset_version) {
-    detailRows.push(['Version du jeu de données', model.dataset_version]);
-  }
-  if (model?.prediction_horizon) {
-    detailRows.push(['Horizon de prédiction', model.prediction_horizon]);
-  }
-  if (model?.total_rows !== undefined) {
-    detailRows.push(['Observations (total)', String(model.total_rows)]);
-  }
-  if (model?.real_rows !== undefined) {
-    detailRows.push(['Observations réelles', String(model.real_rows)]);
-  }
-  if (model?.synthetic_share_pct !== undefined) {
-    detailRows.push(['Part synthétique', `${model.synthetic_share_pct}%`]);
-  }
-  if (model?.fallback_reason) {
-    detailRows.push(['Raison du fallback', model.fallback_reason]);
-  }
-  if (model?.near_boundary_warning) {
-    detailRows.push([
-      'Proximité des bornes',
-      `${model.near_boundary_warning.message} (features : ${model.near_boundary_warning.features.join(', ')})`,
-    ]);
-  }
+  const detailRows = buildModelDetailRows(risk, gaps, {
+    mode, version, modelName, algorithm, targetValidity, validationScope, dataOrigin,
+  });
   return (
     <div style={{ padding: '6px 2px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>

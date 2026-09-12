@@ -23,9 +23,23 @@ const STATUS_LABEL: Record<string, string> = {
   CANCELLED: 'Annulé',
 };
 
+function resolveTone(status: string | null | undefined, approved: boolean): string {
+  if (status) {
+    return STATUS_TONE[status] ?? 'pending';
+  }
+  return approved ? 'approved' : 'pending';
+}
+
+function resolveLabel(status: string | null | undefined, approved: boolean): string {
+  if (status) {
+    return STATUS_LABEL[status] ?? status;
+  }
+  return approved ? 'Approuvé' : 'En attente';
+}
+
 export default function BesoinStatusBadge({ approved, status }: Readonly<BesoinStatusBadgeProps>) {
-  const tone = status ? (STATUS_TONE[status] ?? 'pending') : approved ? 'approved' : 'pending';
-  const label = status ? (STATUS_LABEL[status] ?? status) : approved ? 'Approuvé' : 'En attente';
+  const tone = resolveTone(status, approved);
+  const label = resolveLabel(status, approved);
   return (
     <span className={`bf-status bf-status--${tone}`}>
       <span className="bf-status__dot" aria-hidden="true" />

@@ -115,35 +115,7 @@
   margin: 0 auto;
   padding: 0 0 32px;
 }
-.ins-page .ant-tabs-nav {
-  margin-bottom: 24px;
-  padding: 0 4px;
-}
-.ins-page .ant-tabs-nav::before {
-  border-bottom: 2px solid rgba(0, 0, 0, 0.06);
-}
-.ins-page .ant-tabs-tab {
-  padding: 12px 20px;
-  margin: 0 4px;
-  border-radius: 12px 12px 0 0;
-  font-weight: 500;
-  font-size: 14px;
-  color: #64748b;
-  transition: all 0.25s;
-}
-.ins-page .ant-tabs-tab:hover {
-  color: #b51200;
-  background: rgba(181, 18, 0, 0.04);
-}
-.ins-page .ant-tabs-tab-active {
-  color: #b51200 !important;
-  font-weight: 600;
-}
-.ins-page .ant-tabs-ink-bar {
-  background: #b51200;
-  height: 3px;
-  border-radius: 3px 3px 0 0;
-}
+/* Tabs : définitions canoniques en section « Tabs en pilules » ci-dessous. */
 .ins-tab-label {
   display: inline-flex;
   align-items: center;
@@ -155,19 +127,9 @@
 }
 
 /* ─── Shared: Buttons ────────────────────────────────────────────────── */
-.ins-btn {
-  border-radius: 8px !important;
-  font-weight: 500 !important;
-}
-.ins-btn--green {
-  background: #1d6f42 !important;
-  border-color: #1d6f42 !important;
-  color: #fff !important;
-}
-.ins-btn--green:hover {
-  background: #165a36 !important;
-  border-color: #165a36 !important;
-}
+/* Boutons partagés : définitions canoniques en fin de fichier
+   (section « Design refresh ») — pas de duplication ici. */
+/* .ins-btn, .ins-btn--green : voir section Design refresh ci-dessous. */
 
 /* ─── Shared: Card container ─────────────────────────────────────────── */
 .ins-card {
@@ -427,13 +389,19 @@
 .cat-card {
   border-radius: 16px;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
   border: 1px solid rgba(0, 0, 0, 0.07);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 .cat-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+  border-color: rgba(181, 18, 0, 0.25);
+  box-shadow:
+    0 12px 32px rgba(181, 18, 0, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.05) !important;
 }
 
 .cat-card-header {
@@ -508,7 +476,7 @@
   align-items: center;
   border-top: 1px solid rgba(0, 0, 0, 0.06);
   padding: 12px 8px;
-  background: #f8fafc;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
 }
 
 /* Type header gradients */
@@ -554,6 +522,7 @@
 .mis-row:hover {
   background: #f5f7fa;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border-left-color: #b51200;
 }
 
 .mis-row-body {
@@ -670,6 +639,8 @@
   align-items: center !important;
   gap: 6px !important;
   transition: all 0.2s !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
 }
 .suv-toggle:hover {
   transform: translateY(-1px) !important;
@@ -699,9 +670,9 @@
   justify-content: space-between;
   padding: 10px 20px;
   margin: 0 20px 12px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(59, 130, 246, 0.04));
-  border: 1px solid rgba(37, 99, 235, 0.15);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(181, 18, 0, 0.06), rgba(217, 43, 26, 0.04));
+  border: 1px solid rgba(181, 18, 0, 0.18);
   font-weight: 500;
   font-size: 13px;
 }
@@ -795,31 +766,10 @@
 }
 
 /* ── Cartes catalogue : hover marque ────────────────────────────────── */
-.cat-card {
-  transition:
-    transform 0.22s ease,
-    box-shadow 0.22s ease,
-    border-color 0.22s ease;
-}
-.cat-card:hover {
-  border-color: rgba(181, 18, 0, 0.25);
-  box-shadow:
-    0 12px 32px rgba(181, 18, 0, 0.12),
-    0 2px 6px rgba(0, 0, 0, 0.05) !important;
-}
-.cat-card-actions {
-  background: linear-gradient(180deg, #ffffff, #f8fafc);
-}
+/* .cat-card, .cat-card:hover, .cat-card-actions : définitions fusionnées
+   ci-dessus (section carte catalogue) — pas de duplication ici. */
 
 /* ── Boutons de gestion (Suivi) : vert export, rouge bulk ───────────── */
-.suv-toggle {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-.suv-bulk-bar {
-  background: linear-gradient(135deg, rgba(181, 18, 0, 0.06), rgba(217, 43, 26, 0.04));
-  border: 1px solid rgba(181, 18, 0, 0.18);
-  border-radius: 12px;
-}
 .suv-bulk-bar .ant-btn-primary {
   background: linear-gradient(135deg, #c51700, #9a0f00) !important;
   border-color: #b51200 !important;
@@ -827,12 +777,7 @@
 }
 
 /* ── Mes inscriptions : hover bordure marque ────────────────────────── */
-.mis-row:hover {
-  border-left-color: #b51200;
-}
-.mis-row-title:hover {
-  color: #b51200;
-}
+/* Mes inscriptions : survol fusionné dans les définitions ci-dessus. */
 
 /* ── Tabs en pilules (style segmenté) ───────────────────────────────── */
 .ins-page .ant-tabs-nav {
@@ -851,6 +796,7 @@
   font-weight: 600;
   font-size: 14px;
   color: #64748b;
+  transition: all 0.25s;
 }
 .ins-page .ant-tabs-tab:hover {
   color: #b51200;

@@ -186,7 +186,7 @@ SELECT
      ) t) AS avg_risk_score
 """
 
-HEATMAP_SCOPED_SQL = f"""
+HEATMAP_SCOPED_SQL = """
 SELECT
   e.dept_id,
   d.libelle AS dept_libelle,
@@ -208,7 +208,7 @@ HAVING COUNT(*) > 0
 ORDER BY nb_critiques DESC, avg_gap_score DESC
 """
 
-AT_RISK_SCOPED_SQL = f"""
+AT_RISK_SCOPED_SQL = """
 SELECT
   rs.enseignant_id,
   e.nom,
@@ -248,7 +248,7 @@ ORDER BY rs.score_risque DESC
 LIMIT 50
 """
 
-TOP_FORMATIONS_SCOPED_SQL = f"""
+TOP_FORMATIONS_SCOPED_SQL = """
 SELECT
   r.formation_id,
   f.titre_formation,

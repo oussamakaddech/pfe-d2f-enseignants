@@ -75,6 +75,15 @@ import {
 } from '@/utils/analytics/format';
 import './analyticsDashboard.redesign.css';
 
+/** Libellé du compteur de filtres actifs (« 2 critères actifs » / « Aucun critère actif »). */
+function formatActiveFilterLabel(count: number): string {
+  if (count <= 0) {
+    return 'Aucun critère actif';
+  }
+  const plural = count > 1 ? 's' : '';
+  return `${count} critère${plural} actif${plural}`;
+}
+
 /* ── Définitions métier des KPI (affichées en tooltip) ──────── */
 const KPI_DEFS: Record<string, string> = {
   'Enseignants en base':
@@ -404,6 +413,7 @@ export default function AnalyticsDashboardPage() {
   const activeFilterCount = [filters.departement_id, filters.up_id, filters.niveau_risque].filter(
     Boolean,
   ).length;
+  const activeFilterLabel = formatActiveFilterLabel(activeFilterCount);
   const periodResetNeeded = windowDays !== 30;
 
   const clearFilters = () => {
@@ -522,13 +532,7 @@ export default function AnalyticsDashboardPage() {
           </span>
           <div className="ad-filters__head-text">
             <span className="ad-filters__label">Filtres</span>
-            <span className="ad-filters__sub">
-              {activeFilterCount > 0
-                ? `${activeFilterCount} critère${activeFilterCount > 1 ? 's' : ''} actif${
-                    activeFilterCount > 1 ? 's' : ''
-                  }`
-                : 'Aucun critère actif'}
-            </span>
+            <span className="ad-filters__sub">{activeFilterLabel}</span>
           </div>
         </div>
 

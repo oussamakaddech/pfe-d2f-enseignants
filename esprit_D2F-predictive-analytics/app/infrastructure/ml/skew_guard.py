@@ -112,53 +112,40 @@ class SkewGuard:
         return np.vstack(list(self._window))
 
     # -------------------------------------------------------- Contrôle
+    def _precheck_reason(self) -> tuple[str, np.ndarray | None]:
+        """Raison bloquante du contrôle KS, sinon la fenêtre servie."""
+        if not self.enabled:
+            return "skew guard désactivé (config)", None
+        if not SCIPY_AVAILABLE:  # pragma: no cover - environnement minimal
+            return "scipy indisponible — skew guard consultatif (non bloquant)", None
+        if not self._reference:
+            return "référence d'entraînement indisponible — skew guard consultatif", None
+        window = self._window_matrix()
+        if window is None:
+            return "aucune feature servie encore accumulée", None
+        window_rows = int(window.shape[0])
+        if window_rows < self.min_window:
+            return (
+                f"fenêtre servie insuffisante : {window_rows} lignes < minimum {self.min_window}",
+                None,
+            )
+        return "", window
+
     def evaluate(self) -> SkewVerdict:
         """Test KS par feature entre la fenêtre servie et la référence d'entraînement."""
-        if not self.enabled:
-            self._last_verdict = SkewVerdict(reason="skew guard désactivé (config)")
+        reason, window = self._precheck_reason()
+        if window is None:
+            window_rows = self._window_rows_if_insufficient(reason)
+            self._last_verdict = SkewVerdict(window_rows=window_rows, reason=reason)
             return self._last_verdict
-        if not SCIPY_AVAILABLE:  # pragma: no cover - environnement minimal
-            self._last_verdict = SkewVerdict(
-                reason="scipy indisponible — skew guard consultatif (non bloquant)"
-            )
-            return self._last_verdict
-        if not self._reference:
-            self._last_verdict = SkewVerdict(
-                reason="référence d'entraînement indisponible — skew guard consultatif"
-            )
-            return self._last_verdict
-
-        W = self._window_matrix()
-        if W is None:
-            self._last_verdict = SkewVerdict(reason="aucune feature servie encore accumulée")
-            return self._last_verdict
-        window_rows = int(W.shape[0])
-        if window_rows < self.min_window:
-            self._last_verdict = SkewVerdict(
-                window_rows=window_rows,
-                reason=(
-                    f"fenêtre servie insuffisante : {window_rows} lignes "
-                    f"< minimum {self.min_window}"
-                ),
-            )
-            return self._last_verdict
+        window_rows = int(window.shape[0])
 
         rng = np.random.default_rng(_SUBSAMPLE_SEED)
         if window_rows > self._ref_cap:
             idx = np.sort(rng.choice(window_rows, size=self._ref_cap, replace=False))
-            W = W[idx]
+            window = window[idx]
 
-        drifted: list[str] = []
-        p_values: dict[str, float] = {}
-        for i, col in enumerate(self._feature_names):
-            ref = self._reference.get(col)
-            if ref is None or ref.size < 2:
-                continue
-            p = float(ks_2samp(W[:, i], ref).pvalue)
-            p_values[col] = p
-            if p < self.p_threshold:
-                drifted.append(col)
-
+        drifted, p_values = self._ks_per_feature(window)
         min_p = min(p_values.values()) if p_values else None
         if drifted:
             reason = f"dérive KS détectée (p < {self.p_threshold:g}) sur : " + ", ".join(drifted)
@@ -173,6 +160,26 @@ class SkewGuard:
             reason=reason,
         )
         return self._last_verdict
+
+    def _window_rows_if_insufficient(self, reason: str) -> int:
+        """Lignes de fenêtre à exposer quand le contrôle est reporté."""
+        if reason.startswith("fenêtre servie insuffisante") and self._window:
+            return sum(a.shape[0] for a in self._window)
+        return 0
+
+    def _ks_per_feature(self, window: np.ndarray) -> tuple[list[str], dict[str, float]]:
+        """Test KS de chaque feature servie contre sa référence."""
+        drifted: list[str] = []
+        p_values: dict[str, float] = {}
+        for i, col in enumerate(self._feature_names):
+            ref = self._reference.get(col)
+            if ref is None or ref.size < 2:
+                continue
+            p = float(ks_2samp(window[:, i], ref).pvalue)
+            p_values[col] = p
+            if p < self.p_threshold:
+                drifted.append(col)
+        return drifted, p_values
 
     # ----------------------------------------------------------- Statut
     @property

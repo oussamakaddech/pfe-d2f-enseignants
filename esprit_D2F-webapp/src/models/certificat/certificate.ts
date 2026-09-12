@@ -1,5 +1,8 @@
 import type { Id } from '../common';
 
+/** Statuts de certificat connus (le backend peut en exposer d'autres). */
+export type CertificateStatus = 'ISSUED' | 'REVOKED' | (string & {});
+
 /**
  * Certificat — aligné sur le DTO backend CertificateResponse
  * (service-certificat). Champs de cycle de vie : statut ISSUED/REVOKED,
@@ -11,7 +14,7 @@ export interface Certificate {
   verificationToken?: string;
   verificationHash?: string;
   issuedAt?: string;
-  certificateStatus?: 'ISSUED' | 'REVOKED' | string;
+  certificateStatus?: CertificateStatus;
   formationId?: Id;
   titreFormation?: string;
   typeCertif?: string;

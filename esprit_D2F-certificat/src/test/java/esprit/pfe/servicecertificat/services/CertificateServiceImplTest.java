@@ -164,6 +164,16 @@ class CertificateServiceImplTest {
     }
 
     @Test
+    @DisplayName("revoke - certificat inexistant lève 404")
+    void revoke_NotFound() {
+        when(certificateRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> certificateService.revoke(999L, "motif", "admin"))
+                .isInstanceOf(esprit.pfe.servicecertificat.exception.ResourceNotFoundException.class)
+                .hasMessageContaining("Certificat introuvable");
+    }
+
+    @Test
     @DisplayName("revoke - un certificat révoqué ne peut pas être délivré")
     void deliver_Revoked() {
         certificate.setCertificateStatus("REVOKED");
@@ -203,7 +213,7 @@ class CertificateServiceImplTest {
         assertThat(indicators.getEligibleCount()).isEqualTo(5L);
         assertThat(indicators.getDeliveredCount()).isEqualTo(4L);
         assertThat(indicators.getPendingCount()).isEqualTo(1L);
-        assertThat(indicators.getRevokedCount()).isEqualTo(0L);
+        assertThat(indicators.getRevokedCount()).isZero();
     }
 
     @Test

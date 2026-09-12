@@ -23,7 +23,6 @@ import type { ColumnsType } from 'antd/es/table';
 import {
   SafetyCertificateOutlined,
   FileProtectOutlined,
-  FileDoneOutlined,
   TeamOutlined,
   UserOutlined,
   SearchOutlined,
@@ -36,7 +35,6 @@ import {
   AppstoreOutlined,
   StopOutlined,
   ClockCircleOutlined,
-  QrcodeOutlined,
 } from '@ant-design/icons';
 import { D2FPageHeader, StatCard } from '@/components/common';
 import { brand, neutral, semantic } from '@/styles/themes/tokens';
@@ -61,6 +59,17 @@ import '@/styles/pages/gestion-certifications.css';
 const AVATAR_COLORS = ['#2563eb', '#7c3aed', '#059669', '#d97706', '#0891b2', '#db2777'];
 const colorFor = (s: string) =>
   AVATAR_COLORS[[...s].reduce((a, c) => a + (c.codePointAt(0) ?? 0), 0) % AVATAR_COLORS.length];
+
+/** Message d'erreur serveur : objet {message} > chaîne brute > null. */
+function extractErrorDetail(rawData: unknown): string | null {
+  if (rawData && typeof rawData === 'object') {
+    return (rawData as { message?: string }).message ?? null;
+  }
+  if (typeof rawData === 'string') {
+    return rawData;
+  }
+  return null;
+}
 const initials = (c: Certificate) =>
   `${(c.prenomEnseignant || ' ')[0]}${(c.nomEnseignant || ' ')[0]}`.toUpperCase().trim();
 const emailOf = (c: Certificate) => (c as unknown as Record<string, string>).mailEnseignant || '';
@@ -234,12 +243,7 @@ export default function CertificatePage() {
               message?: string;
             };
             const rawData = (e as { response?: { data?: unknown } })?.response?.data;
-            const detail =
-              (rawData && typeof rawData === 'object'
-                ? (rawData as { message?: string }).message
-                : typeof rawData === 'string'
-                  ? rawData
-                  : null) || e.message;
+            const detail = extractErrorDetail(rawData) || e.message;
             message.error(
               `Échec de la génération — ${detail ?? 'vérifiez les critères (présence ≥ 80%, post-test, évaluation)'}`,
             );
@@ -256,14 +260,15 @@ export default function CertificatePage() {
     ) : (
       <Tag color="#2563eb">Attestation</Tag>
     );
-  const statusTag = (c: Certificate) =>
-    isRevoked(c) ? (
-      <Tag color="#dc2626">Révoqué</Tag>
-    ) : c.delivered ? (
-      <Tag color="#059669">Délivré</Tag>
-    ) : (
-      <Tag color="#d97706">En attente</Tag>
-    );
+  const statusTag = (c: Certificate) => {
+    if (isRevoked(c)) {
+      return <Tag color="#dc2626">Révoqué</Tag>;
+    }
+    if (c.delivered) {
+      return <Tag color="#059669">Délivré</Tag>;
+    }
+    return <Tag color="#d97706">En attente</Tag>;
+  };
   const roleTag = (c: Certificate) => (
     <Tag color={isAnimateur(c) ? '#059669' : '#2563eb'}>{c.roleEnFormation || '—'}</Tag>
   );

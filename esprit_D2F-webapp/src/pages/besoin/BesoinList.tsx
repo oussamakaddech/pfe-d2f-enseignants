@@ -7,8 +7,7 @@ import { Row, Col, Skeleton, Button, Pagination, Space } from 'antd';
 import { InboxOutlined, PlusOutlined, ClearOutlined, ApartmentOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
-import { useHasPermission } from '@/routes/guards';
-import { useUserRole } from '@/routes/guards';
+import { useHasPermission, useUserRole } from '@/routes/guards';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { hasAnyRole, ROLES } from '@/utils/constants/roles';
 import { useBesoinList, INITIAL_FILTERS } from './hooks/useBesoinList';
@@ -28,6 +27,20 @@ import '@/styles/pages/besoin-list.css';
 
 type BfRefItem = { id: string | number; name?: string; libelle?: string };
 
+/** Libellé du bouton d'ajout selon le rôle (individuel vs collectif). */
+function resolveAddLabel(userRole: string): string {
+  if (hasAnyRole(userRole, [ROLES.ENSEIGNANT, ROLES.ANIMATEUR])) {
+    return 'Déposer un besoin individuel';
+  }
+  if (hasAnyRole(userRole, [ROLES.CUP])) {
+    return 'Créer un besoin collectif pour mon UP';
+  }
+  if (hasAnyRole(userRole, [ROLES.CHEF_DEPARTEMENT])) {
+    return 'Créer un besoin collectif pour mon département';
+  }
+  return 'Ajouter un besoin';
+}
+
 export default function BesoinList() {
   const navigate = useNavigate();
   const canAdd = useHasPermission('BESOIN_FORMATION', 'CREATE');
@@ -38,13 +51,7 @@ export default function BesoinList() {
   const canManageScopes = useHasPermission('BESOIN_FORMATION', 'MANAGE_SCOPES');
   const userRole = useUserRole() ?? '';
   const { user } = useAuth();
-  const addLabel = hasAnyRole(userRole, [ROLES.ENSEIGNANT, ROLES.ANIMATEUR])
-    ? 'Déposer un besoin individuel'
-    : hasAnyRole(userRole, [ROLES.CUP])
-      ? 'Créer un besoin collectif pour mon UP'
-      : hasAnyRole(userRole, [ROLES.CHEF_DEPARTEMENT])
-        ? 'Créer un besoin collectif pour mon département'
-        : 'Ajouter un besoin';
+  const addLabel = resolveAddLabel(userRole);
   const currentUsername = user?.username ?? user?.userName ?? null;
   const currentUserId = user?.userId ?? user?.id ?? null;
   const [rejectRecord, setRejectRecord] = useState<Record<string, unknown> | null>(null);

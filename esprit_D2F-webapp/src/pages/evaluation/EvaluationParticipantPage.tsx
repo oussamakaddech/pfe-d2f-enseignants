@@ -39,7 +39,6 @@ import {
   useValiderCompetences,
 } from '@/hooks/evaluation/useEvaluations';
 import { useAllFormations } from '@/hooks/formation/useFormations';
-import { useProfile } from '@/hooks/formation/useFormationExtras';
 import { useEnseignants } from '@/hooks/enseignant';
 import { useHasPermission } from '@/routes/guards';
 
@@ -77,7 +76,6 @@ export default function EvaluationParticipantPage() {
   const updateMut = useUpdateEvaluationParticipant();
   const deleteMut = useDeleteEvaluationParticipant();
   const validerMut = useValiderCompetences();
-  const { data: profile } = useProfile();
 
   const evaluations = evaluationsData as ParticipantRecord[];
   const formations = formationsData as FormationRecord[];

@@ -27,6 +27,7 @@ import java.util.UUID;
 public class CertificateServiceImpl implements CertificateService {
 
     private static final String REVOKED = "REVOKED";
+    private static final String CERTIFICAT_INTROUVABLE = "Certificat introuvable : ";
 
     private final CertificateRepository certificateRepository;
 
@@ -61,7 +62,7 @@ public class CertificateServiceImpl implements CertificateService {
     @Transactional
     public CertificateResponse deliver(Long id) {
         Certificate cert = certificateRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Certificat introuvable : " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(CERTIFICAT_INTROUVABLE + id));
         if (REVOKED.equals(cert.getCertificateStatus())) {
             throw new IllegalStateException("Un certificat révoqué ne peut pas être délivré : " + id);
         }
@@ -76,7 +77,7 @@ public class CertificateServiceImpl implements CertificateService {
             throw new IllegalArgumentException("Le motif de révocation est obligatoire.");
         }
         Certificate cert = certificateRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Certificat introuvable : " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(CERTIFICAT_INTROUVABLE + id));
         if (REVOKED.equals(cert.getCertificateStatus())) {
             throw new IllegalStateException("Certificat déjà révoqué : " + id);
         }
@@ -138,7 +139,7 @@ public class CertificateServiceImpl implements CertificateService {
     @Transactional
     public CertificateResponse update(Long id, CertificateRequest request) {
         Certificate cert = certificateRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Certificat introuvable : " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(CERTIFICAT_INTROUVABLE + id));
         updateEntityFromRequest(cert, request);
         return mapToResponse(certificateRepository.save(cert));
     }
@@ -230,7 +231,7 @@ public class CertificateServiceImpl implements CertificateService {
         certificate.setCertificateStatus("ISSUED");
         certificate.setCertificateNumber("CERT-%d-%06d".formatted(
                 certificate.getIssuedAt().getYear(),
-                // floorMod : Math.abs(Integer.MIN_VALUE) reste negatif (RV_ABSOLUTE_VALUE_OF_HASHCODE)
+                // floorMod gère Integer.MIN_VALUE correctement (voir SpotBugs RV_ABSOLUTE_VALUE_OF_HASHCODE).
                 Math.floorMod(token.hashCode(), 1_000_000)));
     }
 

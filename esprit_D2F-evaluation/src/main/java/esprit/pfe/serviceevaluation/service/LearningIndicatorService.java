@@ -29,7 +29,7 @@ public class LearningIndicatorService {
 
     /**
      * Calcule les indicateurs d'apprentissage pour un participant à une formation.
-     * 
+     *
      * @param trainingId L'ID de la formation
      * @param participantId L'ID du participant
      * @return LearningIndicatorDTO avec tous les indicateurs calculés
@@ -50,64 +50,72 @@ public class LearningIndicatorService {
                     .build();
         }
 
-        // Séparer pré et post tests
-        LearningAssessment preAssessment = assessments.stream()
-                .filter(a -> a.getType() == LearningAssessmentType.PRE)
-                .findFirst()
-                .orElse(null);
-
-        LearningAssessment postAssessment = assessments.stream()
-                .filter(a -> a.getType() == LearningAssessmentType.POST)
-                .sorted((a1, a2) -> Integer.compare(
-                        a2.getAttemptNumber() != null ? a2.getAttemptNumber() : 0,
-                        a1.getAttemptNumber() != null ? a1.getAttemptNumber() : 0))
-                .findFirst()
-                .orElse(null);
+        LearningAssessment preAssessment = latestOfType(assessments, LearningAssessmentType.PRE);
+        LearningAssessment postAssessment = latestOfType(assessments, LearningAssessmentType.POST);
 
         Float preScore = preAssessment != null ? preAssessment.getScore() : null;
         Float postScore = postAssessment != null ? postAssessment.getScore() : null;
-
-        // Progression normalisée : (post% − pre%) sur la même échelle (max_score).
-        Double progressionRate = null;
-        if (preScore != null && postScore != null) {
-            Float preMax = preAssessment.getMaxScore() != null && preAssessment.getMaxScore() > 0
-                    ? preAssessment.getMaxScore() : 100f;
-            Float postMax = postAssessment.getMaxScore() != null && postAssessment.getMaxScore() > 0
-                    ? postAssessment.getMaxScore() : 100f;
-            double prePct = preScore * 100.0 / preMax;
-            double postPct = postScore * 100.0 / postMax;
-            progressionRate = postPct - prePct;
-        }
-
-        // Changement de niveau
-        String levelChange = null;
-        if (preAssessment != null && postAssessment != null) {
-            String levelBefore = preAssessment.getLevelAfter() != null ? 
-                    preAssessment.getLevelAfter() : preAssessment.getLevelBefore();
-            String levelAfter = postAssessment.getLevelAfter();
-            
-            if (levelBefore != null && levelAfter != null && !levelBefore.equals(levelAfter)) {
-                levelChange = levelBefore + " → " + levelAfter;
-            }
-        }
-
-        // Total de tentatives
-        int attemptCount = assessments.stream()
-                .map(a -> a.getAttemptNumber() != null ? a.getAttemptNumber() : 0)
-                .max(Integer::compareTo)
-                .orElse(0);
 
         return LearningIndicatorDTO.builder()
                 .trainingId(trainingId)
                 .participantId(participantId)
                 .preScore(preScore)
                 .postScore(postScore)
-                .progressionRate(progressionRate)
-                .levelChange(levelChange)
-                .attemptCount(attemptCount)
+                .progressionRate(progressionRate(preAssessment, postAssessment))
+                .levelChange(levelChange(preAssessment, postAssessment))
+                .attemptCount(maxAttempt(assessments))
                 .preLevel(preAssessment != null ? preAssessment.getLevelBefore() : null)
                 .postLevel(postAssessment != null ? postAssessment.getLevelAfter() : null)
                 .build();
+    }
+
+    /** Dernière évaluation d'un type (PRE : première, POST : tentative max). */
+    private LearningAssessment latestOfType(List<LearningAssessment> assessments, LearningAssessmentType type) {
+        if (type == LearningAssessmentType.PRE) {
+            return assessments.stream()
+                    .filter(a -> a.getType() == LearningAssessmentType.PRE)
+                    .findFirst()
+                    .orElse(null);
+        }
+        return assessments.stream()
+                .filter(a -> a.getType() == LearningAssessmentType.POST)
+                .max(Comparator.comparing(this::attemptOf))
+                .orElse(null);
+    }
+
+    private int attemptOf(LearningAssessment a) {
+        return a.getAttemptNumber() != null ? a.getAttemptNumber() : 0;
+    }
+
+    /** Progression normalisée : (post% − pre%) sur la même échelle (max_score). */
+    private Double progressionRate(LearningAssessment pre, LearningAssessment post) {
+        if (pre == null || post == null || pre.getScore() == null || post.getScore() == null) {
+            return null;
+        }
+        Float preMax = pre.getMaxScore() != null && pre.getMaxScore() > 0 ? pre.getMaxScore() : 100f;
+        Float postMax = post.getMaxScore() != null && post.getMaxScore() > 0 ? post.getMaxScore() : 100f;
+        return post.getScore() * 100.0 / postMax - pre.getScore() * 100.0 / preMax;
+    }
+
+    /** Changement de niveau ("A1 → A2") ou null si identique/absent. */
+    private String levelChange(LearningAssessment pre, LearningAssessment post) {
+        if (pre == null || post == null) {
+            return null;
+        }
+        String levelBefore = pre.getLevelAfter() != null ? pre.getLevelAfter() : pre.getLevelBefore();
+        String levelAfter = post.getLevelAfter();
+        if (levelBefore != null && levelAfter != null && !levelBefore.equals(levelAfter)) {
+            return levelBefore + " → " + levelAfter;
+        }
+        return null;
+    }
+
+    /** Numéro de tentative maximal observé. */
+    private int maxAttempt(List<LearningAssessment> assessments) {
+        return assessments.stream()
+                .map(this::attemptOf)
+                .max(Integer::compareTo)
+                .orElse(0);
     }
 
     /**

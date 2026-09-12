@@ -61,8 +61,10 @@ export const hasAnyRole = (
 ): boolean => {
   const userRoles = extractRoles(userRole);
   if (userRoles.length === 0) return false;
-  const normalizedRequired = (requiredRoles ?? [])
-    .filter((r): r is string => typeof r === 'string')
-    .map((r) => normalizeRole(r));
-  return userRoles.some((userRoleToken) => normalizedRequired.includes(userRoleToken));
+  const normalizedRequired = new Set(
+    (requiredRoles ?? [])
+      .filter((r): r is string => typeof r === 'string')
+      .map((r) => normalizeRole(r)),
+  );
+  return userRoles.some((userRoleToken) => normalizedRequired.has(userRoleToken));
 };

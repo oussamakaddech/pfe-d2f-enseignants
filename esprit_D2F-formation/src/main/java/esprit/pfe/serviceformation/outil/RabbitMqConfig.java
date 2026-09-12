@@ -26,6 +26,7 @@ public class RabbitMqConfig {
     public static final String EVAL_CREATE_QUEUE = "evaluation.create.queue";
     public static final String EVAL_UPDATE_QUEUE = "evaluation.update.queue";
     public static final String ANALYTICS_QUEUE = "d2f.analytics.trigger";
+    public static final String ANIMATOR_EVENTS_QUEUE = "d2f.animator.events";
 
     // ── DLQ names ──
     public static final String BESOIN_DLQ = "besoin-formation.approved.dlq";
@@ -33,6 +34,7 @@ public class RabbitMqConfig {
     public static final String EVAL_CREATE_DLQ = "evaluation.create.queue.dlq";
     public static final String EVAL_UPDATE_DLQ = "evaluation.update.queue.dlq";
     public static final String ANALYTICS_DLQ = "d2f.analytics.trigger.dlq";
+    public static final String ANIMATOR_EVENTS_DLQ = "d2f.animator.events.dlq";
 
     // ── Dead-letter argument keys ──
     private static final String DLX_ARG = "x-dead-letter-exchange";
@@ -73,6 +75,20 @@ public class RabbitMqConfig {
     @Bean
     public Queue analyticsDlq() {
         return QueueBuilder.durable(ANALYTICS_DLQ).build();
+    }
+
+    // ── Animator workflow events queue (propositions / affectations) ──
+    @Bean
+    public Queue animatorEventsQueue() {
+        return QueueBuilder.durable(ANIMATOR_EVENTS_QUEUE)
+                .withArgument(DLX_ARG, DLX_EXCHANGE)
+                .withArgument(DLK_ARG, ANIMATOR_EVENTS_DLQ)
+                .build();
+    }
+
+    @Bean
+    public Queue animatorEventsDlq() {
+        return QueueBuilder.durable(ANIMATOR_EVENTS_DLQ).build();
     }
 
      @Bean

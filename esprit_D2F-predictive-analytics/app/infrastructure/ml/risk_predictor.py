@@ -162,6 +162,34 @@ class RiskMLPredictor:
         }
 
     # --------------------------------------------------------------- predict
+    def _features_out_of_range(self, features: dict[str, float]) -> list[str]:
+        """Features servies hors des plages déclarées de l'artefact."""
+        artifact = self._artifact or {}
+        ranges = artifact.get("feature_ranges") or {}
+        return [
+            c for c in RISK_FEATURES
+            if c in ranges and not (ranges[c]["min"] <= float(features.get(c, 0.0)) <= ranges[c]["max"])
+        ]
+
+    @staticmethod
+    def _calibrate(proba: np.ndarray, calibrator: Any, classes: list[str]) -> np.ndarray:
+        """Applique la calibration de la proba CRITICAL, renormalise le reste."""
+        if calibrator is None or "CRITICAL" not in classes:
+            return proba
+        i_crit = classes.index("CRITICAL")
+        p_crit = float(np.clip(calibrator.predict(np.array([proba[i_crit]]))[0], 0.0, 1.0))
+        others = [i for i in range(len(classes)) if i != i_crit]
+        other_sum = float(proba[others].sum())
+        proba = proba.copy()
+        if other_sum > 0:
+            for i in others:
+                proba[i] = proba[i] * (1.0 - p_crit) / other_sum
+        else:
+            for i in others:
+                proba[i] = 0.0
+        proba[i_crit] = p_crit
+        return proba
+
     def predict(self, features: dict[str, float]) -> tuple[RiskMLResult | None, str | None]:
         """Prédiction calibrée. Retourne (resultat, None) ou (None, fallback_reason).
 
@@ -176,61 +204,46 @@ class RiskMLPredictor:
             self._record_fallback(reason)
             return None, reason
         try:
-            artifact = self._artifact
-            ranges = artifact.get("feature_ranges") or {}
-            out_of_range = [
-                c for c in RISK_FEATURES
-                if c in ranges and not (ranges[c]["min"] <= float(features.get(c, 0.0)) <= ranges[c]["max"])
-            ]
+            out_of_range = self._features_out_of_range(features)
             if out_of_range:
                 self.heuristic_fallback_count += 1
                 reason = "features hors plage du modele : " + ", ".join(sorted(out_of_range))
                 self._record_fallback(reason)
                 return None, reason
-
-            vector = np.array([features_to_vector(features)], dtype=float)
-            model = artifact["model"]
-            proba = np.asarray(model.predict_proba(vector), dtype=float)[0]
-            classes = [str(c) for c in (artifact.get("classes") or getattr(model, "classes_", []))]
-            calibrator = artifact.get("calibrator")
-            if calibrator is not None and "CRITICAL" in classes:
-                i_crit = classes.index("CRITICAL")
-                p_crit = float(np.clip(calibrator.predict(np.array([proba[i_crit]]))[0], 0.0, 1.0))
-                others = [i for i in range(len(classes)) if i != i_crit]
-                other_sum = float(proba[others].sum())
-                proba = proba.copy()
-                if other_sum > 0:
-                    for i in others:
-                        proba[i] = proba[i] * (1.0 - p_crit) / other_sum
-                else:
-                    for i in others:
-                        proba[i] = 0.0
-                proba[i_crit] = p_crit
-            total = float(proba.sum())
-            if not np.isfinite(proba).all() or total <= 0.0 or abs(total - 1.0) > 0.05:
-                raise ValueError(f"probabilites incoherentes (somme={total})")
-            proba = proba / total
-            probabilities = {c: float(p) for c, p in zip(classes, proba)}
-            risk_class = max(probabilities, key=probabilities.get)
-
-            contributions = self._contributions(artifact, model, vector, features)
-            self.ml_serving_count += 1
-            result = RiskMLResult(
-                risk_class=risk_class,
-                probabilities=probabilities,
-                contributions=contributions,
-                explanation_method=str((self._metadata or {}).get("explainability", {}).get("method") or "model"),
-                model_version=str(artifact.get("model_version")),
-                candidate=str(artifact.get("candidate")),
-                validation_scope=str((self._metadata or {}).get("validation_scope") or "SIMULATION_VALIDATED"),
-                data_origin=str((self._metadata or {}).get("data_origin") or "SIMULATED"),
-            )
-            return result, None
+            return self._predict_calibrated(features), None
         except Exception as exc:
             self.heuristic_fallback_count += 1
             reason = f"echec de prediction ML : {exc}"
             self._record_fallback(reason)
             return None, reason
+
+    def _predict_calibrated(self, features: dict[str, float]) -> RiskMLResult:
+        """Prédiction + calibration + contributions (appelé après les gardes)."""
+        artifact = self._artifact
+        vector = np.array([features_to_vector(features)], dtype=float)
+        model = artifact["model"]
+        proba = np.asarray(model.predict_proba(vector), dtype=float)[0]
+        classes = [str(c) for c in (artifact.get("classes") or getattr(model, "classes_", []))]
+        proba = self._calibrate(proba, artifact.get("calibrator"), classes)
+        total = float(proba.sum())
+        if not np.isfinite(proba).all() or total <= 0.0 or abs(total - 1.0) > 0.05:
+            raise ValueError(f"probabilites incoherentes (somme={total})")
+        proba = proba / total
+        probabilities = {c: float(p) for c, p in zip(classes, proba)}
+        risk_class = max(probabilities, key=probabilities.get)
+
+        contributions = self._contributions(model, vector, features)
+        self.ml_serving_count += 1
+        return RiskMLResult(
+            risk_class=risk_class,
+            probabilities=probabilities,
+            contributions=contributions,
+            explanation_method=str((self._metadata or {}).get("explainability", {}).get("method") or "model"),
+            model_version=str(artifact.get("model_version")),
+            candidate=str(artifact.get("candidate")),
+            validation_scope=str((self._metadata or {}).get("validation_scope") or "SIMULATION_VALIDATED"),
+            data_origin=str((self._metadata or {}).get("data_origin") or "SIMULATED"),
+        )
 
     # Journalise un repli heuristique : garde les 50 dernières raisons en
     # mémoire (diagnostic) et incrémente le compteur de fallback.
@@ -240,37 +253,12 @@ class RiskMLPredictor:
             self.fallback_reasons = self.fallback_reasons[-50:]
         logger.info("risk ML repli heuristique (fail-closed)", reason=reason)
 
-    def _contributions(self, artifact: dict, model: Any, vector: np.ndarray, features: dict[str, float]) -> list[dict]:
+    def _contributions(self, model: Any, vector: np.ndarray, features: dict[str, float]) -> list[dict]:
         """Top-3 contributions par enseignant (SHAP si dispo, sinon proxy étiqueté)."""
         method = "model"
         values: np.ndarray | None = None
         model_core = model[-1] if not hasattr(model, "classes_") else model
-        try:
-            import shap  # type: ignore
-            explainer = shap.TreeExplainer(model_core)
-            sv = explainer.shap_values(vector)
-            if isinstance(sv, list):
-                values = np.sum([np.abs(a)[0] for a in sv], axis=0)
-            else:
-                arr = np.asarray(sv)
-                values = np.abs(arr[0]).sum(axis=-1) if arr.ndim == 3 else np.abs(arr[0])
-            method = "shap.TreeExplainer"
-        except Exception:
-            try:
-                if hasattr(model_core, "get_booster"):
-                    import xgboost  # type: ignore
-                    dm = xgboost.DMatrix(vector, feature_names=RISK_FEATURES)
-                    contribs = np.asarray(model_core.get_booster().predict(dm, pred_contribs=True))
-                    values = np.abs(contribs[0][:, :-1]).sum(axis=-1) if contribs.ndim == 3 else np.abs(contribs[0][:-1])
-                    method = "xgboost.pred_contribs"
-                elif hasattr(model_core, "coef_"):
-                    values = np.abs(model_core.coef_).sum(axis=0)
-                    method = "logistic_coefficients"
-                elif hasattr(model_core, "feature_importances_"):
-                    values = np.asarray(model_core.feature_importances_, dtype=float)
-                    method = "feature_importances_proxy"
-            except Exception:
-                values = None
+        values, method = self._explainability_values(model_core, vector, method)
         if values is None or len(values) != len(RISK_FEATURES):
             return []
         order = sorted(range(len(RISK_FEATURES)), key=lambda i: -float(values[i]))[:3]
@@ -284,6 +272,42 @@ class RiskMLPredictor:
             }
             for i in order
         ]
+
+    @staticmethod
+    def _shap_values(model_core: Any, vector: np.ndarray) -> np.ndarray | None:
+        """Valeurs SHAP absolues agrégées, None si SHAP indisponible."""
+        try:
+            import shap  # type: ignore
+            explainer = shap.TreeExplainer(model_core)
+            sv = explainer.shap_values(vector)
+            if isinstance(sv, list):
+                return np.sum([np.abs(a)[0] for a in sv], axis=0)
+            arr = np.asarray(sv)
+            return np.abs(arr[0]).sum(axis=-1) if arr.ndim == 3 else np.abs(arr[0])
+        except Exception:
+            return None
+
+    def _explainability_values(
+        self, model_core: Any, vector: np.ndarray, fallback_method: str
+    ) -> tuple[np.ndarray | None, str]:
+        """Résolution des valeurs d'explicabilité : SHAP, XGBoost, proxy linéaire ou importances."""
+        values = self._shap_values(model_core, vector)
+        if values is not None:
+            return values, "shap.TreeExplainer"
+        try:
+            if hasattr(model_core, "get_booster"):
+                import xgboost  # type: ignore
+                dm = xgboost.DMatrix(vector, feature_names=RISK_FEATURES)
+                contribs = np.asarray(model_core.get_booster().predict(dm, pred_contribs=True))
+                values = np.abs(contribs[0][:, :-1]).sum(axis=-1) if contribs.ndim == 3 else np.abs(contribs[0][:-1])
+                return values, "xgboost.pred_contribs"
+            if hasattr(model_core, "coef_"):
+                return np.abs(model_core.coef_).sum(axis=0), "logistic_coefficients"
+            if hasattr(model_core, "feature_importances_"):
+                return np.asarray(model_core.feature_importances_, dtype=float), "feature_importances_proxy"
+        except Exception:
+            return None, fallback_method
+        return None, fallback_method
 
 
 

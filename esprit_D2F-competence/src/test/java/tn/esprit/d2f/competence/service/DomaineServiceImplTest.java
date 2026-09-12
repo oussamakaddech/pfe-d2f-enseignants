@@ -267,7 +267,8 @@ class DomaineServiceImplTest {
 
             domaineService.deleteDomaine(1L);
 
-            verify(enseignantCompetenceRepository).deleteByDomaineId(1L);
+            verify(enseignantCompetenceRepository).deleteByDomaineIdDirectSavoirs(1L);
+            verify(enseignantCompetenceRepository).deleteByDomaineIdViaSousCompetence(1L);
             verify(niveauRepo).deleteByCompetence_DomaineId(1L);
             verify(niveauRepo).deleteBySousCompetence_Competence_DomaineId(1L);
             verify(niveauRepo).deleteBySavoirIdIn(List.of(10L));
@@ -290,7 +291,8 @@ class DomaineServiceImplTest {
 
             domaineService.deleteDomaine(1L);
 
-            verify(enseignantCompetenceRepository).deleteByDomaineId(1L);
+            verify(enseignantCompetenceRepository).deleteByDomaineIdDirectSavoirs(1L);
+            verify(enseignantCompetenceRepository).deleteByDomaineIdViaSousCompetence(1L);
             verify(niveauRepo).deleteByCompetence_DomaineId(1L);
             verify(niveauRepo).deleteBySousCompetence_Competence_DomaineId(1L);
             verify(niveauRepo, never()).deleteBySavoirIdIn(anyList());

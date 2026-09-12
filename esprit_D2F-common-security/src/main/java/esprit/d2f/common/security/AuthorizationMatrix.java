@@ -135,12 +135,29 @@ public final class AuthorizationMatrix {
 
     // ── Inscription ─────────────────────────────────────────────────────
     public static final String INSCRIPTION_READ    = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_CHEF_DEPARTEMENT')";
-    // ANIMATEUR/FORMATEUR inclus : un animateur interne est aussi un enseignant et
-    // peut donc s'inscrire aux formations (symétrique de INSCRIPTION_READ).
-    public static final String INSCRIPTION_CREATE  = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_ANIMATEUR','ROLE_FORMATEUR')";
+    // Spécification entreprise : TOUS les rôles peuvent s'inscrire et
+    // participer à une formation SAUF l'ADMIN et le RESPONSABLE_DOSSIER
+    // (rôles purement gestionnaires). CUP et CHEF_DEPARTEMENT sont des
+    // enseignants à part entière et s'inscrivent comme les autres, sous
+    // réserve d'appartenir au périmètre de la formation (UP ou département).
+    public static final String INSCRIPTION_CREATE  = "hasAnyRole('ROLE_CUP','ROLE_ENSEIGNANT','ROLE_ANIMATEUR','ROLE_FORMATEUR','ROLE_CHEF_DEPARTEMENT')";
     public static final String INSCRIPTION_APPROVE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
 
     public static final String GATEWAY_ACCESS = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_CHEF_DEPARTEMENT','ROLE_RESPONSABLE_DOSSIER')";
+
+    // ── Workflow propositions d'animateurs ─────────────────────────────
+    /** Consulter les propositions et affectations d'animation. */
+    public static final String ANIMATOR_PROPOSAL_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_ANIMATEUR','ROLE_CHEF_DEPARTEMENT')";
+    /** Auto-proposition (ENSEIGNANT / ANIMATEUR). */
+    public static final String ANIMATOR_PROPOSAL_SELF = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT','ROLE_ANIMATEUR')";
+    /** Proposer un animateur (CUP / ADMIN / CHEF_DEPARTEMENT). */
+    public static final String ANIMATOR_PROPOSAL_MANAGER = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
+    /** Valider / refuser une proposition (jamais le créateur lui-même, contrôlé service). */
+    public static final String ANIMATOR_PROPOSAL_VALIDATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
+    /** Créer / gérer les affectations définitives. */
+    public static final String ANIMATOR_ASSIGNMENT_MANAGE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
+    /** Répondre (accept/refuse/withdraw) à ses propres propositions. */
+    public static final String ANIMATOR_PROPOSAL_RESPOND = "isAuthenticated()";
 
     // ── Gestion unifiée (comptes + enseignants) ─────────────────────────
     // Page d'administration unifiée. ENSEIGNANT et ANIMATEUR n'y ont pas accès

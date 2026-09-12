@@ -75,26 +75,17 @@ public class ReviewerScopeService {
         if (actorRole == CreatorRole.ADMIN) {
             return new ResolvedScope(auth.getName(), userId, actorRole, null, null, true);
         }
-        if (actorRole == CreatorRole.ENSEIGNANT) {
-            ReviewerScope scope = reviewerScopeRepository.findById(auth.getName())
-                .orElseThrow(() -> new AccessDeniedException(
-                    "Périmètre non configuré pour '" + auth.getName()
-                    + "' : demandez à l'administrateur d'assigner votre UP / département."));
-            if (!ROLE_ENSEIGNANT.equals(scope.getRole())) {
-                throw new AccessDeniedException(
-                    "Le rôle du périmètre ne correspond pas au rôle JWT pour '" + auth.getName() + "'.");
-            }
-            if (scope.getUpCode() == null || scope.getUpCode().isBlank()
-                || scope.getDepartmentCode() == null || scope.getDepartmentCode().isBlank()) {
-            throw new AccessDeniedException(
-                "Périmètre incomplet : une UP et un département sont obligatoires pour ce compte enseignant.");
-            }
-            return new ResolvedScope(auth.getName(), userId, actorRole,
+        ReviewerScope scope = requireConfiguredScope(auth.getName(), actorRole);
+        validateScopeFields(scope, actorRole);
+        return new ResolvedScope(auth.getName(), userId, actorRole,
                 scope.getUpCode(), scope.getDepartmentCode(), false);
-        }
-        ReviewerScope scope = reviewerScopeRepository.findById(auth.getName())
+    }
+
+    /** Charge le périmètre et vérifie la cohérence du rôle JWT / table. */
+    private ReviewerScope requireConfiguredScope(String username, CreatorRole actorRole) {
+        ReviewerScope scope = reviewerScopeRepository.findById(username)
                 .orElseThrow(() -> new AccessDeniedException(
-                        "Périmètre non configuré pour '" + auth.getName()
+                        "Périmètre non configuré pour '" + username
                         + "' : demandez à l'administrateur d'assigner votre UP / département."));
         String expectedRole = switch (actorRole) {
             case CUP -> ROLE_CUP;
@@ -104,7 +95,18 @@ public class ReviewerScopeService {
         };
         if (!expectedRole.equals(scope.getRole())) {
             throw new AccessDeniedException(
-                "Le rôle du périmètre ne correspond pas au rôle JWT pour '" + auth.getName() + "'.");
+                "Le rôle du périmètre ne correspond pas au rôle JWT pour '" + username + "'.");
+        }
+        return scope;
+    }
+
+    /** Vérifie la présence des champs obligatoires selon le rôle. */
+    private void validateScopeFields(ReviewerScope scope, CreatorRole actorRole) {
+        if (actorRole == CreatorRole.ENSEIGNANT
+                && (scope.getUpCode() == null || scope.getUpCode().isBlank()
+                    || scope.getDepartmentCode() == null || scope.getDepartmentCode().isBlank())) {
+            throw new AccessDeniedException(
+                "Périmètre incomplet : une UP et un département sont obligatoires pour ce compte enseignant.");
         }
         if (actorRole == CreatorRole.CUP
                 && (scope.getUpCode() == null || scope.getUpCode().isBlank())) {
@@ -116,8 +118,6 @@ public class ReviewerScopeService {
             throw new AccessDeniedException(
                     "Périmètre incomplet : aucun département assigné à ce compte.");
         }
-        return new ResolvedScope(auth.getName(), userId, actorRole,
-                scope.getUpCode(), scope.getDepartmentCode(), false);
     }
 
     /** Vérifie que le besoin appartient au périmètre du validateur (403 sinon). */
@@ -130,11 +130,10 @@ public class ReviewerScopeService {
             }
             return;
         }
-        if (scope.actorRole() == CreatorRole.CHEF_DEPARTEMENT) {
-            if (besoinDepartement == null || !besoinDepartement.equals(scope.departmentCode())) {
-                throw new AccessDeniedException("Périmètre interdit : ce besoin n'appartient pas à votre département ("
-                        + scope.departmentCode() + "). Besoin n°" + besoinId + ".");
-            }
+        if (scope.actorRole() == CreatorRole.CHEF_DEPARTEMENT
+                && (besoinDepartement == null || !besoinDepartement.equals(scope.departmentCode()))) {
+            throw new AccessDeniedException("Périmètre interdit : ce besoin n'appartient pas à votre département ("
+                    + scope.departmentCode() + "). Besoin n°" + besoinId + ".");
         }
     }
 

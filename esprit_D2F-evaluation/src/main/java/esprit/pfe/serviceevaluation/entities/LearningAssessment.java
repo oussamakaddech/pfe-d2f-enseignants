@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "learning_assessments", uniqueConstraints = @UniqueConstraint(
@@ -49,7 +50,7 @@ public class LearningAssessment extends BaseAuditEntity {
     private String evaluatedBy;
 
     @Column(name = "evaluated_at", nullable = false)
-    private LocalDateTime evaluatedAt = LocalDateTime.now();
+    private LocalDateTime evaluatedAt = LocalDateTime.now(ZoneId.systemDefault());
 
     @Column(name = "attempt_number", nullable = false)
     private Integer attemptNumber = 1;

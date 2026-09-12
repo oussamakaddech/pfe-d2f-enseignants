@@ -65,6 +65,50 @@ const MODE_META: Record<
   },
 };
 
+const SIMULATION_VALIDITIES: ReadonlySet<string> = new Set(['OBSERVED_IN_SIMULATION', 'SIMULATION_VALIDATED']);
+
+/** Badge de simulation : priorité targetValidity > validationScope > dataOrigin. */
+function resolveSimulationBadge(
+  targetValidity: string | null | undefined,
+  validationScope: string | null | undefined,
+  dataOrigin: string | null | undefined,
+): { label: string; description: string } | null {
+  const targetMeta = TARGET_VALIDITY_TEXTS[targetValidity ?? ''] ?? null;
+  if (targetMeta && SIMULATION_VALIDITIES.has(targetValidity ?? '')) {
+    return targetMeta;
+  }
+  const scopeMeta = TARGET_VALIDITY_TEXTS[validationScope ?? ''] ?? null;
+  if (scopeMeta && SIMULATION_VALIDITIES.has(validationScope ?? '')) {
+    return scopeMeta;
+  }
+  if (dataOrigin === 'SIMULATED') {
+    return TARGET_VALIDITY_TEXTS['OBSERVED_IN_SIMULATION'];
+  }
+  return null;
+}
+
+/** Parties du tooltip : description, mode, artefact, algorithme, badge. */
+function buildTooltipParts(
+  metaDescription: string,
+  modelMode: ModelMode | undefined,
+  artifact: string,
+  modelVersion: string | null | undefined,
+  version: string,
+  modelAlgorithm: string | null | undefined,
+  displayBadge: { description: string } | null,
+): string[] {
+  const parts = [
+    metaDescription,
+    modelMode ? `Mode : ${modelMode}.` : 'Mode : HEURISTIC_FALLBACK.',
+  ];
+  if (artifact && modelVersion) parts.push(`Artefact : ${artifact} · ${version}.`);
+  else if (artifact) parts.push(`Artefact : ${artifact}.`);
+  else if (modelVersion) parts.push(`Version : ${version}.`);
+  if (modelAlgorithm) parts.push(`Algorithme : ${modelAlgorithm}.`);
+  if (displayBadge) parts.push(displayBadge.description);
+  return parts;
+}
+
 const TARGET_VALIDITY_TEXTS: Record<string, { label: string; description: string }> = {
   EXTRAPOLATED_TARGET: {
     label: 'Cible extrapolée',
@@ -117,30 +161,12 @@ export default function ModelBadge({
   const artifact = modelName ? `${modelName}` : '';
   const version = formatModelVersion(modelVersion);
   const targetMeta = TARGET_VALIDITY_TEXTS[targetValidity ?? ''] ?? null;
-  const scopeMeta = TARGET_VALIDITY_TEXTS[validationScope ?? ''] ?? null;
   // Priorite : targetValidity > validationScope > dataOrigin SIMULATED
-  const simulationBadge =
-    targetMeta &&
-    (targetValidity === 'OBSERVED_IN_SIMULATION' || targetValidity === 'SIMULATION_VALIDATED')
-      ? targetMeta
-      : scopeMeta &&
-          (validationScope === 'SIMULATION_VALIDATED' ||
-            validationScope === 'OBSERVED_IN_SIMULATION')
-        ? scopeMeta
-        : dataOrigin === 'SIMULATED'
-          ? TARGET_VALIDITY_TEXTS['OBSERVED_IN_SIMULATION']
-          : null;
+  const simulationBadge = resolveSimulationBadge(targetValidity, validationScope, dataOrigin);
   const displayBadge = simulationBadge || targetMeta;
-  const tooltipParts = [
-    meta.description,
-    modelMode ? `Mode : ${modelMode}.` : 'Mode : HEURISTIC_FALLBACK.',
-  ];
-  if (artifact && modelVersion) tooltipParts.push(`Artefact : ${artifact} · ${version}.`);
-  else if (artifact) tooltipParts.push(`Artefact : ${artifact}.`);
-  else if (modelVersion) tooltipParts.push(`Version : ${version}.`);
-  if (modelAlgorithm) tooltipParts.push(`Algorithme : ${modelAlgorithm}.`);
-  if (displayBadge) tooltipParts.push(displayBadge.description);
-  const tooltip = tooltipParts.join(' ');
+  const tooltip = buildTooltipParts(
+    meta.description, modelMode, artifact, modelVersion, version, modelAlgorithm, displayBadge,
+  ).join(' ');
 
   const fontSize = size === 'small' ? 11 : 12;
   const padding = size === 'small' ? '2px 8px' : '4px 12px';

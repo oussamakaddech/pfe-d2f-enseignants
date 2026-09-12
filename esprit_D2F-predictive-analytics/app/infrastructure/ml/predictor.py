@@ -572,6 +572,20 @@ class ArtifactModelPort:
             return None
 
     # --------------------------------------------------- Risk ML calibre (v2)
+    def _resolved_gaps(self, teacher_id: str) -> list[SkillGap]:
+        """Gaps prédits, sinon gaps persistés."""
+        gaps = self._predict_gaps(teacher_id)
+        if gaps is None:
+            gaps = self._persisted_gaps(teacher_id)
+        return gaps or []
+
+    def _scoped_gaps(self, teacher_id: str, gaps: list[SkillGap]) -> tuple[list[SkillGap], set[int] | None]:
+        """Filtre les gaps au périmètre de l'enseignant, si applicable."""
+        scoped_ids = self._scoped_competence_ids(teacher_id)
+        if scoped_ids is not None and gaps:
+            gaps = self._filter_gaps_to_scope(teacher_id, gaps, scoped_ids)
+        return gaps, scoped_ids
+
     def predict_risk_serving(self, teacher_id: str) -> tuple[RiskProfile, dict | None, str | None]:
         """Risque servi : ML calibre si disponible, sinon heuristique FAIL-CLOSED.
 
@@ -588,25 +602,15 @@ class ArtifactModelPort:
         try:
             bundle = dict(self._teacher_feature_bundle(teacher_id))
             bundle["stagnation_months"] = self._stagnation_months(bundle)
-            gaps = self._predict_gaps(teacher_id)
-            if gaps is None:
-                gaps = self._persisted_gaps(teacher_id)
-            gaps = gaps or []
-            scoped_ids = self._scoped_competence_ids(teacher_id)
-            if scoped_ids is not None and gaps:
-                gaps = self._filter_gaps_to_scope(teacher_id, gaps, scoped_ids)
+            gaps, scoped_ids = self._scoped_gaps(teacher_id, self._resolved_gaps(teacher_id))
             X, _comp_ids, _required = self._build_feature_matrix(bundle)
-            agg: dict[str, float] = {}
-            if X.shape[0] > 0:
-                for risk_feat, col in AGG_FEATURE_SOURCES.items():
-                    if col in TEMPORAL_FEATURE_COLS:
-                        agg[risk_feat] = float(np.mean(X[:, TEMPORAL_FEATURE_COLS.index(col)]))
+            agg: dict[str, float] = self._serving_aggregates(X)
             features = build_serving_features(gaps, bundle, agg)
             result, reason = self._risk_ml.predict(features)
             if result is not None:
                 served_by_ml = True
                 ml_payload = result.to_payload()
-                profile = self._profile_from_risk_ml(teacher_id, result, gaps, scoped_ids)
+                profile = self._profile_from_risk_ml(teacher_id, result, scoped_ids)
             else:
                 fallback_reason = reason
         except Exception as exc:  # pragma: no cover - fail-closed
@@ -615,15 +619,22 @@ class ArtifactModelPort:
 
         if not served_by_ml or profile is None:
             self._risk_engine = "rules"
-            gaps = self._predict_gaps(teacher_id)
-            if gaps is None:
-                gaps = self._persisted_gaps(teacher_id)
-            profile = self._rule_risk_scoped(teacher_id, gaps or [])
+            gaps = self._resolved_gaps(teacher_id)
+            profile = self._rule_risk_scoped(teacher_id, gaps)
         self._risk_ml_reason = fallback_reason
         return profile, ml_payload, fallback_reason
 
+    def _serving_aggregates(self, X) -> dict[str, float]:
+        """Moyennes des features temporelles pour le serving risque."""
+        agg: dict[str, float] = {}
+        if X.shape[0] > 0:
+            for risk_feat, col in AGG_FEATURE_SOURCES.items():
+                if col in TEMPORAL_FEATURE_COLS:
+                    agg[risk_feat] = float(np.mean(X[:, TEMPORAL_FEATURE_COLS.index(col)]))
+        return agg
+
     def _profile_from_risk_ml(
-        self, teacher_id: str, result, gaps: list[SkillGap], scoped_ids: set[int] | None
+        self, teacher_id: str, result, scoped_ids: set[int] | None
     ) -> RiskProfile:
         """RiskProfile servie par le ML : score = esperance ponderee des milieux
         de classes avec les probabilites CALIBREES ; facteurs = top contributions."""
@@ -672,6 +683,14 @@ class ArtifactModelPort:
         return self._rule_risk_scoped(teacher_id, gaps or [])
 
 
+    def _target_validity_label(self, target_validity: str) -> str:
+        """Étiquette lisible de la validité de la cible prédictive."""
+        if target_validity == TARGET_VALIDITY_EXTRAPOLATED:
+            return "Cible extrapolée — validation démonstration"
+        if target_validity == TARGET_VALIDITY_OBSERVED_SIMULATION:
+            return "Cible observée en simulation — validation simulation"
+        return "Cible validée par re-mesures réelles"
+
     def status(self) -> dict[str, Any]:
         mode = self._effective_mode()
         meta = self._metadata or {}
@@ -679,80 +698,16 @@ class ArtifactModelPort:
         entry = self._registry.active()
         target_validity = self._target_validity()
         # Etape 4 : exposition data_origin et validation_scope (gouvernance simulation)
-        data_origin = getattr(entry, "data_origin", None) if entry else meta.get("data_origin")
-        validation_scope = getattr(entry, "validation_scope", None) if entry else meta.get("validation_scope")
-        # Fallback : si registre SIMULATED, on expose SIMULATED meme si metadata ancienne
-        if entry and getattr(entry, "data_origin", None) == DATA_ORIGIN_SIMULATED:
-            data_origin = DATA_ORIGIN_SIMULATED
-            validation_scope = validation_scope or VALIDATION_SCOPE_SIMULATION
-        elif entry and getattr(entry, "validation_scope", None) == VALIDATION_SCOPE_SIMULATION:
-            validation_scope = VALIDATION_SCOPE_SIMULATION
-            data_origin = data_origin or DATA_ORIGIN_SIMULATED
-        # Production technique demo : si mode PRODUCTION_ML mais corpus DEMO_SEED, l'etiquette reste demo
-        # (conserve 35/37 serving, mais etiquette honnete)
-        if data_origin is None:
-            # derive from synthetic_share_pct legacy
-            if entry and entry.synthetic_share_pct > 0:
-                data_origin = DATA_ORIGIN_SIMULATED
-                validation_scope = VALIDATION_SCOPE_SIMULATION
-            elif prov and prov.synthetic_share_pct > 0:
-                data_origin = DATA_ORIGIN_SIMULATED
-                validation_scope = VALIDATION_SCOPE_SIMULATION
-            else:
-                data_origin = "DEMO_SEED"
-                validation_scope = "DEMO_VALIDATED"
+        data_origin, validation_scope = self._resolve_data_origin(entry, meta, prov)
         # Etape 4.5 : si un corpus de simulation documente existe (seed 42, re-mesures M+3),
         # le serving PRODUCTION_ML reste fonctionnel mais son etiquette devient
         # "production technique — demonstration sur donnees simulees".
         # On expose donc en plus les metadonnees de simulation (sidecar), tout en
         # conservant le registry actif reel pour la non-regression.
-        simulation_info = None
-        try:
-            sim_manifest = Path(__file__).parent.parent.parent.parent / "reports" / "simulation_manifest.json"
-            # aussi verifier data/simulation et data/models/simulation_training_metadata.json (present dans Docker)
-            if not sim_manifest.exists():
-                sim_manifest = Path(__file__).parent.parent.parent.parent / "data" / "simulation" / "simulation_manifest.json"
-            if not sim_manifest.exists():
-                # Fallback Docker : simulation_training_metadata.json dans MODELS_DIR
-                models_dir = Path(getattr(self._settings, "models_dir", "data/models"))
-                sim_meta = models_dir / "simulation_training_metadata.json"
-                if sim_meta.exists():
-                    import json as _json
-                    sim_manifest_data = _json.loads(sim_meta.read_text(encoding="utf-8"))
-                    simulation_info = {
-                        "data_origin": sim_manifest_data.get("data_origin", DATA_ORIGIN_SIMULATED),
-                        "validation_scope": sim_manifest_data.get("validation_scope", VALIDATION_SCOPE_SIMULATION),
-                        "target_validity": sim_manifest_data.get("target_validity", TARGET_VALIDITY_OBSERVED_SIMULATION),
-                        "dataset_hash": sim_manifest_data.get("dataset_hash", sim_manifest_data.get("data_sources", {}).get("dataset_hash")),
-                        "generator_version": sim_manifest_data.get("generator_version"),
-                        "seed": sim_manifest_data.get("seed"),
-                    }
-                    if data_origin == "DEMO_SEED":
-                        data_origin = DATA_ORIGIN_SIMULATED
-                        validation_scope = VALIDATION_SCOPE_SIMULATION
-                    # Already have simulation_info, skip file check
-                    sim_manifest = None
-                else:
-                    sim_manifest = None
-            if sim_manifest is not None and sim_manifest.exists():
-                import json as _json
-                sim_manifest_data = _json.loads(sim_manifest.read_text(encoding="utf-8"))
-                simulation_info = {
-                    "data_origin": sim_manifest_data.get("data_origin", DATA_ORIGIN_SIMULATED),
-                    "validation_scope": sim_manifest_data.get("validation_scope", VALIDATION_SCOPE_SIMULATION),
-                    "target_validity": sim_manifest_data.get("target_validity", TARGET_VALIDITY_OBSERVED_SIMULATION),
-                    "dataset_hash": sim_manifest_data.get("dataset_hash"),
-                    "generator_version": sim_manifest_data.get("generator_version"),
-                    "seed": sim_manifest_data.get("seed"),
-                }
-                # Si simulation existe, on surcharge l'etiquetage honnete pour refleter la validation simulation
-                # (sans casser le mode PRODUCTION_ML) — uniquement data_origin/validation_scope,
-                # target_validity reste EXTRAPOLATED pour le corpus reel (le rapport simulation expose OBSERVED_IN_SIMULATION via simulation_info)
-                if data_origin == "DEMO_SEED":
-                    data_origin = DATA_ORIGIN_SIMULATED
-                    validation_scope = VALIDATION_SCOPE_SIMULATION
-        except Exception:
-            simulation_info = None
+        simulation_info = self._load_simulation_info(data_origin)
+        if simulation_info is not None and data_origin == "DEMO_SEED":
+            data_origin = DATA_ORIGIN_SIMULATED
+            validation_scope = VALIDATION_SCOPE_SIMULATION
         return {
             "name": "gap_predictor_temporal",
             "available": mode in (PRODUCTION_ML, DEMO_ML),
@@ -771,13 +726,7 @@ class ArtifactModelPort:
             "registry_entry": entry.to_dict() if entry else None,
             "prediction_horizon": "3m",
             "target_validity": target_validity,
-            "target_validity_label": (
-                "Cible extrapolée — validation démonstration"
-                if target_validity == TARGET_VALIDITY_EXTRAPOLATED
-                else "Cible observée en simulation — validation simulation"
-                if target_validity == TARGET_VALIDITY_OBSERVED_SIMULATION
-                else "Cible validée par re-mesures réelles"
-            ),
+            "target_validity_label": self._target_validity_label(target_validity),
             "data_origin": data_origin,
             "validation_scope": validation_scope,
             "simulation": simulation_info,
@@ -793,6 +742,75 @@ class ArtifactModelPort:
                 "drift_check": self._artifact_drift_check(self._relevance_metadata),
             },
         }
+
+    def _resolve_data_origin(self, entry, meta: dict, prov) -> tuple[str, str]:
+        """Résout l'étiquetage honnête data_origin / validation_scope."""
+        data_origin = getattr(entry, "data_origin", None) if entry else meta.get("data_origin")
+        validation_scope = getattr(entry, "validation_scope", None) if entry else meta.get("validation_scope")
+        if entry:
+            data_origin, validation_scope = self._apply_registry_labels(
+                entry, data_origin, validation_scope
+            )
+        if data_origin is None:
+            data_origin, validation_scope = self._legacy_synthetic_labels(entry, prov)
+        return data_origin, validation_scope
+
+    @staticmethod
+    def _apply_registry_labels(entry, data_origin, validation_scope) -> tuple[str, str]:
+        """Fallback : si registre SIMULATED, on expose SIMULATED meme si metadata ancienne."""
+        if getattr(entry, "data_origin", None) == DATA_ORIGIN_SIMULATED:
+            data_origin = DATA_ORIGIN_SIMULATED
+            validation_scope = validation_scope or VALIDATION_SCOPE_SIMULATION
+        elif getattr(entry, "validation_scope", None) == VALIDATION_SCOPE_SIMULATION:
+            validation_scope = VALIDATION_SCOPE_SIMULATION
+            data_origin = data_origin or DATA_ORIGIN_SIMULATED
+        return data_origin, validation_scope
+
+    @staticmethod
+    def _legacy_synthetic_labels(entry, prov) -> tuple[str, str]:
+        """Derive from synthetic_share_pct legacy (registre sinon provenance calculée)."""
+        registry_share = entry.synthetic_share_pct if entry else 0
+        provenance_share = prov.synthetic_share_pct if prov else 0
+        synthetic_share = registry_share or provenance_share
+        if synthetic_share > 0:
+            return DATA_ORIGIN_SIMULATED, VALIDATION_SCOPE_SIMULATION
+        return "DEMO_SEED", "DEMO_VALIDATED"
+
+    @staticmethod
+    def _simulation_manifest_data(settings) -> dict | None:
+        """Charge le manifeste de simulation (fichier repo, data/simulation ou Docker)."""
+        import json as _json
+
+        root = Path(__file__).parent.parent.parent.parent
+        sim_manifest = root / "reports" / "simulation_manifest.json"
+        # aussi verifier data/simulation et data/models/simulation_training_metadata.json (present dans Docker)
+        if not sim_manifest.exists():
+            sim_manifest = root / "data" / "simulation" / "simulation_manifest.json"
+        if not sim_manifest.exists():
+            # Fallback Docker : simulation_training_metadata.json dans MODELS_DIR
+            models_dir = Path(getattr(settings, "models_dir", "data/models"))
+            sim_meta = models_dir / "simulation_training_metadata.json"
+            if sim_meta.exists():
+                return _json.loads(sim_meta.read_text(encoding="utf-8"))
+            return None
+        return _json.loads(sim_manifest.read_text(encoding="utf-8"))
+
+    def _load_simulation_info(self, data_origin: str | None) -> dict | None:
+        """Metadonnees de simulation (sidecar), si un corpus documente existe."""
+        try:
+            sim_manifest_data = self._simulation_manifest_data(self._settings)
+            if sim_manifest_data is None:
+                return None
+            return {
+                "data_origin": sim_manifest_data.get("data_origin", DATA_ORIGIN_SIMULATED),
+                "validation_scope": sim_manifest_data.get("validation_scope", VALIDATION_SCOPE_SIMULATION),
+                "target_validity": sim_manifest_data.get("target_validity", TARGET_VALIDITY_OBSERVED_SIMULATION),
+                "dataset_hash": sim_manifest_data.get("dataset_hash", sim_manifest_data.get("data_sources", {}).get("dataset_hash")),
+                "generator_version": sim_manifest_data.get("generator_version"),
+                "seed": sim_manifest_data.get("seed"),
+            }
+        except Exception:
+            return None
 
     def _target_validity(self) -> str:
         """Validité de la cible prédictive (registre > metadata, défaut extrapolée).
@@ -989,41 +1007,43 @@ class ArtifactModelPort:
         ranges = meta.get("feature_ranges") or {}
         if not ranges:
             return None  # pas de plages déclarées : contrôlé au serving
-        schema_path = self._artifact_path.parent / (
-            f"feature_schema{('_' + str(meta.get('model_version', 'v1.0.0').replace('.', ''))) if meta.get('model_version') else ''}.json"
-        )
-        # Référence canonique : le feature_schema VERSIONNÉ du modèle servi
-        # (feature_schema_{version}.json) s'il existe — c'est la référence de la
-        # version ACTIVE ; sinon le feature_schema du dépôt. Sans fichier de
-        # référence, on compare au registre.
-        reference_ranges: dict | None = None
+
+        def _canon(r: dict) -> str:
+            return hashlib.sha256(json.dumps(r, sort_keys=True).encode()).hexdigest()
+
+        reference_ranges = self._reference_feature_ranges(meta)
+        if reference_ranges and _canon(ranges) != _canon(reference_ranges):
+            return (
+                "plages de features élargies sans réentraînement : l'artefact "
+                "porte des bornes différentes du feature_schema de la même "
+                "version — réentraînement et nouvelle version requis"
+            )
+        return None
+
+    def _reference_feature_ranges(self, meta: dict) -> dict | None:
+        """Référence canonique : le feature_schema VERSIONNÉ du modèle servi
+        (feature_schema_{version}.json) s'il existe — c'est la référence de la
+        version ACTIVE ; sinon le feature_schema du dépôt. Sans fichier de
+        référence, on compare au registre."""
+        model_version = str(meta.get("model_version") or "")
+        suffix = f"_{model_version.replace('.', '')}" if model_version else ""
         candidate_paths = [
-            schema_path,
+            self._artifact_path.parent / f"feature_schema{suffix}.json",
             self._artifact_path.parent / "feature_schema.json",
         ]
-
         for path in candidate_paths:
-            if path.exists():
-                try:
-                    reference_ranges = json.loads(path.read_text(encoding="utf-8"))
-                    if isinstance(reference_ranges, dict) and "feature_ranges" in reference_ranges:
-                        reference_ranges = reference_ranges["feature_ranges"]
-                    if isinstance(reference_ranges, dict) and "ranges" in reference_ranges:
-                        reference_ranges = reference_ranges["ranges"]
-                except Exception:
-                    reference_ranges = None
-                if reference_ranges:
-                    break
-        if reference_ranges:
-            def _canon(r: dict) -> str:
-                return hashlib.sha256(json.dumps(r, sort_keys=True).encode()).hexdigest()
-
-            if _canon(ranges) != _canon(reference_ranges):
-                return (
-                    "plages de features élargies sans réentraînement : l'artefact "
-                    "porte des bornes différentes du feature_schema de la même "
-                    "version — réentraînement et nouvelle version requis"
-                )
+            if not path.exists():
+                continue
+            try:
+                reference = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(reference, dict) and "feature_ranges" in reference:
+                    reference = reference["feature_ranges"]
+                if isinstance(reference, dict) and "ranges" in reference:
+                    reference = reference["ranges"]
+                if reference:
+                    return reference
+            except Exception:
+                continue
         return None
 
     # ------------------------------------------------------- Extraction features

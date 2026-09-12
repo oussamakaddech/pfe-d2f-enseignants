@@ -140,12 +140,12 @@ public interface EnseignantCompetenceRepository extends JpaRepository<Enseignant
      * sous-compétence). L'union des deux suppressions mono-chemin couvre
      * l'intégralité des lignes, contrairement à un OR sur navigations
      * implicites (INNER JOIN sur associations NULLables).
+     *
+     * <p>Les deux suppressions mono-chemin sont composées dans
+     * {@code DomaineServiceImpl.deleteDomaine} au sein de la même transaction
+     * (l'appel de méthodes transactionnelles doit passer par un bean injecté,
+     * pas par {@code this} au sein d'une interface).</p>
      */
-    @Transactional
-    default void deleteByDomaineId(Long domaineId) {
-        deleteByDomaineIdDirectSavoirs(domaineId);
-        deleteByDomaineIdViaSousCompetence(domaineId);
-    }
 
     // ── findSavoirIds – couvre les deux rattachements ───────────────────────
 

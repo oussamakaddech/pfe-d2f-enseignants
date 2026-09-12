@@ -23,7 +23,6 @@ import {
   EditOutlined,
   DeleteOutlined,
   TrophyOutlined,
-  UserOutlined,
   FilterOutlined,
   ReloadOutlined,
   StarFilled,
@@ -483,7 +482,7 @@ export default function EvaluationGlobalePage() {
             ? 'Vous évaluez les formations que vous avez suivies. Votre identifiant est pré-rempli.'
             : 'Une seule évaluation globale est autorisée par formation.'
         }
-        type={isEnseignantRole ? 'info' : 'info'}
+        type="info"
         showIcon
         className="evaluation-info-alert"
       />

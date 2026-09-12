@@ -2,11 +2,14 @@ package esprit.pfe.servicecertificat.services;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
+import com.google.zxing.WriterException;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
+import esprit.pfe.servicecertificat.exception.QrCodeGenerationException;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -38,21 +41,29 @@ public class QrCodeService {
      *
      * @param content contenu encodé (URL de vérification)
      * @return bytes PNG de l'image QR
+     * @throws QrCodeGenerationException si l'encodage ou l'écriture échoue
      */
-    public static byte[] generateQrPng(String content) throws Exception {
+    public static byte[] generateQrPng(String content) {
         return generateQrPng(content, DEFAULT_SIZE, DEFAULT_SIZE);
     }
 
     /**
      * Génère l'image PNG du QR code avec dimensions personnalisées.
+     *
+     * @throws QrCodeGenerationException si l'encodage ou l'écriture échoue
      */
-    public static byte[] generateQrPng(String content, int width, int height) throws Exception {
+    public static byte[] generateQrPng(String content, int width, int height) {
         QRCodeWriter writer = new QRCodeWriter();
-        BitMatrix matrix = writer.encode(content, BarcodeFormat.QR_CODE, width, height,
-                Map.of(EncodeHintType.MARGIN, 1));
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            MatrixToImageWriter.writeToStream(matrix, "PNG", out);
-            return out.toByteArray();
+        try {
+            BitMatrix matrix = writer.encode(content, BarcodeFormat.QR_CODE, width, height,
+                    Map.of(EncodeHintType.MARGIN, 1));
+            try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                MatrixToImageWriter.writeToStream(matrix, "PNG", out);
+                return out.toByteArray();
+            }
+        } catch (WriterException | IOException e) {
+            throw new QrCodeGenerationException(
+                    "Génération du QR code impossible pour le contenu fourni", e);
         }
     }
 }

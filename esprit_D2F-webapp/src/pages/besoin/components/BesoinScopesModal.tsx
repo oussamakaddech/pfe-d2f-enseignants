@@ -101,7 +101,7 @@ export default function BesoinScopesModal({
       onCancel={onClose}
       footer={null}
       width={720}
-      destroyOnClose
+      destroyOnHidden
     >
       <Table<ReviewerScope>
         dataSource={[...scopes]}

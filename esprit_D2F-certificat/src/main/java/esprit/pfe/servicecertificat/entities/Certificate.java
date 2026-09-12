@@ -2,6 +2,7 @@ package esprit.pfe.servicecertificat.entities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLDelete;
@@ -15,34 +16,11 @@ import java.time.OffsetDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @SQLDelete(sql = "UPDATE certificat.certificates SET deleted_at = NOW() WHERE id_certificate = ? AND version = ?")
 @SQLRestriction("deleted_at IS NULL")
 @Table(name = "certificates")
 public class Certificate extends BaseAuditEntity {
-
-    public Certificate(Long idCertificate, Long formationId, String titreFormation, String typeCertif,
-                       java.time.LocalDate dateDebutFormation, java.time.LocalDate dateFinFormation,
-                       Integer chargeHoraireGlobal, String enseignantId, String nomEnseignant,
-                       String prenomEnseignant, String mailEnseignant, String deptEnseignant,
-                       String roleEnFormation, boolean delivered, String pdfFilePath,
-                       LocalDateTime deletedAt) {
-        this.idCertificate = idCertificate;
-        this.formationId = formationId;
-        this.titreFormation = titreFormation;
-        this.typeCertif = typeCertif;
-        this.dateDebutFormation = dateDebutFormation;
-        this.dateFinFormation = dateFinFormation;
-        this.chargeHoraireGlobal = chargeHoraireGlobal;
-        this.enseignantId = enseignantId;
-        this.nomEnseignant = nomEnseignant;
-        this.prenomEnseignant = prenomEnseignant;
-        this.mailEnseignant = mailEnseignant;
-        this.deptEnseignant = deptEnseignant;
-        this.roleEnFormation = roleEnFormation;
-        this.delivered = delivered;
-        this.pdfFilePath = pdfFilePath;
-        this.deletedAt = deletedAt;
-    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

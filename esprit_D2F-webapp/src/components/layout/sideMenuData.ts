@@ -58,7 +58,7 @@ export const adminMenu: MenuItem[] = [
     children: [
       { label: 'Administration', key: '/home/administration', icon: SettingOutlined },
       { label: 'Structures (UP/Dépt)', key: '/home/UpDept', icon: ApartmentOutlined },
-      { label: 'Inscriptions', key: '/home/Inscriptions', icon: FileTextOutlined },
+      { label: 'Gestion Inscriptions', key: '/home/Inscriptions', icon: FileTextOutlined },
       { label: 'Gestion des Bureaux', key: '/home/bureaux', icon: BankOutlined },
     ],
   },
@@ -109,6 +109,7 @@ export const cupMenu: MenuItem[] = [
     children: [
       { label: 'Nouvelle Formation', key: '/home/Formation/Creer', icon: PlusCircleOutlined },
       { label: 'Catalogue', key: '/home/Formation/Consulter', icon: AppstoreOutlined },
+      { label: 'Calendrier Global', key: '/home/Calendrier', icon: CalendarOutlined },
       {
         label: 'Gestion Calendrier',
         key: '/home/Formation/CalendrierGestion',
@@ -138,7 +139,7 @@ export const cupMenu: MenuItem[] = [
     type: 'group',
     label: 'SUIVI',
     children: [
-      { label: 'Inscriptions', key: '/home/Inscriptions', icon: FileTextOutlined },
+      { label: 'Gestion Inscriptions', key: '/home/Inscriptions', icon: FileTextOutlined },
       // Parité spec CUP (« consulter les présences et les résultats des évaluations »)
       // + AuthorizationMatrix.PRESENCE_MARK / EVALUATION_READ_CUP incluent ROLE_CUP.
       { label: 'Présences', key: '/home/animateur-formations', icon: CheckSquareOutlined },
@@ -159,10 +160,11 @@ export const enseignantMenu: MenuItem[] = [
       { label: 'Déposer un Besoin', key: '/home/besoins/ajouter', icon: PlusCircleOutlined },
     ],
   },
+  { label: 'Calendrier Global', key: '/home/Calendrier', icon: CalendarOutlined },
   { label: 'Mes Présences', key: '/home/mes-presences', icon: EyeOutlined },
   { label: 'Présence & Évaluation', key: '/home/animateur-formations', icon: ReadOutlined },
   { label: 'Évaluations', key: '/home/Evaluations', icon: TrophyOutlined },
-  { label: 'Inscriptions', key: '/home/Inscriptions', icon: AppstoreOutlined },
+  { label: 'Gestion Inscriptions', key: '/home/Inscriptions', icon: AppstoreOutlined },
   { label: 'Mes Certificats', key: '/home/MyCertificate', icon: SafetyCertificateOutlined },
 ];
 
@@ -170,6 +172,7 @@ export const animateurMenu: MenuItem[] = [
   dashboardItem,
   { label: 'Mon espace', key: '/home/personal-dashboard', icon: HomeOutlined },
   { label: "Sessions d'Animation", key: '/home/animateur-formations', icon: ReadOutlined },
+  { label: 'Calendrier Global', key: '/home/Calendrier', icon: CalendarOutlined },
   { label: 'Mes Présences', key: '/home/mes-presences', icon: EyeOutlined },
   { label: 'Évaluations', key: '/home/Evaluations', icon: TrophyOutlined },
   {
@@ -181,7 +184,7 @@ export const animateurMenu: MenuItem[] = [
       { label: 'Déposer un Besoin', key: '/home/besoins/ajouter', icon: PlusCircleOutlined },
     ],
   },
-  { label: 'Inscriptions', key: '/home/Inscriptions', icon: AppstoreOutlined },
+  { label: 'Gestion Inscriptions', key: '/home/Inscriptions', icon: AppstoreOutlined },
   { label: 'Mes Certificats', key: '/home/MyCertificate', icon: SafetyCertificateOutlined },
 ];
 
@@ -222,7 +225,7 @@ export const chefDepartementMenu: MenuItem[] = [
     type: 'group',
     label: 'SUIVI',
     children: [
-      { label: 'Inscriptions', key: '/home/Inscriptions', icon: FileTextOutlined },
+      { label: 'Gestion Inscriptions', key: '/home/Inscriptions', icon: FileTextOutlined },
       { label: 'Évaluations', key: '/home/Evaluations', icon: TrophyOutlined },
     ],
   },

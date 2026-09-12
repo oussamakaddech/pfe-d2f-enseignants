@@ -223,7 +223,17 @@ export default function AppRoutes() {
                   </Route>
 
                   <Route
-                    element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CHEF_DEPARTEMENT]} />}
+                    element={
+                      <RoleGuard
+                        allowedRoles={[
+                          ROLES.ADMIN,
+                          ROLES.CUP,
+                          ROLES.CHEF_DEPARTEMENT,
+                          ROLES.ENSEIGNANT,
+                          ROLES.ANIMATEUR,
+                        ]}
+                      />
+                    }
                   >
                     <Route path="/home/Calendrier" element={<CalendrierPage />} />
                     <Route path="/home/calendar/:enseignantId" element={<CalendarEnseignant />} />

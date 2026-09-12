@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -18,16 +19,7 @@ public class LearningAssessmentService {
 
     @Transactional
     public LearningAssessmentResponse submit(LearningAssessmentRequest request, String evaluatedBy) {
-        if (request.getScore() > request.getMaxScore()) {
-            throw new IllegalArgumentException("Le score ne peut pas dépasser le score maximal.");
-        }
-        if (request.getAutoEvaluation() != null && request.getAutoEvaluation() > request.getMaxScore()) {
-            throw new IllegalArgumentException("L'auto-évaluation ne peut pas dépasser le score maximal.");
-        }
-        if (request.getPracticalScore() != null && request.getPracticalScore() > request.getMaxScore()) {
-            throw new IllegalArgumentException("Le score de l'exercice pratique ne peut pas dépasser le score maximal.");
-        }
-
+        validateScores(request);
         // Contrôle des tentatives : une seule évaluation par (participant, formation,
         // type, tentative). Sans numéro explicite, la dernière tentative existante est
         // mise à jour (pas de duplication d'évaluation finale non contrôlée).
@@ -35,23 +27,50 @@ public class LearningAssessmentService {
                 .findFirstByParticipantIdAndTrainingIdAndTypeOrderByAttemptNumberDesc(
                         request.getParticipantId(), request.getTrainingId(), request.getType())
                 .orElse(null);
-        Integer attempt = request.getAttemptNumber();
-        LearningAssessment assessment;
-        if (attempt == null) {
-            assessment = latest != null ? latest : new LearningAssessment();
-            attempt = latest != null ? latest.getAttemptNumber() : 1;
-        } else {
-            if (latest != null && attempt < latest.getAttemptNumber()) {
-                throw new IllegalArgumentException(
-                        "Le numéro de tentative doit être >= à la dernière tentative enregistrée ("
-                                + latest.getAttemptNumber() + ").");
-            }
-            assessment = (latest != null && attempt.equals(latest.getAttemptNumber()))
-                    ? latest : new LearningAssessment();
+        ResolvedAttempt resolved = resolveAttempt(request.getAttemptNumber(), latest);
+        LearningAssessment assessment = resolved.assessment();
+        fillFromRequest(assessment, request, resolved.attempt(), evaluatedBy);
+        return toResponse(repository.save(assessment));
+    }
+
+    /** Scores bornés par le score maximal (400/422 según règle métier). */
+    private void validateScores(LearningAssessmentRequest request) {
+        if (request.getScore() > request.getMaxScore()) {
+            throw new IllegalArgumentException("Le score ne peut pas dépasser le score maximal.");
         }
+        if (request.getAutoEvaluation() != null && request.getAutoEvaluation() > request.getMaxScore()) {
+            throw new IllegalArgumentException("L'auto-évaluation ne peut pas dépasser le score maximal.");
+        }
+        if (request.getPracticalScore() != null && request.getPracticalScore() > request.getMaxScore()) {
+            throw new IllegalArgumentException(
+                    "Le score de l'exercice pratique ne peut pas dépasser le score maximal.");
+        }
+    }
+
+    /** Tentative résolue : entité cible (existante ou nouvelle) + numéro validé. */
+    private record ResolvedAttempt(LearningAssessment assessment, int attempt) {
+    }
+
+    private ResolvedAttempt resolveAttempt(Integer attempt, LearningAssessment latest) {
+        if (attempt == null) {
+            int resolved = latest != null ? latest.getAttemptNumber() : 1;
+            return new ResolvedAttempt(latest != null ? latest : new LearningAssessment(), resolved);
+        }
+        if (latest != null && attempt < latest.getAttemptNumber()) {
+            throw new IllegalArgumentException(
+                    "Le numéro de tentative doit être >= à la dernière tentative enregistrée ("
+                            + latest.getAttemptNumber() + ").");
+        }
+        LearningAssessment target = (latest != null && attempt.equals(latest.getAttemptNumber()))
+                ? latest : new LearningAssessment();
         if (attempt < 1) {
             throw new IllegalArgumentException("Le numéro de tentative doit être positif.");
         }
+        return new ResolvedAttempt(target, attempt);
+    }
+
+    private void fillFromRequest(LearningAssessment assessment, LearningAssessmentRequest request,
+                                 int attempt, String evaluatedBy) {
         assessment.setTrainingId(request.getTrainingId());
         assessment.setSessionId(request.getSessionId());
         assessment.setParticipantId(request.getParticipantId());
@@ -70,8 +89,7 @@ public class LearningAssessmentService {
         assessment.setTargetReached(request.getTargetReached());
         assessment.setAttemptNumber(attempt);
         assessment.setEvaluatedBy(evaluatedBy);
-        assessment.setEvaluatedAt(LocalDateTime.now());
-        return toResponse(repository.save(assessment));
+        assessment.setEvaluatedAt(LocalDateTime.now(ZoneId.systemDefault()));
     }
 
     @Transactional(readOnly = true)

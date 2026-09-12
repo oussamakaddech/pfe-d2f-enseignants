@@ -180,6 +180,16 @@ class AuthorizationFilterTest {
         "/api/besoins-formation/any, POST, ANIMATEUR, true",
         "/api/besoins-formation/any, POST, D2F, true",
         "/api/besoins-formation/any, POST, CHEF_DEPARTEMENT, false",
+        // Workflow besoins : approve / reject / cancel / reviewer-scopes.
+        "/api/besoins-formation/5/approve, PUT, CUP, true",
+        "/api/besoins-formation/5/approve, PUT, ENSEIGNANT, false",
+        "/api/besoins-formation/5/reject, PUT, ADMIN, true",
+        "/api/besoins-formation/5/cancel, PUT, ENSEIGNANT, true",
+        "/api/besoins-formation/reviewer-scopes, GET, ADMIN, true",
+        "/api/besoins-formation/reviewer-scopes, GET, CUP, false",
+        "/api/besoins-formation/reviewer-scopes/me, GET, CUP, true",
+        "/api/besoins-formation/any/modify, PUT, ANIMATEUR, true",
+        "/api/besoins-formation/any/modify, GET, CUP, true",
         "/api/besoinsformation/any, DELETE, ADMIN, true",
         "/api/besoinsformation/any, DELETE, ENSEIGNANT, true",
         "/api/besoinsformation/any, DELETE, ANIMATEUR, true",
@@ -210,6 +220,8 @@ class AuthorizationFilterTest {
         "/api/rice/any, GET, ENSEIGNANT, false",
         "/api/rice/any, POST, ADMIN, true",
         "/api/rice/any, POST, CUP, false",
+        "/api/rice/any, DELETE, ADMIN, true",
+        "/api/rice/any, DELETE, CUP, false",
         "/api/analyse/predict/train, POST, ADMIN, true",
         "/api/analyse/predict/train, POST, CUP, false",
         "/api/analyse/dashboard/any, GET, CHEF_DEPARTEMENT, true",
@@ -228,7 +240,14 @@ class AuthorizationFilterTest {
         "/api/formation/list, GET, , false",
         "/api/formation/list, GET, '   ', false",
         "/api/formation/list, GET, ENSEIGNANT, true",
-        "/api/competence/any, GET, UNKNOWN_ROLE, false"
+        "/api/competence/any, GET, UNKNOWN_ROLE, false",
+        // BFF analyse predictive (2e membre du ||) + presences PUT/PATCH.
+        "/api/v2/analytics/stats, GET, CUP, true",
+        "/api/v2/analytics/stats, GET, ENSEIGNANT, false",
+        "/api/formation/seances/1/presences, PUT, ANIMATEUR, true",
+        "/api/formation/seances/1/presences, PATCH, FORMATEUR, true",
+        "/api/formation/seances/1/presences, PUT, D2F, false",
+        "/api/formation/seances/1/presence/2, PUT, ENSEIGNANT, true"
     })
     void testAuthorizationMatrix(String path, String method, String role, boolean expectedAllowed) {
         MockServerHttpRequest request = MockServerHttpRequest.method(HttpMethod.valueOf(method), path)

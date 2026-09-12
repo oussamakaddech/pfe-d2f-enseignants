@@ -21,7 +21,10 @@ import '@/styles/pages/calendrier.css';
 import type { Formation, Seance } from '@/models/formation';
 
 import FormationWorkflowForm from '@/pages/formation/FormationWorkflowForm';
-import { useAllFormations } from '@/hooks/formation';
+import { useAllFormations, useFormationsForCalendar } from '@/hooks/formation';
+import { useProfile } from '@/hooks/formation/useFormationExtras';
+import { useEnseignantById } from '@/hooks/enseignant/useEnseignants';
+import { normalizeRole } from '@/utils/constants/roles';
 import EventDetails from '@/pages/presence/EventDetails';
 import MailForm from '@/pages/besoin/MailForm';
 import DocumentCreateForm from '@/pages/documentFormation/DocumentCreateForm';
@@ -56,7 +59,7 @@ interface ToolbarProps {
 }
 
 /** Barre d'outils personnalisée : navigation + libellé du mois + sélecteur de vue. */
-function CustomToolbar({ label, onNavigate, onView, view }: ToolbarProps) {
+function CustomToolbar({ label, onNavigate, onView, view }: Readonly<ToolbarProps>) {
   return (
     <div className="cal-toolbar">
       <div className="cal-toolbar-nav">
@@ -96,7 +99,7 @@ function CustomToolbar({ label, onNavigate, onView, view }: ToolbarProps) {
 }
 
 /** Contenu d'un événement : heure, titre et salle (week/jour). */
-function EventContent({ event }: { event: CalendarEvent }): ReactNode {
+function EventContent({ event }: Readonly<{ event: CalendarEvent }>): ReactNode {
   const seance = event.details.seance;
   const etat = event.details?.formation?.etatFormation;
   return (
@@ -142,7 +145,41 @@ export default function CalendrierPage() {
   const [editedSalle, setEditedSalle] = useState('');
   const [editedParticipants, setEditedParticipants] = useState('');
 
-  const { data: formations = [], isLoading, refetch: refetchFormations } = useAllFormations();
+  // ── Scoping par rôle ─────────────────────────────────────────────
+  // ADMIN : vision globale (toutes les formations). Tous les autres
+  // rôles (sauf RESPONSABLE_DOSSIER, sans accès au calendrier) voient
+  // uniquement les formations auxquelles ils participent ou qu'ils
+  // animent (backend /enseignants/{id}/calendar).
+  const { data: profile } = useProfile();
+  const role = normalizeRole(profile?.role);
+  const isAdmin = role === 'admin';
+  const identifier = profile?.emailAddress || profile?.email || profile?.id;
+  const { data: enseignantSelf } = useEnseignantById(
+    !isAdmin ? identifier : undefined,
+  );
+  const { data: myCalendar = { asAnimateur: [], asParticipant: [] }, isLoading: myLoading } =
+    useFormationsForCalendar(
+      !isAdmin ? ((enseignantSelf as { id?: string } | undefined)?.id as string | undefined) : undefined,
+    );
+
+  const { data: formations = [], isLoading: allLoading, refetch: refetchFormations } = useAllFormations();
+
+  // ADMIN → toutes les formations ; autre rôle → animées + participées.
+  const scopedFormations = useMemo<Formation[]>(() => {
+    if (isAdmin) return Array.isArray(formations) ? formations : [];
+    const animateur = Array.isArray(myCalendar.asAnimateur) ? myCalendar.asAnimateur : [];
+    const participant = Array.isArray(myCalendar.asParticipant) ? myCalendar.asParticipant : [];
+    // Déduplique (une formation peut être animée ET participée).
+    const seen = new Set<string>();
+    return [...animateur, ...participant].filter((f) => {
+      const key = String(f.idFormation);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [isAdmin, formations, myCalendar]);
+
+  const isLoading = isAdmin ? allLoading : myLoading;
 
   const steps = [
     { key: 'form', title: 'Créer la formation' },
@@ -158,7 +195,7 @@ export default function CalendrierPage() {
 
   const events = useMemo(() => {
     const eventsData: CalendarEvent[] = [];
-    (Array.isArray(formations) ? formations : []).forEach((f) => {
+    (Array.isArray(scopedFormations) ? scopedFormations : []).forEach((f) => {
       if (f.seances?.length) {
         f.seances.forEach((s: Seance) => {
           eventsData.push({
@@ -183,7 +220,7 @@ export default function CalendrierPage() {
       }
     });
     return eventsData;
-  }, [formations]);
+  }, [scopedFormations]);
 
   const handleSelectSlot = (slotInfo: { start: Date }) => {
     setSelectedEvent(null);
@@ -287,29 +324,33 @@ export default function CalendrierPage() {
               </span>
             </div>
             <div className="cal-hero-subtitle">
-              Planification et suivi des sessions de formation
+              {isAdmin
+                ? 'Planification et suivi de toutes les sessions de formation'
+                : 'Vos formations animées et vos participations'}
             </div>
           </div>
-          <div className="d-flex-c gap-8">
-            <Tooltip title="Créer une nouvelle formation en cliquant sur une date du calendrier">
-              <Button
-                type="primary"
-                icon={<PlusCircleOutlined />}
-                className="cal-btn-create"
-                onClick={() => {
-                  setSelectedEvent(null);
-                  setSelectedDate(format(new Date(), 'yyyy-MM-dd'));
-                  setShowModal(true);
-                  setShowWizard(true);
-                  setWizardStep(0);
-                  setCreatedFormation(null);
-                  setDocsAdded(false);
-                }}
-              >
-                Nouvelle Formation
-              </Button>
-            </Tooltip>
-          </div>
+          {isAdmin && (
+            <div className="d-flex-c gap-8">
+              <Tooltip title="Créer une nouvelle formation en cliquant sur une date du calendrier">
+                <Button
+                  type="primary"
+                  icon={<PlusCircleOutlined />}
+                  className="cal-btn-create"
+                  onClick={() => {
+                    setSelectedEvent(null);
+                    setSelectedDate(format(new Date(), 'yyyy-MM-dd'));
+                    setShowModal(true);
+                    setShowWizard(true);
+                    setWizardStep(0);
+                    setCreatedFormation(null);
+                    setDocsAdded(false);
+                  }}
+                >
+                  Nouvelle Formation
+                </Button>
+              </Tooltip>
+            </div>
+          )}
         </div>
       </div>
 

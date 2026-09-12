@@ -57,6 +57,7 @@ interface FormationItem {
   dateFin?: string;
   ouverte?: boolean;
   inscriptionsOuvertes?: boolean;
+  etatFormation?: string;
   up?: { libelle?: string };
   departement?: { libelle?: string };
 }
@@ -107,20 +108,34 @@ export default function CatalogueTab() {
   const role = normalizeRole(profile?.role);
   const identifier = profile?.emailAddress || profile?.email || profile?.id;
 
-  const isTeacher = role === 'enseignant' || role === 'animateur';
+  // Spécification entreprise : TOUS les rôles peuvent s'inscrire et participer
+  // à une formation SAUF l'ADMIN et le RESPONSABLE_DOSSIER (gestionnaires).
+  // Le backend revalide l'appartenance au périmètre (UP OU département).
+  const isInscribableRole =
+    role === 'enseignant' ||
+    role === 'animateur' ||
+    role === 'cup' ||
+    role === 'chefdepartement' ||
+    role === 'formateur';
   const isAdminLike = role === 'admin' || role === 'cup';
 
   const { data: enseignant } = useEnseignantById(role === 'cup' ? identifier : undefined);
   const { data: parUp } = useFormationsParUp((enseignant as EnseignantData | undefined)?.up?.id);
+  // Catalogue scopé serveur pour tous les rôles inscriptibles : le backend ne
+  // renvoie que les formations inscriptibles de leur périmètre (UP OU
+  // département), évitant l'erreur « pas autorisé » sur des formations hors
+  // périmètre.
   const { data: accessibles } = useFormationsAccessibles(
-    role === 'animateur' ? identifier : undefined,
+    isInscribableRole ? identifier : undefined,
   );
   const { data: visibles, isLoading: visiblesLoading } = useFormationsVisibles();
   const { data: all } = useAllFormations();
   const { mutateAsync: updateOuvertes } = useUpdateInscriptionsOuvertes();
   const { mutateAsync: demanderMutation } = useDemanderInscription();
 
-  const { data: enseignantSelf } = useEnseignantById(isTeacher ? identifier : undefined);
+  const { data: enseignantSelf } = useEnseignantById(
+    isInscribableRole ? identifier : undefined,
+  );
   const { data: myInscriptions = [] } = useInscriptionsByEnseignant(
     (enseignantSelf as { id?: Id } | undefined)?.id,
   );
@@ -136,15 +151,29 @@ export default function CatalogueTab() {
 
   const formationsList = useMemo(() => {
     let data: FormationItem[];
-    if (role === 'cup') data = (parUp as FormationItem[]) ?? [];
-    else if (role === 'animateur') data = (accessibles as FormationItem[]) ?? [];
-    else {
+    // Tous les rôles inscriptibles sauf CUP : catalogue serveur filtré par
+    // périmètre UP OU département.
+    if (isInscribableRole && role !== 'cup') {
+      data = (accessibles as FormationItem[]) ?? [];
+    } else if (role === 'cup') {
+      // CUP : vue gestion de son UP (il peut aussi s'inscrire — bouton dédié).
+      data = (parUp as FormationItem[]) ?? [];
+    } else {
       data = (visibles as FormationItem[]) ?? [];
       if (role === 'admin' && data.length === 0) data = (all as FormationItem[]) ?? [];
     }
     const list = Array.isArray(data) ? data : [];
-    return isTeacher ? list.filter((f) => f.inscriptionsOuvertes === true) : list;
-  }, [role, parUp, accessibles, visibles, all, isTeacher]);
+    // Les formations achevées (ou annulées) ne sont plus proposées à
+    // l'inscription — page « Gestion Inscriptions » réservée au actif.
+    const notFinished = list.filter(
+      (f) => f.etatFormation !== 'ACHEVE' && f.etatFormation !== 'ANNULE',
+    );
+    // Rôles inscriptibles : seules les formations avec inscriptions ouvertes
+    // sont proposées (parité backend demanderInscription).
+    return isInscribableRole
+      ? notFinished.filter((f) => f.inscriptionsOuvertes === true)
+      : notFinished;
+  }, [role, isInscribableRole, parUp, accessibles, visibles, all]);
 
   const loading = profileLoading || visiblesLoading;
 
@@ -227,8 +256,12 @@ export default function CatalogueTab() {
   if (!formationsList.length) {
     return (
       <EmptyStateStandard
-        title={isTeacher ? 'Aucune formation ouverte' : 'Aucune formation disponible'}
-        description={isTeacher ? 'Revenez plus tard.' : 'Créez une formation pour commencer.'}
+      title={isInscribableRole ? 'Aucune formation ouverte' : 'Aucune formation disponible'}
+      description={
+        isInscribableRole
+          ? 'Aucune formation inscriptible dans votre périmètre (UP ou département).'
+          : 'Créez une formation pour commencer.'
+      }
       />
     );
   }
@@ -349,7 +382,7 @@ export default function CatalogueTab() {
                     >
                       Détails
                     </Button>
-                    {isTeacher &&
+                    {isInscribableRole &&
                       isOpen &&
                       (requested.includes(f.idFormation!) ||
                       requestedServer.has(String(f.idFormation)) ? (

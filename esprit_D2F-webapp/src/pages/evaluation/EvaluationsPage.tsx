@@ -3,12 +3,23 @@ import { Tabs } from 'antd';
 import { TrophyOutlined, UserOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUserRole } from '@/routes/guards';
-import { normalizeRole, ROLES, hasAnyRole } from '@/utils/constants/roles';
+import { ROLES, hasAnyRole } from '@/utils/constants/roles';
 import EvaluationGlobalePage from './EvaluationGlobalePage';
 import EvaluationParticipantPage from './EvaluationParticipantPage';
 
 const TAB_FORMATION = 'formation';
 const TAB_PARTICIPANTS = 'participants';
+
+/** Onglet actif depuis l'URL : chemin /Participants > ancre #participants > défaut. */
+function resolveActiveTab(pathname: string, hash: string): string {
+  if (pathname.endsWith('/Participants')) {
+    return TAB_PARTICIPANTS;
+  }
+  if (hash === `#${TAB_PARTICIPANTS}`) {
+    return TAB_PARTICIPANTS;
+  }
+  return TAB_FORMATION;
+}
 
 /**
  * Page unique d'évaluation regroupant les deux dimensions (étape 3) :
@@ -31,11 +42,7 @@ export default function EvaluationsPage() {
     return isPilot ? TAB_FORMATION : TAB_PARTICIPANTS;
   }, [userRole]);
 
-  const activeTab = location.pathname.endsWith('/Participants')
-    ? TAB_PARTICIPANTS
-    : location.hash === `#${TAB_PARTICIPANTS}`
-      ? TAB_PARTICIPANTS
-      : TAB_FORMATION;
+  const activeTab = resolveActiveTab(location.pathname, location.hash);
 
   const [mounted, setMounted] = useState<Record<string, boolean>>({
     [defaultTab]: true,

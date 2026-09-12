@@ -194,7 +194,8 @@ class EnseignantCompetenceRepositoryTest {
         @Test
         @DisplayName("supprime les affectations des deux chemins (via SC et direct)")
         void shouldDeleteBothPaths() {
-            ecRepo.deleteByDomaineId(domaineId);
+            ecRepo.deleteByDomaineIdDirectSavoirs(domaineId);
+            ecRepo.deleteByDomaineIdViaSousCompetence(domaineId);
             em.flush();
             em.clear();
 
@@ -218,7 +219,8 @@ class EnseignantCompetenceRepositoryTest {
                     .enseignantId("ens-direct").savoir(savoir).niveau(NiveauMaitrise.N1_DEBUTANT).build());
             em.flush();
 
-            ecRepo.deleteByDomaineId(domaineDirect.getId());
+            ecRepo.deleteByDomaineIdDirectSavoirs(domaineDirect.getId());
+            ecRepo.deleteByDomaineIdViaSousCompetence(domaineDirect.getId());
             em.flush();
             em.clear();
 
@@ -241,7 +243,8 @@ class EnseignantCompetenceRepositoryTest {
                     .enseignantId("ens-autre").savoir(savoir).niveau(NiveauMaitrise.N1_DEBUTANT).build());
             em.flush();
 
-            ecRepo.deleteByDomaineId(domaineId);
+            ecRepo.deleteByDomaineIdDirectSavoirs(domaineId);
+            ecRepo.deleteByDomaineIdViaSousCompetence(domaineId);
             em.flush();
             em.clear();
 

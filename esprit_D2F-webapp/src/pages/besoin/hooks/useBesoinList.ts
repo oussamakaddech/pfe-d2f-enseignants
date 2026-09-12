@@ -57,6 +57,17 @@ type LookupItem = {
   nom?: string;
 };
 
+/** Sélection de la requête besoins selon le périmètre (self / scopé / tout). */
+function selectBesoinsQuery<T>(isSelfService: boolean, isScoped: boolean, myQuery: T, scopeQuery: T, allQuery: T): T {
+  if (isSelfService) {
+    return myQuery;
+  }
+  if (isScoped) {
+    return scopeQuery;
+  }
+  return allQuery;
+}
+
 /** Message d'erreur métier renvoyé par le backend (403 périmètre, 409 transition...). */
 function getBackendMessage(err: unknown): string | null {
   const e = err as {
@@ -89,7 +100,7 @@ export function useBesoinList() {
     data: besoinsData = [],
     isLoading: loading,
     refetch: refetchBesoins,
-  } = isSelfService ? myBesoinsQuery : isScoped ? scopeBesoinsQuery : allBesoinsQuery;
+  } = selectBesoinsQuery(isSelfService, isScoped, myBesoinsQuery, scopeBesoinsQuery, allBesoinsQuery);
   const { data: departements = [] } = useDepartements();
   const { data: ups = [] } = useUps();
   const { data: accountsData = [] } = useAllAccounts(false, !isSelfService);

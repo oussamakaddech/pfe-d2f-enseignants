@@ -3,7 +3,6 @@ package tn.esprit.d2f.competence.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
@@ -25,6 +24,7 @@ import tn.esprit.d2f.competence.repository.SavoirRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.mockito.Mockito.mock;
 
 /**
  * Test d'intégration de {@link DomaineServiceImpl#deleteDomaine(Long)} avec les
@@ -69,7 +69,7 @@ class DomaineDeleteIntegrationTest {
                 niveauRepo,
                 savoirRepository,
                 prerequisiteRepository,
-                Mockito.mock(CompetenceMapper.class));
+                mock(CompetenceMapper.class));
 
         // Domaine « façon domaine 6 » : compétence -> savoirs directs + affectations + NSR
         Domaine domaine = em.persist(Domaine.builder()

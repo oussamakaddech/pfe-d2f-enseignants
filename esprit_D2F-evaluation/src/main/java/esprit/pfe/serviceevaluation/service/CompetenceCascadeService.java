@@ -4,6 +4,7 @@ import esprit.pfe.serviceevaluation.entities.LearningAssessment;
 import esprit.pfe.serviceevaluation.entities.LearningAssessmentType;
 import esprit.pfe.serviceevaluation.repositories.LearningAssessmentRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -20,12 +21,10 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CompetenceCascadeService {
 
     private final LearningAssessmentRepository learningAssessmentRepository;
-    
-    // Injection optionnelle du client Competence (si disponible)
-    // private final CompetenceClient competenceClient;
 
     /**
      * Met à jour les compétences d'un participant en fonction de ses LearningAssessment.
@@ -71,7 +70,7 @@ public class CompetenceCascadeService {
      * Calcule le changement de niveau pour une compétence.
      * Retourne: "A1→A2" ou null si pas de changement
      */
-    public String calculateLevelChange(Long trainingId, String participantId, Long competenceId) {
+    public String calculateLevelChange(Long trainingId, String participantId) {
         List<LearningAssessment> assessments = learningAssessmentRepository
                 .findByTrainingIdAndParticipantId(trainingId, participantId);
 
@@ -130,16 +129,10 @@ public class CompetenceCascadeService {
      * (Implémentation dépend du CompetenceClient disponible)
      */
     private void updateCompetencesMasterData(String participantId, Map<Long, String> competences) {
-        // Note: Cette implémentation est une placeholder
-        // À intégrer avec le CompetenceClient réel
-        
-        // Exemple:
-        // competences.forEach((competenceId, newLevel) -> {
-        //     competenceClient.updateParticipantCompetenceLevel(participantId, competenceId, newLevel);
-        // });
-        
-        // Pour l'instant, just log
-        System.out.printf("Updating competences for participant %s: %s%n", participantId, competences);
+        // Note: cette implémentation est un relais vers le client Competence.
+        // En attendant son intégration, les mises à jour sont journalisées
+        // pour traçabilité (audit DSI) sans appel réseau bloquant.
+        log.info("Updating competences for participant {}: {}", participantId, competences);
     }
 
     /**

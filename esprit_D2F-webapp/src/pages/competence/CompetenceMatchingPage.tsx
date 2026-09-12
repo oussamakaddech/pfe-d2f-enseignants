@@ -114,7 +114,7 @@ export default function CompetenceMatchingPage() {
     // Repli : domaines legacy portés par les savoirs (référentiel RICE)
     (state.savoirs || []).forEach((s) => {
       const h = hierarchies.get(String(s.id));
-      if (h && h.domaineId && !map.has(h.domaineId)) {
+      if (h?.domaineId && !map.has(h.domaineId)) {
         map.set(h.domaineId, h.domaineNom || h.domaineId);
       }
     });

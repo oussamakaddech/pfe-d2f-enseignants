@@ -145,8 +145,10 @@ public class DomaineServiceImpl implements IDomaineService {
         if (!domaineRepository.existsById(id)) {
             throw new EntityNotFoundException(DOMAINE_NOT_FOUND + id);
         }
-        // 1. Supprimer les affectations enseignant-compétence (couvre les deux chemins)
-        enseignantCompetenceRepository.deleteByDomaineId(id);
+        // 1. Supprimer les affectations enseignant-compétence (couvre les deux
+        //    chemins : savoir direct sur compétence ET via sous-compétence).
+        enseignantCompetenceRepository.deleteByDomaineIdDirectSavoirs(id);
+        enseignantCompetenceRepository.deleteByDomaineIdViaSousCompetence(id);
         // 2. Supprimer les niveau_savoir_requis (tous les chemins)
         niveauRepo.deleteByCompetence_DomaineId(id);
         niveauRepo.deleteBySousCompetence_Competence_DomaineId(id);

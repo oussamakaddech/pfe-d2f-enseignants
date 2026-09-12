@@ -47,7 +47,7 @@ export default function BesoinRejectModal({
       okText="Refuser"
       cancelText="Annuler"
       okButtonProps={{ danger: true, loading, disabled: touched && !valid }}
-      destroyOnClose
+      destroyOnHidden
     >
       {title && (
         <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>

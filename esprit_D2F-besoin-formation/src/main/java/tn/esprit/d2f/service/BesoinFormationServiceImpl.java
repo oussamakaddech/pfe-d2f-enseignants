@@ -59,8 +59,6 @@ import java.util.function.Supplier;
 public class BesoinFormationServiceImpl implements IBesoinFormationService {
 
     private static final String ROLE_ADMIN = "ROLE_ADMIN";
-    private static final String ROLE_CUP = "ROLE_CUP";
-    private static final String ROLE_CHEF_DEP = "ROLE_CHEF_DEPARTEMENT";
     private static final String ROLE_ENSEIGNANT = "ROLE_ENSEIGNANT";
     private static final String ROLE_ANIMATEUR = "ROLE_ANIMATEUR";
     private static final String NOT_FOUND_SUFFIX = " not found";

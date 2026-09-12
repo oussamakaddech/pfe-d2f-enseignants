@@ -264,4 +264,45 @@ class CertificateControllerTest {
         assertEquals("Java Avancé", result.getBody().getTitreFormation());
         assertTrue(result.getBody().isDelivered());
     }
+
+    @Test
+    void revoke_sansJwt_revokedByNull() {
+        CertificateRevocationRequest revocationRequest = new CertificateRevocationRequest();
+        revocationRequest.setReason("Erreur");
+
+        CertificateResponse revoked = new CertificateResponse();
+        revoked.setId(1L);
+        revoked.setCertificateStatus("REVOKED");
+
+        when(certificateService.revoke(eq(1L), eq("Erreur"), isNull())).thenReturn(revoked);
+
+        var result = controller.revoke(1L, revocationRequest, null);
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertEquals("REVOKED", result.getBody().getCertificateStatus());
+    }
+
+    @Test
+    void getByEnseignant_shouldReturnPage() {
+        when(certificateService.findByEnseignant(eq("ens-1"), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(response)));
+
+        var result = controller.getByEnseignant("ens-1", Pageable.unpaged());
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertEquals(1, result.getBody().getContent().size());
+    }
+
+    @Test
+    void verify_shouldReturnVerificationResponse() {
+        esprit.pfe.servicecertificat.dto.CertificateVerificationResponse verification =
+                new esprit.pfe.servicecertificat.dto.CertificateVerificationResponse();
+        verification.setCertificateNumber("CERT-2026-000001");
+        when(certificateService.verify("CERT-2026-000001")).thenReturn(verification);
+
+        var result = controller.verify("CERT-2026-000001");
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertEquals("CERT-2026-000001", result.getBody().getCertificateNumber());
+    }
 }

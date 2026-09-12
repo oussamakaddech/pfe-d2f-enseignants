@@ -10,7 +10,7 @@ import {
   useReplaceBesoinCompetences,
   useMyReviewerScope,
 } from '@/hooks/besoin/useBesoins';
-import { hasAnyRole, normalizeRole } from '@/utils/constants/roles';
+import { hasAnyRole, normalizeRole, ROLES } from '@/utils/constants/roles';
 import { useEnseignants } from '@/hooks/enseignant/useEnseignants';
 import { buildActeurOptions, serializeActeurs } from '@/utils/besoin/acteurs';
 import type { BesoinCompetenceLink, BesoinFormation } from '@/models/besoin';
@@ -24,7 +24,21 @@ import {
 import { useAllDepts } from '@/hooks/formation/useDeptCrud';
 import { useAllUps } from '@/hooks/formation/useUpCrud';
 import useAppNotification from '@/hooks/ui/useAppNotification';
-import { ROLES } from '@/utils/constants/roles';
+
+/** Type de besoin verrouillé par rôle créateur (COLLECTIF vs INDIVIDUEL). */
+function resolveLockedType(
+  isCupCreator: boolean,
+  isChefCreator: boolean,
+  isTeacherCreator: boolean,
+): 'COLLECTIF' | 'INDIVIDUEL' | undefined {
+  if (isCupCreator || isChefCreator) {
+    return 'COLLECTIF';
+  }
+  if (isTeacherCreator) {
+    return 'INDIVIDUEL';
+  }
+  return undefined;
+}
 
 function getErrorMessage(err: unknown): string {
   const e = err as {
@@ -122,8 +136,7 @@ export function useBesoinForm() {
   const { data: myScope, isLoading: scopeLoading } = useMyReviewerScope(
     isCupCreator || isChefCreator || isTeacherCreator,
   );
-  const lockedType =
-    isCupCreator || isChefCreator ? 'COLLECTIF' : isTeacherCreator ? 'INDIVIDUEL' : undefined;
+  const lockedType = resolveLockedType(isCupCreator, isChefCreator, isTeacherCreator);
   const lockedUp = isCupCreator || isTeacherCreator ? myScope?.upCode : undefined;
   const lockedDepartement = isChefCreator || isTeacherCreator ? myScope?.departmentCode : undefined;
 

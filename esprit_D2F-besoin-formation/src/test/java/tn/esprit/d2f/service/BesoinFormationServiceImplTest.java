@@ -19,7 +19,6 @@ import tn.esprit.d2f.dto.BesoinFormationEventPublisher;
 import tn.esprit.d2f.dto.BesoinFormationRequest;
 import tn.esprit.d2f.dto.BesoinFormationResponse;
 import tn.esprit.d2f.entity.BesoinFormation;
-import tn.esprit.d2f.entity.Notification;
 import tn.esprit.d2f.entity.enumerations.CreatorRole;
 import tn.esprit.d2f.entity.enumerations.ApprovalStep;
 import tn.esprit.d2f.entity.enumerations.BesoinStatus;

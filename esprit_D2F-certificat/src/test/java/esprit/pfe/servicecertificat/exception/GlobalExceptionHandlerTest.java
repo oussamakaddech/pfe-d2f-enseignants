@@ -141,6 +141,18 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    @DisplayName("handleQrCodeGeneration doit retourner 500 pour QrCodeGenerationException")
+    void handleQrCodeGeneration_ShouldReturn500() {
+        QrCodeGenerationException ex = new QrCodeGenerationException(
+                "QR generation failed", new RuntimeException("ZXing error"));
+        ResponseEntity<ErrorResponse> response = handler.handleQrCodeGeneration(ex, request);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(500);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).contains("QR generation failed");
+    }
+
+    @Test
     @DisplayName("PdfGenerationException doit accepter un seul argument")
     void pdfGenerationException_SingleArgConstructor() {
         PdfGenerationException ex = new PdfGenerationException("PDF error");
