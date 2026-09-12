@@ -33,16 +33,12 @@ describe('CompetenceMatchingPage (stress données instables)', () => {
     vi.clearAllMocks();
   });
 
-  it(
-    'ne boucle pas quand les identités changent à chaque render',
-    async () => {
-      render(
-        <BrowserRouter>
-          <CompetenceMatchingPage />
-        </BrowserRouter>,
-      );
-      expect(await screen.findByText('Matchmaking & Affectations')).toBeInTheDocument();
-    },
-    10000,
-  );
+  it('ne boucle pas quand les identités changent à chaque render', async () => {
+    render(
+      <BrowserRouter>
+        <CompetenceMatchingPage />
+      </BrowserRouter>,
+    );
+    expect(await screen.findByText('Matchmaking & Affectations')).toBeInTheDocument();
+  }, 10000);
 });
