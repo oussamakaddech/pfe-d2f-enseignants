@@ -13,6 +13,7 @@ import {
 } from '@ant-design/icons';
 import SectionLabel from '@/components/besoin/SectionLabel';
 import ChoiceCardGroup from '@/components/besoin/ChoiceCardGroup';
+import ParticipantsTable from '@/pages/besoin/components/ParticipantsTable';
 import type { LookupItem } from '@/models/common';
 
 const { Option } = Select;
@@ -58,6 +59,25 @@ const LOCKED_TYPE_LABELS: Record<string, string> = {
   INDIVIDUEL: 'Individuel (verrouillé : enseignant)',
   COLLECTIF: 'Collectif (verrouillé : validateur)',
 };
+
+/** Aperçu tabulaire synchronisé avec le champ `publicCible` + suppression par ligne. */
+function ParticipantsPreview() {
+  const form = Form.useFormInstance();
+  const publicCible = Form.useWatch('publicCible', form) as string | undefined;
+
+  const handleRemove = (index: number) => {
+    const lines = String(publicCible || '').split(/\r?\n/);
+    const nonEmptyIndexes: number[] = [];
+    lines.forEach((l, i) => {
+      if (l.trim()) nonEmptyIndexes.push(i);
+    });
+    const target = nonEmptyIndexes[index];
+    if (target == null) return;
+    form.setFieldsValue({ publicCible: lines.filter((_, i) => i !== target).join('\n') });
+  };
+
+  return <ParticipantsTable value={publicCible} onRemove={handleRemove} />;
+}
 
 export default function BesoinInfoStep({
   ups,
@@ -233,14 +253,18 @@ export default function BesoinInfoStep({
                   />
                   <TextArea
                     rows={5}
-                    placeholder="Un participant par ligne — format : Nom Prénom <email>"
+                    placeholder="Un participant par ligne — format : Nom Prénom <email> (tél: +216 20 123 456)"
                     showCount
                     maxLength={2000}
                     className="bf-import-textarea"
                   />
                   <div className="bf-import-box__hint">
-                    Format attendu : <code>Nom Prénom &lt;email@esprit.tn&gt;</code>
+                    Format attendu :{' '}
+                    <code>Nom Prénom &lt;email@esprit.tn&gt; (tél: +216 20 123 456)</code> —
+                    l&apos;email et le téléphone sont optionnels. Le tableau ci-dessous reprend
+                    automatiquement chaque participant avec son email et son téléphone.
                   </div>
+                  <ParticipantsPreview />
                 </div>
               </Form.Item>
             </>

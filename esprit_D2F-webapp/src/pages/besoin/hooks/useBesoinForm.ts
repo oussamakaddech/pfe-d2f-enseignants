@@ -13,6 +13,14 @@ import {
 import { hasAnyRole, normalizeRole, ROLES } from '@/utils/constants/roles';
 import { useEnseignants } from '@/hooks/enseignant/useEnseignants';
 import { buildActeurOptions, serializeActeurs } from '@/utils/besoin/acteurs';
+import {
+  formatParticipantLine,
+  isValidEmail,
+  isValidPhone,
+  normalizePhone,
+  parseParticipantsText,
+  participantKey,
+} from '@/utils/besoin/participants';
 import type { BesoinCompetenceLink, BesoinFormation } from '@/models/besoin';
 import type { Id } from '@/models/common';
 import {
@@ -448,37 +456,107 @@ export function useBesoinForm() {
         msgApi.warning('Aucune donnée participants trouvée');
         return;
       }
-      const [headerRow = [], ...dataRows] = rows as unknown[][];
-      const header = headerRow.map((cell) =>
+      const asRows = rows as unknown[][];
+      // Détection d'une ligne d'en-tête : au moins un libellé connu
+      // (nom, prénom, email, téléphone). Sinon tout le tableau est traité
+      // comme des données en positions fixes : Nom | Prénom | Email | Tél.
+      const HEADER_WORDS = [
+        'nom',
+        'name',
+        'prénom',
+        'prenom',
+        'first name',
+        'firstname',
+        'email',
+        'mail',
+        'téléphone',
+        'telephone',
+        'tél',
+        'tel',
+        'phone',
+        'portable',
+        'gsm',
+        'numéro',
+        'numero',
+        'contact',
+      ];
+      const firstCells = (Array.isArray(asRows[0]) ? asRows[0] : []).map((cell) =>
         String(cell || '')
           .trim()
           .toLowerCase(),
       );
-      const idxNom = header.findIndex((h: string) => ['nom', 'name'].includes(h));
-      const idxPrenom = header.findIndex((h: string) =>
-        ['prénom', 'prenom', 'first name', 'firstname'].includes(h),
+      const hasHeader = firstCells.some((c) => HEADER_WORDS.includes(c));
+      const header = hasHeader ? firstCells : [];
+      const dataRows = hasHeader ? asRows.slice(1) : asRows;
+      const findCol = (words: string[]): number =>
+        hasHeader ? header.findIndex((h: string) => words.includes(h)) : -1;
+      const idxNom = findCol(['nom', 'name']);
+      const idxPrenom = findCol(['prénom', 'prenom', 'first name', 'firstname']);
+      const idxEmail = findCol(['email', 'mail']);
+      const idxTel = findCol([
+        'téléphone',
+        'telephone',
+        'tél',
+        'tel',
+        'phone',
+        'portable',
+        'gsm',
+        'numéro',
+        'numero',
+        'contact',
+      ]);
+      // Lignes déjà présentes (anti-doublons insensibles à la casse sur l'email).
+      const existingKeys = new Set(
+        parseParticipantsText(String(form.getFieldValue('publicCible') || '')).map(participantKey),
       );
-      const idxEmail = header.findIndex((h: string) => ['email', 'mail'].includes(h));
-      const parsedLines = dataRows
-        .map((row) => {
-          if (!Array.isArray(row)) return '';
-          const nom = idxNom >= 0 ? String(row[idxNom] || '').trim() : '';
-          const prenom = idxPrenom >= 0 ? String(row[idxPrenom] || '').trim() : '';
-          const email = idxEmail >= 0 ? String(row[idxEmail] || '').trim() : '';
-          const fallback = String(row[0] || '').trim();
-          if (nom || prenom || email) {
-            return [nom, prenom].filter(Boolean).join(' ') + (email ? ` <${email}>` : '');
-          }
-          return fallback;
-        })
-        .map((l) => l.trim())
-        .filter(Boolean);
-      const uniqueLines = [...new Set(parsedLines)];
+      const seen = new Set(existingKeys);
+      const newLines: string[] = [];
+      let skipped = 0;
+      dataRows.forEach((row) => {
+        if (!Array.isArray(row)) return;
+        const cell = (i: number): string => (i >= 0 ? String(row[i] || '').trim() : '');
+        const nom = hasHeader ? cell(idxNom) : cell(0);
+        const prenom = hasHeader ? cell(idxPrenom) : cell(1);
+        const email = hasHeader ? cell(idxEmail) : cell(2);
+        const rawTel = hasHeader ? cell(idxTel) : cell(3);
+        const telephone = normalizePhone(rawTel);
+        const fallback = String(row[0] || '').trim();
+        if (!nom && !prenom && !email && !telephone) {
+          if (!fallback) return;
+          // Ligne libre sans colonne reconnue : conservée telle quelle
+          // si elle n'existe pas déjà.
+          const key = `line:${fallback.toLowerCase()}`;
+          if (seen.has(key)) return;
+          seen.add(key);
+          newLines.push(fallback);
+          return;
+        }
+        // Lignes invalides (email ou téléphone mal formés) : ignorées + comptées.
+        if (!isValidEmail(email) || !isValidPhone(telephone)) {
+          skipped += 1;
+          return;
+        }
+        const line = formatParticipantLine({ nom, prenom, email, telephone });
+        if (!line) return;
+        const key = participantKey({ nom, prenom, email, telephone });
+        if (seen.has(key)) return;
+        seen.add(key);
+        newLines.push(line);
+      });
+      if (newLines.length === 0) {
+        if (skipped > 0)
+          msgApi.warning(`${skipped} ligne(s) ignorée(s) : email ou téléphone invalide`);
+        else msgApi.warning('Aucun nouveau participant trouvé (doublons ignorés)');
+        return;
+      }
       const currentValue = String(form.getFieldValue('publicCible') || '').trim();
-      const merged = [currentValue, ...uniqueLines].filter(Boolean).join('\n');
+      const merged = [currentValue, ...newLines].filter(Boolean).join('\n');
       form.setFieldsValue({ publicCible: merged });
-      setLastImportCount(uniqueLines.length);
-      msgApi.success(`${uniqueLines.length} participant(s) importé(s) depuis Excel`);
+      setLastImportCount(newLines.length);
+      msgApi.success(`${newLines.length} participant(s) importé(s) depuis Excel`);
+      if (skipped > 0) {
+        msgApi.warning(`${skipped} ligne(s) ignorée(s) : email ou téléphone invalide`);
+      }
     } catch {
       msgApi.error("Erreur lors de l'import Excel des participants");
     } finally {
