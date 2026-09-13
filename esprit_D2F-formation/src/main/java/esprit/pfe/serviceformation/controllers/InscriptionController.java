@@ -44,24 +44,33 @@ public class InscriptionController {
     }
 
     /**
-     * Un non-admin ne peut agir que pour lui-même : l'enseignantId client est
-     * ignoré et remplacé par l'identité du JWT (anti-inscription pour autrui).
+     * Un non-admin (hors CUP) ne peut agir que pour lui-même : la demande est
+     * acceptée si l'enseignantId demandé correspond à N'IMPORTE QUELLE identité
+     * de l'appelant — email JWT, username/subject, ou code de SA fiche
+     * (résolu via {@link InscriptionService#resolveEnseignantIdFor}). Le
+     * frontend envoie selon les pages l'email OU le code fiche : les deux
+     * désignent la même personne, aucune perte d'anti-énumération.
      * Sans JWT (tests standalone / appel interne), la requête est refusée.
      */
-    private static String selfOrAdmin(Jwt jwt, String requestedEnseignantId) {
+    private String selfOrAdmin(Jwt jwt, String requestedEnseignantId) {
         if (jwt == null) {
             throw new AccessDeniedException("Authentification requise.");
         }
         if (isAdminOrCup(jwt)) {
             return requestedEnseignantId;
         }
-        String caller = callerIdentity(jwt);
-        if (requestedEnseignantId != null && !requestedEnseignantId.isBlank()
-                && !requestedEnseignantId.equalsIgnoreCase(caller)) {
+        esprit.pfe.serviceformation.services.CurrentUser user =
+                esprit.pfe.serviceformation.services.CurrentUser.fromJwt(jwt);
+        String identity = user.emailOrUsername();
+        String mine = service.resolveEnseignantIdFor(user);
+        boolean requestedBlank = requestedEnseignantId == null || requestedEnseignantId.isBlank();
+        boolean selfByIdentity = identity != null && identity.equalsIgnoreCase(requestedEnseignantId);
+        boolean selfByFiche = mine != null && mine.equalsIgnoreCase(requestedEnseignantId);
+        if (!requestedBlank && !selfByIdentity && !selfByFiche) {
             throw new AccessDeniedException(
                     "Vous ne pouvez agir que sur vos propres inscriptions.");
         }
-        return caller;
+        return requestedBlank ? identity : requestedEnseignantId;
     }
 
     @GetMapping("/formations/accessibles")

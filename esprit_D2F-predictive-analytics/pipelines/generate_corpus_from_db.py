@@ -181,8 +181,8 @@ def main() -> pd.DataFrame:
 
     rows = []
     for (tid, cid), entries in sorted(by_tc.items()):
-        if len(entries) < 2:
-            continue  # pas assez d'historique pour une tendance
+        if not entries:
+            continue
 
         entries.sort(key=lambda e: e["date"])
         levels = [e["niveau"] for e in entries]
@@ -194,6 +194,8 @@ def main() -> pd.DataFrame:
         # Une observation future REELLE existe si un niveau a ete saisi
         # apres date_t + horizon (3 mois). On ne JAMAIS interpoler :
         # sans re-mesure, la cible reste extrapolée (is_extrapolated=true).
+        # NOTE serving-parité : le predictor sert AUSSI les competences a
+        # saisie unique (padding historique) — le corpus doit les couvrir.
         horizon_ts = date_t + pd.Timedelta(days=TARGET_HORIZON_DAYS)
         future_entries = [
             e for e in entries
@@ -283,6 +285,14 @@ def main() -> pd.DataFrame:
     df = df.sort_values("date_t").reset_index(drop=True)
     if len(df) > 5000:
         df = df.head(5000)
+
+    # Provenance exigee par train_gap_model (corpus provenancé) : toutes les
+    # lignes proviennent de la base PostgreSQL de production (0% synthetique).
+    df["source_type"] = "postgresql_d2f"
+    df["source_id"] = df["teacher_id"].astype(str) + "_" + df["competence_id"].astype(str)
+    df["is_synthetic"] = False
+    df["created_at"] = pd.Timestamp.utcnow().isoformat()
+    df["dataset_version"] = "v1.1.0"
 
     df.to_csv(OUTPUT_PATH, index=False)
     extrapolated_count = int(df["is_extrapolated"].astype(bool).sum())

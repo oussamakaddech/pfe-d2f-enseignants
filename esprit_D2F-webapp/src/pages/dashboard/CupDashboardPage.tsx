@@ -88,7 +88,9 @@ export default function CupDashboardPage() {
     'Animateur',
     'ResponsableDossier',
   ]);
-  const canReadOverview = hasAnyRole(user?.role, ['admin', 'CUP']);
+  // L'overview (tuiles d'en-tête prédictives) est scopé côté serveur :
+  // CUP → son UP, CHEF_DEPARTEMENT → son département (deny-by-default).
+  const canReadOverview = hasAnyRole(user?.role, ['admin', 'CUP', 'CHEF_DEPARTEMENT']);
   // L'endpoint legacy in-demand est ouvert à ADMIN/CUP/CHEF_DEPARTEMENT (200 testé).
   const canReadInDemand = hasAnyRole(user?.role, ['admin', 'CUP', 'CHEF_DEPARTEMENT']);
 

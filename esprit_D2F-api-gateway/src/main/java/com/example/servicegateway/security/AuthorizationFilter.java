@@ -215,23 +215,23 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         if (path.contains("/documents")) {
             if (method == HttpMethod.POST || method == HttpMethod.PUT
                     || method == HttpMethod.PATCH || method == HttpMethod.DELETE) {
-                return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_RESPONSABLE_DOSSIER);
+                return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER);
             }
             return ALL_ROLES;
         }
-        if (method == HttpMethod.DELETE) return ADMIN_ONLY;
+        if (method == HttpMethod.DELETE) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT);
         if (path.contains("/inscription/inscriptions") && method == HttpMethod.POST) return ALL_ROLES;
         // Présences d'une séance : marquage autorisé à l'animateur/formateur de la
         // séance (parité avec AuthorizationMatrix.PRESENCE_MARK). Le contrôle fin
         // (appartenance à la séance) est fait par le microservice formation.
         if ((path.contains("/presences") || path.contains("/presence/"))
                 && (method == HttpMethod.PUT || method == HttpMethod.PATCH))
-            return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_RESPONSABLE_DOSSIER,
+            return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER,
                     ROLE_FORMATEUR, ROLE_ANIMATEUR, ROLE_ENSEIGNANT);
-        if (method == HttpMethod.POST) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_D2F);
-        // FORMATION_UPDATE = ADMIN, CUP, RESPONSABLE_DOSSIER (cf. AuthorizationMatrix)
+        if (method == HttpMethod.POST) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT);
+        // FORMATION_UPDATE = ADMIN, CUP, CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER (cf. AuthorizationMatrix)
         if (method == HttpMethod.PUT || method == HttpMethod.PATCH)
-            return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_RESPONSABLE_DOSSIER);
+            return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER);
         return ALL_ROLES;
     }
 
@@ -244,10 +244,14 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         if (path.contains("/cancel")) return ALL_ROLES;
         // Périmètres validateurs : ADMIN uniquement.
         if (path.contains("/reviewer-scopes") && !path.contains("/reviewer-scopes/me")) return ADMIN_ONLY;
-        if (method == HttpMethod.DELETE) return List.of(ROLE_ADMIN, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
-        if (path.contains("/modify") && method == HttpMethod.PUT) return List.of(ROLE_ADMIN, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
-        if (method == HttpMethod.PUT) return List.of(ROLE_ADMIN, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
-        if (method == HttpMethod.POST) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
+        if (method == HttpMethod.DELETE) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
+        if (path.contains("/modify") && method == HttpMethod.PUT) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
+        if (method == HttpMethod.PUT) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
+        // BESOIN_FORMATION_CREATE = ADMIN, CUP, CHEF_DEPARTEMENT, ENSEIGNANT,
+        // ANIMATEUR (parité AuthorizationMatrix) : le chef de département exprime
+        // aussi des besoins pour son périmètre.
+        if (method == HttpMethod.POST)
+            return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_CHEF_DEPARTEMENT, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
         return ALL_ROLES;
     }
 

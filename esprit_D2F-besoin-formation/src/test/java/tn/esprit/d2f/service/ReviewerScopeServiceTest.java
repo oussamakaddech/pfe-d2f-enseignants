@@ -383,7 +383,9 @@ class ReviewerScopeServiceTest {
 
         ReviewerScope result = service.upsertScope("cup9", "ROLE_CUP", "UP_INFO", "DEPT_GL");
         assertEquals("cup9", result.getUsername());
-        assertEquals("ROLE_CUP", result.getRole());
+        // Stocké SANS préfixe ROLE_ (contrainte chk_reviewer_scope_role) — l'API
+        // accepte les deux formes mais la table ne contient que la forme nue.
+        assertEquals("CUP", result.getRole());
         assertEquals("UP_INFO", result.getUpCode());
         assertEquals("DEPT_GL", result.getDepartmentCode());
         verify(reviewerScopeRepository).save(any(ReviewerScope.class));
@@ -404,7 +406,9 @@ class ReviewerScopeServiceTest {
 
         ReviewerScope result = service.upsertScope("anim9", "ROLE_ANIMATEUR", "UP_INFO", "DEPT_GL");
         assertEquals("anim9", result.getUsername());
-        assertEquals("ROLE_ANIMATEUR", result.getRole());
+        // Stocké SANS préfixe ROLE_ (l'entité encadre le rôle ANIMATEUR même si la
+        // contrainte DB ne l'accepte pas — traité comme ENSEIGNANT à la résolution).
+        assertEquals("ANIMATEUR", result.getRole());
     }
 
     @Test

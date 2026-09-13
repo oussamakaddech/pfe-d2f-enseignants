@@ -10,6 +10,9 @@ class TeacherScope:
     teacher_id: str
     scope_type: str
     scope_id: str | None
+    # UP de rattachement (distincte du département) : permet le filtrage des
+    # dashboards au périmètre UP du CUP (scope="UP").
+    up_id: str | None = None
 
 
 # Détecte les besoins de formation INDIVIDUELS : pour chaque enseignant, tout

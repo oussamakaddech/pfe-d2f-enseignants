@@ -37,6 +37,13 @@ public class ReviewerScopeService {
     private static final String ROLE_ENSEIGNANT = "ROLE_ENSEIGNANT";
     private static final String ROLE_ANIMATEUR = "ROLE_ANIMATEUR";
 
+    // Valeurs STOCKÉES dans reviewer_scope.role (contrainte chk_reviewer_scope_role) :
+    // SANS préfixe ROLE_ — voir V28/V29 et l'entité ReviewerScope.
+    private static final String SCOPE_ROLE_CUP = "CUP";
+    private static final String SCOPE_ROLE_CHEF_DEPARTEMENT = "CHEF_DEPARTEMENT";
+    private static final String SCOPE_ROLE_ENSEIGNANT = "ENSEIGNANT";
+    private static final String SCOPE_ROLE_ANIMATEUR = "ANIMATEUR";
+
     private final ReviewerScopeRepository reviewerScopeRepository;
 
     /** Périmètre résolu pour l'utilisateur connecté. */
@@ -88,15 +95,19 @@ public class ReviewerScopeService {
                         "Périmètre non configuré pour '" + username
                         + "' : demandez à l'administrateur d'assigner votre UP / département."));
         // Un animateur est assimilé enseignant : son périmètre peut être
-        // enregistré indifféremment avec ROLE_ENSEIGNANT ou ROLE_ANIMATEUR.
+        // enregistré indifféremment avec ENSEIGNANT (valeur stockée sans préfixe).
         String expectedRole = switch (actorRole) {
-            case CUP -> ROLE_CUP;
-            case CHEF_DEPARTEMENT -> ROLE_CHEF_DEP;
-            case ENSEIGNANT -> ROLE_ENSEIGNANT;
+            case CUP -> SCOPE_ROLE_CUP;
+            case CHEF_DEPARTEMENT -> SCOPE_ROLE_CHEF_DEPARTEMENT;
+            case ENSEIGNANT -> SCOPE_ROLE_ENSEIGNANT;
             case ADMIN -> null;
         };
-        if (expectedRole != null && !expectedRole.equals(scope.getRole())
-                && !(actorRole == CreatorRole.ENSEIGNANT && ROLE_ANIMATEUR.equals(scope.getRole()))) {
+        // Tolérance sur le format stocké : la table utilise la forme SANS préfixe
+        // (contrainte chk_reviewer_scope_role) mais d'anciennes lignes/tests
+        // peuvent porter 'ROLE_…' — on normalise avant comparaison.
+        String storedRole = normalizeStoredRole(scope.getRole());
+        if (expectedRole != null && !expectedRole.equals(storedRole)
+                && !(actorRole == CreatorRole.ENSEIGNANT && SCOPE_ROLE_ANIMATEUR.equals(storedRole))) {
             throw new AccessDeniedException(
                 "Le rôle du périmètre ne correspond pas au rôle JWT pour '" + username + "'.");
         }
@@ -165,28 +176,42 @@ public class ReviewerScopeService {
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("Le username est obligatoire.");
         }
-        if (!ROLE_CUP.equals(role) && !ROLE_CHEF_DEP.equals(role) && !ROLE_ENSEIGNANT.equals(role)
-                && !ROLE_ANIMATEUR.equals(role)) {
+        // Normalisation : la table stocke le rôle SANS préfixe ROLE_ (contrainte
+        // chk_reviewer_scope_role). On accepte les deux formes côté API.
+        String storedRole = normalizeStoredRole(role);
+        if (!SCOPE_ROLE_CUP.equals(storedRole) && !SCOPE_ROLE_CHEF_DEPARTEMENT.equals(storedRole)
+                && !SCOPE_ROLE_ENSEIGNANT.equals(storedRole)
+                && !SCOPE_ROLE_ANIMATEUR.equals(storedRole)) {
             throw new IllegalArgumentException(
                     "Le rôle du périmètre doit être CUP, CHEF_DEPARTEMENT, ENSEIGNANT ou ANIMATEUR.");
         }
-        if ((ROLE_CUP.equals(role) || ROLE_ENSEIGNANT.equals(role) || ROLE_ANIMATEUR.equals(role))
+        if ((SCOPE_ROLE_CUP.equals(storedRole) || SCOPE_ROLE_ENSEIGNANT.equals(storedRole)
+                || SCOPE_ROLE_ANIMATEUR.equals(storedRole))
                 && (upCode == null || upCode.isBlank())) {
             throw new IllegalArgumentException("L'UP est obligatoire pour ce périmètre.");
         }
-        if ((ROLE_CHEF_DEP.equals(role) || ROLE_ENSEIGNANT.equals(role) || ROLE_ANIMATEUR.equals(role)
-                || ROLE_CUP.equals(role))
+        if ((SCOPE_ROLE_CHEF_DEPARTEMENT.equals(storedRole) || SCOPE_ROLE_ENSEIGNANT.equals(storedRole)
+                || SCOPE_ROLE_ANIMATEUR.equals(storedRole) || SCOPE_ROLE_CUP.equals(storedRole))
                 && (departmentCode == null || departmentCode.isBlank())) {
             throw new IllegalArgumentException("Le département est obligatoire pour ce périmètre.");
         }
         ReviewerScope scope = reviewerScopeRepository.findById(username)
                 .orElse(ReviewerScope.builder().username(username).build());
-        scope.setRole(role);
+        scope.setRole(storedRole);
         scope.setUpCode(upCode);
         scope.setDepartmentCode(departmentCode);
         ReviewerScope saved = reviewerScopeRepository.save(scope);
         log.info("Périmètre validateur assigné : {} -> {} / {}", username, upCode, departmentCode);
         return saved;
+    }
+
+    /** 'ROLE_CUP' → 'CUP' (accepte aussi la forme stockée sans préfixe). */
+    private String normalizeStoredRole(String role) {
+        if (role == null) {
+            return null;
+        }
+        String trimmed = role.trim();
+        return trimmed.startsWith("ROLE_") ? trimmed.substring(5) : trimmed;
     }
 
     @Transactional

@@ -110,11 +110,15 @@ function renderExpandRow(record: Formation) {
 export default function FormationConsultationPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const canManageFormations = normalizeRole(user?.role) === 'admin';
+  // Parité FORMATION_CREATE/UPDATE/DELETE (AuthorizationMatrix) : ADMIN, CUP et
+  // CHEF_DEPARTEMENT gèrent les formations (contrôle fin du périmètre côté serveur).
+  const canManageFormations = ['admin', 'cup', 'chefdepartement'].includes(
+    normalizeRole(user?.role),
+  );
   const isChefDept = normalizeRole(user?.role) === 'chefdepartement';
   const isCup = normalizeRole(user?.role) === 'cup';
-  // Scoping serveur (§8) : CUP → son UP, chef → son département.
-  const isScopedPilote = (isCup || isChefDept) && !canManageFormations;
+  // Scoping serveur (§8) : CUP → son UP, chef → son département (ADMIN = global).
+  const isScopedPilote = isCup || isChefDept;
   const { message: msgApi } = useAppNotification();
 
   const {

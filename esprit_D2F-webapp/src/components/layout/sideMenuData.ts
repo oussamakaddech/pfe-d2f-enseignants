@@ -202,6 +202,8 @@ export const chefDepartementMenu: MenuItem[] = [
     type: 'group',
     label: 'FORMATIONS',
     children: [
+      // Parité FORMATION_CREATE = ADMIN, CUP, CHEF_DEPARTEMENT (AuthorizationMatrix).
+      { label: 'Nouvelle Formation', key: '/home/Formation/Creer', icon: PlusCircleOutlined },
       { label: 'Catalogue Formations', key: '/home/Formation/Consulter', icon: AppstoreOutlined },
       { label: 'Calendrier Global', key: '/home/Calendrier', icon: CalendarOutlined },
       {
@@ -217,7 +219,17 @@ export const chefDepartementMenu: MenuItem[] = [
     children: [
       { label: 'Référentiel Compétences', key: '/home/competences', icon: BookOutlined },
       { label: 'Affectations', key: '/home/affectations', icon: SolutionOutlined },
-      { label: 'Besoins de Formation', key: '/home/besoins', icon: ReadOutlined },
+      // Parité BESOIN_FORMATION_CREATE/READ_ALL : le chef consulte les besoins de
+      // son département et dépose aussi des besoins.
+      {
+        label: 'Besoins de Formation',
+        key: 'besoin_formation_menu',
+        icon: ReadOutlined,
+        children: [
+          { label: 'Liste des Demandes', key: '/home/besoins', icon: SearchOutlined },
+          { label: 'Déposer un Besoin', key: '/home/besoins/ajouter', icon: PlusCircleOutlined },
+        ],
+      },
       { label: 'Vue RICE', key: '/home/rice', icon: ClusterOutlined },
     ],
   },

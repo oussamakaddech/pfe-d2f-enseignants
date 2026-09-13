@@ -87,6 +87,8 @@ class ScopeOut(BaseModel):
     type: str
     is_global: bool
     label: str
+    fallback: bool = False
+    fallback_reason: str | None = None
 
 
 class TeacherScopeAnalysisOut(BaseModel):

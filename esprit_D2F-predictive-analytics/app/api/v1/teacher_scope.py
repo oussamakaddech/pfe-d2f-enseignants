@@ -59,6 +59,8 @@ def get_teacher_scope_analysis(
             type=analysis.scope.type,
             is_global=analysis.scope.is_global,
             label=analysis.scope.label,
+            fallback=analysis.scope.fallback,
+            fallback_reason=analysis.scope.fallback_reason,
         ),
         computed_at=datetime.now(timezone.utc),
     )

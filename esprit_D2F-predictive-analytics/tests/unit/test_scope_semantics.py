@@ -4,12 +4,15 @@ Exigences :
 - type explicite GLOBAL / DEPARTMENT / UP + is_global + label affichable ;
 - GLOBAL uniquement si l'enseignant n'a ni département ni UP (jamais comme
   fallback silencieux) ;
+- périmètre déclaré sans domaine correspondant -> fallback EXPLICITE sur le
+  référentiel global (fallback=True + fallback_reason), jamais silencieux ;
 - un enseignant du Département Technologie Web ne voit jamais les compétences
-  de Génie Civil (filtrage strict par périmètre).
+  de Génie Civil (filtrage strict par périmètre) quand son périmètre matche.
 """
 from datetime import date
 
 from app.application.use_cases.analyze_teacher_scope import AnalyzeTeacherScope
+from app.application.use_cases.compute_gaps import ComputeGaps
 from app.application.use_cases.recommend_trainings import RecommendTrainings
 from app.core.config import Settings
 from app.domain.entities.competency import Competency, Savoir
@@ -17,6 +20,7 @@ from app.domain.entities.teacher import Teacher
 from tests.fakes import (
     FakeAnalysisRepository,
     FakeFormationSource,
+    FakeModelPort,
     build_settings,
 )
 
@@ -58,7 +62,8 @@ class WebOnlyCompetencySource:
 def _analyzer(source) -> AnalyzeTeacherScope:
     settings: Settings = build_settings()
     reco = RecommendTrainings(source, FakeFormationSource(), FakeAnalysisRepository())
-    return AnalyzeTeacherScope(source, reco, settings)
+    gaps = ComputeGaps(source, FakeAnalysisRepository(), FakeModelPort(), settings)
+    return AnalyzeTeacherScope(source, reco, settings, compute_gaps=gaps)
 
 
 def _teacher(id: str, nom: str, prenom: str, **kwargs) -> Teacher:
@@ -125,15 +130,18 @@ def test_global_referentiel_contains_gc_but_scope_filters_it():
     assert 1 in global_ids
 
 
-def test_declared_scope_without_match_is_empty_not_global():
-    """Périmètre déclaré sans domaine correspondant -> liste vide (0 compétence),
-    jamais un repli silencieux sur le référentiel global."""
+def test_declared_scope_without_match_falls_back_explicitly():
+    """Périmètre déclaré sans domaine correspondant -> repli EXPLICITE sur le
+    référentiel global (fallback=True + raison), jamais silencieux ni vide."""
     source = WebOnlyCompetencySource()
     teacher = _teacher("T003", "Vide", "Scope",
                        dept_id="DEPT_INCONNU", dept_libelle="Inconnu")
     analysis = _analyzer(source).execute(teacher)
     assert analysis.scope.type == "DEPARTMENT"
     assert analysis.scope.is_global is False
-    assert analysis.scoped_competencies_count == 0
-    assert analysis.gaps == []
+    assert analysis.scope.fallback is True
+    assert analysis.scope.fallback_reason
+    assert analysis.scoped_competencies_count == 2
+    assert analysis.scoped_competence_ids == {1, 2}
+    assert len(analysis.gaps) == 2
     assert analysis.scope.label == "Département Inconnu"

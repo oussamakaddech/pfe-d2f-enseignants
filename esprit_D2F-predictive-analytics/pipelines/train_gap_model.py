@@ -110,15 +110,21 @@ def build_candidates() -> list[tuple[str, Any]]:
         ),
     ]
     try:
-        from xgboost import XGBRegressor
-        candidates.append((
-            "xgboost",
-            XGBRegressor(
-                n_estimators=120, max_depth=3, learning_rate=0.08,
-                subsample=0.85, random_state=RANDOM_STATE, verbosity=0, n_jobs=-1,
-                reg_alpha=0.1, reg_lambda=1.0, min_child_weight=5,
-            ),
-        ))
+        import os
+
+        if os.environ.get("ML_EXCLUDE_XGBOOST", "0") != "1":
+            from xgboost import XGBRegressor
+
+            candidates.append((
+                "xgboost",
+                XGBRegressor(
+                    n_estimators=120, max_depth=3, learning_rate=0.08,
+                    subsample=0.85, random_state=RANDOM_STATE, verbosity=0, n_jobs=-1,
+                    reg_alpha=0.1, reg_lambda=1.0, min_child_weight=5,
+                ),
+            ))
+        else:
+            print("[INFO] XGBoost exclu (ML_EXCLUDE_XGBOOST=1, parite prod)")
     except ImportError:
         print("[INFO] XGBoost indisponible, skip")
     return candidates
@@ -222,6 +228,15 @@ def train_gap_model(
 
     print("[3] Normalisation (ranges capturées sur train)...")
     X_train, X_test, ranges = normalize_with_ranges(split["X_train"], split["X_test"])
+    # Plages de VALIDATION au serving : corpus complet (train+test), pas le
+    # seul train — sinon une valeur légitime vue uniquement dans le test
+    # (ex : nb_savoirs=7) serait rejetée au serving alors que le modèle
+    # l'a vue à l'entraînement. La normalisation reste capturée sur train.
+    serving_ranges: dict[str, dict[str, float]] = {}
+    full = pd.concat([split["X_train"], split["X_test"]], ignore_index=True)
+    for col in FEATURE_COLS:
+        mn, mx = float(full[col].min()), float(full[col].max())
+        serving_ranges[col] = {"min": mn, "max": mx}
     X_train_arr = X_train.values
     X_test_arr = X_test.values
     y_train = split["y_train"]
@@ -319,8 +334,20 @@ def train_gap_model(
             "lift_significant_95": lift_significant,
         },
         "feature_importances": {k: round(v, 6) for k, v in feature_importances.items()},
-        "feature_ranges": ranges,
+        # Plages de validation au serving : corpus complet (voir serving_ranges
+        # ci-dessus), pas les ranges de normalisation capturées sur train.
+        "feature_ranges": serving_ranges,
         "decision": decision,
+        # Gouvernance : validité de la cible. Sans re-mesures réelles après
+        # l'horizon (real_future_observation_count == 0), la cible reste
+        # EXTRAPOLATED_TARGET — le serving l'expose honnêtement.
+        "target_validity": "EXTRAPOLATED_TARGET",
+        "target_validity_note": (
+            "Cibles extrapolées de la tendance (aucune re-mesure réelle après "
+            "l'horizon de 3 mois au moment de l'entraînement)."
+        ),
+        "real_future_observation_count": int(prov.get("real_rows", 0)),
+        "distinct_observation_months": None,
         "notes": (
             "Pipeline reproductible : dataset provenancé, split temporel strict, "
             "seed 42, anti-fuite (knowledge_difficulty_level/gap_next_3m exclus), "
@@ -333,13 +360,13 @@ def train_gap_model(
     save_with_integrity(best, out_model)
     out_metadata.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    # Export du schéma de features
+    # Export du schéma de features (plages corpus complet — voir ci-dessus)
     feature_schema = {
         "feature_schema_version": FEATURE_SCHEMA_VERSION,
         "feature_names": FEATURE_COLS,
         "target": TARGET_COL,
         "forbidden_in_X": sorted(FORBIDDEN_IN_X),
-        "feature_ranges": ranges,
+        "feature_ranges": serving_ranges,
     }
     # Le schéma partagé (feature_schema.json) accompagne l'artefact servi :
     # il n'est mis à jour que pour la version officielle. Les expériences

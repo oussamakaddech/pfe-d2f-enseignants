@@ -332,29 +332,30 @@ def _auth_headers():
 # 10. Serving inchange pour environnement demo (non-regression)
 # ---------------------------------------------------------------------------
 def test_serving_unchanged_for_demo_environment():
-    # Verifie que le corpus reel 147 lignes reste valide et que le mode effectif
-    # reste PRODUCTION_ML pour les enseignants qui l'etaient
-    # (le serving demo n'est pas casse par la simulation)
+    # Verifie que le corpus reel reste valide (0 % synthetique) et que le mode
+    # effectif reste PRODUCTION_ML. Depuis la promotion v1.1.0 (corpus DB),
+    # la version servie en production est v1.1.0 reelle ; simulation-v1.0.0
+    # et v1.0.0 restent conservees (rollback possible, artefacts intacts).
     from app.infrastructure.ml.predictor import ArtifactModelPort
     from unittest.mock import MagicMock
 
-    # Corpus reel
+    # Corpus reel (provenance reelle, taille evolutive — coherence interne)
     real_path = BASE_DIR / "data" / "clean" / "training_corpus_provenanced.csv"
     assert real_path.exists()
     df = pd.read_csv(real_path)
-    assert len(df) == 147, "corpus v1.0.0 doit rester 147 lignes"
-    assert df["teacher_id"].nunique() == 40
-    # Registry : la version servie en demonstration est simulation-v1.0.0
-    # (SIMULATION_VALIDATED, etape ML actif) ; v1.0.0 reste ARCHIVED/APPROVED
-    # (rollback possible, artefact intact).
+    assert len(df) > 0, "corpus reel non vide"
+    assert df["is_synthetic"].astype(bool).sum() == 0, "0 % synthetique"
+    # Registry : v1.1.0 reelle ACTIVE et APPROVED
     reg_data = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
     active = [e for e in reg_data if e.get("status") == "ACTIVE"]
     assert active, "aucune entree ACTIVE"
-    assert active[0]["model_version"] == "simulation-v1.0.0", "serving demo : simulation-v1.0.0 ACTIVE"
+    assert active[0]["model_version"] == "v1.1.0", "serving prod : v1.1.0 reelle ACTIVE"
     assert active[0]["approval_status"] == "APPROVED"
-    assert active[0]["validation_scope"] == "SIMULATION_VALIDATED"
+    assert active[0]["synthetic_share_pct"] == 0.0
     legacy_v1 = [e for e in reg_data if e.get("model_version") == "v1.0.0"]
     assert legacy_v1 and legacy_v1[0]["status"] == "ARCHIVED", "v1.0.0 conservee (ARCHIVED)"
+    sim_entries = [e for e in reg_data if e.get("model_version") == "simulation-v1.0.0"]
+    assert sim_entries, "simulation-v1.0.0 conservee pour rollback"
 
     # Verifie que le port ML reste en PRODUCTION_ML quand on l'interroge
     # (kill-switch actif, provenance ok, registre approuve)

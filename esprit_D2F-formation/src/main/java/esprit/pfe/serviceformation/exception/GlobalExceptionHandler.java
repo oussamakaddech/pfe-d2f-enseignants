@@ -122,6 +122,19 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, "Accès refusé : vous n'avez pas les permissions nécessaires.", MODULE_PREFIX + "-403", request);
     }
 
+    /**
+     * Exception métier d'accès (périmètre UP/département CUP/chef) : renvoie 403
+     * avec le message métier explicite (ex. « Périmètre interdit : cette formation
+     * n'appartient pas à votre département (DEPT_WEB) ») au lieu de tomber dans le
+     * handler générique {@link Exception} qui produisait un 500.
+     */
+    @ExceptionHandler(esprit.pfe.serviceformation.exception.AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessAccessDenied(
+            esprit.pfe.serviceformation.exception.AccessDeniedException ex, HttpServletRequest request) {
+        log.warn("Access denied (business scope): {}", ex.getMessage());
+        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), MODULE_PREFIX + "-403", request);
+    }
+
     @ExceptionHandler({AuthenticationException.class, BadCredentialsException.class})
     public ResponseEntity<ErrorResponse> handleAuthentication(Exception ex, HttpServletRequest request) {
         log.error("Authentication error: {}", ex.getMessage());

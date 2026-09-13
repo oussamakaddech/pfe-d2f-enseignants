@@ -462,6 +462,12 @@ def test_active_dataset_hash_recomputed():
         assert active.get("validation_scope") == "SIMULATION_VALIDATED"
         return
 
-    assert active["dataset_hash"] == report.dataset_hash, (
-        f"dataset_hash ACTIVE ({active['dataset_hash']}) != hash corpus ({report.dataset_hash})"
+    import pandas as pd
+    from app.infrastructure.ml.dataset_provenance import compute_provenance
+
+    corpus_report = compute_provenance(
+        pd.read_csv(corpus), dataset_version=active.get("dataset_version", "")
+    )
+    assert active["dataset_hash"] == corpus_report.dataset_hash, (
+        f"dataset_hash ACTIVE ({active['dataset_hash']}) != hash corpus ({corpus_report.dataset_hash})"
     )

@@ -39,10 +39,9 @@ def test_scope_analysis_admin_ok(client):
     assert body["meta"]["gaps_count"] == 1
 
 
-def test_scope_analysis_no_fallback_when_scope_declared_without_match(client):
-    # T002 (dept D2) n'a aucun domaine rattaché : le périmètre reste explicite
-    # (DEPARTMENT) et la liste de compétences est vide — jamais de fallback
-    # silencieux sur le référentiel global.
+def test_scope_analysis_explicit_fallback_when_scope_declared_without_match(client):
+    # T002 (dept D2) n'a aucun domaine rattaché : repli EXPLICITE sur le
+    # référentiel global (fallback=True + raison), jamais silencieux ni vide.
     response = client.get(
         "/api/v1/analytics/teachers/T002/scope-analysis",
         headers=auth_headers("admin", ["ADMIN"]),
@@ -50,11 +49,13 @@ def test_scope_analysis_no_fallback_when_scope_declared_without_match(client):
     assert response.status_code == 200
     body = response.json()
     data = body["data"]
-    assert data["scoped_competencies_count"] == 0
+    assert data["scoped_competencies_count"] == 2
     assert data["total_competencies_count"] == 2
-    assert data["gaps"] == []
+    assert len(data["gaps"]) == 2
     assert data["scope"]["type"] == "DEPARTMENT"
     assert data["scope"]["is_global"] is False
+    assert data["scope"]["fallback"] is True
+    assert data["scope"]["fallback_reason"]
     assert data["scope"]["label"].startswith("Département")
 
 

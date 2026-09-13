@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import tn.esprit.d2f.dto.PageResponse;
 import tn.esprit.d2f.dto.ReviewerScopeRequest;
 import tn.esprit.d2f.entity.ReviewerScope;
+import tn.esprit.d2f.repository.ReviewerScopeRepository;
 import tn.esprit.d2f.service.ReviewerScopeService;
 
 /**
@@ -35,6 +36,7 @@ import tn.esprit.d2f.service.ReviewerScopeService;
 public class ReviewerScopeController {
 
     private final ReviewerScopeService reviewerScopeService;
+    private final ReviewerScopeRepository reviewerScopeRepository;
 
     @Operation(summary = "Lister tous les périmètres validateurs (paginé)")
     @GetMapping
@@ -47,12 +49,13 @@ public class ReviewerScopeController {
     }
 
     @Operation(summary = "Consulter mon périmètre (utilisateur connecté)")
-    @ApiResponse(responseCode = "200", description = "Périmètre de l'utilisateur")
-    @ApiResponse(responseCode = "404", description = "Aucun périmètre assigné")
+    @ApiResponse(responseCode = "200", description = "Périmètre de l'utilisateur (null si non assigné)")
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ReviewerScope> me(@Parameter(hidden = true) @AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(reviewerScopeService.getScope(jwt.getSubject()));
+        return reviewerScopeRepository.findById(jwt.getSubject())
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.ok().build());
     }
 
     @Operation(summary = "Assigner / mettre à jour le périmètre d'un validateur (ADMIN)")

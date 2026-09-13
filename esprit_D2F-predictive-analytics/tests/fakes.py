@@ -76,8 +76,9 @@ class FakeCompetencySource:
     ) -> list[Competency]:
         # Simule le filtrage : T001 est rattaché au département D1 dont le
         # domaine 10 (Pedagogie) contient C1 ; C2 est hors périmètre pour D1.
-        # Tout périmètre déclaré sans domaine correspondant -> liste vide
-        # (aucun fallback silencieux sur le référentiel global).
+        # Tout périmètre déclaré sans domaine correspondant -> liste vide ;
+        # le use case AnalyzeTeacherScope replie alors EXPLICITEMENT sur le
+        # référentiel global (fallback=True + raison).
         if dept_id == "D1":
             return [c for c in COMPETENCIES if c.id == 1]
         if up_id == "UP1":
@@ -437,7 +438,8 @@ def build_fake_container(settings: Settings | None = None):
     from app.application.use_cases.analyze_teacher_scope import AnalyzeTeacherScope
 
     container.analyze_teacher_scope = AnalyzeTeacherScope(
-        competency_source, container.recommend_trainings, settings
+        competency_source, container.recommend_trainings, settings,
+        compute_gaps=container.compute_gaps,
     )
 
     from app.application.use_cases.build_dashboards import BuildDashboards
@@ -447,7 +449,9 @@ def build_fake_container(settings: Settings | None = None):
     from app.domain.services.need_detector import TeacherScope
 
     def teacher_scopes() -> dict[str, TeacherScope]:
-        return {t.id: TeacherScope(t.id, "DEPARTEMENT", t.dept_id) for t in TEACHERS}
+        return {
+            t.id: TeacherScope(t.id, "DEPARTEMENT", t.dept_id, up_id=t.up_id) for t in TEACHERS
+        }
 
     container.teacher_scopes = teacher_scopes
     container.detect_needs = DetectNeeds(

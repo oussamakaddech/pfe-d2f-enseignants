@@ -10,6 +10,7 @@ import esprit.pfe.serviceformation.microsoft.OutlookMailService;
 import esprit.pfe.serviceformation.messaging.AnalyticsEventPublisher;
 import esprit.pfe.serviceformation.messaging.EvaluationBatchMessage;
 import esprit.pfe.serviceformation.messaging.EvaluationPublisher;
+import esprit.pfe.serviceformation.services.animator.AnimatorScopeService;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,6 +53,10 @@ public class FormationWorkflowService {
     private final AnimateurParticipantResolver animateurParticipantResolver;
     // FIX-Q5: email audit log
     private final EmailAuditLogRepository emailAuditLogRepository;
+    // Scoping CRUD CUP/chef (optionnel : null dans les tests unitaires qui
+    // construisent le service manuellement — les contrôles sont alors sautés).
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private AnimatorScopeService animatorScopeService;
 
     public FormationWorkflowService(DocumentRepository documentRepository,
             FormationRepository formationRepository,
@@ -110,6 +115,67 @@ public class FormationWorkflowService {
         return helper.parseTime(heure);
     }
 
+    /**
+     * Vérifie que l'appelant peut gérer la formation selon son périmètre
+     * (ADMIN global, CUP → UP de la formation, chef → département).
+     * Sautée si le scope service n'est pas injecté (tests unitaires).
+     */
+    private void checkFormationScope(Formation formation) {
+        if (animatorScopeService == null) {
+            return;
+        }
+        animatorScopeService.ensureCanManageFormation(
+                formation, animatorScopeService.resolveScope());
+    }
+
+    /**
+     * Force le périmètre d'une formation créée à celui de l'appelant scopé
+     * (CUP → son UP, chef → son département). Les valeurs du formulaire sont
+     * écrasées pour un appelant scopé : il ne peut JAMAIS créer une formation
+     * hors de son périmètre (parité KpiScopeService).
+     */
+    private void applyCreationScope(Formation formation) {
+        if (animatorScopeService == null || formation == null) {
+            return;
+        }
+        AnimatorScopeService.ResolvedAnimatorScope scope = animatorScopeService.resolveScope();
+        if (scope.global()) {
+            return;
+        }
+        if (scope.user().hasRole("CUP") && scope.upCode() != null) {
+            formation.setUp(upRepository.findById(scope.upCode()).orElse(null));
+            return;
+        }
+        if (scope.user().hasRole("CHEF_DEPARTEMENT") && scope.departmentCode() != null) {
+            formation.setDepartement(departementRepository.findById(scope.departmentCode()).orElse(null));
+        }
+    }
+
+    /**
+     * Filtre une liste de formations au périmètre de l'appelant :
+     * CUP → UP, chef → département, autres rôles inchangés.
+     * Deny-by-default : périmètre CUP/chef indéterminé → 403 propagée.
+     */
+    private List<Formation> filterByScope(List<Formation> formations) {
+        if (animatorScopeService == null) {
+            return formations;
+        }
+        AnimatorScopeService.ResolvedAnimatorScope scope = animatorScopeService.resolveScope();
+        if (scope.global()) {
+            return formations;
+        }
+        return formations.stream().filter(f -> {
+            try {
+                animatorScopeService.ensureCanManageFormation(f, scope);
+                return true;
+            } catch (AccessDeniedException | esprit.pfe.serviceformation.exception.AccessDeniedException ex) {
+                // Hors périmètre (CUP → UP, chef → département) : la formation est
+                // simplement exclue de la liste (et non une erreur globale).
+                return false;
+            }
+        }).toList();
+    }
+
     private OffsetDateTime convertToOffsetDateTime(LocalDate date, LocalTime time) {
         return helper.convertToOffsetDateTime(date, time);
     }
@@ -146,6 +212,14 @@ public class FormationWorkflowService {
 
         Formation formation = new Formation();
         helper.initFormationFromRequest(formation, request);
+        // CRUD scopé : pour un CUP / chef de département, le périmètre (UP /
+        // département) de la formation créée est IMPOSÉ à celui de l'appelant
+        // (parité KpiScopeService : valeurs client écrasées pour un appelant
+        // scopé) — impossible de créer hors de son périmètre. ADMIN et rôles
+        // non scopés gardent le choix du formulaire.
+        applyCreationScope(formation);
+        // CRUD scopé : CUP → UP de la formation, chef → département (403 sinon).
+        checkFormationScope(formation);
         formation = formationRepository.save(formation);
 
         List<SeanceFormation> seances = helper.createSeancesForFormation(formation, seanceReqs, partIds);
@@ -193,9 +267,13 @@ public class FormationWorkflowService {
         Formation formation = formationRepository.findById(formationId)
                 .orElseThrow(() -> new IllegalStateException("Formation introuvable"));
 
+        // CRUD scopé : périmètre vérifié avant ET après modification (l'UP ou
+        // le département ont pu changer dans la requête).
+        checkFormationScope(formation);
         EtatFormation oldEtat = formation.getEtatFormation();
         updateFormationBasicFields(formation, request);
         updateFormationRelations(formation, request);
+        checkFormationScope(formation);
 
         Map<String, Enseignant> enseignantMap = loadEnseignantsMap(request);
         List<SeanceFormation> managedList = prepareManagedSeancesList(formation);
@@ -899,6 +977,8 @@ public class FormationWorkflowService {
     public void deleteFormationWorkflow(Long formationId) {
         Formation formation = formationRepository.findById(formationId)
                 .orElseThrow(() -> new IllegalArgumentException("Formation introuvable avec l'id : " + formationId));
+        // CRUD scopé : suppression limitée au périmètre (UP / département).
+        checkFormationScope(formation);
         try {
             removeFormationCalendar(formation);
         } catch (RuntimeException ex) {
@@ -1346,6 +1426,11 @@ public class FormationWorkflowService {
     public FormationResponseDTO getFormationWorkflowById(Long formationId) {
         Formation formation = formationRepository.findById(formationId)
                 .orElseThrow(() -> new IllegalArgumentException("Formation introuvable avec l'id : " + formationId));
+        // Lecture scopée : un CUP/chef ne peut pas consulter par identifiant une
+        // formation hors de son UP/département (anti-BOLA ; autres rôles libres).
+        if (animatorScopeService != null) {
+            animatorScopeService.checkReadScope(formation);
+        }
         if (formation.getSeances() != null) {
             formation.getSeances().forEach(seance -> {
                 if (seance.getAnimateurs() != null)
@@ -1363,7 +1448,7 @@ public class FormationWorkflowService {
 
     @Transactional(readOnly = true)
     public List<FormationResponseDTO> getAllFormationWorkflows() {
-        List<Formation> formations = formationRepository.findAll();
+        List<Formation> formations = filterByScope(formationRepository.findAll());
         formations.forEach(this::initializeFormationCollections);
         return formations.stream().map(formationMapper::toResponseDTO).toList();
     }
@@ -1679,6 +1764,41 @@ public class FormationWorkflowService {
 
             return dto;
         }).toList();
+    }
+
+    /**
+     * Contrôle d'identité pour le calendrier enseignant (anti-énumération).
+     *
+     * L'id du path est l'identifiant fonctionnel de la fiche enseignant alors
+     * que le JWT porte username (sub), email et userId technique — une
+     * comparaison directe id-vs-email était toujours fausse et renvoyait 403
+     * aux enseignants consultant leur PROPRE calendrier. Comme
+     * InscriptionService (id OU mail), on croise les identités JWT avec la
+     * fiche résolue par id : l'accès self passe si l'un des identifiants
+     * correspond.
+     */
+    public boolean isSelfCalendar(String enseignantId, CurrentUser user) {
+        if (enseignantId == null || enseignantId.isBlank() || user == null) {
+            return false;
+        }
+        boolean identityMatch = enseignantId.equalsIgnoreCase(user.emailOrUsername())
+                || (user.username() != null && enseignantId.equalsIgnoreCase(user.username()))
+                || (user.userId() != null && enseignantId.equalsIgnoreCase(user.userId()));
+        if (identityMatch) {
+            return true;
+        }
+        return enseignantRepository.findById(enseignantId)
+                .map(enseignant -> matchesIdentity(enseignant.getMail(), user))
+                .orElse(false);
+    }
+
+    /** Le mail de la fiche correspond-il à l'identité du JWT (email ou username) ? */
+    private boolean matchesIdentity(String mail, CurrentUser user) {
+        if (mail == null || mail.isBlank()) {
+            return false;
+        }
+        return mail.equalsIgnoreCase(user.email())
+                || mail.equalsIgnoreCase(user.username());
     }
 
     public FormationsByRoleDTO getFormationsForCalendar(String enseignantId) {

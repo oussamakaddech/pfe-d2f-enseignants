@@ -269,13 +269,9 @@ export function useBesoinList() {
     try {
       await approveMut.mutateAsync(id as Id);
       msgApi.success('Besoin approuvé');
-      // CHEF_DEPARTEMENT n'a pas accès à /Formation/Creer → rediriger vers le catalogue.
-      const role = normalizeRole(user?.role);
-      const target =
-        role === normalizeRole(ROLES.CHEF_DEPARTEMENT)
-          ? '/home/Formation/Consulter'
-          : '/home/Formation/Creer';
-      setTimeout(() => navigate(target, { state: { besoinInfo: record } }), 800);
+      // Parité FORMATION_CREATE (ADMIN, CUP, CHEF_DEPARTEMENT) : tous les valideurs
+      // ont désormais accès à la création de formation depuis le besoin approuvé.
+      setTimeout(() => navigate('/home/Formation/Creer', { state: { besoinInfo: record } }), 800);
     } catch (err: unknown) {
       msgApi.error(
         `Erreur lors de l'approbation — ${getBackendMessage(err) ?? 'vérifiez vos droits et le statut du besoin'}`,

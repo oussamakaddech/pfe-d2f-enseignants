@@ -22,8 +22,10 @@ public final class AuthorizationMatrix {
     // ANIMATEUR inclus : un animateur interne est aussi un enseignant et peut donc
     // exprimer un besoin de formation (symétrique d'INSCRIPTION_CREATE).
     public static final String BESOIN_FORMATION_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_ANIMATEUR','ROLE_CHEF_DEPARTEMENT')";
-    public static final String BESOIN_FORMATION_UPDATE = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT','ROLE_ANIMATEUR')";
-    public static final String BESOIN_FORMATION_DELETE = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT','ROLE_ANIMATEUR')";
+    // CRUD complet CUP/chef sur leur périmètre (UP / département) : le contrôle
+    // fin (appartenance) est appliqué applicativement dans BesoinFormationServiceImpl.
+    public static final String BESOIN_FORMATION_UPDATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT','ROLE_ENSEIGNANT','ROLE_ANIMATEUR')";
+    public static final String BESOIN_FORMATION_DELETE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT','ROLE_ENSEIGNANT','ROLE_ANIMATEUR')";
     public static final String BESOIN_FORMATION_APPROVE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
     // Workflow sécurisé : refus / annulation / périmètres.
     // Le contrôle fin (étape, périmètre UP/département, créateur ≠ décideur)
@@ -36,9 +38,11 @@ public final class AuthorizationMatrix {
     public static final String BESOIN_FORMATION_REVIEWER_SCOPE = "hasAnyRole('ROLE_ADMIN')";
 
     public static final String FORMATION_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_RESPONSABLE_DOSSIER','ROLE_CHEF_DEPARTEMENT')";
-    public static final String FORMATION_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
-    public static final String FORMATION_UPDATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_RESPONSABLE_DOSSIER')";
-    public static final String FORMATION_DELETE = "hasAnyRole('ROLE_ADMIN')";
+    // CRUD complet CUP/chef sur leur périmètre (UP / département) : le contrôle
+    // fin (appartenance) est appliqué applicativement dans les services formation.
+    public static final String FORMATION_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
+    public static final String FORMATION_UPDATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT','ROLE_RESPONSABLE_DOSSIER')";
+    public static final String FORMATION_DELETE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
     public static final String FORMATION_APPROVE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
     public static final String FORMATION_READ_OWN = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_ENSEIGNANT')";
     // Marquage des présences d'une séance : l'animateur/formateur de la séance (et,
@@ -141,7 +145,7 @@ public final class AuthorizationMatrix {
     // enseignants à part entière et s'inscrivent comme les autres, sous
     // réserve d'appartenir au périmètre de la formation (UP ou département).
     public static final String INSCRIPTION_CREATE  = "hasAnyRole('ROLE_CUP','ROLE_ENSEIGNANT','ROLE_ANIMATEUR','ROLE_FORMATEUR','ROLE_CHEF_DEPARTEMENT')";
-    public static final String INSCRIPTION_APPROVE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
+    public static final String INSCRIPTION_APPROVE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
 
     public static final String GATEWAY_ACCESS = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_CHEF_DEPARTEMENT','ROLE_RESPONSABLE_DOSSIER')";
 

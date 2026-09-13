@@ -7,10 +7,12 @@ inertes : non consommées par le dashboard CUP actuel (queries désactivées).
 from datetime import date, timedelta
 from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 
-from app.api.deps import ContainerDependency
+from app.api.deps import ContainerDependency, resolve_user_teacher
+from app.core.exceptions import ForbiddenScopeError
+from app.core.security import CurrentUser, get_optional_current_user
 
 router = APIRouter(tags=["analytics-steps"])
 
@@ -85,6 +87,7 @@ BAD_REQUEST_RESPONSES = {
 @router.get("/formations-par-periode", responses=BAD_REQUEST_RESPONSES)
 def formations_par_periode(
     container: ContainerDependency,
+    user: Annotated[CurrentUser | None, Depends(get_optional_current_user)],
     granularite: Annotated[str, Query()] = "MOIS",
     debut: Annotated[str | None, Query()] = None,
     fin: Annotated[str | None, Query()] = None,
@@ -101,6 +104,23 @@ def formations_par_periode(
     debut_d = _parse_date(debut, fin_d - timedelta(days=365))
     if debut_d > fin_d:
         raise HTTPException(status_code=400, detail="La date de début ne peut pas être après la fin.")
+
+    # Périmètre serveur (§8 droits) : un CUP ne voit que sa propre UP, un chef
+    # de département que son propre département — résolus depuis la fiche
+    # enseignant (jamais depuis les paramètres du client). Un CUP/chef sans
+    # périmètre résolu reçoit 403 (deny-by-default, jamais la vue globale).
+    if user is not None and not user.is_admin:
+        user_teacher = resolve_user_teacher(container, user)
+        if user.is_cup:
+            resolved_up = user_teacher.up_id if user_teacher else None
+            if not resolved_up:
+                raise ForbiddenScopeError("Périmètre indéterminé : aucune UP rattachée à votre compte.")
+            up, departement = resolved_up, None
+        elif user.is_chef_departement:
+            resolved_dept = user_teacher.dept_id if user_teacher else None
+            if not resolved_dept:
+                raise ForbiddenScopeError("Périmètre indéterminé : aucun département rattaché à votre compte.")
+            departement, up = resolved_dept, None
 
     with container.database.read_connection() as conn:
         rows = conn.execute(

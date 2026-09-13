@@ -62,6 +62,8 @@ const data: TeacherScopeAnalysis = {
     type: 'DEPARTMENT',
     is_global: false,
     label: 'Département Réseaux & Télécoms',
+    fallback: false,
+    fallback_reason: null,
   },
   computed_at: '2026-08-01',
 };
@@ -102,10 +104,32 @@ describe('TeacherScopePanel', () => {
   it('affiche « Périmètre global » uniquement pour un scope GLOBAL', () => {
     const globalData: TeacherScopeAnalysis = {
       ...data,
-      scope: { type: 'GLOBAL', is_global: true, label: 'Périmètre global' },
+      scope: {
+        type: 'GLOBAL',
+        is_global: true,
+        label: 'Périmètre global',
+        fallback: false,
+        fallback_reason: null,
+      },
     };
     render(<TeacherScopePanel data={globalData} loading={false} />);
     expect(screen.getByText('Périmètre global')).toBeInTheDocument();
     expect(screen.queryByText('Département Réseaux & Télécoms')).not.toBeInTheDocument();
+  });
+
+  it('affiche un avertissement explicite quand le périmètre est élargi (fallback)', () => {
+    const fallbackData: TeacherScopeAnalysis = {
+      ...data,
+      scope: {
+        type: 'DEPARTMENT',
+        is_global: false,
+        label: 'Département Génie Civil',
+        fallback: true,
+        fallback_reason: 'Référentiel incomplet pour ce périmètre.',
+      },
+    };
+    render(<TeacherScopePanel data={fallbackData} loading={false} />);
+    expect(screen.getByText('Périmètre élargi au référentiel global')).toBeInTheDocument();
+    expect(screen.getByText('Référentiel incomplet pour ce périmètre.')).toBeInTheDocument();
   });
 });

@@ -151,6 +151,10 @@ export interface TeacherScope {
   is_global: boolean;
   /** Libellé affichable : « Périmètre global », « Département … », « Unité pédagogique … ». */
   label: string;
+  /** Vrai si le périmètre déclaré ne couvrait aucune compétence : analyse élargie au global (explicite). */
+  fallback: boolean;
+  /** Raison du fallback (référentiel incomplet), null sinon. */
+  fallback_reason: string | null;
 }
 
 export interface TeacherScopeAnalysis {

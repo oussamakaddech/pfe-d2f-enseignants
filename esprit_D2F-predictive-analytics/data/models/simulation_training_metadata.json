@@ -74,11 +74,11 @@
       "max": 5.0
     },
     "lag_gap_t3_t2": {
-      "min": -4.0,
+      "min": -2.0,
       "max": 2.0
     },
     "lag_gap_t2_t1": {
-      "min": -3.0,
+      "min": -2.0,
       "max": 3.0
     },
     "lag_gap_t1_t": {
@@ -91,7 +91,7 @@
     },
     "days_since_last_training": {
       "min": 0.0,
-      "max": 2639.0
+      "max": 2661.0
     },
     "training_frequency_per_month": {
       "min": 0.0,
@@ -143,7 +143,7 @@
     },
     "nb_formations_in_progress": {
       "min": 0.0,
-      "max": 3.0
+      "max": 4.0
     },
     "taux_assiduite": {
       "min": 0.0,
@@ -167,15 +167,15 @@
     },
     "months_since_last_training": {
       "min": 0.0,
-      "max": 86.695138
+      "max": 87.417872
     },
     "engagement_score": {
       "min": 0.0,
-      "max": 21.245099
+      "max": 20.5
     }
   },
   "decision": "accept",
   "notes": "Modele SIMULATION_VALIDATED entraine sur corpus simule documente (seed 42, 10920 lignes, re-mesures M+3 observees). Utilisable en demonstration, jamais presente comme REAL_VALIDATED.",
   "feature_ranges_source": "union (quantiles 0.001-0.999 sur simulation_dataset.csv, corpus complet 10920 lignes) x (etendue observee du corpus de demonstration training_corpus_from_db.csv) — justifiee par les deux distributions observees, sans valeur forcee",
-  "feature_ranges_recomputed_at": "2026-08-31T18:35:47.998098+00:00"
+  "feature_ranges_recomputed_at": "2026-09-13T16:54:47.037199+00:00"
 }

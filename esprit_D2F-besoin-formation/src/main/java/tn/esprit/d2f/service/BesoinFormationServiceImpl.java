@@ -105,6 +105,18 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
 
     @Override
     public Page<BesoinFormationResponse> retrieveAllBesoinFormations(Pageable pageable) {
+        // Visibilité stricte : CUP → son UP, chef → son département.
+        // Les autres rôles autorisés (ADMIN global, ANIMATEUR, RESPONSABLE)
+        // conservent la vue complète.
+        ResolvedScope scope = reviewerScopeService.resolveCurrentUser();
+        if (!scope.global() && scope.actorRole() == CreatorRole.CUP) {
+            return besoinFormationRepository.findByUp(scope.upCode(), pageable)
+                    .map(besoinFormationMapper::toResponse);
+        }
+        if (!scope.global() && scope.actorRole() == CreatorRole.CHEF_DEPARTEMENT) {
+            return besoinFormationRepository.findByDepartement(scope.departmentCode(), pageable)
+                    .map(besoinFormationMapper::toResponse);
+        }
         return besoinFormationRepository.findAll(pageable).map(besoinFormationMapper::toResponse);
     }
 
@@ -114,6 +126,14 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         BesoinFormation b = besoinFormationRepository.findById(idBesoinFormation)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         BESOIN_FORMATION_WITH_ID_PREFIX + idBesoinFormation + NOT_FOUND_SUFFIX));
+        // Visibilité stricte CUP/chef : 403 hors périmètre (pas de 404 menteur).
+        ResolvedScope scope = reviewerScopeService.resolveCurrentUser();
+        if (!scope.global()
+                && (scope.actorRole() == CreatorRole.CUP
+                    || scope.actorRole() == CreatorRole.CHEF_DEPARTEMENT)) {
+            reviewerScopeService.ensureInScope(scope, b.getUp(), b.getDepartement(),
+                    b.getIdBesoinFormation());
+        }
         return besoinFormationMapper.toResponse(b);
     }
 
@@ -219,7 +239,7 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         BesoinFormation b = besoinFormationRepository.findById(idBesoinFormation)
                 .orElseThrow(() -> new ResourceNotFoundException(
                 BESOIN_FORMATION_WITH_ID_PREFIX + idBesoinFormation + NOT_FOUND_SUFFIX));
-        ensureOwnershipOrAdmin(b);
+        ensureCanWriteOrAdmin(b);
         // Fix 5: Soft delete — ne jamais hard-delete un besoin
         b.setDeletedAt(Instant.now());
         besoinFormationRepository.save(b);
@@ -233,7 +253,7 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         BesoinFormation existing = besoinFormationRepository.findById(b.getIdBesoinFormation())
                 .orElseThrow(() -> new ResourceNotFoundException(
                 BESOIN_FORMATION_WITH_ID_PREFIX + b.getIdBesoinFormation() + NOT_FOUND_SUFFIX));
-        ensureOwnershipOrAdmin(existing);
+        ensureCanWriteOrAdmin(existing);
         updateDataFields(b, existing);
         // SÉCURITÉ : les flags d'approbation ne transitent QUE par
         // /approve et /reject — toute valeur reçue ici est ignorée.
@@ -553,7 +573,12 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
      * Vérifie que l'utilisateur courant est ADMIN ou bien le propriétaire du besoin.
      * Les rôles ENSEIGNANT et ANIMATEUR ne peuvent modifier/supprimer que leurs propres besoins.
      */
-    private void ensureOwnershipOrAdmin(BesoinFormation b) {
+    /**
+     * Vérifie que l'utilisateur courant peut modifier/supprimer le besoin :
+     * ADMIN (global), créateur (enseignant/animateur), ou validateur
+     * (CUP/chef) si le besoin appartient à son périmètre (UP / département).
+     */
+    private void ensureCanWriteOrAdmin(BesoinFormation b) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Collection<? extends GrantedAuthority> authorities = auth.getAuthorities();
         if (hasRole(authorities, ROLE_ADMIN)) {
@@ -561,6 +586,12 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         }
         boolean isOwnerRole = hasRole(authorities, ROLE_ENSEIGNANT) || hasRole(authorities, ROLE_ANIMATEUR);
         if (isOwnerRole && auth.getName() != null && auth.getName().equals(b.getUsername())) {
+            return;
+        }
+        ResolvedScope scope = reviewerScopeService.resolveCurrentUser();
+        if (scope.actorRole() == CreatorRole.CUP || scope.actorRole() == CreatorRole.CHEF_DEPARTEMENT) {
+            reviewerScopeService.ensureInScope(scope, b.getUp(), b.getDepartement(),
+                    b.getIdBesoinFormation());
             return;
         }
         throw new AccessDeniedException("Vous ne pouvez modifier ou supprimer que vos propres besoins de formation.");
@@ -771,3 +802,4 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         }
     }
 }
+

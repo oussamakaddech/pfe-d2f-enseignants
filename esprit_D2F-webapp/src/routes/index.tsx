@@ -225,8 +225,15 @@ export default function AppRoutes() {
                     <Route path="/home/rice" element={<RicePage />} />
                   </Route>
 
-                  {/* FORMATION_CREATE = ADMIN, CUP (cf. AuthorizationMatrix) */}
-                  <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP]} />}>
+                  {/* FORMATION_CREATE = ADMIN, CUP, CHEF_DEPARTEMENT (parité
+                      AuthorizationMatrix) : le chef de département crée aussi. */}
+                  <Route
+                    element={
+                      <RoleGuard
+                        allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]}
+                      />
+                    }
+                  >
                     <Route path="/home/Formation" element={<FormationPage />} />
                     <Route path="/home/Formation/Creer" element={<FormationCreationPage />} />
                   </Route>

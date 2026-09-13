@@ -14,29 +14,93 @@ import logging
 from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.auth import require_roles
 from app.core.db import get_db
 from app.engines.action_center import ActionCenter
-from app.engines.insights_engine import InsightsEngine
+from app.engines.insights_engine import InsightsEngine, OverviewScope
 from app.models.schemas import BatchRecommendationRequest, BulkAlertUpdateRequest
 
 router = APIRouter(prefix="/v1/analytics", tags=["Analytics — Insights"])
 logger = logging.getLogger(__name__)
 
 DbSession = Annotated[Session, Depends(get_db)]
-ReadAuth = Annotated[dict, Depends(require_roles("ADMIN", "CUP"))]
+# CHEF_DEPARTEMENT ajoute : l'overview est scope a son departement cote serveur
+# (cf. _resolve_overview_scope), au meme titre que l'UP du CUP.
+ReadAuth = Annotated[dict, Depends(require_roles("ADMIN", "CUP", "CHEF_DEPARTEMENT"))]
 MonthsParam = Annotated[int, Query(ge=1, le=24, description="Horizon de projection en mois")]
 HistoryParam = Annotated[int, Query(ge=2, le=36, description="Profondeur d'historique en mois")]
 LimitParam = Annotated[int, Query(ge=1, le=100)]
 DeptFilter = Annotated[Optional[str], Query(description="Filtre département (id)")]
 
+# Sentinelle : perimetre demande mais non resolvable (fiche enseignante absente
+# ou sans UP/departement) — ne matche aucune donnee (jamais le global).
+_NO_SCOPE_ID = "__scope_indetermine__"
+
+# SQL explicites (aucune construction dynamique) : fiche de l'appelant par
+# claim userId, puis par email en repli — miroir d'AnimatorScopeService (Java).
+_FICHE_SQL = {
+    "up_id": text(
+        "SELECT up_id AS sid FROM formation.enseignants "
+        "WHERE deleted_at IS NULL "
+        "AND ((:uid <> '' AND user_id = :uid) OR (:email <> '' AND lower(mail) = lower(:email))) "
+        "LIMIT 1"
+    ),
+    "dept_id": text(
+        "SELECT dept_id AS sid FROM formation.enseignants "
+        "WHERE deleted_at IS NULL "
+        "AND ((:uid <> '' AND user_id = :uid) OR (:email <> '' AND lower(mail) = lower(:email))) "
+        "LIMIT 1"
+    ),
+}
+
+
+def _resolve_field(db: Session, auth: dict, field: str) -> str:
+    """Resout up_id / dept_id de la fiche enseignante de l'appelant."""
+    uid = (auth.get("user_id") or "").strip()
+    email = (auth.get("email") or "").strip()
+    if not uid and not email:
+        return _NO_SCOPE_ID
+    try:
+        row = db.execute(_FICHE_SQL[field], {"uid": uid, "email": email}).mappings().first()
+    except SQLAlchemyError as exc:
+        logger.warning("Resolution de la fiche enseignante impossible : %s", exc)
+        return _NO_SCOPE_ID
+    if row and row["sid"]:
+        return str(row["sid"])
+    return _NO_SCOPE_ID
+
+
+def _resolve_overview_scope(db: Session, auth: dict) -> Optional["OverviewScope"]:
+    """Perimetre serveur de l'overview selon le role de l'appelant.
+
+    - ADMIN (non CUP/chef) : global (None) ;
+    - CUP : UP de sa fiche enseignante ;
+    - CHEF_DEPARTEMENT : son departement.
+    Perimetre indeterminable -> UP/DEPARTEMENT avec id sentinelle :
+    deny-by-default (jamais de fuite vers la vue globale).
+    """
+    roles = set((auth.get("role") or "").upper().replace("ROLE_", "").split())
+    if not roles:
+        return None
+    if "ADMIN" in roles and "CUP" not in roles and "CHEF_DEPARTEMENT" not in roles:
+        return None
+    if "CUP" in roles:
+        return OverviewScope("UP", _resolve_field(db, auth, "up_id"))
+    if "CHEF_DEPARTEMENT" in roles:
+        return OverviewScope("DEPARTEMENT", _resolve_field(db, auth, "dept_id"))
+    return None
+
 
 # ── Dashboards riches ────────────────────────────────────────
 @router.get("/dashboard/overview", summary="Tuiles d'en-tête avec variations (deltas)")
 async def dashboard_overview(auth: ReadAuth, db: DbSession) -> dict[str, Any]:
-    return InsightsEngine(db).overview()
+    # Perimetre serveur : CUP -> son UP, chef -> son departement (non falsifiable).
+    return InsightsEngine(db).overview(_resolve_overview_scope(db, auth))
+
 
 
 @router.get("/dashboard/demand-forecast", summary="Prévision de la demande de formation")

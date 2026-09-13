@@ -44,7 +44,11 @@ def test_predictor_temporal_model_active_in_production():
     assert "drift_check" in status
     assert status["kill_switch"] is False
     assert status["provenance"]["synthetic_share_pct"] == 0.0
-    assert status["provenance"]["dataset_version"] == "v1.0.0"
+    # Version du dataset = celle du corpus provenancé réel (évolue à chaque
+    # régénération — ne pas coder en dur, vérifier la cohérence registre).
+    assert status["provenance"]["dataset_version"] == (
+        port._registry.active().dataset_version if port._registry.active() else None
+    )
     # Version = celle de l'entrée ACTIVE du registre réel (évolue à chaque
     # réentraînement/promotion — ne pas coder en dur).
     assert status["model_version"] == (

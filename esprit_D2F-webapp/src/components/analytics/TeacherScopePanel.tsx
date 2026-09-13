@@ -1,4 +1,4 @@
-import { Tag, Progress, Empty, Spin, Table } from 'antd';
+import { Tag, Progress, Empty, Spin, Table, Alert } from 'antd';
 import {
   AimOutlined,
   ApartmentOutlined,
@@ -113,6 +113,17 @@ export default function TeacherScopePanel({ data, loading }: Readonly<Props>) {
                 {data.scope.label}
               </Tag>
             )}
+            {data.scope.fallback ? (
+              <Alert
+                type="warning"
+                showIcon
+                style={{ marginTop: 8 }}
+                message="Périmètre élargi au référentiel global"
+                description={
+                  data.scope.fallback_reason ?? 'Référentiel incomplet pour ce périmètre.'
+                }
+              />
+            ) : null}
           </div>
         </div>
       </div>

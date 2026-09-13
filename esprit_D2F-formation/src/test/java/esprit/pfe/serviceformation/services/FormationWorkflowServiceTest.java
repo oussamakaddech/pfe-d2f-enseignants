@@ -625,6 +625,63 @@ class FormationWorkflowServiceTest {
         assertThrows(IllegalArgumentException.class, () -> formationWorkflowService.updateFormationWorkflow(1L, request));
     }
 
+    // ── isSelfCalendar (calendrier enseignant : contrôle d'identité) ─────────
+    // Bug corrigé : l'id du path (ex "E00007") est l'identifiant fonctionnel de
+    // la fiche, alors que le JWT porte sub=username + email — l'ancienne
+    // comparaison id-vs-email renvoyait toujours false → 403 pour TOUS les
+    // enseignants consultant leur propre calendrier.
+
+    @Test
+    @DisplayName("isSelfCalendar - username JWT = id fonctionnel → self")
+    void isSelfCalendarUsernameMatch() {
+        CurrentUser user = new CurrentUser("E00007", "uuid-1", "o.kaddech@esprit.tn", Set.of("ENSEIGNANT"));
+        assertThat(formationWorkflowService.isSelfCalendar("E00007", user)).isTrue();
+    }
+
+    @Test
+    @DisplayName("isSelfCalendar - croisement mail de la fiche avec l'email du JWT → self")
+    void isSelfCalendarMailMatch() {
+        Enseignant fiche = new Enseignant();
+        fiche.setId("E00007");
+        fiche.setMail("oussama.kaddech@esprit.tn");
+        lenient().when(enseignantRepository.findById("E00007")).thenReturn(Optional.of(fiche));
+        // JWT : sub = username canonique ≠ id fonctionnel, email = mail de la fiche
+        CurrentUser user = new CurrentUser("oussama", "uuid-1", "oussama.kaddech@esprit.tn", Set.of("ENSEIGNANT"));
+        assertThat(formationWorkflowService.isSelfCalendar("E00007", user)).isTrue();
+    }
+
+    @Test
+    @DisplayName("isSelfCalendar - croisement mail de la fiche avec le username JWT → self")
+    void isSelfCalendarMailVsUsernameMatch() {
+        Enseignant fiche = new Enseignant();
+        fiche.setId("E00007");
+        fiche.setMail("oussama");
+        lenient().when(enseignantRepository.findById("E00007")).thenReturn(Optional.of(fiche));
+        CurrentUser user = new CurrentUser("oussama", "uuid-1", null, Set.of("ENSEIGNANT"));
+        assertThat(formationWorkflowService.isSelfCalendar("E00007", user)).isTrue();
+    }
+
+    @Test
+    @DisplayName("isSelfCalendar - autre enseignant (anti-énumération) → refus")
+    void isSelfCalendarOtherTeacherDenied() {
+        Enseignant fiche = new Enseignant();
+        fiche.setId("E00007");
+        fiche.setMail("oussama.kaddech@esprit.tn");
+        lenient().when(enseignantRepository.findById("E00007")).thenReturn(Optional.of(fiche));
+        CurrentUser user = new CurrentUser("fjlassi", "uuid-2", "f.jlassi@esprit.tn", Set.of("ENSEIGNANT"));
+        assertThat(formationWorkflowService.isSelfCalendar("E00007", user)).isFalse();
+    }
+
+    @Test
+    @DisplayName("isSelfCalendar - fiche inconnue / entrées vides → refus")
+    void isSelfCalendarUnknownOrBlankDenied() {
+        lenient().when(enseignantRepository.findById("INCONNU")).thenReturn(Optional.empty());
+        CurrentUser user = new CurrentUser("fjlassi", "uuid-2", "f.jlassi@esprit.tn", Set.of("ENSEIGNANT"));
+        assertThat(formationWorkflowService.isSelfCalendar("INCONNU", user)).isFalse();
+        assertThat(formationWorkflowService.isSelfCalendar(null, user)).isFalse();
+        assertThat(formationWorkflowService.isSelfCalendar("E00007", null)).isFalse();
+    }
+
     private Formation createFullFormation() {
         Formation f = new Formation();
         f.setIdFormation(1L);

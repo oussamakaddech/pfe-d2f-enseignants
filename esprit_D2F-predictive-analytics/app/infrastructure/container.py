@@ -71,7 +71,8 @@ class Container:
             model_port=self.model_port,
         )
         self.analyze_teacher_scope = AnalyzeTeacherScope(
-            self.competency_source, self.recommend_trainings, settings
+            self.competency_source, self.recommend_trainings, settings,
+            compute_gaps=self.compute_gaps,
         )
 
         self.detect_needs = DetectNeeds(
@@ -105,6 +106,7 @@ class Container:
                 teacher_id=teacher.id,
                 scope_type="DEPARTEMENT",
                 scope_id=teacher.dept_id,
+                up_id=teacher.up_id,
             )
         return scopes
 

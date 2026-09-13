@@ -368,6 +368,8 @@ interface BackendTeacherScopeAnalysis {
     type: 'GLOBAL' | 'DEPARTMENT' | 'UP';
     is_global: boolean;
     label: string;
+    fallback?: boolean;
+    fallback_reason?: string | null;
   };
   computed_at: string;
 }
@@ -742,6 +744,8 @@ export const analyticsApi = {
             type: raw.scope?.type ?? 'GLOBAL',
             is_global: raw.scope?.is_global ?? true,
             label: raw.scope?.label ?? 'Périmètre global',
+            fallback: raw.scope?.fallback ?? false,
+            fallback_reason: raw.scope?.fallback_reason ?? null,
           },
           computed_at: raw.computed_at,
         };

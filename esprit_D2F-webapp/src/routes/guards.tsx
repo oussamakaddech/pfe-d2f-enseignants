@@ -28,21 +28,25 @@ export const FRONTEND_PERMISSIONS = {
     READ_CUP: ['admin', 'CUP'],
     READ_ENSEIGNANT: ['admin', 'Enseignant'],
     CREATE: ['admin', 'CUP', 'Enseignant', 'Animateur', 'CHEF_DEPARTEMENT'],
-    UPDATE: ['admin', 'Enseignant', 'Animateur'],
-    DELETE: ['admin', 'Enseignant', 'Animateur'],
+    // Parité AuthorizationMatrix.BESOIN_FORMATION_UPDATE/DELETE : CRUD complet
+    // CUP/CHEF_DEPARTEMENT sur leur périmètre (contrôle fin côté service).
+    UPDATE: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'Enseignant', 'Animateur'],
+    DELETE: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'Enseignant', 'Animateur'],
     APPROVE: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
     REJECT: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
     MANAGE_SCOPES: ['admin'],
   },
   FORMATION: {
     READ: ['admin', 'CUP', 'Enseignant', 'Animateur', 'ResponsableDossier', 'CHEF_DEPARTEMENT'],
-    CREATE: ['admin', 'CUP'],
-    UPDATE: ['admin', 'CUP', 'ResponsableDossier'],
-    DELETE: ['admin'],
+    // Parité AuthorizationMatrix.FORMATION_CREATE/UPDATE/DELETE : CRUD complet
+    // CUP/CHEF_DEPARTEMENT sur leur périmètre (contrôle fin côté service).
+    CREATE: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
+    UPDATE: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'ResponsableDossier'],
+    DELETE: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
     APPROVE: ['admin', 'CUP'],
     READ_OWN: ['admin', 'Animateur', 'Enseignant'],
     // Marquage des présences d'une séance (parité AuthorizationMatrix.PRESENCE_MARK).
-    PRESENCE_MARK: ['admin', 'CUP', 'ResponsableDossier', 'Animateur', 'Enseignant'],
+    PRESENCE_MARK: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'ResponsableDossier', 'Animateur', 'Enseignant'],
   },
   EVALUATION: {
     READ_ALL: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'Enseignant', 'Animateur'],
@@ -94,7 +98,8 @@ export const FRONTEND_PERMISSIONS = {
     // Parité AuthorizationMatrix.INSCRIPTION_CREATE : ADMIN et
     // RESPONSABLE_DOSSIER explicitement exclus.
     CREATE: ['CUP', 'Enseignant', 'Animateur', 'CHEF_DEPARTEMENT'],
-    APPROVE: ['admin', 'CUP'],
+    // Parité AuthorizationMatrix.INSCRIPTION_APPROVE = ADMIN, CUP, CHEF_DEPARTEMENT.
+    APPROVE: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
   },
 };
 

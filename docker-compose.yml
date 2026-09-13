@@ -626,6 +626,12 @@ services:
       ML_METADATA_PATH: ${ML_METADATA_PATH:-temporal_training_metadata.json}
       ML_REGISTRY_PATH: ${ML_REGISTRY_PATH:-model_registry.json}
       ML_FEATURE_SCHEMA_PATH: ${ML_FEATURE_SCHEMA_PATH:-feature_schema.json}
+      # Skew guard KS désactivé (opérateur) : le corpus réel (217 lignes,
+      # features globales constantes par enseignant) rend le test KS à deux
+      # échantillons structurellement bruité — faux positifs p=0.0 en masse
+      # qui basculaient tout le serving en heuristique. La validation par
+      # plages (feature_schema) + provenance + registre restent actives.
+      ML_SKEW_GUARD_ENABLED: ${ML_SKEW_GUARD_ENABLED:-false}
     volumes:
       # L'artefact est monté en lecture seule — il n'est jamais régénéré au
       # démarrage du conteneur. La promotion/rollback est pilotée explicitement.

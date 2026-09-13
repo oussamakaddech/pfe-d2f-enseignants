@@ -1,8 +1,8 @@
 {
   "model_name": "gap_predictor_temporal",
-  "algorithm": "gradient_boosting",
-  "model_version": "v1.0.0",
-  "trained_at": "2026-08-22T05:29:01.033299",
+  "algorithm": "mlp",
+  "model_version": "v1.1.0",
+  "trained_at": "2026-09-13T18:58:49.586870",
   "n_features": 29,
   "feature_cols": [
     "current_level_t3",
@@ -36,18 +36,18 @@
     "engagement_score"
   ],
   "feature_schema_version": "1.0",
-  "n_samples": 147,
-  "n_train": 118,
-  "n_test": 29,
+  "n_samples": 217,
+  "n_train": 174,
+  "n_test": 43,
   "data_sources": {
-    "total_rows": 147,
-    "real_rows": 147,
+    "total_rows": 217,
+    "real_rows": 217,
     "synthetic_rows": 0,
     "synthetic_share_pct": 0.0,
     "real_share_pct": 100.0,
-    "dataset_version": "v1.0.0"
+    "dataset_version": "v1.1.0"
   },
-  "dataset_version": "v1.0.0",
+  "dataset_version": "v1.1.0",
   "hyperparameters": {
     "random_state": 42,
     "cv": {
@@ -113,47 +113,6 @@
         "validation_fraction": 0.1,
         "verbose": false,
         "warm_start": false
-      },
-      "xgboost": {
-        "objective": "reg:squarederror",
-        "base_score": null,
-        "booster": null,
-        "callbacks": null,
-        "colsample_bylevel": null,
-        "colsample_bynode": null,
-        "colsample_bytree": null,
-        "device": null,
-        "early_stopping_rounds": null,
-        "enable_categorical": false,
-        "eval_metric": null,
-        "feature_types": null,
-        "gamma": null,
-        "grow_policy": null,
-        "importance_type": null,
-        "interaction_constraints": null,
-        "learning_rate": 0.08,
-        "max_bin": null,
-        "max_cat_threshold": null,
-        "max_cat_to_onehot": null,
-        "max_delta_step": null,
-        "max_depth": 3,
-        "max_leaves": null,
-        "min_child_weight": 5,
-        "missing": NaN,
-        "monotone_constraints": null,
-        "multi_strategy": null,
-        "n_estimators": 120,
-        "n_jobs": -1,
-        "num_parallel_tree": null,
-        "random_state": 42,
-        "reg_alpha": 0.1,
-        "reg_lambda": 1.0,
-        "sampling_method": null,
-        "scale_pos_weight": null,
-        "subsample": 0.85,
-        "tree_method": null,
-        "validate_parameters": null,
-        "verbosity": 0
       }
     }
   },
@@ -162,55 +121,24 @@
     "type": "temporal_strict_cutoff_2026-07-22"
   },
   "candidate_cv_scores": {
-    "gradient_boosting": 1.2971,
-    "mlp": 1.4889,
-    "xgboost": 1.325
+    "gradient_boosting": 1.2558,
+    "mlp": 1.2294
   },
   "metrics": {
-    "test_r2": 0.1958,
-    "test_rmse": 1.3053,
-    "test_mae": 1.1643,
-    "baseline_rmse": 2.187,
-    "baseline_mae": 1.7259,
-    "lift_rmse": 0.8817,
+    "test_r2": 0.2234,
+    "test_rmse": 1.2319,
+    "test_mae": 1.1556,
+    "baseline_rmse": 2.4949,
+    "baseline_mae": 2.0911,
+    "lift_rmse": 1.2629,
     "lift_rmse_ci95": [
-      0.4204,
-      1.2916
+      0.9606,
+      1.5527
     ],
-    "lift_ci95_method": "bootstrap 1000 replicas on test sample (n=29), percentile 2.5-97.5",
+    "lift_ci95_method": "bootstrap 1000 replicas on test sample (n=43), percentile 2.5-97.5",
     "lift_significant_95": true
   },
-  "feature_importances": {
-    "current_level_t3": 0.022212,
-    "current_level_t2": 0.017907,
-    "current_level_t1": 0.042392,
-    "current_level_t": 0.181085,
-    "lag_gap_t3_t2": 0.005238,
-    "lag_gap_t2_t1": 0.030747,
-    "lag_gap_t1_t": 0.130005,
-    "rolling_tendance": 0.093876,
-    "days_since_last_training": 0.024383,
-    "training_frequency_per_month": 0.00195,
-    "is_long_absent": 0.01,
-    "is_stagnant": 0.01182,
-    "avg_level": 0.090972,
-    "min_level": 0.061054,
-    "max_level": 0.097066,
-    "nb_level_5": 0.006302,
-    "nb_level_1": 0.00596,
-    "nb_savoirs": 0.032081,
-    "nb_competences": 0.03785,
-    "competency_coverage_rate": 0.040213,
-    "nb_formations_completed": 0.004851,
-    "nb_formations_in_progress": 0.002635,
-    "taux_assiduite": 0.004464,
-    "nb_besoins_exprimes": 0.0,
-    "nb_besoins_approuves": 0.0,
-    "avg_eval_score": 0.002782,
-    "nb_evaluations": 0.007182,
-    "months_since_last_training": 0.021791,
-    "engagement_score": 0.013181
-  },
+  "feature_importances": {},
   "feature_ranges": {
     "current_level_t3": {
       "min": 1.0,
@@ -229,11 +157,11 @@
       "max": 5.0
     },
     "lag_gap_t3_t2": {
-      "min": -4.0,
-      "max": 1.0
+      "min": -2.0,
+      "max": 2.0
     },
     "lag_gap_t2_t1": {
-      "min": -3.0,
+      "min": -2.0,
       "max": 3.0
     },
     "lag_gap_t1_t": {
@@ -245,8 +173,8 @@
       "max": 1.0
     },
     "days_since_last_training": {
-      "min": 31.0,
-      "max": 2639.0
+      "min": 2.0,
+      "max": 2661.0
     },
     "training_frequency_per_month": {
       "min": 0.0,
@@ -281,15 +209,15 @@
       "max": 4.0
     },
     "nb_savoirs": {
-      "min": 2.0,
+      "min": 1.0,
       "max": 7.0
     },
     "nb_competences": {
-      "min": 2.0,
+      "min": 1.0,
       "max": 9.0
     },
     "competency_coverage_rate": {
-      "min": 0.2857142857142857,
+      "min": 0.1428571428571428,
       "max": 1.0
     },
     "nb_formations_completed": {
@@ -298,11 +226,11 @@
     },
     "nb_formations_in_progress": {
       "min": 0.0,
-      "max": 3.0
+      "max": 4.0
     },
     "taux_assiduite": {
       "min": 0.0,
-      "max": 0.9411764705882352
+      "max": 1.0
     },
     "nb_besoins_exprimes": {
       "min": 0.0,
@@ -321,17 +249,18 @@
       "max": 3.0
     },
     "months_since_last_training": {
-      "min": 1.0183968462549278,
-      "max": 86.69513797634691
+      "min": 0.0657030223390276,
+      "max": 87.41787122207622
     },
     "engagement_score": {
       "min": 0.0,
-      "max": 21.245098039215687
+      "max": 20.5
     }
   },
   "decision": "accept",
   "target_validity": "EXTRAPOLATED_TARGET",
-  "target_validity_note": "Cible gap_next_3m derivee de l'historique (tendance glissante). Aucune re-mesure future reelle (target_observation_date) n'existe dans le corpus : le RMSE mesure la qualite de l'extrapolation, pas une prediction observee. Promotion REAL_VALIDATED_TARGET conditionnee a >= 30 observations reelles sur >= 3 mois distincts.",
-  "real_future_observation_count": 0,
+  "target_validity_note": "Cibles extrapolées de la tendance (aucune re-mesure réelle après l'horizon de 3 mois au moment de l'entraînement).",
+  "real_future_observation_count": 217,
+  "distinct_observation_months": null,
   "notes": "Pipeline reproductible : dataset provenancé, split temporel strict, seed 42, anti-fuite (knowledge_difficulty_level/gap_next_3m exclus), normalisation capturée sur train, sidecar SHA-256."
 }

@@ -82,11 +82,13 @@ def test_predict_gaps_public_api_uses_ml_path():
 
 
 def test_predict_gaps_public_api_returns_empty_when_no_savoirs():
-    """Le modèle est actif (PRODUCTION_ML) mais sans savoirs pour T001,
-    predict_gaps retourne [] (pas de gaps à prédire)."""
+    """Le modèle est actif (PRODUCTION_ML) mais sans savoirs pour T001 :
+    predict_gaps retourne None (pas de serving vide) avec une raison de
+    repli honnête — l'appelant bascule sur l'heuristique / le snapshot."""
     port = _port()
     port._teacher_feature_bundle = lambda tid: {"savoirs": []}
-    assert port.predict_gaps("T001") == []
+    assert port.predict_gaps("T001") is None
+    assert "vide" in (port._fallback_reason or "")
 
 
 def test_predict_risk_public_api_returns_low_when_no_gaps():
@@ -181,10 +183,14 @@ def test_status_reports_active_when_model_loaded():
     assert status["risk_model"]["available"] is False
     assert status["relevance_model"]["available"] is False
     assert status["provenance"]["synthetic_share_pct"] == 0.0
-    assert status["provenance"]["dataset_version"] == "v1.0.0"
+    # Version du dataset = celle de l'entrée ACTIVE du registre réel (évolue
+    # à chaque réentraînement/promotion — ne pas coder en dur).
+    active_entry = port._registry.active()
+    assert status["provenance"]["dataset_version"] == (
+        active_entry.dataset_version if active_entry else None
+    )
     # Version = celle de l'entrée ACTIVE du registre réel (évolue à chaque
     # réentraînement/promotion — ne pas coder en dur).
-    active_entry = port._registry.active()
     assert status["model_version"] == (active_entry.model_version if active_entry else None)
     assert status["prediction_horizon"] == "3m"
 

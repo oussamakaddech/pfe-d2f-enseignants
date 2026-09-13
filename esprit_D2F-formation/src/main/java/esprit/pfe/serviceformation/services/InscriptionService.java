@@ -4,6 +4,7 @@ package esprit.pfe.serviceformation.services;
 import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.entities.*;
 import esprit.pfe.serviceformation.repositories.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
@@ -16,8 +17,10 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional
 public class InscriptionService {
@@ -364,6 +367,54 @@ public class InscriptionService {
                 .or(() -> enseignantRepo.findByMailIgnoreCase(emailOrUsername))
                 .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable pour l'utilisateur : " + emailOrUsername));
         return self.findSummariesByEnseignantId(ens.getId(), pageable);
+    }
+
+    /**
+     * Résout l'id de la FICHE enseignant de l'utilisateur (code E00xxx) depuis
+     * son contexte JWT, dans l'ordre de fiabilité (parité findOwnFiche) :
+     * 1. claim {@code userId} → {@code enseignants.user_id} ;
+     * 2. subject (username) → id de fiche ;
+     * 3. email → fiche (repli : plusieurs fiches peuvent partager un email de
+     *    test — l'exception éventuelle est avalée, on renvoie null).
+     * Renvoie {@code null} si aucune fiche n'est résolue.
+     */
+    @Transactional(readOnly = true)
+    public String resolveEnseignantIdFor(esprit.pfe.serviceformation.services.CurrentUser user) {
+        if (user == null) {
+            return null;
+        }
+        try {
+            if (user.userId() != null && !user.userId().isBlank()) {
+                Optional<Enseignant> byUserId = enseignantRepo.findByUserId(user.userId());
+                if (byUserId.isPresent()) {
+                    return byUserId.get().getId();
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Résolution fiche par userId impossible : {}", e.getMessage());
+        }
+        try {
+            if (user.username() != null && !user.username().isBlank()) {
+                Optional<Enseignant> byId = enseignantRepo.findById(user.username());
+                if (byId.isPresent()) {
+                    return byId.get().getId();
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Résolution fiche par username impossible : {}", e.getMessage());
+        }
+        try {
+            if (user.email() != null && !user.email().isBlank()) {
+                Optional<Enseignant> byMail = enseignantRepo.findByMailIgnoreCase(user.email());
+                if (byMail.isPresent()) {
+                    return byMail.get().getId();
+                }
+            }
+        } catch (Exception e) {
+            // Email partagé par plusieurs fiches (données de test) : ambigu.
+            log.debug("Résolution fiche par email ambiguë/échouée : {}", e.getMessage());
+        }
+        return null;
     }
 
     @Transactional(readOnly = true)

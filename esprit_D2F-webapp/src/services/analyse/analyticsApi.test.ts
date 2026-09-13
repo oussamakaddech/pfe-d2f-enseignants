@@ -577,6 +577,8 @@ describe('analyticsApi â€“ scope-analysis', () => {
     expect(out.scope.type).toBe('DEPARTMENT');
     expect(out.scope.is_global).toBe(false);
     expect(out.scope.label).toBe('DÃ©partement GÃ©nie Logiciel');
+    expect(out.scope.fallback).toBe(false);
+    expect(out.scope.fallback_reason).toBeNull();
   });
 
   it('getRisk mappe le DTO normalisÃ© (score 0..1, is_capped, facteurs bornÃ©s)', async () => {

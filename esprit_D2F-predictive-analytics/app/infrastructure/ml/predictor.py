@@ -468,11 +468,18 @@ class ArtifactModelPort:
             return None
         try:
             result = self._predict_gaps(teacher_id, mode=mode)
-            if result is None:
+            if not result:
+                # Prédiction vide (aucun savoir évaluable) = pas de serving :
+                # on journalise un repli honnête au lieu d'un "serving ML" vide.
+                if result is not None:
+                    self._fallback_reason = (
+                        "prédiction ML vide : aucun savoir évaluable pour l'enseignant"
+                    )
                 ml_observability.record_fallback(self._fallback_reason)
                 ml_observability.record_serving_call(
                     teacher_id, "HEURISTIC_FALLBACK", self._fallback_reason, None,
                 )
+                return None
             else:
                 entry = self._registry.active()
                 ml_observability.record_prediction(
@@ -573,9 +580,14 @@ class ArtifactModelPort:
 
     # --------------------------------------------------- Risk ML calibre (v2)
     def _resolved_gaps(self, teacher_id: str) -> list[SkillGap]:
-        """Gaps prédits, sinon gaps persistés."""
+        """Gaps prédits, sinon gaps persistés.
+
+        Une prédiction ML VIDE (aucun savoir évaluable pour l'enseignant)
+        équivaut à une absence de prédiction : on retombe sur le snapshot
+        persisté au lieu de servir un risque 0.0 vide et trompeur.
+        """
         gaps = self._predict_gaps(teacher_id)
-        if gaps is None:
+        if not gaps:
             gaps = self._persisted_gaps(teacher_id)
         return gaps or []
 
@@ -678,7 +690,7 @@ class ArtifactModelPort:
         """Décomposition heuristique de référence (0.50/0.12/0.40) sur les mêmes
         gaps — exposée comme vue secondaire quand le ML sert le score."""
         gaps = self._predict_gaps(teacher_id)
-        if gaps is None:
+        if not gaps:
             gaps = self._persisted_gaps(teacher_id)
         return self._rule_risk_scoped(teacher_id, gaps or [])
 
@@ -1405,10 +1417,11 @@ class ArtifactModelPort:
         # 2) Fallback : regle arbitraire derivee des gaps (comportement historique)
         self._risk_engine = "rules"
         gaps = self._predict_gaps(teacher_id)
-        if gaps is None:
-            # Le modele est indisponible ou la validation des features a echoue :
-            # on s'appuie sur le dernier snapshot de gaps persiste (meme source
-            # que l'onglet Gaps) pour ne pas afficher un risque faux-zero.
+        if not gaps:
+            # Le modele est indisponible, la validation des features a echoue
+            # ou la prédiction est vide (aucun savoir évaluable) : on s'appuie
+            # sur le dernier snapshot de gaps persiste (meme source que
+            # l'onglet Gaps) pour ne pas afficher un risque faux-zero.
             gaps = self._persisted_gaps(teacher_id)
         return self._rule_risk_scoped(teacher_id, gaps or [])
 

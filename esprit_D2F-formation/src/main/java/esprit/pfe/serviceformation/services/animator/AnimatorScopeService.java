@@ -140,6 +140,60 @@ public class AnimatorScopeService {
                         "Formation introuvable : " + formationId));
     }
 
+    /**
+     * Vérifie que l'appelant peut gérer la formation selon son périmètre
+     * (ADMIN global, CUP → UP, chef → département). Utilisé par les CRUD
+     * formations (workflow + simple) pour le CRUD complet scopé CUP/chef.
+     */
+    public void checkScope(Formation formation) {
+        ensureCanManageFormation(formation, resolveScope());
+    }
+
+    /**
+     * Contrôle de LECTURE scopé : CUP limité à son UP, chef à son département
+     * (anti-BOLA sur la consultation par identifiant). ADMIN et
+     * ENSEIGNANT/ANIMATEUR ne sont pas restreints (le scope résolu pour ces
+     * rôles ne déclenche aucun contrôle dans {@link #ensureCanManageFormation}).
+     * Sauté sans principal JWT (appels service-to-service, tests unitaires).
+     */
+    public void checkReadScope(Formation formation) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof Jwt)) {
+            return;
+        }
+        ensureCanManageFormation(formation, resolveScope());
+    }
+
+    /**
+     * Charge une formation en vérifiant le périmètre (404 si absente,
+     * 403 hors périmètre).
+     */
+    public Formation requireManagedFormation(Long formationId) {
+        Formation formation = requireFormation(formationId);
+        checkScope(formation);
+        return formation;
+    }
+
+    /**
+     * Filtre une liste au périmètre de l'appelant (CUP → UP, chef →
+     * département, autres rôles inchangés). Deny-by-default : périmètre
+     * CUP/chef indéterminé → 403 propagée.
+     */
+    public java.util.List<Formation> filterByScope(java.util.List<Formation> formations) {
+        ResolvedAnimatorScope scope = resolveScope();
+        if (scope.global()) {
+            return formations;
+        }
+        return formations.stream().filter(f -> {
+            try {
+                ensureCanManageFormation(f, scope);
+                return true;
+            } catch (AccessDeniedException ex) {
+                return false;
+            }
+        }).toList();
+    }
+
     /** Fiche enseignant de l'utilisateur connecté (par userId puis email). */
     private Optional<Enseignant> findOwnFiche(CurrentUser user) {
         Optional<Enseignant> fiche = Optional.empty();

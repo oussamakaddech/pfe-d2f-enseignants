@@ -33,15 +33,20 @@ def _sha256_of_file(path: Path) -> str:
 
 
 def _dataset_hash_from_corpus(corpus: Path | None = None) -> str:
-    """Calcule le SHA-256 du dataset provenancé (lignes triées, index reset)."""
+    """Calcule le SHA-256 du dataset provenancé (lignes triées, index reset).
+
+    lineterminator="\\n" obligatoire : to_csv() suit sinon os.linesep (CRLF
+    sur Windows) et le hash différerait entre plateformes pour un même
+    dataset — même convention que dataset_provenance.file_hash.
+    """
     path = corpus or PROVENCED_CORPUS
     if not path.exists():
         return ""
     df = pd.read_csv(path)
     if df.empty:
         return ""
-    canonical = df.copy().sort_values(by=df.columns.tolist()).reset_index(drop=True)
-    payload = canonical.to_csv(index=False).encode("utf-8")
+    canonical = df.copy().sort_values(by=df.columns.tolist(), kind="stable").reset_index(drop=True)
+    payload = canonical.to_csv(index=False, lineterminator="\n").encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
 
 
@@ -76,6 +81,15 @@ def register_model(
     metrics = metadata.get("metrics") or {}
     data_sources = metadata.get("data_sources") or {}
 
+    # Origine honnête dérivée du corpus : 0 % synthétique + source
+    # postgresql_d2f => INSTITUTIONAL_RECORD (jamais DEMO_SEED par défaut).
+    synth_pct = float(data_sources.get("synthetic_share_pct", 0.0))
+    from app.infrastructure.ml.model_registry import DATA_ORIGIN_INSTITUTIONAL, DATA_ORIGIN_DEMO_SEED
+
+    data_origin = (
+        DATA_ORIGIN_INSTITUTIONAL if synth_pct <= 0.0 else DATA_ORIGIN_DEMO_SEED
+    )
+
     entry = RegistryEntry(
         model_name="gap_predictor_temporal",
         model_version=model_version,
@@ -84,7 +98,8 @@ def register_model(
         dataset_version=metadata.get("dataset_version", "unknown"),
         dataset_hash=_dataset_hash_from_corpus(corpus) or metadata.get("dataset_hash", ""),
         artifact_sha256=_sha256_of_file(artifact),
-        synthetic_share_pct=float(data_sources.get("synthetic_share_pct", 0.0)),
+        synthetic_share_pct=synth_pct,
+        data_origin=data_origin,
         feature_names=list(metadata.get("feature_cols", [])),
         feature_schema_version=metadata.get("feature_schema_version", "1.0"),
         metrics={

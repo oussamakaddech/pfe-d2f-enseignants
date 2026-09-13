@@ -549,6 +549,14 @@ export default function UnifiedAdministrationPage() {
       await queryClient.invalidateQueries({ queryKey: ['enseignants'] });
       setEditTeacherModalOpen(false);
       setEditingTeacher(null);
+      msgApi.success('Fiche enseignant mise à jour');
+    } catch (err: unknown) {
+      // Ex : 404 si la fiche a été supprimée entre-temps (ligne périmée du
+      // cache) — on affiche le message serveur au lieu d'une rejection non
+      // capturée, et on rafraîchit la liste pour évacuer la ligne fantôme.
+      const e = err as { response?: { data?: { message?: string } } };
+      msgApi.error(e?.response?.data?.message || 'Erreur de modification');
+      await queryClient.invalidateQueries({ queryKey: ['enseignants'] });
     } finally {
       setEditTeacherLoading(false);
     }

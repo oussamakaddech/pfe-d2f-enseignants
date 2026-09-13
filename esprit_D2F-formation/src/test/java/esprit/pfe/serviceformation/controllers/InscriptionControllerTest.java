@@ -168,28 +168,46 @@ class InscriptionControllerTest {
 
     // ── Non-régression sécurité (anti-inscription pour autrui / IDOR) ──
 
+    /** Invoque la méthode privée selfOrAdmin sur l'instance contrôlée par Mockito. */
+    private Object invoqueSelfOrAdmin(org.springframework.security.oauth2.jwt.Jwt jwt, String enseignantId) throws Exception {
+        java.lang.reflect.Method m = InscriptionController.class
+                .getDeclaredMethod("selfOrAdmin",
+                        org.springframework.security.oauth2.jwt.Jwt.class, String.class);
+        m.setAccessible(true);
+        return m.invoke(controller, jwt, enseignantId);
+    }
+
     @Test
     @DisplayName("selfOrAdmin : enseignant demandant l'id d'autrui = 403")
     void testSelfOrAdmin_idorRefuse() throws Exception {
         org.springframework.security.oauth2.jwt.Jwt jwt = autreEnseignantJwt();
-        java.lang.reflect.Method m = InscriptionController.class
-                .getDeclaredMethod("selfOrAdmin",
-                        org.springframework.security.oauth2.jwt.Jwt.class, String.class);
-        m.setAccessible(true);
+        // La fiche de 'victim@esprit.tn' est E00002 : la demande d'un autre code est refusée.
+        when(inscriptionService.resolveEnseignantIdFor(any(
+                esprit.pfe.serviceformation.services.CurrentUser.class))).thenReturn("E00002");
         org.assertj.core.api.Assertions.assertThatThrownBy(
-                        () -> m.invoke(null, jwt, "someone-else@esprit.tn"))
+                        () -> invoqueSelfOrAdmin(jwt, "someone-else@esprit.tn"))
                 .hasCauseInstanceOf(org.springframework.security.access.AccessDeniedException.class);
     }
 
     @Test
-    @DisplayName("selfOrAdmin : enseignant demandant son propre id = accepté")
+    @DisplayName("selfOrAdmin : enseignant demandant SA fiche (code E00xxx) = accepté")
     void testSelfOrAdmin_selfAccepted() throws Exception {
         org.springframework.security.oauth2.jwt.Jwt jwt = enseignantJwt();
-        java.lang.reflect.Method m = InscriptionController.class
-                .getDeclaredMethod("selfOrAdmin",
-                        org.springframework.security.oauth2.jwt.Jwt.class, String.class);
-        m.setAccessible(true);
-        Object result = m.invoke(null, jwt, "e1@esprit.tn");
+        // Le frontend envoie le CODE fiche (E00xxx) ; le service résout la fiche de
+        // l'appelant depuis son userId/username/email JWT pour la comparaison.
+        when(inscriptionService.resolveEnseignantIdFor(any(
+                esprit.pfe.serviceformation.services.CurrentUser.class))).thenReturn("E00001");
+        Object result = invoqueSelfOrAdmin(jwt, "E00001");
+        org.assertj.core.api.Assertions.assertThat(result).isEqualTo("E00001");
+    }
+
+    @Test
+    @DisplayName("selfOrAdmin : enseignant passant son propre EMAIL = accepté (CatalogueTab)")
+    void testSelfOrAdmin_selfByEmailAccepted() throws Exception {
+        org.springframework.security.oauth2.jwt.Jwt jwt = enseignantJwt();
+        // CatalogueTab envoie l'email (identifier) — match direct sur l'identité
+        // JWT, même sans fiche résolue.
+        Object result = invoqueSelfOrAdmin(jwt, "e1@esprit.tn");
         org.assertj.core.api.Assertions.assertThat(result).isEqualTo("e1@esprit.tn");
     }
 }

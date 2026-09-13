@@ -10,6 +10,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
@@ -21,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class KPIServiceTest {
 
     @Mock private FormationRepository formationRepository;
@@ -28,6 +31,7 @@ class KPIServiceTest {
     @Mock private UpRepository upRepository;
     @Mock private DeptRepository deptRepository;
     @Mock private EnseignantRepository enseignantRepository;
+    @Mock private KpiScopeService kpiScopeService;
     @InjectMocks private KPIService service;
 
     private LocalDate start;
@@ -37,23 +41,26 @@ class KPIServiceTest {
     void setUp() {
         start = LocalDate.now().minusDays(1);
         end = LocalDate.now();
+        // Par défaut : périmètre global (ADMIN) — les tests de scoping dédiés
+        // sont dans KpiScopeServiceTest.
+        when(kpiScopeService.resolveScope()).thenReturn(new KpiScopeService.KpiScope(null, null));
     }
 
     @Test
     void countTotalFormations_shouldDelegate() {
-        when(formationRepository.countTotalFormations(any(), any())).thenReturn(5);
+        when(formationRepository.countTotalFormationsScoped(any(), any(), any(), any())).thenReturn(5);
         assertEquals(5, service.countTotalFormations(start, end));
     }
 
     @Test
     void calculateTotalHeures_shouldDelegate() {
-        when(formationRepository.sumTotalHeures(any(), any())).thenReturn(120);
+        when(formationRepository.sumTotalHeuresScoped(any(), any(), any(), any())).thenReturn(120);
         assertEquals(120, service.calculateTotalHeures(start, end));
     }
 
     @Test
     void countUniqueParticipants_shouldDelegate() {
-        when(formationRepository.countUniqueParticipants(any(), any())).thenReturn(45);
+        when(formationRepository.countUniqueParticipantsScoped(any(), any(), any(), any())).thenReturn(45);
         assertEquals(45, service.countUniqueParticipants(start, end));
     }
 
@@ -61,7 +68,7 @@ class KPIServiceTest {
     void getFormationsByEtat_shouldMapResults() {
         Object[] row1 = new Object[]{EtatFormation.ACHEVE, 3L};
         Object[] row2 = new Object[]{EtatFormation.PLANIFIE, 2L};
-        when(formationRepository.countFormationsByEtat(any(), any())).thenReturn(List.of(row1, row2));
+        when(formationRepository.countFormationsByEtatScoped(any(), any(), any(), any())).thenReturn(List.of(row1, row2));
 
         FormationsByEtatDTO result = service.getFormationsByEtat(start, end);
 
@@ -215,7 +222,7 @@ class KPIServiceTest {
     @Test
     void getCountByTrainerTypeWithIds_withInvalidUp_shouldThrow() {
         FormationFilter filter = new FormationFilter();
-        filter.setUpId(1L);
+        filter.setUpId("1");
         when(upRepository.existsById("1")).thenReturn(false);
 
         assertThrows(EntityNotFoundException.class, () -> service.getCountByTrainerTypeWithIds(filter, null));
@@ -224,7 +231,7 @@ class KPIServiceTest {
     @Test
     void getCountByTrainerTypeWithIds_withInvalidDept_shouldThrow() {
         FormationFilter filter = new FormationFilter();
-        filter.setDeptId(1L);
+        filter.setDeptId("1");
         when(deptRepository.existsById("1")).thenReturn(false);
 
         assertThrows(EntityNotFoundException.class, () -> service.getCountByTrainerTypeWithIds(filter, null));
@@ -236,7 +243,7 @@ class KPIServiceTest {
         Object[] row2 = new Object[]{EtatFormation.ENREGISTRE, 2L};
         Object[] row3 = new Object[]{EtatFormation.EN_COURS, 1L};
         Object[] row4 = new Object[]{EtatFormation.ANNULE, 1L};
-        when(formationRepository.countFormationsByEtat(any(), any()))
+        when(formationRepository.countFormationsByEtatScoped(any(), any(), any(), any()))
                 .thenReturn(List.of(row1, row2, row3, row4));
 
         FormationsByEtatDTO result = service.getFormationsByEtat(start, end);
@@ -393,7 +400,7 @@ class KPIServiceTest {
 
     @Test
     void getFormationsByEtat_withEmptyResults_shouldReturnZeroCounts() {
-        when(formationRepository.countFormationsByEtat(any(), any())).thenReturn(List.of());
+        when(formationRepository.countFormationsByEtatScoped(any(), any(), any(), any())).thenReturn(List.of());
 
         FormationsByEtatDTO result = service.getFormationsByEtat(start, end);
 

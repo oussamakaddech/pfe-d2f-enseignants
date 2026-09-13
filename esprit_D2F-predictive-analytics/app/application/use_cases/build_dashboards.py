@@ -26,12 +26,26 @@ class BuildDashboards:
         self._teacher_scopes_provider = teacher_scopes_provider
         self._dashboard_repository = dashboard_repository
 
-    # Construit le KPI dashboard d'un périmètre (GLOBAL ou département/UP) :
+    # Construit le KPI dashboard d'un périmètre (GLOBAL, UP ou département) :
     # parcourt les enseignants, agrège les tendances de déclin, la couverture,
     # le score moyen et le nombre d'enseignants à risque, puis persiste le snapshot.
     def execute(self, scope: str = "GLOBAL", scope_id: str | None = None) -> dict:
         scopes = self._teacher_scopes_provider()
-        teacher_ids = [tid for tid, s in scopes.items() if scope == "GLOBAL" or s.scope_id == scope_id or s.scope_type == scope]
+        # Périmètre explicite : GLOBAL → tous ; UP → enseignants de l'UP ;
+        # DEPARTEMENT → enseignants du département. Un scope_id indéterminé
+        # (None) ne doit matcher AUCUN enseignant (deny-by-default).
+        if scope == "GLOBAL":
+            teacher_ids = list(scopes.keys())
+        elif scope == "UP":
+            teacher_ids = [
+                tid for tid, s in scopes.items() if scope_id is not None and s.up_id == scope_id
+            ]
+        else:  # DEPARTEMENT
+            teacher_ids = [
+                tid
+                for tid, s in scopes.items()
+                if scope_id is not None and (s.scope_id == scope_id or s.scope_type == scope)
+            ]
 
         declining_rows: list[dict] = []
         coverage_rows: list[dict] = []
