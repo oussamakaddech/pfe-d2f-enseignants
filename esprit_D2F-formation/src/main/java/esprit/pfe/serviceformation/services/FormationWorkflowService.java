@@ -58,9 +58,17 @@ public class FormationWorkflowService {
     // construisent le service manuellement — les contrôles sont alors sautés).
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private AnimatorScopeService animatorScopeService;
-    @Lazy
-    @org.springframework.beans.factory.annotation.Autowired
     private FormationWorkflowService self;
+
+    /**
+     * Auto-référence @Lazy pour appeler les méthodes @Transactional via le
+     * proxy Spring (S6809) sans injection par champ (S6813). Non renseigné
+     * dans les tests unitaires qui construisent le service manuellement.
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setSelf(@Lazy FormationWorkflowService self) {
+        this.self = self;
+    }
 
     public FormationWorkflowService(DocumentRepository documentRepository,
             FormationRepository formationRepository,
@@ -1898,7 +1906,8 @@ public class FormationWorkflowService {
         boolean isChef = user.hasRole("CHEF_DEPARTEMENT") && !user.isAdmin();
         if (!isCup && !isChef) {
             // Vue complète (admin et autres rôles FORMATION_READ).
-            return self.getAllFormationWorkflows();
+            FormationWorkflowService target = (self != null) ? self : this;
+            return target.getAllFormationWorkflows();
         }
         Enseignant enseignant = enseignantRepository.findByMailIgnoreCase(user.email())
                 .orElseThrow(() -> new IllegalArgumentException(

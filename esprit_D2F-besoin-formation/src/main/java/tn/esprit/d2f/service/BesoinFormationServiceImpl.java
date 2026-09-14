@@ -570,10 +570,6 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
     // ── Helpers privés ────────────────────────────────────────────────────────
 
     /**
-     * Vérifie que l'utilisateur courant est ADMIN ou bien le propriétaire du besoin.
-     * Les rôles ENSEIGNANT et ANIMATEUR ne peuvent modifier/supprimer que leurs propres besoins.
-     */
-    /**
      * Vérifie que l'utilisateur courant peut modifier/supprimer le besoin :
      * ADMIN (global), créateur (enseignant/animateur), ou validateur
      * (CUP/chef) si le besoin appartient à son périmètre (UP / département).
