@@ -275,3 +275,11 @@
     width: 100% !important;
   }
 }
+
+/* ── Page unique Évaluations (onglets Formation / Formateur) ── */
+.evaluations-tabs-page .ant-tabs-nav {
+  margin-bottom: 16px;
+}
+.evaluations-tabs-page .ant-tabs-content-holder {
+  padding-bottom: 24px;
+}

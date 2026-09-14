@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { List, Card, Tag, Progress, Typography, Empty } from 'antd';
+import { List, Card, Tag, Typography, Empty } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import type { Recommendation } from '@/models/analyse/analyticsFeature';
 
@@ -40,19 +40,17 @@ export default function RecommendationsList({
                   {r.competence_nom ?? '—'} · rang {r.rang_dans_parcours}
                 </div>
               </div>
-              <Tag color="geekblue">score {r.score_global.toFixed(2)}</Tag>
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <Progress
-                percent={Math.round(r.probabilite_reussite * 100)}
-                size="small"
-                status="active"
-                format={(p) => `réussite ${p}%`}
-              />
+              <Tag color="geekblue">
+                Pertinence : {Math.round((r.score_pertinence ?? 0) * 100)}/100
+              </Tag>
             </div>
             <div style={{ marginTop: 6 }}>
               {r.est_prerequis && <Tag color="gold">prérequis</Tag>}
-              {!r.prerequis_satisfaits && <Tag color="red">prérequis manquants</Tag>}
+              {r.prerequis_satisfaits ? (
+                <Tag color="green">Prérequis satisfaits</Tag>
+              ) : (
+                <Tag color="orange">Prérequis à vérifier</Tag>
+              )}
               {r.statut === 'ACCEPTEE' && (
                 <Tag color="green" icon={<CheckCircleOutlined />}>
                   acceptée

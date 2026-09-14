@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/auth/useAuth';
@@ -80,9 +80,178 @@ export type BesoinLinkRaw = {
   domaineId?: number | null;
   competenceId?: number | null;
   competenceNom?: string;
+  sousCompetenceId?: number | null;
+  sousCompetenceNom?: string;
   savoirId?: number | null;
   savoirNom?: string;
-  sousCompetenceId?: number | null;
+};
+
+/** Nœud de référentiel avec identifiant et libellé (compétence, savoir…). */
+export type ReferentielNode = {
+  id?: unknown;
+  nom?: string;
+  domaineId?: number | string | null;
+  type?: string;
+};
+
+export interface CompetenceLinkContext {
+  compCompetences: ReferentielNode[];
+  savoirsByCompetence: Record<string, ReferentielNode[]>;
+  sousCompetencesByCompetence: Record<string, ReferentielNode[]>;
+  savoirsBySousCompetence: Record<string, ReferentielNode[]>;
+}
+
+/**
+ * Construit les liens plats (1 compétence × 1 savoir) d'une ligne de
+ * cartographie. Fonction pure extraite du useMemo pour limiter
+ * l'imbrication (S2004) : lignes multi. Les sous-compétences/savoirs
+ * cochés ne sont associés qu'aux compétences qui les possèdent ; une
+ * compétence sans sous-compétence/savoir coché est émise seule.
+ */
+export function buildCompetenceLinks(
+  row: CompetencyRow,
+  ctx: CompetenceLinkContext,
+): BesoinLinkRaw[] {
+  const links: BesoinLinkRaw[] = [];
+  const { compCompetences, sousCompetencesByCompetence } = ctx;
+  row.competenceIds.filter(Boolean).forEach((cid) => {
+    const comp = compCompetences.find((c) => Number(c.id) === Number(cid));
+    const domainId = comp?.domaineId == null ? null : Number(comp.domaineId);
+    const compName = comp?.nom || '';
+    const rowScIds = row.sousCompetenceIds.filter(Boolean).map(Number);
+    const compScs = sousCompetencesByCompetence[Number(cid)] || [];
+    const matchedScs = rowScIds.filter((sid) => compScs.some((sc) => Number(sc.id) === sid));
+    const rowSavIds = row.savoirIds.filter(Boolean).map(Number);
+    const savoirScope = resolveSavoirScope(matchedScs, cid, ctx);
+    const matchedSavoirs = rowSavIds.filter((sid) => savoirScope.some((s) => Number(s.id) === sid));
+    appendCompetenceLinks(links, {
+      cid,
+      domainId,
+      compName,
+      compScs,
+      matchedScs,
+      matchedSavoirs,
+      savoirScope,
+      ctx,
+    });
+  });
+  return links;
+}
+
+interface AppendLinksParams {
+  cid: NullableId;
+  domainId: number | null;
+  compName: string;
+  compScs: ReferentielNode[];
+  matchedScs: number[];
+  matchedSavoirs: number[];
+  savoirScope: ReferentielNode[];
+  ctx: CompetenceLinkContext;
+}
+
+function appendCompetenceLinks(links: BesoinLinkRaw[], p: AppendLinksParams): void {
+  const { cid, domainId, compName, compScs, matchedScs, matchedSavoirs } = p;
+  if (matchedSavoirs.length > 0) {
+    appendSavoirLinks(links, p);
+    return;
+  }
+  if (matchedScs.length > 0) {
+    matchedScs.forEach((scId) => {
+      links.push({
+        _id: crypto.randomUUID(),
+        domaineId: domainId,
+        competenceId: Number(cid),
+        competenceNom: compName,
+        sousCompetenceId: scId,
+        sousCompetenceNom: findSousCompetenceNom(compScs, scId),
+        savoirId: null,
+        savoirNom: '',
+      });
+    });
+    return;
+  }
+  links.push({
+    _id: crypto.randomUUID(),
+    domaineId: domainId,
+    competenceId: Number(cid),
+    competenceNom: compName,
+    sousCompetenceId: null,
+    sousCompetenceNom: '',
+    savoirId: null,
+    savoirNom: '',
+  });
+}
+
+function appendSavoirLinks(links: BesoinLinkRaw[], p: AppendLinksParams): void {
+  const { cid, domainId, compName, compScs, matchedSavoirs, savoirScope, ctx } = p;
+  const scToSavoirIds = buildScToSavoirIds(p.matchedScs, ctx);
+  matchedSavoirs.forEach((sid) => {
+    // la sous-compétence qui possède ce savoir (première trouvée)
+    let ownerSc: number | null = null;
+    scToSavoirIds.forEach((sids, scId) => {
+      if (ownerSc == null && sids.includes(sid)) ownerSc = scId;
+    });
+    const sv = savoirScope.find((s) => Number(s.id) === sid);
+    links.push({
+      _id: crypto.randomUUID(),
+      domaineId: domainId,
+      competenceId: Number(cid),
+      competenceNom: compName,
+      sousCompetenceId: ownerSc,
+      sousCompetenceNom: ownerSc == null ? '' : findSousCompetenceNom(compScs, ownerSc),
+      savoirId: sid,
+      savoirNom: sv?.nom || '',
+    });
+  });
+}
+
+/** Scope des savoirs : sous-compétences cochées, sinon savoirs directs. */
+function resolveSavoirScope(
+  matchedScs: number[],
+  cid: NullableId,
+  ctx: CompetenceLinkContext,
+): ReferentielNode[] {
+  if (matchedScs.length === 0) {
+    return ctx.savoirsByCompetence[Number(cid)] || [];
+  }
+  const uniqScope = new Map<string, ReferentielNode>();
+  matchedScs.forEach((scId) => {
+    const scSavoirs = ctx.savoirsBySousCompetence[scId] || [];
+    scSavoirs.forEach((s) => {
+      if (s?.id != null) uniqScope.set(String(s.id), s);
+    });
+  });
+  return Array.from(uniqScope.values());
+}
+
+/** Map sous-compétence → ids de ses savoirs (portée de la compétence). */
+function buildScToSavoirIds(
+  matchedScs: number[],
+  ctx: CompetenceLinkContext,
+): Map<number, number[]> {
+  const scToSavoirIds = new Map<number, number[]>();
+  matchedScs.forEach((scId) => {
+    const scSavoirs = ctx.savoirsBySousCompetence[scId] || [];
+    scToSavoirIds.set(scId, scSavoirs.map((s) => Number(s.id)).filter(Boolean));
+  });
+  return scToSavoirIds;
+}
+
+function findSousCompetenceNom(compScs: ReferentielNode[], scId: number): string {
+  return compScs.find((sc) => Number(sc.id) === scId)?.nom || '';
+}
+
+/**
+ * Ligne de la cartographie RICE : un domaine + plusieurs compétences
+ * et plusieurs savoirs. Au moment de la soumission, les liens plats
+ * (1 compétence × 1 savoir) sont dérivés depuis ces lignes.
+ */
+export type CompetencyRow = {
+  _id: string;
+  domaineId: NullableId | null;
+  competenceIds: NullableId[];
+  sousCompetenceIds: NullableId[];
+  savoirIds: NullableId[];
 };
 
 function extractAngleContents(input: string): string[] {
@@ -140,16 +309,35 @@ export type BesoinInfoShape = {
   priorite?: string;
 };
 
-export function mapBesoinLink(l: BesoinLinkRaw) {
-  return {
-    _id: crypto.randomUUID(),
-    domaineId: l.domaineId ?? null,
-    competenceId: l.competenceId ?? null,
-    competenceNom: l.competenceNom || '',
-    savoirId: l.savoirId ?? null,
-    savoirNom: l.savoirNom || '',
-    sousCompetenceId: l.sousCompetenceId ?? null,
-  };
+/** Convertit des liens plats (1 compétence × 1 sous-compétence × 1 savoir) en lignes structurées. */
+export function linksToCompRows(links: BesoinLinkRaw[]): CompetencyRow[] {
+  const byDomaine = new Map<string, CompetencyRow>();
+  links.forEach((l) => {
+    const key = `d:${String(l.domaineId ?? '')}`;
+    if (!byDomaine.has(key)) {
+      byDomaine.set(key, {
+        _id: crypto.randomUUID(),
+        domaineId: l.domaineId ?? null,
+        competenceIds: [],
+        sousCompetenceIds: [],
+        savoirIds: [],
+      });
+    }
+    const row = byDomaine.get(key)!;
+    const compId = Number(l.competenceId);
+    if (l.competenceId != null && !row.competenceIds.some((c) => Number(c) === compId)) {
+      row.competenceIds.push(compId);
+    }
+    const scId = Number(l.sousCompetenceId);
+    if (l.sousCompetenceId != null && !row.sousCompetenceIds.some((sc) => Number(sc) === scId)) {
+      row.sousCompetenceIds.push(scId);
+    }
+    const savId = Number(l.savoirId);
+    if (l.savoirId != null && !row.savoirIds.some((s) => Number(s) === savId)) {
+      row.savoirIds.push(savId);
+    }
+  });
+  return Array.from(byDomaine.values());
 }
 
 export const getPersonIds = (arr: { id?: unknown }[]) =>
@@ -421,7 +609,7 @@ function extractErrorMsg(err: unknown): string {
  * auth-user animateur. Returns the real enseignant ID to be used in animateursIds.
  * On 409 (duplicate email), finds the existing enseignant by mail and returns their ID.
  */
-async function createOrFindEnseignant(anim: PersonItem): Promise<string | null> {
+export async function createOrFindEnseignant(anim: PersonItem): Promise<string | null> {
   if (!anim.isAuthUser) return null;
   try {
     const created = await EnseignantService.createEnseignant({
@@ -557,8 +745,14 @@ export function useFormationWorkflow({
   const [compCompetences, setCompCompetences] = useState<
     { id?: NullableId; nom?: string; domaineId?: NullableId }[]
   >([]);
-  const [selectedCompLinks, setSelectedCompLinks] = useState<BesoinLinkRaw[]>([]);
-  const [rowSavoirs, setRowSavoirs] = useState<
+  const [compRows, setCompRows] = useState<CompetencyRow[]>([]);
+  const [savoirsByCompetence, setSavoirsByCompetence] = useState<
+    Record<number, { id?: unknown; nom?: string; type?: string }[]>
+  >({});
+  const [sousCompetencesByCompetence, setSousCompetencesByCompetence] = useState<
+    Record<number, { id?: unknown; nom?: string; code?: string }[]>
+  >({});
+  const [savoirsBySousCompetence, setSavoirsBySousCompetence] = useState<
     Record<number, { id?: unknown; nom?: string; type?: string }[]>
   >({});
   const [compSearch, setCompSearch] = useState('');
@@ -585,7 +779,10 @@ export function useFormationWorkflow({
   type FormationId = number | string | null;
   const [newFormationId, setNewFormationId] = useState<FormationId>(null);
 
-  const enseignantsList = Array.isArray(enseignants) ? enseignants : [];
+  const enseignantsList = useMemo(
+    () => (Array.isArray(enseignants) ? enseignants : []) as PersonItem[],
+    [enseignants],
+  );
 
   const optionsAnim = [...formateursList, ...manualAnimateurs].filter(
     (x) =>
@@ -710,13 +907,14 @@ export function useFormationWorkflow({
           const competences = Array.isArray(competencesData) ? competencesData : [];
           setCompDomaines(domaines);
           setCompCompetences(competences);
-          if (besoinCompetencesData && selectedCompLinks.length === 0) {
+          if (besoinCompetencesData && compRows.length === 0) {
             const links = Array.isArray(besoinCompetencesData) ? besoinCompetencesData : [];
-            if (links.length > 0) setSelectedCompLinks(links.map(mapBesoinLink));
+            if (links.length > 0) setCompRows(linksToCompRows(links));
           }
         })
         .catch(() => message.error('Impossible de charger le référentiel de compétences'));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeStep]);
 
   useEffect(() => {
@@ -813,49 +1011,170 @@ export function useFormationWorkflow({
   const removeSeance = (i: number) => setSeances(seances.filter((_, idx) => idx !== i));
   const toggleSeance = (i: number) => updateSeance(i, 'expanded', !seances[i].expanded);
 
-  type CompetenceChangePayload = {
-    id?: string | number | null;
-    nom?: string;
-    domaineId?: string | number | null;
+  // ── Cartographie RICE : lignes Domaine → Compétence(s) → Savoir(s) ──
+  const updateCompRow = (idx: number, patch: Partial<CompetencyRow>) =>
+    setCompRows((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+
+  const addCompRow = () =>
+    setCompRows((prev) => [
+      ...prev,
+      {
+        _id: crypto.randomUUID(),
+        domaineId: null,
+        competenceIds: [],
+        sousCompetenceIds: [],
+        savoirIds: [],
+      },
+    ]);
+
+  const removeCompRow = (idx: number) => setCompRows((prev) => prev.filter((_, i) => i !== idx));
+
+  const handleRowDomaineChange = (idx: number, val: number | string | null | undefined) =>
+    updateCompRow(idx, {
+      domaineId: val ?? null,
+      competenceIds: [],
+      sousCompetenceIds: [],
+      savoirIds: [],
+    });
+
+  /** Chargement cache : sous-compétences d'une compétence. */
+  const loadSousCompetencesForCompetence = useCallback(
+    async (competenceId: NullableId) => {
+      if (competenceId == null) return;
+      const cid = Number(competenceId);
+      if (sousCompetencesByCompetence[cid]) return;
+      const sc = await CompetenceService.sousCompetence.getByCompetence(cid);
+      setSousCompetencesByCompetence((prev) => ({
+        ...prev,
+        [cid]: Array.isArray(sc) ? sc : [],
+      }));
+    },
+    [sousCompetencesByCompetence],
+  );
+
+  /** Chargement cache : savoirs d'une sous-compétence. */
+  const loadSavoirsForSousCompetence = useCallback(
+    async (sousCompetenceId: NullableId) => {
+      if (sousCompetenceId == null) return;
+      const sid = Number(sousCompetenceId);
+      if (savoirsBySousCompetence[sid]) return;
+      const sv = await CompetenceService.savoir.getBySousCompetence(sid);
+      setSavoirsBySousCompetence((prev) => ({ ...prev, [sid]: Array.isArray(sv) ? sv : [] }));
+    },
+    [savoirsBySousCompetence],
+  );
+
+  /** Charge les savoirs d'une compétence en cache (déclenché au besoin). */
+  const loadSavoirsForCompetence = useCallback(
+    async (competenceId: NullableId) => {
+      if (competenceId == null) return;
+      const cid = Number(competenceId);
+      if (savoirsByCompetence[cid]) return;
+      const sv = await CompetenceService.savoir.getByCompetence(cid);
+      setSavoirsByCompetence((prev) => ({ ...prev, [cid]: Array.isArray(sv) ? sv : [] }));
+    },
+    [savoirsByCompetence],
+  );
+
+  // Charge sous-compétences + savoirs de toutes les compétences des lignes
+  // (y compris pré-remplies) et savoirs des sous-compétences cochées.
+  useEffect(() => {
+    const compIds = compRows.flatMap((r) => r.competenceIds).filter(Boolean);
+    compIds.forEach((cid) => {
+      void loadSousCompetencesForCompetence(cid).catch(() => {});
+      void loadSavoirsForCompetence(cid).catch(() => {});
+    });
+    compRows
+      .flatMap((r) => r.sousCompetenceIds)
+      .filter(Boolean)
+      .forEach((sid) => void loadSavoirsForSousCompetence(sid).catch(() => {}));
+  }, [
+    compRows,
+    loadSousCompetencesForCompetence,
+    loadSavoirsForCompetence,
+    loadSavoirsForSousCompetence,
+  ]);
+
+  const handleRowCompetencesChange = (idx: number, vals: NullableId[]) => {
+    updateCompRow(idx, {
+      competenceIds: vals.filter(Boolean),
+      sousCompetenceIds: [],
+      savoirIds: [],
+    });
+    vals.filter(Boolean).forEach((cid) => {
+      void loadSousCompetencesForCompetence(cid).catch(() => {});
+      void loadSavoirsForCompetence(cid).catch(() => {});
+    });
   };
-  const handleCompetenceChange = async (
-    idx: number,
-    competence: CompetenceChangePayload | null,
-  ) => {
-    const updated = [...selectedCompLinks];
-    const toNum = (v: string | number | null | undefined): number | null =>
-      v == null ? null : Number(v);
-    updated[idx] = {
-      ...updated[idx],
-      competenceId: toNum(competence?.id),
-      competenceNom: competence?.nom || '',
-      domaineId: toNum(competence?.domaineId ?? updated[idx].domaineId),
-      sousCompetenceId: null,
-      savoirId: null,
-    };
-    setSelectedCompLinks(updated);
-    if (competence?.id) {
-      const [, sv] = await Promise.all([
-        CompetenceService.sousCompetence.getByCompetence(competence.id),
-        CompetenceService.savoir.getByCompetence(competence.id),
-      ]);
-      setRowSavoirs((p) => ({ ...p, [idx]: Array.isArray(sv) ? sv : [] }));
+
+  const handleRowSousCompetencesChange = (idx: number, vals: NullableId[]) => {
+    updateCompRow(idx, { sousCompetenceIds: vals.filter(Boolean), savoirIds: [] });
+    vals.filter(Boolean).forEach((sid) => void loadSavoirsForSousCompetence(sid).catch(() => {}));
+  };
+
+  const handleRowSavoirsChange = (idx: number, vals: NullableId[]) =>
+    updateCompRow(idx, { savoirIds: vals.filter(Boolean) });
+
+  /** Union (dédupliquée) des sous-compétences de toutes les compétences d'une ligne. */
+  const getRowSousCompetenceOptions = (row: CompetencyRow) => {
+    const unique = new Map<string | number, { id?: unknown; nom?: string; code?: string }>();
+    row.competenceIds.filter(Boolean).forEach((cid) => {
+      (sousCompetencesByCompetence[Number(cid)] || []).forEach((sc) => {
+        if (sc?.id != null) unique.set(String(sc.id), sc);
+      });
+    });
+    return Array.from(unique.values());
+  };
+
+  /**
+   * Union des savoirs d'une ligne.
+   * Si des sous-compétences sont cochées → savoirs de ces sous-compétences ;
+   * sinon → savoirs des compétences cochées.
+   */
+  const getRowSavoirOptions = (row: CompetencyRow) => {
+    const unique = new Map<string | number, { id?: unknown; nom?: string; type?: string }>();
+    const scIds = row.sousCompetenceIds.filter(Boolean);
+    if (scIds.length > 0) {
+      scIds.forEach((sid) => {
+        (savoirsBySousCompetence[Number(sid)] || []).forEach((s) => {
+          if (s?.id != null) unique.set(String(s.id), s);
+        });
+      });
+    } else {
+      row.competenceIds.filter(Boolean).forEach((cid) => {
+        (savoirsByCompetence[Number(cid)] || []).forEach((s) => {
+          if (s?.id != null) unique.set(String(s.id), s);
+        });
+      });
     }
+    return Array.from(unique.values());
   };
 
-  const handleCompetenceSelect = (idx: number, val: number | string | null) =>
-    handleCompetenceChange(idx, compCompetences.find((c) => c.id === val) ?? null);
-
-  const handleSavoirSelect = (idx: number, val: number | null) => {
-    const u = [...selectedCompLinks];
-    const savoirs =
-      (rowSavoirs as Record<number, { id?: unknown; nom?: string; type?: string }[]>)[idx] ?? [];
-    u[idx] = { ...u[idx], savoirId: val, savoirNom: savoirs.find((s) => s.id === val)?.nom ?? '' };
-    setSelectedCompLinks(u);
-  };
-
-  const handleRemoveCompetenceLink = (idx: number) =>
-    setSelectedCompLinks(selectedCompLinks.filter((_, i) => i !== idx));
+  /**
+   * Liens plats (1 compétence × 1 sous-compétence × 1 savoir) dérivés des
+   * lignes multi. Les sous-compétences/savoirs cochés ne sont associés qu'aux
+   * compétences qui les possèdent ; une compétence sans sous-compétence/savoir
+   * coché est émise seule.
+   */
+  const selectedCompLinks = useMemo<BesoinLinkRaw[]>(() => {
+    const ctx: CompetenceLinkContext = {
+      compCompetences,
+      savoirsByCompetence,
+      sousCompetencesByCompetence,
+      savoirsBySousCompetence,
+    };
+    const links: BesoinLinkRaw[] = [];
+    compRows.forEach((row) => {
+      links.push(...buildCompetenceLinks(row, ctx));
+    });
+    return links;
+  }, [
+    compRows,
+    compCompetences,
+    savoirsByCompetence,
+    sousCompetencesByCompetence,
+    savoirsBySousCompetence,
+  ]);
 
   const getCompetenceOptions = (domaineId: number | string | null | undefined) => {
     const kw = compSearch.trim().toLowerCase();
@@ -1427,9 +1746,11 @@ export function useFormationWorkflow({
     setCoutRepas,
     compDomaines,
     compCompetences,
-    selectedCompLinks,
-    setSelectedCompLinks,
-    rowSavoirs,
+    compRows,
+    setCompRows,
+    savoirsByCompetence,
+    sousCompetencesByCompetence,
+    savoirsBySousCompetence,
     compSearch,
     setCompSearch,
     seances,
@@ -1443,9 +1764,15 @@ export function useFormationWorkflow({
     handleNext,
     handleBack,
     handleSubmit,
-    handleCompetenceSelect,
-    handleSavoirSelect,
-    handleRemoveCompetenceLink,
+    updateCompRow,
+    addCompRow,
+    removeCompRow,
+    handleRowDomaineChange,
+    handleRowCompetencesChange,
+    handleRowSousCompetencesChange,
+    handleRowSavoirsChange,
+    getRowSousCompetenceOptions,
+    getRowSavoirOptions,
     getCompetenceOptions,
     getEnseignantLabel,
     getAnimateurLabel,

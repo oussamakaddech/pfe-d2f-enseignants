@@ -9,7 +9,10 @@ from app.domain.value_objects.enums import DEFAULT_TARGET_LEVEL, Trend
 from app.domain.value_objects.enums import level_to_int
 
 
+# ── Use case : calcul des gaps (écarts de compétences) ──────────────────────
 class ComputeGaps:
+    # Injecte les dépendances : source des compétences, dépôt d'analyse,
+    # port du modèle ML et configuration (seuils de sévérité).
     def __init__(self, competency_source: CompetencySource, analysis_repository: AnalysisRepository, model_port: ModelPort, settings: Settings, teacher_source=None) -> None:
         self._competency_source = competency_source
         self._analysis_repository = analysis_repository
@@ -20,20 +23,23 @@ class ComputeGaps:
     def execute(self, teacher_id: str) -> tuple[list[SkillGap], str, str | None]:
         """Calcule les gaps d'un enseignant dans son périmètre.
 
-        Stratégie :
-        1) Le modèle ML (entraîné sur un référentiel éventuellement partiel)
-           prédit des brutes ; on les filtre au périmètre.
-        2) Si aucun gap ML ne reste dans le périmètre (modèle hors référentiel)
-           on complète avec l'heuristique sur le même périmètre afin qu'un
-           enseignant n'ait jamais de page blanche ni de gaps hors métier.
+        Retourne : (gaps, model_mode, model_version)
+        où ``model_mode`` est l'un des trois modes PRODUCTION_ML / DEMO_ML /
+        HEURISTIC_FALLBACK — jamais "ML" abrégé. Les métadonnées complètes
+        (fallback_reason, provenance, prediction_horizon) sont exposées via
+        ``model_port.status()`` par la couche API.
         """
         scoped = self._scoped_competencies(teacher_id)
+        status = self._model_port.status()
+        model_mode = status.get("model_mode", "HEURISTIC_FALLBACK")
+        model_version = status.get("model_version")
+
         ml_gaps = self._model_port.predict_gaps(teacher_id)
         if ml_gaps is not None:
             filtered = self._filter_to_scope_ids(scoped, ml_gaps)
             if filtered:
                 self._analysis_repository.save_skill_gaps(filtered, teacher_id=teacher_id)
-                return filtered, "ML", self._model_port.status().get("version")
+                return filtered, model_mode, model_version
             # Le ML ne couvre pas le périmètre : fallback heuristique ciblé.
             gaps = self._heuristic_on(competencies=scoped, teacher_id=teacher_id)
             self._analysis_repository.save_skill_gaps(gaps, teacher_id=teacher_id)
@@ -41,6 +47,9 @@ class ComputeGaps:
 
         gaps = self._heuristic(teacher_id)
         self._analysis_repository.save_skill_gaps(gaps, teacher_id=teacher_id)
+        # Les gaps renvoyés sont heuristiques (le ML n'a rien prédit) :
+        # on expose HEURISTIC_FALLBACK même si le modèle est chargé
+        # (ex : features invalides au serving) — jamais un mode ML mensonger.
         return gaps, "HEURISTIC_FALLBACK", None
 
     @staticmethod
@@ -62,10 +71,15 @@ class ComputeGaps:
         scoped = self._competency_source.list_competencies_for_scope(up_id, dept_id, specialite)
         return scoped if scoped else self._competency_source.list_competencies()
 
+    # Gaps calculés en mode heuristique pur (sans ML) sur TOUTES les compétences
+    # du périmètre de l'enseignant.
     def _heuristic(self, teacher_id: str) -> list[SkillGap]:
         competencies = self._scoped_competencies(teacher_id)
         return self._heuristic_on(competencies=competencies, teacher_id=teacher_id)
 
+    # Cœur du calcul heuristique : pour chaque compétence du périmètre, calcule
+    # le niveau actuel moyen de l'enseignant, le compare au niveau cible,
+    # déduit score/sévérité/tendance et construit la liste des SkillGap.
     def _heuristic_on(self, competencies: list[Competency], teacher_id: str) -> list[SkillGap]:
         levels = self._competency_source.get_teacher_savoir_levels(teacher_id)
         history = self._competency_source.get_teacher_savoir_levels_history(teacher_id)
@@ -91,8 +105,8 @@ class ComputeGaps:
                     competence_id=competency.id,
                     competence_code=competency.code,
                     competence_nom=competency.nom,
-                    current_level=current_level,
-                    target_level=float(competency.target_level),
+                    observed_result=current_level,
+                    knowledge_difficulty_level=float(competency.target_level),
                     gap_score=gap_score,
                     severity=severity,
                     trend=trend,
@@ -101,6 +115,8 @@ class ComputeGaps:
             )
         return gaps
 
+    # Niveau moyen actuel d'une compétence = moyenne des niveaux de l'enseignant
+    # sur les savoirs qui la composent (0 si aucun niveau connu).
     @staticmethod
     def _average_current_level(competency, savoir_levels: dict[int, int]) -> float:
         ids = competency.savoir_ids()

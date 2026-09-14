@@ -122,8 +122,10 @@ class InscriptionServiceTest {
     void testDemanderInscription_Duplicate() {
         Formation f = createValidFormation(1L);
         when(formationRepo.findById(1L)).thenReturn(Optional.of(f));
-        when(enseignantRepo.findById(anyString())).thenReturn(Optional.of(new Enseignant()));
-        when(inscriptionRepo.findByEnseignant_Id(anyString())).thenReturn(Collections.emptyList());
+        Enseignant e = new Enseignant();
+        e.setId("E1");
+        when(enseignantRepo.findById(anyString())).thenReturn(Optional.of(e));
+        when(inscriptionRepo.findByEnseignant_Id("E1")).thenReturn(Collections.emptyList());
         when(inscriptionRepo.save(any())).thenThrow(new RuntimeException("Duplicate"));
         
         assertThrows(IllegalStateException.class, () -> service.demanderInscription(1L, "E1"));

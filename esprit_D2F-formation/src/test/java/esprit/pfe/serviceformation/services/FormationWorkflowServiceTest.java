@@ -47,6 +47,10 @@ class FormationWorkflowServiceTest {
     @InjectMocks
     private FormationWorkflowService formationWorkflowService;
 
+    /** Utilisateur à portée globale : contourne le contrôle row-level présences. */
+    private static final CurrentUser ADMIN_USER =
+            new CurrentUser("admin", "1", "admin@esprit.tn", Set.of("ADMIN"));
+
     private FormationWorkflowRequest request;
 
     @BeforeEach
@@ -254,7 +258,7 @@ class FormationWorkflowServiceTest {
         presence.setIdParticipation(1L);
         lenient().when(presenceRepository.findById(1L)).thenReturn(Optional.of(presence));
         
-        formationWorkflowService.updatePresence(1L, true, "OK");
+        formationWorkflowService.updatePresence(1L, true, "OK", ADMIN_USER);
         
         assertThat(presence.isPresent()).isTrue();
         assertThat(presence.getCommentaire()).isEqualTo("OK");
@@ -350,6 +354,100 @@ class FormationWorkflowServiceTest {
         
         List<FormationResponseDTO> list = formationWorkflowService.getFormationsParDepartement("D1");
         assertThat(list).isNotEmpty();
+    }
+
+    private CurrentUser cupUser() {
+        return new CurrentUser("fbenhassen", "u1", "f.benhassen@esprit.tn", java.util.Set.of("CUP"));
+    }
+
+    private CurrentUser chefUser() {
+        return new CurrentUser("sbouazizi", "u2", "s.bouazizi@esprit.tn",
+                java.util.Set.of("CHEF_DEPARTEMENT"));
+    }
+
+    private CurrentUser adminUser() {
+        return new CurrentUser("admin", "u3", "admin@d2f.tn", java.util.Set.of("ADMIN"));
+    }
+
+    private Enseignant enseignantWith(Up up, Dept dept) {
+        Enseignant e = new Enseignant();
+        e.setId("ENS001");
+        e.setMail("x@esprit.tn");
+        e.setUp(up);
+        e.setDept(dept);
+        return e;
+    }
+
+    @Test
+    @DisplayName("getMesFormationsPilote - CUP : formations de son UP uniquement")
+    void shouldGetMesFormationsPilote_cupScopedToUp() {
+        Formation f = createFullFormation();
+        Up up = new Up();
+        up.setId("UP1");
+        Enseignant ens = enseignantWith(up, null);
+        when(enseignantRepository.findByMailIgnoreCase("f.benhassen@esprit.tn"))
+                .thenReturn(Optional.of(ens));
+        when(formationRepository.findByUp_Id("UP1")).thenReturn(List.of(f));
+
+        List<FormationResponseDTO> list = formationWorkflowService.getMesFormationsPilote(cupUser());
+
+        assertThat(list).isNotEmpty();
+        verify(formationRepository).findByUp_Id("UP1");
+        verify(formationRepository, never()).findAll();
+    }
+
+    @Test
+    @DisplayName("getMesFormationsPilote - Chef : formations de son département uniquement")
+    void shouldGetMesFormationsPilote_chefScopedToDept() {
+        Formation f = createFullFormation();
+        Dept dept = new Dept();
+        dept.setId("D1");
+        Enseignant ens = enseignantWith(null, dept);
+        when(enseignantRepository.findByMailIgnoreCase("s.bouazizi@esprit.tn"))
+                .thenReturn(Optional.of(ens));
+        when(formationRepository.findByDepartement_Id("D1")).thenReturn(List.of(f));
+
+        List<FormationResponseDTO> list = formationWorkflowService.getMesFormationsPilote(chefUser());
+
+        assertThat(list).isNotEmpty();
+        verify(formationRepository).findByDepartement_Id("D1");
+        verify(formationRepository, never()).findAll();
+    }
+
+    @Test
+    @DisplayName("getMesFormationsPilote - Admin : vue complète")
+    void shouldGetMesFormationsPilote_adminSeesAll() {
+        Formation f = createFullFormation();
+        when(formationRepository.findAll()).thenReturn(List.of(f));
+
+        List<FormationResponseDTO> list = formationWorkflowService.getMesFormationsPilote(adminUser());
+
+        assertThat(list).isNotEmpty();
+        verify(formationRepository).findAll();
+        verifyNoInteractions(enseignantRepository);
+    }
+
+    @Test
+    @DisplayName("getMesFormationsPilote - profil enseignant introuvable : erreur explicite")
+    void shouldGetMesFormationsPilote_unknownProfile() {
+        when(enseignantRepository.findByMailIgnoreCase("f.benhassen@esprit.tn"))
+                .thenReturn(Optional.empty());
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> formationWorkflowService.getMesFormationsPilote(cupUser()));
+        assertThat(ex.getMessage()).contains("Profil enseignant introuvable");
+    }
+
+    @Test
+    @DisplayName("getMesFormationsPilote - CUP sans UP rattachée : erreur explicite")
+    void shouldGetMesFormationsPilote_cupWithoutUp() {
+        Enseignant ens = enseignantWith(null, null);
+        when(enseignantRepository.findByMailIgnoreCase("f.benhassen@esprit.tn"))
+                .thenReturn(Optional.of(ens));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> formationWorkflowService.getMesFormationsPilote(cupUser()));
+        assertThat(ex.getMessage()).contains("Aucune UP rattachée");
     }
 
     @Test
@@ -525,6 +623,63 @@ class FormationWorkflowServiceTest {
         lenient().when(helper.parseTime(any())).thenReturn(LocalTime.MIDNIGHT);
 
         assertThrows(IllegalArgumentException.class, () -> formationWorkflowService.updateFormationWorkflow(1L, request));
+    }
+
+    // ── isSelfCalendar (calendrier enseignant : contrôle d'identité) ─────────
+    // Bug corrigé : l'id du path (ex "E00007") est l'identifiant fonctionnel de
+    // la fiche, alors que le JWT porte sub=username + email — l'ancienne
+    // comparaison id-vs-email renvoyait toujours false → 403 pour TOUS les
+    // enseignants consultant leur propre calendrier.
+
+    @Test
+    @DisplayName("isSelfCalendar - username JWT = id fonctionnel → self")
+    void isSelfCalendarUsernameMatch() {
+        CurrentUser user = new CurrentUser("E00007", "uuid-1", "o.kaddech@esprit.tn", Set.of("ENSEIGNANT"));
+        assertThat(formationWorkflowService.isSelfCalendar("E00007", user)).isTrue();
+    }
+
+    @Test
+    @DisplayName("isSelfCalendar - croisement mail de la fiche avec l'email du JWT → self")
+    void isSelfCalendarMailMatch() {
+        Enseignant fiche = new Enseignant();
+        fiche.setId("E00007");
+        fiche.setMail("oussama.kaddech@esprit.tn");
+        lenient().when(enseignantRepository.findById("E00007")).thenReturn(Optional.of(fiche));
+        // JWT : sub = username canonique ≠ id fonctionnel, email = mail de la fiche
+        CurrentUser user = new CurrentUser("oussama", "uuid-1", "oussama.kaddech@esprit.tn", Set.of("ENSEIGNANT"));
+        assertThat(formationWorkflowService.isSelfCalendar("E00007", user)).isTrue();
+    }
+
+    @Test
+    @DisplayName("isSelfCalendar - croisement mail de la fiche avec le username JWT → self")
+    void isSelfCalendarMailVsUsernameMatch() {
+        Enseignant fiche = new Enseignant();
+        fiche.setId("E00007");
+        fiche.setMail("oussama");
+        lenient().when(enseignantRepository.findById("E00007")).thenReturn(Optional.of(fiche));
+        CurrentUser user = new CurrentUser("oussama", "uuid-1", null, Set.of("ENSEIGNANT"));
+        assertThat(formationWorkflowService.isSelfCalendar("E00007", user)).isTrue();
+    }
+
+    @Test
+    @DisplayName("isSelfCalendar - autre enseignant (anti-énumération) → refus")
+    void isSelfCalendarOtherTeacherDenied() {
+        Enseignant fiche = new Enseignant();
+        fiche.setId("E00007");
+        fiche.setMail("oussama.kaddech@esprit.tn");
+        lenient().when(enseignantRepository.findById("E00007")).thenReturn(Optional.of(fiche));
+        CurrentUser user = new CurrentUser("fjlassi", "uuid-2", "f.jlassi@esprit.tn", Set.of("ENSEIGNANT"));
+        assertThat(formationWorkflowService.isSelfCalendar("E00007", user)).isFalse();
+    }
+
+    @Test
+    @DisplayName("isSelfCalendar - fiche inconnue / entrées vides → refus")
+    void isSelfCalendarUnknownOrBlankDenied() {
+        lenient().when(enseignantRepository.findById("INCONNU")).thenReturn(Optional.empty());
+        CurrentUser user = new CurrentUser("fjlassi", "uuid-2", "f.jlassi@esprit.tn", Set.of("ENSEIGNANT"));
+        assertThat(formationWorkflowService.isSelfCalendar("INCONNU", user)).isFalse();
+        assertThat(formationWorkflowService.isSelfCalendar(null, user)).isFalse();
+        assertThat(formationWorkflowService.isSelfCalendar("E00007", null)).isFalse();
     }
 
     private Formation createFullFormation() {

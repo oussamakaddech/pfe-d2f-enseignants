@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Table, Tag, Progress, Space, Empty, Typography } from 'antd';
+import { Table, Tag, Space, Empty, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { URGENCE_COLORS } from '@/utils/analytics/constants';
 import { gapSeverityColor } from '@/utils/analytics/format';
@@ -38,7 +38,6 @@ export default function GapsTable({ gaps, loading, onRowClick }: GapsTableProps)
             <span style={{ fontWeight: 600 }}>{r.competence_nom}</span>
             <Space size={4}>
               <span style={{ fontSize: 12, color: '#8c8c8c' }}>{r.competence_code}</span>
-              {r.niveau_actuel === 0 && <Tag color="red">Manquante</Tag>}
             </Space>
           </Space>
         ),
@@ -47,17 +46,6 @@ export default function GapsTable({ gaps, loading, onRowClick }: GapsTableProps)
         title: 'Domaine',
         dataIndex: 'domaine_nom',
         render: (v: string) => v || '—',
-      },
-      {
-        title: 'Niveau actuel',
-        dataIndex: 'niveau_actuel',
-        sorter: (a, b) => a.niveau_actuel - b.niveau_actuel,
-        render: (v: number) => <Progress percent={v * 20} size="small" />,
-      },
-      {
-        title: 'Niveau requis',
-        dataIndex: 'niveau_requis',
-        sorter: (a, b) => a.niveau_requis - b.niveau_requis,
       },
       {
         title: 'Gap',
@@ -75,18 +63,12 @@ export default function GapsTable({ gaps, loading, onRowClick }: GapsTableProps)
         onFilter: (value, r) => r.niveau_urgence === value,
       },
       {
-        title: 'Stagnation',
-        dataIndex: 'mois_stagnation',
-        render: (v: number) => (v > 0 ? `${v} mois` : '—'),
-        sorter: (a, b) => a.mois_stagnation - b.mois_stagnation,
-      },
-      {
-        title: 'Régression',
+        title: 'Tendance',
         dataIndex: 'en_regression',
-        render: (v: boolean) => (v ? <Tag color="red">Oui</Tag> : <Tag>Non</Tag>),
+        render: (v: boolean) => (v ? <Tag color="red">Régression</Tag> : <Tag>Stable</Tag>),
       },
     ],
-    [gaps],
+    [],
   );
 
   if (!loading && uniqueGaps.length === 0) {
@@ -105,7 +87,7 @@ export default function GapsTable({ gaps, loading, onRowClick }: GapsTableProps)
         </Typography.Text>
       )}
       <Table<SkillGap>
-        rowKey={(r) => `${r.competence_id}-${r.niveau_requis}`}
+        rowKey={(r) => `${r.competence_id}`}
         loading={loading}
         columns={columns}
         dataSource={uniqueGaps}

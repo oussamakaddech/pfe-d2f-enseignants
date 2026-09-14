@@ -298,6 +298,32 @@ public class FormationController {
         return ResponseEntity.ok(formationSearchService.searchByDomain(domain, pageable));
     }
 
+    @GetMapping("/{formationId}/is-animateur/{enseignantId}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    @Operation(
+        summary = "Vérifier si un enseignant est animateur d'une formation",
+        description = "Retourne true si l'enseignant est assigné comme animateur de la formation."
+    )
+    @ApiResponse(responseCode = "200", description = "Résultat de la vérification")
+    public ResponseEntity<Boolean> isAnimateurOfFormation(
+            @Parameter(description = "ID de la formation") @PathVariable Long formationId,
+            @Parameter(description = "ID de l'enseignant") @PathVariable String enseignantId) {
+        return ResponseEntity.ok(formationService.isAnimateurOfFormation(formationId, enseignantId));
+    }
+
+    @GetMapping("/{formationId}/is-participant/{enseignantId}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    @Operation(
+        summary = "Vérifier si un enseignant participe à une formation",
+        description = "Retourne true si l'enseignant est inscrit (approuvé), animateur ou formateur de la formation."
+    )
+    @ApiResponse(responseCode = "200", description = "Résultat de la vérification")
+    public ResponseEntity<Boolean> isParticipantOfFormation(
+            @Parameter(description = "ID de la formation") @PathVariable Long formationId,
+            @Parameter(description = "ID de l'enseignant") @PathVariable String enseignantId) {
+        return ResponseEntity.ok(formationService.isParticipantOfFormation(formationId, enseignantId));
+    }
+
     @PostMapping("/search/advanced")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     @Operation(

@@ -29,7 +29,7 @@ public class BesoinFormationResponse {
     @Schema(description = "Identifiant fonctionnel de l'enseignant", example = "jdupont")
     private String username;
 
-    @Schema(description = "Type de besoin (INTERNE / EXTERNE)", example = "INTERNE")
+    @Schema(description = "Type de besoin (INDIVIDUEL / COLLECTIF)", example = "COLLECTIF")
     private TypeBesoin typeBesoin;
 
     @Schema(description = "Titre du besoin", example = "Formation Spring Boot avancé")
@@ -77,6 +77,38 @@ public class BesoinFormationResponse {
     private Boolean approuveAdmin;
 
     private String notificationMessage;
+
+    // ── Workflow sécurisé ───────────────────────────────────────────────────
+
+    @Schema(description = "Identifiant technique du créateur (claim JWT)", example = "9d1f...")
+    private String createdByUserId;
+
+    @Schema(description = "Rôle fonctionnel du créateur (figé serveur)", example = "ENSEIGNANT")
+    private tn.esprit.d2f.entity.enumerations.CreatorRole createdByRole;
+
+    @Schema(description = "Étape courante du workflow", example = "CUP")
+    private tn.esprit.d2f.entity.enumerations.ApprovalStep currentApprovalStep;
+
+    @Schema(description = "Statut métier", example = "SUBMITTED")
+    private tn.esprit.d2f.entity.enumerations.BesoinStatus status;
+
+    @Schema(description = "Motif du refus (si REJECTED)")
+    private String rejectionReason;
+
+    @Schema(description = "Auteur du refus")
+    private String rejectedBy;
+
+    @Schema(description = "Horodatage du refus (UTC)")
+    private String rejectedAt;
+
+    @Schema(description = "Validateur étape CUP")
+    private String approvedByCup;
+
+    @Schema(description = "Validateur étape département")
+    private String approvedByChefDepartement;
+
+    @Schema(description = "Validateur final (admin)")
+    private String approvedByAdmin;
 
     @Schema(description = "Événement RabbitMQ publié (true = événement envoyé au service Formation)", example = "false")
     private Boolean eventPublished;

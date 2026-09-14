@@ -1,0 +1,110 @@
+{
+  "versions": {
+    "v1.0.0": {
+      "schema": {
+        "exists": true,
+        "schema_version": "1.0",
+        "n_features": 29,
+        "features": [
+          "current_level_t3",
+          "current_level_t2",
+          "current_level_t1",
+          "current_level_t",
+          "lag_gap_t3_t2",
+          "lag_gap_t2_t1",
+          "lag_gap_t1_t",
+          "rolling_tendance",
+          "days_since_last_training",
+          "training_frequency_per_month",
+          "is_long_absent",
+          "is_stagnant",
+          "avg_level",
+          "min_level",
+          "max_level",
+          "nb_level_5",
+          "nb_level_1",
+          "nb_savoirs",
+          "nb_competences",
+          "competency_coverage_rate",
+          "nb_formations_completed",
+          "nb_formations_in_progress",
+          "taux_assiduite",
+          "nb_besoins_exprimes",
+          "nb_besoins_approuves",
+          "avg_eval_score",
+          "nb_evaluations",
+          "months_since_last_training",
+          "engagement_score"
+        ],
+        "target": "gap_next_3m",
+        "forbidden_in_X": [
+          "gap_next_3m",
+          "required_level",
+          "required_level_t"
+        ],
+        "schema_hash": "71e029e254f9b3bced91f7faef0bd0ebb1f1c14f1a1c72c9820cc63e48445ef0",
+        "features_match_pipeline": true
+      },
+      "artifact": {
+        "exists": true,
+        "n_features_in": 29,
+        "metadata_n_features": 29,
+        "metadata_feature_ranges_count": 29,
+        "metadata_features_match_schema": true
+      }
+    },
+    "v1.1.0": {
+      "schema": {
+        "exists": true,
+        "schema_version": "1.0",
+        "n_features": 29,
+        "features": [
+          "current_level_t3",
+          "current_level_t2",
+          "current_level_t1",
+          "current_level_t",
+          "lag_gap_t3_t2",
+          "lag_gap_t2_t1",
+          "lag_gap_t1_t",
+          "rolling_tendance",
+          "days_since_last_training",
+          "training_frequency_per_month",
+          "is_long_absent",
+          "is_stagnant",
+          "avg_level",
+          "min_level",
+          "max_level",
+          "nb_level_5",
+          "nb_level_1",
+          "nb_savoirs",
+          "nb_competences",
+          "competency_coverage_rate",
+          "nb_formations_completed",
+          "nb_formations_in_progress",
+          "taux_assiduite",
+          "nb_besoins_exprimes",
+          "nb_besoins_approuves",
+          "avg_eval_score",
+          "nb_evaluations",
+          "months_since_last_training",
+          "engagement_score"
+        ],
+        "target": "gap_next_3m",
+        "forbidden_in_X": [
+          "gap_next_3m",
+          "required_level",
+          "required_level_t"
+        ],
+        "schema_hash": "71e029e254f9b3bced91f7faef0bd0ebb1f1c14f1a1c72c9820cc63e48445ef0",
+        "features_match_pipeline": true
+      },
+      "artifact": {
+        "exists": true,
+        "n_features_in": 29,
+        "metadata_n_features": 29,
+        "metadata_feature_ranges_count": 29,
+        "metadata_features_match_schema": true
+      }
+    }
+  }
+}

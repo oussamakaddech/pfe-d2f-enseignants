@@ -1,10 +1,15 @@
 name: SonarQube Webapp Only
 
+# Analyse webapp isolee : uniquement a la demande (workflow_dispatch).
+# Sur chaque push, la matrice sonar de ci.yml couvre deja d2f_webapp ;
+# ce workflow doublonnait l'analyse sur le(s) runner(s) self-hosted et
+# bloquait la file pendant >1h (scan webapp gourmand en memoire).
 on:
-  push:
-    branches:
-      - oussama
   workflow_dispatch:
+
+concurrency:
+  group: sonar-webapp-only
+  cancel-in-progress: true
 
 permissions:
   contents: read

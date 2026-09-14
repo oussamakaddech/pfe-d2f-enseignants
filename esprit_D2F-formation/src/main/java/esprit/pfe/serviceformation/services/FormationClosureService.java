@@ -1,21 +1,32 @@
 package esprit.pfe.serviceformation.services;
 
+import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.entities.EtatFormation;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.entities.SeanceFormation;
-import esprit.pfe.serviceformation.entities.Enseignant;
-import esprit.pfe.serviceformation.repositories.FormationRepository;
-import esprit.pfe.serviceformation.repositories.SeanceFormationRepository;
-import esprit.pfe.serviceformation.repositories.PresenceRepository;
+import esprit.pfe.serviceformation.dto.CertificateEligibilitySummaryDTO;
 import esprit.pfe.serviceformation.messaging.CertificateBatchMessage;
 import esprit.pfe.serviceformation.messaging.CertificateEventPublisher;
+import esprit.pfe.serviceformation.repositories.EnseignantRepository;
+import esprit.pfe.serviceformation.repositories.FormationRepository;
+import esprit.pfe.serviceformation.repositories.SeanceFormationRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Clôture d'une formation : génération des certificats.
+ *
+ * <p>Un certificat n'est généré que si les critères de certification sont
+ * satisfaits pour le participant (cf. {@link CertificateEligibilityService}) :
+ * formation achevée, taux de présence suffisant, post-test réussi et
+ * évaluation du formateur soumise. Cela évite les certificats générés par erreur.</p>
+ */
 @Service
 @Slf4j
 public class FormationClosureService {
@@ -23,17 +34,20 @@ public class FormationClosureService {
     private static final String ROLE_PARTICIPANT = "PARTICIPANT";
     private final FormationRepository formationRepository;
     private final SeanceFormationRepository seanceFormationRepository;
-    private final PresenceRepository presenceRepository;
+    private final EnseignantRepository enseignantRepository;
     private final CertificateEventPublisher certificateEventPublisher;
+    private final CertificateEligibilityService certificateEligibilityService;
 
-    public FormationClosureService(FormationRepository formationRepository, 
-                                 SeanceFormationRepository seanceFormationRepository, 
-                                 PresenceRepository presenceRepository, 
-                                 CertificateEventPublisher certificateEventPublisher) {
+    public FormationClosureService(FormationRepository formationRepository,
+                                   SeanceFormationRepository seanceFormationRepository,
+                                   EnseignantRepository enseignantRepository,
+                                   CertificateEventPublisher certificateEventPublisher,
+                                   CertificateEligibilityService certificateEligibilityService) {
         this.formationRepository = formationRepository;
         this.seanceFormationRepository = seanceFormationRepository;
-        this.presenceRepository = presenceRepository;
+        this.enseignantRepository = enseignantRepository;
         this.certificateEventPublisher = certificateEventPublisher;
+        this.certificateEligibilityService = certificateEligibilityService;
     }
 
     @Transactional
@@ -44,8 +58,16 @@ public class FormationClosureService {
         if (formation.isCertifGenerated()) {
             throw new IllegalStateException("Les certificats ont deja ete generes pour cette formation !");
         }
+        if (formation.getEtatFormation() != EtatFormation.ACHEVE) {
+            throw new IllegalStateException(
+                    "Les certificats ne peuvent etre generes que pour une formation achevee.");
+        }
 
         List<SeanceFormation> seances = seanceFormationRepository.findByFormationId(formationId);
+        if (seances.isEmpty()) {
+            throw new IllegalStateException(
+                    "Les certificats ne peuvent pas etre generes sans seance de formation.");
+        }
 
         Map<String, String> rolesByEnseignant = new HashMap<>();
         for (SeanceFormation sf : seances) {
@@ -62,19 +84,41 @@ public class FormationClosureService {
             }
         }
 
-        List<Enseignant> enseignantsPleinPresence = presenceRepository.findEnseignantsPresentSurToutesLesSeances(formationId);
+        // Un certificat n'est produit que si TOUS les critères de certification
+        // sont satisfaits pour le participant (présence, post-test, évaluation).
+        List<CertificateBatchMessage.EnseignantPresenceInfo> batchInfos = new ArrayList<>();
+        List<String> ineligible = new ArrayList<>();
+        for (Map.Entry<String, String> entry : rolesByEnseignant.entrySet()) {
+            String enseignantId = entry.getKey();
+            Enseignant enseignant = enseignantRepository.findById(enseignantId).orElse(null);
+            if (enseignant == null) {
+                ineligible.add(enseignantId + " (enseignant introuvable)");
+                continue;
+            }
+            CertificateEligibilitySummaryDTO summary =
+                    certificateEligibilityService.evaluateEligibilityWithSummary(
+                            formationId, enseignantId, typeCertif);
+            if (summary.isEligible()) {
+                CertificateBatchMessage.EnseignantPresenceInfo info =
+                        new CertificateBatchMessage.EnseignantPresenceInfo();
+                info.setEnseignantId(enseignant.getId());
+                info.setNom(enseignant.getNom());
+                info.setPrenom(enseignant.getPrenom());
+                info.setMail(enseignant.getMail());
+                info.setRole(entry.getValue());
+                info.setPresent(true);
+                info.setDeptEnseignantLibelle(enseignant.getDept() != null ? enseignant.getDept().getLibelle() : null);
+                batchInfos.add(info);
+            } else {
+                ineligible.add(enseignantId + " (" + String.join("; ", summary.getRejectionReasons()) + ")");
+            }
+        }
 
-        List<CertificateBatchMessage.EnseignantPresenceInfo> batchInfos = enseignantsPleinPresence.stream().map(enseignant -> {
-            CertificateBatchMessage.EnseignantPresenceInfo info = new CertificateBatchMessage.EnseignantPresenceInfo();
-            info.setEnseignantId(enseignant.getId());
-            info.setNom(enseignant.getNom());
-            info.setPrenom(enseignant.getPrenom());
-            info.setMail(enseignant.getMail());
-            info.setRole(rolesByEnseignant.getOrDefault(enseignant.getId(), ROLE_PARTICIPANT));
-            info.setPresent(true);
-            info.setDeptEnseignantLibelle(enseignant.getDept() != null ? enseignant.getDept().getLibelle() : null);
-            return info;
-        }).toList();
+        if (batchInfos.isEmpty()) {
+            throw new IllegalStateException(
+                    "Aucun participant ne remplit les criteres de certification. Motifs : "
+                            + String.join(" | ", ineligible));
+        }
 
         CertificateBatchMessage msg = new CertificateBatchMessage();
         msg.setFormationId(formationId);
@@ -90,6 +134,10 @@ public class FormationClosureService {
         formation.setCertifGenerated(true);
         formationRepository.save(formation);
 
-        log.info("Certificats {} generes pour formation {} => {} enseignants.", typeCertif, formationId, batchInfos.size());
+        log.info("Certificats {} generes pour formation {} => {} enseignants eligibles.",
+                typeCertif, formationId, batchInfos.size());
+        if (!ineligible.isEmpty()) {
+            log.info("Participants exclus de la certification pour formation {} : {}", formationId, ineligible);
+        }
     }
 }

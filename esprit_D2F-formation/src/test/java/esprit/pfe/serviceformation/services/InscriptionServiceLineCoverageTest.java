@@ -298,7 +298,7 @@ class InscriptionServiceLineCoverageTest {
         }
 
         @Test
-        @DisplayName("UP mismatch on non-ouverte formation → exception")
+        @DisplayName("UP mismatch on non-ouverte formation  exception")
         void upMismatch() {
             formation.setOuverte(false);
             Up otherUp = new Up();
@@ -308,7 +308,7 @@ class InscriptionServiceLineCoverageTest {
             when(enseignantRepo.findById("ENS001")).thenReturn(Optional.of(enseignant));
             assertThatThrownBy(() -> inscriptionService.demanderInscription(1L, "ENS001"))
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("pas autorisé");
+                    .hasMessageContaining("n’appartenez");
         }
 
         @Test
@@ -405,7 +405,8 @@ class InscriptionServiceLineCoverageTest {
             when(formationRepo.findById(1L)).thenReturn(Optional.of(formation));
             when(enseignantRepo.findById("other@test.com")).thenReturn(Optional.empty());
             when(enseignantRepo.findByMail("other@test.com")).thenReturn(Optional.of(ensByMail));
-            when(inscriptionRepo.findByEnseignant_Id("other@test.com")).thenReturn(new ArrayList<>());
+            // Le contrôle de chevauchement utilise l'ID réel de la fiche résolue.
+            when(inscriptionRepo.findByEnseignant_Id("ENS002")).thenReturn(new ArrayList<>());
             when(inscriptionRepo.save(any())).thenReturn(saved);
 
             Inscription result = inscriptionService.demanderInscription(1L, "other@test.com");
@@ -426,7 +427,8 @@ class InscriptionServiceLineCoverageTest {
             when(enseignantRepo.findById("CI@TEST.COM")).thenReturn(Optional.empty());
             when(enseignantRepo.findByMail("CI@TEST.COM")).thenReturn(Optional.empty());
             when(enseignantRepo.findByMailIgnoreCase("CI@TEST.COM")).thenReturn(Optional.of(ensCI));
-            when(inscriptionRepo.findByEnseignant_Id("CI@TEST.COM")).thenReturn(new ArrayList<>());
+            // Le contrôle de chevauchement utilise l'ID réel de la fiche résolue.
+            when(inscriptionRepo.findByEnseignant_Id("ENS003")).thenReturn(new ArrayList<>());
             when(inscriptionRepo.save(any())).thenReturn(saved);
 
             Inscription result = inscriptionService.demanderInscription(1L, "CI@TEST.COM");

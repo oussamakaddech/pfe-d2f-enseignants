@@ -365,6 +365,9 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      # Clients Feign inter-services (placeholders services.*.url)
+      SERVICES_FORMATION_URL: http://d2f-formation:8088
+      SERVICES_AUTH_URL: http://d2f-auth:8085
     depends_on:
       postgres:
         condition: service_healthy
@@ -478,7 +481,9 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      # Boot réel observé : ~120 s (Flyway + Hibernate). 60 s provoquait un
+      # « unhealthy » avant la fin du démarrage et bloquait analyse-service.
+      start_period: 240s
     networks:
       - d2f-network
 
@@ -497,9 +502,10 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       JWT_SECRET: ${JWT_SECRET}
-      # URLs des microservices appelés (clients REST)
-      AUTH_SERVICE_URL: http://d2f-auth:8085
-      CERTIFICAT_SERVICE_URL: http://d2f-certificat:8086
+      # URLs des microservices appelés (clients REST) — noms alignés sur
+      # application-prod.properties (SERVICES_*_URL), hôtes = noms compose.
+      SERVICES_AUTH_URL: http://d2f-auth:8085
+      SERVICES_CERTIFICAT_URL: http://d2f-certificat:8086
       SERVICES_EVALUATION_URL: http://d2f-evaluation:8087
       SERVICES_FORMATION_URL: http://d2f-formation:8088
       SERVICES_COMPETENCE_URL: http://d2f-competence:8005
@@ -605,6 +611,31 @@ services:
       MESSAGING_ENABLED: "false"
       CORS_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
       MODELS_DIR: /app/data/models
+      # ── Modes d'exécution ML ──────────────────────────────────────────────
+      # ML_SERVING_MODE est une REQUÊTE : les contrôles peuvent refuser
+      # l'activation (HEURISTIC_FALLBACK) si les conditions ne sont pas réunies.
+      ML_SERVING_MODE: ${ML_SERVING_MODE:-PRODUCTION_ML}
+      ML_REQUIRE_REAL_DATA: ${ML_REQUIRE_REAL_DATA:-true}
+      ML_SYNTHETIC_TOLERANCE_PCT: ${ML_SYNTHETIC_TOLERANCE_PCT:-50.0}
+      ML_MIN_REAL_ROWS: ${ML_MIN_REAL_ROWS:-50}
+      ML_MIN_R2: ${ML_MIN_R2:-0.0}
+      ML_MAX_RMSE: ${ML_MAX_RMSE:-2.0}
+      ML_MAX_MAE: ${ML_MAX_MAE:-1.5}
+      ML_MODEL_VERSION: ${ML_MODEL_VERSION:-v1.0.0}
+      ML_ARTIFACT_PATH: ${ML_ARTIFACT_PATH:-gap_predictor_temporal.joblib}
+      ML_METADATA_PATH: ${ML_METADATA_PATH:-temporal_training_metadata.json}
+      ML_REGISTRY_PATH: ${ML_REGISTRY_PATH:-model_registry.json}
+      ML_FEATURE_SCHEMA_PATH: ${ML_FEATURE_SCHEMA_PATH:-feature_schema.json}
+      # Skew guard KS désactivé (opérateur) : le corpus réel (217 lignes,
+      # features globales constantes par enseignant) rend le test KS à deux
+      # échantillons structurellement bruité — faux positifs p=0.0 en masse
+      # qui basculaient tout le serving en heuristique. La validation par
+      # plages (feature_schema) + provenance + registre restent actives.
+      ML_SKEW_GUARD_ENABLED: ${ML_SKEW_GUARD_ENABLED:-false}
+    volumes:
+      # L'artefact est monté en lecture seule — il n'est jamais régénéré au
+      # démarrage du conteneur. La promotion/rollback est pilotée explicitement.
+      - ./esprit_D2F-predictive-analytics/data/models:/app/data/models:ro
     depends_on:
       predictive-db-migrate:
         condition: service_completed_successfully
@@ -628,6 +659,10 @@ services:
         VITE_API_URL: ${VITE_API_URL:-/api}
         VITE_NOTIFICATION_URL: ${VITE_NOTIFICATION_URL:-/api}
         VITE_NOTIFICATIONS_WS_URL: ${VITE_NOTIFICATIONS_WS_URL:-}
+        # RICE direct navigateur (dev) ou via gateway /api (prod, défaut) :
+        # RiceService tombe sur API_BASE_URL si vide.
+        VITE_RICE_URL: ${VITE_RICE_URL:-}
+        VITE_FORMATION_SERVICE_URL: ${VITE_FORMATION_SERVICE_URL:-}
     container_name: d2f-webapp
     restart: unless-stopped
     ports:

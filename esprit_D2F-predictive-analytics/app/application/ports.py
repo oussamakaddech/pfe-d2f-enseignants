@@ -31,7 +31,9 @@ class CompetencySource(Protocol):
 
 
 class FormationSource(Protocol):
-    def get_candidates_for_competency(self, competence_id: int) -> list[TrainingCandidate]: ...
+    def get_candidates_for_competency(
+        self, competence_id: int, dept_id: str | None = None, up_id: str | None = None
+    ) -> list[TrainingCandidate]: ...
 
     def get_completed_formation_ids(self, teacher_id: str) -> set[int]: ...
 
@@ -63,7 +65,18 @@ class ModelPort(Protocol):
 
     def predict_risk(self, teacher_id: str) -> RiskProfile | None: ...
 
+    def predict_risk_serving(self, teacher_id: str) -> tuple[RiskProfile | None, dict | None, str | None]:
+        """Risque servi : (profil, payload ML | None, fallback_reason | None)."""
+        ...
+
+    def heuristic_risk_reference(self, teacher_id: str) -> RiskProfile:
+        """Decomposition heuristique de reference (0.50/0.12/0.40)."""
+        ...
+
+    def risk_ml_status(self) -> dict: ...
+
     def status(self) -> dict: ...
+
 
 
 class AlertRepository(Protocol):

@@ -15,6 +15,8 @@ ALERT_SEVERITY_KEYS = {"CRITIQUE": "GAP_CRITIQUE", "HAUTE": "GAP_CRITIQUE", "MOY
 
 
 class GenerateAlerts:
+    # Injecte : source des enseignants, fournisseurs de gaps et de risque,
+    # dépôt d'alertes et configuration (seuil de risque élevé).
     def __init__(
         self,
         teacher_source,
@@ -29,6 +31,8 @@ class GenerateAlerts:
         self._alert_repository = alert_repository
         self._settings = settings
 
+    # Génère les alertes d'un enseignant : 1 alerte par gap CRITIQUE/HAUTE
+    # + 1 alerte REGRESSION si son score de risque dépasse le seuil haut.
     def generate_for_teacher(self, teacher_id: str, teacher: Teacher | None = None) -> list[Alert]:
         teacher = teacher or self._teacher_source.get_teacher(teacher_id)
         alerts: list[Alert] = []
@@ -68,12 +72,15 @@ class GenerateAlerts:
             )
         return alerts
 
+    # Génère les alertes de TOUS les enseignants puis les trie par priorité
+    # (sévérité × portée) — les plus urgentes en premier.
     def generate_all(self) -> list[Alert]:
         alerts: list[Alert] = []
         for teacher in self._teacher_source.list_teachers():
             alerts.extend(self.generate_for_teacher(teacher.id, teacher))
         return sort_by_priority(alerts)
 
+    # Génère puis sauvegarde toutes les alertes en base ; renvoie les alertes persistées.
     def persist_all(self) -> list[Alert]:
         saved: list[Alert] = []
         for alert in self.generate_all():

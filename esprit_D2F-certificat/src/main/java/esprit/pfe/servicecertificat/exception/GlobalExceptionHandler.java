@@ -70,6 +70,12 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), MODULE_PREFIX + "-500", request);
     }
 
+    @ExceptionHandler(QrCodeGenerationException.class)
+    public ResponseEntity<ErrorResponse> handleQrCodeGeneration(QrCodeGenerationException ex, HttpServletRequest request) {
+        log.error("QR code generation error: {}", ex.getMessage());
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), MODULE_PREFIX + "-500", request);
+    }
+
     /**
      * Ressource statique / endpoint introuvable → 404 (au lieu de 500).
      * Empêche NoResourceFoundException de tomber dans le handler générique.

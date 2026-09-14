@@ -1,0 +1,9 @@
+{
+  "total_corpus_raw": 172,
+  "with_true_target": 0,
+  "lignes_v1.0.0_retrouvees": 107,
+  "lignes_v1.1.0_retrouvees": 172,
+  "nouvelles_lignes_reellement_ajoutees": 0,
+  "doublons": 0,
+  "conflits": 0
+}

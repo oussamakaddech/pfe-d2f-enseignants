@@ -41,7 +41,11 @@ class FormationWorkflowControllerTest {
     @BeforeEach
     void setup() {
         lenient().when(formationMapper.toResponseDTO(any())).thenReturn(new FormationResponseDTO());
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).setCustomArgumentResolvers(new org.springframework.data.web.PageableHandlerMethodArgumentResolver()).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setCustomArgumentResolvers(
+                        new org.springframework.data.web.PageableHandlerMethodArgumentResolver(),
+                        new org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver())
+                .build();
     }
 
     @Test

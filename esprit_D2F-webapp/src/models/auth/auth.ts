@@ -78,6 +78,7 @@ export interface EditProfileRequest {
 }
 
 export interface UpdatePasswordRequest {
+  oldPassword: string;
   newPassword: string;
   confirmation: string;
 }

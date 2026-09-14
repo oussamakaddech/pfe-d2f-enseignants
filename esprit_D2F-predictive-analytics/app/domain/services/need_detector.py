@@ -10,8 +10,13 @@ class TeacherScope:
     teacher_id: str
     scope_type: str
     scope_id: str | None
+    # UP de rattachement (distincte du département) : permet le filtrage des
+    # dashboards au périmètre UP du CUP (scope="UP").
+    up_id: str | None = None
 
 
+# Détecte les besoins de formation INDIVIDUELS : pour chaque enseignant, tout
+# écart (gap) dont le score dépasse le seuil devient un besoin de type INDIVIDUEL.
 def detect_individual_needs(
     gaps_by_teacher: dict[str, list[SkillGap]],
     threshold: float,
@@ -35,6 +40,9 @@ def detect_individual_needs(
     return needs
 
 
+# Détecte les besoins de formation COLLECTIFS : regroupe les écarts par
+# (compétence, périmètre — département/UP/global) et ne retient que ceux
+# touchant au moins `min_teachers` enseignants.
 def detect_collective_needs(
     gaps_by_teacher: dict[str, list[SkillGap]],
     teacher_scopes: dict[str, TeacherScope],

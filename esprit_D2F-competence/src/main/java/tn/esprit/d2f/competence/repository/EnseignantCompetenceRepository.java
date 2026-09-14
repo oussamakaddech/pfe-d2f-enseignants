@@ -109,6 +109,44 @@ public interface EnseignantCompetenceRepository extends JpaRepository<Enseignant
     @Query("DELETE FROM EnseignantCompetence ec WHERE ec.savoir.id IN :savoirIds")
     void deleteBySavoirIdIn(@Param("savoirIds") List<Long> savoirIds);
 
+    /**
+     * Supprime les affectations liées aux savoirs directement rattachés à une
+     * compétence du domaine (savoir.competence non-null).
+     *
+     * <p>Requête séparée volontairement : une navigation implicite en OR sur les
+     * deux chemins (via sous-compétence OU direct) génère des INNER JOIN qui
+     * excluent les savoirs dont l'autre parent est NULL – la suppression ne
+     * couvrait alors qu'une partie des lignes et laissait des violations de clé
+     * étrangère (409) lors de la suppression du domaine. Voir
+     * {@link #deleteByDomaineId(Long)}.
+     */
+    @Transactional
+    @Modifying
+    @Query("DELETE FROM EnseignantCompetence ec WHERE ec.savoir.competence.domaine.id = :domaineId")
+    void deleteByDomaineIdDirectSavoirs(@Param("domaineId") Long domaineId);
+
+    /**
+     * Supprime les affectations liées aux savoirs rattachés via une
+     * sous-compétence du domaine (savoir.sousCompetence non-null).
+     */
+    @Transactional
+    @Modifying
+    @Query("DELETE FROM EnseignantCompetence ec WHERE ec.savoir.sousCompetence.competence.domaine.id = :domaineId")
+    void deleteByDomaineIdViaSousCompetence(@Param("domaineId") Long domaineId);
+
+    /**
+     * Supprime toutes les affectations d'un domaine en couvrant les deux
+     * rattachements possibles d'un savoir (direct sur compétence OU via
+     * sous-compétence). L'union des deux suppressions mono-chemin couvre
+     * l'intégralité des lignes, contrairement à un OR sur navigations
+     * implicites (INNER JOIN sur associations NULLables).
+     *
+     * <p>Les deux suppressions mono-chemin sont composées dans
+     * {@code DomaineServiceImpl.deleteDomaine} au sein de la même transaction
+     * (l'appel de méthodes transactionnelles doit passer par un bean injecté,
+     * pas par {@code this} au sein d'une interface).</p>
+     */
+
     // ── findSavoirIds – couvre les deux rattachements ───────────────────────
 
     @Query("""

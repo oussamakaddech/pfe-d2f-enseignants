@@ -1,0 +1,79 @@
+{
+  "versions": {
+    "v1.0.0": {
+      "n_rows": 107,
+      "n_teachers": 40,
+      "n_competencies": 11,
+      "min_date_t": "2016-03-01",
+      "max_date_t": "2026-07-22",
+      "n_months_covered": 29,
+      "missing_values_total": 0,
+      "duplicate_rows_exact": 0,
+      "target_min": 0.0,
+      "target_max": 4.0,
+      "target_mean": 2.4330218068535823,
+      "target_zeros": 7,
+      "target_non_zeros": 100,
+      "target_nan": 0,
+      "target_out_of_0_5": 0,
+      "teachers_per_competence_max": 30,
+      "rows_per_teacher_min": 1,
+      "rows_per_teacher_max": 6
+    },
+    "v1.1.0": {
+      "n_rows": 172,
+      "n_teachers": 40,
+      "n_competencies": 13,
+      "min_date_t": "2016-03-01",
+      "max_date_t": "2026-07-22",
+      "n_months_covered": 36,
+      "missing_values_total": 0,
+      "duplicate_rows_exact": 0,
+      "target_min": 0.0,
+      "target_max": 4.0,
+      "target_mean": 2.2810077519379846,
+      "target_zeros": 19,
+      "target_non_zeros": 153,
+      "target_nan": 0,
+      "target_out_of_0_5": 0,
+      "teachers_per_competence_max": 31,
+      "rows_per_teacher_min": 2,
+      "rows_per_teacher_max": 6
+    }
+  },
+  "cleaning": {
+    "dataset_path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\clean\\training_corpus_provenanced_v110.csv",
+    "dataset_version": "v1.1.0",
+    "dataset_hash_after": "896609dbdd57d98f0e32e971af6a7357be4064c17d74301856db8abf917e2b47",
+    "initial_rows": 172,
+    "final_rows": 172,
+    "rows_removed": 0,
+    "rows_corrected": 0,
+    "rows_quarantined": 0,
+    "type_corrections": [],
+    "duplicate_actions": [],
+    "duplicate_conflicts": 0,
+    "missing_values": {},
+    "imputation_actions": [],
+    "out_of_range": {},
+    "range_actions": [],
+    "date_issues": {},
+    "date_actions": [],
+    "id_issues": {},
+    "id_actions": [],
+    "granularity": {
+      "granularity": "one_row_per_teacher_competence_month",
+      "valid": true,
+      "violations": []
+    },
+    "provenance": {
+      "total_rows": 172,
+      "real_rows": 172,
+      "synthetic_rows": 0
+    }
+  },
+  "removed_rows_file": {
+    "exists": true,
+    "n_removed_rows": 0
+  }
+}

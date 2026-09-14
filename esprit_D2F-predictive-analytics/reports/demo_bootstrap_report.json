@@ -1,0 +1,24 @@
+{
+  "model": "mlp",
+  "seed": 42,
+  "n_bootstrap": 1000,
+  "bootstrap_seed": 2026,
+  "method": "1000 réplications avec remise sur l'échantillon test (n=182), IC percentile 2.5-97.5",
+  "ic95_rmse": [
+    0.5846,
+    0.9618
+  ],
+  "ic95_mae": [
+    0.3708,
+    0.5533
+  ],
+  "ic95_improvement_vs_persistence_pct": [
+    18.7605,
+    43.4197
+  ],
+  "mean_rmse": 0.7657,
+  "mean_mae": 0.4578,
+  "mean_improvement_pct": 31.3383,
+  "std_rmse": 0.0992,
+  "std_mae": 0.0459
+}

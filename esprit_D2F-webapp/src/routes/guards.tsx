@@ -1,13 +1,8 @@
 import { useContext, useEffect, ReactNode } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { AuthContext } from '@/context/AuthContext';
+import { hasAnyRole } from '@/utils/constants/roles';
 import { notify } from '@/utils/helpers/notifications';
-
-const normalizeRole = (value: unknown): string =>
-  (typeof value === 'string' ? value : '')
-    .toLowerCase()
-    .replace(/^role_?/, '')
-    .replaceAll(/[\s_-]+/g, '');
 
 /**
  * Frontend Authorization Matrix.
@@ -22,41 +17,57 @@ export const FRONTEND_PERMISSIONS = {
     ASSIGN: ['admin'],
   },
   AFFECTATION: {
-    READ: ['admin', 'CUP'],
+    READ: ['admin', 'CUP', 'Enseignant', 'CHEF_DEPARTEMENT'],
     CREATE: ['admin'],
     UPDATE_SELF: ['admin', 'CUP', 'Enseignant'],
     UPDATE_ALL: ['admin'],
     DELETE: ['admin'],
   },
   BESOIN_FORMATION: {
-    READ_ALL: ['admin', 'CHEF_DEPARTEMENT'],
+    READ_ALL: ['admin', 'CHEF_DEPARTEMENT', 'ResponsableDossier'],
     READ_CUP: ['admin', 'CUP'],
     READ_ENSEIGNANT: ['admin', 'Enseignant'],
-    CREATE: ['admin', 'CUP', 'Enseignant', 'Animateur'],
-    UPDATE: ['admin'],
-    DELETE: ['admin'],
+    CREATE: ['admin', 'CUP', 'Enseignant', 'Animateur', 'CHEF_DEPARTEMENT'],
+    // Parité AuthorizationMatrix.BESOIN_FORMATION_UPDATE/DELETE : CRUD complet
+    // CUP/CHEF_DEPARTEMENT sur leur périmètre (contrôle fin côté service).
+    UPDATE: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'Enseignant', 'Animateur'],
+    DELETE: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'Enseignant', 'Animateur'],
     APPROVE: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
+    REJECT: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
+    MANAGE_SCOPES: ['admin'],
   },
   FORMATION: {
     READ: ['admin', 'CUP', 'Enseignant', 'Animateur', 'ResponsableDossier', 'CHEF_DEPARTEMENT'],
-    CREATE: ['admin', 'CUP'],
-    UPDATE: ['admin', 'CUP', 'ResponsableDossier'],
-    DELETE: ['admin'],
+    // Parité AuthorizationMatrix.FORMATION_CREATE/UPDATE/DELETE : CRUD complet
+    // CUP/CHEF_DEPARTEMENT sur leur périmètre (contrôle fin côté service).
+    CREATE: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
+    UPDATE: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'ResponsableDossier'],
+    DELETE: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
     APPROVE: ['admin', 'CUP'],
     READ_OWN: ['admin', 'Animateur', 'Enseignant'],
+    // Marquage des présences d'une séance (parité AuthorizationMatrix.PRESENCE_MARK).
+    PRESENCE_MARK: [
+      'admin',
+      'CUP',
+      'CHEF_DEPARTEMENT',
+      'ResponsableDossier',
+      'Animateur',
+      'Enseignant',
+    ],
   },
   EVALUATION: {
-    READ_ALL: ['admin', 'CHEF_DEPARTEMENT', 'Enseignant'],
+    READ_ALL: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'Enseignant', 'Animateur'],
+    READ_FORMATION: ['admin', 'CHEF_DEPARTEMENT', 'Enseignant', 'Animateur'],
     READ_CUP: ['admin', 'CUP'],
     READ_ENSEIGNANT: ['admin', 'Enseignant'],
     READ_FORMATEUR: ['admin', 'Animateur'],
-    CREATE: ['admin', 'Animateur', 'Enseignant'],
-    UPDATE: ['admin', 'Animateur', 'Enseignant'],
+    CREATE: ['admin', 'CUP', 'Animateur', 'Enseignant', 'CHEF_DEPARTEMENT'],
+    UPDATE: ['admin', 'CUP', 'Animateur', 'Enseignant', 'CHEF_DEPARTEMENT'],
     DELETE: ['admin'],
     MARK_ENTRY: ['admin', 'Animateur'],
   },
   CERTIFICAT: {
-    READ: ['admin', 'CUP', 'Enseignant', 'Animateur'],
+    READ: ['admin', 'CUP', 'Enseignant', 'Animateur', 'CHEF_DEPARTEMENT'],
     CREATE: ['admin'],
     UPDATE: ['admin'],
     DELETE: ['admin'],
@@ -71,14 +82,14 @@ export const FRONTEND_PERMISSIONS = {
     EXPORT: ['admin', 'ResponsableDossier'],
   },
   RICE: {
-    READ: ['admin'],
+    READ: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
     CREATE: ['admin'],
     UPDATE: ['admin'],
     DELETE: ['admin'],
   },
   DASHBOARD: {
     ADMIN_FULL: ['admin'],
-    ADMIN_LIMITED: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
+    ADMIN_LIMITED: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'Animateur', 'ResponsableDossier'],
   },
   ACCOUNT: {
     READ: ['admin'],
@@ -86,13 +97,16 @@ export const FRONTEND_PERMISSIONS = {
     UPDATE: ['admin'],
     DELETE: ['admin'],
     BAN: ['admin'],
-    VIEW_PROFILE: ['admin', 'CUP', 'Enseignant', 'Animateur'],
-    EDIT_OWN: ['admin', 'CUP', 'Enseignant', 'Animateur'],
+    VIEW_PROFILE: ['admin', 'CUP', 'Enseignant', 'Animateur', 'CHEF_DEPARTEMENT'],
+    EDIT_OWN: ['admin', 'CUP', 'Enseignant', 'Animateur', 'CHEF_DEPARTEMENT'],
   },
   INSCRIPTION: {
-    READ: ['admin', 'CUP', 'Enseignant', 'Animateur'],
-    CREATE: ['admin', 'CUP', 'Enseignant', 'Animateur'],
-    APPROVE: ['admin', 'CUP'],
+    READ: ['admin', 'CUP', 'Enseignant', 'Animateur', 'CHEF_DEPARTEMENT'],
+    // Parité AuthorizationMatrix.INSCRIPTION_CREATE : ADMIN et
+    // RESPONSABLE_DOSSIER explicitement exclus.
+    CREATE: ['CUP', 'Enseignant', 'Animateur', 'CHEF_DEPARTEMENT'],
+    // Parité AuthorizationMatrix.INSCRIPTION_APPROVE = ADMIN, CUP, CHEF_DEPARTEMENT.
+    APPROVE: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
   },
 };
 
@@ -124,9 +138,9 @@ export function RoleGuard({ allowedRoles }: Readonly<RoleGuardProps>) {
     return <Navigate to="/" replace />;
   }
   const { user } = auth;
-  const role = normalizeRole(user?.role);
-  const normalizedAllowedRoles = allowedRoles.map(normalizeRole);
-  if (!user || !normalizedAllowedRoles.includes(role)) {
+  // Le scope JWT peut être composé (ex. "ROLE_D2F ROLE_RESPONSABLE_DOSSIER") :
+  // l'accès est accordé si AU MOINS UN rôle du scope est autorisé.
+  if (!user || !hasAnyRole(user?.role, allowedRoles)) {
     return <ForbiddenRedirect />;
   }
   return <Outlet />;
@@ -135,8 +149,7 @@ export function RoleGuard({ allowedRoles }: Readonly<RoleGuardProps>) {
 export const useHasRole = (requiredRoles: string[]): boolean => {
   const auth = useContext(AuthContext);
   if (!auth?.user) return false;
-  const role = normalizeRole(auth.user.role);
-  return requiredRoles.map(normalizeRole).includes(role);
+  return hasAnyRole(auth.user.role, requiredRoles);
 };
 
 export const useHasPermission = (
@@ -149,8 +162,7 @@ export const useHasPermission = (
   if (!permissions) return false;
   const allowedRoles = (permissions as Record<string, string[] | undefined>)[action];
   if (!allowedRoles || !Array.isArray(allowedRoles)) return false;
-  const role = normalizeRole(auth.user.role);
-  return allowedRoles.map(normalizeRole).includes(role);
+  return hasAnyRole(auth.user.role, allowedRoles);
 };
 
 export const useUserRole = (): string | null => {

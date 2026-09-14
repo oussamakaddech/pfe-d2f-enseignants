@@ -1,0 +1,44 @@
+{
+  "versions": {
+    "v1.0.0": {
+      "exists": true,
+      "n_rows": 107,
+      "missing_provenance_columns": [],
+      "real_rows": 107,
+      "synthetic_rows": 0,
+      "unknown_rows": 0,
+      "dataset_versions_present": [
+        "v1.0.0"
+      ],
+      "source_types": {
+        "postgresql_d2f": 107
+      },
+      "created_at_min": "2016-03-01",
+      "created_at_max": "2026-07-22",
+      "n_distinct_source_ids": 107
+    },
+    "v1.1.0": {
+      "exists": true,
+      "n_rows": 172,
+      "missing_provenance_columns": [],
+      "real_rows": 172,
+      "synthetic_rows": 0,
+      "unknown_rows": 0,
+      "dataset_versions_present": [
+        "v1.1.0"
+      ],
+      "source_types": {
+        "postgresql_d2f": 172
+      },
+      "created_at_min": "2016-03-01",
+      "created_at_max": "2026-07-22",
+      "n_distinct_source_ids": 172
+    }
+  },
+  "containment": {
+    "v100_rows_contained_in_v110": 107,
+    "v100_rows_total": 107,
+    "v110_only_new_rows": 65,
+    "v100_is_subset_of_v110": true
+  }
+}

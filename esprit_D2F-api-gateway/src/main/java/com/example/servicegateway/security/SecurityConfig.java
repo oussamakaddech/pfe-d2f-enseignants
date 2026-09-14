@@ -44,7 +44,10 @@ public class SecurityConfig {
             "/api/auth/confirm",
             "/api/auth/logout",
             "/actuator/**",
-            "/fallback/**"
+            "/fallback/**",
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html"
     };
 
     private static final String AUTH_COOKIE = "d2f_auth_token";
@@ -99,7 +102,10 @@ public class SecurityConfig {
             if (scope != null) {
                 for (String role : scope.split("\\s+")) {
                     if (!role.isBlank()) {
-                        authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+                        // Le claim scope contient déjà le préfixe ROLE_* (émis par
+                        // auth-service) : ne pas re-préfixer (ROLE_ROLE_*).
+                        String authority = role.startsWith("ROLE_") ? role : "ROLE_" + role;
+                        authorities.add(new SimpleGrantedAuthority(authority));
                     }
                 }
             }

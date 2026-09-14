@@ -41,7 +41,7 @@ export default function AtRiskTeachersTable({
       },
       { title: 'UP', dataIndex: 'up', render: (v) => formatUP(v) || 'Non affecté' },
       {
-        title: 'Score de risque',
+        title: 'Indice de risque',
         dataIndex: 'score_risque',
         render: (v: number) => (
           <Progress
@@ -93,7 +93,8 @@ export default function AtRiskTeachersTable({
       loading={loading}
       columns={columns}
       dataSource={teachers}
-      pagination={{ pageSize: 10 }}
+      scroll={{ x: 'max-content' }}
+      pagination={{ pageSize: 10, showSizeChanger: false, responsive: true }}
       onRow={(r) => ({
         onClick: () => onSelect?.(r.enseignant_id),
         style: { cursor: onSelect ? 'pointer' : 'default' },

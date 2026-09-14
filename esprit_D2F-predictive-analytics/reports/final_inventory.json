@@ -1,0 +1,740 @@
+{
+  "code": {
+    "commit": "6cc11176c77f4eaaf8ff1da16e967182aa02ab8b",
+    "branch": "oussama",
+    "describe": "6cc11176",
+    "class": "PRODUCTION"
+  },
+  "production_models": [
+    {
+      "model_name": "gap_predictor_temporal",
+      "model_version": "v1.0.0",
+      "status": "ACTIVE",
+      "created_at": "2026-08-19T03:59:52.424490+00:00",
+      "dataset_version": "v1.0.0",
+      "dataset_hash": "c70523c0d353ccfed62ca432c0a8486a4ec40b5e09aa47859157a71ffc959fdd",
+      "artifact_sha256": "6bbb396c1e28087deeeb402ecf856388510f54a08895dae5415132b08fb35bbe",
+      "synthetic_share_pct": 0.0,
+      "feature_names": [
+        "current_level_t3",
+        "current_level_t2",
+        "current_level_t1",
+        "current_level_t",
+        "lag_gap_t3_t2",
+        "lag_gap_t2_t1",
+        "lag_gap_t1_t",
+        "rolling_tendance",
+        "days_since_last_training",
+        "training_frequency_per_month",
+        "is_long_absent",
+        "is_stagnant",
+        "avg_level",
+        "min_level",
+        "max_level",
+        "nb_level_5",
+        "nb_level_1",
+        "nb_savoirs",
+        "nb_competences",
+        "competency_coverage_rate",
+        "nb_formations_completed",
+        "nb_formations_in_progress",
+        "taux_assiduite",
+        "nb_besoins_exprimes",
+        "nb_besoins_approuves",
+        "avg_eval_score",
+        "nb_evaluations",
+        "months_since_last_training",
+        "engagement_score"
+      ],
+      "feature_schema_version": "1.0",
+      "metrics": {
+        "rmse": 0.9883,
+        "mae": 0.6388,
+        "r2": 0.1897
+      },
+      "approval_status": "APPROVED",
+      "approval_date": "2026-08-19T03:59:52.445215+00:00",
+      "approval_actor": "ml-engineer",
+      "notes": "Pipeline reproductible : dataset provenancé, split temporel strict, seed 42, anti-fuite (required_level/gap_next_3m exclus), normalisation capturée sur train, sidecar SHA-256.",
+      "dataset_hash_note": "recompute canonical (sort all cols) Windows CRLF; LF variant 8e39bb44c07a06fa23e59a94099ded2a33a73585a958c7b7681e306006761eb9 (conteneur Linux)"
+    },
+    {
+      "model_name": "gap_predictor_temporal",
+      "model_version": "v1.1.0",
+      "status": "CANDIDATE",
+      "created_at": "2026-08-19T18:41:46.291017+00:00",
+      "dataset_version": "v1.1.0",
+      "dataset_hash": "896609dbdd57d98f0e32e971af6a7357be4064c17d74301856db8abf917e2b47",
+      "artifact_sha256": "4a6dd15fc23ace6b1062a61d97aa6caedcbeae50448a9a943c1ab7b3051b65c4",
+      "synthetic_share_pct": 0.0,
+      "feature_names": [
+        "current_level_t3",
+        "current_level_t2",
+        "current_level_t1",
+        "current_level_t",
+        "lag_gap_t3_t2",
+        "lag_gap_t2_t1",
+        "lag_gap_t1_t",
+        "rolling_tendance",
+        "days_since_last_training",
+        "training_frequency_per_month",
+        "is_long_absent",
+        "is_stagnant",
+        "avg_level",
+        "min_level",
+        "max_level",
+        "nb_level_5",
+        "nb_level_1",
+        "nb_savoirs",
+        "nb_competences",
+        "competency_coverage_rate",
+        "nb_formations_completed",
+        "nb_formations_in_progress",
+        "taux_assiduite",
+        "nb_besoins_exprimes",
+        "nb_besoins_approuves",
+        "avg_eval_score",
+        "nb_evaluations",
+        "months_since_last_training",
+        "engagement_score"
+      ],
+      "feature_schema_version": "1.0",
+      "metrics": {
+        "rmse": 1.0625,
+        "mae": 0.7595,
+        "r2": 0.0527
+      },
+      "approval_status": "PENDING",
+      "approval_date": null,
+      "approval_actor": null,
+      "notes": "Pipeline reproductible : dataset provenancé, split temporel strict, seed 42, anti-fuite (required_level/gap_next_3m exclus), normalisation capturée sur train, sidecar SHA-256."
+    }
+  ],
+  "demo_models": [
+    {
+      "model_name": "gap_predictor_temporal",
+      "model_version": "demo-gap-synthetic-v1.0.0",
+      "dataset_version": "synthetic-v1.0.0",
+      "data_origin": "SYNTHETIC",
+      "is_synthetic": true,
+      "institutional_verified": false,
+      "status": "DEMO_ONLY",
+      "approval_status": "PENDING",
+      "artifact_sha256": "09228ab2e99cd8fa450c63385b62eb657b4eb50bd84261dc4c5428fc5e99499e",
+      "dataset_hash": "f56dd8c49005734a7df33b66a4777528164ede06759745c34b7fe64a30d0e4ec",
+      "metrics": {
+        "training_time_ms": 219.02,
+        "inference_time_ms": 1.18,
+        "rmse": 0.7706,
+        "mae": 0.4595,
+        "r2": 0.2958,
+        "median_absolute_error": 0.2449,
+        "max_absolute_error": 5.0,
+        "within_tolerance_accuracy_0.10": 0.3626,
+        "within_tolerance_accuracy_0.20": 0.4725,
+        "improvement_vs_persistence_pct": 31.2149
+      },
+      "training_rows": 664,
+      "synthetic_share_pct": 100.0,
+      "notes": "Modèle de démonstration entraîné sur données 100 % synthétiques. Jamais utilisable comme modèle institutionnel validé."
+    }
+  ],
+  "artifacts": {
+    "PRODUCTION": [
+      {
+        "name": "gap_predictor.joblib",
+        "sha256": "7969e24b97e01ebb32f92b97891804942ae6ffdc5f5da07523003c5935e64320",
+        "sidecar": true,
+        "sidecar_sha256": "7969e24b97e01ebb32f92b97891804942ae6ffdc5f5da07523003c5935e64320",
+        "class": "PRODUCTION"
+      },
+      {
+        "name": "gap_predictor_temporal.joblib",
+        "sha256": "6bbb396c1e28087deeeb402ecf856388510f54a08895dae5415132b08fb35bbe",
+        "sidecar": true,
+        "sidecar_sha256": "6bbb396c1e28087deeeb402ecf856388510f54a08895dae5415132b08fb35bbe",
+        "class": "PRODUCTION"
+      },
+      {
+        "name": "gap_predictor_temporal_v110.joblib",
+        "sha256": "4a6dd15fc23ace6b1062a61d97aa6caedcbeae50448a9a943c1ab7b3051b65c4",
+        "sidecar": true,
+        "sidecar_sha256": "4a6dd15fc23ace6b1062a61d97aa6caedcbeae50448a9a943c1ab7b3051b65c4",
+        "class": "PRODUCTION"
+      }
+    ],
+    "DEMO": [
+      {
+        "name": "demo-gap-synthetic-v1.0.0.joblib",
+        "sha256": "09228ab2e99cd8fa450c63385b62eb657b4eb50bd84261dc4c5428fc5e99499e",
+        "sidecar": true,
+        "sidecar_sha256": "09228ab2e99cd8fa450c63385b62eb657b4eb50bd84261dc4c5428fc5e99499e",
+        "class": "DEMO"
+      }
+    ]
+  },
+  "datasets": [
+    {
+      "path": "data\\clean\\alerts.csv",
+      "rows": 16,
+      "class": "UNKNOWN",
+      "is_synthetic": null,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\clean\\corpus_brut_real_raw.csv",
+      "rows": 172,
+      "class": "UNKNOWN",
+      "is_synthetic": false,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\clean\\recommendations.csv",
+      "rows": 34,
+      "class": "UNKNOWN",
+      "is_synthetic": null,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\clean\\risk_scores.csv",
+      "rows": 30,
+      "class": "UNKNOWN",
+      "is_synthetic": null,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\clean\\teacher_competencies.csv",
+      "rows": 51,
+      "class": "UNKNOWN",
+      "is_synthetic": null,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\clean\\teachers.csv",
+      "rows": 30,
+      "class": "UNKNOWN",
+      "is_synthetic": null,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\clean\\training_corpus.csv",
+      "rows": 5000,
+      "class": "UNKNOWN",
+      "is_synthetic": null,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\clean\\training_corpus_clean.csv",
+      "rows": 172,
+      "class": "UNKNOWN",
+      "is_synthetic": false,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\clean\\training_corpus_from_db.csv",
+      "rows": 107,
+      "class": "UNKNOWN",
+      "is_synthetic": null,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\clean\\training_corpus_from_db_v110.csv",
+      "rows": 172,
+      "class": "UNKNOWN",
+      "is_synthetic": false,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\clean\\training_corpus_provenanced.csv",
+      "rows": 107,
+      "class": "UNKNOWN",
+      "is_synthetic": false,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\clean\\training_corpus_provenanced_v110.csv",
+      "rows": 172,
+      "class": "UNKNOWN",
+      "is_synthetic": false,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\synthetic\\demo_dataset_synthetic-v1.0.0.csv",
+      "rows": 1013,
+      "class": "SYNTHETIC",
+      "is_synthetic": true,
+      "institutional_verified": false
+    },
+    {
+      "path": "data\\synthetic\\demo_dataset_synthetic-v1.0.0_clean.csv",
+      "rows": 1000,
+      "class": "SYNTHETIC",
+      "is_synthetic": true,
+      "institutional_verified": false
+    },
+    {
+      "path": "data\\raw\\competences.csv",
+      "rows": 12,
+      "class": "UNKNOWN",
+      "is_synthetic": null,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\raw\\departments.csv",
+      "rows": 6,
+      "class": "UNKNOWN",
+      "is_synthetic": null,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\raw\\formations.csv",
+      "rows": 12,
+      "class": "UNKNOWN",
+      "is_synthetic": null,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\catalogue\\competences.csv",
+      "rows": 12,
+      "class": "UNKNOWN",
+      "is_synthetic": null,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\catalogue\\domaines.csv",
+      "rows": 4,
+      "class": "UNKNOWN",
+      "is_synthetic": null,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\catalogue\\formation_competences.csv",
+      "rows": 52,
+      "class": "UNKNOWN",
+      "is_synthetic": null,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\catalogue\\formations.csv",
+      "rows": 30,
+      "class": "UNKNOWN",
+      "is_synthetic": null,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\catalogue\\inscriptions_sample.csv",
+      "rows": 40,
+      "class": "UNKNOWN",
+      "is_synthetic": null,
+      "institutional_verified": null
+    },
+    {
+      "path": "data\\catalogue\\savoirs.csv",
+      "rows": 24,
+      "class": "UNKNOWN",
+      "is_synthetic": null,
+      "institutional_verified": null
+    }
+  ],
+  "registries": {
+    "model_registry.json": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\models\\model_registry.json",
+    "model_registry_demo.json": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\models\\demo\\model_registry_demo.json"
+  },
+  "routes": [
+    {
+      "file": "alerts.py",
+      "verb": "GET",
+      "decorator": "@router.get(\"\")"
+    },
+    {
+      "file": "alerts.py",
+      "verb": "PATCH",
+      "decorator": "@router.patch(\"/{alert_id}/status\")"
+    },
+    {
+      "file": "analysis.py",
+      "verb": "POST",
+      "decorator": "@router.post(\"/analysis/{teacher_id}\", response_model=AnalysisAcceptedOut, status_code=202)"
+    },
+    {
+      "file": "analysis.py",
+      "verb": "GET",
+      "decorator": "@router.get(\"/teachers/{teacher_id}/analysis\")"
+    },
+    {
+      "file": "analytics_api_routes.py",
+      "verb": "GET",
+      "decorator": "@router.get(\"/formations-par-periode\", responses=BAD_REQUEST_RESPONSES)"
+    },
+    {
+      "file": "analytics_api_routes.py",
+      "verb": "GET",
+      "decorator": "@router.get(\"/formations-par-up\")"
+    },
+    {
+      "file": "analytics_api_routes.py",
+      "verb": "GET",
+      "decorator": "@router.get(\"/formations-par-departement\")"
+    },
+    {
+      "file": "dashboard_real.py",
+      "verb": "GET",
+      "decorator": "@router.get(\"/impact\")"
+    },
+    {
+      "file": "dashboards.py",
+      "verb": "GET",
+      "decorator": "@router.get(\"\")"
+    },
+    {
+      "file": "dashboards.py",
+      "verb": "GET",
+      "decorator": "@router.get(\"/latest\")"
+    },
+    {
+      "file": "dashboards.py",
+      "verb": "GET",
+      "decorator": "@router.get(\"/declining\")"
+    },
+    {
+      "file": "gaps.py",
+      "verb": "GET",
+      "decorator": "@router.get(\"\")"
+    },
+    {
+      "file": "health.py",
+      "verb": "GET",
+      "decorator": "@router.get(\"/health\", include_in_schema=True)"
+    },
+    {
+      "file": "health.py",
+      "verb": "GET",
+      "decorator": "@router.get(\"/ready\", include_in_schema=True)"
+    },
+    {
+      "file": "integrations.py",
+      "verb": "POST",
+      "decorator": "@router.post(\"/process\", response_model=EventOut)"
+    },
+    {
+      "file": "needs.py",
+      "verb": "GET",
+      "decorator": "@router.get(\"\")"
+    },
+    {
+      "file": "needs.py",
+      "verb": "POST",
+      "decorator": "@router.post(\"/{need_id}/close\")"
+    },
+    {
+      "file": "recommendations.py",
+      "verb": "GET",
+      "decorator": "@router.get(\"\")"
+    },
+    {
+      "file": "risk.py",
+      "verb": "GET",
+      "decorator": "@router.get(\"\")"
+    },
+    {
+      "file": "teacher_scope.py",
+      "verb": "GET",
+      "decorator": "@router.get(\"\")"
+    }
+  ],
+  "environment_variables": [
+    {
+      "key": "APP_ENV",
+      "has_default": true
+    },
+    {
+      "key": "DEBUG",
+      "has_default": true
+    },
+    {
+      "key": "LOG_LEVEL",
+      "has_default": true
+    },
+    {
+      "key": "DATABASE_URL",
+      "has_default": false
+    },
+    {
+      "key": "DB_CONNECT_TIMEOUT",
+      "has_default": true
+    },
+    {
+      "key": "JWT_SECRET",
+      "has_default": false
+    },
+    {
+      "key": "JWT_ALGORITHM",
+      "has_default": true
+    },
+    {
+      "key": "JWT_AUTH_ENABLED",
+      "has_default": true
+    },
+    {
+      "key": "CORS_ORIGINS",
+      "has_default": true
+    },
+    {
+      "key": "PAGINATION_DEFAULT_SIZE",
+      "has_default": true
+    },
+    {
+      "key": "PAGINATION_MAX_SIZE",
+      "has_default": true
+    },
+    {
+      "key": "SEUIL_GAP_CRITIQUE",
+      "has_default": true
+    },
+    {
+      "key": "SEUIL_GAP_HAUTE",
+      "has_default": true
+    },
+    {
+      "key": "SEUIL_GAP_MOYENNE",
+      "has_default": true
+    },
+    {
+      "key": "RISK_THRESHOLD_HIGH",
+      "has_default": true
+    },
+    {
+      "key": "RISK_THRESHOLD_MEDIUM",
+      "has_default": true
+    },
+    {
+      "key": "COLLECTIVE_MIN_TEACHERS",
+      "has_default": true
+    },
+    {
+      "key": "STAGNATION_REF_MONTHS",
+      "has_default": true
+    },
+    {
+      "key": "ENGAGEMENT_REF_DAYS",
+      "has_default": true
+    },
+    {
+      "key": "RISK_WEIGHTS",
+      "has_default": true
+    },
+    {
+      "key": "MODELS_DIR",
+      "has_default": true
+    },
+    {
+      "key": "GAP_MODEL_ARTIFACT",
+      "has_default": true
+    },
+    {
+      "key": "ANALYSIS_CACHE_TTL_HOURS",
+      "has_default": true
+    },
+    {
+      "key": "NEED_DETECTION_THRESHOLD",
+      "has_default": true
+    },
+    {
+      "key": "NEED_DETECTION_MIN_TEACHERS",
+      "has_default": true
+    },
+    {
+      "key": "ALERT_RECOMPUTE_DAYS",
+      "has_default": true
+    },
+    {
+      "key": "SCHEDULER_ENABLED",
+      "has_default": true
+    },
+    {
+      "key": "SCHEDULER_BATCH_INTERVAL_MINUTES",
+      "has_default": true
+    },
+    {
+      "key": "SCHEDULER_ALERTS_INTERVAL_MINUTES",
+      "has_default": true
+    },
+    {
+      "key": "SCHEDULER_NEEDS_INTERVAL_MINUTES",
+      "has_default": true
+    },
+    {
+      "key": "MESSAGE_BROKER_TYPE",
+      "has_default": true
+    },
+    {
+      "key": "RABBITMQ_URL",
+      "has_default": true
+    },
+    {
+      "key": "RABBITMQ_EXCHANGE",
+      "has_default": true
+    },
+    {
+      "key": "RABBITMQ_QUEUE",
+      "has_default": true
+    },
+    {
+      "key": "RABBITMQ_ROUTING_KEY",
+      "has_default": true
+    },
+    {
+      "key": "RABBITMQ_CONSUMER_ENABLED",
+      "has_default": true
+    },
+    {
+      "key": "THROTTLING_MAX_THREADS",
+      "has_default": true
+    }
+  ],
+  "tests": {
+    "files": [
+      "tests\\integration\\test_api_alerts_needs_dashboards.py",
+      "tests\\integration\\test_api_gaps.py",
+      "tests\\integration\\test_api_reporting_routes.py",
+      "tests\\integration\\test_api_risk_recommendations.py",
+      "tests\\integration\\test_api_teacher_scope.py",
+      "tests\\unit\\test_alert_prioritizer.py",
+      "tests\\unit\\test_alert_repository_sql.py",
+      "tests\\unit\\test_artifact_integrity.py",
+      "tests\\unit\\test_dashboard_aggregator.py",
+      "tests\\unit\\test_dataset_pipeline.py",
+      "tests\\unit\\test_demo_pipeline.py",
+      "tests\\unit\\test_gap_calculator.py",
+      "tests\\unit\\test_level_mapping.py",
+      "tests\\unit\\test_logging_redaction.py",
+      "tests\\unit\\test_messaging.py",
+      "tests\\unit\\test_messaging_extra.py",
+      "tests\\unit\\test_ml_governance.py",
+      "tests\\unit\\test_ml_inference.py",
+      "tests\\unit\\test_ml_modes.py",
+      "tests\\unit\\test_ml_predictor_core.py",
+      "tests\\unit\\test_ml_predictor_paths.py",
+      "tests\\unit\\test_need_detector.py",
+      "tests\\unit\\test_ranking_service.py",
+      "tests\\unit\\test_risk_calculator.py",
+      "tests\\unit\\test_risk_normalization.py",
+      "tests\\unit\\test_s2_use_cases.py",
+      "tests\\unit\\test_scheduler_and_handlers.py",
+      "tests\\unit\\test_scope_semantics.py",
+      "tests\\unit\\test_security.py",
+      "tests\\unit\\test_use_cases.py"
+    ],
+    "count": 30
+  },
+  "docker": [
+    {
+      "file": "Dockerfile",
+      "exists": true,
+      "lines": 58
+    },
+    {
+      "file": "Dockerfile.prod",
+      "exists": true,
+      "lines": 65
+    },
+    {
+      "file": ".dockerignore",
+      "exists": true,
+      "lines": 25
+    }
+  ],
+  "reports": [
+    "reports\\application_inference_demo.json",
+    "reports\\application_inference_demo.md",
+    "reports\\audit_script.py",
+    "reports\\dataset_audit_before.json",
+    "reports\\dataset_audit_before.md",
+    "reports\\dataset_cleaning_report.json",
+    "reports\\dataset_cleaning_report.md",
+    "reports\\dataset_quality_report_v1.1.0.json",
+    "reports\\demo_bootstrap_report.json",
+    "reports\\demo_cleaning_report.json",
+    "reports\\demo_dataset_audit.json",
+    "reports\\demo_feature_dictionary.json",
+    "reports\\demo_feature_report.json",
+    "reports\\demo_final_validation.json",
+    "reports\\demo_final_validation.md",
+    "reports\\demo_generation_raw_report.json",
+    "reports\\demo_generation_report.md",
+    "reports\\demo_generation_spec.md",
+    "reports\\demo_leakage_report.json",
+    "reports\\demo_model_comparison.csv",
+    "reports\\demo_model_comparison.json",
+    "reports\\demo_model_comparison.md",
+    "reports\\demo_pipeline_audit_before.json",
+    "reports\\demo_pipeline_audit_before.md",
+    "reports\\demo_quarantine.csv",
+    "reports\\demo_ranking_report.json",
+    "reports\\demo_risk_report.json",
+    "reports\\demo_serving_validation.json",
+    "reports\\dependency_cleanup_report.md",
+    "reports\\domain_shift_report.json",
+    "reports\\duplicate_conflicts.csv",
+    "reports\\expanded_dataset_audit.json",
+    "reports\\expanded_model_comparison.json",
+    "reports\\expanded_promotion_decision.json",
+    "reports\\expanded_quality_report.json",
+    "reports\\expanded_serving_validation.json",
+    "reports\\expanded_target_coverage_report.json",
+    "reports\\feature_dictionary.json",
+    "reports\\feature_leakage_report.json",
+    "reports\\final_conclusion_augmentation.md",
+    "reports\\final_dataset_audit.json",
+    "reports\\final_dataset_quality.json",
+    "reports\\final_feature_contract.json",
+    "reports\\final_leakage_report.json",
+    "reports\\final_leakage_report.md",
+    "reports\\final_ml_audit_inventory.json",
+    "reports\\final_ml_audit_inventory.md",
+    "reports\\final_ml_validation.json",
+    "reports\\final_ml_validation.md",
+    "reports\\final_model_comparison.csv",
+    "reports\\final_pfe_consistency.md",
+    "reports\\final_pfe_text.md",
+    "reports\\final_provenance_report.json",
+    "reports\\final_provenance_report.md",
+    "reports\\final_risk_ranking.json",
+    "reports\\final_service_correction_report.json",
+    "reports\\final_service_correction_report.md",
+    "reports\\final_serving_validation.json",
+    "reports\\final_serving_validation.md",
+    "reports\\gap_factor_audit.csv",
+    "reports\\interservice_integrity_audit.json",
+    "reports\\model_candidate_v110_decision.md",
+    "reports\\model_comparison.csv",
+    "reports\\model_comparison.json",
+    "reports\\model_comparison.md",
+    "reports\\model_metrics_validation_v110.json",
+    "reports\\model_validation_details.md",
+    "reports\\model_validation_final.md",
+    "reports\\model_validation_report.csv",
+    "reports\\model_validation_report.json",
+    "reports\\predictive_analysis_alignment_audit.md",
+    "reports\\predictive_analysis_traceability.csv",
+    "reports\\rapport_audit_ecran_analyse_predicitive_ens014.md",
+    "reports\\rapport_final.md",
+    "reports\\rapport_normalisation_score_risque.md",
+    "reports\\real_data_duplicate_conflicts.csv",
+    "reports\\real_data_growth_report.json",
+    "reports\\real_data_growth_report.md",
+    "reports\\real_data_overlap_report.json",
+    "reports\\real_data_source_audit.json",
+    "reports\\recommendation_explanation_audit.csv",
+    "reports\\recommendation_traceability_audit.csv",
+    "reports\\removed_or_quarantined_rows.csv",
+    "reports\\risk_factor_audit.csv",
+    "reports\\runtime_validation.json",
+    "reports\\runtime_validation.md",
+    "reports\\service_inventory_after.json",
+    "reports\\service_inventory_before.json",
+    "reports\\target_coverage_report.json",
+    "reports\\teacher_gap_examples.csv",
+    "reports\\teacher_profile_comparison.csv"
+  ]
+}

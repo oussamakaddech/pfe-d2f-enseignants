@@ -23,6 +23,7 @@ from app.core.config import Settings
 from app.domain.services.need_detector import TeacherScope
 from app.infrastructure.db.database import Database
 from app.infrastructure.messaging.event_handlers import build_event_handlers
+from app.infrastructure.ml.ml_observability import ml_observability
 from app.infrastructure.ml.predictor import ArtifactModelPort
 from app.infrastructure.repositories.analyse.alert_repository import SqlAlertRepository
 from app.infrastructure.repositories.analyse.analysis_repository import SqlAnalysisRepository
@@ -70,24 +71,25 @@ class Container:
             model_port=self.model_port,
         )
         self.analyze_teacher_scope = AnalyzeTeacherScope(
-            self.competency_source, self.recommend_trainings, settings
+            self.competency_source, self.recommend_trainings, settings,
+            compute_gaps=self.compute_gaps,
         )
 
         self.detect_needs = DetectNeeds(
-            gaps_provider=self.compute_gaps.execute,
+            gaps_provider=lambda teacher_id: self.compute_gaps.execute(teacher_id)[0],
             teacher_scopes_provider=self._teacher_scopes,
             training_need_repository=self.training_need_repository,
             settings=settings,
         )
         self.build_dashboards = BuildDashboards(
-            gaps_provider=self.compute_gaps.execute,
+            gaps_provider=lambda teacher_id: self.compute_gaps.execute(teacher_id)[0],
             risk_provider=lambda teacher_id: self.compute_risk.execute(teacher_id)[0],
             teacher_scopes_provider=self._teacher_scopes,
             dashboard_repository=self.dashboard_repository,
         )
         self.generate_alerts = GenerateAlerts(
             teacher_source=self.teacher_source,
-            gaps_provider=self.compute_gaps.execute,
+            gaps_provider=lambda teacher_id: self.compute_gaps.execute(teacher_id)[0],
             risk_provider=lambda teacher_id: self.compute_risk.execute(teacher_id)[0],
             alert_repository=self.alert_repository,
             settings=settings,
@@ -104,11 +106,15 @@ class Container:
                 teacher_id=teacher.id,
                 scope_type="DEPARTEMENT",
                 scope_id=teacher.dept_id,
+                up_id=teacher.up_id,
             )
         return scopes
 
     def connect(self) -> None:
         self.database.connect()
+        # GOUVERNANCE 7.6 (limite 4) : persistance best-effort du journal de
+        # serving ML dans analyse.ml_observability (fail-safe mémoire).
+        ml_observability.attach_db_sink(self.database)
 
     def dispose(self) -> None:
         self.database.dispose()

@@ -3,6 +3,9 @@ STABLE = "STABLE"
 IMPROVING = "IMPROVING"
 
 
+# Agrège les niveaux moyens par compétence (période actuelle vs précédente),
+# calcule le delta et déduit une tendance : DECLINING / IMPROVING / STABLE
+# (seuil ±0.05). Résultat trié par delta croissant → les plus en déclin d'abord.
 def aggregate_declining(rows: list[dict]) -> list[dict]:
     results: list[dict] = []
     for row in rows:
@@ -30,6 +33,8 @@ def aggregate_declining(rows: list[dict]) -> list[dict]:
     return sorted(results, key=lambda r: r["delta"])
 
 
+# Enrichit les KPI du dashboard avec le ratio "enseignants à risque / total analysé"
+# (gère le cas total = 0 pour éviter une division par zéro).
 def summarize_kpis(kpis: dict) -> dict:
     at_risk = kpis.get("teachers_at_risk", 0)
     total = kpis.get("teachers_analysed", 0) or 1

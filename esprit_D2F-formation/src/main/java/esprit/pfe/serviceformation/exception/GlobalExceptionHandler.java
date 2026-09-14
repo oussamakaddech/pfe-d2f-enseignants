@@ -84,6 +84,20 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), ex.getErrorCode(), request);
     }
 
+    // ==================== ANIMATOR PROPOSAL WORKFLOW ====================
+
+    @ExceptionHandler(ProposalConflictException.class)
+    public ResponseEntity<ErrorResponse> handleProposalConflict(ProposalConflictException ex, HttpServletRequest request) {
+        log.warn("Animator proposal conflict: {}", ex.getMessage());
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), MODULE_PREFIX + "-PROPOSAL-409", request);
+    }
+
+    @ExceptionHandler(ProposalIncompatibilityException.class)
+    public ResponseEntity<ErrorResponse> handleProposalIncompatibility(ProposalIncompatibilityException ex, HttpServletRequest request) {
+        log.warn("Animator proposal incompatibility: {}", ex.getMessage());
+        return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), MODULE_PREFIX + "-PROPOSAL-422", request);
+    }
+
     // ==================== INSCRIPTION ERRORS ====================
     
     @ExceptionHandler(InscriptionException.class)
@@ -106,6 +120,19 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
         log.error("Access denied: {}", ex.getMessage());
         return buildResponse(HttpStatus.FORBIDDEN, "Accès refusé : vous n'avez pas les permissions nécessaires.", MODULE_PREFIX + "-403", request);
+    }
+
+    /**
+     * Exception métier d'accès (périmètre UP/département CUP/chef) : renvoie 403
+     * avec le message métier explicite (ex. « Périmètre interdit : cette formation
+     * n'appartient pas à votre département (DEPT_WEB) ») au lieu de tomber dans le
+     * handler générique {@link Exception} qui produisait un 500.
+     */
+    @ExceptionHandler(esprit.pfe.serviceformation.exception.AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessAccessDenied(
+            esprit.pfe.serviceformation.exception.AccessDeniedException ex, HttpServletRequest request) {
+        log.warn("Access denied (business scope): {}", ex.getMessage());
+        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), MODULE_PREFIX + "-403", request);
     }
 
     @ExceptionHandler({AuthenticationException.class, BadCredentialsException.class})

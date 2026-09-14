@@ -36,7 +36,11 @@ class FormationWorkflowControllerExtraTest {
 
     @BeforeEach
     void setup() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).setCustomArgumentResolvers(new org.springframework.data.web.PageableHandlerMethodArgumentResolver()).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setCustomArgumentResolvers(
+                        new org.springframework.data.web.PageableHandlerMethodArgumentResolver(),
+                        new org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver())
+                .build();
     }
 
     @Test
@@ -136,7 +140,7 @@ class FormationWorkflowControllerExtraTest {
     @DisplayName("updatePresence - RuntimeException retourne 400")
     void updatePresence_RuntimeException() throws Exception {
         doThrow(new RuntimeException("Error"))
-                .when(formationWorkflowService).updatePresence(anyLong(), anyBoolean(), anyString());
+                .when(formationWorkflowService).updatePresence(anyLong(), anyBoolean(), anyString(), any());
         mockMvc.perform(put("/api/v1/formations-workflow/presence/1")
                 .param("present", "true")
                 .param("commentaire", "OK")).andExpect(status().isBadRequest());
@@ -152,7 +156,7 @@ class FormationWorkflowControllerExtraTest {
     @Test
     @DisplayName("batchUpdatePresences - succes")
     void batchUpdatePresences_Success() throws Exception {
-        when(formationWorkflowService.batchUpdatePresences(anyLong(), any())).thenReturn(Collections.emptyList());
+        when(formationWorkflowService.batchUpdatePresences(anyLong(), any(), any())).thenReturn(Collections.emptyList());
         mockMvc.perform(put("/api/v1/formations-workflow/seances/1/presences/batch")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"updates\":[]}"))
@@ -162,7 +166,7 @@ class FormationWorkflowControllerExtraTest {
     @Test
     @DisplayName("batchUpdatePresences - IllegalArgumentException retourne 404")
     void batchUpdatePresences_NotFound() throws Exception {
-        when(formationWorkflowService.batchUpdatePresences(anyLong(), any())).thenThrow(new IllegalArgumentException("Not found"));
+        when(formationWorkflowService.batchUpdatePresences(anyLong(), any(), any())).thenThrow(new IllegalArgumentException("Not found"));
         mockMvc.perform(put("/api/v1/formations-workflow/seances/1/presences/batch")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"updates\":[]}"))
@@ -172,7 +176,7 @@ class FormationWorkflowControllerExtraTest {
     @Test
     @DisplayName("batchUpdatePresences - Exception generique retourne 500")
     void batchUpdatePresences_InternalError() throws Exception {
-        when(formationWorkflowService.batchUpdatePresences(anyLong(), any())).thenThrow(new RuntimeException("Error"));
+        when(formationWorkflowService.batchUpdatePresences(anyLong(), any(), any())).thenThrow(new RuntimeException("Error"));
         mockMvc.perform(put("/api/v1/formations-workflow/seances/1/presences/batch")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"updates\":[]}"))
@@ -182,7 +186,7 @@ class FormationWorkflowControllerExtraTest {
     @Test
     @DisplayName("markAllPresences - succes")
     void markAllPresences_Success() throws Exception {
-        when(formationWorkflowService.markAllPresences(anyLong(), anyBoolean())).thenReturn(Collections.emptyList());
+        when(formationWorkflowService.markAllPresences(anyLong(), anyBoolean(), any())).thenReturn(Collections.emptyList());
         mockMvc.perform(put("/api/v1/formations-workflow/seances/1/presences/mark-all")
                 .param("present", "true"))
                 .andExpect(status().isOk());
@@ -191,7 +195,7 @@ class FormationWorkflowControllerExtraTest {
     @Test
     @DisplayName("markAllPresences - IllegalArgumentException retourne 404")
     void markAllPresences_NotFound() throws Exception {
-        when(formationWorkflowService.markAllPresences(anyLong(), anyBoolean())).thenThrow(new IllegalArgumentException("Not found"));
+        when(formationWorkflowService.markAllPresences(anyLong(), anyBoolean(), any())).thenThrow(new IllegalArgumentException("Not found"));
         mockMvc.perform(put("/api/v1/formations-workflow/seances/1/presences/mark-all")
                 .param("present", "true"))
                 .andExpect(status().isNotFound());
@@ -200,7 +204,7 @@ class FormationWorkflowControllerExtraTest {
     @Test
     @DisplayName("markAllPresences - Exception generique retourne 500")
     void markAllPresences_InternalError() throws Exception {
-        when(formationWorkflowService.markAllPresences(anyLong(), anyBoolean())).thenThrow(new RuntimeException("Error"));
+        when(formationWorkflowService.markAllPresences(anyLong(), anyBoolean(), any())).thenThrow(new RuntimeException("Error"));
         mockMvc.perform(put("/api/v1/formations-workflow/seances/1/presences/mark-all")
                 .param("present", "true"))
                 .andExpect(status().isInternalServerError());

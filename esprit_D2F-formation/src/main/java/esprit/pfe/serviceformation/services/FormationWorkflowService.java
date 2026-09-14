@@ -10,9 +10,11 @@ import esprit.pfe.serviceformation.microsoft.OutlookMailService;
 import esprit.pfe.serviceformation.messaging.AnalyticsEventPublisher;
 import esprit.pfe.serviceformation.messaging.EvaluationBatchMessage;
 import esprit.pfe.serviceformation.messaging.EvaluationPublisher;
+import esprit.pfe.serviceformation.services.animator.AnimatorScopeService;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
@@ -51,6 +54,21 @@ public class FormationWorkflowService {
     private final AnimateurParticipantResolver animateurParticipantResolver;
     // FIX-Q5: email audit log
     private final EmailAuditLogRepository emailAuditLogRepository;
+    // Scoping CRUD CUP/chef (optionnel : null dans les tests unitaires qui
+    // construisent le service manuellement — les contrôles sont alors sautés).
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private AnimatorScopeService animatorScopeService;
+    private FormationWorkflowService self;
+
+    /**
+     * Auto-référence @Lazy pour appeler les méthodes @Transactional via le
+     * proxy Spring (S6809) sans injection par champ (S6813). Non renseigné
+     * dans les tests unitaires qui construisent le service manuellement.
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setSelf(@Lazy FormationWorkflowService self) {
+        this.self = self;
+    }
 
     public FormationWorkflowService(DocumentRepository documentRepository,
             FormationRepository formationRepository,
@@ -109,6 +127,67 @@ public class FormationWorkflowService {
         return helper.parseTime(heure);
     }
 
+    /**
+     * Vérifie que l'appelant peut gérer la formation selon son périmètre
+     * (ADMIN global, CUP → UP de la formation, chef → département).
+     * Sautée si le scope service n'est pas injecté (tests unitaires).
+     */
+    private void checkFormationScope(Formation formation) {
+        if (animatorScopeService == null) {
+            return;
+        }
+        animatorScopeService.ensureCanManageFormation(
+                formation, animatorScopeService.resolveScope());
+    }
+
+    /**
+     * Force le périmètre d'une formation créée à celui de l'appelant scopé
+     * (CUP → son UP, chef → son département). Les valeurs du formulaire sont
+     * écrasées pour un appelant scopé : il ne peut JAMAIS créer une formation
+     * hors de son périmètre (parité KpiScopeService).
+     */
+    private void applyCreationScope(Formation formation) {
+        if (animatorScopeService == null || formation == null) {
+            return;
+        }
+        AnimatorScopeService.ResolvedAnimatorScope scope = animatorScopeService.resolveScope();
+        if (scope.global()) {
+            return;
+        }
+        if (scope.user().hasRole("CUP") && scope.upCode() != null) {
+            formation.setUp(upRepository.findById(scope.upCode()).orElse(null));
+            return;
+        }
+        if (scope.user().hasRole("CHEF_DEPARTEMENT") && scope.departmentCode() != null) {
+            formation.setDepartement(departementRepository.findById(scope.departmentCode()).orElse(null));
+        }
+    }
+
+    /**
+     * Filtre une liste de formations au périmètre de l'appelant :
+     * CUP → UP, chef → département, autres rôles inchangés.
+     * Deny-by-default : périmètre CUP/chef indéterminé → 403 propagée.
+     */
+    private List<Formation> filterByScope(List<Formation> formations) {
+        if (animatorScopeService == null) {
+            return formations;
+        }
+        AnimatorScopeService.ResolvedAnimatorScope scope = animatorScopeService.resolveScope();
+        if (scope.global()) {
+            return formations;
+        }
+        return formations.stream().filter(f -> {
+            try {
+                animatorScopeService.ensureCanManageFormation(f, scope);
+                return true;
+            } catch (AccessDeniedException | esprit.pfe.serviceformation.exception.AccessDeniedException ex) {
+                // Hors périmètre (CUP → UP, chef → département) : la formation est
+                // simplement exclue de la liste (et non une erreur globale).
+                return false;
+            }
+        }).toList();
+    }
+
     private OffsetDateTime convertToOffsetDateTime(LocalDate date, LocalTime time) {
         return helper.convertToOffsetDateTime(date, time);
     }
@@ -145,6 +224,14 @@ public class FormationWorkflowService {
 
         Formation formation = new Formation();
         helper.initFormationFromRequest(formation, request);
+        // CRUD scopé : pour un CUP / chef de département, le périmètre (UP /
+        // département) de la formation créée est IMPOSÉ à celui de l'appelant
+        // (parité KpiScopeService : valeurs client écrasées pour un appelant
+        // scopé) — impossible de créer hors de son périmètre. ADMIN et rôles
+        // non scopés gardent le choix du formulaire.
+        applyCreationScope(formation);
+        // CRUD scopé : CUP → UP de la formation, chef → département (403 sinon).
+        checkFormationScope(formation);
         formation = formationRepository.save(formation);
 
         List<SeanceFormation> seances = helper.createSeancesForFormation(formation, seanceReqs, partIds);
@@ -192,9 +279,13 @@ public class FormationWorkflowService {
         Formation formation = formationRepository.findById(formationId)
                 .orElseThrow(() -> new IllegalStateException("Formation introuvable"));
 
+        // CRUD scopé : périmètre vérifié avant ET après modification (l'UP ou
+        // le département ont pu changer dans la requête).
+        checkFormationScope(formation);
         EtatFormation oldEtat = formation.getEtatFormation();
         updateFormationBasicFields(formation, request);
         updateFormationRelations(formation, request);
+        checkFormationScope(formation);
 
         Map<String, Enseignant> enseignantMap = loadEnseignantsMap(request);
         List<SeanceFormation> managedList = prepareManagedSeancesList(formation);
@@ -898,6 +989,8 @@ public class FormationWorkflowService {
     public void deleteFormationWorkflow(Long formationId) {
         Formation formation = formationRepository.findById(formationId)
                 .orElseThrow(() -> new IllegalArgumentException("Formation introuvable avec l'id : " + formationId));
+        // CRUD scopé : suppression limitée au périmètre (UP / département).
+        checkFormationScope(formation);
         try {
             removeFormationCalendar(formation);
         } catch (RuntimeException ex) {
@@ -1345,6 +1438,11 @@ public class FormationWorkflowService {
     public FormationResponseDTO getFormationWorkflowById(Long formationId) {
         Formation formation = formationRepository.findById(formationId)
                 .orElseThrow(() -> new IllegalArgumentException("Formation introuvable avec l'id : " + formationId));
+        // Lecture scopée : un CUP/chef ne peut pas consulter par identifiant une
+        // formation hors de son UP/département (anti-BOLA ; autres rôles libres).
+        if (animatorScopeService != null) {
+            animatorScopeService.checkReadScope(formation);
+        }
         if (formation.getSeances() != null) {
             formation.getSeances().forEach(seance -> {
                 if (seance.getAnimateurs() != null)
@@ -1362,7 +1460,7 @@ public class FormationWorkflowService {
 
     @Transactional(readOnly = true)
     public List<FormationResponseDTO> getAllFormationWorkflows() {
-        List<Formation> formations = formationRepository.findAll();
+        List<Formation> formations = filterByScope(formationRepository.findAll());
         formations.forEach(this::initializeFormationCollections);
         return formations.stream().map(formationMapper::toResponseDTO).toList();
     }
@@ -1391,12 +1489,30 @@ public class FormationWorkflowService {
         }
     }
 
+    /**
+     * Contrôle row-level : seuls les rôles de gestion (ADMIN/CUP/RESPONSABLE_DOSSIER,
+     * cf. CurrentUser#hasGlobalScope) ou un animateur affecté à la séance peuvent
+     * modifier sa feuille de présence.
+     */
+    private void assertCanManageSeancePresences(SeanceFormation seance, CurrentUser user) {
+        if (user != null && user.hasGlobalScope()) {
+            return;
+        }
+        String email = user != null ? user.email() : null;
+        boolean membre = email != null && seance != null && seance.getAnimateurs() != null
+                && seance.getAnimateurs().stream().anyMatch(e -> email.equalsIgnoreCase(e.getMail()));
+        if (!membre) {
+            throw new AccessDeniedException("Vous n'êtes pas animateur de cette séance");
+        }
+    }
+
     @Transactional
-    public void updatePresence(Long idParticipation, boolean isPresent, String commentaire) {
+    public void updatePresence(Long idParticipation, boolean isPresent, String commentaire, CurrentUser user) {
         Presence presence = presenceRepository.findById(idParticipation)
                 .orElseThrow(() -> new IllegalArgumentException("Presence introuvable pour id " + idParticipation));
-        presence.setPresent(isPresent);
-        presence.setCommentaire(commentaire);
+        assertCanManageSeancePresences(presence.getSeanceFormation(), user);
+        applyPresenceUpdate(presence, isPresent ? PresenceStatus.PRESENT : PresenceStatus.ABSENT,
+            null, null, null, commentaire, user);
         presenceRepository.save(presence);
     }
 
@@ -1434,10 +1550,10 @@ public class FormationWorkflowService {
 
     public List<FormationResponseDTO> getFormationsByAnimateurEmail(String email) {
         List<Formation> allFormations = formationRepository.findDistinctBySeancesAnimateursMail(email);
-        List<Formation> enCours = allFormations.stream()
-                .filter(f -> f.getEtatFormation() == EtatFormation.EN_COURS)
-                .toList();
-        enCours.forEach(f -> {
+        // Toutes les formations animées (y compris ACHEVE) : l'animateur doit pouvoir
+        // consulter et finaliser la feuille de présence même après la fin de la
+        // formation — le filtrage par statut est fait côté interface.
+        allFormations.forEach(f -> {
             if (f.getSeances() != null) {
                 f.getSeances().forEach(s -> {
                     Hibernate.initialize(s.getAnimateurs());
@@ -1445,7 +1561,7 @@ public class FormationWorkflowService {
                 });
             }
         });
-        return enCours.stream().map(formationMapper::toResponseDTO).toList();
+        return allFormations.stream().map(formationMapper::toResponseDTO).toList();
     }
 
     public List<PresenceDTO> getPresencesBySeance(Long seanceId) {
@@ -1459,7 +1575,10 @@ public class FormationWorkflowService {
     }
 
     @Transactional
-    public List<PresenceDTO> batchUpdatePresences(Long seanceId, esprit.pfe.serviceformation.dto.BatchPresenceUpdateRequest request) {
+    public List<PresenceDTO> batchUpdatePresences(Long seanceId, esprit.pfe.serviceformation.dto.BatchPresenceUpdateRequest request, CurrentUser user) {
+        SeanceFormation seance = seanceFormationRepository.findById(seanceId)
+                .orElseThrow(() -> new IllegalArgumentException("Seance introuvable for id " + seanceId));
+        assertCanManageSeancePresences(seance, user);
         if (request == null || request.getUpdates() == null || request.getUpdates().isEmpty()) {
             return getPresencesBySeance(seanceId);
         }
@@ -1475,20 +1594,25 @@ public class FormationWorkflowService {
             if (existing == null) {
                 continue; // skip null items and presences that don't belong to this seance
             }
-            existing.setPresent(item.isPresent());
-            if (item.getCommentaire() != null) {
-                existing.setCommentaire(item.getCommentaire());
-            }
+                applyPresenceUpdate(existing,
+                    item.getStatus() != null ? item.getStatus()
+                        : (item.isPresent() ? PresenceStatus.PRESENT : PresenceStatus.ABSENT),
+                    item.getArrivalTime(), item.getDepartureTime(), item.getJustification(),
+                    item.getCommentaire(), user);
         }
         presenceRepository.saveAll(seancePresences);
         return seancePresences.stream().map(this::mapPresenceToDTO).toList();
     }
 
     @Transactional
-    public List<PresenceDTO> markAllPresences(Long seanceId, boolean present) {
+    public List<PresenceDTO> markAllPresences(Long seanceId, boolean present, CurrentUser user) {
+        SeanceFormation seance = seanceFormationRepository.findById(seanceId)
+                .orElseThrow(() -> new IllegalArgumentException("Seance introuvable for id " + seanceId));
+        assertCanManageSeancePresences(seance, user);
         List<Presence> seancePresences = presenceRepository.findBySeanceFormation_IdSeance(seanceId);
         for (Presence p : seancePresences) {
-            p.setPresent(present);
+            applyPresenceUpdate(p, present ? PresenceStatus.PRESENT : PresenceStatus.ABSENT,
+                    null, null, null, null, user);
             if (present && (p.getCommentaire() == null || p.getCommentaire().isBlank()
                     || "Presence a valider".equalsIgnoreCase(p.getCommentaire()))) {
                 p.setCommentaire("Presence confirmee");
@@ -1511,11 +1635,66 @@ public class FormationWorkflowService {
         PresenceDTO dto = new PresenceDTO();
         dto.setIdParticipation(presence.getIdParticipation());
         dto.setPresent(presence.isPresent());
+        dto.setStatus(presence.getStatus() != null ? presence.getStatus()
+            : (presence.isPresent() ? PresenceStatus.PRESENT : PresenceStatus.ABSENT));
+        dto.setArrivalTime(presence.getArrivalTime());
+        dto.setDepartureTime(presence.getDepartureTime());
+        dto.setJustification(presence.getJustification());
         dto.setCommentaire(presence.getCommentaire());
+        dto.setRecordedBy(presence.getRecordedBy());
+        dto.setRecordedAt(presence.getRecordedAt());
         if (presence.getEnseignant() != null) {
             dto.setEnseignant(mapEnseignantToDTO(presence.getEnseignant()));
         }
         return dto;
+    }
+
+    private void applyPresenceUpdate(Presence presence, PresenceStatus status, LocalTime arrival,
+                                     LocalTime departure, String justification, String comment,
+                                     CurrentUser user) {
+        SeanceFormation seance = presence.getSeanceFormation();
+        // Cohérence temporelle : l'heure de départ ne peut pas précéder l'heure d'arrivée.
+        if (arrival != null && departure != null && departure.isBefore(arrival)) {
+            throw new IllegalArgumentException("L'heure de départ ne peut pas précéder l'heure d'arrivée.");
+        }
+        // Cohérence avec la séance : arrivée pendant la séance, départ après le début.
+        if (seance != null) {
+            if (arrival != null && seance.getHeureFin() != null && arrival.isAfter(seance.getHeureFin())) {
+                throw new IllegalArgumentException("L'heure d'arrivée ne peut pas être postérieure à la fin de la séance.");
+            }
+            if (departure != null && seance.getHeureDebut() != null && departure.isBefore(seance.getHeureDebut())) {
+                throw new IllegalArgumentException("L'heure de départ ne peut pas être antérieure au début de la séance.");
+            }
+        }
+        // ABSENT / EXCUSED : aucune présence enregistrée → horaires réinitialisés.
+        if (status == PresenceStatus.ABSENT || status == PresenceStatus.EXCUSED) {
+            arrival = null;
+            departure = null;
+        }
+        // EXCUSED : absence justifiée → la justification est obligatoire.
+        if (status == PresenceStatus.EXCUSED && (justification == null || justification.isBlank())) {
+            throw new IllegalArgumentException("Une absence justifiée (EXCUSED) doit comporter une justification.");
+        }
+        // PRESENT : arrivée dans le délai prévu (défaut : début de séance).
+        if ((status == PresenceStatus.PRESENT || status == PresenceStatus.LATE)
+                && arrival == null && seance != null && seance.getHeureDebut() != null) {
+            arrival = seance.getHeureDebut();
+        }
+        // LATE : arrivée après l'heure de début de la séance.
+        if (status == PresenceStatus.PRESENT && arrival != null && seance != null
+                && seance.getHeureDebut() != null && arrival.isAfter(seance.getHeureDebut())) {
+            status = PresenceStatus.LATE;
+        }
+        presence.setStatus(status);
+        presence.setPresent(status == PresenceStatus.PRESENT || status == PresenceStatus.LATE);
+        presence.setArrivalTime(arrival);
+        presence.setDepartureTime(departure);
+        presence.setJustification(justification);
+        if (comment != null) {
+            presence.setCommentaire(comment);
+        }
+        presence.setRecordedBy(user != null ? user.username() : null);
+        presence.setRecordedAt(LocalDateTime.now());
     }
 
     public List<MesPresenceDTO> getMesPresences(String email) {
@@ -1526,7 +1705,14 @@ public class FormationWorkflowService {
             MesPresenceDTO dto = new MesPresenceDTO();
             dto.setIdParticipation(p.getIdParticipation());
             dto.setPresent(p.isPresent());
+                dto.setStatus(p.getStatus() != null ? p.getStatus()
+                    : (p.isPresent() ? PresenceStatus.PRESENT : PresenceStatus.ABSENT));
+                dto.setArrivalTime(p.getArrivalTime());
+                dto.setDepartureTime(p.getDepartureTime());
+                dto.setJustification(p.getJustification());
             dto.setCommentaire(p.getCommentaire());
+                dto.setRecordedBy(p.getRecordedBy());
+                dto.setRecordedAt(p.getRecordedAt());
             if (p.getSeanceFormation() != null) {
                 dto.setSeanceId(p.getSeanceFormation().getIdSeance());
                 dto.setDateSeance(p.getSeanceFormation().getDateSeance());
@@ -1592,6 +1778,41 @@ public class FormationWorkflowService {
         }).toList();
     }
 
+    /**
+     * Contrôle d'identité pour le calendrier enseignant (anti-énumération).
+     *
+     * L'id du path est l'identifiant fonctionnel de la fiche enseignant alors
+     * que le JWT porte username (sub), email et userId technique — une
+     * comparaison directe id-vs-email était toujours fausse et renvoyait 403
+     * aux enseignants consultant leur PROPRE calendrier. Comme
+     * InscriptionService (id OU mail), on croise les identités JWT avec la
+     * fiche résolue par id : l'accès self passe si l'un des identifiants
+     * correspond.
+     */
+    public boolean isSelfCalendar(String enseignantId, CurrentUser user) {
+        if (enseignantId == null || enseignantId.isBlank() || user == null) {
+            return false;
+        }
+        boolean identityMatch = enseignantId.equalsIgnoreCase(user.emailOrUsername())
+                || (user.username() != null && enseignantId.equalsIgnoreCase(user.username()))
+                || (user.userId() != null && enseignantId.equalsIgnoreCase(user.userId()));
+        if (identityMatch) {
+            return true;
+        }
+        return enseignantRepository.findById(enseignantId)
+                .map(enseignant -> matchesIdentity(enseignant.getMail(), user))
+                .orElse(false);
+    }
+
+    /** Le mail de la fiche correspond-il à l'identité du JWT (email ou username) ? */
+    private boolean matchesIdentity(String mail, CurrentUser user) {
+        if (mail == null || mail.isBlank()) {
+            return false;
+        }
+        return mail.equalsIgnoreCase(user.email())
+                || mail.equalsIgnoreCase(user.username());
+    }
+
     public FormationsByRoleDTO getFormationsForCalendar(String enseignantId) {
         List<FormationResponseDTO> animateur = formationRepository
                 .findDistinctBySeances_Animateurs_Id(enseignantId)
@@ -1652,6 +1873,60 @@ public class FormationWorkflowService {
     @Transactional(readOnly = true)
     public List<FormationResponseDTO> getFormationsParDepartement(String deptId) {
         List<Formation> formations = formationRepository.findByDepartement_Id(deptId);
+        formations.forEach(f -> {
+            if (f.getSeances() != null) {
+                f.getSeances().forEach(seance -> {
+                    if (seance.getAnimateurs() != null)
+                        Hibernate.initialize(seance.getAnimateurs());
+                    if (seance.getParticipants() != null)
+                        Hibernate.initialize(seance.getParticipants());
+                });
+            }
+            if (f.getFormationCompetences() != null)
+                Hibernate.initialize(f.getFormationCompetences());
+            if (f.getInscriptions() != null)
+                Hibernate.initialize(f.getInscriptions());
+        });
+        return formations.stream().map(formationMapper::toResponseDTO).toList();
+    }
+
+    /**
+     * Catalogue scopé serveur pour les pilotes (§8 droits) :
+     * un CUP ne voit que les formations de son UP, un chef de département
+     * celles de son département — périmètre résolu depuis l'email JWT via
+     * l'entité Enseignant, jamais depuis un paramètre client. Les autres
+     * rôles avec FORMATION_READ conservent la vue complète.
+     */
+    @Transactional(readOnly = true)
+    public List<FormationResponseDTO> getMesFormationsPilote(CurrentUser user) {
+        if (user == null || user.email() == null) {
+            throw new IllegalArgumentException("Utilisateur non identifiable");
+        }
+        boolean isCup = user.hasRole("CUP") && !user.isAdmin();
+        boolean isChef = user.hasRole("CHEF_DEPARTEMENT") && !user.isAdmin();
+        if (!isCup && !isChef) {
+            // Vue complète (admin et autres rôles FORMATION_READ).
+            FormationWorkflowService target = (self != null) ? self : this;
+            return target.getAllFormationWorkflows();
+        }
+        Enseignant enseignant = enseignantRepository.findByMailIgnoreCase(user.email())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Profil enseignant introuvable pour l'email : " + user.email()
+                        + " — impossible de résoudre le périmètre (UP/département)."));
+        List<Formation> formations;
+        if (isCup) {
+            if (enseignant.getUp() == null || enseignant.getUp().getId() == null) {
+                throw new IllegalArgumentException(
+                        "Aucune UP rattachée à votre profil — contactez l'administrateur.");
+            }
+            formations = formationRepository.findByUp_Id(enseignant.getUp().getId());
+        } else {
+            if (enseignant.getDept() == null || enseignant.getDept().getId() == null) {
+                throw new IllegalArgumentException(
+                        "Aucun département rattaché à votre profil — contactez l'administrateur.");
+            }
+            formations = formationRepository.findByDepartement_Id(enseignant.getDept().getId());
+        }
         formations.forEach(f -> {
             if (f.getSeances() != null) {
                 f.getSeances().forEach(seance -> {

@@ -17,10 +17,10 @@ COMPETENCY = Competency(
     nom="Pedagogie",
     domaine_id=None,
     domaine_nom=None,
-    savoirs=(Savoir(id=101, code="S101", nom="S1", required_level=4), Savoir(id=102, code="S102", nom="S2", required_level=3)),
+    savoirs=(Savoir(id=101, code="S101", nom="S1", knowledge_difficulty_level=4), Savoir(id=102, code="S102", nom="S2", knowledge_difficulty_level=3)),
 )
 
-STATE = TeacherCompetencyState(teacher_id="T001", competency=COMPETENCY, current_level=1.5, previous_level=None, savoir_levels={101: 1, 102: 2})
+STATE = TeacherCompetencyState(teacher_id="T001", competency=COMPETENCY, observed_result=1.5, previous_observed_result=None, savoir_levels={101: 1, 102: 2})
 
 
 def _candidate(savoir_ids: set[int], completed: bool = False, avg_eval: float | None = 4.0) -> TrainingCandidate:
@@ -85,3 +85,32 @@ def test_ranking_order_by_score():
 def test_limit_respected():
     results = rank_candidates([_candidate({101, 102}), _candidate({102})], STATE, date.today(), 1)
     assert len(results) == 1
+
+
+def test_reason_never_claims_coverage_without_savoir_links():
+    """Audit 4.4 — une formation SANS savoirs référencés (prior domaine 0.3)
+    ne doit JAMais revendiquer une couverture des savoirs manquants : le
+    libellé est « Formation du domaine cible » et matched_savoirs est vide."""
+    from app.domain.services.ranking_service import rank_score
+
+    no_links = _candidate(set())
+    results = rank_candidates([no_links], STATE, date.today(), 5)
+    assert len(results) == 1
+    rec = results[0]
+    assert "Couvre" not in (rec.reason or ""), "le libellé ne doit pas revendiquer une couverture"
+    assert "savoirs non référencés" in (rec.reason or "")
+    assert rec.matched_savoirs == ()
+    # Le score conserve le prior domaine 0.3 documenté (0.7*0.3 + 0.2*qualité + 0.1*récence).
+    expected = 0.7 * 0.3 + 0.2 * quality_score(no_links) + 0.1 * recency_score(no_links, date.today())
+    assert abs(rec.rank_score - round(rank_score(no_links, STATE, date.today()), 4)) < 0.01
+    assert abs(rec.rank_score - round(expected, 4)) < 0.01
+
+
+def test_reason_claims_coverage_only_with_real_missing_savoirs():
+    """Une formation AVEC savoirs référencés couvrant les savoirs manquants
+    affiche « Couvre... » ET des matched_savoirs non vides (justification réelle)."""
+    partial = _candidate({101})
+    results = rank_candidates([partial], STATE, date.today(), 5)
+    rec = results[0]
+    assert "Couvre" in (rec.reason or "")
+    assert list(rec.matched_savoirs) == ["S1"], "matched_savoirs = savoir manquant réellement couvert"

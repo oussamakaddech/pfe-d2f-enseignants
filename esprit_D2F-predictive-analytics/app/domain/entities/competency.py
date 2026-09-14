@@ -6,7 +6,7 @@ class Savoir:
     id: int
     code: str
     nom: str
-    required_level: int
+    knowledge_difficulty_level: int
 
 
 @dataclass(frozen=True)
@@ -20,7 +20,7 @@ class Competency:
 
     @property
     def target_level(self) -> int:
-        required = [s.required_level for s in self.savoirs if s.required_level > 0]
+        required = [s.knowledge_difficulty_level for s in self.savoirs if s.knowledge_difficulty_level > 0]
         return max(required) if required else 3
 
     def savoir_ids(self) -> set[int]:

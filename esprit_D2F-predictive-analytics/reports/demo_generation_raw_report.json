@@ -1,0 +1,48 @@
+{
+  "dataset_kind": "demo-synthetic",
+  "rows": 1013,
+  "teachers": 100,
+  "competencies": 13,
+  "months": 18,
+  "seed": 42,
+  "version": "synthetic-v1.0.0",
+  "output_path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\synthetic\\demo_dataset_synthetic-v1.0.0.csv",
+  "granularity": "teacher_id + competence_id + ref_month (snapshot historique t-3..t embarqué)",
+  "data_origin": "SYNTHETIC",
+  "is_synthetic": true,
+  "institutional_verified": false,
+  "dataset_hash": "1b9608cad93c6d51376a354236e9305e1552a804d167207818f8b702ad38a7fb",
+  "feature_schema_hash": null,
+  "generator_hash": "8fa6f81463365e63acb1cd2ddb206b2bb6813ef85615e7e33c65b2d0a97a48f2",
+  "defects_injected": [
+    {
+      "defect": "missing_evaluation_score",
+      "rows": 12
+    },
+    {
+      "defect": "attendance_negative",
+      "rows": 6
+    },
+    {
+      "defect": "attendance_gt_1",
+      "rows": 3
+    },
+    {
+      "defect": "gap_out_of_range",
+      "rows": 4
+    },
+    {
+      "defect": "duplicate_rows",
+      "rows": 8
+    },
+    {
+      "defect": "non_numeric_attendance_surplus",
+      "rows": 3
+    },
+    {
+      "defect": "invalid_ref_month_surplus",
+      "rows": 2
+    }
+  ],
+  "warning": "Dataset 100 % synthétique. Performances associées = démonstration technique du pipeline uniquement, PAS une validation institutionnelle."
+}

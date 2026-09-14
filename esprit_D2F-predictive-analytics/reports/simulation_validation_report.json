@@ -1,0 +1,409 @@
+{
+  "protocol": {
+    "corpus": "simulation",
+    "dataset_path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\clean\\simulation_dataset.csv",
+    "dataset_version": "simulation-v1.0.0",
+    "dataset_hash": "cd767cf47dd29056988a37bfba286b06fffba91e74560357c15b67ade76d19b2",
+    "seed": 42,
+    "n_rows": 10920,
+    "n_teachers": 45,
+    "n_months": 30,
+    "split": "temporal_strict_train_2023-04-30..2025-03-31_test_2025-04-30..2025-09-30",
+    "holdout": "n_test=2184 meme holdout pour tous modeles",
+    "bootstrap": "1000 replications, IC95 percentile 2.5-97.5, seed 42",
+    "multi_window": "validation glissante 4 fenetres temporelles",
+    "backtest": "M+3 sur cibles observees (target_observation_date remplie, is_extrapolated=false)",
+    "calibration": "Platt + isotonique sur scores risque vs evenements simules, Brier, courbe calibration"
+  },
+  "provenance": {
+    "data_origin": "SIMULATED",
+    "is_synthetic": true,
+    "target_validity": "OBSERVED_IN_SIMULATION",
+    "validation_scope": "SIMULATION_VALIDATED",
+    "is_extrapolated": false,
+    "warning": "Metriques issues de la simulation, toujours etiquetees. Ne jamais presenter comme performance reelle."
+  },
+  "results_by_model": {
+    "baseline_persistence": {
+      "metrics": {
+        "rmse": 1.1712984779901854,
+        "mae": 0.7261236263736264,
+        "r2": -0.5140886683141124,
+        "n": 2184
+      },
+      "bootstrap_ci": {
+        "rmse_ci95": [
+          1.1229,
+          1.2172
+        ],
+        "mae_ci95": [
+          0.6881,
+          0.7648
+        ],
+        "n_boot": 1000,
+        "seed": 42
+      }
+    },
+    "gradient_boosting": {
+      "metrics": {
+        "rmse": 0.5114901341535325,
+        "mae": 0.35964815512949144,
+        "r2": 0.7112708224528859,
+        "n": 2184,
+        "improvement_vs_persistence_pct": 56.33
+      },
+      "bootstrap_ci": {
+        "rmse_ci95": [
+          0.4915,
+          0.5305
+        ],
+        "mae_ci95": [
+          0.3444,
+          0.3744
+        ],
+        "n_boot": 1000,
+        "seed": 42
+      }
+    },
+    "xgboost": {
+      "metrics": {
+        "rmse": 0.5067267801909157,
+        "mae": 0.3477439928136969,
+        "r2": 0.7166234782050729,
+        "n": 2184,
+        "improvement_vs_persistence_pct": 56.74
+      },
+      "bootstrap_ci": {
+        "rmse_ci95": [
+          0.4861,
+          0.5261
+        ],
+        "mae_ci95": [
+          0.3317,
+          0.3629
+        ],
+        "n_boot": 1000,
+        "seed": 42
+      }
+    },
+    "mlp": {
+      "metrics": {
+        "rmse": 0.5314370387796499,
+        "mae": 0.35064262745740266,
+        "r2": 0.6883122095673156,
+        "n": 2184,
+        "improvement_vs_persistence_pct": 54.63
+      },
+      "bootstrap_ci": {
+        "rmse_ci95": [
+          0.5073,
+          0.5546
+        ],
+        "mae_ci95": [
+          0.3332,
+          0.3671
+        ],
+        "n_boot": 1000,
+        "seed": 42
+      }
+    }
+  },
+  "multi_window_folds": [
+    {
+      "window": 1,
+      "train_period": "2023-04-30..2023-09-30",
+      "test_period": "2023-10-31..2024-03-31",
+      "n_train": 2184,
+      "n_test": 2184,
+      "metrics": {
+        "rmse": 0.5890406118155813,
+        "mae": 0.439306593942694,
+        "r2": 0.6331379006938351,
+        "n": 2184
+      },
+      "ci95": {
+        "rmse_ci95": [
+          0.5683,
+          0.6081
+        ],
+        "mae_ci95": [
+          0.4215,
+          0.4547
+        ],
+        "n_boot": 1000,
+        "seed": 42
+      }
+    },
+    {
+      "window": 2,
+      "train_period": "2023-04-30..2024-03-31",
+      "test_period": "2024-04-30..2024-09-30",
+      "n_train": 4368,
+      "n_test": 2184,
+      "metrics": {
+        "rmse": 0.5576722959430037,
+        "mae": 0.4114508633930778,
+        "r2": 0.6597008250290418,
+        "n": 2184
+      },
+      "ci95": {
+        "rmse_ci95": [
+          0.5398,
+          0.5767
+        ],
+        "mae_ci95": [
+          0.3959,
+          0.4277
+        ],
+        "n_boot": 1000,
+        "seed": 42
+      }
+    },
+    {
+      "window": 3,
+      "train_period": "2023-04-30..2024-09-30",
+      "test_period": "2024-10-31..2025-03-31",
+      "n_train": 6552,
+      "n_test": 2184,
+      "metrics": {
+        "rmse": 0.5458519457785539,
+        "mae": 0.3861520877164901,
+        "r2": 0.6890026556334794,
+        "n": 2184
+      },
+      "ci95": {
+        "rmse_ci95": [
+          0.5252,
+          0.5673
+        ],
+        "mae_ci95": [
+          0.3708,
+          0.402
+        ],
+        "n_boot": 1000,
+        "seed": 42
+      }
+    },
+    {
+      "window": 4,
+      "train_period": "2023-04-30..2025-03-31",
+      "test_period": "2025-04-30..2025-09-30",
+      "n_train": 8736,
+      "n_test": 2184,
+      "metrics": {
+        "rmse": 0.5095993720486693,
+        "mae": 0.3537319230775147,
+        "r2": 0.7134014957037691,
+        "n": 2184
+      },
+      "ci95": {
+        "rmse_ci95": [
+          0.4903,
+          0.5279
+        ],
+        "mae_ci95": [
+          0.3385,
+          0.3684
+        ],
+        "n_boot": 1000,
+        "seed": 42
+      }
+    }
+  ],
+  "multi_window_summary": {
+    "n_folds": 4,
+    "rmse_mean": 0.5505,
+    "rmse_std": 0.0284,
+    "mae_mean": 0.3977,
+    "mae_std": 0.0316
+  },
+  "backtest_M3": {
+    "protocol": "backtest_M+3_sur_cibles_observees",
+    "target_validity": "OBSERVED_IN_SIMULATION",
+    "is_extrapolated": false,
+    "n_test": 2184,
+    "note": "Cibles gap_next_3m observees a target_observation_date = date_t+3 mois (simulation), pas extrapolation glissante.",
+    "best_model": "xgboost",
+    "metrics": {
+      "rmse": 0.5067267801909157,
+      "mae": 0.3477439928136969,
+      "r2": 0.7166234782050729,
+      "n": 2184,
+      "improvement_vs_persistence_pct": 56.74
+    }
+  },
+  "segment_metrics_ref": "reports/segment_metrics.json",
+  "calibration": {
+    "status": "OK",
+    "task": "risk_index_calibration",
+    "score_type": "WEIGHTED_HEURISTIC_INDEX",
+    "calibration_status_before": "NOT_CALIBRATED",
+    "n_samples": 2184,
+    "n_events": 404,
+    "min_events_required": 30,
+    "methods": {
+      "platt_scaling": {
+        "coefficients": {
+          "a": 22.822,
+          "b": -6.5735
+        },
+        "brier_score": 0.0449,
+        "brier_ci": {
+          "brier_ci95": [
+            0.0391,
+            0.0506
+          ]
+        },
+        "calibration_curve": [
+          {
+            "bin": "[0.0,0.1]",
+            "mean_predicted_proba": 0.0113,
+            "observed_event_rate": 0.0108,
+            "n": 1575
+          },
+          {
+            "bin": "[0.1,0.2]",
+            "mean_predicted_proba": 0.1365,
+            "observed_event_rate": 0.1146,
+            "n": 96
+          },
+          {
+            "bin": "[0.2,0.3]",
+            "mean_predicted_proba": 0.2487,
+            "observed_event_rate": 0.2632,
+            "n": 57
+          },
+          {
+            "bin": "[0.3,0.4]",
+            "mean_predicted_proba": 0.3529,
+            "observed_event_rate": 0.4211,
+            "n": 38
+          },
+          {
+            "bin": "[0.4,0.5]",
+            "mean_predicted_proba": 0.4494,
+            "observed_event_rate": 0.72,
+            "n": 25
+          },
+          {
+            "bin": "[0.5,0.6]",
+            "mean_predicted_proba": 0.5512,
+            "observed_event_rate": 0.5957,
+            "n": 47
+          },
+          {
+            "bin": "[0.6,0.7]",
+            "mean_predicted_proba": 0.6431,
+            "observed_event_rate": 0.575,
+            "n": 40
+          },
+          {
+            "bin": "[0.7,0.8]",
+            "mean_predicted_proba": 0.7456,
+            "observed_event_rate": 0.675,
+            "n": 40
+          },
+          {
+            "bin": "[0.8,0.9]",
+            "mean_predicted_proba": 0.8608,
+            "observed_event_rate": 0.8167,
+            "n": 60
+          },
+          {
+            "bin": "[0.9,1.0]",
+            "mean_predicted_proba": 0.9767,
+            "observed_event_rate": 0.9709,
+            "n": 206
+          }
+        ]
+      },
+      "isotonic_regression": {
+        "brier_score": 0.0426,
+        "brier_ci": {
+          "brier_ci95": [
+            0.037,
+            0.0477
+          ]
+        },
+        "calibration_curve": [
+          {
+            "bin": "[0.0,0.1]",
+            "mean_predicted_proba": 0.004,
+            "observed_event_rate": 0.004,
+            "n": 1500
+          },
+          {
+            "bin": "[0.1,0.2]",
+            "mean_predicted_proba": 0.125,
+            "observed_event_rate": 0.125,
+            "n": 176
+          },
+          {
+            "bin": "[0.2,0.3]",
+            "mean_predicted_proba": 0.25,
+            "observed_event_rate": 0.25,
+            "n": 44
+          },
+          {
+            "bin": "[0.3,0.4]",
+            "mean_predicted_proba": 0.3714,
+            "observed_event_rate": 0.3714,
+            "n": 35
+          },
+          {
+            "bin": "[0.5,0.6]",
+            "mean_predicted_proba": 0.5556,
+            "observed_event_rate": 0.5556,
+            "n": 9
+          },
+          {
+            "bin": "[0.6,0.7]",
+            "mean_predicted_proba": 0.6204,
+            "observed_event_rate": 0.6204,
+            "n": 137
+          },
+          {
+            "bin": "[0.7,0.8]",
+            "mean_predicted_proba": 0.7556,
+            "observed_event_rate": 0.7556,
+            "n": 45
+          },
+          {
+            "bin": "[0.8,0.9]",
+            "mean_predicted_proba": 0.8485,
+            "observed_event_rate": 0.8485,
+            "n": 33
+          },
+          {
+            "bin": "[0.9,1.0]",
+            "mean_predicted_proba": 0.9756,
+            "observed_event_rate": 0.9756,
+            "n": 205
+          }
+        ]
+      },
+      "uncalibrated_index_baseline": {
+        "brier_score": 0.08,
+        "brier_ci": {
+          "brier_ci95": [
+            0.0738,
+            0.0866
+          ]
+        }
+      }
+    },
+    "best_method": "isotonic_regression",
+    "calibration_status_after_study": "CALIBRATION_CANDIDATE_FOUND",
+    "note": "Indice pondéré conservé : calibration transforme echelle en proba d'evenement observe SIMULE (is_extrapolated=false), sans masquer facteurs."
+  },
+  "decision": {
+    "best_model": "xgboost",
+    "criterion": "lowest RMSE on shared holdout with IC95 non-overlapping vs baseline",
+    "note": "Validation SIMULATION_VALIDATED : pipeline, gouvernance, calibration, backtest valides de bout en bout sur donnees simulees realistes (seed 42, re-mesures M+3, IC bootstrap, calibration). Performance reelle a confirmer sur donnees institutionnelles DSI (REAL_VALIDATED requiert attestation + 30 obs reelles)."
+  },
+  "gouvernance": {
+    "pipeline_reproductible": "seed 42, hash LF, splits temporels stricts",
+    "fail_closed": "aucun modele simule ne sera presente comme valide sur donnees reelles",
+    "etiquetage": "chaque metrique porte data_origin=SIMULATED, validation_scope=SIMULATION_VALIDATED"
+  }
+}

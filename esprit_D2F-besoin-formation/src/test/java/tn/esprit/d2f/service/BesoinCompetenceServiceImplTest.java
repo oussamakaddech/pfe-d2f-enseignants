@@ -200,6 +200,53 @@ class BesoinCompetenceServiceImplTest {
     }
 
     @Test
+    void replaceAll_multiSavoirsSameCompetence_shouldDeduplicateAndKeepAllSavoirs() {
+        long besoinId = 1L;
+        // V27 — multi-sélection : plusieurs savoirs pour une même compétence
+        // (autorisé depuis la suppression de la contrainte V26).
+        BesoinCompetenceDTO savoir1 = BesoinCompetenceDTO.builder()
+                .besoinId(besoinId)
+                .competenceId(20L)
+                .competenceNom("Java")
+                .sousCompetenceId(40L)
+                .sousCompetenceNom("POO")
+                .savoirId(30L)
+                .savoirNom("Héritage")
+                .build();
+        BesoinCompetenceDTO savoir2 = BesoinCompetenceDTO.builder()
+                .besoinId(besoinId)
+                .competenceId(20L)
+                .competenceNom("Java")
+                .sousCompetenceId(40L)
+                .sousCompetenceNom("POO")
+                .savoirId(31L)
+                .savoirNom("Polymorphisme")
+                .build();
+        // Doublon exact de savoir1 (même compétence / sous-compétence / savoir)
+        BesoinCompetenceDTO doublon = BesoinCompetenceDTO.builder()
+                .besoinId(besoinId)
+                .competenceId(20L)
+                .competenceNom("Java")
+                .sousCompetenceId(40L)
+                .savoirId(30L)
+                .savoirNom("Héritage")
+                .build();
+
+        when(repository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        List<BesoinCompetenceDTO> result =
+                service.replaceAll(besoinId, Arrays.asList(savoir1, savoir2, doublon));
+
+        assertEquals(2, result.size());
+        assertEquals("Héritage", result.get(0).getSavoirNom());
+        assertEquals("POO", result.get(0).getSousCompetenceNom());
+        assertEquals("Polymorphisme", result.get(1).getSavoirNom());
+        assertEquals("POO", result.get(1).getSousCompetenceNom());
+        verify(repository).deleteByBesoinId(besoinId);
+        verify(repository).saveAll(anyList());
+    }
+
+    @Test
     void replaceAll_shouldPreserveAllCompetenceFields() {
         long besoinId = 1L;
         BesoinCompetenceDTO dto = BesoinCompetenceDTO.builder()

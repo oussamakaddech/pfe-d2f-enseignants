@@ -138,8 +138,8 @@ public class KPIController {
     public ResponseEntity<CountHeuresDTO> countAndHeuresWithFilters(
             @RequestParam(required = false) String competence,
             @RequestParam(required = false) String domaine,
-            @RequestParam(required = false) Long upId,
-            @RequestParam(required = false) Long deptId,
+            @RequestParam(required = false) String upId,
+            @RequestParam(required = false) String deptId,
             @RequestParam(required = false) Boolean ouverte,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate start,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end,
@@ -155,8 +155,8 @@ public class KPIController {
     public ResponseEntity<Object> getFormationsByTypeFiltered(
             @RequestParam(required = false) String competence,
             @RequestParam(required = false) String domaine,
-            @RequestParam(required = false) Long upId,
-            @RequestParam(required = false) Long deptId,
+            @RequestParam(required = false) String upId,
+            @RequestParam(required = false) String deptId,
             @RequestParam(required = false) Boolean ouverte,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate start,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end,
@@ -178,8 +178,8 @@ public class KPIController {
     public ResponseEntity<Object> countByTrainerTypeWithIds(
             @RequestParam(required = false) String competence,
             @RequestParam(required = false) String domaine,
-            @RequestParam(required = false) Long upId,
-            @RequestParam(required = false) Long deptId,
+            @RequestParam(required = false) String upId,
+            @RequestParam(required = false) String deptId,
             @RequestParam(required = false) Boolean ouverte,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate start,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end,

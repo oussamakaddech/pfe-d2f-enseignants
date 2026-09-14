@@ -17,14 +17,14 @@ interface TrendChartProps {
   readonly loading?: boolean;
 }
 
-/** Courbe de tendance (score de risque moyen, enseignants CRITIQUE, effectifs). */
+/** Courbe de tendance (Indice de risque moyen, enseignants CRITIQUE, effectifs). */
 export default function TrendChart({ trends, loading }: TrendChartProps) {
   if (loading) return <div>Chargement…</div>;
   const data = {
     labels: trends.map((t) => t.month),
     datasets: [
       {
-        label: 'Score de risque moyen',
+        label: 'Indice de risque moyen',
         data: trends.map((t) => Math.round(t.score_risque_moyen * 100)),
         borderColor: '#1677ff',
         yAxisID: 'y',

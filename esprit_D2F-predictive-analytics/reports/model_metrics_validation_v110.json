@@ -1,0 +1,27 @@
+﻿{
+  "valid": true,
+  "decision": "accept",
+  "errors": [],
+  "metrics": {
+    "test_r2": 0.0527,
+    "test_rmse": 1.0625,
+    "test_mae": 0.7595,
+    "baseline_rmse": 2.4171,
+    "baseline_mae": 2.0922,
+    "lift_rmse": 1.3546,
+    "lift_rmse_ci95": [
+      0.8369,
+      1.9091
+    ],
+    "lift_ci95_method": "bootstrap 1000 replicas on test sample (n=34), percentile 2.5-97.5",
+    "lift_significant_95": true
+  },
+  "synthetic_share_pct": 0.0,
+  "real_rows": 172,
+  "thresholds": {
+    "min_r2": 0.0,
+    "max_rmse": 2.0,
+    "max_mae": 1.5,
+    "max_train_test_gap_pct": 50.0
+  }
+}

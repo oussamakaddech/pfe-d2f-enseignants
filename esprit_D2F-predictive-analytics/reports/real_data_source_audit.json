@@ -1,0 +1,365 @@
+{
+  "competence.enseignant_competences": {
+    "table": "competence.enseignant_competences",
+    "colonnes_utilisees": [
+      "date_acquisition",
+      "enseignant_id",
+      "savoir_id"
+    ],
+    "nombre_de_lignes": 363,
+    "lignes_avec_date": 363,
+    "enseignants_distincts": 40,
+    "competences_distinctes": 35,
+    "date_minimale": "2015-09-01",
+    "date_maximale": "2026-07-22",
+    "relations_exploitables": [
+      "savoirs(id=savoir_id) -> sous_competences -> competences",
+      "niveau_savoir_requis(savoir_id) -> required_level"
+    ],
+    "lignes_exclues": 0,
+    "raison_exclusion": []
+  },
+  "competence.savoirs": {
+    "table": "competence.savoirs",
+    "colonnes_utilisees": [
+      "created_at"
+    ],
+    "nombre_de_lignes": 42,
+    "lignes_avec_date": 42,
+    "enseignants_distincts": null,
+    "competences_distinctes": null,
+    "date_minimale": "2026-01-01 08:00:00",
+    "date_maximale": "2026-08-02 04:03:40.313216",
+    "relations_exploitables": [],
+    "lignes_exclues": 0,
+    "raison_exclusion": []
+  },
+  "competence.sous_competences": {
+    "table": "competence.sous_competences",
+    "colonnes_utilisees": [
+      "created_at"
+    ],
+    "nombre_de_lignes": 20,
+    "lignes_avec_date": 20,
+    "enseignants_distincts": null,
+    "competences_distinctes": null,
+    "date_minimale": "2026-01-01 08:00:00",
+    "date_maximale": "2026-08-01 22:19:47.764357",
+    "relations_exploitables": [],
+    "lignes_exclues": 0,
+    "raison_exclusion": []
+  },
+  "competence.competences": {
+    "table": "competence.competences",
+    "colonnes_utilisees": [
+      "created_at"
+    ],
+    "nombre_de_lignes": 15,
+    "lignes_avec_date": 15,
+    "enseignants_distincts": null,
+    "competences_distinctes": null,
+    "date_minimale": "2026-01-01 08:00:00",
+    "date_maximale": "2026-08-02 04:03:40.313216",
+    "relations_exploitables": [],
+    "lignes_exclues": 0,
+    "raison_exclusion": []
+  },
+  "competence.niveau_savoir_requis": {
+    "table": "competence.niveau_savoir_requis",
+    "colonnes_utilisees": [
+      "created_at"
+    ],
+    "nombre_de_lignes": 77,
+    "lignes_avec_date": 77,
+    "enseignants_distincts": null,
+    "competences_distinctes": null,
+    "date_minimale": "2026-01-01 08:00:00",
+    "date_maximale": "2026-08-02 04:03:40.313216",
+    "relations_exploitables": [],
+    "lignes_exclues": 0,
+    "raison_exclusion": []
+  },
+  "formation.enseignants": {
+    "table": "formation.enseignants",
+    "colonnes_utilisees": [
+      "created_at"
+    ],
+    "nombre_de_lignes": 40,
+    "lignes_avec_date": 12,
+    "enseignants_distincts": null,
+    "competences_distinctes": null,
+    "date_minimale": "2026-08-01 22:19:47.764357",
+    "date_maximale": "2026-08-02 04:03:40.313216",
+    "relations_exploitables": [],
+    "lignes_exclues": 0,
+    "raison_exclusion": []
+  },
+  "formation.formations": {
+    "table": "formation.formations",
+    "colonnes_utilisees": [
+      "date_debut"
+    ],
+    "nombre_de_lignes": 11,
+    "lignes_avec_date": 11,
+    "enseignants_distincts": null,
+    "competences_distinctes": null,
+    "date_minimale": "2026-01-15",
+    "date_maximale": "2026-11-02",
+    "relations_exploitables": [],
+    "lignes_exclues": 0,
+    "raison_exclusion": []
+  },
+  "formation.inscriptions": {
+    "table": "formation.inscriptions",
+    "colonnes_utilisees": [
+      "date_demande",
+      "enseignant_id"
+    ],
+    "nombre_de_lignes": 22,
+    "lignes_avec_date": 22,
+    "enseignants_distincts": 12,
+    "competences_distinctes": null,
+    "date_minimale": "2025-12-10 09:00:00+00",
+    "date_maximale": "2026-08-05 00:00:00+00",
+    "relations_exploitables": [
+      "enseignant_id -> formation.formations(id_formation)",
+      "date_demande -> date observation"
+    ],
+    "lignes_exclues": 0,
+    "raison_exclusion": []
+  },
+  "formation.presences": {
+    "table": "formation.presences",
+    "colonnes_utilisees": [
+      "created_at",
+      "enseignant_id"
+    ],
+    "nombre_de_lignes": 71,
+    "lignes_avec_date": 62,
+    "enseignants_distincts": 5,
+    "competences_distinctes": null,
+    "date_minimale": "2026-01-15 00:00:00",
+    "date_maximale": "2026-07-21 05:03:29.610265",
+    "relations_exploitables": [
+      "enseignant_id + seance_id -> seances.date_seance (assiduité)"
+    ],
+    "lignes_exclues": 0,
+    "raison_exclusion": []
+  },
+  "formation.seances": {
+    "table": "formation.seances",
+    "colonnes_utilisees": [
+      "date_seance"
+    ],
+    "nombre_de_lignes": 9,
+    "lignes_avec_date": 9,
+    "enseignants_distincts": null,
+    "competences_distinctes": null,
+    "date_minimale": "2026-01-15",
+    "date_maximale": "2026-09-29",
+    "relations_exploitables": [],
+    "lignes_exclues": 0,
+    "raison_exclusion": []
+  },
+  "formation.formation_competences": {
+    "table": "formation.formation_competences",
+    "colonnes_utilisees": [
+      "created_at",
+      "competence_id"
+    ],
+    "nombre_de_lignes": 18,
+    "lignes_avec_date": 15,
+    "enseignants_distincts": null,
+    "competences_distinctes": 13,
+    "date_minimale": "2026-07-21 05:03:48.399201",
+    "date_maximale": "2026-08-02 04:03:40.313216",
+    "relations_exploitables": [
+      "formation_id + competence_id + niveau_vise (cible de formation)"
+    ],
+    "lignes_exclues": 0,
+    "raison_exclusion": []
+  },
+  "evaluation.evaluation_formateur": {
+    "table": "evaluation.evaluation_formateur",
+    "colonnes_utilisees": [
+      "created_at",
+      "enseignant_id"
+    ],
+    "nombre_de_lignes": 10,
+    "lignes_avec_date": 6,
+    "enseignants_distincts": 6,
+    "competences_distinctes": null,
+    "date_minimale": "2026-02-28 00:00:00",
+    "date_maximale": "2026-06-30 00:00:00",
+    "relations_exploitables": [
+      "enseignant_id + formation_id (note moyenne)"
+    ],
+    "lignes_exclues": 0,
+    "raison_exclusion": []
+  },
+  "evaluation.evaluation_globale": {
+    "table": "evaluation.evaluation_globale",
+    "colonnes_utilisees": [
+      "date_evaluation"
+    ],
+    "nombre_de_lignes": 2,
+    "lignes_avec_date": 2,
+    "enseignants_distincts": null,
+    "competences_distinctes": null,
+    "date_minimale": "2026-02-28",
+    "date_maximale": "2026-05-01",
+    "relations_exploitables": [],
+    "lignes_exclues": 0,
+    "raison_exclusion": []
+  },
+  "besoin.besoin_formation": {
+    "table": "besoin.besoin_formation",
+    "colonnes_utilisees": [
+      "created_at"
+    ],
+    "nombre_de_lignes": 14,
+    "lignes_avec_date": 10,
+    "enseignants_distincts": null,
+    "competences_distinctes": null,
+    "date_minimale": "2026-01-10 00:00:00",
+    "date_maximale": "2026-04-15 00:00:00",
+    "relations_exploitables": [
+      "username = enseignant_id (besoins)"
+    ],
+    "lignes_exclues": 0,
+    "raison_exclusion": []
+  },
+  "besoin.besoin_competences": {
+    "table": "besoin.besoin_competences",
+    "colonnes_utilisees": [
+      "created_at"
+    ],
+    "nombre_de_lignes": 5,
+    "lignes_avec_date": 5,
+    "enseignants_distincts": null,
+    "competences_distinctes": null,
+    "date_minimale": "2026-07-21 05:03:48.389187",
+    "date_maximale": "2026-07-21 05:04:13.245145",
+    "relations_exploitables": [],
+    "lignes_exclues": 0,
+    "raison_exclusion": []
+  },
+  "certificat.certificates": {
+    "table": "certificat.certificates",
+    "colonnes_utilisees": [
+      "created_at",
+      "enseignant_id"
+    ],
+    "nombre_de_lignes": 4,
+    "lignes_avec_date": 0,
+    "enseignants_distincts": 4,
+    "competences_distinctes": null,
+    "date_minimale": "None",
+    "date_maximale": "None",
+    "relations_exploitables": [
+      "enseignant_id + formation_id (certifications)"
+    ],
+    "lignes_exclues": 0,
+    "raison_exclusion": []
+  },
+  "analyse.skill_gaps": {
+    "table": "analyse.skill_gaps",
+    "colonnes_utilisees": [
+      "computed_at",
+      "enseignant_id",
+      "competence_id"
+    ],
+    "nombre_de_lignes": 0,
+    "lignes_avec_date": 0,
+    "enseignants_distincts": null,
+    "competences_distinctes": null,
+    "date_minimale": null,
+    "date_maximale": null,
+    "relations_exploitables": [
+      "enseignant_id + competence_id + computed_at (gap calculé, niveaux souvent 0)"
+    ],
+    "lignes_exclues": 0,
+    "raison_exclusion": [
+      "requête impossible : (psycopg2.errors.SyntaxError) syntax error at or near \"analyse\"\nLINE 1: ...N(computed_at)::text, MAX(computed_at)::text FROM analyse.sk...\n                                                             ^\n\n[SQL: SELECT COUNT(*), COUNT(computed_at), COUNT(DISTINCT enseignant_id), COUNT(DISTINCT competence_id), MIN(computed_at)::text, MAX(computed_at)::text FROM analyse.skill_gaps]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+    ]
+  },
+  "analyse.teacher_competence_coverage": {
+    "table": "analyse.teacher_competence_coverage",
+    "colonnes_utilisees": [
+      "snapshot_date",
+      "enseignant_id",
+      "competence_id"
+    ],
+    "nombre_de_lignes": 0,
+    "lignes_avec_date": 0,
+    "enseignants_distincts": null,
+    "competences_distinctes": null,
+    "date_minimale": null,
+    "date_maximale": null,
+    "relations_exploitables": [
+      "enseignant_id + competence_id + snapshot_date (couverture, niveaux 0)"
+    ],
+    "lignes_exclues": 0,
+    "raison_exclusion": [
+      "requête impossible : (psycopg2.errors.SyntaxError) syntax error at or near \"analyse\"\nLINE 1: ...apshot_date)::text, MAX(snapshot_date)::text FROM analyse.te...\n                                                             ^\n\n[SQL: SELECT COUNT(*), COUNT(snapshot_date), COUNT(DISTINCT enseignant_id), COUNT(DISTINCT competence_id), MIN(snapshot_date)::text, MAX(snapshot_date)::text FROM analyse.teacher_competence_coverage]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+    ]
+  },
+  "analyse.feature_snapshots": {
+    "table": "analyse.feature_snapshots",
+    "colonnes_utilisees": [
+      "snapshot_date",
+      "enseignant_id"
+    ],
+    "nombre_de_lignes": 0,
+    "lignes_avec_date": 0,
+    "enseignants_distincts": null,
+    "competences_distinctes": null,
+    "date_minimale": null,
+    "date_maximale": null,
+    "relations_exploitables": [
+      "enseignant_id + snapshot_date (features agrégées)"
+    ],
+    "lignes_exclues": 0,
+    "raison_exclusion": [
+      "requête impossible : (psycopg2.errors.SyntaxError) syntax error at or near \"analyse\"\nLINE 1: ...apshot_date)::text, MAX(snapshot_date)::text FROM analyse.fe...\n                                                             ^\n\n[SQL: SELECT COUNT(*), COUNT(snapshot_date), COUNT(DISTINCT enseignant_id), MIN(snapshot_date)::text, MAX(snapshot_date)::text FROM analyse.feature_snapshots]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+    ]
+  },
+  "analyse.teacher_risk_snapshots": {
+    "table": "analyse.teacher_risk_snapshots",
+    "colonnes_utilisees": [
+      "snapshot_date",
+      "enseignant_id"
+    ],
+    "nombre_de_lignes": 0,
+    "lignes_avec_date": 0,
+    "enseignants_distincts": null,
+    "competences_distinctes": null,
+    "date_minimale": null,
+    "date_maximale": null,
+    "relations_exploitables": [
+      "enseignant_id + snapshot_date (score de risque mensuel)"
+    ],
+    "lignes_exclues": 0,
+    "raison_exclusion": [
+      "requête impossible : (psycopg2.errors.SyntaxError) syntax error at or near \"analyse\"\nLINE 1: ...apshot_date)::text, MAX(snapshot_date)::text FROM analyse.te...\n                                                             ^\n\n[SQL: SELECT COUNT(*), COUNT(snapshot_date), COUNT(DISTINCT enseignant_id), MIN(snapshot_date)::text, MAX(snapshot_date)::text FROM analyse.teacher_risk_snapshots]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+    ]
+  },
+  "analyse.prediction_results": {
+    "table": "analyse.prediction_results",
+    "colonnes_utilisees": [
+      "analyse_date",
+      "enseignant_id"
+    ],
+    "nombre_de_lignes": 0,
+    "lignes_avec_date": 0,
+    "enseignants_distincts": null,
+    "competences_distinctes": null,
+    "date_minimale": null,
+    "date_maximale": null,
+    "relations_exploitables": [],
+    "lignes_exclues": 0,
+    "raison_exclusion": [
+      "requête impossible : (psycopg2.errors.SyntaxError) syntax error at or near \"analyse\"\nLINE 1: ...analyse_date)::text, MAX(analyse_date)::text FROM analyse.pr...\n                                                             ^\n\n[SQL: SELECT COUNT(*), COUNT(analyse_date), COUNT(DISTINCT enseignant_id), MIN(analyse_date)::text, MAX(analyse_date)::text FROM analyse.prediction_results]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+    ]
+  }
+}

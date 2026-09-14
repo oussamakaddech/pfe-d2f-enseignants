@@ -676,7 +676,8 @@ class InscriptionServiceExtraTest {
             when(enseignantRepo.findById("USER@ESPRIT.TN")).thenReturn(Optional.empty());
             when(enseignantRepo.findByMail("USER@ESPRIT.TN")).thenReturn(Optional.empty());
             when(enseignantRepo.findByMailIgnoreCase("USER@ESPRIT.TN")).thenReturn(Optional.of(e));
-            when(inscriptionRepo.findByEnseignant_Id("USER@ESPRIT.TN")).thenReturn(Collections.emptyList());
+            // Le contrôle de chevauchement utilise l'ID RÉEL de la fiche résolue.
+            when(inscriptionRepo.findByEnseignant_Id("E1")).thenReturn(Collections.emptyList());
             when(inscriptionRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
             Inscription result = service.demanderInscription(1L, "USER@ESPRIT.TN");
@@ -693,7 +694,7 @@ class InscriptionServiceExtraTest {
     class DemanderInscriptionUpNull {
 
         @Test
-        @DisplayName("refuse quand formation non ouverte et upForm null (UP enseignant null)")
+        @DisplayName("refuse quand formation non ouverte, sans UP ni département communs")
         void shouldRejectWhenFormationUpNullAndEnseignantUpNull() {
             Formation f = createFormationWithUp(1L, true, false, null);
             Enseignant e = createEnseignant("E1", null);
@@ -703,11 +704,11 @@ class InscriptionServiceExtraTest {
 
             assertThatThrownBy(() -> service.demanderInscription(1L, "E1"))
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("pas autorisé");
+                    .hasMessageContaining("n’appartenez");
         }
 
         @Test
-        @DisplayName("refuse quand formation non ouverte et upForm null mais upEns non null")
+        @DisplayName("refuse quand formation non ouverte, UP formation null, UP enseignant non null")
         void shouldRejectWhenFormationUpNullButEnseignantUpNotNull() {
             Formation f = createFormationWithUp(1L, true, false, null);
             Up upEns = new Up();
@@ -719,7 +720,7 @@ class InscriptionServiceExtraTest {
 
             assertThatThrownBy(() -> service.demanderInscription(1L, "E1"))
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("pas autorisé");
+                    .hasMessageContaining("n’appartenez");
         }
     }
 

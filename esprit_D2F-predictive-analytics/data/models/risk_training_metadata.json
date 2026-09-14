@@ -1,78 +1,425 @@
 {
-  "model_name": "random_forest_classifier",
-  "trained_at": "2026-08-06T03:41:46.657899",
-  "n_samples": 45,
-  "n_teachers": 45,
-  "n_features": 16,
-  "feature_cols": [
-    "n_gaps_total",
-    "n_gaps_critical",
-    "n_gaps_high",
-    "avg_gap_score",
-    "max_gap_score",
-    "stagnation_months",
-    "avg_eval_score",
-    "nb_evaluations",
-    "attendance_rate",
-    "nb_formations_completed",
-    "nb_besoins_exprimes",
-    "nb_besoins_approuves",
-    "critical_ratio",
-    "has_critical",
-    "low_attendance",
-    "has_decline"
-  ],
+  "model_name": "risk_predictor",
+  "model_version": "risk-simulation-v1.0.0",
+  "artifact": "data\\models\\risk_predictor_simulation.joblib",
+  "artifact_sha256": "48454cb881a961422db6bc89d23d7b6ffd8a0b00d7d93606e976546f776fa9eb",
+  "trained_at": "2026-08-31T18:36:09.148233+00:00",
+  "dataset": {
+    "path": "data\\clean\\simulation_dataset.csv",
+    "rows": 10920,
+    "teachers": 45,
+    "months": 30,
+    "dataset_hash": "b218bc9a8c2f55ab7e59fe4be45b4f1a8444b4216fa496eff6acd0b8e798faaf",
+    "data_origin": "SIMULATED"
+  },
+  "seed": 42,
+  "target": {
+    "definition": "categorie de risque a t+3 depuis les niveaux OBSERVES a M+3 (re-mesure simulee)",
+    "thresholds": "score>=0.75 CRITICAL, >=0.50 HIGH, >=0.30 MEDIUM, sinon LOW",
+    "weights": {
+      "critical_gaps": 0.5,
+      "high_gaps": 0.12,
+      "avg_gap_score": 0.4
+    },
+    "target_validity": "OBSERVED_IN_SIMULATION"
+  },
+  "anti_leakage": {
+    "features_at_t_only": true,
+    "forbidden_in_X": [
+      "gap_next_3m",
+      "target_observation_date",
+      "current_level_t+3",
+      "niveaux M+3"
+    ]
+  },
+  "split": {
+    "type": "temporal_by_month",
+    "test_months": [
+      "2025-04",
+      "2025-05",
+      "2025-06",
+      "2025-07",
+      "2025-08",
+      "2025-09"
+    ],
+    "calibration_months": [
+      "2024-10",
+      "2024-11",
+      "2024-12",
+      "2025-01",
+      "2025-02",
+      "2025-03"
+    ],
+    "n_train_fit": 810,
+    "n_calib": 270,
+    "n_test": 270
+  },
   "label_distribution": {
-    "MEDIUM": 33,
-    "HIGH": 7,
-    "LOW": 3,
-    "CRITICAL": 2
+    "LOW": 643,
+    "MEDIUM": 447,
+    "HIGH": 228,
+    "CRITICAL": 32
   },
-  "labels": [
-    "LOW",
-    "MEDIUM",
-    "HIGH",
-    "CRITICAL"
-  ],
-  "cv_folds": 5,
-  "hyperparameters": {
-    "random_state": 42,
-    "cv": {
-      "type": "StratifiedKFold",
-      "n_splits": 5,
-      "shuffle": true,
-      "random_state": 42
+  "candidates": [
+    {
+      "candidate": "logistic_regression",
+      "macro_f1": 0.525,
+      "brier_critical_calibrated": 0.0213,
+      "macro_f1_ci95": [
+        0.4117,
+        0.6229
+      ],
+      "brier_ci95": [
+        0.0076,
+        0.0373
+      ],
+      "bootstrap_iterations": 1000,
+      "accept": false
     },
-    "model": {
-      "class": "RandomForestClassifier",
-      "n_estimators": 200,
-      "max_depth": 5,
-      "class_weight": "balanced_subsample",
-      "min_samples_leaf": 2
+    {
+      "candidate": "gradient_boosting",
+      "macro_f1": 0.4429,
+      "brier_critical_calibrated": 0.0305,
+      "macro_f1_ci95": [
+        0.3576,
+        0.5488
+      ],
+      "brier_ci95": [
+        0.0122,
+        0.0503
+      ],
+      "bootstrap_iterations": 1000,
+      "accept": false
     },
-    "baseline": {
-      "class": "DummyClassifier",
-      "strategy": "most_frequent"
+    {
+      "candidate": "xgboost_monotone",
+      "macro_f1": 0.4822,
+      "brier_critical_calibrated": 0.0247,
+      "macro_f1_ci95": [
+        0.3776,
+        0.5732
+      ],
+      "brier_ci95": [
+        0.01,
+        0.0415
+      ],
+      "bootstrap_iterations": 1000,
+      "accept": false
     }
-  },
-  "data_sources": {
-    "origin": "analyse.teacher_risk_snapshots + skill_gaps + inscriptions + evaluations + besoins",
-    "real_teachers": 45,
-    "synthetic_rows": 0,
-    "synthetic_share_pct": 0.0,
-    "snapshot_strategy": "snapshot le plus ancien par enseignant (garde le plus grand historique)",
-    "extraction_date": "2026-08-06T03:41:46.657999"
+  ],
+  "baseline_persistence_macro_f1": 0.5720627159181504,
+  "selected_candidate": "logistic_regression",
+  "decision": "reject",
+  "acceptance_thresholds": {
+    "brier_max": 0.05,
+    "macro_f1_min": 0.7
   },
   "metrics": {
-    "macro_f1": 0.2847,
-    "baseline_macro_f1": 0.2115,
-    "f1_per_class": {
-      "LOW": 0.0,
-      "MEDIUM": 0.8056,
-      "HIGH": 0.3333,
-      "CRITICAL": 0.0
+    "candidate": "logistic_regression",
+    "macro_f1": 0.525,
+    "brier_critical_calibrated": 0.0213,
+    "macro_f1_ci95": [
+      0.4117,
+      0.6229
+    ],
+    "brier_ci95": [
+      0.0076,
+      0.0373
+    ],
+    "bootstrap_iterations": 1000,
+    "accept": false
+  },
+  "calibration": {
+    "method": "isotonic_on_CRITICAL",
+    "brier_critical": 0.0213,
+    "curve_10_bins": [
+      {
+        "bin": [
+          0.0,
+          0.1
+        ],
+        "n_predicted": 259,
+        "observed_critical_rate": 0.0154,
+        "mean_predicted": 0.0047
+      },
+      {
+        "bin": [
+          0.1,
+          0.2
+        ],
+        "n_predicted": 7,
+        "observed_critical_rate": 0.2857,
+        "mean_predicted": 0.1667
+      },
+      {
+        "bin": [
+          0.2,
+          0.3
+        ],
+        "n_predicted": 1,
+        "observed_critical_rate": 0.0,
+        "mean_predicted": 0.2364
+      },
+      {
+        "bin": [
+          0.3,
+          0.4
+        ],
+        "n_predicted": 0,
+        "observed_critical_rate": null,
+        "mean_predicted": null
+      },
+      {
+        "bin": [
+          0.4,
+          0.5
+        ],
+        "n_predicted": 1,
+        "observed_critical_rate": 0.0,
+        "mean_predicted": 0.4421
+      },
+      {
+        "bin": [
+          0.5,
+          0.6
+        ],
+        "n_predicted": 1,
+        "observed_critical_rate": 1.0,
+        "mean_predicted": 0.5
+      },
+      {
+        "bin": [
+          0.6,
+          0.7
+        ],
+        "n_predicted": 0,
+        "observed_critical_rate": null,
+        "mean_predicted": null
+      },
+      {
+        "bin": [
+          0.7,
+          0.8
+        ],
+        "n_predicted": 0,
+        "observed_critical_rate": null,
+        "mean_predicted": null
+      },
+      {
+        "bin": [
+          0.8,
+          0.9
+        ],
+        "n_predicted": 0,
+        "observed_critical_rate": null,
+        "mean_predicted": null
+      },
+      {
+        "bin": [
+          0.9,
+          1.0
+        ],
+        "n_predicted": 1,
+        "observed_critical_rate": 1.0,
+        "mean_predicted": 1.0
+      }
+    ]
+  },
+  "monotonicity": {
+    "checked_features": [
+      "n_gaps_critical",
+      "n_gaps_high",
+      "avg_gap_score",
+      "max_gap_score"
+    ],
+    "details": {
+      "n_gaps_critical": {
+        "values": [
+          0,
+          1,
+          2,
+          3,
+          5
+        ],
+        "risk_score": [
+          0.318687,
+          0.532881,
+          1.285188,
+          1.095621,
+          0.80992
+        ],
+        "monotone": false
+      },
+      "n_gaps_high": {
+        "values": [
+          0,
+          1,
+          2,
+          3,
+          5
+        ],
+        "risk_score": [
+          0.318687,
+          0.363445,
+          0.41257,
+          0.49959,
+          0.743074
+        ],
+        "monotone": true
+      },
+      "avg_gap_score": {
+        "values": [
+          0.0,
+          0.25,
+          0.5,
+          0.75,
+          1.0
+        ],
+        "risk_score": [
+          0.0694,
+          0.212795,
+          0.558859,
+          1.300941,
+          1.884417
+        ],
+        "monotone": true
+      },
+      "max_gap_score": {
+        "values": [
+          0.0,
+          0.25,
+          0.5,
+          0.75,
+          1.0
+        ],
+        "risk_score": [
+          0.026229,
+          0.10046,
+          0.318687,
+          0.672213,
+          0.922168
+        ],
+        "monotone": true
+      }
+    },
+    "all_monotone": false
+  },
+  "explainability": {
+    "method": "none",
+    "global_importance": {},
+    "directional_alignment_with_heuristic": false
+  },
+  "feature_ranges": {
+    "n_gaps_total": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "n_gaps_critical": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "n_gaps_high": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "n_gaps_medium": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "avg_gap_score": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "max_gap_score": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "critical_ratio": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "has_critical": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "trend_gap_direction": {
+      "min": -1.0,
+      "max": 1.0
+    },
+    "stagnation_months": {
+      "min": 0.0,
+      "max": 86.695138
+    },
+    "attendance_rate": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "nb_formations_completed": {
+      "min": 0.0,
+      "max": 2.0
+    },
+    "nb_besoins_exprimes": {
+      "min": 0.0,
+      "max": 0.0
+    },
+    "nb_besoins_approuves": {
+      "min": 0.0,
+      "max": 0.0
+    },
+    "avg_eval_score": {
+      "min": 0.0,
+      "max": 4.5
+    },
+    "nb_evaluations": {
+      "min": 0.0,
+      "max": 3.0
+    },
+    "avg_level_t": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "min_level_t": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "max_level_t": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "nb_savoirs": {
+      "min": 0.0,
+      "max": 4.0
+    },
+    "competency_coverage_rate": {
+      "min": 0.5,
+      "max": 0.833
+    },
+    "days_since_last_training": {
+      "min": 0.0,
+      "max": 999.0
+    },
+    "training_frequency_per_month": {
+      "min": 0.0,
+      "max": 0.455
+    },
+    "level_change_last_month": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "rolling_tendance": {
+      "min": -0.333,
+      "max": 0.333
+    },
+    "stagnant_share": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "long_absent_share": {
+      "min": 0.0,
+      "max": 1.0
     }
   },
-  "decision": "reject",
-  "notes": "Classifier dedie au niveau de risque. Fallback : regle arbitraire sur gaps si absent."
+  "data_origin": "SIMULATED",
+  "validation_scope": "SIMULATION_VALIDATED",
+  "notes": "Modele de risque SIMULATION_VALIDATED (cibles M+3 observees). Repli heuristique 0.50/0.12/0.40 conserve (fail-closed). Aucun badge ML sans modele servi."
 }

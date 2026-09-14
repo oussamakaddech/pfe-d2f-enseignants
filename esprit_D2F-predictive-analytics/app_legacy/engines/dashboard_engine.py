@@ -714,15 +714,37 @@ class DashboardEngine:
         return nb_profils, score_risque_moyen, distribution_risques
 
     def _taux_couverture_global(self) -> float:
-        cov = (
-            self.db.query(
-                func.count(TeacherCompetenceCoverage.id),
-                func.sum(func.cast(TeacherCompetenceCoverage.covered, Integer)),
-            ).first()
-        )
-        total_cov = int(cov[0] or 0)
-        couverts = int(cov[1] or 0)
-        return round(couverts / total_cov * 100, 1) if total_cov else 0.0
+        """Couverture réelle : part des enseignants actifs ayant au moins une
+        compétence affectée (source `competence.enseignant_competences`).
+
+        L'ancienne implémentation lisait la table dénormalisée
+        `analyse.teacher_competence_coverage`, qui n'est plus recalculée par le
+        pipeline (dernier snapshot 2026-07-30) et affichait donc une couverture
+        fausse (1.3%) alors que la couverture réelle est totale (100%). On
+        s'aligne désormais sur le calcul du dashboard réel
+        (`app/api/v1/dashboard_real.py`, COVERAGE_SQL).
+        """
+        try:
+            row = self.db.execute(
+                text(
+                    """
+                    SELECT
+                      COUNT(DISTINCT e.id) AS nb_enseignants,
+                      COUNT(DISTINCT CASE WHEN ec.id IS NOT NULL THEN e.id END) AS avec_competences
+                    FROM formation.enseignants e
+                    LEFT JOIN competence.enseignant_competences ec ON ec.enseignant_id = e.id
+                    WHERE e.deleted_at IS NULL
+                    """
+                )
+            ).mappings().first()
+        except SQLAlchemyError as exc:  # pragma: no cover - log + repli 0
+            logging.getLogger(__name__).error(
+                "calcul couverture globale impossible", error=str(exc)
+            )
+            return 0.0
+        nb = int(row["nb_enseignants"] or 0)
+        avec_comp = int(row["avec_competences"] or 0)
+        return round(avec_comp / nb * 100, 1) if nb else 0.0
 
     def real_kpis(self) -> dict[str, Any]:
         nb_suivis = self._count_suivis()

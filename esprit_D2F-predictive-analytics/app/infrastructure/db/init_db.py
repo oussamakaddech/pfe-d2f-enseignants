@@ -181,6 +181,39 @@ ANALYSE_DDL = [
         processed_at   TIMESTAMPTZ NOT NULL DEFAULT now()
     );
     """,
+    # GOUVERNANCE 7.6 (limite 2) : historisation mensuelle des niveaux par
+    # (enseignant, savoir). Alimentée par le scheduler batch nocturne, elle
+    # nourrit le futur corpus sans repasser par l'extrapolation.
+    """
+    CREATE TABLE IF NOT EXISTS "analyse".niveau_snapshot (
+        id            BIGSERIAL PRIMARY KEY,
+        teacher_id    VARCHAR(64) NOT NULL,
+        savoir_id     BIGINT NOT NULL,
+        niveau        SMALLINT NOT NULL DEFAULT 0,
+        snapshot_date DATE NOT NULL DEFAULT CURRENT_DATE,
+        created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+        CONSTRAINT uq_niveau_snapshot UNIQUE (teacher_id, savoir_id, snapshot_date)
+    );
+    CREATE INDEX IF NOT EXISTS ix_niveau_snapshot_teacher ON "analyse".niveau_snapshot (teacher_id);
+    CREATE INDEX IF NOT EXISTS ix_niveau_snapshot_date ON "analyse".niveau_snapshot (snapshot_date DESC);
+    """,
+    # GOUVERNANCE 7.6 (limite 4) : journal de serving ML — mode effectif par
+    # appel, raison de repli, features hors plages. Aucune donnée personnelle
+    # sensible au-delà de l'identifiant enseignant (déjà présent dans les
+    # snapshots d'analyse).
+    """
+    CREATE TABLE IF NOT EXISTS "analyse".ml_observability (
+        id                   BIGSERIAL PRIMARY KEY,
+        call_date            DATE NOT NULL DEFAULT CURRENT_DATE,
+        teacher_id           VARCHAR(64),
+        mode                 VARCHAR(30) NOT NULL,
+        fallback_reason      TEXT,
+        out_of_range_features TEXT,
+        created_at           TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS ix_ml_obs_date ON "analyse".ml_observability (call_date DESC);
+    CREATE INDEX IF NOT EXISTS ix_ml_obs_teacher ON "analyse".ml_observability (teacher_id);
+    """,
 ]
 
 

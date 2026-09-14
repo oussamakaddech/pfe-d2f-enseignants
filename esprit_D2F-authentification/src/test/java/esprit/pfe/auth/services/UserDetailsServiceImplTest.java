@@ -90,19 +90,39 @@ class UserDetailsServiceImplTest {
     }
 
     @Test
+    void testLoadUserByUsername_FallsBackToEmail() {
+        // Arrange
+        when(userRepository.findByUsername("test@example.com")).thenReturn(java.util.Optional.empty());
+        when(userRepository.findById("test@example.com")).thenReturn(java.util.Optional.empty());
+        when(userRepository.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
+
+        // Act
+        UserDetails userDetails = userDetailsService.loadUserByUsername("test@example.com");
+
+        // Assert : le principal reste le username canonique, pas l'email.
+        assertNotNull(userDetails);
+        assertEquals("testuser", userDetails.getUsername());
+        verify(userRepository, times(1)).findByUsername("test@example.com");
+        verify(userRepository, times(1)).findById("test@example.com");
+        verify(userRepository, times(1)).findByEmail("test@example.com");
+    }
+
+    @Test
     void testLoadUserByUsername_UserNotFound() {
         // Arrange
         when(userRepository.findByUsername("nonexistent")).thenReturn(java.util.Optional.empty());
         when(userRepository.findById("nonexistent")).thenReturn(java.util.Optional.empty());
+        when(userRepository.findByEmail("nonexistent")).thenReturn(java.util.Optional.empty());
 
         // Act & Assert
         UsernameNotFoundException exception = assertThrows(
                 UsernameNotFoundException.class,
                 () -> userDetailsService.loadUserByUsername("nonexistent")
         );
-        assertTrue(exception.getMessage().contains("User Not Found with username or id: nonexistent"));
+        assertTrue(exception.getMessage().contains("User Not Found with username, id or email: nonexistent"));
         verify(userRepository, times(1)).findByUsername("nonexistent");
         verify(userRepository, times(1)).findById("nonexistent");
+        verify(userRepository, times(1)).findByEmail("nonexistent");
     }
 
     @Test

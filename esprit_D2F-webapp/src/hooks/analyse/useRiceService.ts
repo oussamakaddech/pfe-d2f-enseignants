@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import RiceService from '@/services/analyse/RiceService';
 
 const KEYS = {
-  enseignants: ['rice', 'enseignants'] as const,
+  enseignants: (dept?: string | null) => ['rice', 'enseignants', dept ?? null] as const,
   savoirs: (dept?: string | null) => ['rice', 'savoirs', dept] as const,
   affectations: ['rice', 'affectations'] as const,
   history: ['rice', 'import-history'] as const,
@@ -10,7 +10,9 @@ const KEYS = {
 
 export function useRiceEnseignants(departement?: string | null) {
   return useQuery({
-    queryKey: KEYS.enseignants,
+    // Clé scopée par département (comme savoirs) : sinon le cache est partagé
+    // entre périmètres et la queryFn (closure) devient périmée.
+    queryKey: KEYS.enseignants(departement),
     queryFn: () => RiceService.getEnseignants(departement ?? null),
   });
 }
@@ -76,7 +78,7 @@ export function useRiceCreateEnseignant() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: Record<string, unknown>) => RiceService.createEnseignant(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.enseignants }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['rice', 'enseignants'] }),
   });
 }
 
@@ -85,7 +87,7 @@ export function useRiceUpdateEnseignant() {
   return useMutation({
     mutationFn: ({ id, data }: { id: number | string; data: Record<string, unknown> }) =>
       RiceService.updateEnseignant(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.enseignants }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['rice', 'enseignants'] }),
   });
 }
 
@@ -93,6 +95,6 @@ export function useRiceDeactivateEnseignant() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number | string) => RiceService.deactivateEnseignant(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.enseignants }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['rice', 'enseignants'] }),
   });
 }

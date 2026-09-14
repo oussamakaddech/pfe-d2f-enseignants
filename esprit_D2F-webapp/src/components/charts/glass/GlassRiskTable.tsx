@@ -22,7 +22,7 @@ export default function GlassRiskTable({ data }: GlassRiskTableProps) {
     },
     { title: 'Département', dataIndex: 'departement', render: (v?: string) => v ?? '—' },
     {
-      title: 'Score de risque',
+      title: 'Indice de risque',
       dataIndex: 'attrition_risk_score',
       align: 'center',
       render: (s: number) => {
@@ -37,7 +37,14 @@ export default function GlassRiskTable({ data }: GlassRiskTableProps) {
         } else {
           col = semantic.success;
         }
-        return <span style={{ color: col, fontWeight: 700 }}>{pct}%</span>;
+        return (
+          <span
+            style={{ color: col, fontWeight: 700 }}
+            title="Indice pondéré non calibré — pas une probabilité"
+          >
+            {pct}/100
+          </span>
+        );
       },
     },
     {

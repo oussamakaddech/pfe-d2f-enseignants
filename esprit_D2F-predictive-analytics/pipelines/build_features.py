@@ -14,7 +14,7 @@ Features ajoutees / preservees :
   - is_long_absent, is_stagnant
   - aggregated metrics : avg_level, min_level, max_level, etc.
 
-AUCUNE fuite : `required_level` et `gap_next_3m` ne sont JAMAIS dans X.
+AUCUNE fuite : `knowledge_difficulty_level` et `gap_next_3m` ne sont JAMAIS dans X.
 """
 
 import json
@@ -118,8 +118,8 @@ def build_temporal_split(
     if TARGET_COL not in df.columns:
         raise ValueError(f"Target '{TARGET_COL}' manquante dans le corpus")
 
-    # Verification : aucune fuite (required_level, gap_next_3m) dans X
-    forbidden_in_X = {"required_level_t", TARGET_COL, "required_level"}
+    # Verification : aucune fuite (knowledge_difficulty_level, gap_next_3m) dans X
+    forbidden_in_X = {"knowledge_difficulty_level", TARGET_COL, "required_level"}
     leak_cols = [c for c in FEATURE_COLS_TEMPORAL if c in forbidden_in_X]
     if leak_cols:
         raise ValueError(f"Fuite detectee dans X : {leak_cols}")
@@ -190,7 +190,7 @@ def main() -> dict[str, Any]:
     print(f"    Target : {split['target_col']}")
 
     # Sanity checks
-    assert "required_level" not in split["feature_cols"], "Fuite required_level dans X"
+    assert "knowledge_difficulty_level" not in split["feature_cols"], "Fuite knowledge_difficulty_level dans X"
     assert split["target_col"] not in split["feature_cols"], "Fuite target dans X"
 
     # Stats descriptives

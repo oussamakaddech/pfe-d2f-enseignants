@@ -1,4 +1,9 @@
 import '@testing-library/jest-dom/vitest';
+import { configure } from '@testing-library/react';
+
+// La CI exécute ~190 fichiers en parallèle : les animations antd et le
+// rendu jsdom peuvent dépasser le timeout par défaut (1000 ms) de waitFor.
+configure({ asyncUtilTimeout: 10000 });
 
 if (!globalThis.matchMedia) {
   globalThis.matchMedia = ((query: string): MediaQueryList =>

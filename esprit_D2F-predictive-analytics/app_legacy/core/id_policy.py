@@ -1,7 +1,8 @@
 """Canonical teacher ID policy enforcement.
 
 ENS-only format rule:
-  - Canonical: ``ENS`` + 3 digits (e.g. ENS001, ENS042)
+  - Canonical: ``ENS`` + 3-6 digits (e.g. ENS001, ENS042) or ``ENS_`` +
+    alphanumeric suffix for seeded/special teachers (e.g. ENS_T01, ENS_GC1)
   - Legacy:    ``T``   + 3 digits (e.g. T001, T042) — REJECTED on new endpoints
 
 The ``teacher_id_mapping`` table provides the T→ENS bridge for the
@@ -17,7 +18,7 @@ from fastapi import HTTPException, Request
 from app.core.observability import dsi_error_body
 
 # Regexes — compiled once at import time.
-_CANONICAL_ENS_RE = re.compile(r"^ENS\d{3,6}$")
+_CANONICAL_ENS_RE = re.compile(r"^ENS(?:\d{3,6}|_[A-Z0-9]{1,10})$")
 _LEGACY_T_RE = re.compile(r"^T\d{3,6}$")
 
 

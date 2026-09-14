@@ -4,11 +4,15 @@ import esprit.pfe.serviceformation.dto.CreateFormationRequest;
 import esprit.pfe.serviceformation.dto.FormationResponseDTO;
 import esprit.pfe.serviceformation.dto.UpdateFormationRequest;
 import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.entities.EtatInscription;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.exception.ResourceNotFoundException;
 import esprit.pfe.serviceformation.microsoft.OutlookCalendarService;
 import esprit.pfe.serviceformation.microsoft.OutlookEventParameters;
 import esprit.pfe.serviceformation.repositories.FormationRepository;
+import esprit.pfe.serviceformation.repositories.InscriptionRepository;
+import esprit.pfe.serviceformation.repositories.UpRepository;
+import esprit.pfe.serviceformation.repositories.DeptRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
@@ -35,15 +39,24 @@ public class FormationServiceImpl implements FormationService {
 
     private final FormationRepository formationRepository;
     private final FormationMapper formationMapper;
+    private final UpRepository upRepository;
+    private final DeptRepository deptRepository;
+    private final InscriptionRepository inscriptionRepository;
 
     // DSI §4/§2 — injection optionnelle : null si azure.ad.enabled=false
     private final OutlookCalendarService outlookCalendarService;
 
     public FormationServiceImpl(FormationRepository formationRepository,
                                FormationMapper formationMapper,
+                               UpRepository upRepository,
+                               DeptRepository deptRepository,
+                               InscriptionRepository inscriptionRepository,
                                @org.springframework.lang.Nullable OutlookCalendarService outlookCalendarService) {
         this.formationRepository = formationRepository;
         this.formationMapper = formationMapper;
+        this.upRepository = upRepository;
+        this.deptRepository = deptRepository;
+        this.inscriptionRepository = inscriptionRepository;
         this.outlookCalendarService = outlookCalendarService;
     }
 
@@ -51,6 +64,9 @@ public class FormationServiceImpl implements FormationService {
     @Transactional
     public FormationResponseDTO createFormation(CreateFormationRequest request) {
         Formation formation = formationMapper.toEntity(request);
+        // Rattachement UP/département : résolu et VALIDÉ depuis le référentiel,
+        // jamais ignoré silencieusement (un id inconnu est refusé en 400).
+        applyScope(formation, request.getUpId(), request.getDepartementId());
         Formation saved = formationRepository.save(formation);
 
         // DSI §4/§2 — intégration Outlook conditionnelle (azure.ad.enabled=true requis)
@@ -117,6 +133,22 @@ public class FormationServiceImpl implements FormationService {
         return "Animateur-TBD";
     }
 
+    /**
+     * Rattache la formation à son UP/département en validant l'existence des
+     * entités dans le référentiel : un id inconnu est refusé (400) au lieu
+     * d'être ignoré silencieusement. Valeurs vides acceptées = pas de lien.
+     */
+    private void applyScope(Formation formation, String upId, String departementId) {
+        if (upId != null && !upId.isBlank()) {
+            formation.setUp(upRepository.findById(upId)
+                    .orElseThrow(() -> new IllegalArgumentException("UP inconnue : " + upId)));
+        }
+        if (departementId != null && !departementId.isBlank()) {
+            formation.setDepartement(deptRepository.findById(departementId)
+                    .orElseThrow(() -> new IllegalArgumentException("Département inconnu : " + departementId)));
+        }
+    }
+
     @Override
     @Transactional
     public FormationResponseDTO updateFormation(Long id, UpdateFormationRequest request) {
@@ -126,6 +158,8 @@ public class FormationServiceImpl implements FormationService {
 
         // Utilise le mapper pour la mise à jour partielle
         formationMapper.updateEntityFromRequest(request, existingFormation);
+        // Rattachement UP/département mis à jour avec la même validation.
+        applyScope(existingFormation, request.getUpId(), request.getDepartementId());
 
         Formation updated = formationRepository.save(existingFormation);
         return formationMapper.toResponseDTO(updated);
@@ -242,5 +276,21 @@ public class FormationServiceImpl implements FormationService {
                 saved.getIdFormation(), sourceId, newTitle);
 
         return formationMapper.toResponseDTO(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isAnimateurOfFormation(Long formationId, String enseignantId) {
+        return formationRepository.existsAnimateurInFormation(formationId, enseignantId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isParticipantOfFormation(Long formationId, String enseignantId) {
+        if (formationRepository.existsAnimateurInFormation(formationId, enseignantId)) {
+            return true;
+        }
+        return inscriptionRepository.existsByFormation_IdFormationAndEnseignant_IdAndEtat(
+                formationId, enseignantId, EtatInscription.APPROVED);
     }
 }
