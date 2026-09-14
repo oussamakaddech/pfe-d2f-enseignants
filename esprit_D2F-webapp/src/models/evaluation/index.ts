@@ -7,6 +7,11 @@ export interface EvaluationGlobale {
   commentaireGeneral?: string;
   dateEvaluation?: string;
   recommandation?: string;
+  pertinenceContenu?: number;
+  organisation?: number;
+  qualiteSupports?: number;
+  dureeAdaptee?: number;
+  satisfactionGlobale?: number;
 }
 
 export interface EvaluationFormateur {
@@ -16,6 +21,11 @@ export interface EvaluationFormateur {
   note?: number;
   satisfaisant?: boolean;
   commentaire?: string;
+  maitriseSujet?: number;
+  clarte?: number;
+  pedagogie?: number;
+  interaction?: number;
+  gestionTemps?: number;
 }
 
 export interface EvaluationEnseignant {

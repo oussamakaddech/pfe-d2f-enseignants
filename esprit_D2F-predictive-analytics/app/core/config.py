@@ -113,6 +113,11 @@ class Settings(BaseSettings):
     ml_skew_window: int = 30
     ml_skew_min_window: int = 10
 
+    # Cache TTL du bundle de features serveur (performance) : la page enseignant
+    # appelle 5-6 endpoints qui refont chacun le même bundle (~5 requêtes SQL).
+    # 0 = désactivé ; les lectures renvoient une copie (aucune mutation qui fuit).
+    ml_feature_cache_ttl: float = 60.0
+
     analysis_cache_ttl_hours: int = 24
 
     need_detection_threshold: float = 0.5

@@ -14,13 +14,10 @@ import { hasAnyRole, normalizeRole, ROLES } from '@/utils/constants/roles';
 import { useEnseignants } from '@/hooks/enseignant/useEnseignants';
 import { buildActeurOptions, serializeActeurs } from '@/utils/besoin/acteurs';
 import {
-  formatParticipantLine,
-  isValidEmail,
-  isValidPhone,
-  normalizePhone,
   parseParticipantsText,
   participantKey,
 } from '@/utils/besoin/participants';
+import { mergeParticipantLines, participantsFromSheetRows } from '@/utils/besoin/participantsExcel';
 import type { BesoinCompetenceLink, BesoinFormation } from '@/models/besoin';
 import type { Id } from '@/models/common';
 import {
@@ -33,18 +30,8 @@ import { useAllDepts } from '@/hooks/formation/useDeptCrud';
 import { useAllUps } from '@/hooks/formation/useUpCrud';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 
-/** Type de besoin verrouillé par rôle créateur (COLLECTIF vs INDIVIDUEL). */
-function resolveLockedType(
-  isCupCreator: boolean,
-  isChefCreator: boolean,
-  isTeacherCreator: boolean,
-): 'COLLECTIF' | 'INDIVIDUEL' | undefined {
-  if (isCupCreator || isChefCreator) {
-    return 'COLLECTIF';
-  }
-  if (isTeacherCreator) {
-    return 'INDIVIDUEL';
-  }
+/** Aucun verrou de type — tous les rôles choisissent librement INDIVIDUEL ou COLLECTIF. */
+function resolveLockedType(): undefined {
   return undefined;
 }
 
@@ -144,12 +131,13 @@ export function useBesoinForm() {
   const { data: myScope, isLoading: scopeLoading } = useMyReviewerScope(
     isCupCreator || isChefCreator || isTeacherCreator,
   );
-  const lockedType = resolveLockedType(isCupCreator, isChefCreator, isTeacherCreator);
+  const lockedType = resolveLockedType();
   // CUP : le back impose UP **et** département depuis le scope serveur → on
   // verrouille les deux côté UI (le département libre était écrasé en silence).
-  const lockedUp = isCupCreator || isTeacherCreator ? myScope?.upCode : undefined;
+  // Enseignants : pas de verrou sur UP/département (choix libre).
+  const lockedUp = isCupCreator ? myScope?.upCode : undefined;
   const lockedDepartement =
-    isCupCreator || isChefCreator || isTeacherCreator ? myScope?.departmentCode : undefined;
+    isCupCreator || isChefCreator ? myScope?.departmentCode : undefined;
 
   const applyCreationLocks = () => {
     const preset: Record<string, unknown> = {};
@@ -444,6 +432,10 @@ export function useBesoinForm() {
   };
 
   const importParticipantsFromExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    // L'input file est imbriqué dans le `Form.Item publicCible` : sans ceci,
+    // le `change` bubble jusqu'au <div> parent (où AntD a injecté son
+    // onChange) et écrase le champ avec `C:\fakepath\…` avant la fusion.
+    event.stopPropagation();
     try {
       const file = event.target.files?.[0];
       if (!file) return;
@@ -460,100 +452,21 @@ export function useBesoinForm() {
         return;
       }
       const asRows = rows as unknown[][];
-      // Détection d'une ligne d'en-tête : au moins un libellé connu
-      // (nom, prénom, email, téléphone). Sinon tout le tableau est traité
-      // comme des données en positions fixes : Nom | Prénom | Email | Tél.
-      const HEADER_WORDS = [
-        'nom',
-        'name',
-        'prénom',
-        'prenom',
-        'first name',
-        'firstname',
-        'email',
-        'mail',
-        'téléphone',
-        'telephone',
-        'tél',
-        'tel',
-        'phone',
-        'portable',
-        'gsm',
-        'numéro',
-        'numero',
-        'contact',
-      ];
-      const firstCells = (Array.isArray(asRows[0]) ? asRows[0] : []).map((cell) =>
-        String(cell || '')
-          .trim()
-          .toLowerCase(),
-      );
-      const hasHeader = firstCells.some((c) => HEADER_WORDS.includes(c));
-      const header = hasHeader ? firstCells : [];
-      const dataRows = hasHeader ? asRows.slice(1) : asRows;
-      const findCol = (words: string[]): number =>
-        hasHeader ? header.findIndex((h: string) => words.includes(h)) : -1;
-      const idxNom = findCol(['nom', 'name']);
-      const idxPrenom = findCol(['prénom', 'prenom', 'first name', 'firstname']);
-      const idxEmail = findCol(['email', 'mail']);
-      const idxTel = findCol([
-        'téléphone',
-        'telephone',
-        'tél',
-        'tel',
-        'phone',
-        'portable',
-        'gsm',
-        'numéro',
-        'numero',
-        'contact',
-      ]);
       // Lignes déjà présentes (anti-doublons insensibles à la casse sur l'email).
       const existingKeys = new Set(
         parseParticipantsText(String(form.getFieldValue('publicCible') || '')).map(participantKey),
       );
-      const seen = new Set(existingKeys);
-      const newLines: string[] = [];
-      let skipped = 0;
-      dataRows.forEach((row) => {
-        if (!Array.isArray(row)) return;
-        const cell = (i: number): string => (i >= 0 ? String(row[i] || '').trim() : '');
-        const nom = hasHeader ? cell(idxNom) : cell(0);
-        const prenom = hasHeader ? cell(idxPrenom) : cell(1);
-        const email = hasHeader ? cell(idxEmail) : cell(2);
-        const rawTel = hasHeader ? cell(idxTel) : cell(3);
-        const telephone = normalizePhone(rawTel);
-        const fallback = String(row[0] || '').trim();
-        if (!nom && !prenom && !email && !telephone) {
-          if (!fallback) return;
-          // Ligne libre sans colonne reconnue : conservée telle quelle
-          // si elle n'existe pas déjà.
-          const key = `line:${fallback.toLowerCase()}`;
-          if (seen.has(key)) return;
-          seen.add(key);
-          newLines.push(fallback);
-          return;
-        }
-        // Lignes invalides (email ou téléphone mal formés) : ignorées + comptées.
-        if (!isValidEmail(email) || !isValidPhone(telephone)) {
-          skipped += 1;
-          return;
-        }
-        const line = formatParticipantLine({ nom, prenom, email, telephone });
-        if (!line) return;
-        const key = participantKey({ nom, prenom, email, telephone });
-        if (seen.has(key)) return;
-        seen.add(key);
-        newLines.push(line);
-      });
+      const { lines: newLines, skipped } = participantsFromSheetRows(asRows, existingKeys);
       if (newLines.length === 0) {
         if (skipped > 0)
           msgApi.warning(`${skipped} ligne(s) ignorée(s) : email ou téléphone invalide`);
         else msgApi.warning('Aucun nouveau participant trouvé (doublons ignorés)');
         return;
       }
-      const currentValue = String(form.getFieldValue('publicCible') || '').trim();
-      const merged = [currentValue, ...newLines].filter(Boolean).join('\n');
+      const merged = mergeParticipantLines(
+        String(form.getFieldValue('publicCible') || ''),
+        newLines,
+      );
       form.setFieldsValue({ publicCible: merged });
       setLastImportCount(newLines.length);
       msgApi.success(`${newLines.length} participant(s) importé(s) depuis Excel`);

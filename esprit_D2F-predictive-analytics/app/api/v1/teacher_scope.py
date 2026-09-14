@@ -62,6 +62,7 @@ def get_teacher_scope_analysis(
             fallback=analysis.scope.fallback,
             fallback_reason=analysis.scope.fallback_reason,
         ),
+        niveaux_sur_scope=analysis.niveaux_sur_scope,
         computed_at=datetime.now(timezone.utc),
     )
     return ok(

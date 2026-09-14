@@ -167,6 +167,9 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
 
   List<Formation> findDistinctBySeances_Participants_Id(String enseignantId);
 
+  @Query("SELECT COUNT(f) > 0 FROM Formation f JOIN f.animateurs a WHERE f.idFormation = :formationId AND a.id = :enseignantId")
+  boolean existsAnimateurInFormation(@Param("formationId") Long formationId, @Param("enseignantId") String enseignantId);
+
   List<Formation> findByUp_Id(String upId);
 
   // ==================== FILTERED QUERIES ====================

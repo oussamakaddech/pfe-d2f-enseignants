@@ -38,9 +38,7 @@ import {
   useDeleteEvaluationGlobale,
 } from '@/hooks/evaluation/useEvaluations';
 import { useAllFormations } from '@/hooks/formation/useFormations';
-import { useProfile } from '@/hooks/formation/useFormationExtras';
 import { useEnseignants } from '@/hooks/enseignant';
-import { normalizeRole } from '@/utils/constants/roles';
 import { useHasPermission } from '@/routes/guards';
 
 const { Option } = Select;
@@ -98,22 +96,11 @@ export default function EvaluationGlobalePage() {
   const createMut = useCreateEvaluationGlobale();
   const updateMut = useUpdateEvaluationGlobale();
   const deleteMut = useDeleteEvaluationGlobale();
-  const { data: profile } = useProfile();
 
   const evaluations = evaluationsData as EvalRecord[];
   const formations = formationsData as FormationRecord[];
   const enseignants = enseignantsData as EnseignantRecord[];
 
-  function getEnseignantLabel(enseignantId?: string) {
-    if (!enseignantId) return '—';
-    const e = enseignants.find((ens) => String(ens.id) === String(enseignantId));
-    if (!e) return `Enseignant #${enseignantId}`;
-    return `${e.prenom || ''} ${e.nom || ''}`.trim() || String(e.id);
-  }
-
-  const role = normalizeRole(profile?.role ?? '');
-  const isEnseignantRole = role === 'enseignant' || role === 'animateur';
-  const canManageAll = !isEnseignantRole && role !== 'chefdepartement';
   const canCreate = useHasPermission('EVALUATION', 'CREATE');
   const canEdit = useHasPermission('EVALUATION', 'UPDATE');
   const canDelete = useHasPermission('EVALUATION', 'DELETE');
@@ -133,10 +120,6 @@ export default function EvaluationGlobalePage() {
 
   const filtered = useMemo(() => {
     let res = [...evaluations];
-    // L'enseignant/animateur ne voit que ses propres évaluations
-    if (isEnseignantRole && profile?.idUtilisateur) {
-      res = res.filter((e) => e.utilisateurId === profile.idUtilisateur);
-    }
     if (filterText) {
       res = res.filter(
         (e) =>
@@ -152,15 +135,11 @@ export default function EvaluationGlobalePage() {
     if (formationFilter) res = res.filter((e) => e.formationId === formationFilter);
     return res;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [evaluations, filterText, recoFilter, formationFilter, formations, isEnseignantRole, profile]);
+  }, [evaluations, filterText, recoFilter, formationFilter, formations]);
 
   function openCreate() {
     setEditingEval(null);
     form.resetFields();
-    // Pré-remplir l'enseignant pour le rôle ENSEIGNANT/ANIMATEUR
-    if (isEnseignantRole && profile?.idUtilisateur) {
-      form.setFieldsValue({ enseignantId: String(profile.idUtilisateur) });
-    }
     setOpenForm(true);
   }
 
@@ -173,6 +152,11 @@ export default function EvaluationGlobalePage() {
       dateEvaluation: record.dateEvaluation ? dayjs(record.dateEvaluation) : null,
       noteGlobale: record.noteGlobale,
       recommandation: record.recommandation,
+      pertinenceContenu: record.pertinenceContenu,
+      organisation: record.organisation,
+      qualiteSupports: record.qualiteSupports,
+      dureeAdaptee: record.dureeAdaptee,
+      satisfactionGlobale: record.satisfactionGlobale,
     });
     setOpenForm(true);
   }
@@ -318,7 +302,7 @@ export default function EvaluationGlobalePage() {
       render: (d) => (d ? dayjs(d).format('DD/MM/YYYY') : '\u2014'),
       sorter: (a, b) => dayjs(a.dateEvaluation).valueOf() - dayjs(b.dateEvaluation).valueOf(),
     },
-    ...((canEdit || canDelete) && canManageAll
+    ...((canEdit || canDelete)
       ? [
           {
             title: 'Actions',
@@ -326,8 +310,6 @@ export default function EvaluationGlobalePage() {
             width: 90,
             align: 'center' as const,
             render: (_: unknown, r: EvalRecord) => {
-              const isOwn = !isEnseignantRole || r.utilisateurId === profile?.idUtilisateur;
-              if (!isOwn) return null;
               return (
                 <Space size={4}>
                   {canEdit && (
@@ -365,7 +347,7 @@ export default function EvaluationGlobalePage() {
     <div className="evaluation-page">
       <AppPageHeader
         icon={<TrophyOutlined />}
-        title={isEnseignantRole ? 'Mes Évaluations' : 'Évaluation Globale des Formations'}
+        title="Évaluation Globale des Formations"
         subtitle={`${filtered.length} évaluation${filtered.length === 1 ? '' : 's'}${hasActiveFilters ? ' (filtrées)' : ''}`}
         actions={
           canCreate ? (
@@ -477,11 +459,7 @@ export default function EvaluationGlobalePage() {
       </div>
 
       <Alert
-        message={
-          isEnseignantRole
-            ? 'Vous évaluez les formations que vous avez suivies. Votre identifiant est pré-rempli.'
-            : 'Une seule évaluation globale est autorisée par formation.'
-        }
+        message="Une seule évaluation globale est autorisée par formation."
         type="info"
         showIcon
         className="evaluation-info-alert"
@@ -560,7 +538,6 @@ export default function EvaluationGlobalePage() {
               allowClear
               showSearch
               optionFilterProp="children"
-              disabled={isEnseignantRole}
             >
               {enseignants.map((e) => (
                 <Option key={e.id} value={String(e.id)}>
@@ -577,8 +554,42 @@ export default function EvaluationGlobalePage() {
           >
             <InputNumber min={0} max={20} step={0.5} className="w-full" />
           </Form.Item>
-          <Form.Item name="commentaireGeneral" label="Commentaire Général">
-            <TextArea rows={4} placeholder="Commentaire général sur la formation" />
+          <Form.Item
+            name="commentaireGeneral"
+            label="Commentaire Général"
+            rules={[{ max: 500, message: 'Max 500 caractères' }]}
+          >
+            <TextArea rows={4} placeholder="Commentaire général sur la formation" maxLength={500} showCount />
+          </Form.Item>
+          <Form.Item
+            name="pertinenceContenu"
+            label="Pertinence du contenu (0-5)"
+          >
+            <InputNumber min={0} max={5} step={0.5} className="w-full" />
+          </Form.Item>
+          <Form.Item
+            name="organisation"
+            label="Organisation (0-5)"
+          >
+            <InputNumber min={0} max={5} step={0.5} className="w-full" />
+          </Form.Item>
+          <Form.Item
+            name="qualiteSupports"
+            label="Qualité des supports (0-5)"
+          >
+            <InputNumber min={0} max={5} step={0.5} className="w-full" />
+          </Form.Item>
+          <Form.Item
+            name="dureeAdaptee"
+            label="Durée adaptée (0-5)"
+          >
+            <InputNumber min={0} max={5} step={0.5} className="w-full" />
+          </Form.Item>
+          <Form.Item
+            name="satisfactionGlobale"
+            label="Satisfaction globale (0-5)"
+          >
+            <InputNumber min={0} max={5} step={0.5} className="w-full" />
           </Form.Item>
           <Form.Item
             name="dateEvaluation"

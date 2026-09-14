@@ -16,7 +16,11 @@ APScheduler==3.10.4
 pika==1.3.2
 
 # Machine Learning (disponible pour Phase 2)
-scikit-learn==1.5.2
+# Version HARMONISEE avec l'environnement d'entrainement (1.8.0) — limite
+# connue corrigee (audit 2.4) : les artefacts joblib sont pickles avec
+# scikit-learn 1.8.0 ; servir avec une version anterieure declenche
+# InconsistentVersionWarning (reproduction non garantie). Python >= 3.11 requis.
+scikit-learn==1.8.0
 pandas==2.2.3
 numpy==2.1.3
 joblib==1.4.2

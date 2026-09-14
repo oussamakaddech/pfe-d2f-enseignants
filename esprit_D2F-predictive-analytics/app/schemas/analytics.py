@@ -99,6 +99,9 @@ class TeacherScopeAnalysisOut(BaseModel):
     scoped_competencies_count: int
     total_competencies_count: int
     scope: ScopeOut
+    # Niveaux réellement enregistrés sur les savoirs du périmètre (0 = gaps
+    # calculés depuis le référentiel seul — alerte à la donnée manquante).
+    niveaux_sur_scope: int = 0
     computed_at: datetime
 
 

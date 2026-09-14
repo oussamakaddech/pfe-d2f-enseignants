@@ -26,7 +26,10 @@ class RecommendTrainings:
     # construit l'état de compétence de l'enseignant, marque les formations
     # déjà suivies, classe les candidates (heuristique) puis mélange
     # éventuellement 70% heuristique / 30% ML, et persiste les recommandations.
-    def execute(self, teacher_id: str, competence_id: int, limit: int) -> list[Recommendation]:
+    def execute(
+        self, teacher_id: str, competence_id: int, limit: int,
+        dept_id: str | None = None, up_id: str | None = None,
+    ) -> list[Recommendation]:
         competency = self._find_competency(competence_id)
         if competency is None:
             return []
@@ -39,7 +42,9 @@ class RecommendTrainings:
             savoir_levels=self._competency_source.get_teacher_savoir_levels(teacher_id),
         )
 
-        candidates = self._formation_source.get_candidates_for_competency(competence_id)
+        candidates = self._formation_source.get_candidates_for_competency(
+            competence_id, dept_id=dept_id, up_id=up_id,
+        )
         completed = self._formation_source.get_completed_formation_ids(teacher_id)
         candidates = [self._mark_completed(candidate, completed) for candidate in candidates]
 

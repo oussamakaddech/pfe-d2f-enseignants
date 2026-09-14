@@ -33,6 +33,9 @@ class EvaluationGlobaleServiceTest {
     @Mock
     private EvaluationGlobaleRepository evaluationGlobaleRepository;
 
+    @Mock
+    private esprit.pfe.serviceevaluation.client.FormationClient formationClient;
+
     @InjectMocks
     private EvaluationGlobaleService evaluationGlobaleService;
 
@@ -70,7 +73,7 @@ class EvaluationGlobaleServiceTest {
             when(evaluationGlobaleRepository.existsByFormationId(1L)).thenReturn(false);
             when(evaluationGlobaleRepository.save(any(EvaluationGlobale.class))).thenReturn(evaluationGlobale);
 
-            EvaluationGlobaleDTO result = evaluationGlobaleService.createEvaluationGlobale(evaluationGlobaleDTO);
+            EvaluationGlobaleDTO result = evaluationGlobaleService.createEvaluationGlobale(evaluationGlobaleDTO, "admin@test.com", "ROLE_ADMIN");
 
             assertThat(result)
                     .isNotNull()
@@ -87,7 +90,7 @@ class EvaluationGlobaleServiceTest {
         void shouldThrowExceptionWhenDuplicateEvaluation() {
             when(evaluationGlobaleRepository.existsByFormationId(1L)).thenReturn(true);
 
-            assertThatThrownBy(() -> evaluationGlobaleService.createEvaluationGlobale(evaluationGlobaleDTO))
+            assertThatThrownBy(() -> evaluationGlobaleService.createEvaluationGlobale(evaluationGlobaleDTO, "admin@test.com", "ROLE_ADMIN"))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("évaluation globale existe déjà");
         }
@@ -119,7 +122,7 @@ class EvaluationGlobaleServiceTest {
             when(evaluationGlobaleRepository.findById(1L)).thenReturn(Optional.of(evaluationGlobale));
             when(evaluationGlobaleRepository.save(any(EvaluationGlobale.class))).thenReturn(updatedEntity);
 
-            EvaluationGlobaleDTO result = evaluationGlobaleService.updateEvaluationGlobale(1L, updateRequest);
+            EvaluationGlobaleDTO result = evaluationGlobaleService.updateEvaluationGlobale(1L, updateRequest, "admin@test.com", "ROLE_ADMIN");
 
             assertThat(result)
                     .isNotNull()

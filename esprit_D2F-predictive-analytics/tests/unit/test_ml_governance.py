@@ -103,7 +103,7 @@ def test_no_teacher_leak_in_feature_bundle():
     import inspect
     from app.infrastructure.ml import predictor
 
-    source = inspect.getsource(predictor.ArtifactModelPort._teacher_feature_bundle)
+    source = inspect.getsource(predictor.ArtifactModelPort._build_teacher_feature_bundle)
     assert "WHERE ec.enseignant_id = :tid" in source
     assert "WHERE i.enseignant_id = :tid" in source
     assert "WHERE enseignant_id = :tid" in source
@@ -190,7 +190,7 @@ def test_production_mode_with_all_validations(tmp_path):
         created_at="2026-08-16T00:00:00",
         dataset_version="v1.0.0",
         dataset_hash="abc",
-        artifact_sha256="abc",
+        artifact_sha256="a" * 64,
         synthetic_share_pct=0.0,
         feature_names=list(TEMPORAL_FEATURE_COLS),
         feature_schema_version=FEATURE_SCHEMA_VERSION,
@@ -235,7 +235,7 @@ def test_demo_mode_when_registry_not_approved(tmp_path):
         created_at="2026-08-16T00:00:00",
         dataset_version="v1.0.0",
         dataset_hash="abc",
-        artifact_sha256="abc",
+        artifact_sha256="a" * 64,
         synthetic_share_pct=0.0,
         feature_names=list(TEMPORAL_FEATURE_COLS),
         feature_schema_version=FEATURE_SCHEMA_VERSION,
@@ -277,7 +277,7 @@ def test_heuristic_when_synthetic_above_threshold(tmp_path):
         created_at="2026-08-16T00:00:00",
         dataset_version="v1.0.0",
         dataset_hash="abc",
-        artifact_sha256="abc",
+        artifact_sha256="a" * 64,
         synthetic_share_pct=60.0,
         feature_names=list(TEMPORAL_FEATURE_COLS),
         feature_schema_version=FEATURE_SCHEMA_VERSION,
@@ -326,8 +326,8 @@ def test_registry_rollback(tmp_path):
     registry_path = tmp_path / "model_registry.json"
     registry = ModelRegistry(registry_path, MODELS_DIR)
 
-    v1 = RegistryEntry(model_version="v1.0.0", status=STATUS_ACTIVE, approval_status="PENDING")
-    v2 = RegistryEntry(model_version="v2.0.0", status=STATUS_ACTIVE, approval_status="PENDING")
+    v1 = RegistryEntry(model_version="v1.0.0", status=STATUS_ACTIVE, approval_status="PENDING", artifact_sha256="a" * 64)
+    v2 = RegistryEntry(model_version="v2.0.0", status=STATUS_ACTIVE, approval_status="PENDING", artifact_sha256="b" * 64)
     registry.register(v1)
     registry.register(v2)
     registry.approve("v1.0.0")
@@ -471,3 +471,63 @@ def test_active_dataset_hash_recomputed():
     assert active["dataset_hash"] == corpus_report.dataset_hash, (
         f"dataset_hash ACTIVE ({active['dataset_hash']}) != hash corpus ({corpus_report.dataset_hash})"
     )
+
+# ---------------------------------------------------------------------------
+# 9. Audit 1.2 — INSTITUTIONAL_RECORD exige une attestation DSI
+# ---------------------------------------------------------------------------
+def test_register_model_institutional_record_requires_attestation(tmp_path, monkeypatch):
+    """INSTITUTIONAL_RECORD ne peut être écrit que si les lignes du corpus
+    sont attestées DSI (institutional_verified=true) ou si une référence
+    d'attestation est fournie — sinon DEMO_SEED."""
+    import json as _json
+
+    import pandas as pd
+
+    import pipelines.register_model as rm
+
+    # Corpus sans colonne institutional_verified -> non attesté.
+    non_atteste = tmp_path / "corpus_non_atteste.csv"
+    pd.DataFrame({"is_synthetic": [False, False]}).to_csv(non_atteste, index=False)
+    assert rm._corpus_institutionally_verified(non_atteste) is False
+
+    # Corpus attesté (toutes lignes true).
+    atteste = tmp_path / "corpus_atteste.csv"
+    pd.DataFrame({"institutional_verified": [True, True]}).to_csv(atteste, index=False)
+    assert rm._corpus_institutionally_verified(atteste) is True
+
+    artifact = tmp_path / "model.joblib"
+    artifact.write_bytes(b"fake-artifact")
+    meta = tmp_path / "meta.json"
+    meta.write_text(
+        _json.dumps({
+            "metrics": {"test_rmse": 1.0, "test_mae": 1.0, "test_r2": 0.5},
+            "feature_cols": [],
+            "dataset_version": "v-test",
+            "data_sources": {"synthetic_share_pct": 0.0},
+        }),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(rm, "REGISTRY_PATH", tmp_path / "registry.json")
+    monkeypatch.setattr(rm, "MODELS_DIR", tmp_path)
+
+    # Corpus attesté -> INSTITUTIONAL_RECORD autorisé.
+    entry = rm.register_model(
+        "v-att-1", artifact_path=artifact, metadata_path=meta, corpus_path=atteste
+    )
+    assert entry["data_origin"] == "INSTITUTIONAL_RECORD"
+
+    # Corpus non attesté -> DEMO_SEED (jamais INSTITUTIONAL_RECORD).
+    entry2 = rm.register_model(
+        "v-att-2", artifact_path=artifact, metadata_path=meta, corpus_path=non_atteste
+    )
+    assert entry2["data_origin"] == "DEMO_SEED"
+
+    # Attestation DSI explicite -> INSTITUTIONAL_RECORD même avec corpus non attesté.
+    entry3 = rm.register_model(
+        "v-att-3",
+        artifact_path=artifact,
+        metadata_path=meta,
+        corpus_path=non_atteste,
+        attestation_dsi="ATT-DSI-2027-001",
+    )
+    assert entry3["data_origin"] == "INSTITUTIONAL_RECORD"

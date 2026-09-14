@@ -95,7 +95,7 @@ def _registry_with_active(path: Path) -> ModelRegistry:
         created_at="2026-08-16T00:00:00",
         dataset_version="v1.0.0",
         dataset_hash="abc",
-        artifact_sha256="abc",
+        artifact_sha256="a" * 64,
         synthetic_share_pct=0.0,
         feature_names=list(TEMPORAL_FEATURE_COLS),
         feature_schema_version=FEATURE_SCHEMA_VERSION,
@@ -318,8 +318,8 @@ def test_registry_rollback(tmp_path):
     registry_path = tmp_path / "model_registry.json"
     registry = ModelRegistry(registry_path, MODELS_DIR)
 
-    v1 = RegistryEntry(model_version="v1.0.0", status=STATUS_ACTIVE, approval_status="PENDING")
-    v2 = RegistryEntry(model_version="v2.0.0", status=STATUS_ACTIVE, approval_status="PENDING")
+    v1 = RegistryEntry(model_version="v1.0.0", status=STATUS_ACTIVE, approval_status="PENDING", artifact_sha256="a" * 64)
+    v2 = RegistryEntry(model_version="v2.0.0", status=STATUS_ACTIVE, approval_status="PENDING", artifact_sha256="b" * 64)
     registry.register(v1)
     registry.register(v2)
     registry.approve("v1.0.0")

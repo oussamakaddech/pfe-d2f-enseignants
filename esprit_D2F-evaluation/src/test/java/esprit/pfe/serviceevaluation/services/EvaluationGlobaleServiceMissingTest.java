@@ -32,6 +32,9 @@ class EvaluationGlobaleServiceMissingTest {
     @Mock
     private EvaluationGlobaleRepository evaluationRepository;
 
+    @Mock
+    private esprit.pfe.serviceevaluation.client.FormationClient formationClient;
+
     @InjectMocks
     private EvaluationGlobaleService evaluationService;
 
@@ -65,7 +68,7 @@ class EvaluationGlobaleServiceMissingTest {
         when(evaluationRepository.save(any(EvaluationGlobale.class))).thenReturn(entity);
 
         // When
-        EvaluationGlobaleDTO result = evaluationService.createEvaluationGlobale(dto);
+        EvaluationGlobaleDTO result = evaluationService.createEvaluationGlobale(dto, "admin@test.com", "ROLE_ADMIN");
 
         // Then
         assertThat(result).isNotNull();
@@ -80,7 +83,7 @@ class EvaluationGlobaleServiceMissingTest {
         when(evaluationRepository.save(any())).thenReturn(entity);
 
         // When
-        EvaluationGlobaleDTO result = evaluationService.updateEvaluationGlobale(1L, dto);
+        EvaluationGlobaleDTO result = evaluationService.updateEvaluationGlobale(1L, dto, "admin@test.com", "ROLE_ADMIN");
 
         // Then
         assertThat(result).isNotNull();

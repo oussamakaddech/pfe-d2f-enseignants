@@ -71,7 +71,7 @@ class EvaluationFormateurServiceTest {
         void shouldCreateEvaluation() {
             when(evaluationRepository.save(any(EvaluationFormateur.class))).thenReturn(entity);
 
-            EvaluationFormateurDTO result = evaluationService.ajouterEvalParticipant(dto);
+            EvaluationFormateurDTO result = evaluationService.ajouterEvalParticipant(dto, "admin@test.com", "ROLE_ADMIN");
 
             assertThat(result).isNotNull();
             assertThat(result.getEnseignantId()).isEqualTo("ENS001");
@@ -105,7 +105,7 @@ class EvaluationFormateurServiceTest {
             updateDto.setEnseignantId("ENS001");
             updateDto.setFormationId(10L);
 
-            EvaluationFormateurDTO result = evaluationService.modifierEvalParticipant(1L, updateDto);
+            EvaluationFormateurDTO result = evaluationService.modifierEvalParticipant(1L, updateDto, "admin@test.com", "ROLE_ADMIN");
 
             assertThat(result.getNote()).isEqualTo(18.0f);
             assertThat(result.getCommentaire()).isEqualTo("Excellent");
@@ -118,7 +118,7 @@ class EvaluationFormateurServiceTest {
         void shouldThrowWhenNotFound() {
             when(evaluationRepository.findById(999L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> evaluationService.modifierEvalParticipant(999L, dto))
+            assertThatThrownBy(() -> evaluationService.modifierEvalParticipant(999L, dto, "admin@test.com", "ROLE_ADMIN"))
                     .isInstanceOf(RuntimeException.class)
                     .hasMessageContaining("non trouvée");
         }
@@ -216,7 +216,7 @@ class EvaluationFormateurServiceTest {
         void shouldSaveBulk() {
             List<EvaluationFormateurDTO> dtos = List.of(dto);
 
-            evaluationService.createEvaluationsBulk(dtos);
+            evaluationService.createEvaluationsBulk(dtos, "admin@test.com", "ROLE_ADMIN");
 
             verify(evaluationRepository).saveAll(anyList());
         }

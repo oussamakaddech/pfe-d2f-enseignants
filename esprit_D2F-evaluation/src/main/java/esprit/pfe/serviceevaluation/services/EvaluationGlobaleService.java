@@ -14,8 +14,29 @@ import org.springframework.stereotype.Service;
 public class EvaluationGlobaleService {
 
     private static final String MSG_NOT_FOUND = "Évaluation globale non trouvée avec l'id : ";
+    private static final String ROLE_RESPONSABLE_DOSSIER = "ROLE_RESPONSABLE_DOSSIER";
 
     private final EvaluationGlobaleRepository evaluationGlobaleRepository;
+    private final esprit.pfe.serviceevaluation.client.FormationClient formationClient;
+
+    /**
+     * Vérifie que l'utilisateur connecté a le droit de créer/modifier une évaluation globale.
+     * Règle : tous les rôles sauf RESPONSABLE_DOSSIER, et l'utilisateur doit participer
+     * à la formation (inscrit, animateur ou formateur).
+     * L'ADMIN contourne la vérification de participation.
+     */
+    private void verifierAutorisationEvaluationGlobale(String evaluatorIdentity, String userRole, Long formationId) {
+        if (userRole != null && userRole.contains(ROLE_RESPONSABLE_DOSSIER)) {
+            throw new SecurityException("Le responsable dossier ne peut pas évaluer les formations.");
+        }
+        if (userRole != null && userRole.contains("ROLE_ADMIN")) {
+            return;
+        }
+        Boolean isParticipant = formationClient.isParticipantOfFormation(formationId, evaluatorIdentity);
+        if (!Boolean.TRUE.equals(isParticipant)) {
+            throw new SecurityException("Vous devez participer à cette formation pour l'évaluer (inscrit, animateur ou formateur).");
+        }
+    }
 
     private EvaluationGlobaleDTO mapToDto(EvaluationGlobale entity) {
         EvaluationGlobaleDTO dto = new EvaluationGlobaleDTO();
@@ -56,7 +77,8 @@ public class EvaluationGlobaleService {
         entity.setSatisfactionGlobale(dto.getSatisfactionGlobale());
     }
 
-    public EvaluationGlobaleDTO createEvaluationGlobale(EvaluationGlobaleDTO dto) {
+    public EvaluationGlobaleDTO createEvaluationGlobale(EvaluationGlobaleDTO dto, String evaluatorIdentity, String userRole) {
+        verifierAutorisationEvaluationGlobale(evaluatorIdentity, userRole, dto.getFormationId());
         if (evaluationGlobaleRepository.existsByFormationId(dto.getFormationId())) {
             throw new IllegalStateException("Une évaluation globale existe déjà pour la formation " + dto.getFormationId());
         }
@@ -64,7 +86,8 @@ public class EvaluationGlobaleService {
         return mapToDto(evaluationGlobaleRepository.save(entity));
     }
 
-    public EvaluationGlobaleDTO updateEvaluationGlobale(Long id, EvaluationGlobaleDTO dto) {
+    public EvaluationGlobaleDTO updateEvaluationGlobale(Long id, EvaluationGlobaleDTO dto, String evaluatorIdentity, String userRole) {
+        verifierAutorisationEvaluationGlobale(evaluatorIdentity, userRole, dto.getFormationId());
         EvaluationGlobale existing = evaluationGlobaleRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(MSG_NOT_FOUND + id));
         existing.setCommentaireGeneral(dto.getCommentaireGeneral());

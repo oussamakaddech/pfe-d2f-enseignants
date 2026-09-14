@@ -93,7 +93,9 @@ class FakeCompetencySource:
 
 
 class FakeFormationSource:
-    def get_candidates_for_competency(self, competence_id: int) -> list[TrainingCandidate]:
+    def get_candidates_for_competency(
+        self, competence_id: int, dept_id: str | None = None, up_id: str | None = None
+    ) -> list[TrainingCandidate]:
         return [c for c in FORMATIONS if c.savoir_ids]
 
     def get_completed_formation_ids(self, teacher_id: str) -> set[int]:

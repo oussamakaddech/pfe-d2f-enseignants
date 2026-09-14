@@ -164,6 +164,9 @@ export interface TeacherScopeAnalysis {
   scoped_competencies_count: number;
   total_competencies_count: number;
   scope: TeacherScope;
+  /** Niveaux réellement enregistrés sur les savoirs du périmètre (0 = gaps calculés
+   *  depuis le référentiel seul — alerte à la donnée manquante). */
+  niveaux_sur_scope?: number;
   computed_at: string;
 }
 

@@ -18,6 +18,7 @@ Validité de la cible (gouvernance 7.6) :
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -192,6 +193,36 @@ class ModelRegistry:
             )
         return None
 
+    def promotion_validation_error(self, entry: RegistryEntry) -> str | None:
+        """Raison de refus structurel d'une promotion (None si valide).
+
+        Un nouvel artefact ne doit etre promu ACTIVE/APPROVED que si :
+        - son empreinte SHA-256 est une chaine hexadecimale de 64 caracteres ;
+        - ses metriques sont finies et non negatives (quand presentes) ;
+        - son schema de features est compatible avec le code (gap_predictor_temporal :
+          liste canonique + version de schema ; autres modeles : structural checks).
+        Sinon la promotion est refusee (fail-closed) — le chargement au serving
+        echouerait de toute facon (integrite + spec de features).
+        """
+        sha = (entry.artifact_sha256 or "").strip()
+        if len(sha) != 64 or any(c not in "0123456789abcdefABCDEF" for c in sha):
+            return f"empreinte SHA-256 invalide ({(sha[:16] or 'vide')}...) : promotion refusee"
+        for name, value in (entry.metrics or {}).items():
+            if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value) or value < 0:
+                return f"metrique invalide ({name}={value}) : promotion refusee"
+        if entry.model_name == "gap_predictor_temporal" and entry.feature_names:
+            # Import tardif pour eviter le cycle predictor -> model_registry.
+            from app.infrastructure.ml.predictor import FEATURE_SCHEMA_VERSION, TEMPORAL_FEATURE_COLS
+
+            if entry.feature_names != list(TEMPORAL_FEATURE_COLS):
+                return "schema de features incompatible avec le code (liste canonique attendue) : promotion refusee"
+            if entry.feature_schema_version != FEATURE_SCHEMA_VERSION:
+                return (
+                    f"version de schema features incompatible : registre={entry.feature_schema_version}, "
+                    f"code={FEATURE_SCHEMA_VERSION} : promotion refusee"
+                )
+        return None
+
     def is_real_validated(self, entry: RegistryEntry) -> bool:
         """True si l'entree revendique une validation reelle (REAL_VALIDATED)."""
         return entry.validation_scope == VALIDATION_SCOPE_REAL or entry.target_validity == TARGET_VALIDITY_REAL
@@ -203,18 +234,22 @@ class ModelRegistry:
     def approve(self, model_version: str, actor: str | None = None) -> RegistryEntry | None:
         """Passe un candidat en ACTIVE et archive l'ancien actif.
 
-        Refuse la promotion si l'entrée revendique REAL_VALIDATED_TARGET
-        sans atteindre le seuil documenté (30 observations réelles sur
-        >= 3 mois distincts).
+        Refuse la promotion si :
+        - l'entrée revendique REAL_VALIDATED_TARGET sans atteindre le seuil
+          documenté (30 observations réelles sur >= 3 mois distincts) ;
+        - l'empreinte SHA-256, le schéma de features ou les métriques sont
+          invalides (validation structurelle fail-closed, limite audit 2.2).
         """
         entries = self._load()
         target = next((e for e in entries if e.model_version == model_version), None)
         if target is None or target.approval_status == APPROVAL_REJECTED:
             return None
         promotion_error = self.target_promotion_error(target)
-        if promotion_error:
+        structural_error = self.promotion_validation_error(target)
+        errors = [e for e in (promotion_error, structural_error) if e]
+        if errors:
             target.approval_status = APPROVAL_REJECTED
-            target.notes = (target.notes + " | " if target.notes else "") + promotion_error
+            target.notes = (target.notes + " | " if target.notes else "") + " | ".join(errors)
             self._save(entries)
             return None
         for e in entries:

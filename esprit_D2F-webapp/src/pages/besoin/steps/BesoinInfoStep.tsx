@@ -14,10 +14,10 @@ import {
 import SectionLabel from '@/components/besoin/SectionLabel';
 import ChoiceCardGroup from '@/components/besoin/ChoiceCardGroup';
 import ParticipantsTable from '@/pages/besoin/components/ParticipantsTable';
+import { formatParticipantLine, parseParticipantBlocks } from '@/utils/besoin/participants';
 import type { LookupItem } from '@/models/common';
 
 const { Option } = Select;
-const { TextArea } = Input;
 
 const typeOptions = [
   {
@@ -41,7 +41,6 @@ const typeOptions = [
 interface BesoinInfoStepProps {
   ups: LookupItem[];
   departements: LookupItem[];
-  canManageParticipants: boolean;
   participantsCount: number;
   lastImportCount: number;
   participantsFileInputRef: React.RefObject<HTMLInputElement | null>;
@@ -60,29 +59,50 @@ const LOCKED_TYPE_LABELS: Record<string, string> = {
   COLLECTIF: 'Collectif (verrouillé : validateur)',
 };
 
-/** Aperçu tabulaire synchronisé avec le champ `publicCible` + suppression par ligne. */
+/** Aperçu tabulaire synchronisé avec le champ `publicCible` + CRUD complet. */
 function ParticipantsPreview() {
   const form = Form.useFormInstance();
   const publicCible = Form.useWatch('publicCible', form) as string | undefined;
 
-  const handleRemove = (index: number) => {
-    const lines = String(publicCible || '').split(/\r?\n/);
-    const nonEmptyIndexes: number[] = [];
-    lines.forEach((l, i) => {
-      if (l.trim()) nonEmptyIndexes.push(i);
-    });
-    const target = nonEmptyIndexes[index];
-    if (target == null) return;
-    form.setFieldsValue({ publicCible: lines.filter((_, i) => i !== target).join('\n') });
+  const updatePublicCible = (newLines: string[]) => {
+    form.setFieldsValue({ publicCible: newLines.filter(Boolean).join('\n') });
   };
 
-  return <ParticipantsTable value={publicCible} onRemove={handleRemove} />;
+  const handleAdd = (line: string) => {
+    const current = String(publicCible || '').trim();
+    updatePublicCible([current, line].filter(Boolean));
+  };
+
+  const handleEdit = (index: number, line: string) => {
+    // Remplace le bloc ENTIER (1 ou 3 lignes) par la ligne canonique :
+    // le format multi-lignes s'auto-normalise à la première édition.
+    const lines = String(publicCible || '').split(/\r?\n/);
+    const target = parseParticipantBlocks(publicCible)[index];
+    if (target == null) return;
+    updatePublicCible([...lines.slice(0, target.start), line, ...lines.slice(target.end)]);
+  };
+
+  const handleRemove = (index: number) => {
+    // Supprime le bloc ENTIER (jamais de lignes email/téléphone orphelines).
+    const lines = String(publicCible || '').split(/\r?\n/);
+    const target = parseParticipantBlocks(publicCible)[index];
+    if (target == null) return;
+    updatePublicCible([...lines.slice(0, target.start), ...lines.slice(target.end)]);
+  };
+
+  return (
+    <ParticipantsTable
+      value={publicCible}
+      onAdd={handleAdd}
+      onEdit={handleEdit}
+      onRemove={handleRemove}
+    />
+  );
 }
 
 export default function BesoinInfoStep({
   ups,
   departements,
-  canManageParticipants,
   participantsCount,
   lastImportCount,
   participantsFileInputRef,
@@ -189,88 +209,45 @@ export default function BesoinInfoStep({
         </Form.Item>
       )}
 
-      <Form.Item noStyle shouldUpdate={(p, c) => p.typeBesoin !== c.typeBesoin}>
-        {({ getFieldValue }) => {
-          const typeBesoin = getFieldValue('typeBesoin');
-          const isIndividuel = typeBesoin === 'INDIVIDUEL';
-          const isCollectif = typeBesoin === 'COLLECTIF';
-          const showSection = canManageParticipants || isIndividuel || isCollectif;
-          if (!showSection) return null;
-
-          let sectionTitle: string;
-          let sectionHint: string;
-          if (canManageParticipants) {
-            sectionTitle = 'Liste des participants';
-            sectionHint =
-              'Optionnel — vous pouvez importer un fichier Excel ou saisir manuellement';
-          } else if (isCollectif) {
-            sectionTitle = 'Liste des enseignants participants';
-            sectionHint = 'Ajoutez les enseignants qui participeront à cette formation collective';
-          } else {
-            sectionTitle = 'Autres enseignants participants';
-            sectionHint = 'Optionnel — ajoutez les enseignants qui participeront avec vous';
-          }
-
-          return (
-            <>
-              <SectionLabel icon={<TeamOutlined />} title={sectionTitle} hint={sectionHint} />
-              <Form.Item name="publicCible">
-                <div className="bf-import-box">
-                  <div className="bf-import-box__toolbar">
-                    <Button
-                      icon={<UploadOutlined />}
-                      onClick={() => participantsFileInputRef.current?.click()}
-                      className="bf-btn bf-btn--ghost"
-                    >
-                      Importer Excel
-                    </Button>
-                    <Button
-                      danger
-                      icon={<DeleteOutlined />}
-                      onClick={onClearParticipants}
-                      disabled={participantsCount === 0}
-                      className="bf-btn bf-btn--ghost"
-                    >
-                      Vider la liste
-                    </Button>
-                    <div className="bf-import-box__stats">
-                      <Tag color="blue" className="bf-import-tag">
-                        {participantsCount} participant{participantsCount > 1 ? 's' : ''}
-                      </Tag>
-                      {lastImportCount > 0 && (
-                        <Tag color="green" className="bf-import-tag">
-                          +{lastImportCount} importé{lastImportCount > 1 ? 's' : ''}
-                        </Tag>
-                      )}
-                    </div>
-                  </div>
-                  <input
-                    ref={participantsFileInputRef}
-                    type="file"
-                    accept=".xlsx,.xls"
-                    style={{ display: 'none' }}
-                    onChange={onImportExcel}
-                  />
-                  <TextArea
-                    rows={5}
-                    placeholder="Un participant par ligne — format : Nom Prénom <email> (tél: +216 20 123 456)"
-                    showCount
-                    maxLength={2000}
-                    className="bf-import-textarea"
-                  />
-                  <div className="bf-import-box__hint">
-                    Format attendu :{' '}
-                    <code>Nom Prénom &lt;email@esprit.tn&gt; (tél: +216 20 123 456)</code> —
-                    l&apos;email et le téléphone sont optionnels. Le tableau ci-dessous reprend
-                    automatiquement chaque participant avec son email et son téléphone.
-                  </div>
-                  <ParticipantsPreview />
-                </div>
-              </Form.Item>
-            </>
-          );
-        }}
-      </Form.Item>
+      <SectionLabel icon={<TeamOutlined />} title="Liste des participants" hint="Ajoutez les enseignants qui participeront à cette formation" />
+      <div className="bf-import-box">
+          <div className="bf-import-box__toolbar">
+            <Button
+              icon={<UploadOutlined />}
+              onClick={() => participantsFileInputRef.current?.click()}
+              className="bf-btn bf-btn--ghost"
+            >
+              Importer Excel
+            </Button>
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={onClearParticipants}
+              disabled={participantsCount === 0}
+              className="bf-btn bf-btn--ghost"
+            >
+              Vider la liste
+            </Button>
+            <div className="bf-import-box__stats">
+              <Tag color="blue" className="bf-import-tag">
+                {participantsCount} participant{participantsCount > 1 ? 's' : ''}
+              </Tag>
+              {lastImportCount > 0 && (
+                <Tag color="green" className="bf-import-tag">
+                  +{lastImportCount} importé{lastImportCount > 1 ? 's' : ''}
+                </Tag>
+              )}
+            </div>
+          </div>
+          <input
+            ref={participantsFileInputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            style={{ display: 'none' }}
+            onChange={onImportExcel}
+          />
+          <ParticipantsPreview />
+      </div>
     </div>
   );
 }

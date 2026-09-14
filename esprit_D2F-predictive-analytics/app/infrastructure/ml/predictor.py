@@ -18,6 +18,8 @@ La part synthetique est TOUJOURS calculee depuis les lignes du dataset
 from __future__ import annotations
 
 import json
+import threading
+import time
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Optional
@@ -251,6 +253,15 @@ class ArtifactModelPort:
         if not registry_path.is_absolute():
             registry_path = models_dir / registry_path
         self._registry = ModelRegistry(registry_path, models_dir)
+
+        # Cache TTL du bundle de features serveur (performance) : la page
+        # enseignant appelle 5-6 endpoints qui refont chacun le même bundle
+        # (~5 requêtes SQL). TTL court (défaut 60 s, 0 = désactivé), entrées
+        # bornées (256), thread-safe ; les lectures renvoient une COPIE
+        # (les mutations de l'appelant ne fuient pas dans le cache).
+        self._bundle_cache: dict[str, tuple[float, dict[str, Any]]] = {}
+        self._bundle_cache_lock = threading.Lock()
+        self._bundle_cache_ttl = float(getattr(settings, "ml_feature_cache_ttl", 60.0))
 
         # Provenance calculee depuis les lignes du corpus reel a l'entrainement.
         self._provenance_report: DatasetProvenanceReport | None = None
@@ -1060,6 +1071,29 @@ class ArtifactModelPort:
 
     # ------------------------------------------------------- Extraction features
     def _teacher_feature_bundle(self, teacher_id: str) -> dict[str, Any]:
+        """Bundle de features d'un enseignant (cache TTL court, renvoie une copie).
+
+        - TTL configurable (``ml_feature_cache_ttl``, défaut 60 s, 0 = désactivé) ;
+        - entrées bornées (256) avec éviction simple ;
+        - une COPIE du bundle est retournée : les mutations de l'appelant
+          (ex : ``bundle["stagnation_months"] = ...``) ne fuient pas dans le cache.
+        """
+        ttl = self._bundle_cache_ttl
+        if ttl > 0:
+            now = time.monotonic()
+            with self._bundle_cache_lock:
+                hit = self._bundle_cache.get(teacher_id)
+                if hit is not None and (now - hit[0]) < ttl:
+                    return dict(hit[1])
+        bundle = self._build_teacher_feature_bundle(teacher_id)
+        if ttl > 0:
+            with self._bundle_cache_lock:
+                if len(self._bundle_cache) >= 256:
+                    self._bundle_cache.clear()
+                self._bundle_cache[teacher_id] = (time.monotonic(), bundle)
+        return dict(bundle)
+
+    def _build_teacher_feature_bundle(self, teacher_id: str) -> dict[str, Any]:
         """Extrait depuis la base toutes les donnees brutes d'un enseignant."""
         with self._database.read_connection() as conn:
             savs = conn.execute(

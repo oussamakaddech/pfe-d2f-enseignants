@@ -12,11 +12,6 @@ const EvaluationFormateurService = {
     return [];
   },
 
-  async getById(id: number | string): Promise<EvaluationFormateur> {
-    const response = await axios.get(`${EVALUATION_API_URL}/${id}`);
-    return response.data;
-  },
-
   async create(data: Record<string, unknown>): Promise<EvaluationFormateur> {
     const response = await axios.post(EVALUATION_API_URL, data);
     return response.data;

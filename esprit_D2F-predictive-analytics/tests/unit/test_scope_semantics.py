@@ -145,3 +145,26 @@ def test_declared_scope_without_match_falls_back_explicitly():
     assert analysis.scoped_competence_ids == {1, 2}
     assert len(analysis.gaps) == 2
     assert analysis.scope.label == "Département Inconnu"
+
+def test_niveaux_sur_scope_counts_levels_on_scope_competencies():
+    """niveaux_sur_scope = niveaux réellement enregistrés sur les savoirs du
+    périmètre — les niveaux hors périmètre (GC pour un enseignant Web) ne
+    comptent pas."""
+    source = WebOnlyCompetencySource()
+    source._levels["ENS036"] = {2: 3, 1: 2}  # savoir 2 = Web (dans le scope), savoir 1 = GC (hors scope)
+    teacher = _teacher("ENS036", "BEN ROMDHANE", "Marwa",
+                       dept_id="DEPT_TECH_WEB", dept_libelle="Technologie Web",
+                       up_id="UP_TECH_WEB", specialite="Technologies Web")
+    analysis = _analyzer(source).execute(teacher)
+    assert analysis.niveaux_sur_scope == 1
+
+
+def test_niveaux_sur_scope_zero_without_levels():
+    """Sans aucun niveau enregistré : niveaux_sur_scope = 0 (alerte à la
+    donnée manquante, exposée à l'UI)."""
+    source = WebOnlyCompetencySource()
+    teacher = _teacher("ENS037", "Sans", "Niveaux",
+                       dept_id="DEPT_TECH_WEB", dept_libelle="Technologie Web",
+                       up_id="UP_TECH_WEB")
+    analysis = _analyzer(source).execute(teacher)
+    assert analysis.niveaux_sur_scope == 0

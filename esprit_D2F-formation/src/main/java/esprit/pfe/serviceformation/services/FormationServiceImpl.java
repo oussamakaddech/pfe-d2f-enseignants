@@ -4,11 +4,13 @@ import esprit.pfe.serviceformation.dto.CreateFormationRequest;
 import esprit.pfe.serviceformation.dto.FormationResponseDTO;
 import esprit.pfe.serviceformation.dto.UpdateFormationRequest;
 import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.entities.EtatInscription;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.exception.ResourceNotFoundException;
 import esprit.pfe.serviceformation.microsoft.OutlookCalendarService;
 import esprit.pfe.serviceformation.microsoft.OutlookEventParameters;
 import esprit.pfe.serviceformation.repositories.FormationRepository;
+import esprit.pfe.serviceformation.repositories.InscriptionRepository;
 import esprit.pfe.serviceformation.repositories.UpRepository;
 import esprit.pfe.serviceformation.repositories.DeptRepository;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +41,7 @@ public class FormationServiceImpl implements FormationService {
     private final FormationMapper formationMapper;
     private final UpRepository upRepository;
     private final DeptRepository deptRepository;
+    private final InscriptionRepository inscriptionRepository;
 
     // DSI §4/§2 — injection optionnelle : null si azure.ad.enabled=false
     private final OutlookCalendarService outlookCalendarService;
@@ -47,11 +50,13 @@ public class FormationServiceImpl implements FormationService {
                                FormationMapper formationMapper,
                                UpRepository upRepository,
                                DeptRepository deptRepository,
+                               InscriptionRepository inscriptionRepository,
                                @org.springframework.lang.Nullable OutlookCalendarService outlookCalendarService) {
         this.formationRepository = formationRepository;
         this.formationMapper = formationMapper;
         this.upRepository = upRepository;
         this.deptRepository = deptRepository;
+        this.inscriptionRepository = inscriptionRepository;
         this.outlookCalendarService = outlookCalendarService;
     }
 
@@ -271,5 +276,21 @@ public class FormationServiceImpl implements FormationService {
                 saved.getIdFormation(), sourceId, newTitle);
 
         return formationMapper.toResponseDTO(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isAnimateurOfFormation(Long formationId, String enseignantId) {
+        return formationRepository.existsAnimateurInFormation(formationId, enseignantId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isParticipantOfFormation(Long formationId, String enseignantId) {
+        if (formationRepository.existsAnimateurInFormation(formationId, enseignantId)) {
+            return true;
+        }
+        return inscriptionRepository.existsByFormation_IdFormationAndEnseignant_IdAndEtat(
+                formationId, enseignantId, EtatInscription.APPROVED);
     }
 }

@@ -364,6 +364,7 @@ interface BackendTeacherScopeAnalysis {
   recommendations: BackendRecommendation[];
   scoped_competencies_count: number;
   total_competencies_count: number;
+  niveaux_sur_scope?: number;
   scope: {
     type: 'GLOBAL' | 'DEPARTMENT' | 'UP';
     is_global: boolean;
@@ -740,6 +741,8 @@ export const analyticsApi = {
           recommendations: (raw.recommendations ?? []).map(mapRecommendation),
           scoped_competencies_count: raw.scoped_competencies_count,
           total_competencies_count: raw.total_competencies_count,
+          niveaux_sur_scope:
+            typeof raw.niveaux_sur_scope === 'number' ? raw.niveaux_sur_scope : undefined,
           scope: {
             type: raw.scope?.type ?? 'GLOBAL',
             is_global: raw.scope?.is_global ?? true,

@@ -67,7 +67,7 @@ class EvaluationFormateurServiceCoverageTest {
         when(authClient.enseignantExists("ENS001")).thenReturn(true);
         when(evaluationRepository.save(any(EvaluationFormateur.class))).thenReturn(entity);
 
-        EvaluationFormateurDTO result = service.ajouterEvalParticipant(dto);
+        EvaluationFormateurDTO result = service.ajouterEvalParticipant(dto, "admin@test.com", "ROLE_ADMIN");
 
         assertNotNull(result);
         assertEquals("ENS001", result.getEnseignantId());
@@ -81,7 +81,7 @@ class EvaluationFormateurServiceCoverageTest {
     void ajouterEvalParticipant_FormationNotFound_ShouldThrow() {
         when(formationClient.getFormation(10L)).thenReturn(false);
 
-        assertThrows(ResourceNotFoundException.class, () -> service.ajouterEvalParticipant(dto));
+        assertThrows(ResourceNotFoundException.class, () -> service.ajouterEvalParticipant(dto, "admin@test.com", "ROLE_ADMIN"));
         verify(authClient, never()).enseignantExists(anyString());
     }
 
@@ -91,7 +91,7 @@ class EvaluationFormateurServiceCoverageTest {
         when(formationClient.getFormation(10L)).thenReturn(true);
         when(authClient.enseignantExists("ENS001")).thenReturn(false);
 
-        assertThrows(ResourceNotFoundException.class, () -> service.ajouterEvalParticipant(dto));
+        assertThrows(ResourceNotFoundException.class, () -> service.ajouterEvalParticipant(dto, "admin@test.com", "ROLE_ADMIN"));
         verify(evaluationRepository, never()).save(any());
     }
 
@@ -110,7 +110,7 @@ class EvaluationFormateurServiceCoverageTest {
         updateDto.setSatisfaisant(false);
         updateDto.setCommentaire("Updated comment");
 
-        EvaluationFormateurDTO result = service.modifierEvalParticipant(1L, updateDto);
+        EvaluationFormateurDTO result = service.modifierEvalParticipant(1L, updateDto, "admin@test.com", "ROLE_ADMIN");
 
         assertNotNull(result);
         verify(formationClient).getFormation(10L);
@@ -125,7 +125,7 @@ class EvaluationFormateurServiceCoverageTest {
         when(authClient.enseignantExists("ENS001")).thenReturn(true);
         when(evaluationRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThrows(RuntimeException.class, () -> service.modifierEvalParticipant(999L, dto));
+        assertThrows(RuntimeException.class, () -> service.modifierEvalParticipant(999L, dto, "admin@test.com", "ROLE_ADMIN"));
         verify(evaluationRepository, never()).save(any());
     }
 
@@ -134,7 +134,7 @@ class EvaluationFormateurServiceCoverageTest {
     void modifierEvalParticipant_FormationNotFound_ShouldThrow() {
         when(formationClient.getFormation(10L)).thenReturn(false);
 
-        assertThrows(ResourceNotFoundException.class, () -> service.modifierEvalParticipant(1L, dto));
+        assertThrows(ResourceNotFoundException.class, () -> service.modifierEvalParticipant(1L, dto, "admin@test.com", "ROLE_ADMIN"));
         verify(evaluationRepository, never()).findById(anyLong());
     }
 
@@ -167,7 +167,7 @@ class EvaluationFormateurServiceCoverageTest {
     @Test
     @DisplayName("createEvaluationsBulk - empty list - should not verify existence")
     void createEvaluationsBulk_EmptyList_ShouldNotVerify() {
-        service.createEvaluationsBulk(List.of());
+        service.createEvaluationsBulk(List.of(), "admin@test.com", "ROLE_ADMIN");
 
         verify(formationClient, never()).getFormation(anyLong());
         verify(authClient, never()).enseignantExists(anyString());
@@ -186,7 +186,7 @@ class EvaluationFormateurServiceCoverageTest {
         when(authClient.enseignantExists("ENS001")).thenReturn(true);
         when(authClient.enseignantExists("ENS002")).thenReturn(true);
 
-        service.createEvaluationsBulk(Arrays.asList(dto, dto2));
+        service.createEvaluationsBulk(Arrays.asList(dto, dto2), "admin@test.com", "ROLE_ADMIN");
 
         verify(formationClient).getFormation(10L);
         verify(authClient).enseignantExists("ENS001");
@@ -200,14 +200,14 @@ class EvaluationFormateurServiceCoverageTest {
         when(formationClient.getFormation(10L)).thenReturn(false);
         List<EvaluationFormateurDTO> payload = Arrays.asList(dto);
 
-        assertThrows(ResourceNotFoundException.class, () -> service.createEvaluationsBulk(payload));
+        assertThrows(ResourceNotFoundException.class, () -> service.createEvaluationsBulk(payload, "admin@test.com", "ROLE_ADMIN"));
         verify(evaluationRepository, never()).saveAll(anyList());
     }
 
     @Test
     @DisplayName("updateEvaluationsBulkByFormation - empty list - should not verify")
     void updateEvaluationsBulkByFormation_EmptyList_ShouldNotVerify() {
-        service.updateEvaluationsBulkByFormation(10L, List.of());
+        service.updateEvaluationsBulkByFormation(10L, List.of(), "admin@test.com", "ROLE_ADMIN");
 
         verify(formationClient, never()).getFormation(anyLong());
         verify(authClient, never()).enseignantExists(anyString());
@@ -225,7 +225,7 @@ class EvaluationFormateurServiceCoverageTest {
         newDto.setFormationId(10L);
         newDto.setNote(15.0f);
 
-        service.updateEvaluationsBulkByFormation(10L, List.of(newDto));
+        service.updateEvaluationsBulkByFormation(10L, List.of(newDto), "admin@test.com", "ROLE_ADMIN");
 
         verify(evaluationRepository).findByFormationId(10L);
         verify(evaluationRepository).save(any(EvaluationFormateur.class));
@@ -244,7 +244,7 @@ class EvaluationFormateurServiceCoverageTest {
         updateDto.setNote(18.0f);
         updateDto.setCommentaire("Updated");
 
-        service.updateEvaluationsBulkByFormation(10L, List.of(updateDto));
+        service.updateEvaluationsBulkByFormation(10L, List.of(updateDto), "admin@test.com", "ROLE_ADMIN");
 
         verify(evaluationRepository).save(any(EvaluationFormateur.class));
         verify(evaluationRepository, never()).delete(any());
@@ -266,7 +266,7 @@ class EvaluationFormateurServiceCoverageTest {
         updateDto.setEnseignantId("ENS001");
         updateDto.setFormationId(10L);
 
-        service.updateEvaluationsBulkByFormation(10L, List.of(updateDto));
+        service.updateEvaluationsBulkByFormation(10L, List.of(updateDto), "admin@test.com", "ROLE_ADMIN");
 
         verify(evaluationRepository).delete(oldEntity);
     }
@@ -277,7 +277,7 @@ class EvaluationFormateurServiceCoverageTest {
         when(formationClient.getFormation(10L)).thenReturn(false);
         List<EvaluationFormateurDTO> payload = List.of(dto);
 
-        assertThrows(ResourceNotFoundException.class, () -> service.updateEvaluationsBulkByFormation(10L, payload));
+        assertThrows(ResourceNotFoundException.class, () -> service.updateEvaluationsBulkByFormation(10L, payload, "admin@test.com", "ROLE_ADMIN"));
         verify(evaluationRepository, never()).findByFormationId(anyLong());
     }
 

@@ -144,7 +144,6 @@ export default function BesoinForm() {
       key="contexte"
       ups={ctx.ups}
       departements={ctx.departements}
-      canManageParticipants={ctx.canManageParticipants}
       participantsCount={ctx.participantsCount}
       lastImportCount={ctx.lastImportCount}
       participantsFileInputRef={ctx.participantsFileInputRef}

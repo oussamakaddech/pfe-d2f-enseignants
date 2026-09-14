@@ -3,19 +3,24 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import ParticipantsTable from '../ParticipantsTable';
 
 describe('ParticipantsTable', () => {
-  it('ne rend rien sans participants', () => {
-    const { container } = render(<ParticipantsTable value="" onRemove={vi.fn()} />);
-    expect(container.firstChild).toBeNull();
+  it('affiche le bouton Ajouter même sans participants', () => {
+    render(
+      <ParticipantsTable value="" onAdd={vi.fn()} onEdit={vi.fn()} onRemove={vi.fn()} />,
+    );
+    expect(screen.getByText('Ajouter un participant')).toBeInTheDocument();
+    expect(screen.getByText(/Aucun participant/)).toBeInTheDocument();
   });
 
-  it('affiche les colonnes Participant, Email et Téléphone', () => {
+  it('affiche les colonnes Nom, Email et Téléphone', () => {
     render(
       <ParticipantsTable
         value={'Ben Ali Sarra <sarra@esprit.tn> (tél: +21620123456)\nDoe John'}
+        onAdd={vi.fn()}
+        onEdit={vi.fn()}
         onRemove={vi.fn()}
       />,
     );
-    expect(screen.getByText('Participant')).toBeInTheDocument();
+    expect(screen.getByText('Nom complet')).toBeInTheDocument();
     expect(screen.getByText('Email')).toBeInTheDocument();
     expect(screen.getByText('Téléphone')).toBeInTheDocument();
     expect(screen.getByText('Ben Ali Sarra')).toBeInTheDocument();
@@ -24,14 +29,28 @@ describe('ParticipantsTable', () => {
     expect(screen.getByText('Doe John')).toBeInTheDocument();
   });
 
-  it('appelle onRemove avec le bon index', () => {
+  it('appelle onRemove avec le bon index via le popconfirm', () => {
     const onRemove = vi.fn();
     render(
-      <ParticipantsTable value={'Alice <a@esprit.tn>\nBob <b@esprit.tn>'} onRemove={onRemove} />,
+      <ParticipantsTable
+        value={'Alice <a@esprit.tn>\nBob <b@esprit.tn>'}
+        onAdd={vi.fn()}
+        onEdit={vi.fn()}
+        onRemove={onRemove}
+      />,
     );
-    const buttons = screen.getAllByRole('button', { name: /Retirer/ });
-    expect(buttons).toHaveLength(2);
-    fireEvent.click(buttons[1]);
+    const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
+    expect(deleteButtons).toHaveLength(2);
+    fireEvent.click(deleteButtons[1]);
+    const confirmButton = screen.getByRole('button', { name: /Retirer/i });
+    fireEvent.click(confirmButton);
     expect(onRemove).toHaveBeenCalledWith(1);
+  });
+
+  it('affiche le bouton Ajouter un participant', () => {
+    render(
+      <ParticipantsTable value="" onAdd={vi.fn()} onEdit={vi.fn()} onRemove={vi.fn()} />,
+    );
+    expect(screen.getByText('Ajouter un participant')).toBeInTheDocument();
   });
 });

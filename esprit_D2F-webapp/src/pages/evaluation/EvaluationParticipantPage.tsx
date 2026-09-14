@@ -135,6 +135,11 @@ export default function EvaluationParticipantPage() {
       note: record.note,
       satisfaisant: record.satisfaisant,
       commentaire: record.commentaire,
+      maitriseSujet: record.maitriseSujet,
+      clarte: record.clarte,
+      pedagogie: record.pedagogie,
+      interaction: record.interaction,
+      gestionTemps: record.gestionTemps,
     });
     setOpenForm(true);
   }
@@ -521,6 +526,36 @@ export default function EvaluationParticipantPage() {
           </Form.Item>
           <Form.Item name="satisfaisant" label="Satisfaisant" valuePropName="checked">
             <Switch checkedChildren="Oui" unCheckedChildren="Non" />
+          </Form.Item>
+          <Form.Item
+            name="maitriseSujet"
+            label="Maîtrise du sujet (0-5)"
+          >
+            <InputNumber min={0} max={5} step={0.5} className="w-full" />
+          </Form.Item>
+          <Form.Item
+            name="clarte"
+            label="Clarté (0-5)"
+          >
+            <InputNumber min={0} max={5} step={0.5} className="w-full" />
+          </Form.Item>
+          <Form.Item
+            name="pedagogie"
+            label="Pédagogie (0-5)"
+          >
+            <InputNumber min={0} max={5} step={0.5} className="w-full" />
+          </Form.Item>
+          <Form.Item
+            name="interaction"
+            label="Interaction (0-5)"
+          >
+            <InputNumber min={0} max={5} step={0.5} className="w-full" />
+          </Form.Item>
+          <Form.Item
+            name="gestionTemps"
+            label="Gestion du temps (0-5)"
+          >
+            <InputNumber min={0} max={5} step={0.5} className="w-full" />
           </Form.Item>
           <Form.Item
             name="commentaire"

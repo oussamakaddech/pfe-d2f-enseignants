@@ -112,6 +112,7 @@ export function useUpdateEvaluationsBulk() {
 }
 
 export function useUpdateEvaluationsBulkFlat() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: ({
       formationId,
@@ -123,5 +124,11 @@ export function useUpdateEvaluationsBulkFlat() {
       formationId
         ? EvaluationFormateurService.updateEvaluationsBulkByFormation(formationId, evaluations)
         : Promise.resolve(null),
+    onSuccess: (_, { formationId }) => {
+      if (formationId) {
+        qc.invalidateQueries({ queryKey: ['evaluations-enriched', formationId] });
+      }
+      qc.invalidateQueries({ queryKey: ['evaluations-participants'] });
+    },
   });
 }

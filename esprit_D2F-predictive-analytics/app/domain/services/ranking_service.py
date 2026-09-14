@@ -105,9 +105,15 @@ def rank_candidates(
 # Construit la phrase d'explication humaine ("pourquoi cette formation ?")
 # affichée à côté de chaque recommandation.
 def _build_reason(candidate: TrainingCandidate, state: TeacherCompetencyState) -> str:
+    # Prior domaine (0.3) quand la formation n'a AUCUN savoir référencé :
+    # le score conserve ce prior documenté, mais le libellé ne doit JAMAIS
+    # revendiquer une couverture des savoirs manquants (audit 4.4 —
+    # justification par les savoirs réels uniquement).
+    if not candidate.savoir_ids:
+        return "Formation du domaine cible (savoirs non référencés dans le référentiel)"
     match = content_match(candidate, state)
     if match >= 0.5:
         return "Couvre une grande part des savoirs manquants sur la compétence cible"
     if match > 0:
         return "Couvre partiellement les savoirs manquants de la compétence cible"
-    return "Formation du domaine cible (savoirs non référencés dans le référentiel)"
+    return "Formation du domaine cible (aucun savoir manquant couvert)"

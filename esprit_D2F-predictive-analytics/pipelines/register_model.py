@@ -50,6 +50,23 @@ def _dataset_hash_from_corpus(corpus: Path | None = None) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def _corpus_institutionally_verified(corpus: Path) -> bool:
+    """True si toutes les lignes du corpus portent institutional_verified=true.
+
+    Garde audit 1.2 : INSTITUTIONAL_RECORD ne peut etre ecrit que si les
+    lignes du corpus sont attestées DSI (colonne institutional_verified à
+    true sur toutes les lignes) — sinon le corpus est une donnée de dev non
+    attestée (DEMO_SEED), même si elle provient de la base.
+    """
+    if not corpus.exists():
+        return False
+    df = pd.read_csv(corpus)
+    if df.empty or "institutional_verified" not in df.columns:
+        return False
+    vals = df["institutional_verified"].astype(str).str.strip().str.lower()
+    return bool(len(vals) > 0 and vals.isin(("true", "1", "yes", "oui", "vrai")).all())
+
+
 def register_model(
     model_version: str,
     approve: bool = False,
@@ -57,6 +74,7 @@ def register_model(
     artifact_path: Path | None = None,
     metadata_path: Path | None = None,
     corpus_path: Path | None = None,
+    attestation_dsi: str | None = None,
 ) -> dict:
     """Enregistre le modèle courant dans le registre (CANDIDATE ou ACTIVE)."""
     from app.infrastructure.ml.model_registry import (
@@ -81,14 +99,17 @@ def register_model(
     metrics = metadata.get("metrics") or {}
     data_sources = metadata.get("data_sources") or {}
 
-    # Origine honnête dérivée du corpus : 0 % synthétique + source
-    # postgresql_d2f => INSTITUTIONAL_RECORD (jamais DEMO_SEED par défaut).
+    # Origine honnête dérivée du corpus (audit 1.2) : INSTITUTIONAL_RECORD
+    # UNIQUEMENT si les lignes du corpus sont attestées DSI (colonne
+    # institutional_verified=true sur toutes les lignes) OU si une référence
+    # d'attestation DSI est fournie explicitement — sinon DEMO_SEED (données
+    # de dev non attestées, même si issues de la base postgresql_d2f).
     synth_pct = float(data_sources.get("synthetic_share_pct", 0.0))
     from app.infrastructure.ml.model_registry import DATA_ORIGIN_INSTITUTIONAL, DATA_ORIGIN_DEMO_SEED
 
-    data_origin = (
-        DATA_ORIGIN_INSTITUTIONAL if synth_pct <= 0.0 else DATA_ORIGIN_DEMO_SEED
-    )
+    data_origin = DATA_ORIGIN_DEMO_SEED
+    if synth_pct <= 0.0 and (attestation_dsi or _corpus_institutionally_verified(corpus)):
+        data_origin = DATA_ORIGIN_INSTITUTIONAL
 
     entry = RegistryEntry(
         model_name="gap_predictor_temporal",
@@ -110,6 +131,7 @@ def register_model(
         approval_status=APPROVAL_APPROVED if approve else APPROVAL_PENDING,
         approval_date=datetime.now(timezone.utc).isoformat() if approve else None,
         approval_actor=actor if approve else None,
+        attestation_dsi=attestation_dsi,
         notes=metadata.get("notes", ""),
     )
 
@@ -150,6 +172,7 @@ def main() -> int:
     parser.add_argument("--artifact-path", default=None, help="Chemin de l'artefact joblib")
     parser.add_argument("--metadata-path", default=None, help="Chemin de la metadata JSON")
     parser.add_argument("--corpus-path", default=None, help="Chemin du dataset provenancé")
+    parser.add_argument("--attestation-dsi", default=None, help="Référence d'attestation DSI (requis pour INSTITUTIONAL_RECORD si le corpus n'est pas attesté)")
     args = parser.parse_args()
 
     if args.rollback:
@@ -162,6 +185,7 @@ def main() -> int:
             artifact_path=Path(args.artifact_path) if args.artifact_path else None,
             metadata_path=Path(args.metadata_path) if args.metadata_path else None,
             corpus_path=Path(args.corpus_path) if args.corpus_path else None,
+            attestation_dsi=args.attestation_dsi,
         )
     return 0
 

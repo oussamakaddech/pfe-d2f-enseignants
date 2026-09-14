@@ -72,8 +72,8 @@ public final class AuthorizationMatrix {
     public static final String EVALUATION_READ_CUP = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
     public static final String EVALUATION_READ_ENSEIGNANT = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT')";
     public static final String EVALUATION_READ_FORMATEUR = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR','ROLE_ANIMATEUR')";
-    public static final String EVALUATION_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_ENSEIGNANT')";
-    public static final String EVALUATION_UPDATE = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_ENSEIGNANT')";
+    public static final String EVALUATION_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_ENSEIGNANT','ROLE_CHEF_DEPARTEMENT')";
+    public static final String EVALUATION_UPDATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_ENSEIGNANT','ROLE_CHEF_DEPARTEMENT')";
     public static final String EVALUATION_DELETE = "hasAnyRole('ROLE_ADMIN')";
     public static final String EVALUATION_MARK_ENTRY = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR','ROLE_ANIMATEUR')";
 

@@ -116,7 +116,7 @@ class EvaluationFormateurServiceMissingTest {
         when(evaluationRepository.findByFormationId(10L)).thenReturn(evaluations);
 
         // When
-        evaluationService.updateEvaluationsBulkByFormation(10L, dtos);
+        evaluationService.updateEvaluationsBulkByFormation(10L, dtos, "admin@test.com", "ROLE_ADMIN");
 
         // Then
         verify(evaluationRepository, times(1)).findByFormationId(10L);
@@ -161,7 +161,7 @@ class EvaluationFormateurServiceMissingTest {
         when(evaluationRepository.findById(999L)).thenReturn(Optional.empty());
 
         // When/Then
-        assertThatThrownBy(() -> evaluationService.modifierEvalParticipant(999L, dto))
+        assertThatThrownBy(() -> evaluationService.modifierEvalParticipant(999L, dto, "admin@test.com", "ROLE_ADMIN"))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("non trouvée");
     }
@@ -189,7 +189,7 @@ class EvaluationFormateurServiceMissingTest {
         updateDto.setFormationId(10L);
 
         // When
-        EvaluationFormateurDTO result = evaluationService.modifierEvalParticipant(1L, updateDto);
+        EvaluationFormateurDTO result = evaluationService.modifierEvalParticipant(1L, updateDto, "admin@test.com", "ROLE_ADMIN");
 
         // Then
         assertThat(result)
@@ -206,7 +206,7 @@ class EvaluationFormateurServiceMissingTest {
         List<EvaluationFormateurDTO> dtos = Arrays.asList(dto);
 
         // When
-        evaluationService.createEvaluationsBulk(dtos);
+        evaluationService.createEvaluationsBulk(dtos, "admin@test.com", "ROLE_ADMIN");
 
         // Then
         verify(evaluationRepository).saveAll(anyList());

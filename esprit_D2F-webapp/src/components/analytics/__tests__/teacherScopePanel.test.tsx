@@ -132,4 +132,24 @@ describe('TeacherScopePanel', () => {
     expect(screen.getByText('Périmètre élargi au référentiel global')).toBeInTheDocument();
     expect(screen.getByText('Référentiel incomplet pour ce périmètre.')).toBeInTheDocument();
   });
+
+  it('affiche une alerte « données manquantes » quand aucun niveau n\'est enregistré sur le périmètre', () => {
+    const noLevels: TeacherScopeAnalysis = { ...data, niveaux_sur_scope: 0 };
+    render(<TeacherScopePanel data={noLevels} loading={false} />);
+    expect(screen.getByText('Aucun niveau enregistré sur ce périmètre')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Les gaps sont calculés depuis le référentiel seul/),
+    ).toBeInTheDocument();
+  });
+
+  it("n'affiche pas l'alerte « données manquantes » quand des niveaux existent sur le périmètre", () => {
+    const withLevels: TeacherScopeAnalysis = { ...data, niveaux_sur_scope: 4 };
+    render(<TeacherScopePanel data={withLevels} loading={false} />);
+    expect(screen.queryByText('Aucun niveau enregistré sur ce périmètre')).not.toBeInTheDocument();
+  });
+
+  it("n'affiche pas l'alerte quand le champ niveaux_sur_scope est absent (compat arrière)", () => {
+    render(<TeacherScopePanel data={data} loading={false} />);
+    expect(screen.queryByText('Aucun niveau enregistré sur ce périmètre')).not.toBeInTheDocument();
+  });
 });

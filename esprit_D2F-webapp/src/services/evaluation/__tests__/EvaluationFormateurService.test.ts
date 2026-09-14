@@ -47,9 +47,6 @@ describe('EvaluationFormateurService', () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: null });
     await expect(EvaluationFormateurService.listAll()).resolves.toEqual([]);
 
-    httpMocks.mockGet.mockResolvedValueOnce({ data: { id: 1 } });
-    await expect(EvaluationFormateurService.getById(1)).resolves.toEqual({ id: 1 });
-
     httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 3 } });
     await expect(EvaluationFormateurService.create({ note: 5 })).resolves.toEqual({ id: 3 });
 

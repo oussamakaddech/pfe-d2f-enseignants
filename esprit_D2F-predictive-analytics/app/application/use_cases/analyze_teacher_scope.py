@@ -40,6 +40,10 @@ class TeacherScopeAnalysis:
     explicite (ScopeInfo), les gaps calculés sur les competences de son
     perimetre, et les recommandations de formations associées aux gaps les
     plus critiques.
+
+    ``niveaux_sur_scope`` : nombre de niveaux réellement enregistrés par
+    l'enseignant sur les savoirs du périmètre — 0 signifie que les gaps sont
+    calculés depuis le référentiel seul (alerte à la donnée manquante).
     """
 
     teacher: Teacher
@@ -49,6 +53,7 @@ class TeacherScopeAnalysis:
     total_competencies: int
     scoped_competencies_count: int
     scope: ScopeInfo
+    niveaux_sur_scope: int = 0
 
 
 class AnalyzeTeacherScope:
@@ -147,7 +152,10 @@ class AnalyzeTeacherScope:
             key=lambda g: g.gap_score,
             reverse=True,
         )
-        recommendations = self._recommendations_for_top_gaps(teacher.id, gaps)
+        recommendations = self._recommendations_for_top_gaps(
+            teacher.id, gaps, dept_id=teacher.dept_id, up_id=teacher.up_id,
+        )
+        niveaux_sur_scope = self._count_levels_on_scope(teacher.id, scoped_ids)
 
         return TeacherScopeAnalysis(
             teacher=teacher,
@@ -157,17 +165,36 @@ class AnalyzeTeacherScope:
             total_competencies=len(all_competencies),
             scoped_competencies_count=len(scoped_competencies),
             scope=scope,
+            niveaux_sur_scope=niveaux_sur_scope,
         )
+
+    # Nombre de niveaux réellement enregistrés par l'enseignant sur les savoirs
+    # du périmètre (0 => gaps calculés depuis le référentiel seul — alerte à la
+    # donnée manquante, exposée à l'UI pour un affichage honnête).
+    def _count_levels_on_scope(self, teacher_id: str, scoped_ids: set[int]) -> int:
+        levels = self._competency_source.get_teacher_savoir_levels(teacher_id)
+        if not levels or not scoped_ids:
+            return 0
+        scoped_competencies = self._competency_source.list_competencies()
+        scope_savoir_ids: set[int] = set()
+        for c in scoped_competencies:
+            if c.id in scoped_ids:
+                scope_savoir_ids.update(c.savoir_ids())
+        return sum(1 for sid in levels if sid in scope_savoir_ids)
 
     # Génère des recommandations pour les N gaps les plus critiques
     # (max_gaps_for_recommendations), en dédupliquant par formation
     # (on garde la recommandation au meilleur score).
-    def _recommendations_for_top_gaps(self, teacher_id: str, gaps: list[SkillGap]) -> list[Recommendation]:
+    def _recommendations_for_top_gaps(
+        self, teacher_id: str, gaps: list[SkillGap],
+        dept_id: str | None = None, up_id: str | None = None,
+    ) -> list[Recommendation]:
         top_gaps = [g for g in gaps if g.gap_score > 0][: self._max_gaps_for_recommendations]
         merged: dict[int, Recommendation] = {}
         for gap in top_gaps:
             for rec in self._recommend_trainings.execute(
-                teacher_id, gap.competence_id, self._recommendations_per_gap
+                teacher_id, gap.competence_id, self._recommendations_per_gap,
+                dept_id=dept_id, up_id=up_id,
             ):
                 existing = merged.get(rec.formation_id)
                 if existing is None or rec.rank_score > existing.rank_score:

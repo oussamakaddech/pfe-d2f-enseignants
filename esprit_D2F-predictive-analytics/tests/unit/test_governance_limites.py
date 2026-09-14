@@ -91,7 +91,7 @@ def _entry(version="v2.0.0", real_count=0, months=0, validity=TARGET_VALIDITY_RE
         model_version=version,
         status="CANDIDATE",
         dataset_version="v1.0.0",
-        artifact_sha256="abc",
+        artifact_sha256="a" * 64,
         feature_names=list(TEMPORAL_FEATURE_COLS),
         feature_schema_version=FEATURE_SCHEMA_VERSION,
         approval_status="PENDING",
@@ -142,6 +142,106 @@ def test_promotion_requires_real_target_threshold(tmp_path):
     assert approved4 is not None
     assert approved4.status == STATUS_ACTIVE
     assert approved4.approval_status == APPROVAL_APPROVED
+
+
+# ---------------------------------------------------------------------------
+# 2bis. Validation structurelle de promotion (audit 2.2) : SHA-256, schéma,
+# métriques — un artefact invalide ne peut PAS être promu ACTIVE/APPROVED.
+# ---------------------------------------------------------------------------
+def test_promotion_refuses_invalid_artifact_hash(tmp_path):
+    """Un candidat avec une empreinte SHA-256 invalide est refusé (fail-closed)."""
+    registry = ModelRegistry(tmp_path / "reg_hash.json", MODELS_DIR)
+    entry = RegistryEntry(
+        model_name="gap_predictor_temporal",
+        model_version="v-bogus-hash",
+        status="CANDIDATE",
+        dataset_version="simulation-v1.0.0",
+        artifact_sha256="NOT-A-VALID-HASH",
+        feature_names=list(TEMPORAL_FEATURE_COLS),
+        feature_schema_version=FEATURE_SCHEMA_VERSION,
+        metrics={"rmse": 1.0, "mae": 1.0, "r2": 0.5},
+        approval_status="PENDING",
+        target_validity="OBSERVED_IN_SIMULATION",
+        validation_scope="SIMULATION_VALIDATED",
+    )
+    registry.register(entry)
+    assert registry.approve("v-bogus-hash") is None
+    reloaded = registry.get("v-bogus-hash")
+    assert reloaded.approval_status == APPROVAL_REJECTED
+    assert "SHA-256 invalide" in reloaded.notes
+
+
+def test_promotion_refuses_incompatible_feature_schema(tmp_path):
+    """Un candidat gap_predictor avec des features incompatibles est refusé."""
+    registry = ModelRegistry(tmp_path / "reg_schema.json", MODELS_DIR)
+    bad_features = list(TEMPORAL_FEATURE_COLS) + ["required_level_t"]
+    entry = RegistryEntry(
+        model_name="gap_predictor_temporal",
+        model_version="v-bogus-schema",
+        status="CANDIDATE",
+        dataset_version="simulation-v1.0.0",
+        artifact_sha256="b" * 64,
+        feature_names=bad_features,
+        feature_schema_version=FEATURE_SCHEMA_VERSION,
+        metrics={"rmse": 1.0, "mae": 1.0, "r2": 0.5},
+        approval_status="PENDING",
+        target_validity="OBSERVED_IN_SIMULATION",
+        validation_scope="SIMULATION_VALIDATED",
+    )
+    registry.register(entry)
+    assert registry.approve("v-bogus-schema") is None
+    reloaded = registry.get("v-bogus-schema")
+    assert reloaded.approval_status == APPROVAL_REJECTED
+    assert "features incompatible" in reloaded.notes
+
+
+def test_promotion_refuses_invalid_metrics(tmp_path):
+    """Un candidat avec des métriques non finies / négatives est refusé."""
+    import math
+
+    registry = ModelRegistry(tmp_path / "reg_metrics.json", MODELS_DIR)
+    entry = RegistryEntry(
+        model_name="gap_predictor_temporal",
+        model_version="v-bogus-metrics",
+        status="CANDIDATE",
+        dataset_version="simulation-v1.0.0",
+        artifact_sha256="c" * 64,
+        feature_names=list(TEMPORAL_FEATURE_COLS),
+        feature_schema_version=FEATURE_SCHEMA_VERSION,
+        metrics={"rmse": -1.0, "mae": math.nan, "r2": 0.5},
+        approval_status="PENDING",
+        target_validity="OBSERVED_IN_SIMULATION",
+        validation_scope="SIMULATION_VALIDATED",
+    )
+    registry.register(entry)
+    assert registry.approve("v-bogus-metrics") is None
+    reloaded = registry.get("v-bogus-metrics")
+    assert reloaded.approval_status == APPROVAL_REJECTED
+    assert "metrique invalide" in reloaded.notes
+
+
+def test_promotion_accepts_structurally_valid_candidate(tmp_path):
+    """Un candidat structurellement valide (SHA-256 hex64, features canoniques,
+    métriques finies) est promu ACTIVE (gouvernance fail-closed non bloquante)."""
+    registry = ModelRegistry(tmp_path / "reg_valid.json", MODELS_DIR)
+    entry = RegistryEntry(
+        model_name="gap_predictor_temporal",
+        model_version="v-valid",
+        status="CANDIDATE",
+        dataset_version="simulation-v1.0.0",
+        artifact_sha256="d" * 64,
+        feature_names=list(TEMPORAL_FEATURE_COLS),
+        feature_schema_version=FEATURE_SCHEMA_VERSION,
+        metrics={"rmse": 1.0, "mae": 1.0, "r2": 0.5},
+        approval_status="PENDING",
+        target_validity="OBSERVED_IN_SIMULATION",
+        validation_scope="SIMULATION_VALIDATED",
+    )
+    registry.register(entry)
+    approved = registry.approve("v-valid")
+    assert approved is not None
+    assert approved.status == STATUS_ACTIVE
+    assert approved.approval_status == APPROVAL_APPROVED
 
 
 # ---------------------------------------------------------------------------

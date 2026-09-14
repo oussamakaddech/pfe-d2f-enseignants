@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Tabs } from 'antd';
 import { TrophyOutlined, UserOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -35,45 +35,46 @@ export default function EvaluationsPage() {
   const location = useLocation();
   const userRole = useUserRole() ?? '';
 
-  const defaultTab = useMemo(() => {
-    // Les enseignants/animateurs évaluent avant tout les formateurs qu'ils ont eus ;
-    // les pilotes (admin/CUP/chef) commencent par la vue formation.
-    const isPilot = hasAnyRole(userRole, [ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]);
-    return isPilot ? TAB_FORMATION : TAB_PARTICIPANTS;
-  }, [userRole]);
+  const isAnimateur = hasAnyRole(userRole, [ROLES.ANIMATEUR]);
 
-  const activeTab = resolveActiveTab(location.pathname, location.hash);
+  const activeTab = isAnimateur
+    ? resolveActiveTab(location.pathname, location.hash)
+    : TAB_PARTICIPANTS;
 
   const [mounted, setMounted] = useState<Record<string, boolean>>({
-    [defaultTab]: true,
+    [activeTab]: true,
   });
 
   const handleChange = (key: string) => {
     setMounted((prev) => ({ ...prev, [key]: true }));
-    // URLs distinctes par onglet : les entrées de menu historiques continuent
-    // de fonctionner et le garde de rôle reste effectif côté routing.
     navigate(key === TAB_PARTICIPANTS ? '/home/Evaluations/Participants' : '/home/Evaluations', {
       replace: true,
     });
   };
 
-  // Chaque onglet n'est monté qu'une fois visité (données mises en cache par
-  // react-query, mais les filtres/fetch de l'autre dimension ne tournent pas
-  // tant qu'elle n'a pas été ouverte).
-  const items = [
-    {
-      key: TAB_FORMATION,
-      label: 'Éval. Formation',
-      icon: <TrophyOutlined />,
-      children: mounted[TAB_FORMATION] ? <EvaluationGlobalePage /> : null,
-    },
-    {
-      key: TAB_PARTICIPANTS,
-      label: 'Éval. Formateur (participants)',
-      icon: <UserOutlined />,
-      children: mounted[TAB_PARTICIPANTS] ? <EvaluationParticipantPage /> : null,
-    },
-  ];
+  const items = isAnimateur
+    ? [
+        {
+          key: TAB_FORMATION,
+          label: 'Éval. Formation',
+          icon: <TrophyOutlined />,
+          children: mounted[TAB_FORMATION] ? <EvaluationGlobalePage /> : null,
+        },
+        {
+          key: TAB_PARTICIPANTS,
+          label: 'Éval. Formateur (participants)',
+          icon: <UserOutlined />,
+          children: mounted[TAB_PARTICIPANTS] ? <EvaluationParticipantPage /> : null,
+        },
+      ]
+    : [
+        {
+          key: TAB_PARTICIPANTS,
+          label: 'Évaluations participants',
+          icon: <UserOutlined />,
+          children: mounted[TAB_PARTICIPANTS] ? <EvaluationParticipantPage /> : null,
+        },
+      ];
 
   return (
     <div className="evaluations-tabs-page">

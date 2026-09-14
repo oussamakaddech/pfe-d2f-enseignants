@@ -1,0 +1,266 @@
+{
+  "model_name": "gap_predictor_temporal",
+  "algorithm": "mlp",
+  "model_version": "v1.1.0",
+  "trained_at": "2026-09-13T18:58:49.586870",
+  "n_features": 29,
+  "feature_cols": [
+    "current_level_t3",
+    "current_level_t2",
+    "current_level_t1",
+    "current_level_t",
+    "lag_gap_t3_t2",
+    "lag_gap_t2_t1",
+    "lag_gap_t1_t",
+    "rolling_tendance",
+    "days_since_last_training",
+    "training_frequency_per_month",
+    "is_long_absent",
+    "is_stagnant",
+    "avg_level",
+    "min_level",
+    "max_level",
+    "nb_level_5",
+    "nb_level_1",
+    "nb_savoirs",
+    "nb_competences",
+    "competency_coverage_rate",
+    "nb_formations_completed",
+    "nb_formations_in_progress",
+    "taux_assiduite",
+    "nb_besoins_exprimes",
+    "nb_besoins_approuves",
+    "avg_eval_score",
+    "nb_evaluations",
+    "months_since_last_training",
+    "engagement_score"
+  ],
+  "feature_schema_version": "1.0",
+  "n_samples": 217,
+  "n_train": 174,
+  "n_test": 43,
+  "data_sources": {
+    "total_rows": 217,
+    "real_rows": 217,
+    "synthetic_rows": 0,
+    "synthetic_share_pct": 0.0,
+    "real_share_pct": 100.0,
+    "dataset_version": "v1.1.0"
+  },
+  "dataset_version": "v1.1.0",
+  "hyperparameters": {
+    "random_state": 42,
+    "cv": {
+      "type": "KFold",
+      "n_splits": 5,
+      "shuffle": true,
+      "random_state": 42
+    },
+    "split": {
+      "type": "temporal_strict_cutoff_2026-07-22",
+      "train_frac": 0.8,
+      "test_frac": 0.2
+    },
+    "models": {
+      "gradient_boosting": {
+        "alpha": 0.9,
+        "ccp_alpha": 0.0,
+        "criterion": "friedman_mse",
+        "init": null,
+        "learning_rate": 0.08,
+        "loss": "squared_error",
+        "max_depth": 3,
+        "max_features": "sqrt",
+        "max_leaf_nodes": null,
+        "min_impurity_decrease": 0.0,
+        "min_samples_leaf": 5,
+        "min_samples_split": 10,
+        "min_weight_fraction_leaf": 0.0,
+        "n_estimators": 120,
+        "n_iter_no_change": null,
+        "random_state": 42,
+        "subsample": 0.85,
+        "tol": 0.0001,
+        "validation_fraction": 0.1,
+        "verbose": 0,
+        "warm_start": false
+      },
+      "mlp": {
+        "activation": "relu",
+        "alpha": 0.01,
+        "batch_size": "auto",
+        "beta_1": 0.9,
+        "beta_2": 0.999,
+        "early_stopping": true,
+        "epsilon": 1e-08,
+        "hidden_layer_sizes": [
+          32,
+          16
+        ],
+        "learning_rate": "constant",
+        "learning_rate_init": 0.001,
+        "loss": "squared_error",
+        "max_fun": 15000,
+        "max_iter": 400,
+        "momentum": 0.9,
+        "n_iter_no_change": 20,
+        "nesterovs_momentum": true,
+        "power_t": 0.5,
+        "random_state": 42,
+        "shuffle": true,
+        "solver": "adam",
+        "tol": 0.0001,
+        "validation_fraction": 0.1,
+        "verbose": false,
+        "warm_start": false
+      }
+    }
+  },
+  "cv_folds": 5,
+  "split": {
+    "type": "temporal_strict_cutoff_2026-07-22"
+  },
+  "candidate_cv_scores": {
+    "gradient_boosting": 1.2558,
+    "mlp": 1.2294
+  },
+  "metrics": {
+    "test_r2": 0.2234,
+    "test_rmse": 1.2319,
+    "test_mae": 1.1556,
+    "baseline_rmse": 2.4949,
+    "baseline_mae": 2.0911,
+    "lift_rmse": 1.2629,
+    "lift_rmse_ci95": [
+      0.9606,
+      1.5527
+    ],
+    "lift_ci95_method": "bootstrap 1000 replicas on test sample (n=43), percentile 2.5-97.5",
+    "lift_significant_95": true
+  },
+  "feature_importances": {},
+  "feature_ranges": {
+    "current_level_t3": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "current_level_t2": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "current_level_t1": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "current_level_t": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "lag_gap_t3_t2": {
+      "min": -2.0,
+      "max": 2.0
+    },
+    "lag_gap_t2_t1": {
+      "min": -2.0,
+      "max": 3.0
+    },
+    "lag_gap_t1_t": {
+      "min": -4.0,
+      "max": 4.0
+    },
+    "rolling_tendance": {
+      "min": -1.3333333333333333,
+      "max": 1.0
+    },
+    "days_since_last_training": {
+      "min": 2.0,
+      "max": 2661.0
+    },
+    "training_frequency_per_month": {
+      "min": 0.0,
+      "max": 0.4918032786885246
+    },
+    "is_long_absent": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "is_stagnant": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "avg_level": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "min_level": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "max_level": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "nb_level_5": {
+      "min": 0.0,
+      "max": 2.0
+    },
+    "nb_level_1": {
+      "min": 0.0,
+      "max": 4.0
+    },
+    "nb_savoirs": {
+      "min": 1.0,
+      "max": 7.0
+    },
+    "nb_competences": {
+      "min": 1.0,
+      "max": 9.0
+    },
+    "competency_coverage_rate": {
+      "min": 0.1428571428571428,
+      "max": 1.0
+    },
+    "nb_formations_completed": {
+      "min": 0.0,
+      "max": 2.0
+    },
+    "nb_formations_in_progress": {
+      "min": 0.0,
+      "max": 4.0
+    },
+    "taux_assiduite": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "nb_besoins_exprimes": {
+      "min": 0.0,
+      "max": 0.0
+    },
+    "nb_besoins_approuves": {
+      "min": 0.0,
+      "max": 0.0
+    },
+    "avg_eval_score": {
+      "min": 0.0,
+      "max": 4.5
+    },
+    "nb_evaluations": {
+      "min": 0.0,
+      "max": 3.0
+    },
+    "months_since_last_training": {
+      "min": 0.0657030223390276,
+      "max": 87.41787122207622
+    },
+    "engagement_score": {
+      "min": 0.0,
+      "max": 20.5
+    }
+  },
+  "decision": "accept",
+  "target_validity": "EXTRAPOLATED_TARGET",
+  "target_validity_note": "Cibles extrapolées de la tendance (aucune re-mesure réelle après l'horizon de 3 mois au moment de l'entraînement).",
+  "real_future_observation_count": 217,
+  "distinct_observation_months": null,
+  "notes": "Pipeline reproductible : dataset provenancé, split temporel strict, seed 42, anti-fuite (knowledge_difficulty_level/gap_next_3m exclus), normalisation capturée sur train, sidecar SHA-256."
+}

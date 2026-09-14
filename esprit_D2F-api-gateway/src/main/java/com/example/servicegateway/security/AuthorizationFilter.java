@@ -263,7 +263,8 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
 
     private List<String> getEvaluationRoles(HttpMethod method) {
         if (method == HttpMethod.DELETE) return ADMIN_ONLY;
-        if (method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH) return ADMIN_FORMATEUR;
+        if (method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH)
+            return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_FORMATEUR, ROLE_ANIMATEUR, ROLE_ENSEIGNANT, ROLE_CHEF_DEPARTEMENT);
         return ALL_ROLES;
     }
 

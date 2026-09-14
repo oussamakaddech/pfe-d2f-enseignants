@@ -223,8 +223,8 @@ def test_invalid_hash_detected(tmp_path):
 def test_registry_rollback(tmp_path):
     from app.infrastructure.ml.model_registry import ModelRegistry, RegistryEntry
     registry = ModelRegistry(tmp_path / "registry.json", tmp_path)
-    v1 = RegistryEntry(model_version="v1.0.0", status="ACTIVE", approval_status="PENDING")
-    v2 = RegistryEntry(model_version="v2.0.0", status="ACTIVE", approval_status="PENDING")
+    v1 = RegistryEntry(model_version="v1.0.0", status="ACTIVE", approval_status="PENDING", artifact_sha256="a" * 64)
+    v2 = RegistryEntry(model_version="v2.0.0", status="ACTIVE", approval_status="PENDING", artifact_sha256="b" * 64)
     registry.register(v1)
     registry.register(v2)
     registry.approve("v1.0.0")

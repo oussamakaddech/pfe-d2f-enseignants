@@ -11,6 +11,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,17 +29,35 @@ public class EvaluationFormateurController {
 
     private final EvaluationFormateurService evaluationService;
 
+    private String extractUserEmail(Jwt jwt) {
+        if (jwt == null) return null;
+        String email = jwt.getClaimAsString("email");
+        if (email != null && !email.isBlank()) return email;
+        return jwt.getSubject();
+    }
+
+    private String extractUserRole(Jwt jwt) {
+        if (jwt == null) return null;
+        return jwt.getClaimAsString("scope");
+    }
+
     @PostMapping
     @PreAuthorize(AuthorizationMatrix.EVALUATION_CREATE)
-    public ResponseEntity<EvaluationFormateurDTO> ajouterEvalParticipant(@Valid @RequestBody EvaluationFormateurDTO evaluation) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(evaluationService.ajouterEvalParticipant(evaluation));
+    public ResponseEntity<EvaluationFormateurDTO> ajouterEvalParticipant(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody EvaluationFormateurDTO evaluation) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                evaluationService.ajouterEvalParticipant(evaluation, extractUserEmail(jwt), extractUserRole(jwt)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.EVALUATION_UPDATE)
-    public ResponseEntity<EvaluationFormateurDTO> modifierEvalParticipant(@PathVariable Long id,
-                                                                          @Valid @RequestBody EvaluationFormateurDTO updatedEval) {
-        return ResponseEntity.ok(evaluationService.modifierEvalParticipant(id, updatedEval));
+    public ResponseEntity<EvaluationFormateurDTO> modifierEvalParticipant(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long id,
+            @Valid @RequestBody EvaluationFormateurDTO updatedEval) {
+        return ResponseEntity.ok(
+                evaluationService.modifierEvalParticipant(id, updatedEval, extractUserEmail(jwt), extractUserRole(jwt)));
     }
 
     @DeleteMapping("/{id}")
@@ -68,8 +88,10 @@ public class EvaluationFormateurController {
 
     @PostMapping("/bulk")
     @PreAuthorize(AuthorizationMatrix.EVALUATION_CREATE)
-    public ResponseEntity<Void> createEvaluationsBulk(@Valid @RequestBody List<EvaluationFormateurDTO> dtos) {
-        evaluationService.createEvaluationsBulk(dtos);
+    public ResponseEntity<Void> createEvaluationsBulk(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody List<EvaluationFormateurDTO> dtos) {
+        evaluationService.createEvaluationsBulk(dtos, extractUserEmail(jwt), extractUserRole(jwt));
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
@@ -83,11 +105,11 @@ public class EvaluationFormateurController {
 
     @PostMapping("/formation/{formationId}/bulk/update")
     @PreAuthorize(AuthorizationMatrix.EVALUATION_UPDATE)
-    public ResponseEntity<Void> updateEvaluationsBulkByFormation(@PathVariable Long formationId,
-                                                                 @Valid @RequestBody List<EvaluationFormateurDTO> dtos) {
-        evaluationService.updateEvaluationsBulkByFormation(formationId, dtos);
+    public ResponseEntity<Void> updateEvaluationsBulkByFormation(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long formationId,
+            @Valid @RequestBody List<EvaluationFormateurDTO> dtos) {
+        evaluationService.updateEvaluationsBulkByFormation(formationId, dtos, extractUserEmail(jwt), extractUserRole(jwt));
         return ResponseEntity.ok().build();
     }
 }
-
-

@@ -31,7 +31,9 @@ class CompetencySource(Protocol):
 
 
 class FormationSource(Protocol):
-    def get_candidates_for_competency(self, competence_id: int) -> list[TrainingCandidate]: ...
+    def get_candidates_for_competency(
+        self, competence_id: int, dept_id: str | None = None, up_id: str | None = None
+    ) -> list[TrainingCandidate]: ...
 
     def get_completed_formation_ids(self, teacher_id: str) -> set[int]: ...
 

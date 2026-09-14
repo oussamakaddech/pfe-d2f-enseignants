@@ -124,6 +124,15 @@ export default function TeacherScopePanel({ data, loading }: Readonly<Props>) {
                 }
               />
             ) : null}
+            {typeof data.niveaux_sur_scope === 'number' && data.niveaux_sur_scope === 0 ? (
+              <Alert
+                type="info"
+                showIcon
+                style={{ marginTop: 8 }}
+                message="Aucun niveau enregistré sur ce périmètre"
+                description="Les gaps sont calculés depuis le référentiel seul (niveau actuel = 0). Enregistrez les niveaux de compétences de l'enseignant pour une analyse personnalisée."
+              />
+            ) : null}
           </div>
         </div>
       </div>
