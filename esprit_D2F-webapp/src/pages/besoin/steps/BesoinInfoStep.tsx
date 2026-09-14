@@ -209,44 +209,48 @@ export default function BesoinInfoStep({
         </Form.Item>
       )}
 
-      <SectionLabel icon={<TeamOutlined />} title="Liste des participants" hint="Ajoutez les enseignants qui participeront à cette formation" />
+      <SectionLabel
+        icon={<TeamOutlined />}
+        title="Liste des participants"
+        hint="Ajoutez les enseignants qui participeront à cette formation"
+      />
       <div className="bf-import-box">
-          <div className="bf-import-box__toolbar">
-            <Button
-              icon={<UploadOutlined />}
-              onClick={() => participantsFileInputRef.current?.click()}
-              className="bf-btn bf-btn--ghost"
-            >
-              Importer Excel
-            </Button>
-            <Button
-              danger
-              icon={<DeleteOutlined />}
-              onClick={onClearParticipants}
-              disabled={participantsCount === 0}
-              className="bf-btn bf-btn--ghost"
-            >
-              Vider la liste
-            </Button>
-            <div className="bf-import-box__stats">
-              <Tag color="blue" className="bf-import-tag">
-                {participantsCount} participant{participantsCount > 1 ? 's' : ''}
+        <div className="bf-import-box__toolbar">
+          <Button
+            icon={<UploadOutlined />}
+            onClick={() => participantsFileInputRef.current?.click()}
+            className="bf-btn bf-btn--ghost"
+          >
+            Importer Excel
+          </Button>
+          <Button
+            danger
+            icon={<DeleteOutlined />}
+            onClick={onClearParticipants}
+            disabled={participantsCount === 0}
+            className="bf-btn bf-btn--ghost"
+          >
+            Vider la liste
+          </Button>
+          <div className="bf-import-box__stats">
+            <Tag color="blue" className="bf-import-tag">
+              {participantsCount} participant{participantsCount > 1 ? 's' : ''}
+            </Tag>
+            {lastImportCount > 0 && (
+              <Tag color="green" className="bf-import-tag">
+                +{lastImportCount} importé{lastImportCount > 1 ? 's' : ''}
               </Tag>
-              {lastImportCount > 0 && (
-                <Tag color="green" className="bf-import-tag">
-                  +{lastImportCount} importé{lastImportCount > 1 ? 's' : ''}
-                </Tag>
-              )}
-            </div>
+            )}
           </div>
-          <input
-            ref={participantsFileInputRef}
-            type="file"
-            accept=".xlsx,.xls"
-            style={{ display: 'none' }}
-            onChange={onImportExcel}
-          />
-          <ParticipantsPreview />
+        </div>
+        <input
+          ref={participantsFileInputRef}
+          type="file"
+          accept=".xlsx,.xls"
+          style={{ display: 'none' }}
+          onChange={onImportExcel}
+        />
+        <ParticipantsPreview />
       </div>
     </div>
   );

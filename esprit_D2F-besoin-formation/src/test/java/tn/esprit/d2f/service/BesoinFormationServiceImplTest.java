@@ -99,6 +99,7 @@ class BesoinFormationServiceImplTest {
         Page<BesoinFormation> page = new PageImpl<>(Collections.singletonList(besoin));
 
         when(besoinFormationRepository.findAll(pageable)).thenReturn(page);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
 
         Page<BesoinFormationResponse> result = service.retrieveAllBesoinFormations(pageable);
 
@@ -116,6 +117,7 @@ class BesoinFormationServiceImplTest {
         besoin.setDureeFormation(10);
 
         when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
 
         BesoinFormationResponse result = service.retrieveBesoinFormation(id);
 

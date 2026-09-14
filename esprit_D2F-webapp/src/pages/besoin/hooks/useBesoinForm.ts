@@ -13,10 +13,7 @@ import {
 import { hasAnyRole, normalizeRole, ROLES } from '@/utils/constants/roles';
 import { useEnseignants } from '@/hooks/enseignant/useEnseignants';
 import { buildActeurOptions, serializeActeurs } from '@/utils/besoin/acteurs';
-import {
-  parseParticipantsText,
-  participantKey,
-} from '@/utils/besoin/participants';
+import { parseParticipantsText, participantKey } from '@/utils/besoin/participants';
 import { mergeParticipantLines, participantsFromSheetRows } from '@/utils/besoin/participantsExcel';
 import type { BesoinCompetenceLink, BesoinFormation } from '@/models/besoin';
 import type { Id } from '@/models/common';
@@ -136,8 +133,7 @@ export function useBesoinForm() {
   // verrouille les deux côté UI (le département libre était écrasé en silence).
   // Enseignants : pas de verrou sur UP/département (choix libre).
   const lockedUp = isCupCreator ? myScope?.upCode : undefined;
-  const lockedDepartement =
-    isCupCreator || isChefCreator ? myScope?.departmentCode : undefined;
+  const lockedDepartement = isCupCreator || isChefCreator ? myScope?.departmentCode : undefined;
 
   const applyCreationLocks = () => {
     const preset: Record<string, unknown> = {};

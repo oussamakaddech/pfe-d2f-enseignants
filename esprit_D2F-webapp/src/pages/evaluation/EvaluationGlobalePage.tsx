@@ -302,7 +302,7 @@ export default function EvaluationGlobalePage() {
       render: (d) => (d ? dayjs(d).format('DD/MM/YYYY') : '\u2014'),
       sorter: (a, b) => dayjs(a.dateEvaluation).valueOf() - dayjs(b.dateEvaluation).valueOf(),
     },
-    ...((canEdit || canDelete)
+    ...(canEdit || canDelete
       ? [
           {
             title: 'Actions',
@@ -559,36 +559,26 @@ export default function EvaluationGlobalePage() {
             label="Commentaire Général"
             rules={[{ max: 500, message: 'Max 500 caractères' }]}
           >
-            <TextArea rows={4} placeholder="Commentaire général sur la formation" maxLength={500} showCount />
+            <TextArea
+              rows={4}
+              placeholder="Commentaire général sur la formation"
+              maxLength={500}
+              showCount
+            />
           </Form.Item>
-          <Form.Item
-            name="pertinenceContenu"
-            label="Pertinence du contenu (0-5)"
-          >
+          <Form.Item name="pertinenceContenu" label="Pertinence du contenu (0-5)">
             <InputNumber min={0} max={5} step={0.5} className="w-full" />
           </Form.Item>
-          <Form.Item
-            name="organisation"
-            label="Organisation (0-5)"
-          >
+          <Form.Item name="organisation" label="Organisation (0-5)">
             <InputNumber min={0} max={5} step={0.5} className="w-full" />
           </Form.Item>
-          <Form.Item
-            name="qualiteSupports"
-            label="Qualité des supports (0-5)"
-          >
+          <Form.Item name="qualiteSupports" label="Qualité des supports (0-5)">
             <InputNumber min={0} max={5} step={0.5} className="w-full" />
           </Form.Item>
-          <Form.Item
-            name="dureeAdaptee"
-            label="Durée adaptée (0-5)"
-          >
+          <Form.Item name="dureeAdaptee" label="Durée adaptée (0-5)">
             <InputNumber min={0} max={5} step={0.5} className="w-full" />
           </Form.Item>
-          <Form.Item
-            name="satisfactionGlobale"
-            label="Satisfaction globale (0-5)"
-          >
+          <Form.Item name="satisfactionGlobale" label="Satisfaction globale (0-5)">
             <InputNumber min={0} max={5} step={0.5} className="w-full" />
           </Form.Item>
           <Form.Item

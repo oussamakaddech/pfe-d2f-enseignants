@@ -351,7 +351,7 @@ class FormationServiceImplTest {
             esprit.pfe.serviceformation.repositories.DeptRepository deptRepo =
                     org.mockito.Mockito.mock(esprit.pfe.serviceformation.repositories.DeptRepository.class);
             FormationServiceImpl serviceNoOutlook =
-                    new FormationServiceImpl(formationRepository, formationMapper, upRepo, deptRepo, null);
+                    new FormationServiceImpl(formationRepository, formationMapper, upRepo, deptRepo, null, null);
 
             CreateFormationRequest request = new CreateFormationRequest();
             request.setTitreFormation("Test");

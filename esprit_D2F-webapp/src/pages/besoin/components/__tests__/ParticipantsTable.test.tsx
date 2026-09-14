@@ -4,9 +4,7 @@ import ParticipantsTable from '../ParticipantsTable';
 
 describe('ParticipantsTable', () => {
   it('affiche le bouton Ajouter même sans participants', () => {
-    render(
-      <ParticipantsTable value="" onAdd={vi.fn()} onEdit={vi.fn()} onRemove={vi.fn()} />,
-    );
+    render(<ParticipantsTable value="" onAdd={vi.fn()} onEdit={vi.fn()} onRemove={vi.fn()} />);
     expect(screen.getByText('Ajouter un participant')).toBeInTheDocument();
     expect(screen.getByText(/Aucun participant/)).toBeInTheDocument();
   });
@@ -48,9 +46,7 @@ describe('ParticipantsTable', () => {
   });
 
   it('affiche le bouton Ajouter un participant', () => {
-    render(
-      <ParticipantsTable value="" onAdd={vi.fn()} onEdit={vi.fn()} onRemove={vi.fn()} />,
-    );
+    render(<ParticipantsTable value="" onAdd={vi.fn()} onEdit={vi.fn()} onRemove={vi.fn()} />);
     expect(screen.getByText('Ajouter un participant')).toBeInTheDocument();
   });
 });

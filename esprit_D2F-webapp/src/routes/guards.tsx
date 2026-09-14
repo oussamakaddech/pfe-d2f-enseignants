@@ -46,7 +46,14 @@ export const FRONTEND_PERMISSIONS = {
     APPROVE: ['admin', 'CUP'],
     READ_OWN: ['admin', 'Animateur', 'Enseignant'],
     // Marquage des présences d'une séance (parité AuthorizationMatrix.PRESENCE_MARK).
-    PRESENCE_MARK: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'ResponsableDossier', 'Animateur', 'Enseignant'],
+    PRESENCE_MARK: [
+      'admin',
+      'CUP',
+      'CHEF_DEPARTEMENT',
+      'ResponsableDossier',
+      'Animateur',
+      'Enseignant',
+    ],
   },
   EVALUATION: {
     READ_ALL: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'Enseignant', 'Animateur'],

@@ -527,34 +527,19 @@ export default function EvaluationParticipantPage() {
           <Form.Item name="satisfaisant" label="Satisfaisant" valuePropName="checked">
             <Switch checkedChildren="Oui" unCheckedChildren="Non" />
           </Form.Item>
-          <Form.Item
-            name="maitriseSujet"
-            label="Maîtrise du sujet (0-5)"
-          >
+          <Form.Item name="maitriseSujet" label="Maîtrise du sujet (0-5)">
             <InputNumber min={0} max={5} step={0.5} className="w-full" />
           </Form.Item>
-          <Form.Item
-            name="clarte"
-            label="Clarté (0-5)"
-          >
+          <Form.Item name="clarte" label="Clarté (0-5)">
             <InputNumber min={0} max={5} step={0.5} className="w-full" />
           </Form.Item>
-          <Form.Item
-            name="pedagogie"
-            label="Pédagogie (0-5)"
-          >
+          <Form.Item name="pedagogie" label="Pédagogie (0-5)">
             <InputNumber min={0} max={5} step={0.5} className="w-full" />
           </Form.Item>
-          <Form.Item
-            name="interaction"
-            label="Interaction (0-5)"
-          >
+          <Form.Item name="interaction" label="Interaction (0-5)">
             <InputNumber min={0} max={5} step={0.5} className="w-full" />
           </Form.Item>
-          <Form.Item
-            name="gestionTemps"
-            label="Gestion du temps (0-5)"
-          >
+          <Form.Item name="gestionTemps" label="Gestion du temps (0-5)">
             <InputNumber min={0} max={5} step={0.5} className="w-full" />
           </Form.Item>
           <Form.Item

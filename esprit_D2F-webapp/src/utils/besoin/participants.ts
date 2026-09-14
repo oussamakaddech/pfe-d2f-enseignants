@@ -128,9 +128,7 @@ export function parseParticipantBlocks(text: string | null | undefined): Partici
       const emailLine = rawLines[b].trim();
       const phoneLine = rawLines[c].trim();
       const isBareName =
-        !EMAIL_RE.test(nameLine) &&
-        !PHONE_RE.test(nameLine) &&
-        !CANONICAL_MARKER_RE.test(nameLine);
+        !EMAIL_RE.test(nameLine) && !PHONE_RE.test(nameLine) && !CANONICAL_MARKER_RE.test(nameLine);
       if (isBareName && EMAIL_RE.test(emailLine) && PHONE_RE.test(phoneLine)) {
         const [nom = '', ...rest] = nameLine.split(/\s+/);
         blocks.push({
@@ -183,8 +181,7 @@ export function parseParticipantBlocks(text: string | null | undefined): Partici
       const nextEmail = next.participant.email.trim().toLowerCase();
       const nextPhone = next.participant.telephone;
       const dupEmail = EMAIL_RE.test(raw) && nextEmail !== '' && raw.toLowerCase() === nextEmail;
-      const dupPhone =
-        PHONE_RE.test(raw) && nextPhone !== '' && normalizePhone(raw) === nextPhone;
+      const dupPhone = PHONE_RE.test(raw) && nextPhone !== '' && normalizePhone(raw) === nextPhone;
       if (dupEmail || dupPhone) {
         blocks[k + 1] = { ...next, start: current.start };
         continue;

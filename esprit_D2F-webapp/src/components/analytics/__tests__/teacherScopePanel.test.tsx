@@ -133,7 +133,7 @@ describe('TeacherScopePanel', () => {
     expect(screen.getByText('Référentiel incomplet pour ce périmètre.')).toBeInTheDocument();
   });
 
-  it('affiche une alerte « données manquantes » quand aucun niveau n\'est enregistré sur le périmètre', () => {
+  it("affiche une alerte « données manquantes » quand aucun niveau n'est enregistré sur le périmètre", () => {
     const noLevels: TeacherScopeAnalysis = { ...data, niveaux_sur_scope: 0 };
     render(<TeacherScopePanel data={noLevels} loading={false} />);
     expect(screen.getByText('Aucun niveau enregistré sur ce périmètre')).toBeInTheDocument();

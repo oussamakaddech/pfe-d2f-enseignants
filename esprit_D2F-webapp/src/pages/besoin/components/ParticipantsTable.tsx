@@ -40,7 +40,12 @@ function toRows(value: string | null | undefined): ParticipantRow[] {
   return parseParticipantsText(value).map((p, i) => ({ ...p, key: i }));
 }
 
-export default function ParticipantsTable({ value, onAdd, onEdit, onRemove }: ParticipantsTableProps) {
+export default function ParticipantsTable({
+  value,
+  onAdd,
+  onEdit,
+  onRemove,
+}: ParticipantsTableProps) {
   const rows = toRows(value);
   const [editingKey, setEditingKey] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
@@ -119,7 +124,11 @@ export default function ParticipantsTable({ value, onAdd, onEdit, onRemove }: Pa
         if (isEditing(record)) {
           return (
             <Form form={editForm} component={false} initialValues={record}>
-              <Form.Item name="nomComplet" rules={[{ required: true, message: 'Nom requis' }]} style={{ marginBottom: 0 }}>
+              <Form.Item
+                name="nomComplet"
+                rules={[{ required: true, message: 'Nom requis' }]}
+                style={{ marginBottom: 0 }}
+              >
                 <Input placeholder="Nom Prénom" size="small" />
               </Form.Item>
             </Form>

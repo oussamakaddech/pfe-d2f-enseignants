@@ -392,6 +392,7 @@ class BesoinFormationServiceImplCoverageTest {
     void retrieveAllBesoinFormations_emptyPage_shouldReturnEmptyPage() {
         Pageable pageable = PageRequest.of(0, 10);
         when(besoinFormationRepository.findAll(pageable)).thenReturn(Page.empty());
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
 
         Page<BesoinFormationResponse> result = service.retrieveAllBesoinFormations(pageable);
 
@@ -419,6 +420,7 @@ class BesoinFormationServiceImplCoverageTest {
         Page<BesoinFormation> page = new PageImpl<>(java.util.List.of(b1, b2));
 
         when(besoinFormationRepository.findAll(pageable)).thenReturn(page);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
 
         Page<BesoinFormationResponse> result = service.retrieveAllBesoinFormations(pageable);
 

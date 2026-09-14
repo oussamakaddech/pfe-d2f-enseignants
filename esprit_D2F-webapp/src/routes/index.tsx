@@ -229,9 +229,7 @@ export default function AppRoutes() {
                       AuthorizationMatrix) : le chef de département crée aussi. */}
                   <Route
                     element={
-                      <RoleGuard
-                        allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]}
-                      />
+                      <RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />
                     }
                   >
                     <Route path="/home/Formation" element={<FormationPage />} />

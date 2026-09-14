@@ -185,6 +185,11 @@ jobs:
             --exclude-dir scripts \
             --exclude-dir reports \
             --exclude=diagnose_same_results.py \
+            --exclude=verify_ens015.py \
+            --exclude=verify_teachers.py \
+            --exclude=risk_check.py \
+            --exclude=audit_all_teachers.py \
+            --exclude=audit_teachers_end_to_end.py \
             --exclude=check_gaps.py \
             --exclude=fix_persist_gaps.py \
             --exclude=validate_catalogue.py \

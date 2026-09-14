@@ -73,9 +73,7 @@ describe('participants utils', () => {
   });
 
   it('groupe un participant saisi sur 3 lignes (cas réel Oussama KADDECH)', () => {
-    const parts = parseParticipantsText(
-      'Oussama KADDECH\noussama.kaddech@esprit.tn\n+21627326154',
-    );
+    const parts = parseParticipantsText('Oussama KADDECH\noussama.kaddech@esprit.tn\n+21627326154');
     expect(parts).toHaveLength(1);
     expect(parts[0]).toEqual({
       nom: 'Oussama',
@@ -110,8 +108,7 @@ describe('participants utils', () => {
 
   it('absorbe un résidu placé AVANT la ligne canonique (cas réel affiché)', () => {
     const text =
-      '+21627326154\n' +
-      'Oussama KADDECH <oussama.kaddech@esprit.tn> (tél: +21627326154)';
+      '+21627326154\n' + 'Oussama KADDECH <oussama.kaddech@esprit.tn> (tél: +21627326154)';
     const blocks = parseParticipantBlocks(text);
     expect(blocks).toHaveLength(1);
     expect(blocks[0].participant).toEqual({
