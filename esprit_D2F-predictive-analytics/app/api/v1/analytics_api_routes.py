@@ -61,12 +61,19 @@ def _tendance(serie: list[float]) -> str:
         return "STABLE"
     avant, apres = serie[-2], serie[-1]
     if avant == 0:
-        return "HAUSSE" if apres > 0 else "STABLE"
+        return _tendance_from_zero(apres)
     variation = (apres - avant) / abs(avant)
     if variation > 0.05:
         return "HAUSSE"
     if variation < -0.05:
         return "BAISSE"
+    return "STABLE"
+
+
+def _tendance_from_zero(apres: float) -> str:
+    """Tendance quand la valeur précédente est nulle (évite la division)."""
+    if apres > 0:
+        return "HAUSSE"
     return "STABLE"
 
 
@@ -87,40 +94,79 @@ def _resolve_scope(
     Retourne ``(up, departement)`` potentiellement surchargés par la fiche
     enseignant.  Un CUP sans UP ou un chef sans département lève 403.
     """
-    if user is None or user.is_admin:
+    if _is_global_viewer(user):
         return up, departement
 
     user_teacher = resolve_user_teacher(container, user)
 
     if user.is_cup:
-        resolved_up = user_teacher.up_id if user_teacher else None
-        if not resolved_up:
-            raise ForbiddenScopeError(
-                "Périmètre indéterminé : aucune UP rattachée à votre compte."
-            )
-        return resolved_up, None
+        return _cup_scope(user_teacher)
 
     if user.is_chef_departement:
-        resolved_dept = user_teacher.dept_id if user_teacher else None
-        if not resolved_dept:
-            raise ForbiddenScopeError(
-                "Périmètre indéterminé : aucun département rattaché à votre compte."
-            )
-        return resolved_dept, None
+        return _chef_scope(user_teacher)
 
     return up, departement
 
 
+def _is_global_viewer(user) -> bool:
+    """Vue globale : anonyme ou admin (aucun périmètre serveur imposé)."""
+    if user is None:
+        return True
+    return user.is_admin
+
+
+def _cup_scope(user_teacher) -> tuple[str | None, str | None]:
+    """Périmètre CUP : sa propre UP, jamais la vue globale."""
+    if user_teacher is None:
+        raise ForbiddenScopeError(
+            "Périmètre indéterminé : aucune UP rattachée à votre compte."
+        )
+    resolved_up = user_teacher.up_id
+    if not resolved_up:
+        raise ForbiddenScopeError(
+            "Périmètre indéterminé : aucune UP rattachée à votre compte."
+        )
+    return resolved_up, None
+
+
+def _chef_scope(user_teacher) -> tuple[str | None, str | None]:
+    """Périmètre chef : son propre département, UP forcée à None."""
+    if user_teacher is None:
+        raise ForbiddenScopeError(
+            "Périmètre indéterminé : aucun département rattaché à votre compte."
+        )
+    resolved_dept = user_teacher.dept_id
+    if not resolved_dept:
+        raise ForbiddenScopeError(
+            "Périmètre indéterminé : aucun département rattaché à votre compte."
+        )
+    return None, resolved_dept
+
+
+def _as_int(value: Any) -> int:
+    """Entier sûr pour les compteurs SQL (NULL → 0)."""
+    if value is None:
+        return 0
+    return int(value)
+
+
+def _completion_rate(nb_part: int, total_ins: int) -> float:
+    """Taux de complétion en % (0.0 si aucun inscrit)."""
+    if total_ins == 0:
+        return 0.0
+    return round(nb_part / total_ins * 100, 1)
+
+
 def _build_periode(r: dict) -> dict[str, Any]:
     """Construit un dict période à partir d'une ligne SQL."""
-    nb_form = int(r["nb_formations"] or 0)
-    nb_part = int(r["nb_participants"] or 0)
-    total_ins = int(r["total_inscriptions"] or 0)
+    nb_form = _as_int(r["nb_formations"])
+    nb_part = _as_int(r["nb_participants"])
+    total_ins = _as_int(r["total_inscriptions"])
     return {
         "label": str(r["period_start"]),
         "nombreFormations": nb_form,
         "nombreParticipants": nb_part,
-        "tauxCompletion": round(nb_part / total_ins * 100, 1) if total_ins else 0.0,
+        "tauxCompletion": _completion_rate(nb_part, total_ins),
     }
 
 
@@ -139,16 +185,8 @@ def formations_par_periode(
     departement: Annotated[str | None, Query()] = None,
     up: Annotated[str | None, Query()] = None,
 ) -> dict[str, Any]:
-    granul_key = granularite.upper()
-    if granul_key not in GRANULARITE_TO_TRUNC:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Granularité invalide: {granularite}. Attendu: {sorted(GRANULARITE_TO_TRUNC)}",
-        )
-    fin_d = _parse_date(fin, date.today())
-    debut_d = _parse_date(debut, fin_d - timedelta(days=365))
-    if debut_d > fin_d:
-        raise HTTPException(status_code=400, detail="La date de début ne peut pas être après la fin.")
+    granul_key = _validate_granularite(granularite)
+    debut_d, fin_d = _resolve_periode(debut, fin)
 
     # Périmètre serveur (§8 droits) : un CUP ne voit que sa propre UP, un chef
     # de département que son propre département — résolus depuis la fiche
@@ -156,8 +194,42 @@ def formations_par_periode(
     # périmètre résolu reçoit 403 (deny-by-default, jamais la vue globale).
     up, departement = _resolve_scope(container, user, up, departement)
 
+    rows = _fetch_periode_rows(container, granul_key, debut_d, fin_d, departement, up)
+    periodes = [_build_periode(r) for r in rows]
+    return _summarize_periodes(granul_key, periodes)
+
+
+def _validate_granularite(granularite: str) -> str:
+    """Valide la granularité (whitelist) et retourne la clé normalisée."""
+    granul_key = granularite.upper()
+    if granul_key not in GRANULARITE_TO_TRUNC:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Granularité invalide: {granularite}. Attendu: {sorted(GRANULARITE_TO_TRUNC)}",
+        )
+    return granul_key
+
+
+def _resolve_periode(debut: str | None, fin: str | None) -> tuple[date, date]:
+    """Résout la fenêtre [debut, fin] (défaut : 365 derniers jours)."""
+    fin_d = _parse_date(fin, date.today())
+    debut_d = _parse_date(debut, fin_d - timedelta(days=365))
+    if debut_d > fin_d:
+        raise HTTPException(status_code=400, detail="La date de début ne peut pas être après la fin.")
+    return debut_d, fin_d
+
+
+def _fetch_periode_rows(
+    container,
+    granul_key: str,
+    debut_d: date,
+    fin_d: date,
+    departement: str | None,
+    up: str | None,
+) -> list:
+    """Exécute la requête formations-par-période (SQL injecté via whitelist)."""
     with container.database.read_connection() as conn:
-        rows = conn.execute(
+        return conn.execute(
             text(FORMATIONS_PAR_PERIODE_QUERY),
             {
                 "granul": GRANULARITE_TO_TRUNC[granul_key],
@@ -168,17 +240,17 @@ def formations_par_periode(
             },
         ).mappings().all()
 
-    periodes = [_build_periode(r) for r in rows]
 
+def _summarize_periodes(granul_key: str, periodes: list[dict[str, Any]]) -> dict[str, Any]:
+    """Agrège les périodes (totaux, moyenne, tendance)."""
     total_formations = sum(p["nombreFormations"] for p in periodes)
     total_participants = sum(p["nombreParticipants"] for p in periodes)
-    nb_periodes = len(periodes) or 1
     return {
         "granularite": granul_key,
         "periodes": periodes,
         "totalFormations": total_formations,
         "totalParticipants": total_participants,
-        "moyenneParPeriode": round(total_formations / nb_periodes, 2),
+        "moyenneParPeriode": round(total_formations / max(len(periodes), 1), 2),
         "tendance": _tendance([p["nombreFormations"] for p in periodes]),
     }
 

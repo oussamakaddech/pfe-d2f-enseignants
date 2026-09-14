@@ -195,15 +195,17 @@ function Invoke-Java($mod) {
     $t0 = Get-Date
     $rc = 0
     Push-Location $mod.Path
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     try {
         $mvn = "mvn"
         if (-not $SkipTests) {
             Write-LogLine $log "[$($mod.Key)] mvn clean verify (tests + JaCoCo)..."
-            & $mvn -B -q clean verify -Dmaven.test.failure.ignore=true *>> $log
+            & $mvn -B -q clean verify "-Dmaven.test.failure.ignore=true" *>> $log
         }
         if (-not $SkipScan) {
             Write-LogLine $log "[$($mod.Key)] mvn sonar:sonar..."
-            $scanArgs = @("-B", "-q", "sonar:sonar",
+            $scanArgs = @("-B", "-q", "org.sonarsource.scanner.maven:sonar-maven-plugin:sonar",
                       "-Dsonar.projectKey=$($mod.Key)",
                       "-Dsonar.host.url=$SonarUrl",
                       "-Dsonar.token=$SonarToken",
@@ -211,7 +213,7 @@ function Invoke-Java($mod) {
             & $mvn @scanArgs *>> $log
             $rc = $LASTEXITCODE
         }
-    } finally { Pop-Location }
+    } finally { $ErrorActionPreference = $prevEAP; Pop-Location }
     $script:Results += [PSCustomObject]@{ Key=$mod.Key; Type=$mod.Type; RC=$rc; Elapsed=([int]((Get-Date) - $t0).TotalSeconds) }
     if ($rc -eq 0) { OK "$($mod.Key) (java) done" } else { Fail "$($mod.Key) (java) - see $log" }
 }
@@ -222,6 +224,8 @@ function Invoke-Web($mod) {
     $t0 = Get-Date
     $rc = 0
     Push-Location $mod.Path
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     try {
         if (-not $SkipTests) {
             if (-not (Test-Path "node_modules")) {
@@ -249,7 +253,7 @@ function Invoke-Web($mod) {
                 }
             }
         }
-    } finally { Pop-Location }
+    } finally { $ErrorActionPreference = $prevEAP; Pop-Location }
     $script:Results += [PSCustomObject]@{ Key=$mod.Key; Type=$mod.Type; RC=$rc; Elapsed=([int]((Get-Date) - $t0).TotalSeconds) }
     if ($rc -eq 0) { OK "$($mod.Key) (web) done" } else { Fail "$($mod.Key) (web) - see $log" }
 }
@@ -260,6 +264,8 @@ function Invoke-Python($mod) {
     $t0 = Get-Date
     $rc = 0
     Push-Location $mod.Path
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     try {
         if (-not $SkipTests) {
             Write-LogLine $log "[$($mod.Key)] pip install -r requirements.txt..."
@@ -267,11 +273,14 @@ function Invoke-Python($mod) {
             $pyExe = if (Test-Path ".\\.venv\\Scripts\\python.exe") { ".venv\\Scripts\\python.exe" } else { "python" }
             & $pyExe -m pip install -q -r requirements.txt *>> $log
             & $pyExe -m pip install -q pytest pytest-cov *>> $log
-            Write-LogLine $log "[$($mod.Key)] pytest --cov=rice..."
+            Write-LogLine $log "[$($mod.Key)] pytest --cov..."
             # RICE_DISABLE_SEMANTIC=true prevents sentence-transformers from loading,
             # which avoids multi-minute hangs caused by building embeddings during tests.
             $env:RICE_DISABLE_SEMANTIC = "true"
-            & $pyExe -m pytest --cov=rice --cov-report=xml:coverage.xml --junitxml=junit-results.xml *>> $log
+            $covTarget = if ($mod.Key -eq "d2f_rice") { "rice" } else { "app" }
+            & $pyExe -m pytest "--cov=$covTarget" --cov-report=xml:coverage.xml --junitxml=junit-results.xml *>> $log
+            $pytestRc = $LASTEXITCODE
+            Write-LogLine $log "[pytest] exit code: $pytestRc"
             Remove-Item Env:\RICE_DISABLE_SEMANTIC -ErrorAction SilentlyContinue
         }
         if (-not $SkipScan) {
@@ -291,7 +300,7 @@ function Invoke-Python($mod) {
                 }
             }
         }
-    } finally { Pop-Location }
+    } finally { $ErrorActionPreference = $prevEAP; Pop-Location }
     $script:Results += [PSCustomObject]@{ Key=$mod.Key; Type=$mod.Type; RC=$rc; Elapsed=([int]((Get-Date) - $t0).TotalSeconds) }
     if ($rc -eq 0) { OK "$($mod.Key) (python) done" } else { Fail "$($mod.Key) (python) - see $log" }
 }

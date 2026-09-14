@@ -62,7 +62,7 @@ export function parseParticipantLine(line: string): Participant {
   const text = line.trim();
   const emailMatch = /<([^<>]*)>/.exec(text);
   const email = (emailMatch?.[1] || '').trim();
-  const phoneMatch = /\(t[eé]l\s*:\s*([^()]*)\)/i.exec(text);
+  const phoneMatch = /\(t[eé]l\s*:([^()]*)\)/i.exec(text);
   const telephone = normalizePhone(phoneMatch?.[1] || '');
   const namePart = text
     .replace(/<[^<>]*>/, '')
