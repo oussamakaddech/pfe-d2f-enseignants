@@ -18,7 +18,7 @@ import {
 } from './participants';
 
 /** Libellés d'en-tête reconnus (comparés en minuscules, sans espaces). */
-const HEADER_WORDS = [
+const HEADER_WORDS = new Set([
   'nom',
   'name',
   'prénom',
@@ -37,7 +37,7 @@ const HEADER_WORDS = [
   'numéro',
   'numero',
   'contact',
-];
+]);
 
 export interface ParticipantsSheetResult {
   /** Lignes canoniques prêtes à rejoindre `publicCible`. */
@@ -78,7 +78,7 @@ export function participantsFromSheetRows(
       .trim()
       .toLowerCase(),
   );
-  const hasHeader = firstCells.some((c) => HEADER_WORDS.includes(c));
+  const hasHeader = firstCells.some((c) => HEADER_WORDS.has(c));
   const header = hasHeader ? firstCells : [];
   const dataRows = hasHeader ? rows.slice(1) : rows;
   const findCol = (words: string[]): number =>

@@ -35,7 +35,7 @@ public class AccountServiceImpl implements AccountService {
     private static final String USER_NOT_FOUND = "User not found";
     private static final int MIN_PASSWORD_LENGTH = 8;
     private static final java.util.regex.Pattern EMAIL_PATTERN =
-            java.util.regex.Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$");
+            java.util.regex.Pattern.compile("^[^\\s@]++@[^\\s@]++\\.[^\\s@]{2,}$");
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;

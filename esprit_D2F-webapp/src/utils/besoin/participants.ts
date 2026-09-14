@@ -18,7 +18,7 @@ export function participantFullName(p: Pick<Participant, 'nom' | 'prenom'>): str
   return [p.nom, p.prenom].filter(Boolean).join(' ').trim();
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const EMAIL_RE = /^[^\s@]+@[^.\s@]+\.[^\s@]{2,}$/;
 const PHONE_RE = /^\+?\d[\d\s.\-()]{5,}$/;
 /** Marqueurs du format canonique : jamais présents dans une ligne « nom » multi-lignes. */
 const CANONICAL_MARKER_RE = /<[^<>]*>|\(t[eé]l\s*:/i;
@@ -60,9 +60,9 @@ export function formatParticipantLine(p: Participant): string {
  */
 export function parseParticipantLine(line: string): Participant {
   const text = line.trim();
-  const emailMatch = text.match(/<([^<>]*)>/);
+  const emailMatch = /<([^<>]*)>/.exec(text);
   const email = (emailMatch?.[1] || '').trim();
-  const phoneMatch = text.match(/\(t[eé]l\s*:\s*([^()]*)\)/i);
+  const phoneMatch = /\(t[eé]l\s*:\s*([^()]*)\)/i.exec(text);
   const telephone = normalizePhone(phoneMatch?.[1] || '');
   const namePart = text
     .replace(/<[^<>]*>/, '')
@@ -104,74 +104,54 @@ export interface ParticipantBlock {
  *   ligne-à-ligne) est absorbée dans le bloc voisin au lieu de créer
  *   un participant fantôme.
  */
-export function parseParticipantBlocks(text: string | null | undefined): ParticipantBlock[] {
-  const rawLines = String(text || '').split(/\r?\n/);
-  const n = rawLines.length;
-  const blocks: ParticipantBlock[] = [];
-  const isBlank = (s: string) => s.trim() === '';
 
-  let i = 0;
-  while (i < n) {
-    if (isBlank(rawLines[i])) {
-      i++;
-      continue;
-    }
-
-    // Regarde les 3 prochaines lignes non vides (lignes vides intercalées OK).
-    const upcoming: number[] = [];
-    for (let j = i; j < n && upcoming.length < 3; j++) {
-      if (!isBlank(rawLines[j])) upcoming.push(j);
-    }
-    if (upcoming.length === 3) {
-      const [a, b, c] = upcoming as [number, number, number];
-      const nameLine = rawLines[a].trim();
-      const emailLine = rawLines[b].trim();
-      const phoneLine = rawLines[c].trim();
-      const isBareName =
-        !EMAIL_RE.test(nameLine) && !PHONE_RE.test(nameLine) && !CANONICAL_MARKER_RE.test(nameLine);
-      if (isBareName && EMAIL_RE.test(emailLine) && PHONE_RE.test(phoneLine)) {
-        const [nom = '', ...rest] = nameLine.split(/\s+/);
-        blocks.push({
-          participant: {
-            nom,
-            prenom: rest.join(' ').trim(),
-            email: emailLine,
-            telephone: normalizePhone(phoneLine),
-          },
-          start: i,
-          end: c + 1,
-        });
-        i = c + 1;
-        continue;
-      }
-    }
-
-    const line = rawLines[i].trim();
-    const prev = blocks[blocks.length - 1];
-    if (prev !== undefined) {
-      const prevEmail = prev.participant.email.trim().toLowerCase();
-      const prevPhone = prev.participant.telephone;
-      const isOrphanEmail =
-        EMAIL_RE.test(line) && prevEmail !== '' && line.toLowerCase() === prevEmail;
-      const isOrphanPhone =
-        PHONE_RE.test(line) && prevPhone !== '' && normalizePhone(line) === prevPhone;
-      if (isOrphanEmail || isOrphanPhone) {
-        blocks[blocks.length - 1] = { ...prev, end: i + 1 };
-        i++;
-        continue;
-      }
-    }
-
-    // Format canonique (1 ligne)
-    blocks.push({ participant: parseParticipantLine(line), start: i, end: i + 1 });
-    i++;
+function _collectUpcoming(rawLines: string[], start: number, n: number): number[] {
+  const upcoming: number[] = [];
+  for (let j = start; j < n && upcoming.length < 3; j++) {
+    if (rawLines[j].trim() !== '') upcoming.push(j);
   }
+  return upcoming;
+}
 
-  // Absorption avant : une ligne email/téléphone SEULE (bloc d'une ligne)
-  // qui duplique le champ du participant SUIVANT est fusionnée dans ce bloc
-  // suivant (ex : résidu `+216…` resté devant la ligne canonique après une
-  // suppression ligne-à-ligne). Sûr : un email dupliqué est de toute façon
-  // une clé de dédup, et deux participants distincts ne partagent pas un tél.
+function _tryMultiLineBlock(
+  rawLines: string[],
+  i: number,
+  n: number,
+): { block: ParticipantBlock; nextIndex: number } | null {
+  const upcoming = _collectUpcoming(rawLines, i, n);
+  if (upcoming.length < 3) return null;
+  const [a, b, c] = upcoming as [number, number, number];
+  const nameLine = rawLines[a].trim();
+  const emailLine = rawLines[b].trim();
+  const phoneLine = rawLines[c].trim();
+  const isBareName =
+    !EMAIL_RE.test(nameLine) && !PHONE_RE.test(nameLine) && !CANONICAL_MARKER_RE.test(nameLine);
+  if (!isBareName || !EMAIL_RE.test(emailLine) || !PHONE_RE.test(phoneLine)) return null;
+  const [nom = '', ...rest] = nameLine.split(/\s+/);
+  return {
+    block: {
+      participant: { nom, prenom: rest.join(' ').trim(), email: emailLine, telephone: normalizePhone(phoneLine) },
+      start: i,
+      end: c + 1,
+    },
+    nextIndex: c + 1,
+  };
+}
+
+function _isOrphanOfPrev(prev: ParticipantBlock | undefined, line: string): boolean {
+  if (prev === undefined) return false;
+  const prevEmail = prev.participant.email.trim().toLowerCase();
+  const prevPhone = prev.participant.telephone;
+  return (
+    (EMAIL_RE.test(line) && prevEmail !== '' && line.toLowerCase() === prevEmail) ||
+    (PHONE_RE.test(line) && prevPhone !== '' && normalizePhone(line) === prevPhone)
+  );
+}
+
+function _mergeForwardOrphans(
+  blocks: ParticipantBlock[],
+  rawLines: string[],
+): ParticipantBlock[] {
   const merged: ParticipantBlock[] = [];
   for (let k = 0; k < blocks.length; k++) {
     const current = blocks[k];
@@ -189,8 +169,34 @@ export function parseParticipantBlocks(text: string | null | undefined): Partici
     }
     merged.push(current);
   }
-
   return merged;
+}
+
+export function parseParticipantBlocks(text: string | null | undefined): ParticipantBlock[] {
+  const rawLines = String(text || '').split(/\r?\n/);
+  const n = rawLines.length;
+  const blocks: ParticipantBlock[] = [];
+
+  let i = 0;
+  while (i < n) {
+    if (rawLines[i].trim() === '') { i++; continue; }
+
+    const multi = _tryMultiLineBlock(rawLines, i, n);
+    if (multi !== null) { blocks.push(multi.block); i = multi.nextIndex; continue; }
+
+    const line = rawLines[i].trim();
+    const prev = blocks.at(-1);
+    if (_isOrphanOfPrev(prev, line)) {
+      blocks[blocks.length - 1] = { ...prev!, end: i + 1 };
+      i++;
+      continue;
+    }
+
+    blocks.push({ participant: parseParticipantLine(line), start: i, end: i + 1 });
+    i++;
+  }
+
+  return _mergeForwardOrphans(blocks, rawLines);
 }
 
 /**

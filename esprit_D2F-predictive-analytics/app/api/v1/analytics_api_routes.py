@@ -79,6 +79,51 @@ def _parse_date(value: str | None, default: date) -> date:
         raise HTTPException(status_code=400, detail=f"Date invalide: {value!r} (attendu yyyy-MM-dd)")
 
 
+def _resolve_scope(
+    container, user, up: str | None, departement: str | None
+) -> tuple[str | None, str | None]:
+    """Résout le périmètre serveur pour un utilisateur non admin (§8 droits).
+
+    Retourne ``(up, departement)`` potentiellement surchargés par la fiche
+    enseignant.  Un CUP sans UP ou un chef sans département lève 403.
+    """
+    if user is None or user.is_admin:
+        return up, departement
+
+    user_teacher = resolve_user_teacher(container, user)
+
+    if user.is_cup:
+        resolved_up = user_teacher.up_id if user_teacher else None
+        if not resolved_up:
+            raise ForbiddenScopeError(
+                "Périmètre indéterminé : aucune UP rattachée à votre compte."
+            )
+        return resolved_up, None
+
+    if user.is_chef_departement:
+        resolved_dept = user_teacher.dept_id if user_teacher else None
+        if not resolved_dept:
+            raise ForbiddenScopeError(
+                "Périmètre indéterminé : aucun département rattaché à votre compte."
+            )
+        return resolved_dept, None
+
+    return up, departement
+
+
+def _build_periode(r: dict) -> dict[str, Any]:
+    """Construit un dict période à partir d'une ligne SQL."""
+    nb_form = int(r["nb_formations"] or 0)
+    nb_part = int(r["nb_participants"] or 0)
+    total_ins = int(r["total_inscriptions"] or 0)
+    return {
+        "label": str(r["period_start"]),
+        "nombreFormations": nb_form,
+        "nombreParticipants": nb_part,
+        "tauxCompletion": round(nb_part / total_ins * 100, 1) if total_ins else 0.0,
+    }
+
+
 BAD_REQUEST_RESPONSES = {
     400: {"description": "Paramètres de requête invalides (date, granularité ou plage)"},
 }
@@ -109,18 +154,7 @@ def formations_par_periode(
     # de département que son propre département — résolus depuis la fiche
     # enseignant (jamais depuis les paramètres du client). Un CUP/chef sans
     # périmètre résolu reçoit 403 (deny-by-default, jamais la vue globale).
-    if user is not None and not user.is_admin:
-        user_teacher = resolve_user_teacher(container, user)
-        if user.is_cup:
-            resolved_up = user_teacher.up_id if user_teacher else None
-            if not resolved_up:
-                raise ForbiddenScopeError("Périmètre indéterminé : aucune UP rattachée à votre compte.")
-            up, departement = resolved_up, None
-        elif user.is_chef_departement:
-            resolved_dept = user_teacher.dept_id if user_teacher else None
-            if not resolved_dept:
-                raise ForbiddenScopeError("Périmètre indéterminé : aucun département rattaché à votre compte.")
-            departement, up = resolved_dept, None
+    up, departement = _resolve_scope(container, user, up, departement)
 
     with container.database.read_connection() as conn:
         rows = conn.execute(
@@ -134,17 +168,7 @@ def formations_par_periode(
             },
         ).mappings().all()
 
-    periodes = []
-    for r in rows:
-        nb_form = int(r["nb_formations"] or 0)
-        nb_part = int(r["nb_participants"] or 0)
-        total_ins = int(r["total_inscriptions"] or 0)
-        periodes.append({
-            "label": str(r["period_start"]),
-            "nombreFormations": nb_form,
-            "nombreParticipants": nb_part,
-            "tauxCompletion": round(nb_part / total_ins * 100, 1) if total_ins else 0.0,
-        })
+    periodes = [_build_periode(r) for r in rows]
 
     total_formations = sum(p["nombreFormations"] for p in periodes)
     total_participants = sum(p["nombreParticipants"] for p in periodes)

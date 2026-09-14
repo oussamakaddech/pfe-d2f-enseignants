@@ -417,7 +417,7 @@ class BesoinFormationServiceImplTest {
         org.junit.jupiter.api.Assertions.assertThrows(
                 org.springframework.security.access.AccessDeniedException.class,
                 () -> service.retrieveByUp("UP_AUTRE", pageable));
-        verify(besoinFormationRepository, org.mockito.Mockito.never()).findByUp(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(Pageable.class));
+        verify(besoinFormationRepository, never()).findByUp(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(Pageable.class));
     }
 
     @Test
@@ -429,7 +429,7 @@ class BesoinFormationServiceImplTest {
         org.junit.jupiter.api.Assertions.assertThrows(
                 org.springframework.security.access.AccessDeniedException.class,
                 () -> service.retrieveByDepartement("DEPT_AUTRE", pageable));
-        verify(besoinFormationRepository, org.mockito.Mockito.never()).findByDepartement(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(Pageable.class));
+        verify(besoinFormationRepository, never()).findByDepartement(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(Pageable.class));
     }
 
     @Test

@@ -20,6 +20,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static org.mockito.Mockito.mock;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -347,9 +349,9 @@ class FormationServiceImplTest {
         @DisplayName("cree formation sans Outlook quand service est null")
         void shouldCreateWithoutOutlookWhenServiceNull() {
             esprit.pfe.serviceformation.repositories.UpRepository upRepo =
-                    org.mockito.Mockito.mock(esprit.pfe.serviceformation.repositories.UpRepository.class);
+                    mock(esprit.pfe.serviceformation.repositories.UpRepository.class);
             esprit.pfe.serviceformation.repositories.DeptRepository deptRepo =
-                    org.mockito.Mockito.mock(esprit.pfe.serviceformation.repositories.DeptRepository.class);
+                    mock(esprit.pfe.serviceformation.repositories.DeptRepository.class);
             FormationServiceImpl serviceNoOutlook =
                     new FormationServiceImpl(formationRepository, formationMapper, upRepo, deptRepo, null, null);
 

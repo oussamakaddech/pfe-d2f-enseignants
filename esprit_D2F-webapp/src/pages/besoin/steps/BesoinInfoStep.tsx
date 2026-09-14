@@ -14,7 +14,7 @@ import {
 import SectionLabel from '@/components/besoin/SectionLabel';
 import ChoiceCardGroup from '@/components/besoin/ChoiceCardGroup';
 import ParticipantsTable from '@/pages/besoin/components/ParticipantsTable';
-import { formatParticipantLine, parseParticipantBlocks } from '@/utils/besoin/participants';
+import { parseParticipantBlocks } from '@/utils/besoin/participants';
 import type { LookupItem } from '@/models/common';
 
 const { Option } = Select;

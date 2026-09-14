@@ -14,6 +14,7 @@ import esprit.pfe.serviceformation.services.animator.AnimatorScopeService;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,6 +58,9 @@ public class FormationWorkflowService {
     // construisent le service manuellement — les contrôles sont alors sautés).
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private AnimatorScopeService animatorScopeService;
+    @Lazy
+    @org.springframework.beans.factory.annotation.Autowired
+    private FormationWorkflowService self;
 
     public FormationWorkflowService(DocumentRepository documentRepository,
             FormationRepository formationRepository,
@@ -1894,7 +1898,7 @@ public class FormationWorkflowService {
         boolean isChef = user.hasRole("CHEF_DEPARTEMENT") && !user.isAdmin();
         if (!isCup && !isChef) {
             // Vue complète (admin et autres rôles FORMATION_READ).
-            return getAllFormationWorkflows();
+            return self.getAllFormationWorkflows();
         }
         Enseignant enseignant = enseignantRepository.findByMailIgnoreCase(user.email())
                 .orElseThrow(() -> new IllegalArgumentException(

@@ -179,7 +179,7 @@ class InscriptionControllerTest {
 
     @Test
     @DisplayName("selfOrAdmin : enseignant demandant l'id d'autrui = 403")
-    void testSelfOrAdmin_idorRefuse() throws Exception {
+    void testSelfOrAdmin_idorRefuse() {
         org.springframework.security.oauth2.jwt.Jwt jwt = autreEnseignantJwt();
         // La fiche de 'victim@esprit.tn' est E00002 : la demande d'un autre code est refusée.
         when(inscriptionService.resolveEnseignantIdFor(any(
