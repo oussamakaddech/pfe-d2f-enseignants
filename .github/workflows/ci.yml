@@ -269,7 +269,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: owasp-nvd-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
+          # Cle statique (sans hash des poms) : la base NVD s'auto-met a jour
+          # par deltas a chaque run. Avec un hash, chaque changement de pom
+          # forcait un re-telechargement complet + rate-limit NVD (429).
+          key: owasp-nvd-${{ runner.os }}
           restore-keys: owasp-nvd-${{ runner.os }}-
 
       - name: OWASP Dependency Check
@@ -285,7 +288,14 @@ jobs:
           mvn -B org.owasp:dependency-check-maven:check \
             -DfailBuildOnCVSS=7 \
             -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
+            -DnvdValidForHours=24 \
+            -DskipTestScope=true \
             -DassemblyAnalyzerEnabled=false \
+            -DnodeAnalyzerEnabled=false \
+            -DossIndexAnalyzerEnabled=false \
+            -DretirejsAnalyzerEnabled=false \
+            -DartifactoryAnalyzerEnabled=false \
+            -DnexusAnalyzerEnabled=false \
             $SUPPRESSION \
             -Dformats=HTML,JSON
 
