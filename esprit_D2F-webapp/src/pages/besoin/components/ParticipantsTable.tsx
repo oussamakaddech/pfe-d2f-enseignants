@@ -156,7 +156,9 @@ export default function ParticipantsTable({
               rules={[
                 {
                   validator: (_, v) =>
-                    isValidEmail(v || '') ? Promise.resolve() : Promise.reject(new Error('Email invalide')),
+                    isValidEmail(v || '')
+                      ? Promise.resolve()
+                      : Promise.reject(new Error('Email invalide')),
                 },
               ]}
               style={{ marginBottom: 0 }}
@@ -190,7 +192,9 @@ export default function ParticipantsTable({
               rules={[
                 {
                   validator: (_, v) =>
-                    isValidPhone(v || '') ? Promise.resolve() : Promise.reject(new Error('Tél. invalide')),
+                    isValidPhone(v || '')
+                      ? Promise.resolve()
+                      : Promise.reject(new Error('Tél. invalide')),
                 },
               ]}
               style={{ marginBottom: 0 }}
@@ -296,7 +300,9 @@ export default function ParticipantsTable({
               rules={[
                 {
                   validator: (_, v) =>
-                    isValidEmail(v || '') ? Promise.resolve() : Promise.reject(new Error('Email invalide')),
+                    isValidEmail(v || '')
+                      ? Promise.resolve()
+                      : Promise.reject(new Error('Email invalide')),
                 },
               ]}
               style={{ marginBottom: 0 }}
@@ -308,7 +314,9 @@ export default function ParticipantsTable({
               rules={[
                 {
                   validator: (_, v) =>
-                    isValidPhone(v || '') ? Promise.resolve() : Promise.reject(new Error('Tél. invalide')),
+                    isValidPhone(v || '')
+                      ? Promise.resolve()
+                      : Promise.reject(new Error('Tél. invalide')),
                 },
               ]}
               style={{ marginBottom: 0 }}

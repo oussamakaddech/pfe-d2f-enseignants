@@ -130,7 +130,12 @@ function _tryMultiLineBlock(
   const [nom = '', ...rest] = nameLine.split(/\s+/);
   return {
     block: {
-      participant: { nom, prenom: rest.join(' ').trim(), email: emailLine, telephone: normalizePhone(phoneLine) },
+      participant: {
+        nom,
+        prenom: rest.join(' ').trim(),
+        email: emailLine,
+        telephone: normalizePhone(phoneLine),
+      },
       start: i,
       end: c + 1,
     },
@@ -148,10 +153,7 @@ function _isOrphanOfPrev(prev: ParticipantBlock | undefined, line: string): bool
   );
 }
 
-function _mergeForwardOrphans(
-  blocks: ParticipantBlock[],
-  rawLines: string[],
-): ParticipantBlock[] {
+function _mergeForwardOrphans(blocks: ParticipantBlock[], rawLines: string[]): ParticipantBlock[] {
   const merged: ParticipantBlock[] = [];
   for (let k = 0; k < blocks.length; k++) {
     const current = blocks[k];
@@ -179,10 +181,17 @@ export function parseParticipantBlocks(text: string | null | undefined): Partici
 
   let i = 0;
   while (i < n) {
-    if (rawLines[i].trim() === '') { i++; continue; }
+    if (rawLines[i].trim() === '') {
+      i++;
+      continue;
+    }
 
     const multi = _tryMultiLineBlock(rawLines, i, n);
-    if (multi !== null) { blocks.push(multi.block); i = multi.nextIndex; continue; }
+    if (multi !== null) {
+      blocks.push(multi.block);
+      i = multi.nextIndex;
+      continue;
+    }
 
     const line = rawLines[i].trim();
     const prev = blocks.at(-1);
