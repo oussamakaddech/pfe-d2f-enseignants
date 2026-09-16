@@ -1,0 +1,93 @@
+// Source de vérité : `utils/constants/roles.ts` (dérivé de `ROLES`).
+// On importe + re-exporte ici pour préserver la compatibilité des imports
+// existants (`@/models/auth`) et éviter d'avoir 3 déclarations désynchronisées.
+// Rôles valides : "admin" | "CUP" | "Enseignant" | "Animateur"
+//                 | "CHEF_DEPARTEMENT" | "ResponsableDossier"
+// Portée fonctionnelle (pour contexte front) :
+//   - admin / CUP : administration globale.
+//   - ENSEIGNANT : peut s'inscrire aux formations, déposer des besoins.
+//   - ANIMATEUR  : anime des sessions + inscriptions + évaluations.
+//   - CHEF_DEPARTEMENT  : scope « son département » (lecture + besoins + eval).
+//   - ResponsableDossier: scope « dossier de formation » (CRUD documents).
+// (Le rôle FORMATEUR a été consolidé dans ANIMATEUR — cf. migration V19.)
+export type { UserRole } from "@/utils/constants/roles";
+import type { UserRole } from "@/utils/constants/roles";
+
+export interface AuthUser {
+  id?: string | number;
+  userId?: string | number;
+  userName?: string;
+  username?: string;
+  email?: string;
+  emailAddress?: string;
+  role?: UserRole;
+  expiresIn?: number;
+  [key: string]: unknown;
+}
+
+export interface AuthTokenPayload {
+  exp: number;
+  iat?: number;
+  sub?: string;
+  role?: string;
+  [key: string]: unknown;
+}
+
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+/**
+ * Login response — JWT is now in HttpOnly cookie, NOT in the body.
+ * The body contains only metadata for the UI.
+ */
+export interface LoginResponse {
+  userId?: string | number;
+  username?: string;
+  role?: string;
+  email?: string;
+  expiresIn?: number;
+}
+
+export interface SignupRequest {
+  id?: string;
+  username: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  email: string;
+  // SÉCURITÉ (audit DSI) : aucun rôle n'est transmis à l'inscription publique.
+  // Tout compte auto-inscrit est ENSEIGNANT. L'attribution d'un rôle (création
+  // de compte par un admin) passe par AccountService.createAccount (?role=...),
+  // jamais par le corps de /signup.
+}
+
+export interface ResetPasswordRequest {
+  confirmationKey: string;
+  newPassword: string;
+}
+
+export interface EditProfileRequest {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  role?: string;
+}
+
+export interface UpdatePasswordRequest {
+  newPassword: string;
+  confirmation: string;
+}
+
+export interface AuthContextValue {
+  user: AuthUser | null;
+  login: (userData: AuthUser) => void;
+  logout: () => void;
+}
+
+
+
+

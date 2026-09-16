@@ -21,9 +21,10 @@
 	<properties>
 		<java.version>17</java.version>
 		<spring-cloud.version>2024.0.0</spring-cloud.version>
-		<!-- Indique à Maven et aux plugins que tout est en UTF-8 -->
-
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<db.password>${DB_PASSWORD}</db.password>
+		<sonar.projectKey>d2f_besoin_formation</sonar.projectKey>
+		<sonar.projectName>besoinsformation-service</sonar.projectName>
 	</properties>
 
 	<dependencyManagement>
@@ -39,6 +40,13 @@
 	</dependencyManagement>
 
 	<dependencies>
+		<!-- D2F Common Security (shared AuthorizationMatrix) -->
+		<dependency>
+			<groupId>esprit.d2f</groupId>
+			<artifactId>d2f-common-security</artifactId>
+			<version>1.0.0</version>
+		</dependency>
+
 		<!-- API documentation -->
 		<dependency>
 			<groupId>org.springdoc</groupId>
@@ -52,8 +60,6 @@
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
 
-
-
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
@@ -61,7 +67,26 @@
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
+		<!-- Spring Boot DevTools -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-amqp</artifactId>
+		</dependency>
+		<!-- ActiveMQ Artemis (profil alternatif — activer avec spring.profiles.active=activemq) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-artemis</artifactId>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -88,6 +113,12 @@
 			<scope>runtime</scope>
 		</dependency>
 
+		<!-- Migration base de données — conformité DSI §3.2 migrations obligatoires -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
+		</dependency>
+
 		<!-- Lombok -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
@@ -95,17 +126,38 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- Tests -->
+		<!-- Spring Security -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+		</dependency>
+
+				<!-- Tests -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-registry-prometheus</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>
-		<!-- Copie brute de tout src/main/resources sans filtering -->
 		<resources>
 			<resource>
 				<directory>src/main/resources</directory>
@@ -114,7 +166,6 @@
 		</resources>
 
 		<plugins>
-			<!-- Assure l’encodage UTF-8 pour toute manipulation de ressources -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-resources-plugin</artifactId>
@@ -124,7 +175,6 @@
 				</configuration>
 			</plugin>
 
-			<!-- Compilation & annotation processors -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -139,7 +189,6 @@
 				</configuration>
 			</plugin>
 
-			<!-- Spring Boot packaging -->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
@@ -153,13 +202,52 @@
 				</configuration>
 			</plugin>
 
-			<!-- Tests -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<skipTests>true</skipTests>
+					<skipTests>false</skipTests>
 				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.flywaydb</groupId>
+				<artifactId>flyway-maven-plugin</artifactId>
+				<version>10.20.1</version>
+				<configuration>
+					<url>jdbc:postgresql://localhost:7432/d2f</url>
+					<user>d2f</user>
+					<password>${db.password}</password>
+					<locations>classpath:db/migration</locations>
+					<table>flyway_schema_history_besoin</table>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>org.postgresql</groupId>
+						<artifactId>postgresql</artifactId>
+						<version>42.7.3</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.12</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

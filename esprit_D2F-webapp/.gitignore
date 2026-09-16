@@ -12,6 +12,16 @@ dist
 dist-ssr
 *.local
 
+# Environment files — never commit secrets or internal URLs
+.env
+.env.*
+!.env.example
+
+# Auth/session artifacts — never commit tokens or cookies
+cookies.txt
+*.cookies
+*.jwt
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -1,0 +1,53 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.iconRing {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.outerRing {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--neutral-50);
+  border: 1px dashed var(--neutral-200);
+}
+
+.innerIcon {
+  border-radius: 50%;
+  background: var(--neutral-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  color: var(--neutral-400);
+}
+
+.title {
+  margin: 0;
+  color: var(--neutral-800);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.description {
+  color: var(--neutral-500);
+  font-size: 13px;
+  max-width: 380px;
+  display: block;
+  line-height: 1.55;
+}
+
+.action {
+  margin-top: 10px;
+}

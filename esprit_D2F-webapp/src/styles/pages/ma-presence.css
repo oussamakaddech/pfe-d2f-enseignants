@@ -1,0 +1,175 @@
+/* ─── MaPresence.css — Enseignant's own presence view ──────────────── */
+
+.mp-content {
+  padding: 4px 2px;
+}
+
+/* ── Stats banner ────────────────────────────────────────────────────── */
+.mp-stats-banner {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.mp-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--border-color-soft);
+  flex: 1;
+  min-width: 150px;
+  transition: transform 0.18s var(--ease-in-out), box-shadow 0.18s;
+  position: relative;
+  overflow: hidden;
+}
+
+.mp-stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 3px;
+}
+
+.mp-stat-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -8px rgba(15, 23, 42, 0.18);
+}
+
+.mp-stat-total::before  { background: #3b82f6; }
+.mp-stat-present::before { background: #10b981; }
+.mp-stat-absent::before  { background: #ef4444; }
+.mp-stat-taux::before    { background: #8b5cf6; }
+
+.mp-stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.mp-stat-total .mp-stat-icon  { background: var(--color-info-bg);    color: var(--color-info); }
+.mp-stat-present .mp-stat-icon { background: var(--color-success-bg); color: var(--color-success); }
+.mp-stat-absent .mp-stat-icon  { background: var(--color-error-bg);   color: var(--color-error); }
+.mp-stat-taux .mp-stat-icon    { background: #f5f3ff;                 color: #7c3aed; }
+
+.mp-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.mp-stat-label {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* ── Filter card ─────────────────────────────────────────────────────── */
+.mp-filter-card {
+  margin-bottom: 16px;
+  background: #fff;
+  border: 1px solid var(--border-color-soft);
+  border-radius: var(--radius-lg);
+}
+
+/* ── Table ───────────────────────────────────────────────────────────── */
+.mp-table .ant-table {
+  background: transparent;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-color-soft);
+}
+
+.mp-table .ant-table-thead > tr > th {
+  background: linear-gradient(180deg, #fbfcfe 0%, #f6f8fb 100%) !important;
+  border-bottom: 1px solid var(--border-color-soft) !important;
+  color: var(--text-muted) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 12px 14px !important;
+}
+
+.mp-table .ant-table-thead > tr > th::before {
+  display: none;
+}
+
+.mp-table .ant-table-tbody > tr > td {
+  padding: 12px 14px !important;
+  border-bottom: 1px solid var(--border-color-soft) !important;
+}
+
+.mp-table .ant-table-tbody > tr:hover > td {
+  background: linear-gradient(90deg, rgba(181, 18, 0, 0.03) 0%, rgba(181, 18, 0, 0.01) 100%) !important;
+}
+
+/* ── Detail table (expanded row) ─────────────────────────────────────── */
+.mp-detail-table .ant-table {
+  background: transparent;
+  border: none;
+}
+
+.mp-detail-table .ant-table-thead > tr > th {
+  background: #f9fafb !important;
+  font-size: 11px !important;
+  padding: 8px 12px !important;
+}
+
+.mp-detail-table .ant-table-tbody > tr > td {
+  padding: 8px 12px !important;
+}
+
+/* ── Count badges ────────────────────────────────────────────────────── */
+.mp-count-present {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 12px;
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.mp-count-absent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 12px;
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .mp-stats-banner {
+    flex-direction: column;
+  }
+  .mp-stat-card {
+    min-width: 0;
+  }
+}

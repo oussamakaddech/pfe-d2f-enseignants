@@ -1,14 +1,16 @@
-package esprit.pfe.serviceformation.Microsoft;
+package esprit.pfe.serviceformation.microsoft;
 
 import com.microsoft.graph.models.DriveItem;
 import com.microsoft.graph.models.DriveItemCreateLinkParameterSet;
 import com.microsoft.graph.models.Folder;
 import com.microsoft.graph.models.Permission;
 import com.microsoft.graph.requests.GraphServiceClient;
-import esprit.pfe.serviceformation.DTO.OneDriveItemDTO;
+import esprit.pfe.serviceformation.dto.OneDriveItemDTO;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -16,14 +18,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+// DSI §4/§2 — Service Azure AD conditionnel : désactivé par défaut (azure.ad.enabled=false).
 @Service
+@ConditionalOnProperty(name = "azure.ad.enabled", havingValue = "true")
+@Slf4j
+@RequiredArgsConstructor
 public class OneDriveService {
-
-    @Autowired
-    private MicrosoftGraphClientProvider graphProvider;
+    private final MicrosoftGraphClientProvider graphProvider;
 
     private static final String ROOT_FOLDER_NAME = "d2F";
-    private static final String USER_EMAIL       = "Application.Formationdesformateurs@Esprit.tn";
+    @org.springframework.beans.factory.annotation.Value("${azure.ad.sender-email}")
+    private String userEmail;
 
     /**
      * Upload vers : d2F/{formation}/{pathType}/{nomDocument}/{originalFileName}
@@ -38,20 +43,20 @@ public class OneDriveService {
         GraphServiceClient<Request> client = graphProvider.getGraphClient();
 
         // 1) Crée / récupère d2F
-        DriveItem root = ensureFolder(client, null, ROOT_FOLDER_NAME, USER_EMAIL);
+        DriveItem root = ensureFolder(client, null, ROOT_FOLDER_NAME, userEmail);
         // 2) Crée / récupère formation
-        DriveItem lvl1 = ensureFolder(client, root.id, formation, USER_EMAIL);
+        DriveItem lvl1 = ensureFolder(client, root.id, formation, userEmail);
         // 3) Crée / récupère pathType (PAYEMENT|CNFCPP|DOCUMENT)
-        DriveItem lvl2 = ensureFolder(client, lvl1.id, pathType, USER_EMAIL);
+        DriveItem lvl2 = ensureFolder(client, lvl1.id, pathType, userEmail);
         // 4) Crée / récupère nomDocument
-        DriveItem lvl3 = ensureFolder(client, lvl2.id, nomDocument, USER_EMAIL);
+        DriveItem lvl3 = ensureFolder(client, lvl2.id, nomDocument, userEmail);
         // 5) Upload du fichier
         // 2) Nettoyage du nom de fichier
         String safeFileName = originalFileName == null
                 ? "file"
                 : originalFileName.trim();
 
-        DriveItem uploaded = client.users(USER_EMAIL)
+        DriveItem uploaded = client.users(userEmail)
                 .drive()
                 .items(lvl3.id)
                 .itemWithPath(safeFileName)
@@ -81,7 +86,7 @@ public class OneDriveService {
                 originalFileName
         );
 
-        try (InputStream in = client.users(USER_EMAIL)
+        try (InputStream in = client.users(userEmail)
                 .drive()
                 .root()
                 .itemWithPath(path)
@@ -93,7 +98,7 @@ public class OneDriveService {
             in.transferTo(buf);
             return buf.toByteArray();
         } catch (Exception e) {
-            throw new RuntimeException("Erreur download OneDrive", e);
+            throw new IllegalStateException("Erreur download OneDrive", e);
         }
     }
 
@@ -115,14 +120,14 @@ public class OneDriveService {
                 originalFileName
         );
         try {
-            client.users(USER_EMAIL)
+            client.users(userEmail)
                     .drive()
                     .root()
                     .itemWithPath(path)
                     .buildRequest()
                     .delete();
         } catch (Exception e) {
-            System.err.println("Erreur delete OneDrive: " + e.getMessage());
+            log.error("Erreur delete OneDrive: {}", e.getMessage());
         }
     }
 
@@ -144,7 +149,7 @@ public class OneDriveService {
         );
 
         // Récupère l’item du dossier
-        DriveItem folder = client.users(USER_EMAIL)
+        DriveItem folder = client.users(userEmail)
                 .drive()
                 .root()
                 .itemWithPath(folderPath)
@@ -154,7 +159,7 @@ public class OneDriveService {
         // Patch du nom
         DriveItem update = new DriveItem();
         update.name = newNom;
-        client.users(USER_EMAIL)
+        client.users(userEmail)
                 .drive()
                 .items(folder.id)
                 .buildRequest()
@@ -166,8 +171,8 @@ public class OneDriveService {
      */
     public List<OneDriveItemDTO> getDriveHierarchy() {
         GraphServiceClient<Request> client = graphProvider.getGraphClient();
-        DriveItem root = ensureFolder(client, null, ROOT_FOLDER_NAME, USER_EMAIL);
-        return listChildrenRecursively(root.id, USER_EMAIL, ROOT_FOLDER_NAME);
+        DriveItem root = ensureFolder(client, null, ROOT_FOLDER_NAME, userEmail);
+        return listChildrenRecursively(root.id, userEmail, ROOT_FOLDER_NAME);
     }
 
     /**
@@ -175,9 +180,9 @@ public class OneDriveService {
      */
     public List<OneDriveItemDTO> getFormationHierarchy(String formation) {
         GraphServiceClient<Request> client = graphProvider.getGraphClient();
-        DriveItem root  = ensureFolder(client, null, ROOT_FOLDER_NAME, USER_EMAIL);
-        DriveItem promo = ensureFolder(client, root.id, formation, USER_EMAIL);
-        return listChildrenRecursively(promo.id, USER_EMAIL, formation);
+        DriveItem root  = ensureFolder(client, null, ROOT_FOLDER_NAME, userEmail);
+        DriveItem promo = ensureFolder(client, root.id, formation, userEmail);
+        return listChildrenRecursively(promo.id, userEmail, formation);
     }
 
     // ====================
@@ -225,14 +230,15 @@ public class OneDriveService {
             String currentFolderName
     ) {
         GraphServiceClient<Request> client = graphProvider.getGraphClient();
-        List<DriveItem> items = client.users(userEmail)
+        List<DriveItem> itemsRaw = client.users(userEmail)
                 .drive()
                 .items(folderId)
                 .children()
                 .buildRequest()
                 .get()
                 .getCurrentPage();
-
+        
+        List<DriveItem> items = Optional.ofNullable(itemsRaw).orElse(new ArrayList<>());
         List<OneDriveItemDTO> list = new ArrayList<>();
         for (DriveItem item : items) {
             OneDriveItemDTO dto = new OneDriveItemDTO();
@@ -267,7 +273,7 @@ public class OneDriveService {
                 pathType,
                 nomDocument
         );
-        List<DriveItem> files = client.users(USER_EMAIL)
+        List<DriveItem> filesRaw = client.users(userEmail)
                 .drive()
                 .root()
                 .itemWithPath(folderPath)
@@ -275,13 +281,14 @@ public class OneDriveService {
                 .buildRequest()
                 .get()
                 .getCurrentPage();
-
+        
+        List<DriveItem> files = Optional.ofNullable(filesRaw).orElse(new ArrayList<>());
         if (files.isEmpty()) {
-            throw new RuntimeException("Aucun fichier dans " + folderPath);
+            throw new IllegalStateException("Aucun fichier dans " + folderPath);
         }
 
         DriveItem fichier = files.get(0);
-        Permission perm = client.users(USER_EMAIL)
+        Permission perm = client.users(userEmail)
                 .drive()
                 .items(fichier.id)
                 .createLink(DriveItemCreateLinkParameterSet

@@ -1,21 +1,21 @@
-package esprit.pfe.serviceformation.DTO;
+package esprit.pfe.serviceformation.dto;
 
 
-import esprit.pfe.serviceformation.Entities.DriveSubPath;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Date;
+import java.io.Serializable;
+import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class DocumentDTO {
+public class DocumentDTO implements Serializable {
     private Long idDocument;
     private String nomDocument;
     private boolean obligation;
-    private Date date;
+    private LocalDate date;
     private String filePath;
     private String pathType;
 

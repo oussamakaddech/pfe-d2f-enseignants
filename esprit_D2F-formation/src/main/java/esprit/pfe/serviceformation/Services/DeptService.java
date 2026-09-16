@@ -1,51 +1,81 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.Entities.Dept;
-import esprit.pfe.serviceformation.Repositories.DeptRepository;
+import esprit.pfe.serviceformation.entities.Dept;
+import esprit.pfe.serviceformation.repositories.DeptRepository;
 import org.apache.poi.ss.usermodel.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import lombok.RequiredArgsConstructor;
 
+import jakarta.persistence.EntityNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class DeptService {
-    @Autowired
-    private DeptRepository deptRepository;
+    private final DeptRepository deptRepository;
 
+    public Page<Dept> findAll(Pageable pageable) {
+        return deptRepository.findAll(pageable);
+    }
 
+    public List<Dept> findAll() {
+        return deptRepository.findAll();
+    }
+
+    public Dept findById(String id) {
+        return deptRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Département introuvable : " + id));
+    }
+
+    public Dept create(Dept dept) {
+        return deptRepository.save(dept);
+    }
+
+    public Dept update(String id, Dept dept) {
+        Dept existing = findById(id);
+        existing.setLibelle(dept.getLibelle());
+        return deptRepository.save(existing);
+    }
+
+    public void delete(String id) {
+        deptRepository.deleteById(id);
+    }
 
     @Transactional
     public void importDeptsFromExcel(MultipartFile file) throws IOException {
-        Workbook wb = WorkbookFactory.create(file.getInputStream());
-        Sheet sheet = wb.getSheetAt(0);
-        DataFormatter formatter = new DataFormatter();
+        try (Workbook wb = WorkbookFactory.create(file.getInputStream())) {
+            Sheet sheet = wb.getSheetAt(0);
+            DataFormatter formatter = new DataFormatter();
+            List<Dept> list = new ArrayList<>();
 
-        List<Dept> list = new ArrayList<>();
-        for (Row row : sheet) {
-            if (row.getRowNum() == 0) continue;
+            for (Row row : sheet) {
+                if (row.getRowNum() > 0) {
+                    Cell idCell = row.getCell(0);
+                    Cell nomCell = row.getCell(1);
 
-            Cell idCell  = row.getCell(0);
-            Cell nomCell = row.getCell(1);
-            if (idCell == null || nomCell == null) continue;
+                    if (idCell != null && nomCell != null) {
+                        String id = formatter.formatCellValue(idCell).trim();
+                        String nom = nomCell.getStringCellValue().trim();
 
-            String id  = formatter.formatCellValue(idCell).trim();
-            String nom = nomCell.getStringCellValue().trim();
-            if (id.isEmpty() || nom.isEmpty()) continue;
+                        if (!id.isEmpty() && !nom.isEmpty()) {
+                            Dept dept = new Dept();
+                            dept.setId(id);
+                            dept.setLibelle(nom);
+                            list.add(dept);
+                        }
+                    }
+                }
+            }
 
-            Dept dept = new Dept();
-            dept.setId(id);   // String aussi ici
-            dept.setLibelle(nom);
-            list.add(dept);
-        }
-        wb.close();
-
-        if (!list.isEmpty()) {
-            deptRepository.saveAll(list);
+            if (!list.isEmpty()) {
+                deptRepository.saveAll(list);
+            }
         }
     }
 }

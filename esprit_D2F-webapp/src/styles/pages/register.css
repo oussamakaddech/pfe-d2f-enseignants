@@ -1,0 +1,226 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Register.jsx — Page d'inscription D2F
+   Cohérent avec Login.css — même identité visuelle
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.register-page {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* ── Left: Branding Panel (même que Login) ────────────────────────────────── */
+.register-brand {
+  flex: 0 0 38%;
+  background: var(--brand-gradient);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.register-brand::before {
+  content: "";
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  top: -140px;
+  right: -140px;
+  pointer-events: none;
+}
+
+.register-brand::after {
+  content: "";
+  position: absolute;
+  width: 340px;
+  height: 340px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  bottom: -100px;
+  left: -100px;
+  pointer-events: none;
+}
+
+.register-brand-inner {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 340px;
+}
+
+.register-brand-logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: var(--radius-xl);
+  padding: 10px;
+  margin-bottom: var(--space-6);
+  box-shadow: var(--shadow-xl);
+  animation: registerLogoFloat 4s ease-in-out infinite;
+}
+
+@keyframes registerLogoFloat {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
+}
+
+.register-brand-title {
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: var(--text-on-dark);
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+.register-brand-divider {
+  width: 44px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 2px;
+  margin: 14px auto 16px;
+}
+
+.register-brand-sub {
+  font-size: var(--text-md);
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 400;
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* ── Right: Form Panel ────────────────────────────────────────────────────── */
+.register-form-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-main);
+  padding: 32px 24px;
+  overflow-y: auto;
+}
+
+.register-card {
+  width: 100%;
+  max-width: 560px;
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  padding: 36px 32px;
+  box-shadow: var(--shadow-lg);
+  animation: registerFadeUp 0.5s ease-out both;
+}
+
+@keyframes registerFadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.register-card-title {
+  font-size: var(--text-3xl) !important;
+  font-weight: 800 !important;
+  color: var(--text-main) !important;
+  margin: 0 0 4px !important;
+  line-height: 1.2 !important;
+  text-align: center !important;
+}
+
+.register-card-subtitle {
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  margin: 0 0 24px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* Form items */
+.register-form .ant-form-item {
+  margin-bottom: 18px;
+}
+
+.register-form .ant-form-item-label > label {
+  font-weight: 600;
+  color: var(--text-body);
+  font-size: var(--text-sm);
+}
+
+/* Inputs */
+.register-form .ant-input,
+.register-form .ant-input-affix-wrapper,
+.register-form .ant-select-selector {
+  border-radius: var(--radius-sm) !important;
+  border-color: var(--neutral-200) !important;
+  transition: all 0.2s var(--ease-in-out);
+}
+
+.register-form .ant-input:hover,
+.register-form .ant-input-affix-wrapper:hover,
+.register-form .ant-select:not(.ant-select-disabled):hover .ant-select-selector {
+  border-color: var(--primary-500) !important;
+}
+
+.register-form .ant-input-affix-wrapper-focused,
+.register-form .ant-select-focused .ant-select-selector {
+  border-color: var(--primary-500) !important;
+  box-shadow: var(--focus-ring) !important;
+}
+
+/* Submit Button */
+.register-button {
+  height: 46px !important;
+  border-radius: var(--radius-sm) !important;
+  font-weight: 700 !important;
+  font-size: var(--text-md) !important;
+  letter-spacing: 0.3px !important;
+  background: var(--btn-primary-gradient) !important;
+  border: none !important;
+  margin-top: var(--space-2);
+  transition: all 0.25s var(--ease-in-out) !important;
+  box-shadow: var(--btn-primary-shadow) !important;
+}
+
+.register-button:not(:disabled):hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--btn-primary-shadow-hover) !important;
+}
+
+.register-button:active {
+  transform: translateY(0) !important;
+}
+
+/* Link button */
+.register-link-btn {
+  color: var(--primary-500) !important;
+  font-weight: 500 !important;
+  transition: color 0.15s var(--ease-in-out);
+}
+
+.register-link-btn:hover {
+  color: var(--primary-600) !important;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .register-brand { flex: 0 0 34%; }
+}
+
+@media (max-width: 680px) {
+  .register-page { flex-direction: column; }
+  .register-brand {
+    flex: 0 0 auto;
+    padding: 24px 20px;
+    min-height: 160px;
+  }
+  .register-brand-title { font-size: 24px; letter-spacing: 3px; }
+  .register-brand-logo { width: 60px; height: 60px; margin-bottom: 12px; }
+  .register-form-panel { padding: 20px 12px; }
+  .register-card { padding: 24px 16px; border-radius: var(--radius-lg); }
+}

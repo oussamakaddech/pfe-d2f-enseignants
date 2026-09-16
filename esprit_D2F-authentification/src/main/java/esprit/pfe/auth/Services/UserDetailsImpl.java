@@ -1,15 +1,13 @@
-package esprit.pfe.auth.Services;
+package esprit.pfe.auth.services;
 
-
-
-import esprit.pfe.auth.Entities.User;
+import esprit.pfe.auth.entities.User;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -19,36 +17,39 @@ public class UserDetailsImpl implements UserDetails {
 	private static final long serialVersionUID = 1L;
 
 	private String id;
-
 	private String username;
-
 	private String email;
-
 	@JsonIgnore
 	private String password;
-
+	private boolean enabled;
 	private Collection<? extends GrantedAuthority> authorities;
 
-	public UserDetailsImpl(String id, String username, String email, String password,
+	public UserDetailsImpl(String id, String username, String email, String password, boolean enabled,
 						   Collection<? extends GrantedAuthority> authorities) {
 		this.id = id;
 		this.username = username;
 		this.email = email;
 		this.password = password;
+		this.enabled = enabled;
 		this.authorities = authorities;
 	}
 
-		public static UserDetailsImpl build(User user) {
-			List<GrantedAuthority> authorities = user.getRoles().stream()
-					.map(role -> new SimpleGrantedAuthority(role.getName().name()))
-					.collect(Collectors.toList());
+	private java.time.LocalDateTime lockUntil;
 
-		return new UserDetailsImpl(
+	public static UserDetailsImpl build(User user) {
+		List<GrantedAuthority> authorities = user.getRoles().stream()
+				.map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName().name()))
+				.collect(Collectors.toList());
+
+		UserDetailsImpl details = new UserDetailsImpl(
 				user.getId(),
 				user.getUsername(),
 				user.getEmail(),
 				user.getPassword(),
+				user.getDisabled() == null || !user.getDisabled(),
 				authorities);
+		details.lockUntil = user.getLockUntil();
+		return details;
 	}
 
 	@Override
@@ -81,7 +82,7 @@ public class UserDetailsImpl implements UserDetails {
 
 	@Override
 	public boolean isAccountNonLocked() {
-		return true;
+		return lockUntil == null || lockUntil.isBefore(LocalDateTime.now(ZoneId.systemDefault()));
 	}
 
 	@Override
@@ -91,7 +92,7 @@ public class UserDetailsImpl implements UserDetails {
 
 	@Override
 	public boolean isEnabled() {
-		return true;
+		return enabled;
 	}
 
 	@Override
@@ -102,5 +103,10 @@ public class UserDetailsImpl implements UserDetails {
 			return false;
 		UserDetailsImpl user = (UserDetailsImpl) o;
 		return Objects.equals(id, user.id);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(id);
 	}
 }

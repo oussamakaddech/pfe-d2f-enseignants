@@ -1,5 +1,7 @@
-package esprit.pfe.auth.Entities;
+package esprit.pfe.auth.entities;
 
 public enum ERole {
-    admin,CUP,D2F,Formateur
+    // ANIMATEUR : rôle du cahier des charges D2F (anime des formations).
+    // Fonctionnellement équivalent à FORMATEUR, conservé pour la compatibilité.
+    ADMIN, CUP, ENSEIGNANT, FORMATEUR, ANIMATEUR, CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER
 }

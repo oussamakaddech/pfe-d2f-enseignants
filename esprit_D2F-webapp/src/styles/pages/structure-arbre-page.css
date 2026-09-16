@@ -1,0 +1,174 @@
+/* ─── StructureArbrePage.css ───────────────────────────────────────────── */
+
+.structure-arbre-page {
+  max-width: var(--max-page-width);
+  margin: 0 auto;
+}
+
+/* ── Toolbar ───────────────────────────────────────────────────────────── */
+.structure-arbre-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: 14px 20px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Tree card ─────────────────────────────────────────────────────────── */
+.structure-arbre-tree-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-4);
+}
+
+.structure-arbre-tree-card .ant-card-head-title {
+  font-weight: var(--font-semibold);
+  color: var(--text-main);
+}
+
+/* ── Tree node styles ──────────────────────────────────────────────────── */
+.structure-arbre-tree .ant-tree-node-content-wrapper {
+  border-radius: var(--radius-sm);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.structure-arbre-tree .ant-tree-node-content-wrapper:hover {
+  background: var(--primary-bg);
+}
+
+.structure-arbre-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
+  background: var(--primary-500);
+  color: var(--text-on-dark);
+  font-weight: var(--font-semibold);
+}
+
+.structure-arbre-tree .ant-tree-treenode-selected .ant-tree-switcher {
+  color: var(--text-on-dark);
+}
+
+/* ── Node labels ───────────────────────────────────────────────────────── */
+.structure-arbre-node-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px 0;
+}
+
+.structure-arbre-node-label-icon {
+  font-size: 16px;
+  color: var(--primary-500);
+}
+
+.structure-arbre-node-label-text {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-body);
+}
+
+.structure-arbre-node-label-count {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  background: var(--neutral-100);
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  font-weight: var(--font-medium);
+}
+
+/* ── Detail panel ──────────────────────────────────────────────────────── */
+.structure-arbre-detail-panel {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.structure-arbre-detail-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: linear-gradient(135deg, var(--neutral-50) 0%, var(--neutral-100) 100%);
+  border-bottom: 1px solid var(--border-color);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.structure-arbre-detail-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--primary-50);
+  color: var(--primary-500);
+  font-size: 20px;
+}
+
+.structure-arbre-detail-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-main);
+}
+
+.structure-arbre-detail-subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+/* ── Stat cards ────────────────────────────────────────────────────────── */
+.structure-arbre-stat-card {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.structure-arbre-stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* ── Action buttons ─────────────────────────────────────────────────────── */
+.structure-arbre-btn-add {
+  border-radius: var(--radius-sm) !important;
+  font-weight: 500 !important;
+}
+
+.structure-arbre-btn-edit {
+  color: var(--btn-info-color) !important;
+  background: var(--btn-info-bg) !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.structure-arbre-btn-edit:hover {
+  background: var(--btn-info-hover-bg) !important;
+  color: var(--btn-info-hover-color) !important;
+}
+
+.structure-arbre-btn-delete {
+  color: var(--btn-danger-color) !important;
+  background: var(--btn-danger-bg) !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.structure-arbre-btn-delete:hover {
+  background: var(--btn-danger-hover-bg) !important;
+  color: var(--btn-danger-hover-color) !important;
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .structure-arbre-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+    border-radius: var(--radius-md);
+  }
+}

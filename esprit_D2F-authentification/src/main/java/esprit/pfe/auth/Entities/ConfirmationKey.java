@@ -1,5 +1,6 @@
-package esprit.pfe.auth.Entities;
+package esprit.pfe.auth.entities;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -8,17 +9,22 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class ConfirmationKey {
+public class ConfirmationKey extends BaseAuditEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String confirmationKey;
+    private String token;
 
     private String emailAddress;
+
+    @Column(nullable = false)
+    private LocalDateTime expiresAt;
 }

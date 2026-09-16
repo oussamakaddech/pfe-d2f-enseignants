@@ -1,0 +1,104 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   D2F Design Tokens — couche « marque » du design system.
+   Source de vérité couleur : ces tokens + variables.css (échelles dérivées).
+   Le miroir TypeScript est src/styles/theme.ts (et themes/tokens.ts pour AntD).
+
+   Règle : les composants consomment UNIQUEMENT des var(--…) — jamais de hex.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Brand Colors ────────────────────────────────────────────────────────── */
+  --color-primary:       #B51200;   /* Rouge marque — principal */
+  --color-primary-light: #E54A3D;
+  --color-primary-dark:  #7A0000;   /* pressed */
+  --color-accent:        #00B4D8;   /* Electric Blue — CTAs */
+  --color-accent-hover:  #0096B7;
+  --color-success:       #10B981;
+  --color-warning:       #F59E0B;
+  --color-danger:        #EF4444;
+  --color-info:          #3B82F6;
+
+  /* ── Neutrals ────────────────────────────────────────────────────────────── */
+  --color-bg:             #F8FAFC;
+  --color-surface:        #FFFFFF;
+  --color-surface-alt:    #F1F5F9;
+  --color-border:         #E2E8F0;
+  --color-text-primary:   #0F172A;
+  --color-text-secondary: #64748B;
+  --color-text-muted:     #94A3B8;
+
+  /* ── Typography ──────────────────────────────────────────────────────────── */
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* ── Breakpoints (Mobile < 640px | Tablet 640–1024px | Desktop > 1024px)
+       NB : non utilisables dans @media (limitation CSS) — répliquer les
+       valeurs en dur dans les media queries, et via theme.ts côté TS. ──────── */
+  --bp-sm: 640px;
+  --bp-md: 1024px;
+  --bp-lg: 1280px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Utilitaires typographiques — hiérarchie cohérente sur toutes les pages.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.text-heading {
+  font-family: var(--font-sans);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  line-height: var(--line-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-text-primary);
+}
+
+.text-body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--font-regular);
+  line-height: var(--line-normal);
+  color: var(--text-body);
+}
+
+.text-caption {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: var(--font-regular);
+  line-height: var(--line-snug);
+  color: var(--color-text-secondary);
+}
+
+.text-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  line-height: var(--line-snug);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Grille de dashboard — CSS Grid obligatoire pour les layouts de tableaux
+   de bord (auto-fit : 1 col mobile → 2 tablette → 4 desktop).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-6);
+}
+
+.dashboard-grid--kpi {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+@media (max-width: 1024px) {
+  .dashboard-grid--kpi { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .dashboard-grid--kpi { grid-template-columns: 1fr; }
+  .dashboard-grid      { gap: var(--space-4); }
+}

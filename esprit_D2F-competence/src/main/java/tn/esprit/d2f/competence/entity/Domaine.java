@@ -1,0 +1,50 @@
+package tn.esprit.d2f.competence.entity;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = "domaines", indexes = {
+        @Index(name = "idx_domaine_code", columnList = "code")
+})
+@Getter
+@Setter
+@EqualsAndHashCode(of = "id", callSuper = false)
+@ToString(exclude = "competences")
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Domaine extends BaseAuditEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(unique = true, nullable = false)
+    private String code;
+
+    @Column(nullable = false)
+    private String nom;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean actif = true;
+
+    @Column(name = "up_id", length = 255)
+    private String upId;
+
+    @Column(name = "departement_id", length = 255)
+    private String departementId;
+
+    @OneToMany(mappedBy = "domaine", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference("domaine-competence")
+    @Builder.Default
+    private List<Competence> competences = new ArrayList<>();
+}

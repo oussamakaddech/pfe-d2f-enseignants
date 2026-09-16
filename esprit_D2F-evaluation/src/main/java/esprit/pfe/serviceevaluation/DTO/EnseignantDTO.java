@@ -1,14 +1,12 @@
-package esprit.pfe.serviceevaluation.DTO;
+package esprit.pfe.serviceevaluation.dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
+@Data
 @AllArgsConstructor
-
-
+@NoArgsConstructor
 public class EnseignantDTO {
     private String id;         // si c'est un string
     private String nom;
@@ -17,5 +15,4 @@ public class EnseignantDTO {
     private String type;
     private String deptLibelle;
     private String upLibelle;
-    // etc...
 }

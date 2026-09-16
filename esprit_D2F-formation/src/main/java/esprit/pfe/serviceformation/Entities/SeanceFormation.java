@@ -1,14 +1,12 @@
-package esprit.pfe.serviceformation.Entities;
+package esprit.pfe.serviceformation.entities;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Time;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @Data
@@ -16,62 +14,66 @@ import java.util.List;
 @AllArgsConstructor
 @Entity
 @Table(name = "seances")
-public class SeanceFormation {
+public class SeanceFormation extends BaseAuditEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idSeance;
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private Long idSeance;
 
-    @Temporal(TemporalType.DATE)
-    private Date dateSeance;
+        private LocalDate dateSeance;
 
-    private Time heureDebut;
-    private Time heureFin;
+        private LocalTime heureDebut;
+        private LocalTime heureFin;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = true)
-    private TypeSeanceEnum typeSeance;
+        @Enumerated(EnumType.STRING)
+        @Column(nullable = true)
+        private TypeSeanceEnum typeSeance;
 
-    // — contenu pédagogique spécifique à la séance —
-    @Column(length=2000,nullable = true)
+        // — numérotation de séance « Séance X/Y » (importée du calendrier des ateliers) —
+        @Column(name = "session_number", nullable = true)
+        private Integer numeroSeance; // X
 
-    private String contenus;          // concepts clés
-    @Column(length=2000,nullable = true)
-    private String methodes;
-    @Column(nullable = true)
-    private Float dureeTheorique;     // en heures
-    @Column(nullable = true)
-    private Float dureePratique;      // en heures
+        @Column(name = "total_sessions", nullable = true)
+        private Integer totalSeances; // Y
 
-    @Column(length = 255, nullable = true)
-    private String salle;
-    @Column(name = "calendar_event_id")
-    private String calendarEventId;
-    // Relation vers Formation
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "formation_id")
+        // Statut de diffusion de la séance : TEAMS, OPEN (ouverte) ou CLOSED (fermée)
+        @Column(name = "session_status", length = 30, nullable = true)
+        private String sessionStatus;
 
-    private Formation formation;
+        // — contenu pédagogique spécifique à la séance —
+        @Column(length = 2000, nullable = true)
 
-    // Les animateurs affectés à cette séance
-    @ManyToMany
-    @JoinTable(
-            name = "seance_animateur",
-            joinColumns = @JoinColumn(name = "seance_id"),
-            inverseJoinColumns = @JoinColumn(name = "enseignant_id")
-    )
-    private List<Enseignant> animateurs;
+        private String contenus; // concepts clés
+        @Column(length = 2000, nullable = true)
+        private String methodes;
+        @Column(nullable = true)
+        private Float dureeTheorique; // en heures
+        @Column(nullable = true)
+        private Float dureePratique; // en heures
 
-    // Les participants affectés à cette séance
-    @ManyToMany
-    @JoinTable(
-            name = "seance_participant",
-            joinColumns = @JoinColumn(name = "seance_id"),
-            inverseJoinColumns = @JoinColumn(name = "enseignant_id")
-    )
-    private List<Enseignant> participants;
+        @Column(length = 255, nullable = true)
+        private String salle;
+        @Column(name = "calendar_event_id")
+        private String calendarEventId;
+        @Column(name = "online_meeting_url", length = 500, nullable = true)
+        private String onlineMeetingUrl; // URL de réunion Teams générée automatiquement
+        // Relation vers Formation
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "formation_id")
 
-    // Liste de présences
-    @OneToMany(mappedBy = "seanceFormation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Presence> presences;
+        private Formation formation;
+
+        // Les animateurs affectés à cette séance
+        @ManyToMany
+        @JoinTable(name = "seance_animateur", joinColumns = @JoinColumn(name = "seance_id"), inverseJoinColumns = @JoinColumn(name = "enseignant_id"))
+        private List<Enseignant> animateurs;
+
+        // Les participants affectés à cette séance
+        @ManyToMany
+        @JoinTable(name = "seance_participant", joinColumns = @JoinColumn(name = "seance_id"), inverseJoinColumns = @JoinColumn(name = "enseignant_id"))
+        private List<Enseignant> participants;
+
+        // Liste de présences
+        @OneToMany(mappedBy = "seanceFormation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+        private List<Presence> presences;
 }

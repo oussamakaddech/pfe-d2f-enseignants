@@ -1,0 +1,130 @@
+.hero {
+  position: relative;
+  margin-bottom: 24px;
+  padding: 26px 30px;
+  border-radius: 20px;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.hero.compact {
+  padding: 18px 22px;
+  border-radius: 16px;
+  margin-bottom: 16px;
+}
+
+.glowA,
+.glowB {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(60px);
+  opacity: 0.55;
+}
+
+.glowA {
+  width: 280px;
+  height: 280px;
+  top: -120px;
+  right: -80px;
+}
+
+.glowB {
+  width: 200px;
+  height: 200px;
+  bottom: -90px;
+  left: 25%;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
+
+.iconBox {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero.compact .iconBox {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  font-size: 20px;
+}
+
+.iconOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), transparent 60%);
+  pointer-events: none;
+}
+
+.titleBlock {
+  min-width: 0;
+  flex: 1;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: 26px !important;
+  font-weight: 800 !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.02em;
+}
+
+.hero.compact .title {
+  font-size: 20px !important;
+}
+
+.subtitle {
+  color: #64748b;
+  font-size: 13.5px;
+  margin-top: 4px;
+  line-height: 1.45;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .hero {
+    padding: 20px 20px;
+  }
+  .title {
+    font-size: 20px !important;
+  }
+}

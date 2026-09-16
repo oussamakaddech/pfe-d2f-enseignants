@@ -1,0 +1,117 @@
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-sm);
+}
+
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.65) 50%,
+    transparent 100%
+  );
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer::after { animation: none; }
+}
+
+/* ── Table ──────────────────────────────────────────────────────────────── */
+.table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.tableHeader {
+  height: 36px;
+  border-radius: var(--radius-sm);
+}
+
+.tableRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.tableCell {
+  height: 22px;
+  flex: 1;
+}
+
+/* ── Card ───────────────────────────────────────────────────────────────── */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.cardTitle  { height: 18px; width: 60%; }
+.cardLine   { height: 13px; width: 100%; }
+.cardFooter { height: 30px; width: 40%; margin-top: var(--space-2); }
+
+/* ── KPI ────────────────────────────────────────────────────────────────── */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.kpi {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.kpiLabel { height: 13px; width: 55%; }
+.kpiValue { height: 30px; width: 40%; }
+.kpiTrend { height: 12px; width: 70%; }
+
+/* ── Text / avatar ──────────────────────────────────────────────────────── */
+.textBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.textLine { height: 14px; }
+
+.avatarRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.avatarCircle {
+  border-radius: 50%;
+  flex: none;
+}

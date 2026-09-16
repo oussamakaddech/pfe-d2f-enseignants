@@ -1,0 +1,80 @@
+import { Select, Typography, Space } from "antd";
+
+const { Text } = Typography;
+
+interface Enseignant {
+  mail?: string;
+  nom?: string;
+  prenom?: string;
+}
+
+interface Session {
+  dateSeance?: string;
+  heureDebut?: string;
+  heureFin?: string;
+  salle?: string;
+  animateurs?: Enseignant[];
+  participants?: Enseignant[];
+}
+
+interface SessionEditorProps {
+  session: Session;
+  enseignants: Enseignant[];
+  onSessionChange: (session: Session) => void;
+}
+
+function SessionEditor({ session, enseignants, onSessionChange }: Readonly<SessionEditorProps>) {
+  const enseignantOptions = enseignants.map((e) => ({
+    value: e.mail,
+    label: `${e.nom} ${e.prenom} (${e.mail})`,
+    ...e,
+  }));
+
+  const handleAnimateursChange = (values: string[]) => {
+    const selected = enseignants.filter((e) => values.includes(e.mail ?? ""));
+    onSessionChange({ ...session, animateurs: selected });
+  };
+
+  const handleParticipantsChange = (values: string[]) => {
+    const selected = enseignants.filter((e) => values.includes(e.mail ?? ""));
+    onSessionChange({ ...session, participants: selected });
+  };
+
+  return (
+    <div style={{ border: "1px solid #d9d9d9", borderRadius: 8, padding: 16, marginBottom: 16 }}>
+      <Text strong style={{ display: "block", marginBottom: 12 }}>
+        Séance du {session.dateSeance} de {session.heureDebut} à {session.heureFin} – Salle : {session.salle || "N/D"}
+      </Text>
+      <Space direction="vertical" style={{ width: "100%" }}>
+        <div>
+          <Text type="secondary" style={{ display: "block", marginBottom: 4 }}>Animateurs</Text>
+          <Select
+            mode="multiple"
+            placeholder="Sélectionner les animateurs"
+            options={enseignantOptions}
+            value={(session.animateurs || []).map((a) => a.mail ?? "")}
+            onChange={handleAnimateursChange}
+            style={{ width: "100%" }}
+            optionFilterProp="label"
+            showSearch
+          />
+        </div>
+        <div>
+          <Text type="secondary" style={{ display: "block", marginBottom: 4 }}>Participants</Text>
+          <Select
+            mode="multiple"
+            placeholder="Sélectionner les participants"
+            options={enseignantOptions}
+            value={(session.participants || []).map((p) => p.mail ?? "")}
+            onChange={handleParticipantsChange}
+            style={{ width: "100%" }}
+            optionFilterProp="label"
+            showSearch
+          />
+        </div>
+      </Space>
+    </div>
+  );
+}
+
+export default SessionEditor;

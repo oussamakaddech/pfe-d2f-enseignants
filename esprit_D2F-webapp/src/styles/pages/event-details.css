@@ -1,0 +1,90 @@
+/* ─── EventDetails.css ──────────────────────────────────────────────────── */
+
+.event-details-page {
+  max-width: var(--max-page-width);
+  margin: 0 auto;
+}
+
+.event-details-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-4);
+}
+
+.event-details-card .ant-card-head {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.event-details-card .ant-card-head-title {
+  font-weight: var(--font-semibold);
+  font-size: var(--text-lg);
+  color: var(--text-main);
+}
+
+.event-details-info-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.event-details-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.event-details-info-label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-muted);
+}
+
+.event-details-info-value {
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  color: var(--text-main);
+}
+
+.event-details-section {
+  margin-bottom: var(--space-5);
+}
+
+.event-details-section-title {
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  color: var(--text-main);
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--primary-500);
+  display: inline-block;
+}
+
+.event-details-participants-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.event-details-participant-tag {
+  border-radius: var(--radius-full);
+  font-weight: var(--font-medium);
+}
+
+.event-details-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-color);
+}
+
+@media (max-width: 768px) {
+  .event-details-info-row {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+}

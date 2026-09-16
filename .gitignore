@@ -1,0 +1,104 @@
+node_modules/
+.vscode/
+__pycache__/
+*.pyc
+_semantic_cache/
+*.log
+diag_out.txt
+actions-runner/
+**/target/
+*.zip
+
+# ── Claude Code agent worktrees (copies transitoires, secrets/clutter) ────────
+.claude/worktrees/
+
+# ── Secrets & environment files (DSI §1.1 — jamais committer) ─────────────────
+.env
+.env.local
+.env.prod
+.env.qa
+.env.*
+!.env.example
+
+# ── Fichiers de build / compilation ───────────────────────────────────────────
+**/dist/
+**/.pytest_cache/
+
+# ── Fichiers temporaires / backup ─────────────────────────────────────────────
+*.old
+*.bak
+*.new
+rice_analyzer_backup.py
+run.log
+diag_out.txt
+debug_ens.py
+diag_tv.py
+
+# Large build artifacts
+formation-service.jar
+
+# ── Cookies & sessions (jamais committer — fuite de credentials) ─────────────
+cookies.txt
+cookies2.txt
+cookies_admin.txt
+cookies_*.txt
+
+# ── Dumps de base de données (données personnelles) ──────────────────────────
+dump_*.sql
+*.dump
+
+# ── Artefacts parasites Windows (redirection NUL) ────────────────────────────
+nul
+
+# ── Fichiers de listing temporaires ──────────────────────────────────────────
+_allfiles.txt
+
+# ── Rapport PFE ────────────────────────────────────────────────────────────────
+rapport-pfe/
+
+# ── SonarQube / Coverage artefacts ─────────────────────────────────────────────
+**/.scannerwork/
+**/coverage/
+**/coverage.xml
+**/.coverage
+**/coverage_output.txt
+**/cov_*.txt
+**/junit-results.xml
+**/qg.json
+**/ct.json
+**/m.json
+**/nh.json
+**/nv.json
+**/test_fiche_tv.txt
+**/test_rice_fiche.py
+**/referentiel_extracted.json
+**/exemple_web.txt
+
+# ── Artefacts CI à la racine (jamais suivis) ──────────────────────────────
+/coverage.xml
+/junit-results.xml
+/sonar_bugs.json
+/sonar_hs.json
+
+# ── Dossiers non sources (rapports, figures, agent, sonar, extraits) ──────
+.claude/
+.scannerwork/
+rapport-pfe/
+figures/
+org/
+
+# ── Scripts temporaires ────────────────────────────────────────────────────────
+check_counts.sql
+check_dashboard.py
+git_commit.ps1
+run_batch_analysis.py
+run_single_analysis.py
+train_model.py
+resume_classes_relations.md
+
+
+# Sonar/coverage generated artifacts
+**/.coverage
+**/.scannerwork/
+**/coverage.xml
+**/junit-results.xml

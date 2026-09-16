@@ -1,0 +1,161 @@
+/* ─── SkillPassportPage.css ──────────────────────────────────────────────── */
+
+.passport-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ── Carte identité ──────────────────────────────────────────────────────── */
+.passport-identity-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--primary-500);
+  box-shadow: var(--shadow-sm);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.passport-identity-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.passport-identity-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.passport-identity-meta .anticon {
+  margin-right: 5px;
+  color: var(--primary-400);
+}
+
+.passport-score {
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.passport-score-value {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.passport-score-denom {
+  font-size: 18px;
+  color: var(--neutral-400);
+  font-weight: 400;
+}
+
+/* ── Cartes KPI ──────────────────────────────────────────────────────────── */
+.passport-kpi-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+  padding: 20px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.passport-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.passport-kpi-icon {
+  font-size: 26px;
+  margin-bottom: 6px;
+}
+
+/* ── Sections de contenu ─────────────────────────────────────────────────── */
+.passport-section-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 20px;
+}
+
+.passport-section-card .ant-card-head {
+  border-bottom: 1px solid var(--border-color);
+  min-height: 48px;
+  padding: 0 20px;
+}
+
+.passport-section-card .ant-card-head-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+/* ── Domaine de compétences ──────────────────────────────────────────────── */
+.passport-domain-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.passport-domain-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary-700);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.passport-domain-name::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 14px;
+  background: var(--primary-500);
+  border-radius: 2px;
+}
+
+.passport-domain-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-left: 8px;
+}
+
+/* ── Gaps prioritaires ───────────────────────────────────────────────────── */
+.passport-gap-critical {
+  background: var(--color-error-bg) !important;
+}
+
+.passport-gap-warning {
+  background: var(--color-warning-bg) !important;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .passport-identity-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .passport-score {
+    width: 100%;
+    text-align: left;
+  }
+
+  .passport-identity-meta {
+    flex-direction: column;
+    gap: 6px;
+  }
+}

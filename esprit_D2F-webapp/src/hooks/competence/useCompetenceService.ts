@@ -1,0 +1,35 @@
+import CompetenceService from "@/services/competence/CompetenceService";
+export type { TreeNode, NiveauDefinition, EnseignantCompetence, AssignRequest, PrerequisiteRequest } from "@/models/competence";
+
+export function useCompetenceDomaineApi() {
+  return CompetenceService.domaine;
+}
+
+export function useCompetenceApi() {
+  return CompetenceService.competence;
+}
+
+export function useSousCompetenceApi() {
+  return CompetenceService.sousCompetence;
+}
+
+export function useSavoirApi() {
+  return CompetenceService.savoir;
+}
+
+export function useEnseignantCompetenceApi() {
+  return CompetenceService.enseignantCompetence;
+}
+
+export function useNiveauDefinitionApi() {
+  return CompetenceService.niveauDefinition;
+}
+
+export function useStructureApi() {
+  return CompetenceService.structure;
+}
+
+export function usePrerequisiteApi() {
+  return CompetenceService.prerequisite;
+}
+

@@ -1,67 +1,129 @@
-package esprit.pfe.serviceformation.DTO;
+package esprit.pfe.serviceformation.dto;
 
-import esprit.pfe.serviceformation.Entities.EtatFormation;
-import esprit.pfe.serviceformation.Entities.TypeFormation;
-import esprit.pfe.serviceformation.Entities.TypeSeanceEnum;
-import jakarta.persistence.Column;
+import esprit.pfe.serviceformation.entities.EtatFormation;
+import esprit.pfe.serviceformation.entities.TypeFormation;
+import esprit.pfe.serviceformation.entities.TypeSeanceEnum;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
 import lombok.Data;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 @Data
 public class FormationWorkflowRequest {
     private String typeBesoin;
+
     private Long idBesoinFormation;
+
+    @NotBlank(message = "Le titre de la formation est obligatoire")
+    @Size(min = 5, max = 200, message = "Le titre doit contenir entre 5 et 200 caractères")
     private String titreFormation;
-    private Date dateDebut;
-    private Date dateFin;
+
+    @NotNull(message = "La date de début est obligatoire")
+    private LocalDate dateDebut;
+
+    @NotNull(message = "La date de fin est obligatoire")
+    private LocalDate dateFin;
+
+    @NotNull(message = "Le type de formation est obligatoire")
     private TypeFormation typeFormation;
+
     private EtatFormation etatFormation;
-    private float coutFormation;
+
+    private Float coutFormation;
+
     private String externeFormateurNom;
     private String externeFormateurPrenom;
+
+    @Email(message = "Format d'email invalide")
     private String externeFormateurEmail;
+
     private String organismeRefExterne;
-    private int chargeHoraireGlobal;
+
+    private String bureauFormationNom;
+
+    @Email(message = "Format d'email invalide pour le bureau de formation")
+    private String bureauFormationMail;
+
+    private String bureauFormationTelephone;
+
+    private Integer chargeHoraireGlobal;
+
     private String upId;
     private String departementId;
 
-
-
-    // Nouveaux champs pour enrichir la formation
-    private String competance;
+    private String competence;
     private String domaine;
     private String populationCible;
+    
     private String objectifs;
+    
     private String objectifsPedago;
     private String evalMethods;
+    
+    @PositiveOrZero
     private Float coutTransport;
+    @PositiveOrZero
     private Float coutHebergement;
+    @PositiveOrZero
     private Float coutRepas;
+    
     private String prerequis;
     private String acquis;
     private String indicateurs;
 
     private List<String> animateursIds;
     private List<String> participantsIds;
+
+    // New: Configuration-based addition (MANUAL, AUTO_BY_DEPT, AUTO_BY_UP)
+    private FormationWorkflowRequestAdditionConfig.AnimateurAdditionConfig animateurConfig;
+    private FormationWorkflowRequestAdditionConfig.ParticipantAdditionConfig participantConfig;
+
+    // IDs des animateurs externes (rattachés à un bureau) sélectionnés pour une formation externe
+    private List<Long> animateursExternesIds;
+
+    @Valid
     private List<SeanceRequest> seances;
+
     private boolean ouverte = false;
     private boolean inscriptionsOuvertes = false;
+
+    private String salle;
+
+    private String periodCode;
+    private String customPeriodLabel;
+
+    private String responsableEmail;
+    private String responsableName;
 
     @Data
     public static class SeanceRequest {
         private Long idSeance;
-        private Date dateSeance;
+
+        @NotNull(message = "La date de la séance est obligatoire")
+        private LocalDate dateSeance;
+
+        @NotBlank(message = "L'heure de début est obligatoire")
         private String heureDebut;
+
+        @NotBlank(message = "L'heure de fin est obligatoire")
         private String heureFin;
+
         private String salle;
+
         private TypeSeanceEnum typeSeance;
+
         private String contenus;
         private String methodes;
+        
+        @PositiveOrZero
         private Float dureeTheorique;
+        @PositiveOrZero
         private Float dureePratique;
+        
         private List<String> animateursIds;
         private List<String> participantsIds;
     }
 }
+

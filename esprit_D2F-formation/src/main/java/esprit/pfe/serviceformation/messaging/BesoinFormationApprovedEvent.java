@@ -22,11 +22,15 @@ public class BesoinFormationApprovedEvent {
     private String moyensPedagogiques;
     private String methodesEvaluationAcquis;
     private String profilFormateur;
+    private String titre;
+    private String horaireSouhaite;
     private String up;
     private String departement;
     private Boolean approuveCUP;
     private Boolean approuveChefDep;
     private Boolean approuveAdmin;
     private String notificationMessage;
+    private String periodCode;
+    private String customPeriodLabel;
 }
 

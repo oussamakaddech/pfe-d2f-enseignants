@@ -1,0 +1,1 @@
+org.springframework.boot.env.EnvironmentPostProcessor=esprit.pfe.serviceevaluation.config.DotEnvEnvironmentPostProcessor

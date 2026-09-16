@@ -1,5 +1,4 @@
-package esprit.pfe.serviceformation.Entities;
-
+package esprit.pfe.serviceformation.entities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -11,13 +10,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Entity
 @Table(name = "presences")
-public class Presence {
+public class Presence extends BaseAuditEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idParticipation;
 
-    private boolean presence;
+    @Column(name = "presence")
+    private boolean present;
     private String commentaire;
 
     // Relation vers la séance à laquelle la présence est associée

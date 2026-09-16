@@ -1,0 +1,43 @@
+/* ─── CertificatePage.css ──────────────────────────────────────────────── */
+
+.certificate-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ── Statistiques ──────────────────────────────────────────────────────── */
+.certificate-stat-card {
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.certificate-stat-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+/* ── Card principale ───────────────────────────────────────────────────── */
+.certificate-main-card {
+  margin: 0 0 24px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+}
+
+/* ── Tags rôles ────────────────────────────────────────────────────────── */
+.certificate-role-tag {
+  border-radius: 12px;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+/* ── Search bar ────────────────────────────────────────────────────────── */
+.certificate-search-bar {
+  margin-bottom: 16px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}

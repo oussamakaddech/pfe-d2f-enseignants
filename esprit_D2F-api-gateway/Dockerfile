@@ -8,24 +8,27 @@ LABEL maintainer="seddik bouzayani <seddik.bouzayani@esprit.tn>"
 # Workdir
 WORKDIR /opt/app
 
+# Install dos2unix for line-ending fixes on Alpine
+RUN apk add --no-cache dos2unix
+
 # Copy Maven Wrapper
 COPY .mvn/ .mvn
 
 # Copy Maven Wrapper script && pom.xml
 COPY mvnw pom.xml ./
 
-# Fix mvnw & 
+# Fix mvnw &
 RUN dos2unix mvnw && \
     chmod u+x mvnw
 
-# Resolves all project dependencies offline and keep cache   
+# Resolves all project dependencies offline and keep cache
 RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline
 
 # Copy source code application
 COPY ./src ./src
 
 # Install the package to a local repository and keep cache
-RUN --mount=type=cache,target=/root/.m2 ./mvnw clean install -DskipTests
+RUN --mount=type=cache,target=/root/.m2 ./mvnw clean install -Dmaven.test.skip=true
 
 # Unpacking the jar file
 RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
@@ -40,6 +43,9 @@ LABEL maintainer="seddik bouzayani <seddik.bouzayani@esprit.tn>"
 # Create user
 RUN addgroup -g 2003 esprit ; adduser  --ingroup esprit --disabled-password --uid 2003 esprit
 
+# Install curl for HEALTHCHECK
+RUN apk add --no-cache curl
+
 # Use user
 USER esprit
 
@@ -51,5 +57,12 @@ COPY --from=builder ${DEPENDENCY}/BOOT-INF/lib /opt/app/lib
 COPY --from=builder ${DEPENDENCY}/META-INF /opt/app/META-INF
 COPY --from=builder ${DEPENDENCY}/BOOT-INF/classes /opt/app
 
-# Run pgpg_profile when container starts
-ENTRYPOINT ["java","-cp","opt/app:opt/app/lib/*","com.example.servicegateway.ServiceGatewayApplication"]
+# Expose port
+EXPOSE 8080
+
+# Healthcheck — vérifie que Spring Boot Actuator répond (conformité DSI §2.1)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -sf http://localhost:8080/actuator/health || exit 1
+
+# Run app when container starts
+ENTRYPOINT ["java","-cp","/opt/app:/opt/app/lib/*","com.example.servicegateway.ServiceGatewayApplication"]

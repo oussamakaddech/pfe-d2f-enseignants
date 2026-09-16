@@ -1,7 +1,6 @@
-package esprit.pfe.serviceformation.Repositories;
+package esprit.pfe.serviceformation.repositories;
 
-import esprit.pfe.serviceformation.Entities.Dept;
-import esprit.pfe.serviceformation.Entities.Up;
+import esprit.pfe.serviceformation.entities.Up;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

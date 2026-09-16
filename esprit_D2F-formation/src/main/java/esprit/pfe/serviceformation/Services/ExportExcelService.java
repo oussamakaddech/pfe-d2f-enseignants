@@ -1,245 +1,604 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.DTO.*;
+import esprit.pfe.serviceformation.dto.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.WorkbookUtil;
+import org.apache.poi.xssf.usermodel.XSSFPrintSetup;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.sql.Time;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class ExportExcelService {
-    @Autowired
-    private FormationWorkflowService formationWorkflowService;
+    private final FormationWorkflowService formationWorkflowService;
 
-    public ByteArrayOutputStream exportFormationsAvance(Date startDate, Date endDate) throws IOException {
+    private static final short COLOR_DARK_BLUE = (short) 0x1F4E79;
+    private static final short COLOR_LIGHT_BLUE = (short) 0xBDD7EE;
+    private static final short COLOR_DATE_BG = (short) 0xDAE3F3;
+    private static final short COLOR_ALT_ROW = (short) 0xDEEAF1;
+    private static final short COLOR_BORDER = (short) 0xB8CCE4;
+    private static final short COLOR_HEADER_BORDER = (short) 0x2E75B6;
 
-        // 1) Récupérer la liste de formations
-        List<FormationDTO> formations = formationWorkflowService.getAllFormationWorkflows();
+    private void setAllBorders(CellStyle style, BorderStyle borderStyle, short color) {
+        style.setBorderTop(borderStyle);
+        style.setTopBorderColor(color);
+        style.setBorderBottom(borderStyle);
+        style.setBottomBorderColor(color);
+        style.setBorderLeft(borderStyle);
+        style.setLeftBorderColor(color);
+        style.setBorderRight(borderStyle);
+        style.setRightBorderColor(color);
+    }
 
-        // 2) Construire une liste à plat de séances filtrées par période
-        List<SeanceExport> allSeances = new ArrayList<>();
-        for (FormationDTO formation : formations) {
-            if (formation.getSeances() != null) {
-                for (SeanceDTO seance : formation.getSeances()) {
-                    if (seance.getDateSeance() == null) continue;
-                    Date dateSeance = seance.getDateSeance();
-                    if (dateSeance.before(startDate) || dateSeance.after(endDate)) continue;
-                    SeanceExport exp = new SeanceExport();
-                    exp.dateSeance     = dateSeance;
-                    exp.heureDebut     = seance.getHeureDebut();
-                    exp.heureFin       = seance.getHeureFin();
-                    exp.salle          = seance.getSalle();
-                    exp.titreFormation = formation.getTitreFormation();
-                    exp.formateurs     = Optional.ofNullable(seance.getAnimateurs())
-                            .orElse(Collections.emptyList())
-                            .stream()
-                            .map(a -> a.getNom() + " " + a.getPrenom())
-                            .collect(Collectors.joining(", "));
-                    String equipe =
-                            Optional.ofNullable(formation.getDepartement1())
-                                    .map(DeptDTO::getLibelle)
-                                    .orElse("")
-                                    + " / "
-                                    + Optional.ofNullable(formation.getUp1())
-                                    .map(UpDTO::getLibelle)
-                                    .orElse("");
-                    exp.equipe = equipe;
-                    allSeances.add(exp);
+    public ByteArrayOutputStream exportFormationsAvance(LocalDate startDate, LocalDate endDate) throws IOException {
+        List<FormationResponseDTO> formations = formationWorkflowService.getAllFormationWorkflows();
+        List<SeanceExport> allSeances = extractFilteredSeances(formations, startDate, endDate);
+
+        Workbook workbook = new XSSFWorkbook();
+        createSummarySheet(workbook, formations, allSeances, startDate, endDate);
+        createCalendarSheet(workbook, allSeances, startDate, endDate);
+        createParticipantSheets(workbook, formations);
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (workbook) {
+            workbook.write(out);
+        }
+        return out;
+    }
+
+    private void createSummarySheet(Workbook workbook, List<FormationResponseDTO> formations,
+                                     List<SeanceExport> allSeances, LocalDate startDate, LocalDate endDate) {
+        Sheet sheet = workbook.createSheet("Résumé");
+
+        CellStyle titleStyle = createSummaryTitleStyle(workbook);
+        CellStyle subtitleStyle = createSummarySubtitleStyle(workbook);
+        CellStyle headerStyle = createHeaderStyle(workbook);
+        CellStyle dataStyle = createDataCellStyle(workbook);
+        CellStyle altStyle = createAlternateRowStyle(workbook);
+
+        Row titleRow = sheet.createRow(0);
+        Cell titleCell = titleRow.createCell(0);
+        titleCell.setCellValue("Tableau de Bord des Formations");
+        titleCell.setCellStyle(titleStyle);
+        sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 1));
+
+        DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        String dateRange = formatDateRange(startDate, endDate, df);
+        Row subtitleRow = sheet.createRow(1);
+        Cell subtitleCell = subtitleRow.createCell(0);
+        subtitleCell.setCellValue(dateRange);
+        subtitleCell.setCellStyle(subtitleStyle);
+        sheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 1));
+
+        String[] statLabels = {
+            "Total Formations",
+            "Total Sessions",
+            "Total Participants",
+            "Date Début",
+            "Date Fin",
+            "Date Génération"
+        };
+
+        int totalParticipants = countUniqueParticipants(formations);
+        String[] statValues = {
+            String.valueOf(countFormationsWithSeances(formations)),
+            String.valueOf(allSeances.size()),
+            String.valueOf(totalParticipants),
+            formatDate(startDate, df),
+            formatDate(endDate, df),
+            java.time.LocalDate.now(ZoneId.systemDefault()).format(df)
+        };
+
+        Row headerRow = sheet.createRow(3);
+        Cell h1 = headerRow.createCell(0);
+        h1.setCellValue("Indicateur");
+        h1.setCellStyle(headerStyle);
+        Cell h2 = headerRow.createCell(1);
+        h2.setCellValue("Valeur");
+        h2.setCellStyle(headerStyle);
+
+        for (int i = 0; i < statLabels.length; i++) {
+            Row row = sheet.createRow(4 + i);
+            Cell labelCell = row.createCell(0);
+            labelCell.setCellValue(statLabels[i]);
+            labelCell.setCellStyle(i % 2 == 0 ? dataStyle : altStyle);
+
+            Cell valueCell = row.createCell(1);
+            valueCell.setCellValue(statValues[i]);
+            valueCell.setCellStyle(i % 2 == 0 ? dataStyle : altStyle);
+        }
+
+        sheet.setColumnWidth(0, 18 * 256);
+        sheet.setColumnWidth(1, 25 * 256);
+        sheet.createFreezePane(0, 4);
+    }
+
+    private int countFormationsWithSeances(List<FormationResponseDTO> formations) {
+        return (int) formations.stream()
+                .filter(f -> f.getSeances() != null && !f.getSeances().isEmpty())
+                .count();
+    }
+
+    private int countUniqueParticipants(List<FormationResponseDTO> formations) {
+        Set<String> uniqueParticipants = new HashSet<>();
+        for (FormationResponseDTO f : formations) {
+            if (f.getSeances() == null) continue;
+            for (SeanceDTO s : f.getSeances()) {
+                if (s.getParticipants() == null) continue;
+                for (EnseignantDTO e : s.getParticipants()) {
+                    if (e.getMail() != null) {
+                        uniqueParticipants.add(e.getMail());
+                    }
                 }
             }
         }
+        return uniqueParticipants.size();
+    }
 
-        // 3) Tri
-        allSeances.sort(Comparator
-                .comparing((SeanceExport s) -> s.dateSeance)
-                .thenComparing(s -> s.heureDebut)
-        );
+    private void createCalendarSheet(Workbook workbook, List<SeanceExport> allSeances,
+                                      LocalDate startDate, LocalDate endDate) {
+        Sheet sheet = workbook.createSheet("Calendrier");
 
-        // 4) Groupement par date
-        Map<Date,List<SeanceExport>> mapByDate = new LinkedHashMap<>();
-        for (SeanceExport s : allSeances) {
-            mapByDate.computeIfAbsent(s.dateSeance, k -> new ArrayList<>())
-                    .add(s);
-        }
+        Map<LocalDate, List<SeanceExport>> mapByDate = groupSeancesByDate(allSeances);
+        DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        String dateRange = formatDateRange(startDate, endDate, df);
 
-        // 5) Création du Workbook et de la première feuille
-        Workbook workbook = new XSSFWorkbook();
-        Sheet sheetCalendar = workbook.createSheet("Calendrier Avancé");
+        CellStyle titleStyle = createCalendarTitleStyle(workbook);
+        CellStyle subtitleStyle = createCalendarSubtitleStyle(workbook);
+        CellStyle headerStyle = createHeaderStyle(workbook);
+        CellStyle dateCellStyle = createDateCellStyle(workbook);
+        CellStyle spacingStyle = createSpacingStyle(workbook);
+        CellStyle dataStyle = createDataCellStyle(workbook);
+        CellStyle altStyle = createAlternateRowStyle(workbook);
 
-        // Styles…
-        CellStyle titleStyle = workbook.createCellStyle();
-        Font titleFont = workbook.createFont();
-        titleFont.setBold(true);
-        titleFont.setFontHeightInPoints((short)16);
-        titleFont.setColor(IndexedColors.WHITE.getIndex());
-        titleStyle.setFont(titleFont);
-        titleStyle.setAlignment(HorizontalAlignment.CENTER);
-        titleStyle.setFillForegroundColor(IndexedColors.BLUE.getIndex());
-        titleStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-
-        CellStyle headerStyle = workbook.createCellStyle();
-        Font headerFont = workbook.createFont();
-        headerFont.setBold(true);
-        headerFont.setColor(IndexedColors.WHITE.getIndex());
-        headerStyle.setFont(headerFont);
-        headerStyle.setFillForegroundColor(IndexedColors.GREY_50_PERCENT.getIndex());
-        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        headerStyle.setAlignment(HorizontalAlignment.CENTER);
-
-        CellStyle dateCellStyle = workbook.createCellStyle();
-        dateCellStyle.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
-        dateCellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        dateCellStyle.setAlignment(HorizontalAlignment.CENTER);
-
-        CellStyle spacingStyle = workbook.createCellStyle();
-        spacingStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
-        spacingStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-
-        // Titre
-        SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
-        String titrePeriode = "Calendrier des formations du "
-                + df.format(startDate) + " au " + df.format(endDate);
-        Row titleRow = sheetCalendar.createRow(0);
+        Row titleRow = sheet.createRow(0);
         Cell titleCell = titleRow.createCell(0);
-        titleCell.setCellValue(titrePeriode);
+        titleCell.setCellValue("Calendrier des Formations");
         titleCell.setCellStyle(titleStyle);
-        sheetCalendar.addMergedRegion(new CellRangeAddress(0,0,0,8));
+        sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 6));
 
-        // En-tête
-        int rowIndex = 2;
-        Row headerRow = sheetCalendar.createRow(rowIndex++);
-        String[] headers = {
-                "Date","Formation","Formateur(s)","Équipe (Dept/UP)",
-                "Horaire","Salle","Num Séance"
-        };
+        Row subtitleRow = sheet.createRow(1);
+        Cell subtitleCell = subtitleRow.createCell(0);
+        subtitleCell.setCellValue(dateRange);
+        subtitleCell.setCellStyle(subtitleStyle);
+        sheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 6));
+
+        Row headerRow = sheet.createRow(2);
+        String[] headers = {"Date", "Formation", "Formateur(s)", "Équipe (Dept/UP)", "Horaire", "Salle", "Séance"};
         for (int i = 0; i < headers.length; i++) {
             Cell c = headerRow.createCell(i);
             c.setCellValue(headers[i]);
             c.setCellStyle(headerStyle);
         }
 
-        // Données
+        int rowIndex = 3;
         boolean firstGroup = true;
-        for (Map.Entry<Date,List<SeanceExport>> entry : mapByDate.entrySet()) {
-            Date date = entry.getKey();
-            List<SeanceExport> list = entry.getValue();
+        for (Map.Entry<LocalDate, List<SeanceExport>> entry : mapByDate.entrySet()) {
             if (!firstGroup) {
-                Row spacer = sheetCalendar.createRow(rowIndex++);
+                Row spacer = sheet.createRow(rowIndex++);
                 spacer.createCell(0).setCellStyle(spacingStyle);
             }
             firstGroup = false;
+
             int groupStart = rowIndex;
-            int total = list.size(), idx = 0;
-            for (SeanceExport s : list) {
+            List<SeanceExport> seances = entry.getValue();
+            int total = seances.size();
+            int idx = 0;
+
+            for (SeanceExport s : seances) {
                 idx++;
-                Row r = sheetCalendar.createRow(rowIndex++);
-                r.createCell(1).setCellValue(s.titreFormation);
-                r.createCell(2).setCellValue(s.formateurs);
-                r.createCell(3).setCellValue(s.equipe);
-                String hd = s.heureDebut != null ? s.heureDebut.toString() : "";
-                String hf = s.heureFin   != null ? s.heureFin.toString()   : "";
-                r.createCell(4).setCellValue(hd + " - " + hf);
-                r.createCell(5).setCellValue(Optional.ofNullable(s.salle).orElse(""));
-                r.createCell(6).setCellValue(idx + "/" + total);
-                // r.createCell(7).setCellValue("Début: " + hd + " - Fin: " + hf);
-                if (s.heureDebut != null && s.heureDebut.after(Time.valueOf("12:30:00"))) {
-                    Row blank = sheetCalendar.createRow(rowIndex++);
+                Row r = sheet.createRow(rowIndex);
+                boolean isAlt = (rowIndex % 2 == 0);
+                CellStyle rowStyle = isAlt ? altStyle : dataStyle;
+                writeSeanceRow(r, s, idx, total, rowStyle);
+
+                if (isAfternoonSeance(s) && idx < total) {
+                    rowIndex++;
+                    Row blank = sheet.createRow(rowIndex);
                     blank.createCell(0).setCellStyle(spacingStyle);
                 }
+                rowIndex++;
             }
+
             int groupEnd = rowIndex - 1;
-            if (groupEnd > groupStart) {
-                sheetCalendar.addMergedRegion(new CellRangeAddress(groupStart, groupEnd, 0, 0));
-                Row first = sheetCalendar.getRow(groupStart);
-                Cell dc = first.createCell(0);
-                dc.setCellValue(df.format(date));
-                dc.setCellStyle(dateCellStyle);
-            } else {
-                Row only = sheetCalendar.getRow(groupStart);
-                Cell dc = only.createCell(0);
-                dc.setCellValue(df.format(date));
-                dc.setCellStyle(dateCellStyle);
-            }
+            applyDateMerging(sheet, entry.getKey(), groupStart, groupEnd, dateCellStyle, df);
         }
 
-        // → largeur colonnes 0 à 8
-        for (int col = 0; col < 9; col++) {
-            sheetCalendar.setColumnWidth(col, 20 * 256);
+        int[] columnWidths = {15 * 256, 35 * 256, 25 * 256, 20 * 256, 15 * 256, 12 * 256, 8 * 256};
+        for (int i = 0; i < columnWidths.length; i++) {
+            sheet.setColumnWidth(i, columnWidths[i]);
         }
 
+        sheet.setAutoFilter(new CellRangeAddress(2, sheet.getLastRowNum(), 0, 6));
+        sheet.createFreezePane(0, 3);
 
-        // 6) Feuilles par formation : une sheet = une formation, avec Nom / Prénom / Email
-        Map<String, Set<ParticipantDTO>> sheetDataParFormation = new LinkedHashMap<>();
-        for (FormationDTO formation : formations) {
+        setupPageSetup(sheet);
+    }
+
+    private void writeSeanceRow(Row r, SeanceExport s, int idx, int total, CellStyle style) {
+        Cell c1 = r.createCell(1);
+        c1.setCellValue(s.titreFormation);
+        c1.setCellStyle(style);
+
+        Cell c2 = r.createCell(2);
+        c2.setCellValue(s.formateurs);
+        c2.setCellStyle(style);
+
+        Cell c3 = r.createCell(3);
+        c3.setCellValue(s.equipe);
+        c3.setCellStyle(style);
+
+        String hd = s.heureDebut != null ? s.heureDebut.toString().substring(0, 5) : "";
+        String hf = s.heureFin != null ? s.heureFin.toString().substring(0, 5) : "";
+        Cell c4 = r.createCell(4);
+        c4.setCellValue(hd + " - " + hf);
+        c4.setCellStyle(style);
+
+        Cell c5 = r.createCell(5);
+        c5.setCellValue(Optional.ofNullable(s.salle).orElse("À définir"));
+        c5.setCellStyle(style);
+
+        Cell c6 = r.createCell(6);
+        c6.setCellValue(idx + "/" + total);
+        c6.setCellStyle(style);
+    }
+
+    private void applyDateMerging(Sheet sheet, LocalDate date, int groupStart, int groupEnd,
+                                   CellStyle dateCellStyle, DateTimeFormatter df) {
+        if (groupEnd > groupStart) {
+            sheet.addMergedRegion(new CellRangeAddress(groupStart, groupEnd, 0, 0));
+        }
+        Row row = sheet.getRow(groupStart);
+        if (row == null) row = sheet.createRow(groupStart);
+        Cell dc = row.createCell(0);
+        dc.setCellValue(formatDate(date, df));
+        dc.setCellStyle(dateCellStyle);
+    }
+
+    private void createParticipantSheets(Workbook workbook, List<FormationResponseDTO> formations) {
+        Map<String, Set<ParticipantDTO>> sheetData = collectParticipantData(formations);
+        CellStyle headerStyle = createHeaderStyle(workbook);
+
+        for (Map.Entry<String, Set<ParticipantDTO>> entry : sheetData.entrySet()) {
+            createParticipantSheet(workbook, entry.getKey(), entry.getValue(), headerStyle);
+        }
+    }
+
+    private Map<String, Set<ParticipantDTO>> collectParticipantData(List<FormationResponseDTO> formations) {
+        Map<String, Set<ParticipantDTO>> result = new LinkedHashMap<>();
+        for (FormationResponseDTO formation : formations) {
             if (formation.getSeances() == null) continue;
-            Set<ParticipantDTO> participants = new LinkedHashSet<>();
-            for (SeanceDTO seance : formation.getSeances()) {
-                for (EnseignantDTO e : seance.getParticipants()) {
-                    ParticipantDTO p = new ParticipantDTO();    // constructeur sans argument
-
-                    p.setNom(e.getNom());
-                    p.setPrenom(e.getPrenom());
-                    p.setMail(e.getMail());                     // ou setEmail(...) selon votre DTO
-                    participants.add(p);
-                }
-
-            }
-            sheetDataParFormation.put(formation.getTitreFormation(), participants);
-        }
-
-        for (Map.Entry<String, Set<ParticipantDTO>> entry : sheetDataParFormation.entrySet()) {
-            String safeName = WorkbookUtil.createSafeSheetName(entry.getKey());
-            Sheet sh = workbook.createSheet(safeName);
-
-            // En-tête
-            Row h = sh.createRow(0);
-            CellStyle headStyle = workbook.createCellStyle();
-            Font headFont = workbook.createFont();
-            headFont.setBold(true);
-            headStyle.setFont(headFont);
-            headStyle.setAlignment(HorizontalAlignment.CENTER);
-            String[] cols = { "Nom", "Prénom", "Email" };
-            for (int i = 0; i < cols.length; i++) {
-                Cell c = h.createCell(i);
-                c.setCellValue(cols[i]);
-                c.setCellStyle(headStyle);
-            }
-
-            // Lignes participants
-            int rIdx = 1;
-            for (ParticipantDTO p : entry.getValue()) {
-                Row row = sh.createRow(rIdx++);
-                row.createCell(0).setCellValue(p.getNom());
-                row.createCell(1).setCellValue(p.getPrenom());
-                row.createCell(2).setCellValue(p.getMail());
-            }
-
-            // Ajuster largeur
-            for (int col = 0; col < 3; col++) {
-                sh.setColumnWidth(col, 20 * 256);
+            Set<ParticipantDTO> participants = collectFormationParticipants(formation);
+            if (!participants.isEmpty()) {
+                result.put(formation.getTitreFormation(), participants);
             }
         }
+        return result;
+    }
 
-        // Écriture finale
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        workbook.write(out);
-        workbook.close();
-        return out;
+    private Set<ParticipantDTO> collectFormationParticipants(FormationResponseDTO formation) {
+        Set<ParticipantDTO> participants = new LinkedHashSet<>();
+        for (SeanceDTO seance : formation.getSeances()) {
+            if (seance.getParticipants() == null) continue;
+            for (EnseignantDTO e : seance.getParticipants()) {
+                ParticipantDTO p = new ParticipantDTO();
+                p.setNom(e.getNom());
+                p.setPrenom(e.getPrenom());
+                p.setMail(e.getMail());
+                participants.add(p);
+            }
+        }
+        return participants;
+    }
+
+    private void createParticipantSheet(Workbook workbook, String sheetName,
+                                         Set<ParticipantDTO> participants, CellStyle headStyle) {
+        String baseName = WorkbookUtil.createSafeSheetName(sheetName);
+        String safeName = baseName.length() > 31 ? baseName.substring(0, 31) : baseName;
+        Sheet sh = workbook.createSheet(safeName);
+
+        CellStyle dataStyle = createDataCellStyle(workbook);
+        CellStyle altStyle = createAlternateRowStyle(workbook);
+        CellStyle totalStyle = createTotalRowStyle(workbook);
+
+        Row headerRow = sh.createRow(0);
+        String[] cols = {"N°", "Nom", "Prénom", "Email", "Statut"};
+        for (int i = 0; i < cols.length; i++) {
+            Cell c = headerRow.createCell(i);
+            c.setCellValue(cols[i]);
+            c.setCellStyle(headStyle);
+        }
+
+        int rIdx = 1;
+        int num = 1;
+        for (ParticipantDTO p : participants) {
+            Row row = sh.createRow(rIdx);
+            CellStyle rowStyle = (rIdx % 2 == 1) ? dataStyle : altStyle;
+
+            Cell c0 = row.createCell(0);
+            c0.setCellValue(num);
+            c0.setCellStyle(rowStyle);
+
+            Cell c1 = row.createCell(1);
+            c1.setCellValue(p.getNom());
+            c1.setCellStyle(rowStyle);
+
+            Cell c2 = row.createCell(2);
+            c2.setCellValue(p.getPrenom());
+            c2.setCellStyle(rowStyle);
+
+            Cell c3 = row.createCell(3);
+            c3.setCellValue(p.getMail());
+            c3.setCellStyle(rowStyle);
+
+            Cell c4 = row.createCell(4);
+            c4.setCellValue("Inscrit");
+            c4.setCellStyle(rowStyle);
+
+            rIdx++;
+            num++;
+        }
+
+        int totalRow = rIdx;
+        Row totalRowObj = sh.createRow(totalRow);
+        Cell totalLabel = totalRowObj.createCell(0);
+        totalLabel.setCellValue("Total Participants");
+        totalLabel.setCellStyle(totalStyle);
+
+        Cell totalValue = totalRowObj.createCell(1);
+        totalValue.setCellValue(participants.size());
+        totalValue.setCellStyle(totalStyle);
+
+        sh.setColumnWidth(0, 8 * 256);
+        sh.setColumnWidth(1, 20 * 256);
+        sh.setColumnWidth(2, 20 * 256);
+        sh.setColumnWidth(3, 35 * 256);
+        sh.setColumnWidth(4, 12 * 256);
+
+        sh.setAutoFilter(new CellRangeAddress(0, totalRow, 0, 4));
+        sh.createFreezePane(0, 1);
+    }
+
+    private List<SeanceExport> extractFilteredSeances(List<FormationResponseDTO> formations,
+                                                        LocalDate startDate, LocalDate endDate) {
+        List<SeanceExport> allSeances = new ArrayList<>();
+        for (FormationResponseDTO formation : formations) {
+            if (formation.getSeances() != null) {
+                addFilteredSeances(allSeances, formation, startDate, endDate);
+            }
+        }
+        allSeances.sort(Comparator.comparing((SeanceExport s) -> s.dateSeance)
+                .thenComparing(s -> s.heureDebut));
+        return allSeances;
+    }
+
+    private void addFilteredSeances(List<SeanceExport> allSeances, FormationResponseDTO formation,
+                                     LocalDate startDate, LocalDate endDate) {
+        for (SeanceDTO seance : formation.getSeances()) {
+            LocalDate dateSeance = seance.getDateSeance();
+            if (dateSeance != null && !dateSeance.isBefore(startDate) && !dateSeance.isAfter(endDate)) {
+                allSeances.add(mapToSeanceExport(formation, seance));
+            }
+        }
+    }
+
+    private SeanceExport mapToSeanceExport(FormationResponseDTO formation, SeanceDTO seance) {
+        SeanceExport exp = new SeanceExport();
+        exp.dateSeance = seance.getDateSeance();
+        exp.heureDebut = seance.getHeureDebut();
+        exp.heureFin = seance.getHeureFin();
+        exp.salle = seance.getSalle();
+        exp.titreFormation = formation.getTitreFormation();
+        exp.formateurs = formatFormateurs(seance);
+        exp.equipe = formatEquipe(formation);
+        return exp;
+    }
+
+    private String formatFormateurs(SeanceDTO seance) {
+        return Optional.ofNullable(seance.getAnimateurs())
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(a -> a.getNom() + " " + a.getPrenom())
+                .collect(Collectors.joining(", "));
+    }
+
+    private String formatEquipe(FormationResponseDTO formation) {
+        String dept = Optional.ofNullable(formation.getDepartement())
+                .map(DeptDTO::getLibelle).orElse("");
+        String up = Optional.ofNullable(formation.getUp())
+                .map(UpDTO::getLibelle).orElse("");
+        return dept + " / " + up;
+    }
+
+    private Map<LocalDate, List<SeanceExport>> groupSeancesByDate(List<SeanceExport> allSeances) {
+        Map<LocalDate, List<SeanceExport>> mapByDate = new LinkedHashMap<>();
+        for (SeanceExport s : allSeances) {
+            mapByDate.computeIfAbsent(s.dateSeance, k -> new ArrayList<>()).add(s);
+        }
+        return mapByDate;
+    }
+
+    private boolean isAfternoonSeance(SeanceExport s) {
+        return s.heureDebut != null && s.heureDebut.isAfter(LocalTime.of(12, 30));
+    }
+
+    private void setupPageSetup(Sheet sheet) {
+        if (sheet instanceof org.apache.poi.xssf.usermodel.XSSFSheet xssfSheet) {
+            XSSFPrintSetup printSetup = xssfSheet.getPrintSetup();
+            printSetup.setLandscape(true);
+            printSetup.setFitWidth((short) 1);
+            printSetup.setFitHeight((short) 0);
+            printSetup.setOrientation(org.apache.poi.ss.usermodel.PrintOrientation.LANDSCAPE);
+
+            sheet.setRepeatingRows(new CellRangeAddress(0, 2, 0, 6));
+
+            Header header = sheet.getHeader();
+            header.setCenter("Calendrier des Formations");
+
+            Footer footer = sheet.getFooter();
+            footer.setRight("Page &[Page] of &[Pages]");
+        }
+    }
+
+    private String formatDateRange(LocalDate startDate, LocalDate endDate, DateTimeFormatter df) {
+        return "Période: " + formatDate(startDate, df) + " au " + formatDate(endDate, df);
+    }
+
+    private String formatDate(LocalDate date, DateTimeFormatter df) {
+        return date.format(df);
+    }
+
+    private CellStyle createCalendarTitleStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        font.setFontHeightInPoints((short) 16);
+        font.setColor(IndexedColors.WHITE.getIndex());
+        style.setFont(font);
+        style.setAlignment(HorizontalAlignment.CENTER);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        style.setFillForegroundColor(COLOR_DARK_BLUE);
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setWrapText(true);
+        setAllBorders(style, BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
+        return style;
+    }
+
+    private CellStyle createCalendarSubtitleStyle(Workbook workbook) {
+        return createLightBlueSubtitleStyle(workbook);
+    }
+
+    private CellStyle createLightBlueSubtitleStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setFontHeightInPoints((short) 11);
+        font.setColor(IndexedColors.BLACK.getIndex());
+        style.setFont(font);
+        style.setAlignment(HorizontalAlignment.CENTER);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        style.setFillForegroundColor(COLOR_LIGHT_BLUE);
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setWrapText(true);
+        setAllBorders(style, BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
+        return style;
+    }
+
+    private CellStyle createSummaryTitleStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        font.setFontHeightInPoints((short) 18);
+        font.setColor(IndexedColors.WHITE.getIndex());
+        style.setFont(font);
+        style.setAlignment(HorizontalAlignment.CENTER);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        style.setFillForegroundColor(COLOR_DARK_BLUE);
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setWrapText(true);
+        setAllBorders(style, BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
+        return style;
+    }
+
+    private CellStyle createSummarySubtitleStyle(Workbook workbook) {
+        return createLightBlueSubtitleStyle(workbook);
+    }
+
+    private CellStyle createHeaderStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        font.setColor(IndexedColors.WHITE.getIndex());
+        font.setFontHeightInPoints((short) 11);
+        style.setFont(font);
+        style.setFillForegroundColor(COLOR_DARK_BLUE);
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setAlignment(HorizontalAlignment.CENTER);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        style.setWrapText(true);
+        setAllBorders(style, BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
+        return style;
+    }
+
+    private CellStyle createDateCellStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        font.setFontHeightInPoints((short) 11);
+        style.setFont(font);
+        style.setFillForegroundColor(COLOR_DATE_BG);
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setAlignment(HorizontalAlignment.CENTER);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        setAllBorders(style, BorderStyle.THIN, COLOR_BORDER);
+        return style;
+    }
+
+    private CellStyle createSpacingStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        style.setFillForegroundColor(IndexedColors.WHITE.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setBorderTop(BorderStyle.NONE);
+        style.setBorderBottom(BorderStyle.NONE);
+        style.setBorderLeft(BorderStyle.NONE);
+        style.setBorderRight(BorderStyle.NONE);
+        return style;
+    }
+
+    private CellStyle createDataCellStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setFontHeightInPoints((short) 10);
+        style.setFont(font);
+        style.setAlignment(HorizontalAlignment.LEFT);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        style.setWrapText(true);
+        setAllBorders(style, BorderStyle.THIN, COLOR_BORDER);
+        return style;
+    }
+
+    private CellStyle createAlternateRowStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setFontHeightInPoints((short) 10);
+        style.setFont(font);
+        style.setFillForegroundColor(COLOR_ALT_ROW);
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setAlignment(HorizontalAlignment.LEFT);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        style.setWrapText(true);
+        setAllBorders(style, BorderStyle.THIN, COLOR_BORDER);
+        return style;
+    }
+
+    private CellStyle createTotalRowStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        font.setFontHeightInPoints((short) 10);
+        style.setFont(font);
+        style.setFillForegroundColor(COLOR_DATE_BG);
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setAlignment(HorizontalAlignment.LEFT);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        setAllBorders(style, BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
+        return style;
     }
 
     static class SeanceExport {
-        Date   dateSeance;
-        Time   heureDebut;
-        Time   heureFin;
+        LocalDate dateSeance;
+        LocalTime heureDebut;
+        LocalTime heureFin;
         String salle;
         String titreFormation;
         String formateurs;

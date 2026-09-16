@@ -1,20 +1,22 @@
 
-package esprit.pfe.serviceformation.Controllers;
+package esprit.pfe.serviceformation.controllers;
 
-import esprit.pfe.serviceformation.Services.FormationClosureService;
-import org.springframework.beans.factory.annotation.Autowired;
+import esprit.d2f.common.security.AuthorizationMatrix;
+import esprit.pfe.serviceformation.services.FormationClosureService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/formations-custom")
+@RequestMapping("/api/v1/formations-custom")
+@RequiredArgsConstructor
 public class FormationCustomController {
-
-    @Autowired
-    private FormationClosureService formationClosureService;
+    private final FormationClosureService formationClosureService;
 
     @PutMapping("/{formationId}/generate-certificates")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_APPROVE)
     public ResponseEntity<String> generateCertificates(
             @PathVariable Long formationId,
             @RequestParam(defaultValue = "CERTIF") String typeCertif
@@ -38,3 +40,4 @@ public class FormationCustomController {
         }
     }
 }
+
