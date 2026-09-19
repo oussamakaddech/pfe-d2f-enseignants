@@ -582,16 +582,19 @@ def test_serving_unchanged_for_35_teachers():
     target_n = len(df)
     target_teachers = int(df["teacher_id"].nunique())
 
-    # 11b. Le registre : la version servie en production est la v1.1.0 réelle
-    # (corpus DB, 0 % synthétique, APPROVED) ; simulation-v1.0.0 et v1.0.0
-    # restent conservées (rollback possible, artefacts intacts).
+    # 11b. Le registre : la version servie en production est le GB v1.2.0-gb
+    # (promu après comparaison multi-datasets, corpus DB réel, 0 % synthétique,
+    # APPROVED) ; v1.1.0 et v1.0.0 restent archivées (rollback possible,
+    # artefacts intacts).
     registry = json.loads((MODELS_DIR / "model_registry.json").read_text(encoding="utf-8"))
     active = [e for e in registry if e.get("status") == "ACTIVE"][0]
     assert active["approval_status"] == "APPROVED"
-    assert active["model_version"] == "v1.1.0", "serving prod : v1.1.0 réelle ACTIVE"
+    assert active["model_version"] == "v1.2.0-gb", "serving prod : GB v1.2.0-gb ACTIVE"
     assert active["synthetic_share_pct"] == 0.0
     legacy = [e for e in registry if e.get("model_version") == "v1.0.0" and e.get("status") == "ARCHIVED"]
     assert legacy, "v1.0.0 conservée (ARCHIVED) pour rollback"
+    mlp_v110 = [e for e in registry if e.get("model_version") == "v1.1.0" and e.get("status") == "ARCHIVED"]
+    assert mlp_v110, "v1.1.0 conservée (ARCHIVED) pour rollback"
 
 
     # 11c. Décision de mode inchangée avec les contrôles actuels :

@@ -150,7 +150,7 @@ class FormationWorkflowServiceCoverageTest {
     }
 
     @Test
-    @DisplayName("collectAllRecipientEmails - formation sans seances ni animateurs")
+    @DisplayName("collectAllRecipientEmails - formation sans seances ni animateurs (organizer exclu)")
     void shouldCollectEmailsWithNulls() throws Exception {
         Formation f = createFormation(EtatFormation.PLANIFIE);
         f.setAnimateurs(null);
@@ -161,7 +161,7 @@ class FormationWorkflowServiceCoverageTest {
         m.setAccessible(true);
         @SuppressWarnings("unchecked")
         Set<String> emails = (Set<String>) m.invoke(service, f);
-        assertThat(emails).isNotEmpty();
+        assertThat(emails).isEmpty();
     }
 
     @Test

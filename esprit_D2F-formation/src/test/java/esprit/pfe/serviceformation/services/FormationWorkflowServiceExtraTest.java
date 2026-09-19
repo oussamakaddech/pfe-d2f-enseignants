@@ -58,6 +58,7 @@ class FormationWorkflowServiceExtraTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(service, "organizerEmail", "org@esprit.tn");
+        ReflectionTestUtils.setField(service, "d2fNotificationEmail", "d2f@esprit.tn");
         ReflectionTestUtils.setField(service, "platformUrl", "https://d2f.esprit.tn");
         ReflectionTestUtils.setField(service, "formationsPath", "/formations/");
     }
@@ -381,7 +382,7 @@ class FormationWorkflowServiceExtraTest {
     // ─── buildEmailsSet ───────────────────────────────────────────────────
 
     @Test
-    @DisplayName("buildEmailsSet - collecte tous les emails animateurs participants externe organizer")
+    @DisplayName("buildEmailsSet - collecte emails animateurs participants externe (jamais l'organizer)")
     void shouldCollectAllEmails() throws Exception {
         SeanceFormation sf = new SeanceFormation();
         Enseignant anim = new Enseignant();
@@ -400,11 +401,12 @@ class FormationWorkflowServiceExtraTest {
         @SuppressWarnings("unchecked")
         Set<String> emails = (Set<String>) m.invoke(service, sf, f);
 
-        assertThat(emails).contains("anim@esprit.tn", "part@esprit.tn", "ext@test.com", "org@esprit.tn");
+        assertThat(emails).contains("anim@esprit.tn", "part@esprit.tn", "ext@test.com");
+        assertThat(emails).doesNotContain("org@esprit.tn");
     }
 
     @Test
-    @DisplayName("buildEmailsSet - animateurs et participants null")
+    @DisplayName("buildEmailsSet - animateurs et participants null (organizer exclu)")
     void shouldHandleNullAnimateursAndParticipants() throws Exception {
         SeanceFormation sf = new SeanceFormation();
         sf.setAnimateurs(null);
@@ -419,7 +421,7 @@ class FormationWorkflowServiceExtraTest {
         @SuppressWarnings("unchecked")
         Set<String> emails = (Set<String>) m.invoke(service, sf, f);
 
-        assertThat(emails).containsExactly("org@esprit.tn");
+        assertThat(emails).isEmpty();
     }
 
     // ─── removeFormationCalendarEvents ────────────────────────────────────

@@ -15,9 +15,9 @@
     "obs_per_teacher_mean": 4.3
   },
   "delta_vs_v1.0.0": {
-    "previous_rows": 107,
-    "added_rows": 65,
-    "previous_hash": "c70523c0d353ccfed62ca432c0a8486a4ec40b5e09aa47859157a71ffc959fdd"
+    "previous_rows": 217,
+    "added_rows": 0,
+    "previous_hash": "3df53445112a2f8a54007df05cb9561e075f9a66558748a64d81b42505011464"
   },
   "quality": {
     "missing_values": {},

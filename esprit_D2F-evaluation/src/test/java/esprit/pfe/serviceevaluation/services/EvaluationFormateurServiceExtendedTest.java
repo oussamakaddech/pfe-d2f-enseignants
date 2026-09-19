@@ -10,10 +10,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Arrays;
 import java.util.List;
@@ -58,7 +60,7 @@ class EvaluationFormateurServiceExtendedTest {
         dto.setSatisfaisant(true);
         dto.setCommentaire("Très bien");
 
-        lenient().when(authClient.enseignantExists(anyString())).thenReturn(true);
+        lenient().when(formationClient.getEnseignantById(anyString())).thenReturn(new Object());
     }
 
     @Test
@@ -134,8 +136,16 @@ class EvaluationFormateurServiceExtendedTest {
     @Test
     void listAllEvaluationsDto_shouldReturnList() {
         when(evaluationRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", null,
+                        List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
 
-        Page<EvaluationFormateurDTO> result = service.listAllEvaluationsDto(Pageable.ofSize(10));
+        Page<EvaluationFormateurDTO> result;
+        try {
+            result = service.listAllEvaluationsDto(Pageable.ofSize(10));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
 
         assertNotNull(result);
         assertEquals(1, result.getContent().size());

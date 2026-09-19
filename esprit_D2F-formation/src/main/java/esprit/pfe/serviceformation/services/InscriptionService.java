@@ -290,6 +290,8 @@ public class InscriptionService {
         dto.setTypeSeance(seance.getTypeSeance());
         dto.setDureePratique(seance.getDureePratique());
         dto.setDureeTheorique(seance.getDureeTheorique());
+        dto.setNumeroSeance(seance.getNumeroSeance());
+        dto.setTotalSeances(seance.getTotalSeances());
 
         if (seance.getAnimateurs() != null) {
             dto.setAnimateurs(seance.getAnimateurs().stream().map(this::mapEnseignantToDTO).toList());
@@ -320,13 +322,41 @@ public class InscriptionService {
     public InscriptionDTO mapInscriptionToDTO(Inscription ins) {
         InscriptionDTO dto = new InscriptionDTO();
         dto.setId(ins.getId());
-        dto.setFormation(formationMapper.toResponseDTO(ins.getFormation()));
-        dto.setEnseignant(mapEnseignantToDTO(ins.getEnseignant()));
+        dto.setFormation(safeFormationDTO(ins));
+        dto.setEnseignant(safeEnseignantDTO(ins));
         dto.setEtat(ins.getEtat().toString());
         dto.setDateDemande(ins.getDateDemande());
         dto.setDateTraitement(ins.getDateTraitement());
         dto.setMotif(ins.getMotif());
         return dto;
+    }
+
+    /**
+     * Mapping tolérant : une inscription peut référencer une fiche enseignant
+     * soft-deleted (ex. {@code deleted_at} renseigné, {@code @SQLRestriction} sur
+     * {@code Enseignant}) — Hibernate lève alors {@code EntityNotFoundException}
+     * à l'initialisation du proxy LAZY. On dégrade en DTO partiel (enseignant
+     * {@code null}) plutôt que de faire échouer toute la page en 404.
+     */
+    private EnseignantDTO safeEnseignantDTO(Inscription ins) {
+        try {
+            return mapEnseignantToDTO(ins.getEnseignant());
+        } catch (jakarta.persistence.EntityNotFoundException ex) {
+            log.warn("Inscription {} : enseignant introuvable (fiche supprimée ?) — DTO partiel",
+                    ins.getId());
+            return null;
+        }
+    }
+
+    /** Idem {@link #safeEnseignantDTO} pour une formation soft-deleted. */
+    private FormationResponseDTO safeFormationDTO(Inscription ins) {
+        try {
+            return formationMapper.toResponseDTO(ins.getFormation());
+        } catch (jakarta.persistence.EntityNotFoundException ex) {
+            log.warn("Inscription {} : formation introuvable (supprimée ?) — DTO partiel",
+                    ins.getId());
+            return null;
+        }
     }
 
     @Transactional

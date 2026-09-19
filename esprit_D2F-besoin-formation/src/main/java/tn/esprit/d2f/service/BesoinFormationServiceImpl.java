@@ -36,6 +36,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.BiConsumer;
@@ -65,6 +66,13 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
     private static final String NOT_FOUND_SUFFIX = " not found";
     private static final String BESOIN_FORMATION_WITH_ID_PREFIX = "BesoinFormation with id ";
 
+    /**
+     * DSI §: statuts « approuvé par le D2F » — le besoin quitte la liste des
+     * besoins (ADMIN_APPROVED + FORMATION_CREATED, fallback /approved inclus).
+     */
+    private static final Collection<BesoinStatus> APPROVED_FINAL_STATUSES =
+            List.of(BesoinStatus.ADMIN_APPROVED, BesoinStatus.FORMATION_CREATED);
+
     /** Tentatives de publication RabbitMQ avant de reporter (retry borné). */
     private static final int PUBLISH_MAX_ATTEMPTS = 3;
     private static final long PUBLISH_RETRY_DELAY_MS = 400L;
@@ -76,6 +84,8 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
     private final ReviewerScopeService reviewerScopeService;
     private final BesoinApprovalHistoryRepository historyRepository;
     private final BesoinCompetenceRepository besoinCompetenceRepository;
+    /** Notification e-mail D2F (best-effort, jamais bloquant). */
+    private final BesoinFormationMailNotifier mailNotifier;
     /** Producteur optionnel vers l'exchange d2f.notifications (temps réel). */
     private NotificationEventPublisher notificationEventPublisher;
 
@@ -85,7 +95,8 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
                                        BesoinFormationMapper besoinFormationMapper,
                                        ReviewerScopeService reviewerScopeService,
                                        BesoinApprovalHistoryRepository historyRepository,
-                                       BesoinCompetenceRepository besoinCompetenceRepository) {
+                                       BesoinCompetenceRepository besoinCompetenceRepository,
+                                       BesoinFormationMailNotifier mailNotifier) {
         this.besoinFormationRepository = besoinFormationRepository;
         this.eventPublisher = eventPublisher;
         this.notificationRepository = notificationRepository;
@@ -93,6 +104,7 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         this.reviewerScopeService = reviewerScopeService;
         this.historyRepository = historyRepository;
         this.besoinCompetenceRepository = besoinCompetenceRepository;
+        this.mailNotifier = mailNotifier;
     }
 
     /** Injection optionnelle : les tests unitaires construisent le service sans broker. */
@@ -110,14 +122,17 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         // conservent la vue complète.
         ResolvedScope scope = reviewerScopeService.resolveCurrentUser();
         if (!scope.global() && scope.actorRole() == CreatorRole.CUP) {
-            return besoinFormationRepository.findByUp(scope.upCode(), pageable)
+            return besoinFormationRepository.findByUpAndStatusNotIn(
+                            scope.upCode(), APPROVED_FINAL_STATUSES, pageable)
                     .map(besoinFormationMapper::toResponse);
         }
         if (!scope.global() && scope.actorRole() == CreatorRole.CHEF_DEPARTEMENT) {
-            return besoinFormationRepository.findByDepartement(scope.departmentCode(), pageable)
+            return besoinFormationRepository.findByDepartementAndStatusNotIn(
+                            scope.departmentCode(), APPROVED_FINAL_STATUSES, pageable)
                     .map(besoinFormationMapper::toResponse);
         }
-        return besoinFormationRepository.findAll(pageable).map(besoinFormationMapper::toResponse);
+        return besoinFormationRepository.findByStatusNotIn(APPROVED_FINAL_STATUSES, pageable)
+                .map(besoinFormationMapper::toResponse);
     }
 
     @Override
@@ -147,7 +162,7 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
     @Transactional
     public BesoinFormationResponse addBesoinFormation(BesoinFormationRequest request) {
         ResolvedScope scope = reviewerScopeService.resolveCurrentUser();
-        validateTypeForCreator(request.getTypeBesoin(), scope);
+        validateTypeBesoin(request.getTypeBesoin());
 
         BesoinFormation b = besoinFormationMapper.toEntity(request);
         // Identité du créateur : TOUJOURS depuis le JWT, jamais depuis le body.
@@ -199,29 +214,17 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
                 WorkflowAction.CREATE, null, saved.getCurrentApprovalStep(), null);
         log.info("Besoin {} créé par '{}' ({}) — étape initiale {}", saved.getIdBesoinFormation(),
                 scope.username(), scope.actorRole(), saved.getCurrentApprovalStep());
+        // DSI §: e-mail au D2F lorsqu'un besoin est ajouté par le CUP ou le chef.
+        notifyD2FIfNeeded(saved, scope, "ajouté");
         return besoinFormationMapper.toResponse(saved);
     }
 
-    private void validateTypeForCreator(TypeBesoin type, ResolvedScope scope) {
+    private void validateTypeBesoin(TypeBesoin type) {
         if (type == null) {
             throw new IllegalArgumentException("Le type de besoin est obligatoire.");
         }
-        boolean collectif = type == TypeBesoin.COLLECTIF;
-        switch (scope.actorRole()) {
-            case ENSEIGNANT -> {
-                if (type != TypeBesoin.INDIVIDUEL) {
-                    throw new AccessDeniedException("Un enseignant ne peut créer qu'un besoin individuel.");
-                }
-            }
-            case CUP, CHEF_DEPARTEMENT -> {
-                if (!collectif) {
-                    throw new IllegalArgumentException(
-                            "Un " + scope.actorRole().name()
-                            + " ne peut créer qu'un besoin collectif (COLLECTIF).");
-                }
-            }
-            case ADMIN -> { /* tous types autorisés */ }
-        }
+        // ENSEIGNANT / CUP / CHEF_DEPARTEMENT / ADMIN : INDIVIDUEL et COLLECTIF
+        // acceptés — seul le type null est rejeté (contrainte @NotNull miroir).
     }
 
     private void requireUpAndDepartement(String up, String departement) {
@@ -262,6 +265,8 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
                     existing.getIdBesoinFormation());
         }
         handleNotifications(existing, b.getCommentaire());
+        // DSI §: e-mail au D2F lorsqu'un besoin est modifié par le CUP ou le chef.
+        notifyD2FIfNeeded(existing, reviewerScopeService.resolveCurrentUser(), "modifié");
         return besoinFormationMapper.toResponse(besoinFormationRepository.save(existing));
     }
 
@@ -469,7 +474,14 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
     public Page<BesoinFormationResponse> retrievePendingApproval(Pageable pageable) {
         ResolvedScope scope = reviewerScopeService.resolveCurrentUser();
         Page<BesoinFormation> page = switch (scope.actorRole()) {
-            case ADMIN -> besoinFormationRepository.findByCurrentApprovalStep(ApprovalStep.ADMIN, pageable);
+            case ADMIN ->
+                // DSI §: seul le D2F approuve désormais — sa file d'attente
+                // couvre TOUS les besoins non terminaux, quelle que soit
+                // l'étape initiale (CUP pour les individuels, CHEF_DEPARTEMENT
+                // pour les collectifs, ADMIN pour les besoins du chef).
+                besoinFormationRepository.findByCurrentApprovalStepIn(
+                        List.of(ApprovalStep.CUP, ApprovalStep.CHEF_DEPARTEMENT, ApprovalStep.ADMIN),
+                        pageable);
             case CUP -> besoinFormationRepository.findByCurrentApprovalStepAndUp(
                     ApprovalStep.CUP, scope.upCode(), pageable);
             case CHEF_DEPARTEMENT -> besoinFormationRepository.findByCurrentApprovalStepAndDepartement(
@@ -483,10 +495,14 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
     @Override
     public Page<BesoinFormationResponse> retrieveScope(Pageable pageable) {
         ResolvedScope scope = reviewerScopeService.resolveCurrentUser();
+        // DSI §: les listes courantes n'exposent plus les besoins approuvés par
+        // le D2F (ADMIN_APPROVED / FORMATION_CREATED) — consultation via /approved.
         Page<BesoinFormation> page = switch (scope.actorRole()) {
-            case ADMIN -> besoinFormationRepository.findAll(pageable);
-            case CUP -> besoinFormationRepository.findByUp(scope.upCode(), pageable);
-            case CHEF_DEPARTEMENT -> besoinFormationRepository.findByDepartement(scope.departmentCode(), pageable);
+            case ADMIN -> besoinFormationRepository.findByStatusNotIn(APPROVED_FINAL_STATUSES, pageable);
+            case CUP -> besoinFormationRepository.findByUpAndStatusNotIn(
+                    scope.upCode(), APPROVED_FINAL_STATUSES, pageable);
+            case CHEF_DEPARTEMENT -> besoinFormationRepository.findByDepartementAndStatusNotIn(
+                    scope.departmentCode(), APPROVED_FINAL_STATUSES, pageable);
             case ENSEIGNANT -> throw new AccessDeniedException(
                     "Utilisez /mine pour consulter vos propres besoins.");
         };
@@ -505,6 +521,21 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
 
     @Override
     public Page<BesoinFormationResponse> retrieveApprovedBesoinFormations(Pageable pageable) {
+        // DSI §: les besoins approuvés par le D2F quittent la liste courante mais
+        // restent consultables en LECTURE SEULE via /approved. La consultation
+        // respecte le périmètre de l'appelant : CUP → son UP, chef → son
+        // département ; les autres rôles habilités (ADMIN, ANIMATEUR,
+        // RESPONSABLE_DOSSIER) conservent la vue globale alignée sur leur lecture
+        // de la liste courante.
+        ResolvedScope scope = reviewerScopeService.resolveCurrentUser();
+        if (!scope.global() && scope.actorRole() == CreatorRole.CUP) {
+            return besoinFormationRepository.findByUpAndApprouveAdminTrue(
+                    scope.upCode(), pageable).map(besoinFormationMapper::toResponse);
+        }
+        if (!scope.global() && scope.actorRole() == CreatorRole.CHEF_DEPARTEMENT) {
+            return besoinFormationRepository.findByDepartementAndApprouveAdminTrue(
+                    scope.departmentCode(), pageable).map(besoinFormationMapper::toResponse);
+        }
         return besoinFormationRepository.findByApprouveAdminTrue(pageable)
                 .map(besoinFormationMapper::toResponse);
     }
@@ -579,6 +610,14 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         Collection<? extends GrantedAuthority> authorities = auth.getAuthorities();
         if (hasRole(authorities, ROLE_ADMIN)) {
             return;
+        }
+        // DSI §: un besoin approuvé par le D2F (ADMIN_APPROVED / FORMATION_CREATED)
+        // est consultable mais NON MODIFIABLE — ni par son créateur, ni par son
+        // périmètre (CUP/chef). Seul l'ADMIN conserve la main (correction d'audit).
+        if (b.getStatus() == BesoinStatus.ADMIN_APPROVED
+                || b.getStatus() == BesoinStatus.FORMATION_CREATED) {
+            throw new AccessDeniedException(
+                    "Ce besoin a été approuvé par le D2F : il est consultable mais n'est plus modifiable.");
         }
         boolean isOwnerRole = hasRole(authorities, ROLE_ENSEIGNANT) || hasRole(authorities, ROLE_ANIMATEUR);
         if (isOwnerRole && auth.getName() != null && auth.getName().equals(b.getUsername())) {
@@ -783,6 +822,26 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
     @Override
     public Page<Notification> findNotificationsByUsername(String username, Pageable pageable) {
         return notificationRepository.findByUsername(username, pageable);
+    }
+
+    // ── Notification e-mail D2F (ajout / modification par CUP ou chef) ────────
+
+    /**
+     * DSI §: le D2F reçoit un e-mail lorsqu'un besoin de formation est ajouté ou
+     * modifié par le CUP ou par le chef de département. Best-effort : l'e-mail ne
+     * doit jamais faire échouer la transaction métier (exceptions avalées, log).
+     */
+    private void notifyD2FIfNeeded(BesoinFormation b, ResolvedScope scope, String action) {
+        try {
+            if (scope != null && (scope.actorRole() == CreatorRole.CUP
+                    || scope.actorRole() == CreatorRole.CHEF_DEPARTEMENT)) {
+                String actor = scope.username() == null ? "inconnu" : scope.username();
+                mailNotifier.notifyD2FBesoinChanged(b, scope.actorRole().name(), action, actor);
+            }
+        } catch (Exception e) {
+            log.warn("Notification e-mail D2F non envoyée pour besoin {} : {}",
+                    b.getIdBesoinFormation(), e.getMessage());
+        }
     }
 
     private void createNotification(String username, String message, String commentaire) {

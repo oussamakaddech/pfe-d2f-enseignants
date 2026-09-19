@@ -15,21 +15,25 @@ public class EvaluationGlobaleService {
 
     private static final String MSG_NOT_FOUND = "Évaluation globale non trouvée avec l'id : ";
     private static final String ROLE_RESPONSABLE_DOSSIER = "ROLE_RESPONSABLE_DOSSIER";
+    private static final String ROLE_CUP = "ROLE_CUP";
+    private static final String ROLE_CHEF_DEPARTEMENT = "ROLE_CHEF_DEPARTEMENT";
 
     private final EvaluationGlobaleRepository evaluationGlobaleRepository;
     private final esprit.pfe.serviceevaluation.client.FormationClient formationClient;
 
     /**
      * Vérifie que l'utilisateur connecté a le droit de créer/modifier une évaluation globale.
-     * Règle : tous les rôles sauf RESPONSABLE_DOSSIER, et l'utilisateur doit participer
-     * à la formation (inscrit, animateur ou formateur).
-     * L'ADMIN contourne la vérification de participation.
+     * Règle : ADMIN, CUP et CHEF_DEPARTEMENT évaluent toute formation (pilotage) ;
+     * les autres rôles (sauf RESPONSABLE_DOSSIER, exclu) doivent participer à la
+     * formation (inscrit approuvé, animateur ou formateur).
      */
     private void verifierAutorisationEvaluationGlobale(String evaluatorIdentity, String userRole, Long formationId) {
         if (userRole != null && userRole.contains(ROLE_RESPONSABLE_DOSSIER)) {
             throw new SecurityException("Le responsable dossier ne peut pas évaluer les formations.");
         }
-        if (userRole != null && userRole.contains("ROLE_ADMIN")) {
+        if (userRole != null && (userRole.contains("ROLE_ADMIN")
+                || userRole.contains(ROLE_CUP)
+                || userRole.contains(ROLE_CHEF_DEPARTEMENT))) {
             return;
         }
         Boolean isParticipant = formationClient.isParticipantOfFormation(formationId, evaluatorIdentity);
@@ -118,7 +122,64 @@ public class EvaluationGlobaleService {
     }
 
     public Page<EvaluationGlobaleDTO> getAllEvaluationGlobales(Pageable pageable) {
-        return evaluationGlobaleRepository.findAll(pageable)
+        ListScope scope = resolveListScope();
+        if (scope.global()) {
+            return evaluationGlobaleRepository.findAll(pageable)
+                    .map(this::mapToDto);
+        }
+        if (scope.ficheId() == null) {
+            return Page.empty(pageable);
+        }
+        return evaluationGlobaleRepository.findByEnseignantId(scope.ficheId(), pageable)
                 .map(this::mapToDto);
+    }
+
+    /** Périmètre de lecture : global (ADMIN/ANIMATEUR) ou évaluations personnelles. */
+    private record ListScope(boolean global, String ficheId) {
+    }
+
+    private ListScope resolveListScope() {
+        org.springframework.security.core.Authentication auth =
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return new ListScope(false, null);
+        }
+        boolean global = auth.getAuthorities().stream().anyMatch(a ->
+                "ROLE_ADMIN".equals(a.getAuthority()) || "ROLE_ANIMATEUR".equals(a.getAuthority()));
+        if (global) {
+            return new ListScope(true, null);
+        }
+        return new ListScope(false, resolveFicheId(callerIdentity(auth)));
+    }
+
+    private String callerIdentity(org.springframework.security.core.Authentication auth) {
+        Object principal = auth.getPrincipal();
+        if (principal instanceof org.springframework.security.oauth2.jwt.Jwt jwt) {
+            String email = jwt.getClaimAsString("email");
+            if (email != null && !email.isBlank()) {
+                return email;
+            }
+        }
+        return auth.getName();
+    }
+
+    /** Résout l'id de fiche via le service formation (accepte id ou mail). */
+    private String resolveFicheId(String identity) {
+        if (identity == null || identity.isBlank()) {
+            return null;
+        }
+        try {
+            Object found = formationClient.getEnseignantById(identity);
+            if (found instanceof java.util.Map<?, ?> map) {
+                Object id = map.get("id");
+                return id != null ? String.valueOf(id) : null;
+            }
+            if (found instanceof String s && !s.isBlank()) {
+                return s;
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

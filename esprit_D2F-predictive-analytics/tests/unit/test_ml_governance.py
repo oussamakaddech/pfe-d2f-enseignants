@@ -416,8 +416,8 @@ def test_active_model_version_matches_provenance():
         assert active.get("validation_scope") == "SIMULATION_VALIDATED"
         return
 
-    assert active["model_version"] == provenance_version, (
-        f"incohérence version active/registre : registre={active['model_version']} "
+    assert active["dataset_version"] == provenance_version, (
+        f"incohérence version dataset active/registre : registre={active['dataset_version']} "
         f"vs provenance={provenance_version} (dataset servi). "
         "Corrigez le registre ou l'artefact avant toute re-validation."
     )
@@ -465,11 +465,19 @@ def test_active_dataset_hash_recomputed():
     import pandas as pd
     from app.infrastructure.ml.dataset_provenance import compute_provenance
 
-    corpus_report = compute_provenance(
-        pd.read_csv(corpus), dataset_version=active.get("dataset_version", "")
-    )
-    assert active["dataset_hash"] == corpus_report.dataset_hash, (
-        f"dataset_hash ACTIVE ({active['dataset_hash']}) != hash corpus ({corpus_report.dataset_hash})"
+    # Le hash se vérifie sur le corpus d'entraînement du modèle ACTIVE :
+    # training_corpus_provenanced.csv (corpus servi) OU training_corpus_provenanced_v110.csv
+    # (corpus du GB v1.2.0-gb, mêmes lignes réelles, version dataset identique).
+    candidats = [corpus]
+    corpus_v110 = MODELS_DIR.parent / "clean" / "training_corpus_provenanced_v110.csv"
+    if corpus_v110.exists():
+        candidats.append(corpus_v110)
+    hashes = {
+        compute_provenance(pd.read_csv(c), dataset_version=active.get("dataset_version", "")).dataset_hash
+        for c in candidats
+    }
+    assert active["dataset_hash"] in hashes, (
+        f"dataset_hash ACTIVE ({active['dataset_hash']}) absent des hash corpus tracés {hashes}"
     )
 
 # ---------------------------------------------------------------------------

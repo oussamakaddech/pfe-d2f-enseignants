@@ -9,6 +9,9 @@ public interface FormationClient {
     @GetMapping("/api/v1/formations/{id}")
     Object getFormation(@PathVariable("id") Long id);
 
+    @GetMapping("/api/v1/enseignants/{id}")
+    Object getEnseignantById(@PathVariable("id") String id);
+
     @GetMapping("/api/v1/formations/{formationId}/is-animateur/{enseignantId}")
     Boolean isAnimateurOfFormation(@PathVariable("formationId") Long formationId, @PathVariable("enseignantId") String enseignantId);
 

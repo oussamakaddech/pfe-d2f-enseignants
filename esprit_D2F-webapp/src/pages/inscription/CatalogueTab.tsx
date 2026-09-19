@@ -115,8 +115,7 @@ export default function CatalogueTab() {
     role === 'enseignant' ||
     role === 'animateur' ||
     role === 'cup' ||
-    role === 'chefdepartement' ||
-    role === 'formateur';
+    role === 'chefdepartement';
   const isAdminLike = role === 'admin' || role === 'cup';
 
   const { data: enseignant } = useEnseignantById(role === 'cup' ? identifier : undefined);

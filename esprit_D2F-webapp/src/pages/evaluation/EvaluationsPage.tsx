@@ -24,9 +24,13 @@ function resolveActiveTab(pathname: string, hash: string): string {
 /**
  * Page unique d'évaluation regroupant les deux dimensions (étape 3) :
  *  - « Éval. Formation »  : évaluation de la formation (contenu, organisation,
- *    supports, durée, satisfaction) — EvaluationGlobalePage.
- *  - « Éval. Formateur »  : évaluation du formateur par les participants
- *    (note, satisfaisant, commentaire) — EvaluationParticipantPage.
+ *    supports, durée, satisfaction) — EvaluationGlobalePage. Création : ADMIN,
+ *    CUP, CHEF_DEPARTEMENT (pilotage) + membres de la formation (backend).
+ *  - « Éval. Formateur »  : évaluation des participants par les animateurs
+ *    (note, satisfaisant, commentaire) — EvaluationParticipantPage, VISIBLE
+ *    AUX SEULS ANIMATEURS (les autres rôles n'y ont pas accès).
+ *  - « Éval. Formation » : visible à tous les rôles admis, contenu scopé
+ *    serveur (ADMIN/ANIMATEUR : tout ; autres : leurs évaluations).
  *
  * L'onglet actif est partagé avec l'URL (partageable / retour-arrière cohérent).
  */
@@ -34,12 +38,11 @@ export default function EvaluationsPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const userRole = useUserRole() ?? '';
-
   const isAnimateur = hasAnyRole(userRole, [ROLES.ANIMATEUR]);
 
   const activeTab = isAnimateur
     ? resolveActiveTab(location.pathname, location.hash)
-    : TAB_PARTICIPANTS;
+    : TAB_FORMATION;
 
   const [mounted, setMounted] = useState<Record<string, boolean>>({
     [activeTab]: true,
@@ -52,29 +55,26 @@ export default function EvaluationsPage() {
     });
   };
 
-  const items = isAnimateur
-    ? [
-        {
-          key: TAB_FORMATION,
-          label: 'Éval. Formation',
-          icon: <TrophyOutlined />,
-          children: mounted[TAB_FORMATION] ? <EvaluationGlobalePage /> : null,
-        },
-        {
-          key: TAB_PARTICIPANTS,
-          label: 'Éval. Formateur (participants)',
-          icon: <UserOutlined />,
-          children: mounted[TAB_PARTICIPANTS] ? <EvaluationParticipantPage /> : null,
-        },
-      ]
-    : [
-        {
-          key: TAB_PARTICIPANTS,
-          label: 'Évaluations participants',
-          icon: <UserOutlined />,
-          children: mounted[TAB_PARTICIPANTS] ? <EvaluationParticipantPage /> : null,
-        },
-      ];
+  const items = [
+    {
+      key: TAB_FORMATION,
+      label: 'Éval. Formation',
+      icon: <TrophyOutlined />,
+      children: mounted[TAB_FORMATION] ? <EvaluationGlobalePage /> : null,
+    },
+    // Onglet réservé aux animateurs : les autres rôles ne voient que
+    // leurs propres évaluations via l'onglet Formation (scopé serveur).
+    ...(isAnimateur
+      ? [
+          {
+            key: TAB_PARTICIPANTS,
+            label: 'Éval. Formateur (participants)',
+            icon: <UserOutlined />,
+            children: mounted[TAB_PARTICIPANTS] ? <EvaluationParticipantPage /> : null,
+          },
+        ]
+      : []),
+  ];
 
   return (
     <div className="evaluations-tabs-page">

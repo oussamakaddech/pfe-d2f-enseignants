@@ -34,10 +34,11 @@ export function useMyBesoins(enabled = true) {
   });
 }
 
-export function useApprovedBesoins() {
+export function useApprovedBesoins(enabled = true) {
   return useQuery<BesoinFormation[]>({
     queryKey: KEYS.approved,
     queryFn: () => BesoinFormationService.getApprovedBesoinFormations(),
+    enabled,
   });
 }
 

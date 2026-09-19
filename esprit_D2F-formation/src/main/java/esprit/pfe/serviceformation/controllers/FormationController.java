@@ -112,7 +112,7 @@ public class FormationController {
     @ApiResponse(responseCode = "401", description = "Non authentifié")
     @ApiResponse(responseCode = "404", description = "Formation introuvable")
     @GetMapping("/{id}")
-    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    @PreAuthorize(AuthorizationMatrix.FORMATION_ANIMATEUR_CHECK)
     public ResponseEntity<FormationResponseDTO> getFormationById(
             @Parameter(description = "ID de la formation", example = "42") @PathVariable Long id) {
         log.debug("Fetching formation with id: {}", id);
@@ -299,7 +299,7 @@ public class FormationController {
     }
 
     @GetMapping("/{formationId}/is-animateur/{enseignantId}")
-    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    @PreAuthorize(AuthorizationMatrix.FORMATION_ANIMATEUR_CHECK)
     @Operation(
         summary = "Vérifier si un enseignant est animateur d'une formation",
         description = "Retourne true si l'enseignant est assigné comme animateur de la formation."
@@ -312,7 +312,7 @@ public class FormationController {
     }
 
     @GetMapping("/{formationId}/is-participant/{enseignantId}")
-    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    @PreAuthorize(AuthorizationMatrix.FORMATION_ANIMATEUR_CHECK)
     @Operation(
         summary = "Vérifier si un enseignant participe à une formation",
         description = "Retourne true si l'enseignant est inscrit (approuvé), animateur ou formateur de la formation."

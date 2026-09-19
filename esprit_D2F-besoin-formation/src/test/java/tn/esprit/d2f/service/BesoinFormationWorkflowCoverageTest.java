@@ -37,6 +37,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -58,6 +60,9 @@ class BesoinFormationWorkflowCoverageTest {
     private BesoinApprovalHistoryRepository historyRepository;
     @Mock
     private BesoinCompetenceRepository besoinCompetenceRepository;
+    /** Notification e-mail D2F (ajout/modification par CUP ou chef). */
+    @Mock
+    private BesoinFormationMailNotifier mailNotifier;
 
     private final BesoinFormationMapper besoinFormationMapper = new BesoinFormationMapper();
 
@@ -105,7 +110,8 @@ class BesoinFormationWorkflowCoverageTest {
                 besoinFormationMapper,
                 reviewerScopeService,
                 historyRepository,
-                besoinCompetenceRepository
+                besoinCompetenceRepository,
+                mailNotifier
         );
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(
@@ -138,13 +144,17 @@ class BesoinFormationWorkflowCoverageTest {
     }
 
     @Test
-    void addBesoinFormation_cupIndividuel_doitEtreRefuse() {
+    void addBesoinFormation_cupIndividuel_libreChoix() {
         when(reviewerScopeService.resolveCurrentUser()).thenReturn(CUP_SCOPE);
+        stubSaveAssignsId();
         BesoinFormationRequest request = new BesoinFormationRequest();
         request.setTypeBesoin(TypeBesoin.INDIVIDUEL);
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> service.addBesoinFormation(request));
-        assertTrue(ex.getMessage().contains("collectif"));
+        request.setTitre("Besoin CUP individuel");
+
+        BesoinFormationResponse response = service.addBesoinFormation(request);
+        assertEquals(BesoinStatus.SUBMITTED, response.getStatus());
+        assertEquals(ApprovalStep.CHEF_DEPARTEMENT, response.getCurrentApprovalStep());
+        assertEquals("UP_INFO", response.getUp());
     }
 
     @Test
@@ -177,13 +187,17 @@ class BesoinFormationWorkflowCoverageTest {
     }
 
     @Test
-    void addBesoinFormation_enseignantCollectif_doitEtreRefuse() {
+    void addBesoinFormation_enseignantCollectif_libreChoix() {
         when(reviewerScopeService.resolveCurrentUser()).thenReturn(ENS_SCOPE);
+        stubSaveAssignsId();
         BesoinFormationRequest request = new BesoinFormationRequest();
         request.setTypeBesoin(TypeBesoin.COLLECTIF);
-        AccessDeniedException ex = assertThrows(AccessDeniedException.class,
-                () -> service.addBesoinFormation(request));
-        assertTrue(ex.getMessage().contains("individuel"));
+        request.setTitre("Besoin ENS collectif");
+
+        BesoinFormationResponse response = service.addBesoinFormation(request);
+        assertEquals(BesoinStatus.SUBMITTED, response.getStatus());
+        assertEquals(ApprovalStep.CUP, response.getCurrentApprovalStep());
+        assertEquals("ens-user", response.getUsername());
     }
 
     @Test
@@ -415,15 +429,20 @@ class BesoinFormationWorkflowCoverageTest {
     // ── Listes scopées ───────────────────────────────────────────────────────
 
     @Test
-    void retrievePendingApproval_admin() {
+    void retrievePendingApproval_admin_toutesEtapesNonTerminales() {
         when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         Pageable pageable = PageRequest.of(0, 10);
-        when(besoinFormationRepository.findByCurrentApprovalStep(ApprovalStep.ADMIN, pageable))
+        // DSI §: seul le D2F (ROLE_ADMIN) approuve — sa file d'attente couvre
+        // TOUS les besoins non terminaux (étapes CUP, chef et admin).
+        when(besoinFormationRepository.findByCurrentApprovalStepIn(
+                List.of(ApprovalStep.CUP, ApprovalStep.CHEF_DEPARTEMENT, ApprovalStep.ADMIN), pageable))
                 .thenReturn(new PageImpl<>(Collections.emptyList()));
 
         Page<BesoinFormationResponse> result = service.retrievePendingApproval(pageable);
         assertEquals(0, result.getTotalElements());
-        verify(besoinFormationRepository).findByCurrentApprovalStep(ApprovalStep.ADMIN, pageable);
+        verify(besoinFormationRepository).findByCurrentApprovalStepIn(
+                List.of(ApprovalStep.CUP, ApprovalStep.CHEF_DEPARTEMENT, ApprovalStep.ADMIN), pageable);
+        verify(besoinFormationRepository, never()).findByCurrentApprovalStep(any(), any());
     }
 
     @Test
@@ -463,24 +482,57 @@ class BesoinFormationWorkflowCoverageTest {
     @Test
     void retrieveScope_parRole() {
         Pageable pageable = PageRequest.of(0, 10);
-        when(besoinFormationRepository.findAll(pageable)).thenReturn(new PageImpl<>(Collections.emptyList()));
-        when(besoinFormationRepository.findByUp("UP_INFO", pageable)).thenReturn(new PageImpl<>(Collections.emptyList()));
-        when(besoinFormationRepository.findByDepartement("DEPT_GL", pageable)).thenReturn(new PageImpl<>(Collections.emptyList()));
+        // DSI §: les listes courantes excluent les besoins approuvés par le D2F.
+        when(besoinFormationRepository.findByStatusNotIn(anyCollection(), eq(pageable)))
+                .thenReturn(new PageImpl<>(Collections.emptyList()));
+        when(besoinFormationRepository.findByUpAndStatusNotIn(eq("UP_INFO"), anyCollection(), eq(pageable)))
+                .thenReturn(new PageImpl<>(Collections.emptyList()));
+        when(besoinFormationRepository.findByDepartementAndStatusNotIn(eq("DEPT_GL"), anyCollection(), eq(pageable)))
+                .thenReturn(new PageImpl<>(Collections.emptyList()));
 
         when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         service.retrieveScope(pageable);
-        verify(besoinFormationRepository).findAll(pageable);
+        verify(besoinFormationRepository).findByStatusNotIn(anyCollection(), eq(pageable));
 
         when(reviewerScopeService.resolveCurrentUser()).thenReturn(CUP_SCOPE);
         service.retrieveScope(pageable);
-        verify(besoinFormationRepository).findByUp("UP_INFO", pageable);
+        verify(besoinFormationRepository).findByUpAndStatusNotIn(eq("UP_INFO"), anyCollection(), eq(pageable));
 
         when(reviewerScopeService.resolveCurrentUser()).thenReturn(CHEF_SCOPE);
         service.retrieveScope(pageable);
-        verify(besoinFormationRepository).findByDepartement("DEPT_GL", pageable);
+        verify(besoinFormationRepository).findByDepartementAndStatusNotIn(
+                eq("DEPT_GL"), anyCollection(), eq(pageable));
 
         when(reviewerScopeService.resolveCurrentUser()).thenReturn(ENS_SCOPE);
         assertThrows(AccessDeniedException.class, () -> service.retrieveScope(pageable));
+    }
+
+    // ── Consultation scopée des besoins approuvés (/approved) ───────────────
+
+    @Test
+    void retrieveApprovedBesoinFormations_cup_limiteASonUp() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(CUP_SCOPE);
+        when(besoinFormationRepository.findByUpAndApprouveAdminTrue("UP_INFO", pageable))
+                .thenReturn(new PageImpl<>(Collections.emptyList()));
+
+        service.retrieveApprovedBesoinFormations(pageable);
+
+        verify(besoinFormationRepository).findByUpAndApprouveAdminTrue("UP_INFO", pageable);
+        verify(besoinFormationRepository, never()).findByApprouveAdminTrue(pageable);
+    }
+
+    @Test
+    void retrieveApprovedBesoinFormations_chef_limiteASonDepartement() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(CHEF_SCOPE);
+        when(besoinFormationRepository.findByDepartementAndApprouveAdminTrue("DEPT_GL", pageable))
+                .thenReturn(new PageImpl<>(Collections.emptyList()));
+
+        service.retrieveApprovedBesoinFormations(pageable);
+
+        verify(besoinFormationRepository).findByDepartementAndApprouveAdminTrue("DEPT_GL", pageable);
+        verify(besoinFormationRepository, never()).findByApprouveAdminTrue(pageable);
     }
 
     @Test
@@ -619,5 +671,104 @@ class BesoinFormationWorkflowCoverageTest {
         // Le créateur ne peut pas approuver : utiliser un username différent
         b.setUsername("autre-ens");
         assertThrows(InvalidWorkflowTransitionException.class, () -> service.approuverBesoin(24L));
+    }
+// ── Notification e-mail du D2F (ajout / modification par CUP ou chef) ────
+
+    @Test
+    void addBesoinFormation_cupCollectif_notifieLeD2FParMail() {
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(CUP_SCOPE);
+        stubSaveAssignsId();
+
+        BesoinFormationRequest request = new BesoinFormationRequest();
+        request.setTypeBesoin(TypeBesoin.COLLECTIF);
+        request.setTitre("Besoin CUP - mail D2F");
+
+        service.addBesoinFormation(request);
+
+        verify(mailNotifier).notifyD2FBesoinChanged(
+                any(BesoinFormation.class), eq("CUP"), eq("ajouté"), eq("cup-user"));
+    }
+
+    @Test
+    void addBesoinFormation_chefCollectif_notifieLeD2FParMail() {
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(CHEF_SCOPE);
+        stubSaveAssignsId();
+
+        BesoinFormationRequest request = new BesoinFormationRequest();
+        request.setTypeBesoin(TypeBesoin.COLLECTIF);
+        request.setTitre("Besoin chef - mail D2F");
+
+        service.addBesoinFormation(request);
+
+        verify(mailNotifier).notifyD2FBesoinChanged(
+                any(BesoinFormation.class), eq("CHEF_DEPARTEMENT"), eq("ajouté"), eq("chef-user"));
+    }
+
+    @Test
+    void addBesoinFormation_enseignant_neNotifiePasLeD2F() {
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ENS_SCOPE);
+        stubSaveAssignsId();
+
+        BesoinFormationRequest request = new BesoinFormationRequest();
+        request.setTypeBesoin(TypeBesoin.INDIVIDUEL);
+        request.setTitre("Besoin enseignant - pas de mail D2F");
+
+        service.addBesoinFormation(request);
+
+        verifyNoInteractions(mailNotifier);
+    }
+
+    @Test
+    void modifyBesoinFormation_chef_notifieLeD2FParMail() {
+        // Besoin du périmètre du chef et encore modifiable (non approuvé par le D2F).
+        BesoinFormation existing = besoin(31L, "ens-user", BesoinStatus.SUBMITTED, ApprovalStep.CHEF_DEPARTEMENT);
+        existing.setUp("UP_INFO");
+        when(besoinFormationRepository.findById(31L)).thenReturn(Optional.of(existing));
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(CHEF_SCOPE);
+        when(besoinFormationRepository.save(any(BesoinFormation.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        BesoinFormationRequest request = new BesoinFormationRequest();
+        request.setIdBesoinFormation(31L);
+        request.setTitre("Titre modifié par le chef");
+
+        service.modifyBesoinFormation(request);
+
+        verify(mailNotifier).notifyD2FBesoinChanged(
+                any(BesoinFormation.class), eq("CHEF_DEPARTEMENT"), eq("modifié"), eq("chef-user"));
+    }
+
+    // ── Besoin approuvé par le D2F : consultable mais NON modifiable ────────
+
+    @Test
+    void modifyBesoinFormation_approuveParLeD2F_doitLever403() {
+        // Contexte CUP (non-admin) : le besoin approuvé est en lecture seule.
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("cup-user", null,
+                        List.of(new SimpleGrantedAuthority("ROLE_CUP"))));
+        BesoinFormation existing = besoin(32L, "ens-user", BesoinStatus.ADMIN_APPROVED, ApprovalStep.COMPLETED);
+        when(besoinFormationRepository.findById(32L)).thenReturn(Optional.of(existing));
+
+        BesoinFormationRequest request = new BesoinFormationRequest();
+        request.setIdBesoinFormation(32L);
+        request.setTitre("Tentative de modification");
+
+        AccessDeniedException ex = assertThrows(AccessDeniedException.class,
+                () -> service.modifyBesoinFormation(request));
+        assertTrue(ex.getMessage().contains("approuvé par le D2F"));
+        verify(besoinFormationRepository, never()).save(any(BesoinFormation.class));
+        verifyNoInteractions(mailNotifier);
+    }
+
+    @Test
+    void removeBesoinFormation_approuveParLeD2F_doitLever403() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("cup-user", null,
+                        List.of(new SimpleGrantedAuthority("ROLE_CUP"))));
+        BesoinFormation existing = besoin(33L, "ens-user", BesoinStatus.FORMATION_CREATED, ApprovalStep.COMPLETED);
+        when(besoinFormationRepository.findById(33L)).thenReturn(Optional.of(existing));
+
+        assertThrows(AccessDeniedException.class, () -> service.removeBesoinFormation(33L));
+        verify(besoinFormationRepository, never()).save(any(BesoinFormation.class));
     }
 }

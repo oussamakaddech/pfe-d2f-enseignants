@@ -120,12 +120,33 @@ export default function AnalyticsTeacherPage() {
             >
               Indice de risque : <b>{pct} / 100</b> (non calibré) · {levelLabel}
             </p>
-            <span style={{ display: 'block', marginTop: 8 }}>
+            <span
+              style={{
+                display: 'flex',
+                gap: 10,
+                marginTop: 8,
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}
+            >
+              {/* Deux moteurs distincts : les écarts et le risque. Chaque badge
+                  décrit le moteur qui a réellement produit SON résultat — l'API
+                  fournit les deux (model_mode/model_name/model_version). */}
+              <span style={{ fontSize: 12, color: 'var(--at-ink2)' }}>Moteur des écarts :</span>
+              <ModelBadge
+                modelMode={gaps.data?.model?.model_mode}
+                modelVersion={gaps.data?.model?.model_version}
+                modelName={gaps.data?.model?.model_name}
+                targetValidity={gaps.data?.model?.target_validity}
+                validationScope={gaps.data?.model?.validation_scope}
+                dataOrigin={gaps.data?.model?.data_origin}
+                size="small"
+              />
+              <span style={{ fontSize: 12, color: 'var(--at-ink2)' }}>Moteur du risque :</span>
               <ModelBadge
                 modelMode={risk.data?.model_mode}
                 modelVersion={risk.data?.model_version}
                 modelName={risk.data?.model_name}
-                modelAlgorithm={risk.data?.model_algorithm}
                 targetValidity={risk.data?.target_validity ?? gaps.data?.target_validity}
                 validationScope={risk.data?.validation_scope ?? gaps.data?.validation_scope}
                 dataOrigin={risk.data?.data_origin ?? gaps.data?.data_origin}

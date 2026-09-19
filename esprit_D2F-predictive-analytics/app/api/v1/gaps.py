@@ -32,6 +32,7 @@ def list_gaps(
     gaps = container.analysis_repository.list_gaps_by_teacher(teacher_id)
     model_mode = None
     model_version = None
+    model_name = None
     fallback_reason = None
     dataset_version = None
     prediction_horizon = None
@@ -46,6 +47,7 @@ def list_gaps(
         status = container.model_port.status()
         model_mode = status.get("model_mode") or status.get("mode")
         model_version = status.get("model_version") or status.get("version")
+        model_name = status.get("artifact_name") or status.get("model_name")
         fallback_reason = status.get("fallback_reason")
         prediction_horizon = status.get("prediction_horizon")
         target_validity = status.get("target_validity")
@@ -92,6 +94,7 @@ def list_gaps(
         {
             "model_mode": model_mode,
             "model_version": model_version,
+            "model_name": model_name,
             "fallback_reason": fallback_reason,
             "dataset_version": dataset_version,
             "prediction_horizon": prediction_horizon,

@@ -105,8 +105,15 @@ public class FormationWorkflowService {
     }
 
     // FIX-C2: injected from application.properties (formation.organizer.email)
+    // Identité TECHNIQUE (expéditeur / ICS ORGANIZER) — jamais destinataire :
+    // n'utiliser que d2fNotificationEmail pour les notifications admin.
     @Value("${formation.organizer.email}")
     private String organizerEmail;
+
+    // Boîte applicative D2F destinataire des notifications admin (parité
+    // BesoinFormationMailNotifier / D2F_NOTIFICATION_EMAIL du service besoin).
+    @Value("${d2f.notification.email}")
+    private String d2fNotificationEmail;
 
     // FIX-C3: platform base URL for clickable CTAs in emails
     @Value("${d2f.platform.url}")
@@ -521,9 +528,10 @@ public class FormationWorkflowService {
 
     // ── ENREGISTRE : Notification admin + CUPs qu'une formation est enregistrée ──
     private void notifyEnregistrement(Formation formation) {
-        // Notification admin (boîte applicative D2F)
+        // Notification admin (boîte applicative D2F — jamais l'organizer
+        // technique noreply, domaine inexistant → NDR).
         // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
-        if (outlookMailService != null) {
+        if (outlookMailService != null && d2fNotificationEmail != null && !d2fNotificationEmail.isBlank()) {
             try {
                 String subject = "[D2F] Nouvelle formation enregistrée : " + formation.getTitreFormation();
                 // FIX-S8: include actor identity in admin email
@@ -533,12 +541,12 @@ public class FormationWorkflowService {
                                 + "Vous trouverez ci-dessous le récapitulatif.", formation);
                 buildActorAuditDetail(adminBuilder);
                 String html = adminBuilder.build();
-                outlookMailService.sendMail(organizerEmail, subject, html);
+                outlookMailService.sendMail(d2fNotificationEmail, subject, html);
             } catch (Exception ex) {
                 log.warn("Echec notification admin enregistrement : {}", ex.getMessage());
             }
         } else {
-            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — notification admin enregistrement ignorée.");
+            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) ou boîte D2F non configurée — notification admin enregistrement ignorée.");
         }
 
         // Notification CUPs pour planifier
@@ -570,9 +578,10 @@ public class FormationWorkflowService {
         notifyTeachersOfApprovedFormation(formation);
         // Notification aux CUPs
         notifyCUPOfApprovedFormation(formation);
-        // Notification admin (boîte applicative D2F)
+        // Notification admin (boîte applicative D2F — jamais l'organizer
+        // technique noreply, domaine inexistant → NDR).
         // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
-        if (outlookMailService != null) {
+        if (outlookMailService != null && d2fNotificationEmail != null && !d2fNotificationEmail.isBlank()) {
             try {
                 String subject = "[D2F] Formation publiée : " + formation.getTitreFormation();
                 // FIX-S8: include actor identity in admin email
@@ -581,12 +590,12 @@ public class FormationWorkflowService {
                         "La formation est désormais visible et ouverte aux inscriptions.", formation);
                 buildActorAuditDetail(adminBuilder);
                 String html = adminBuilder.build();
-                outlookMailService.sendMail(organizerEmail, subject, html);
+                outlookMailService.sendMail(d2fNotificationEmail, subject, html);
             } catch (Exception ex) {
                 log.warn("Echec notification admin visibilite : {}", ex.getMessage());
             }
         } else {
-            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — notification admin visibilité ignorée.");
+            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) ou boîte D2F non configurée — notification admin visibilité ignorée.");
         }
     }
 
@@ -741,7 +750,8 @@ public class FormationWorkflowService {
                 && !formation.getExterneFormateurEmail().isBlank()) {
             emails.add(formation.getExterneFormateurEmail());
         }
-        emails.add(organizerEmail);
+        // L'organizer technique (noreply, domaine inexistant) n'est JAMAIS
+        // destinataire — il n'est qu'expéditeur / identité ICS ORGANIZER.
         log.info("collectAllRecipientEmails: {} destinataires collectes pour la formation {}",
                 emails.size(), formation.getIdFormation());
         return emails;
@@ -1213,7 +1223,8 @@ public class FormationWorkflowService {
                 && !freshFormation.getExterneFormateurEmail().isBlank()) {
             emails.add(freshFormation.getExterneFormateurEmail());
         }
-        emails.add(organizerEmail);
+        // L'organizer technique (noreply, domaine inexistant) n'est JAMAIS
+        // invité aux événements — il n'est qu'organisateur / expéditeur.
         return emails;
     }
 
@@ -1538,6 +1549,8 @@ public class FormationWorkflowService {
         dto.setTypeSeance(seance.getTypeSeance());
         dto.setDureePratique(seance.getDureePratique());
         dto.setDureeTheorique(seance.getDureeTheorique());
+        dto.setNumeroSeance(seance.getNumeroSeance());
+        dto.setTotalSeances(seance.getTotalSeances());
 
         if (seance.getAnimateurs() != null) {
             dto.setAnimateurs(seance.getAnimateurs().stream().map(this::mapEnseignantToDTO).toList());

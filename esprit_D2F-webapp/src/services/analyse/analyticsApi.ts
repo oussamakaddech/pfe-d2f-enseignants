@@ -662,6 +662,7 @@ export const analyticsApi = {
           model: {
             model_mode: mapModelMode((m.model_mode as string) ?? undefined),
             model_version: (m.model_version as string) ?? undefined,
+            model_name: (m.model_name as string) ?? undefined,
             fallback_reason: (m.fallback_reason as string) ?? undefined,
             dataset_version: (provenance.dataset_version as string) ?? undefined,
             prediction_horizon: (m.prediction_horizon as string) ?? undefined,

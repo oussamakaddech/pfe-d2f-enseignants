@@ -16,6 +16,7 @@ const CalendrierGestionPage = lazy(() => import('@/pages/formation/CalendrierGes
 const FormationPage = lazy(() => import('@/pages/formation/FormationPage'));
 const FormationCreationPage = lazy(() => import('@/pages/formation/FormationCreationPage'));
 const FormationConsultationPage = lazy(() => import('@/pages/formation/FormationConsultationPage'));
+const FormationEditPage = lazy(() => import('@/pages/formation/FormationEditPage'));
 const DocumentsPage = lazy(() => import('@/pages/documentFormation/DocumentsPage'));
 const AdministrationPage = lazy(() => import('@/pages/admin/AdministrationPage'));
 const CalendarEnseignant = lazy(() => import('@/pages/enseignant/CalendarEnseignant'));
@@ -280,29 +281,33 @@ export default function AppRoutes() {
                       <RoleGuard
                         allowedRoles={[
                           ROLES.ADMIN,
-                          ROLES.CUP,
-                          ROLES.CHEF_DEPARTEMENT,
                           ROLES.ENSEIGNANT,
                           ROLES.ANIMATEUR,
+                          ROLES.RESPONSABLE_DOSSIER,
                         ]}
                       />
                     }
                   >
+                    {/* DSI §: le calendrier (consultation + gestion) est retiré
+                      du périmètre CUP / CHEF_DEPARTEMENT (parité gateway +
+                      AuthorizationMatrix.CALENDAR_READ). */}
                     <Route path="/home/Calendrier" element={<CalendrierPage />} />
                     <Route path="/home/calendar/:enseignantId" element={<CalendarEnseignant />} />
                   </Route>
 
                   {/* Gestion du calendrier des ateliers : import/export/invitations.
-                    L'import et l'envoi d'invitations restent réservés à ADMIN (gardé aussi côté page et backend). */}
-                  <Route
-                    element={
-                      <RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />
-                    }
-                  >
+                    Réservée à ADMIN (parité backend REFERENTIEL_IMPORT = ADMIN). */}
+                  <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN]} />}>
                     <Route
                       path="/home/Formation/CalendrierGestion"
                       element={<CalendrierGestionPage />}
                     />
+                  </Route>
+
+                  {/* Page dédiée de modification (GET détail frais + pleine page).
+                    Parité FORMATION_UPDATE : ADMIN, CUP, CHEF_DEPARTEMENT. */}
+                  <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />}>
+                    <Route path="/home/Formation/Modifier/:id" element={<FormationEditPage />} />
                   </Route>
 
                   <Route
@@ -321,6 +326,17 @@ export default function AppRoutes() {
                       path="/home/Formation/Consulter"
                       element={<FormationConsultationPage />}
                     />
+                  </Route>
+
+                  {/* DSI §: la « gestion des dossiers de formations » (documents
+                    d'une formation + arborescence OneDrive) est réservée à
+                    ADMIN + RESPONSABLE_DOSSIER — CUP/CHEF_DEPARTEMENT exclus
+                    (parité gateway /documents + /onedrive). */}
+                  <Route
+                    element={
+                      <RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.RESPONSABLE_DOSSIER]} />
+                    }
+                  >
                     <Route
                       path="/home/Formation/Consulter/:formationId/documents"
                       element={<DocumentsPage />}

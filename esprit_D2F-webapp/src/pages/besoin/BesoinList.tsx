@@ -3,14 +3,15 @@
  * State & logic: useBesoinList | Table: BesoinTable | Mail: BesoinMailCupModal
  * ─────────────────────────────────────────────────────────────────────── */
 import { useState } from 'react';
-import { Row, Col, Skeleton, Button, Pagination, Space } from 'antd';
-import { InboxOutlined, PlusOutlined, ClearOutlined, ApartmentOutlined } from '@ant-design/icons';
+import { Row, Col, Skeleton, Button, Pagination, Space, Tabs } from 'antd';
+import { InboxOutlined, PlusOutlined, ClearOutlined, ApartmentOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
 import { useHasPermission, useUserRole } from '@/routes/guards';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { hasAnyRole, ROLES } from '@/utils/constants/roles';
 import { useBesoinList, INITIAL_FILTERS } from './hooks/useBesoinList';
+import { useApprovedBesoins } from '@/hooks/besoin/useBesoins';
 import BesoinHeader from './components/BesoinHeader';
 import BesoinStatsRow from './components/BesoinStatsRow';
 import BesoinFiltersPanel from './components/BesoinFiltersPanel';
@@ -49,6 +50,9 @@ export default function BesoinList() {
   const canEdit = useHasPermission('BESOIN_FORMATION', 'UPDATE');
   const canDelete = useHasPermission('BESOIN_FORMATION', 'DELETE');
   const canManageScopes = useHasPermission('BESOIN_FORMATION', 'MANAGE_SCOPES');
+  // Parité backend BESOIN_FORMATION_READ_ALL : l'ENSEIGNANT en est exclu —
+  // ne pas appeler /approved pour ce rôle (403 sinon).
+  const canReadAll = useHasPermission('BESOIN_FORMATION', 'READ_ALL');
   const userRole = useUserRole() ?? '';
   const { user } = useAuth();
   const addLabel = resolveAddLabel(userRole);
@@ -56,7 +60,10 @@ export default function BesoinList() {
   const currentUserId = user?.userId ?? user?.id ?? null;
   const [rejectRecord, setRejectRecord] = useState<Record<string, unknown> | null>(null);
   const [scopesOpen, setScopesOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('active');
   const ctx = useBesoinList();
+  const { data: approvedBesoins = [], isLoading: loadingApproved } =
+    useApprovedBesoins(canReadAll);
 
   const {
     besoins,
@@ -166,6 +173,32 @@ export default function BesoinList() {
 
       <BesoinStatsRow total={stats.total} approved={stats.approved} pending={stats.pending} />
 
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        style={{ marginBottom: 16 }}
+        items={[
+          {
+            key: 'active',
+            label: `Besoins en cours (${filtered.length})`,
+            children: null,
+          },
+          // Onglet réservé aux rôles READ_ALL (parité backend) : masqué pour
+          // l'ENSEIGNANT qui n'a pas accès à /approved.
+          ...(canReadAll
+            ? [
+                {
+                  key: 'approved',
+                  label: `Approuvés (${approvedBesoins.length})`,
+                  children: null,
+                },
+              ]
+            : []),
+        ]}
+      />
+
+      {activeTab === 'active' && (
+        <>
       <BesoinFiltersPanel
         searchText={searchText}
         filters={filters}
@@ -305,6 +338,57 @@ export default function BesoinList() {
           onEdit={openEdit}
           onDelete={handleDelete}
         />
+      )}
+        </>
+      )}
+
+      {canReadAll && activeTab === 'approved' && (
+        <>
+          {loadingApproved && <Skeleton active paragraph={{ rows: 2 }} />}
+          {!loadingApproved && approvedBesoins.length === 0 && (
+            <output className="bf-empty">
+              <div className="bf-empty__illustration" aria-hidden="true">
+                <CheckCircleOutlined />
+              </div>
+              <h3 className="bf-empty__title">Aucun besoin approuvé</h3>
+              <p className="bf-empty__subtitle">
+                Les besoins approuvés par le D2F apparaîtront ici en lecture seule.
+              </p>
+            </output>
+          )}
+          {!loadingApproved && approvedBesoins.length > 0 && (
+            <Row gutter={[16, 16]} className="bf-grid">
+              {approvedBesoins.map((b) => {
+                const br = b as unknown as Record<string, unknown>;
+                const id = getBesoinId(br);
+                return (
+                  <Col xs={24} sm={12} lg={8} xxl={6} key={String(id)}>
+                    <BesoinCard
+                      besoin={b}
+                      upLabel={getLabel(findById(typedUps, b.up))}
+                      deptLabel={getLabel(findById(typedDepts, b.departement))}
+                      periodLabel={periodLabelOf(br)}
+                      approvingId={null}
+                      canApprove={false}
+                      canReject={false}
+                      canEdit={false}
+                      canDelete={false}
+                      userRole={userRole}
+                      currentUsername={currentUsername}
+                      currentUserId={currentUserId}
+                      onApprove={() => {}}
+                      onReject={() => {}}
+                      onOpenMail={() => {}}
+                      onEdit={() => {}}
+                      onDelete={() => {}}
+                      onOpen={() => openEdit(br)}
+                    />
+                  </Col>
+                );
+              })}
+            </Row>
+          )}
+        </>
       )}
 
       {/* Edit Modal (delegated to existing shared component) */}

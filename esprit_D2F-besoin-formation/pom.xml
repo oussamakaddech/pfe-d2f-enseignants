@@ -40,6 +40,14 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+			<!-- Azure SDK BOM (parité service formation — Microsoft Graph mail) -->
+			<dependency>
+				<groupId>com.azure</groupId>
+				<artifactId>azure-sdk-bom</artifactId>
+				<version>1.2.16</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 
@@ -93,6 +101,17 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+		<!-- Microsoft Graph (parité service formation : envoi e-mail via Graph API,
+		     flow client credentials — SMTP basic auth étant désactivé côté Office 365) -->
+		<dependency>
+			<groupId>com.microsoft.graph</groupId>
+			<artifactId>microsoft-graph</artifactId>
+			<version>5.77.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.azure</groupId>
+			<artifactId>azure-identity</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

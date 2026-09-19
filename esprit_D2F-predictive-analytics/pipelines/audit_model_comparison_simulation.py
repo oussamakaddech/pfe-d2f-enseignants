@@ -105,7 +105,6 @@ def main() -> int:
     for _ in range(1000):
         idx = rng.choice(len(y_test), size=len(y_test), replace=True)
         boot_rmse_b.append(float(np.sqrt(mean_squared_error(y_test[idx], gap_t_proxy[idx]))))
-    boot_rmse_b_arr = np.asarray(boot_rmse_b)
 
     rows = []
     for name, model in candidates.items():
@@ -124,14 +123,15 @@ def main() -> int:
                 - float(np.sqrt(mean_squared_error(y_test[idx], preds[idx])))
             )
         arr = np.asarray(boot_lifts)
+        lo, hi = (float(v) for v in np.percentile(arr, [2.5, 97.5]))
         rows.append({
             "candidate": name,
             "rmse": round(rmse, 4),
             "mae": round(mae, 4),
             "r2": round(r2, 4),
             "lift_rmse_vs_baseline": round(lift_rmse, 4),
-            "lift_rmse_ci95": [round(float(arr[int(0.025 * len(arr))]), 4), round(float(arr[int(0.975 * len(arr)) - 1]), 4)],
-            "lift_significant_95": bool(arr[int(0.025 * len(arr))] > 0),
+            "lift_rmse_ci95": [round(lo, 4), round(hi, 4)],
+            "lift_significant_95": bool(lo > 0),
         })
         print(f"{name}: RMSE={rmse:.4f} MAE={mae:.4f} R2={r2:.4f} lift={lift_rmse:.4f}")
 

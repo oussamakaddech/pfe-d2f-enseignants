@@ -22,7 +22,6 @@ public class EvaluationFormateurService {
 
     private final EvaluationFormateurRepository evaluationRepository;
     private final esprit.pfe.serviceevaluation.client.FormationClient formationClient;
-    private final esprit.pfe.serviceevaluation.client.AuthClient authClient;
 
     private static final String ROLE_RESPONSABLE_DOSSIER = "ROLE_RESPONSABLE_DOSSIER";
 
@@ -30,8 +29,22 @@ public class EvaluationFormateurService {
         if (Boolean.FALSE.equals(formationClient.getFormation(formationId))) {
             throw new esprit.pfe.serviceevaluation.exception.ResourceNotFoundException("Formation introuvable");
         }
-        if (!authClient.enseignantExists(enseignantId)) {
+        if (!ficheEnseignantExiste(enseignantId)) {
             throw new esprit.pfe.serviceevaluation.exception.ResourceNotFoundException("Enseignant introuvable");
+        }
+    }
+
+    /**
+     * Existence de la fiche enseignant (id OU mail, cf. formation
+     * EnseignantService.getEnseignantById) via le service formation —
+     * propriétaire des fiches. L'ancien contrôle via le service auth comparait
+     * des ids de fiches à des UUID de comptes : toujours faux.
+     */
+    private boolean ficheEnseignantExiste(String enseignantId) {
+        try {
+            return formationClient.getEnseignantById(enseignantId) != null;
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -146,10 +159,69 @@ public class EvaluationFormateurService {
         return mapToDto(consulterEvalParticipant(id));
     }
 
-    // LIST (paginé)
+    // LIST (paginé, scopée par rôle) : ADMIN et ANIMATEUR voient tout ;
+    // les autres rôles ne voient que leurs propres évaluations
+    // (enseignantId = leur fiche, résolue via l'email JWT).
     public Page<EvaluationFormateurDTO> listAllEvaluationsDto(Pageable pageable) {
-        return evaluationRepository.findAll(pageable)
+        ListScope scope = resolveListScope();
+        if (scope.global()) {
+            return evaluationRepository.findAll(pageable)
+                    .map(this::mapToDto);
+        }
+        if (scope.ficheId() == null) {
+            return Page.empty(pageable);
+        }
+        return evaluationRepository.findByEnseignantId(scope.ficheId(), pageable)
                 .map(this::mapToDto);
+    }
+
+    /** Périmètre de lecture : global (ADMIN/ANIMATEUR) ou fiche personnelle. */
+    private record ListScope(boolean global, String ficheId) {
+    }
+
+    private ListScope resolveListScope() {
+        org.springframework.security.core.Authentication auth =
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return new ListScope(false, null);
+        }
+        boolean global = auth.getAuthorities().stream().anyMatch(a ->
+                "ROLE_ADMIN".equals(a.getAuthority()) || "ROLE_ANIMATEUR".equals(a.getAuthority()));
+        if (global) {
+            return new ListScope(true, null);
+        }
+        return new ListScope(false, resolveFicheId(callerIdentity(auth)));
+    }
+
+    private String callerIdentity(org.springframework.security.core.Authentication auth) {
+        Object principal = auth.getPrincipal();
+        if (principal instanceof org.springframework.security.oauth2.jwt.Jwt jwt) {
+            String email = jwt.getClaimAsString("email");
+            if (email != null && !email.isBlank()) {
+                return email;
+            }
+        }
+        return auth.getName();
+    }
+
+    /** Résout l'id de fiche via le service formation (accepte id ou mail). */
+    private String resolveFicheId(String identity) {
+        if (identity == null || identity.isBlank()) {
+            return null;
+        }
+        try {
+            Object found = formationClient.getEnseignantById(identity);
+            if (found instanceof java.util.Map<?, ?> map) {
+                Object id = map.get("id");
+                return id != null ? String.valueOf(id) : null;
+            }
+            if (found instanceof String s && !s.isBlank()) {
+                return s;
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
 
@@ -270,7 +342,7 @@ public class EvaluationFormateurService {
             }
         });
         enseignantIds.forEach(enseignantId -> {
-            if (!authClient.enseignantExists(enseignantId)) {
+            if (!ficheEnseignantExiste(enseignantId)) {
                 throw new esprit.pfe.serviceevaluation.exception.ResourceNotFoundException("Enseignant introuvable");
             }
         });
@@ -294,7 +366,7 @@ public class EvaluationFormateurService {
             enseignantIds.add(dto.getEnseignantId());
         }
         enseignantIds.forEach(enseignantId -> {
-            if (!authClient.enseignantExists(enseignantId)) {
+            if (!ficheEnseignantExiste(enseignantId)) {
                 throw new esprit.pfe.serviceevaluation.exception.ResourceNotFoundException("Enseignant introuvable");
             }
         });

@@ -16,6 +16,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.*;
 
@@ -60,7 +63,7 @@ class EvaluationFormateurServiceMissingTest {
         dto.setSatisfaisant(true);
         dto.setCommentaire("Bon formateur");
 
-        lenient().when(authClient.enseignantExists(anyString())).thenReturn(true);
+        lenient().when(formationClient.getEnseignantById(anyString())).thenReturn(new Object());
     }
 
     @Test
@@ -217,10 +220,18 @@ class EvaluationFormateurServiceMissingTest {
     void shouldReturnPagedEvaluations() {
         // Given
         Pageable pageable = PageRequest.of(0, 10);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", null,
+                        java.util.List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
         when(evaluationRepository.findAll(pageable)).thenReturn(new PageImpl<>(Arrays.asList(entity)));
 
         // When
-        Page<EvaluationFormateurDTO> result = evaluationService.listAllEvaluationsDto(pageable);
+        Page<EvaluationFormateurDTO> result;
+        try {
+            result = evaluationService.listAllEvaluationsDto(pageable);
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
 
         // Then
         assertThat(result).hasSize(1);

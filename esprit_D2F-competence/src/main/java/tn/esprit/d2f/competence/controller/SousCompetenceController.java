@@ -65,7 +65,7 @@ public class SousCompetenceController {
     @ApiResponse(responseCode = "400", description = "Données invalides")
     @ApiResponse(responseCode = "404", description = "Compétence introuvable")
     @PostMapping("/competence/{competenceId}")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_CONTENU_WRITE)
     public ResponseEntity<SousCompetenceDTO> createSousCompetence(
             @PathVariable Long competenceId,
             @Valid @RequestBody SousCompetenceRequest request) {
@@ -77,7 +77,7 @@ public class SousCompetenceController {
     @ApiResponse(responseCode = "400", description = "Données invalides ou règles métier violées")
     @ApiResponse(responseCode = "404", description = "Sous-compétence parente introuvable")
     @PostMapping("/{parentId}/enfants")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_CONTENU_WRITE)
     public ResponseEntity<SousCompetenceDTO> createSousCompetenceEnfant(
             @PathVariable Long parentId,
             @Valid @RequestBody SousCompetenceRequest request) {
@@ -86,7 +86,7 @@ public class SousCompetenceController {
 
     @Operation(summary = "Mettre à jour une sous-compétence")
     @PutMapping("/{id}")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_CONTENU_WRITE)
     public ResponseEntity<SousCompetenceDTO> updateSousCompetence(
             @PathVariable Long id,
             @Valid @RequestBody SousCompetenceRequest request) {
@@ -95,7 +95,7 @@ public class SousCompetenceController {
 
     @Operation(summary = "Supprimer une sous-compétence")
     @DeleteMapping("/{id}")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_CONTENU_WRITE)
     public ResponseEntity<Void> deleteSousCompetence(@PathVariable Long id) {
         sousCompetenceService.deleteSousCompetence(id);
         return ResponseEntity.noContent().build();

@@ -27,7 +27,7 @@ import { useAllDepts } from '@/hooks/formation/useDeptCrud';
 import { useAllUps } from '@/hooks/formation/useUpCrud';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 
-/** Aucun verrou de type — tous les rôles choisissent librement INDIVIDUEL ou COLLECTIF. */
+/** Libre choix du type — le backend accepte INDIVIDUEL et COLLECTIF pour tous les rôles. */
 function resolveLockedType(): undefined {
   return undefined;
 }

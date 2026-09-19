@@ -49,7 +49,6 @@ import {
 import type { Formation } from '@/models/formation';
 import type { FormationDocument } from '@/models/document';
 import type { Id } from '@/models/common';
-import FormationWorkflowEditForm from './FormationWorkflowEditForm';
 import MailForm from '@/pages/besoin/MailForm';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 
@@ -187,7 +186,6 @@ export default function FormationConsultationPage() {
   const [periodFilter, setPeriodFilter] = useState<string | undefined>();
   const [periodRange, setPeriodRange] = useState<[Dayjs, Dayjs] | null>(null);
 
-  const [openEdit, setOpenEdit] = useState(false);
   const [openExport, setOpenExport] = useState(false);
   const [openMail, setOpenMail] = useState(false);
 
@@ -483,8 +481,14 @@ export default function FormationConsultationPage() {
                 shape="circle"
                 icon={<EditOutlined />}
                 onClick={() => {
-                  setSelectedFormation(r);
-                  setOpenEdit(true);
+                  if (r.idFormation == null) return;
+                  // Page dédiée (GET détail frais) pour les gestionnaires ;
+                  // le responsable dossier gère les documents de la formation.
+                  navigate(
+                    canManageFormations
+                      ? `/home/Formation/Modifier/${r.idFormation}`
+                      : `/home/Formation/Consulter/${r.idFormation}/documents`,
+                  );
                 }}
                 title={isResponsableDossier ? 'Gérer Dossier' : 'Modifier'}
                 className="formation-btn-edit"
@@ -827,31 +831,6 @@ export default function FormationConsultationPage() {
               onSendSuccess={() => {
                 msgApi.success('E-mail envoyé !');
                 setOpenMail(false);
-              }}
-            />
-          )}
-        </Drawer>
-      )}
-
-      {canManageFormations && (
-        <Drawer
-          title="Modifier Formation"
-          placement="right"
-          width={960}
-          onClose={() => setOpenEdit(false)}
-          open={openEdit}
-          className="formation-drawer formation-drawer--edit"
-        >
-          {selectedFormation && (
-            <FormationWorkflowEditForm
-              formation={
-                selectedFormation as unknown as Parameters<
-                  typeof FormationWorkflowEditForm
-                >[0]['formation']
-              }
-              onFormationUpdated={() => {
-                setOpenEdit(false);
-                void refetchFormations();
               }}
             />
           )}

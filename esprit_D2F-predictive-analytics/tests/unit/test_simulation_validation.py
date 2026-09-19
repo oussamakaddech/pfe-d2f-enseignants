@@ -333,9 +333,9 @@ def _auth_headers():
 # ---------------------------------------------------------------------------
 def test_serving_unchanged_for_demo_environment():
     # Verifie que le corpus reel reste valide (0 % synthetique) et que le mode
-    # effectif reste PRODUCTION_ML. Depuis la promotion v1.1.0 (corpus DB),
-    # la version servie en production est v1.1.0 reelle ; simulation-v1.0.0
-    # et v1.0.0 restent conservees (rollback possible, artefacts intacts).
+    # effectif reste PRODUCTION_ML. Depuis la promotion GB v1.2.0-gb (comparaison
+    # multi-datasets), la version servie en production est le GB ; v1.1.0,
+    # simulation-v1.0.0 et v1.0.0 restent conservees (rollback, artefacts intacts).
     from app.infrastructure.ml.predictor import ArtifactModelPort
     from unittest.mock import MagicMock
 
@@ -345,11 +345,11 @@ def test_serving_unchanged_for_demo_environment():
     df = pd.read_csv(real_path)
     assert len(df) > 0, "corpus reel non vide"
     assert df["is_synthetic"].astype(bool).sum() == 0, "0 % synthetique"
-    # Registry : v1.1.0 reelle ACTIVE et APPROVED
+    # Registry : GB v1.2.0-gb ACTIVE et APPROVED
     reg_data = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
     active = [e for e in reg_data if e.get("status") == "ACTIVE"]
     assert active, "aucune entree ACTIVE"
-    assert active[0]["model_version"] == "v1.1.0", "serving prod : v1.1.0 reelle ACTIVE"
+    assert active[0]["model_version"] == "v1.2.0-gb", "serving prod : GB v1.2.0-gb ACTIVE"
     assert active[0]["approval_status"] == "APPROVED"
     assert active[0]["synthetic_share_pct"] == 0.0
     legacy_v1 = [e for e in reg_data if e.get("model_version") == "v1.0.0"]

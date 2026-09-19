@@ -45,7 +45,6 @@ class DataSeederConfigTest {
         when(roleRepository.findByName(ERole.CUP)).thenReturn(Optional.of(new Role(ERole.CUP)));
         when(roleRepository.findByName(ERole.ENSEIGNANT)).thenReturn(Optional.of(new Role(ERole.ENSEIGNANT)));
         when(roleRepository.findByName(ERole.ANIMATEUR)).thenReturn(Optional.of(new Role(ERole.ANIMATEUR)));
-        when(roleRepository.findByName(ERole.FORMATEUR)).thenReturn(Optional.of(new Role(ERole.FORMATEUR)));
 
         when(credentialsManager.getDefaultAdminUsername()).thenReturn("admin");
         when(credentialsManager.getDefaultAdminPassword()).thenReturn("pass");
@@ -97,7 +96,7 @@ class DataSeederConfigTest {
         runner.run();
 
         // Assert
-        verify(roleRepository, times(5)).save(any(Role.class));
+        verify(roleRepository, times(4)).save(any(Role.class));
     }
 
     @Test

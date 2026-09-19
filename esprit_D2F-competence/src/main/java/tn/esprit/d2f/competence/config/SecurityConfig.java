@@ -44,9 +44,6 @@ public class SecurityConfig {
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_CUP = "CUP";
     private static final String ROLE_ENSEIGNANT = "ENSEIGNANT";
-    private static final String ROLE_FORMATEUR = "FORMATEUR";
-    // ANIMATEUR = rôle canonique D2F (équivalent FORMATEUR). Doit accompagner
-    // FORMATEUR partout pour ne pas priver les comptes animateurs d'accès.
     private static final String ROLE_ANIMATEUR = "ANIMATEUR";
     private static final String ROLE_CHEF_DEPARTEMENT = "CHEF_DEPARTEMENT";
 
@@ -93,14 +90,14 @@ public class SecurityConfig {
                         ).permitAll()
                         // Lecture : tous les rôles
                         .requestMatchers(HttpMethod.GET, API_PATTERN)
-                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR, ROLE_ANIMATEUR, ROLE_CHEF_DEPARTEMENT)
-                        // Création / modification : admin, CUP, Enseignant, Formateur/Animateur
+                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_ANIMATEUR, ROLE_CHEF_DEPARTEMENT)
+                        // Création / modification : admin, CUP, Enseignant, Animateur
                         .requestMatchers(HttpMethod.POST, API_PATTERN)
-                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR, ROLE_ANIMATEUR)
+                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_ANIMATEUR)
                         .requestMatchers(HttpMethod.PUT, API_PATTERN)
-                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR, ROLE_ANIMATEUR)
+                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_ANIMATEUR)
                         .requestMatchers(HttpMethod.PATCH, API_PATTERN)
-                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR, ROLE_ANIMATEUR)
+                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_ANIMATEUR)
                         // Suppression : admin uniquement (COMPETENCE_DELETE = ROLE_ADMIN dans AuthorizationMatrix)
                         .requestMatchers(HttpMethod.DELETE, API_PATTERN)
                             .hasRole(ROLE_ADMIN)

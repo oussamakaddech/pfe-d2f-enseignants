@@ -71,6 +71,7 @@ class FormationWorkflowServiceEnhancedTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(formationWorkflowService, "formationMapper", formationMapper);
+        ReflectionTestUtils.setField(formationWorkflowService, "d2fNotificationEmail", "d2f@esprit.tn");
 
         request = new FormationWorkflowRequest();
         request.setTitreFormation("Formation Test");
@@ -549,7 +550,7 @@ class FormationWorkflowServiceEnhancedTest {
         formationWorkflowService.removeFormationCalendar(formation);
 
         verify(outlookCalendarService).deleteEventInCalendar(any(), eq("event123"));
-        verify(outlookMailService, times(2)).sendMail(any(), anyString(), anyString());
+        verify(outlookMailService, times(1)).sendMail(eq("e1@esprit.tn"), anyString(), anyString());
     }
 
     @Test

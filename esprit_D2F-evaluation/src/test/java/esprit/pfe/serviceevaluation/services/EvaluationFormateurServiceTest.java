@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -14,8 +15,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -59,7 +64,18 @@ class EvaluationFormateurServiceTest {
         dto.setSatisfaisant(true);
         dto.setCommentaire("Bon formateur");
 
-        lenient().when(authClient.enseignantExists(anyString())).thenReturn(true);
+        lenient().when(formationClient.getEnseignantById(anyString())).thenReturn(new Object());
+    }
+
+    @AfterEach
+    void clearSecurity() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private static void asRole(String username, String role) {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(username, null,
+                        List.of(new SimpleGrantedAuthority(role))));
     }
 
     @Nested
@@ -188,6 +204,7 @@ class EvaluationFormateurServiceTest {
         @Test
         @DisplayName("retourne la liste mappée en DTOs")
         void shouldReturnDtoList() {
+            asRole("admin", "ROLE_ADMIN");
             when(evaluationRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
 
             Page<EvaluationFormateurDTO> result = evaluationService.listAllEvaluationsDto(Pageable.ofSize(10));
@@ -199,11 +216,56 @@ class EvaluationFormateurServiceTest {
         @Test
         @DisplayName("retourne une liste vide")
         void shouldReturnEmptyList() {
+            asRole("admin", "ROLE_ADMIN");
             when(evaluationRepository.findAll(any(Pageable.class))).thenReturn(Page.empty());
 
             Page<EvaluationFormateurDTO> result = evaluationService.listAllEvaluationsDto(Pageable.ofSize(10));
 
             assertThat(result).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("listAllEvaluationsDto() — périmètre par rôle")
+    class ListScope {
+
+        @Test
+        @DisplayName("animateur voit tout")
+        void animateurSeesAll() {
+            asRole("anim", "ROLE_ANIMATEUR");
+            when(evaluationRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
+
+            Page<EvaluationFormateurDTO> result = evaluationService.listAllEvaluationsDto(Pageable.ofSize(10));
+
+            assertThat(result).hasSize(1);
+            verify(evaluationRepository, never()).findByEnseignantId(anyString(), any(Pageable.class));
+        }
+
+        @Test
+        @DisplayName("enseignant ne voit que ses évaluations")
+        void enseignantSeesOwn() {
+            asRole("e@t.tn", "ROLE_ENSEIGNANT");
+            when(formationClient.getEnseignantById("e@t.tn")).thenReturn(Map.of("id", "ENS001"));
+            when(evaluationRepository.findByEnseignantId(eq("ENS001"), any(Pageable.class)))
+                    .thenReturn(new PageImpl<>(List.of(entity)));
+
+            Page<EvaluationFormateurDTO> result = evaluationService.listAllEvaluationsDto(Pageable.ofSize(10));
+
+            assertThat(result).hasSize(1);
+            verify(evaluationRepository, never()).findAll(any(Pageable.class));
+        }
+
+        @Test
+        @DisplayName("sans fiche : liste vide (deny-by-default)")
+        void unknownSeesNothing() {
+            asRole("ghost@t.tn", "ROLE_ENSEIGNANT");
+            when(formationClient.getEnseignantById("ghost@t.tn")).thenReturn(null);
+
+            Page<EvaluationFormateurDTO> result = evaluationService.listAllEvaluationsDto(Pageable.ofSize(10));
+
+            assertThat(result).isEmpty();
+            verify(evaluationRepository, never()).findAll(any(Pageable.class));
+            verify(evaluationRepository, never()).findByEnseignantId(anyString(), any(Pageable.class));
         }
     }
 

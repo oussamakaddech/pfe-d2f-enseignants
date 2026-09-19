@@ -35,6 +35,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -57,6 +59,9 @@ class BesoinFormationServiceImplCoverageTest {
     private BesoinApprovalHistoryRepository historyRepository;
     @Mock
     private BesoinCompetenceRepository besoinCompetenceRepository;
+    /** Notification e-mail D2F (ajout/modification par CUP ou chef). */
+    @Mock
+    private BesoinFormationMailNotifier mailNotifier;
 
     private final BesoinFormationMapper besoinFormationMapper = new BesoinFormationMapper();
 
@@ -75,7 +80,8 @@ class BesoinFormationServiceImplCoverageTest {
                 besoinFormationMapper,
                 reviewerScopeService,
                 historyRepository,
-                besoinCompetenceRepository
+                besoinCompetenceRepository,
+                mailNotifier
         );
         // Provide an ADMIN security context for service methods that read SecurityContextHolder
         SecurityContextHolder.getContext().setAuthentication(
@@ -391,7 +397,7 @@ class BesoinFormationServiceImplCoverageTest {
     @Test
     void retrieveAllBesoinFormations_emptyPage_shouldReturnEmptyPage() {
         Pageable pageable = PageRequest.of(0, 10);
-        when(besoinFormationRepository.findAll(pageable)).thenReturn(Page.empty());
+        when(besoinFormationRepository.findByStatusNotIn(anyCollection(), eq(pageable))).thenReturn(Page.empty());
         when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
 
         Page<BesoinFormationResponse> result = service.retrieveAllBesoinFormations(pageable);
@@ -419,7 +425,7 @@ class BesoinFormationServiceImplCoverageTest {
         b2.setDureeFormation(10);
         Page<BesoinFormation> page = new PageImpl<>(java.util.List.of(b1, b2));
 
-        when(besoinFormationRepository.findAll(pageable)).thenReturn(page);
+        when(besoinFormationRepository.findByStatusNotIn(anyCollection(), eq(pageable))).thenReturn(page);
         when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
 
         Page<BesoinFormationResponse> result = service.retrieveAllBesoinFormations(pageable);
@@ -501,6 +507,7 @@ class BesoinFormationServiceImplCoverageTest {
         b.setDureeFormation(5);
         Page<BesoinFormation> page = new PageImpl<>(Collections.singletonList(b));
 
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.findByApprouveAdminTrue(pageable)).thenReturn(page);
 
         Page<BesoinFormationResponse> result = service.retrieveApprovedBesoinFormations(pageable);

@@ -214,6 +214,15 @@ export default function BesoinInfoStep({
         title="Liste des participants"
         hint="Ajoutez les enseignants qui participeront à cette formation"
       />
+      {/* Enregistre `publicCible` dans le store : sans Form.Item, le champ
+          n'est pas une entité enregistrée et Form.useWatch (rc-field-form,
+          lecture depuis getFieldsValue() restreint aux enregistrés) ne voit
+          jamais la valeur posée par l'import Excel — compteur « 0 participant »
+          et tableau vide malgré le toast « +N importés ». Hors du Form.Item
+          l'input file ne peut pas écraser le champ via onChange injecté. */}
+      <Form.Item name="publicCible" hidden>
+        <Input type="hidden" />
+      </Form.Item>
       <div className="bf-import-box">
         <div className="bf-import-box__toolbar">
           <Button

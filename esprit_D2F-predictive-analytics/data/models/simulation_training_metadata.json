@@ -1,7 +1,7 @@
 {
   "model_name": "gap_predictor_temporal",
   "model_version": "simulation-v1.0.0",
-  "trained_at": "2026-08-31T17:46:59.569346",
+  "trained_at": "2026-09-16T02:40:17.420683",
   "n_features": 29,
   "feature_cols": [
     "current_level_t3",
@@ -74,28 +74,28 @@
       "max": 5.0
     },
     "lag_gap_t3_t2": {
-      "min": -2.0,
-      "max": 2.0
+      "min": -1.0,
+      "max": 1.0
     },
     "lag_gap_t2_t1": {
-      "min": -2.0,
-      "max": 3.0
+      "min": -1.0,
+      "max": 1.0
     },
     "lag_gap_t1_t": {
-      "min": -4.0,
-      "max": 4.0
+      "min": -1.0,
+      "max": 1.0
     },
     "rolling_tendance": {
-      "min": -1.333334,
-      "max": 1.0
+      "min": -0.667,
+      "max": 0.667
     },
     "days_since_last_training": {
       "min": 0.0,
-      "max": 2661.0
+      "max": 999.0
     },
     "training_frequency_per_month": {
       "min": 0.0,
-      "max": 0.491804
+      "max": 0.538
     },
     "is_long_absent": {
       "min": 0.0,
@@ -126,20 +126,20 @@
       "max": 4.0
     },
     "nb_savoirs": {
-      "min": 2.0,
-      "max": 7.0
+      "min": 4.0,
+      "max": 4.0
     },
     "nb_competences": {
-      "min": 2.0,
+      "min": 6.0,
       "max": 10.0
     },
     "competency_coverage_rate": {
-      "min": 0.285714,
-      "max": 1.0
+      "min": 0.5,
+      "max": 0.833
     },
     "nb_formations_completed": {
       "min": 0.0,
-      "max": 12.0
+      "max": 11.0
     },
     "nb_formations_in_progress": {
       "min": 0.0,
@@ -155,27 +155,25 @@
     },
     "nb_besoins_approuves": {
       "min": 0.0,
-      "max": 6.0
+      "max": 5.0
     },
     "avg_eval_score": {
-      "min": 0.0,
-      "max": 4.5
+      "min": 2.122,
+      "max": 3.553
     },
     "nb_evaluations": {
-      "min": 0.0,
-      "max": 33.0
+      "min": 4.0,
+      "max": 27.0
     },
     "months_since_last_training": {
       "min": 0.0,
-      "max": 87.417872
+      "max": 13.0
     },
     "engagement_score": {
-      "min": 0.0,
-      "max": 20.5
+      "min": 0.028,
+      "max": 1.0
     }
   },
   "decision": "accept",
-  "notes": "Modele SIMULATION_VALIDATED entraine sur corpus simule documente (seed 42, 10920 lignes, re-mesures M+3 observees). Utilisable en demonstration, jamais presente comme REAL_VALIDATED.",
-  "feature_ranges_source": "union (quantiles 0.001-0.999 sur simulation_dataset.csv, corpus complet 10920 lignes) x (etendue observee du corpus de demonstration training_corpus_from_db.csv) — justifiee par les deux distributions observees, sans valeur forcee",
-  "feature_ranges_recomputed_at": "2026-09-13T16:54:47.037199+00:00"
+  "notes": "Modele SIMULATION_VALIDATED entraine sur corpus simule documente (seed 42, 10920 lignes, re-mesures M+3 observees). Utilisable en demonstration, jamais presente comme REAL_VALIDATED."
 }

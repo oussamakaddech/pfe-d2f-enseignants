@@ -118,7 +118,7 @@ class AuthorizationFilterTest {
     @CsvSource({
         "/api/auth/profile, GET, ENSEIGNANT, true",
         "/api/auth/edit-profile, POST, CUP, true",
-        "/api/auth/update-password, PUT, FORMATEUR, true",
+        "/api/auth/update-password, PUT, ANIMATEUR, true",
         "/api/auth/list-accounts, GET, ADMIN, true",
         "/api/auth/ban-account, POST, ADMIN, true",
         "/api/auth/enable-account, POST, ADMIN, true",
@@ -163,19 +163,39 @@ class AuthorizationFilterTest {
         "/api/formation/mail/send, POST, RESPONSABLE_DOSSIER, false",
         "/api/formation/mail/send, POST, ENSEIGNANT, false",
         "/api/formation/mail/send, POST, ANIMATEUR, false",
-        // Documents de formation : parité DOCUMENT_* (ADMIN/CUP/RESPONSABLE_DOSSIER).
+        // Documents de formation : DSI § — gestion des dossiers réservée à
+        // ADMIN + RESPONSABLE_DOSSIER (CUP/CHEF_DEPARTEMENT exclus).
         "/api/formation/documents, POST, RESPONSABLE_DOSSIER, true",
-        "/api/formation/documents, POST, CUP, true",
+        "/api/formation/documents, POST, CUP, false",
+        "/api/formation/documents, POST, CHEF_DEPARTEMENT, false",
         "/api/formation/documents, POST, ADMIN, true",
         "/api/formation/documents, POST, ENSEIGNANT, false",
         "/api/formation/documents, PUT, RESPONSABLE_DOSSIER, true",
         "/api/formation/documents, PATCH, RESPONSABLE_DOSSIER, true",
         "/api/formation/documents, DELETE, RESPONSABLE_DOSSIER, true",
-        "/api/formation/documents, DELETE, CUP, true",
+        "/api/formation/documents, DELETE, CUP, false",
         "/api/formation/documents, DELETE, ENSEIGNANT, false",
         "/api/formation/documents, GET, RESPONSABLE_DOSSIER, true",
         "/api/formation/documents, GET, ENSEIGNANT, true",
-        "/api/besoinsformation/approve/1, PUT, D2F, true",
+        // Vérifications inter-services évaluation → formation (parité
+        // AuthorizationMatrix.FORMATION_ANIMATEUR_CHECK) : jeton de service
+        // ROLE_SVC_EVALUATION + rôles humains de lecture.
+        "/api/formation/formations/28/is-animateur/E00007, GET, ROLE_SVC_EVALUATION, true",
+        "/api/formation/formations/28/is-participant/E00007, GET, ROLE_SVC_EVALUATION, true",
+        "/api/formation/formations/28/is-animateur/E00007, GET, ENSEIGNANT, true",
+        "/api/formation/formations/28/is-animateur/E00007, GET, RESPONSABLE_DOSSIER, true",
+        "/api/formation/enseignants/E00007, GET, ROLE_SVC_EVALUATION, true",
+        "/api/formation/enseignants/E00007, GET, CUP, true",
+        // Action d'approbation : SEUL le D2F (ROLE_ADMIN) approuve. La chaîne
+        // « D2F » n'est pas une authority émise par l'authentification
+        // (ERole) : le D2F de l'application est ROLE_ADMIN.
+        "/api/besoinsformation/approve/1, PUT, D2F, false",
+        "/api/besoinsformation/approve/1, PUT, ADMIN, true",
+        // Consultation des besoins approuvés (/approved) : ce n'est PAS l'action
+        // d'approbation — BESOIN_FORMATION_READ_ALL (périmètre appliqué côté service).
+        "/api/besoins-formation/approved, GET, CUP, true",
+        "/api/besoins-formation/approved, GET, CHEF_DEPARTEMENT, true",
+        "/api/besoins-formation/approved, GET, RESPONSABLE_DOSSIER, true",
         "/api/besoinsformation/approve/1, PUT, ENSEIGNANT, false",
         "/api/besoins-formation/any, GET, ENSEIGNANT, true",
         "/api/besoins-formation/any, GET, ANIMATEUR, true",
@@ -187,7 +207,11 @@ class AuthorizationFilterTest {
         // Parité BESOIN_FORMATION_CREATE : le chef de département crée aussi.
         "/api/besoins-formation/any, POST, CHEF_DEPARTEMENT, true",
         // Workflow besoins : approve / reject / cancel / reviewer-scopes.
-        "/api/besoins-formation/5/approve, PUT, CUP, true",
+        // Parité BESOIN_FORMATION_APPROVE = ROLE_ADMIN : CUP/chef consultent mais
+        // n'approuvent plus (seul le D2F = ROLE_ADMIN approuve).
+        "/api/besoins-formation/5/approve, PUT, CUP, false",
+        "/api/besoins-formation/5/approve, PUT, CHEF_DEPARTEMENT, false",
+        "/api/besoins-formation/5/approve, PUT, ADMIN, true",
         "/api/besoins-formation/5/approve, PUT, ENSEIGNANT, false",
         "/api/besoins-formation/5/reject, PUT, ADMIN, true",
         "/api/besoins-formation/5/cancel, PUT, ENSEIGNANT, true",
@@ -216,9 +240,9 @@ class AuthorizationFilterTest {
         "/api/competence/any, GET, ANIMATEUR, true",
         "/api/competence/any, GET, FORMATEUR, false",
         "/api/evaluation/any, DELETE, ADMIN, true",
-        "/api/evaluation/any, POST, FORMATEUR, true",
-        "/api/evaluation/any, PUT, FORMATEUR, true",
-        "/api/evaluation/any, PATCH, FORMATEUR, true",
+        "/api/evaluation/any, POST, ANIMATEUR, true",
+        "/api/evaluation/any, PUT, ANIMATEUR, true",
+        "/api/evaluation/any, PATCH, ANIMATEUR, true",
         "/api/certificat/any, DELETE, ADMIN, true",
         "/api/certificat/any, POST, ENSEIGNANT, false",
         "/api/certificat/any, GET, ENSEIGNANT, true",
@@ -255,7 +279,7 @@ class AuthorizationFilterTest {
         "/api/v2/analytics/stats, GET, CUP, true",
         "/api/v2/analytics/stats, GET, ENSEIGNANT, false",
         "/api/formation/seances/1/presences, PUT, ANIMATEUR, true",
-        "/api/formation/seances/1/presences, PATCH, FORMATEUR, true",
+        "/api/formation/seances/1/presences, PATCH, ANIMATEUR, true",
         "/api/formation/seances/1/presences, PUT, D2F, false",
         "/api/formation/seances/1/presence/2, PUT, ENSEIGNANT, true"
     })

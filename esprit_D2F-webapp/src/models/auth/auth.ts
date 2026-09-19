@@ -9,7 +9,6 @@
 //   - ANIMATEUR  : anime des sessions + inscriptions + évaluations.
 //   - CHEF_DEPARTEMENT  : scope « son département » (lecture + besoins + eval).
 //   - ResponsableDossier: scope « dossier de formation » (CRUD documents).
-// (Le rôle FORMATEUR a été consolidé dans ANIMATEUR — cf. migration V19.)
 export type { UserRole } from '@/utils/constants/roles';
 import type { UserRole } from '@/utils/constants/roles';
 

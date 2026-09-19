@@ -24,7 +24,9 @@ export const FRONTEND_PERMISSIONS = {
     DELETE: ['admin'],
   },
   BESOIN_FORMATION: {
-    READ_ALL: ['admin', 'CHEF_DEPARTEMENT', 'ResponsableDossier'],
+    // Parité AuthorizationMatrix.BESOIN_FORMATION_READ_ALL (ADMIN, CUP,
+    // CHEF_DEPARTEMENT, ANIMATEUR, RESPONSABLE_DOSSIER) — l'ENSEIGNANT en est exclu.
+    READ_ALL: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'Animateur', 'ResponsableDossier'],
     READ_CUP: ['admin', 'CUP'],
     READ_ENSEIGNANT: ['admin', 'Enseignant'],
     CREATE: ['admin', 'CUP', 'Enseignant', 'Animateur', 'CHEF_DEPARTEMENT'],
@@ -32,8 +34,10 @@ export const FRONTEND_PERMISSIONS = {
     // CUP/CHEF_DEPARTEMENT sur leur périmètre (contrôle fin côté service).
     UPDATE: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'Enseignant', 'Animateur'],
     DELETE: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'Enseignant', 'Animateur'],
-    APPROVE: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
-    REJECT: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
+    // D2F §: SEUL le D2F (admin) approuve/refuse un besoin de formation —
+    // parité AuthorizationMatrix.BESOIN_FORMATION_APPROVE/REJECT.
+    APPROVE: ['admin'],
+    REJECT: ['admin'],
     MANAGE_SCOPES: ['admin'],
   },
   FORMATION: {

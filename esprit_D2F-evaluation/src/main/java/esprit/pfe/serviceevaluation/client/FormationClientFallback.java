@@ -10,6 +10,11 @@ public class FormationClientFallback implements FormationClient {
     }
 
     @Override
+    public Object getEnseignantById(String id) {
+        return null;
+    }
+
+    @Override
     public Boolean isAnimateurOfFormation(Long formationId, String enseignantId) {
         return false;
     }

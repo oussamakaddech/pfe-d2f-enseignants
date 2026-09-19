@@ -39,7 +39,11 @@ def _recommend_top_gaps(container, teacher_id: str, limit: int) -> list:
     """Agrege les recommandations sur les competences en plus grand ecart.
 
     Lit les gaps persistes (pas de recalcul) pour éviter toute ecriture
-    lors d'une simple lecture.
+    lors d'une simple lecture. Parcourt les competences par score decroissant
+    jusqu'a `limit` recommandations distinctes : les competences du haut du
+    classement n'ont pas toujours une formation dans le catalogue (couverture
+    partielle), on ne s'arrete donc pas aux 3 premieres si le catalogue ne
+    couvre pas leur savoir.
     """
     from app.domain.entities.recommendation import Recommendation
 
@@ -48,11 +52,15 @@ def _recommend_top_gaps(container, teacher_id: str, limit: int) -> list:
     for gap in gaps:
         best_score[gap.competence_id] = max(best_score.get(gap.competence_id, 0.0), gap.gap_score)
 
+    ordered = sorted(best_score.items(), key=lambda kv: kv[1], reverse=True)
+
     merged: dict[int, Recommendation] = {}
-    for competence_id, _ in sorted(best_score.items(), key=lambda kv: kv[1], reverse=True)[:3]:
+    for competence_id, _ in ordered:
         for recommendation in container.recommend_trainings.execute(teacher_id, competence_id, limit):
             existing = merged.get(recommendation.formation_id)
             if existing is None or recommendation.rank_score > existing.rank_score:
                 merged[recommendation.formation_id] = recommendation
+        if len(merged) >= limit:
+            break
 
     return sorted(merged.values(), key=lambda r: r.rank_score, reverse=True)[:limit]

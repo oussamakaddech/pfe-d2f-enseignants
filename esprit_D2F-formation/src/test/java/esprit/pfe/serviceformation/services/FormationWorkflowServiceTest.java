@@ -56,6 +56,7 @@ class FormationWorkflowServiceTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(formationWorkflowService, "formationMapper", formationMapper);
+        ReflectionTestUtils.setField(formationWorkflowService, "d2fNotificationEmail", "d2f@esprit.tn");
         request = new FormationWorkflowRequest();
         request.setTitreFormation("Formation Test");
         request.setTypeBesoin("PROJET");
@@ -546,6 +547,10 @@ class FormationWorkflowServiceTest {
         SeanceFormation s1 = new SeanceFormation();
         s1.setIdSeance(10L);
         s1.setFormation(existing);
+        Enseignant annuleAnim = new Enseignant();
+        annuleAnim.setId("E1");
+        annuleAnim.setMail("e1@esprit.tn");
+        s1.setAnimateurs(new ArrayList<>(List.of(annuleAnim)));
         existing.setSeances(new ArrayList<>(List.of(s1)));
 
         request.setEtatFormation(EtatFormation.ANNULE);

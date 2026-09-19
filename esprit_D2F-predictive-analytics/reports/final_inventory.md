@@ -1,8 +1,8 @@
 # Inventaire final — service ML prédictif
 
-- **commit** : `6cc11176c77f4eaaf8ff1da16e967182aa02ab8b`
+- **commit** : `c7fce3ec16edde1bdcd39198551562a90d0f1dab`
 - **branche** : `oussama`
-- **describe** : `6cc11176`
+- **describe** : `c7fce3ec`
 
 ## Classification
 
@@ -17,8 +17,13 @@
 
 | version | statut | dataset_hash | artefact_sha256 | approbation |
 |---|---|---|---|---|
-| v1.0.0 | ACTIVE | `c70523c0d353ccfe` | `6bbb396c1e28087d` | APPROVED |
-| v1.1.0 | CANDIDATE | `896609dbdd57d98f` | `4a6dd15fc23ace6b` | PENDING |
+| v1.0.0 | ARCHIVED | `26f6a28d1018982e` | `7b2519e5c3c3deb0` | APPROVED |
+| simulation-v1.0.0 | ARCHIVED | `eb3b8a1a767e417d` | `1e2586f928110e4f` | APPROVED |
+| risk-simulation-v1.0.0 | CANDIDATE | `b218bc9a8c2f55ab` | `a148be50ecf10e3c` | APPROVED |
+| v1.1.0 | ACTIVE | `29a8e979693728a7` | `b4782b3e3cc21b89` | APPROVED |
+| v1.2.0 | CANDIDATE | `29a8e979693728a7` | `e555d6696392e7e8` | PENDING |
+| simulation-v1.1.0 | CANDIDATE | `eb3b8a1a767e417d` | `1069c3bdac8959e4` | PENDING |
+| v1.2.0-gb | CANDIDATE | `acbd19bddbb2e489` | `1478b3f9c4c587c6` | PENDING |
 
 ## Modèles démo (registre dédié)
 
@@ -42,13 +47,14 @@
 | `data\clean\corpus_brut_real_raw.csv` | 172 | UNKNOWN | False | None |
 | `data\clean\recommendations.csv` | 34 | UNKNOWN | None | None |
 | `data\clean\risk_scores.csv` | 30 | UNKNOWN | None | None |
+| `data\clean\simulation_dataset.csv` | 10920 | UNKNOWN | True | False |
 | `data\clean\teacher_competencies.csv` | 51 | UNKNOWN | None | None |
 | `data\clean\teachers.csv` | 30 | UNKNOWN | None | None |
 | `data\clean\training_corpus.csv` | 5000 | UNKNOWN | None | None |
 | `data\clean\training_corpus_clean.csv` | 172 | UNKNOWN | False | None |
-| `data\clean\training_corpus_from_db.csv` | 107 | UNKNOWN | None | None |
+| `data\clean\training_corpus_from_db.csv` | 217 | UNKNOWN | False | None |
 | `data\clean\training_corpus_from_db_v110.csv` | 172 | UNKNOWN | False | None |
-| `data\clean\training_corpus_provenanced.csv` | 107 | UNKNOWN | False | None |
+| `data\clean\training_corpus_provenanced.csv` | 217 | UNKNOWN | False | None |
 | `data\clean\training_corpus_provenanced_v110.csv` | 172 | UNKNOWN | False | None |
 | `data\raw\competences.csv` | 12 | UNKNOWN | None | None |
 | `data\raw\departments.csv` | 6 | UNKNOWN | None | None |
@@ -72,7 +78,9 @@
 | `gaps.py` | `GET @router.get("")` |
 | `health.py` | `GET @router.get("/health", include_in_schema=True)` |
 | `health.py` | `GET @router.get("/ready", include_in_schema=True)` |
+| `health.py` | `GET @router.get("/model-health", include_in_schema=True)` |
 | `integrations.py` | `POST @router.post("/process", response_model=EventOut)` |
+| `ml_observability_api.py` | `GET @router.get("/ml-observability")` |
 | `needs.py` | `GET @router.get("")` |
 | `needs.py` | `POST @router.post("/{need_id}/close")` |
 | `recommendations.py` | `GET @router.get("")` |
@@ -123,26 +131,41 @@
 
 ## Tests
 
-- Fichiers de test : 30
+- Fichiers de test : 38
 
 ## Docker
 
 | fichier | lignes |
 |---|---:|
 | `Dockerfile` | 58 |
-| `Dockerfile.prod` | 65 |
+| `Dockerfile.prod` | 67 |
 | `.dockerignore` | 25 |
 
-## Rapports existants (91)
+## Rapports existants (144)
 
+- `reports\accuracy_results.json`
 - `reports\application_inference_demo.json`
 - `reports\application_inference_demo.md`
+- `reports\audit_dataset_cleaning_all.json`
+- `reports\audit_dataset_cleaning_all.md`
+- `reports\audit_global_analyse_predictive.json`
+- `reports\audit_global_analyse_predictive.md`
+- `reports\audit_mlops_complet.md`
+- `reports\audit_model_comparison_datasets.json`
+- `reports\audit_model_comparison_datasets.md`
+- `reports\audit_model_comparison_simulation.json`
+- `reports\audit_model_comparison_simulation.md`
 - `reports\audit_script.py`
+- `reports\calibration_report.json`
+- `reports\chapitre_moteur_risque_ml_actif.md`
+- `reports\cleaning_variants_experiment.json`
+- `reports\data_provenance_audit.json`
 - `reports\dataset_audit_before.json`
 - `reports\dataset_audit_before.md`
 - `reports\dataset_cleaning_report.json`
 - `reports\dataset_cleaning_report.md`
 - `reports\dataset_quality_report_v1.1.0.json`
+- `reports\decision_finale_sprint5.md`
 - `reports\demo_bootstrap_report.json`
 - `reports\demo_cleaning_report.json`
 - `reports\demo_dataset_audit.json`
@@ -166,6 +189,8 @@
 - `reports\dependency_cleanup_report.md`
 - `reports\domain_shift_report.json`
 - `reports\duplicate_conflicts.csv`
+- `reports\expand_corpus_1000_results.json`
+- `reports\expand_corpus_1500_results.json`
 - `reports\expanded_dataset_audit.json`
 - `reports\expanded_model_comparison.json`
 - `reports\expanded_promotion_decision.json`
@@ -174,28 +199,51 @@
 - `reports\expanded_target_coverage_report.json`
 - `reports\feature_dictionary.json`
 - `reports\feature_leakage_report.json`
+- `reports\feature_ranges_simulation.json`
 - `reports\final_conclusion_augmentation.md`
 - `reports\final_dataset_audit.json`
 - `reports\final_dataset_quality.json`
+- `reports\final_decision.json`
+- `reports\final_decision.md`
+- `reports\final_demo_dataset_validation.json`
+- `reports\final_demo_dataset_validation.md`
+- `reports\final_docker_validation.json`
+- `reports\final_docker_validation.md`
 - `reports\final_feature_contract.json`
+- `reports\final_feature_validation.json`
+- `reports\final_feature_validation.md`
+- `reports\final_inventory.json`
+- `reports\final_inventory.md`
 - `reports\final_leakage_report.json`
 - `reports\final_leakage_report.md`
 - `reports\final_ml_audit_inventory.json`
 - `reports\final_ml_audit_inventory.md`
 - `reports\final_ml_validation.json`
 - `reports\final_ml_validation.md`
+- `reports\final_model_choice.json`
+- `reports\final_model_choice.md`
 - `reports\final_model_comparison.csv`
 - `reports\final_pfe_consistency.md`
 - `reports\final_pfe_text.md`
+- `reports\final_production_dataset_validation.json`
+- `reports\final_production_dataset_validation.md`
 - `reports\final_provenance_report.json`
 - `reports\final_provenance_report.md`
 - `reports\final_risk_ranking.json`
 - `reports\final_service_correction_report.json`
 - `reports\final_service_correction_report.md`
+- `reports\final_service_validation.json`
+- `reports\final_service_validation.md`
 - `reports\final_serving_validation.json`
 - `reports\final_serving_validation.md`
+- `reports\final_test_results.json`
+- `reports\final_test_results.txt`
 - `reports\gap_factor_audit.csv`
+- `reports\gap_small_sample_experiment.json`
+- `reports\gb_production_decision.json`
+- `reports\hyperparameter_search_v120.json`
 - `reports\interservice_integrity_audit.json`
+- `reports\max_accuracy_results.json`
 - `reports\model_candidate_v110_decision.md`
 - `reports\model_comparison.csv`
 - `reports\model_comparison.json`
@@ -210,6 +258,7 @@
 - `reports\rapport_audit_ecran_analyse_predicitive_ens014.md`
 - `reports\rapport_final.md`
 - `reports\rapport_normalisation_score_risque.md`
+- `reports\rapport_service_analyse_predictive.md`
 - `reports\real_data_duplicate_conflicts.csv`
 - `reports\real_data_growth_report.json`
 - `reports\real_data_growth_report.md`
@@ -218,11 +267,23 @@
 - `reports\recommendation_explanation_audit.csv`
 - `reports\recommendation_traceability_audit.csv`
 - `reports\removed_or_quarantined_rows.csv`
+- `reports\resume_final_analyse_predictive.md`
+- `reports\risk_calibration_report.json`
 - `reports\risk_factor_audit.csv`
 - `reports\runtime_validation.json`
 - `reports\runtime_validation.md`
+- `reports\segment_metrics.json`
 - `reports\service_inventory_after.json`
 - `reports\service_inventory_before.json`
+- `reports\simulation_challenger_v110.json`
+- `reports\simulation_generation_report.json`
+- `reports\simulation_manifest.json`
+- `reports\simulation_manifest_test1500.json`
+- `reports\simulation_model_comparison.json`
+- `reports\simulation_validation_report.json`
+- `reports\slides_before_after.md`
+- `reports\slides_ml_actif.md`
 - `reports\target_coverage_report.json`
 - `reports\teacher_gap_examples.csv`
 - `reports\teacher_profile_comparison.csv`
+- `reports\verification_finale_simulation.md`

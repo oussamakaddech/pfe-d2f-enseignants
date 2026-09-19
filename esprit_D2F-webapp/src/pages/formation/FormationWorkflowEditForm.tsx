@@ -83,7 +83,6 @@ const STEPS = [
 
 const ACTEUR_ROLE_COLORS: Record<string, string> = {
   ANIMATEUR: '#7c3aed',
-  FORMATEUR: '#2563eb',
   ENSEIGNANT: '#0d9488',
 };
 
@@ -120,7 +119,7 @@ function roleOfPerson(person: Record<string, unknown>): string {
   if (role) return String(role).toUpperCase();
   const type = person.type as string;
   if (type === 'P') return 'ENSEIGNANT';
-  if (type === 'V') return 'FORMATEUR';
+  if (type === 'V') return 'ANIMATEUR';
   return 'ENSEIGNANT';
 }
 

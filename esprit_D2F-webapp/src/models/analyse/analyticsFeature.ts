@@ -307,6 +307,8 @@ export interface GapsResponse {
   model?: {
     model_mode?: ModelMode;
     model_version?: string;
+    /** Nom de l'artefact tel que fourni par l'API (jamais codé en dur côté front). */
+    model_name?: string;
     fallback_reason?: string;
     dataset_version?: string;
     prediction_horizon?: string;

@@ -290,7 +290,7 @@ public class FormationServiceImpl implements FormationService {
         if (formationRepository.existsAnimateurInFormation(formationId, enseignantId)) {
             return true;
         }
-        return inscriptionRepository.existsByFormation_IdFormationAndEnseignant_IdAndEtat(
+        return inscriptionRepository.existsApprovedByIdOrMail(
                 formationId, enseignantId, EtatInscription.APPROVED);
     }
 }

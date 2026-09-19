@@ -349,7 +349,6 @@ function mergeFormateursAccounts(
 ): PersonItem[] {
   // Comptes auth ANIMATEUR → on les ajoute à la liste des "formateurs"
   // (utilisée pour peupler la liste des animateurs d'une formation).
-  // (Rôle FORMATEUR consolidé dans ANIMATEUR — cf. migration V19.)
   const formateurs = accountsData
     .filter((a) => {
       const role = String(a.role ?? '').toUpperCase();
@@ -1651,10 +1650,12 @@ export function useFormationWorkflow({
           newLinks: compLinks as unknown as Record<string, unknown>[],
         });
       }
-      setShowUpload(true);
+      setShowUpload(false);
       message.success('Formation créée !');
       onFormationCreated?.(newF);
-      setTimeout(() => navigate('/home/ListeFormation'), 2000);
+      // Redirection directe vers le catalogue (les documents s'ajoutent
+      // ensuite depuis « Gérer Dossier ») — sans délai ni étape upload.
+      navigate('/home/Formation/Consulter');
     } catch (err: unknown) {
       message.error(extractErrorMsg(err));
     }

@@ -29,6 +29,12 @@ public interface BesoinFormationRepository extends JpaRepository<BesoinFormation
 
     Page<BesoinFormation> findByApprouveAdminTrue(Pageable pageable);
 
+    /** Besoins approuvés par le D2F dans une UP donnée (périmètre CUP, lecture seule). */
+    Page<BesoinFormation> findByUpAndApprouveAdminTrue(String up, Pageable pageable);
+
+    /** Besoins approuvés par le D2F dans un département donné (périmètre chef, lecture seule). */
+    Page<BesoinFormation> findByDepartementAndApprouveAdminTrue(String departement, Pageable pageable);
+
     /** Filtrage par username (besoins personnels) */
     Page<BesoinFormation> findByUsername(String username, Pageable pageable);
 
@@ -37,6 +43,20 @@ public interface BesoinFormationRepository extends JpaRepository<BesoinFormation
 
     /** Filtrage par département (§2.2.2 — Consulter les besoins par département) */
     Page<BesoinFormation> findByDepartement(String departement, Pageable pageable);
+
+    // ── DSI §: listes courantes sans les besoins approuvés par le D2F ────────
+    // Un besoin ADMIN_APPROVED / FORMATION_CREATED quitte la liste des besoins
+    // (consultable en lecture seule via /approved).
+
+    /** Tous les besoins sauf les statuts fournis (vue globale). */
+    Page<BesoinFormation> findByStatusNotIn(Collection<BesoinStatus> statuses, Pageable pageable);
+
+    /** Besoins d'une UP hors statuts fournis (périmètre CUP). */
+    Page<BesoinFormation> findByUpAndStatusNotIn(String up, Collection<BesoinStatus> statuses, Pageable pageable);
+
+    /** Besoins d'un département hors statuts fournis (périmètre chef). */
+    Page<BesoinFormation> findByDepartementAndStatusNotIn(
+            String departement, Collection<BesoinStatus> statuses, Pageable pageable);
 
     /** Filtrage par UP + département */
     Page<BesoinFormation> findByUpAndDepartement(String up, String departement, Pageable pageable);

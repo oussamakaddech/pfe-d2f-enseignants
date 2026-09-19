@@ -37,7 +37,9 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -55,6 +57,9 @@ class BesoinFormationServiceImplTest {
     private BesoinApprovalHistoryRepository historyRepository;
     @Mock
     private BesoinCompetenceRepository besoinCompetenceRepository;
+    /** Notification e-mail D2F (ajout/modification par CUP ou chef). */
+    @Mock
+    private BesoinFormationMailNotifier mailNotifier;
 
     private BesoinFormationMapper besoinFormationMapper = new BesoinFormationMapper();
 
@@ -73,7 +78,8 @@ class BesoinFormationServiceImplTest {
                 besoinFormationMapper,
                 reviewerScopeService,
                 historyRepository,
-                besoinCompetenceRepository
+                besoinCompetenceRepository,
+                mailNotifier
         );
         // Provide an ADMIN security context for service methods that read SecurityContextHolder
         SecurityContextHolder.getContext().setAuthentication(
@@ -99,14 +105,17 @@ class BesoinFormationServiceImplTest {
         besoin.setDureeFormation(10);
         Page<BesoinFormation> page = new PageImpl<>(Collections.singletonList(besoin));
 
-        when(besoinFormationRepository.findAll(pageable)).thenReturn(page);
+        // DSI §: la liste courante exclut les besoins approuvés par le D2F
+        // (ADMIN_APPROVED / FORMATION_CREATED) — consultation via /approved.
+        when(besoinFormationRepository.findByStatusNotIn(anyCollection(), eq(pageable))).thenReturn(page);
         when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
 
         Page<BesoinFormationResponse> result = service.retrieveAllBesoinFormations(pageable);
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        verify(besoinFormationRepository).findAll(pageable);
+        verify(besoinFormationRepository).findByStatusNotIn(anyCollection(), eq(pageable));
+        verify(besoinFormationRepository, never()).findAll(pageable);
     }
 
     @Test
@@ -199,16 +208,20 @@ class BesoinFormationServiceImplTest {
     }
 
     @Test
-    void pendingApproval_adminOnlyReceivesFinalStep() {
+    void pendingApproval_adminReceivesAllNonTerminalSteps() {
         Pageable pageable = PageRequest.of(0, 10);
         when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
-        when(besoinFormationRepository.findByCurrentApprovalStep(ApprovalStep.ADMIN, pageable))
+        // DSI §: seul le D2F (ROLE_ADMIN) approuve — sa file d'attente couvre
+        // toutes les étapes non terminales (CUP, chef, admin).
+        when(besoinFormationRepository.findByCurrentApprovalStepIn(
+                List.of(ApprovalStep.CUP, ApprovalStep.CHEF_DEPARTEMENT, ApprovalStep.ADMIN), pageable))
                 .thenReturn(Page.empty());
 
         service.retrievePendingApproval(pageable);
 
-        verify(besoinFormationRepository).findByCurrentApprovalStep(ApprovalStep.ADMIN, pageable);
-        verify(besoinFormationRepository, never()).findByCurrentApprovalStepIn(any(), any());
+        verify(besoinFormationRepository).findByCurrentApprovalStepIn(
+                List.of(ApprovalStep.CUP, ApprovalStep.CHEF_DEPARTEMENT, ApprovalStep.ADMIN), pageable);
+        verify(besoinFormationRepository, never()).findByCurrentApprovalStep(any(), any());
     }
 
     @Test
@@ -386,6 +399,7 @@ class BesoinFormationServiceImplTest {
     @Test
     void retrieveApprovedBesoinFormations_shouldReturnPage() {
         Pageable pageable = PageRequest.of(0, 10);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.findByApprouveAdminTrue(pageable)).thenReturn(Page.empty());
         service.retrieveApprovedBesoinFormations(pageable);
         verify(besoinFormationRepository).findByApprouveAdminTrue(pageable);

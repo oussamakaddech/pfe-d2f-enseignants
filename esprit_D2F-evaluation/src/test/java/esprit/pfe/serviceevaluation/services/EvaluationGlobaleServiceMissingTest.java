@@ -8,17 +8,21 @@ import esprit.pfe.serviceevaluation.repositories.EvaluationGlobaleRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -136,10 +140,18 @@ class EvaluationGlobaleServiceMissingTest {
     @DisplayName("getAllEvaluationGlobales() - retourne une liste paginée")
     void shouldGetAllEvaluationGlobales() {
         // Given
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", null,
+                        List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
         when(evaluationRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(Arrays.asList(entity)));
 
         // When
-        Page<EvaluationGlobaleDTO> result = evaluationService.getAllEvaluationGlobales(Pageable.ofSize(10));
+        Page<EvaluationGlobaleDTO> result;
+        try {
+            result = evaluationService.getAllEvaluationGlobales(Pageable.ofSize(10));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
 
         // Then
         assertThat(result).isNotNull()

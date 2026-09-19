@@ -301,6 +301,25 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      # ── Mail : notification e-mail du D2F (ajout / modification d'un besoin) ──
+      # Parité service formation (mêmes variables MAIL_* que le bloc formation) :
+      # SMTP interne DSI, auth + STARTTLS obligatoires côté application, envoi
+      # asynchrone. MAIL_FROM = expéditeur, D2F_NOTIFICATION_EMAIL = destinataire.
+      MAIL_HOST: ${MAIL_HOST:-smtp.internal.dsi.local}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_FROM: ${MAIL_FROM:-${ADMIN_EMAIL:-application.formationdesformateurs@esprit.tn}}
+      D2F_NOTIFICATION_EMAIL: ${D2F_NOTIFICATION_EMAIL:-application.formationdesformateurs@esprit.tn}
+      # ── Azure AD / Microsoft Graph : canal d'envoi e-mail (parité formation) ──
+      # SMTP basic auth désactivé côté Office 365 → même mécanisme Graph que le
+      # service formation (client credentials, boîte Formationdesformateurs).
+      AZURE_AD_ENABLED: ${AZURE_AD_ENABLED:-false}
+      AZURE_AD_CLIENT_ID: ${AZURE_AD_CLIENT_ID:-}
+      AZURE_AD_CLIENT_SECRET: ${AZURE_AD_CLIENT_SECRET:-}
+      AZURE_AD_TENANT_ID: ${AZURE_AD_TENANT_ID:-}
+      AZURE_AD_GRAPH_SCOPE: ${AZURE_AD_GRAPH_SCOPE:-https://graph.microsoft.com/.default}
+      AZURE_AD_MAIL_USERNAME: ${AZURE_AD_MAIL_USERNAME:-Application.Formationdesformateurs@Esprit.tn}
     depends_on:
       postgres:
         condition: service_healthy
@@ -458,6 +477,8 @@ services:
       AUTH_SERVICE_URL: http://d2f-auth:8085
       # Organisateur de calendrier (DSI §1.1 — externalisé)
       FORMATION_ORGANIZER_EMAIL: ${FORMATION_ORGANIZER_EMAIL:-noreply@d2f.local}
+      # Boîte D2F destinataire des notifications admin (parité service besoin).
+      D2F_NOTIFICATION_EMAIL: ${D2F_NOTIFICATION_EMAIL:-application.formationdesformateurs@esprit.tn}
       # Mail SMTP interne DSI (obligatoire par défaut)
       MAIL_HOST: ${MAIL_HOST:-smtp.internal.dsi.local}
       MAIL_PORT: ${MAIL_PORT:-587}

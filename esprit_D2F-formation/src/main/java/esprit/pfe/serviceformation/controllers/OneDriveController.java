@@ -24,7 +24,7 @@ import java.util.List;
 @RequestMapping("/api/v1/onedrive")
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "azure.ad.enabled", havingValue = "true")
-@PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+@PreAuthorize(AuthorizationMatrix.DOSSIER_FORMATION_READ)
 public class OneDriveController {
     private final OneDriveService oneDriveService;
     private final FormationWorkflowService formationService;

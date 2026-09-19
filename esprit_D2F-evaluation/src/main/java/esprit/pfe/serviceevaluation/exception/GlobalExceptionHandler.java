@@ -46,6 +46,17 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, "Accès refusé : vous n'avez pas les permissions nécessaires.", MODULE_PREFIX + "-403", request);
     }
 
+    /**
+     * Refus d'une règle métier d'autorisation (ex. « Vous devez être animateur… »,
+     * « Vous devez participer… ») levés en {@code java.lang.SecurityException}
+     * par les services : 403 avec le message métier (jamais 500 générique).
+     */
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessDenied(SecurityException ex, HttpServletRequest request) {
+        log.warn("Business authorization denied: {}", ex.getMessage());
+        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), MODULE_PREFIX + "-403", request);
+    }
+
     @ExceptionHandler({AuthenticationException.class, BadCredentialsException.class})
     public ResponseEntity<ErrorResponse> handleAuthentication(Exception ex, HttpServletRequest request) {
         log.error("Authentication error: {}", ex.getMessage());

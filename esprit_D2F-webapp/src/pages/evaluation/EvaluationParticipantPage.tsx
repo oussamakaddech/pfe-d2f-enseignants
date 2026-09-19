@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import type { TableColumnType } from 'antd';
 import {
   Table,
@@ -41,6 +41,7 @@ import {
 import { useAllFormations } from '@/hooks/formation/useFormations';
 import { useEnseignants } from '@/hooks/enseignant';
 import { useHasPermission } from '@/routes/guards';
+import type { Formation } from '@/models/formation';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -88,6 +89,48 @@ export default function EvaluationParticipantPage() {
   const [openForm, setOpenForm] = useState(false);
   const [editingEval, setEditingEval] = useState<ParticipantRecord | null>(null);
   const [form] = Form.useForm();
+
+  // La personne évaluée dépend de la formation : on ne propose que les
+  // animateurs/participants de la formation sélectionnée (plus de combinaisons
+  // formation × enseignant incohérentes).
+  const watchedFormationId = Form.useWatch('formationId', form) as number | undefined;
+  const eligibleEnseignantIds = useMemo(() => {
+    if (watchedFormationId == null) return null;
+    const full = (formationsData as Formation[]).find(
+      (f) => String(f.idFormation) === String(watchedFormationId),
+    );
+    if (!full) return null;
+    const ids = new Set<string>();
+    const collect = (list?: { id?: unknown }[]) =>
+      list?.forEach((p) => {
+        if (p?.id != null && String(p.id) !== '') ids.add(String(p.id));
+      });
+    collect(full.animateurs);
+    collect(full.participants);
+    full.seances?.forEach((s) => {
+      collect(s.animateurs);
+      collect(s.participants);
+    });
+    return ids;
+  }, [watchedFormationId, formationsData]);
+  const enseignantOptions =
+    eligibleEnseignantIds == null
+      ? enseignants
+      : enseignants.filter((e) => e.id != null && eligibleEnseignantIds.has(String(e.id)));
+  // Si la formation change et que l'enseignant choisi n'en fait plus partie,
+  // on réinitialise le champ (sauf en édition d'une évaluation existante).
+  const prevFormationRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    const prev = prevFormationRef.current;
+    prevFormationRef.current = watchedFormationId;
+    if (prev === watchedFormationId || editingEval != null || eligibleEnseignantIds == null) return;
+    const current = form.getFieldValue('enseignantId');
+    if (current != null && !eligibleEnseignantIds.has(String(current))) {
+      form.setFieldsValue({ enseignantId: undefined });
+      msgApi.info("Enseignant réinitialisé : il ne fait pas partie de cette formation.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedFormationId, eligibleEnseignantIds]);
 
   const [filterText, setFilterText] = useState('');
   const [formationFilter, setFormationFilter] = useState<number | undefined>();
@@ -500,16 +543,30 @@ export default function EvaluationParticipantPage() {
           </Form.Item>
           <Form.Item
             name="enseignantId"
-            label="Enseignant"
+            label="Enseignant évalué"
             rules={[{ required: true, message: 'Enseignant obligatoire' }]}
+            tooltip={
+              watchedFormationId == null
+                ? 'Sélectionnez d\u2019abord une formation pour filtrer la liste'
+                : `${enseignantOptions.length} personne(s) liée(s) à cette formation`
+            }
           >
             <Select
-              placeholder="Sélectionner l'enseignant"
+              placeholder={
+                watchedFormationId == null
+                  ? 'Sélectionnez une formation ci-dessus'
+                  : 'Sélectionner la personne évaluée'
+              }
               showSearch
               optionFilterProp="children"
               disabled={!!editingEval}
+              notFoundContent={
+                watchedFormationId == null
+                  ? 'Choisissez une formation pour voir ses membres'
+                  : 'Aucun membre trouvé pour cette formation'
+              }
             >
-              {enseignants.map((e) => (
+              {enseignantOptions.map((e) => (
                 <Option key={e.id} value={String(e.id)}>
                   {`${e.prenom || ''} ${e.nom || ''}`.trim() || String(e.id)}
                   {e.mail ? ` (${e.mail})` : ''}

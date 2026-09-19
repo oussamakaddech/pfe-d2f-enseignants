@@ -69,7 +69,6 @@ function mergeAuthAccountAnimateurs(
   enseignantsData: EditPerson[],
 ): EditPerson[] {
   if (!Array.isArray(accountsData)) return [];
-  // Rôle FORMATEUR consolidé dans ANIMATEUR (cf. migration V19).
   const formateurs = accountsData
     .filter((a) => {
       const role = (a.role || '').toUpperCase();

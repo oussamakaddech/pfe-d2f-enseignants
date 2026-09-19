@@ -17,7 +17,7 @@ import java.util.List;
  * Validates JWT tokens and checks role-based authorization at the gateway level.
  * Implements the complete authorization matrix for all microservices.
  *
- * Roles : admin, CUP, Enseignant, Formateur, Animateur, ChefDepartement, ResponsableDossier
+ * Roles : admin, CUP, Enseignant, Animateur, ChefDepartement, ResponsableDossier
  */
 @Slf4j
 @Component
@@ -44,14 +44,15 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     private static final String ROLE_CUP = "ROLE_CUP";
     private static final String ROLE_D2F = "ROLE_D2F";
     private static final String ROLE_ENSEIGNANT = "ROLE_ENSEIGNANT";
-    private static final String ROLE_FORMATEUR = "ROLE_FORMATEUR";
     private static final String ROLE_ANIMATEUR = "ROLE_ANIMATEUR";
     private static final String ROLE_CHEF_DEPARTEMENT = "ROLE_CHEF_DEPARTEMENT";
     private static final String ROLE_RESPONSABLE_DOSSIER = "ROLE_RESPONSABLE_DOSSIER";
+    /** Jeton de service du module évaluation (scope transmis tel quel). */
+    private static final String SVC_EVALUATION = "ROLE_SVC_EVALUATION";
 
     /** All authenticated users */
     private static final List<String> ALL_ROLES = List.of(
-        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_FORMATEUR, ROLE_ANIMATEUR,
+        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_ANIMATEUR,
         ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER
     );
 
@@ -75,8 +76,8 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER
     );
 
-    /** Admin + Formateur/Animateur + Enseignant */
-    private static final List<String> ADMIN_FORMATEUR = List.of(ROLE_ADMIN, ROLE_FORMATEUR, ROLE_ANIMATEUR, ROLE_ENSEIGNANT);
+    /** Admin + Enseignant + Animateur */
+    private static final List<String> ADMIN_ANIMATEUR = List.of(ROLE_ADMIN, ROLE_ANIMATEUR, ROLE_ENSEIGNANT);
 
     public AuthorizationFilter(JwtTokenProvider tokenProvider) {
         super(Config.class);
@@ -208,14 +209,25 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
 
     private List<String> getFormationRoles(String path, HttpMethod method) {
         if (path.contains("/kpi")) return NO_FORMATEUR;
+        // DSI §: la « gestion des dossiers de formations » (arborescence OneDrive)
+        // est réservée à ADMIN + RESPONSABLE_DOSSIER — CUP/CHEF_DEPARTEMENT exclus.
+        if (path.contains("/onedrive")) return List.of(ROLE_ADMIN, ROLE_RESPONSABLE_DOSSIER);
+        // DSI §: le calendrier des ateliers (consultation « Calendrier Global » et
+        // gestion) est retiré du périmètre CUP / CHEF_DEPARTEMENT (parité
+        // AuthorizationMatrix.CALENDAR_READ). Les écritures restent de toute façon
+        // bloquées côté backend (REFERENTIEL_IMPORT = ADMIN).
+        if (path.contains("/calendar"))
+            return List.of(ROLE_ADMIN, ROLE_ENSEIGNANT,
+                    ROLE_ANIMATEUR, ROLE_RESPONSABLE_DOSSIER);
         // ── Documents de formation ────────────────────────────────────────────
-        // Parité avec AuthorizationMatrix.DOCUMENT_* : le RESPONSABLE_DOSSIER gère
-        // les documents (création/mise à jour/suppression) au même titre que ADMIN
-        // et CUP (cahier des charges, US#47). Les GET/DOWNLOAD restent FORMATION_READ.
+        // DSI § : « gestion des dossiers de formations » réservée à ADMIN +
+        // RESPONSABLE_DOSSIER — CUP/CHEF_DEPARTEMENT exclus (parité
+        // AuthorizationMatrix.DOCUMENT_*). Les GET/DOWNLOAD restent FORMATION_READ.
         if (path.contains("/documents")) {
             if (method == HttpMethod.POST || method == HttpMethod.PUT
                     || method == HttpMethod.PATCH || method == HttpMethod.DELETE) {
-                return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER);
+                // Parité AuthorizationMatrix.DOCUMENT_* (ni CUP ni CHEF_DEPARTEMENT).
+                return List.of(ROLE_ADMIN, ROLE_RESPONSABLE_DOSSIER);
             }
             return ALL_ROLES;
         }
@@ -227,18 +239,31 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         if ((path.contains("/presences") || path.contains("/presence/"))
                 && (method == HttpMethod.PUT || method == HttpMethod.PATCH))
             return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER,
-                    ROLE_FORMATEUR, ROLE_ANIMATEUR, ROLE_ENSEIGNANT);
+                    ROLE_ANIMATEUR, ROLE_ENSEIGNANT);
         if (method == HttpMethod.POST) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT);
         // FORMATION_UPDATE = ADMIN, CUP, CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER (cf. AuthorizationMatrix)
         if (method == HttpMethod.PUT || method == HttpMethod.PATCH)
             return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER);
+        // Vérifications inter-services évaluation → formation (parité
+        // AuthorizationMatrix.FORMATION_ANIMATEUR_CHECK) : le jeton de service
+        // ROLE_SVC_EVALUATION est autorisé aux côtés des rôles humains de lecture.
+        // Placé après les branches méthode-spécifiques : ne concerne en pratique
+        // que les GET (is-animateur, is-participant, enseignants/:id).
+        if (path.contains("/is-animateur/") || path.contains("/is-participant/")
+                || path.contains("/enseignants/"))
+            return List.of(SVC_EVALUATION, ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT,
+                    ROLE_ANIMATEUR, ROLE_RESPONSABLE_DOSSIER, ROLE_CHEF_DEPARTEMENT);
         return ALL_ROLES;
     }
 
     private List<String> getBesoinRoles(String path, HttpMethod method) {
-        // Workflow : approve + reject réservés aux valideurs (ADMIN/CUP/D2F/Chef).
-        // Le contrôle fin (étape, périmètre, créateur ≠ décideur) est fait par le microservice.
-        if (path.contains("/approve") || path.contains("/reject")) return ADMIN_CUP;
+        // Workflow : l'ACTION d'approbation (/approve/{id}) et le refus
+        // (/reject/{id}) sont réservés au D2F (ROLE_ADMIN). Attention : la liste
+        // de consultation des besoins approuvés (/approved) n'est PAS l'action
+        // d'approbation — elle reste ouverte aux rôles de lecture
+        // (BESOIN_FORMATION_READ_ALL), le microservice appliquant le périmètre
+        // UP/département (lecture seule).
+        if (isApproveAction(path) || path.contains("/reject")) return ADMIN_ONLY;
         // Annulation : tout authentifié peut appeler, le service vérifie
         // créateur-ou-admin (parité BESOIN_FORMATION_CANCEL).
         if (path.contains("/cancel")) return ALL_ROLES;
@@ -255,6 +280,15 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         return ALL_ROLES;
     }
 
+    /**
+     * Vrai si le chemin cible l'action d'approbation {@code /approve} ou
+     * {@code /approve/{id}} — et non la liste {@code /approved} (consultation
+     * des besoins approuvés, ouverte aux rôles de lecture).
+     */
+    private static boolean isApproveAction(String path) {
+        return path.endsWith("/approve") || path.contains("/approve/");
+    }
+
     private List<String> getCompetenceRoles(String path, HttpMethod method) {
         if (path.contains("/rice") || method == HttpMethod.DELETE || method == HttpMethod.POST
                 || method == HttpMethod.PUT || method == HttpMethod.PATCH) return ADMIN_ONLY;
@@ -264,7 +298,7 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     private List<String> getEvaluationRoles(HttpMethod method) {
         if (method == HttpMethod.DELETE) return ADMIN_ONLY;
         if (method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH)
-            return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_FORMATEUR, ROLE_ANIMATEUR, ROLE_ENSEIGNANT, ROLE_CHEF_DEPARTEMENT);
+            return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_ANIMATEUR, ROLE_ENSEIGNANT, ROLE_CHEF_DEPARTEMENT);
         return ALL_ROLES;
     }
 

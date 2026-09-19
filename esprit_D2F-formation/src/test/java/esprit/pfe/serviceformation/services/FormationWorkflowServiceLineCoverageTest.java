@@ -71,6 +71,7 @@ class FormationWorkflowServiceLineCoverageTest {
                 emailAuditLogRepository, outlookCalendarService, outlookMailService);
 
         ReflectionTestUtils.setField(service, "organizerEmail", "admin@esprit.tn");
+        ReflectionTestUtils.setField(service, "d2fNotificationEmail", "d2f@esprit.tn");
         ReflectionTestUtils.setField(service, "platformUrl", "https://d2f.esprit.tn");
         ReflectionTestUtils.setField(service, "formationsPath", "/formations/");
     }
@@ -84,6 +85,7 @@ class FormationWorkflowServiceLineCoverageTest {
                 helper, formationMapper, animateurParticipantResolver,
                 emailAuditLogRepository, outlookCalendarService, null);
         ReflectionTestUtils.setField(s, "organizerEmail", "admin@esprit.tn");
+        ReflectionTestUtils.setField(s, "d2fNotificationEmail", "d2f@esprit.tn");
         ReflectionTestUtils.setField(s, "platformUrl", "https://d2f.esprit.tn");
         ReflectionTestUtils.setField(s, "formationsPath", "/formations/");
         return s;
@@ -98,6 +100,7 @@ class FormationWorkflowServiceLineCoverageTest {
                 helper, formationMapper, animateurParticipantResolver,
                 emailAuditLogRepository, null, outlookMailService);
         ReflectionTestUtils.setField(s, "organizerEmail", "admin@esprit.tn");
+        ReflectionTestUtils.setField(s, "d2fNotificationEmail", "d2f@esprit.tn");
         ReflectionTestUtils.setField(s, "platformUrl", "https://d2f.esprit.tn");
         ReflectionTestUtils.setField(s, "formationsPath", "/formations/");
         return s;
@@ -220,7 +223,9 @@ class FormationWorkflowServiceLineCoverageTest {
     void handleEtat_planifie() {
         Formation f = buildFormation(1L, EtatFormation.PLANIFIE);
         SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
-        sf.setSalle("B201"); f.setSeances(new ArrayList<>(List.of(sf)));
+        sf.setSalle("B201");
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
+        f.setSeances(new ArrayList<>(List.of(sf)));
         when(formationRepository.findById(1L)).thenReturn(Optional.of(f));
         when(seanceFormationRepository.findById(10L)).thenReturn(Optional.of(sf));
         when(outlookCalendarService.addEventToCalendarAndReturnIdWithTeamsUrl(any()))
@@ -247,6 +252,7 @@ class FormationWorkflowServiceLineCoverageTest {
         Formation f = buildFormation(1L, EtatFormation.EN_COURS);
         SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
         sf.setOnlineMeetingUrl("https://teams.microsoft.com/meeting1");
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
         f.setSeances(new ArrayList<>(List.of(sf)));
         service.handleEtatTransitions(f, EtatFormation.PLANIFIE);
         verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
@@ -257,6 +263,7 @@ class FormationWorkflowServiceLineCoverageTest {
         Formation f = buildFormation(1L, EtatFormation.EN_COURS);
         SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
         sf.setOnlineMeetingUrl(null);
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
         f.setSeances(new ArrayList<>(List.of(sf)));
         service.handleEtatTransitions(f, EtatFormation.PLANIFIE);
         verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
@@ -265,6 +272,9 @@ class FormationWorkflowServiceLineCoverageTest {
     @Test @DisplayName("handleEtatTransitions - ACHEVE")
     void handleEtat_acheve() {
         Formation f = buildFormation(1L, EtatFormation.ACHEVE);
+        SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
+        f.setSeances(new ArrayList<>(List.of(sf)));
         service.handleEtatTransitions(f, EtatFormation.EN_COURS);
         verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
     }
@@ -273,7 +283,9 @@ class FormationWorkflowServiceLineCoverageTest {
     void handleEtat_annule() {
         Formation f = buildFormation(1L, EtatFormation.ANNULE);
         SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
-        sf.setCalendarEventId("EVT_001"); f.setSeances(new ArrayList<>(List.of(sf)));
+        sf.setCalendarEventId("EVT_001");
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
+        f.setSeances(new ArrayList<>(List.of(sf)));
         service.handleEtatTransitions(f, EtatFormation.PLANIFIE);
         verify(outlookMailService, atLeast(1)).sendMail(anyString(), contains("Annulation"), anyString());
         verify(outlookCalendarService).deleteEventInCalendar("admin@esprit.tn", "EVT_001");
@@ -695,7 +707,9 @@ class FormationWorkflowServiceLineCoverageTest {
     void removeCal_withEvents() {
         Formation f = buildFormation(1L, EtatFormation.ANNULE);
         SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
-        sf.setCalendarEventId("EVT_1"); f.setSeances(new ArrayList<>(List.of(sf)));
+        sf.setCalendarEventId("EVT_1");
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
+        f.setSeances(new ArrayList<>(List.of(sf)));
         when(formationRepository.findById(1L)).thenReturn(Optional.of(f));
         service.removeFormationCalendar(f);
         verify(outlookCalendarService).deleteEventInCalendar("admin@esprit.tn", "EVT_1");
@@ -821,6 +835,7 @@ class FormationWorkflowServiceLineCoverageTest {
         Formation f = buildFormation(1L, EtatFormation.ANNULE);
         SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
         sf.setCalendarEventId("EVT_1");
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
         doThrow(new RuntimeException("Mail")).when(outlookMailService).sendMail(anyString(), anyString(), anyString());
         assertDoesNotThrow(() -> service.removeSeanceFromCalendar(sf));
     }
@@ -1575,6 +1590,9 @@ class FormationWorkflowServiceLineCoverageTest {
     void acheve_blankExterne() {
         Formation f = buildFormation(1L, EtatFormation.ACHEVE);
         f.setExterneFormateurNom("  "); f.setExterneFormateurPrenom(null);
+        SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026,10,10), LocalTime.of(9,0), LocalTime.of(11,0));
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
+        f.setSeances(new ArrayList<>(List.of(sf)));
         service.handleEtatTransitions(f, EtatFormation.EN_COURS);
         verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
     }
@@ -1583,7 +1601,9 @@ class FormationWorkflowServiceLineCoverageTest {
     void acheve_nullSalleSeance() {
         Formation f = buildFormation(1L, EtatFormation.ACHEVE);
         SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026,10,10), LocalTime.of(9,0), LocalTime.of(11,0));
-        sf.setSalle(null); f.setSeances(new ArrayList<>(List.of(sf)));
+        sf.setSalle(null);
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
+        f.setSeances(new ArrayList<>(List.of(sf)));
         service.handleEtatTransitions(f, EtatFormation.EN_COURS);
         verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
     }
@@ -1626,6 +1646,9 @@ class FormationWorkflowServiceLineCoverageTest {
     @Test @DisplayName("stateNotif - mail failure caught")
     void stateNotif_mailFail() {
         Formation f = buildFormation(1L, EtatFormation.ACHEVE);
+        SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026,10,10), LocalTime.of(9,0), LocalTime.of(11,0));
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
+        f.setSeances(new ArrayList<>(List.of(sf)));
         doThrow(new RuntimeException("Mail")).when(outlookMailService).sendMail(anyString(), anyString(), anyString());
         assertDoesNotThrow(() -> service.handleEtatTransitions(f, EtatFormation.PLANIFIE));
     }
