@@ -1,9 +1,12 @@
 """Entrainement du gap predictor temporel — pipeline reproductible.
 
 Lit le dataset provenancé (training_corpus_provenanced.csv) produit par
-prepare_dataset.py, applique un split temporel strict, compare la baseline
-de persistance, GradientBoosting et XGBoost, puis exporte l'artefact avec
-son sidecar SHA-256 et la metadata complète.
+prepare_dataset.py, applique un split temporel strict, compare le modèle aux
+baselines de référence (pipelines/baselines.py — la plus forte fait foi),
+puis exporte l'artefact avec son sidecar SHA-256 et la metadata complète.
+
+Le lift n'est déclaré « accepté » que s'il est positif ET significatif à
+95 % : un gain en point dont l'IC95 contient 0 ne vaut pas acceptation.
 
 Usage :
     python -m pipelines.prepare_dataset --dataset-version v1.0.0
@@ -22,6 +25,8 @@ import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import KFold, cross_val_score
+
+from pipelines.baselines import bootstrap_lift_ci95, compute_baselines
 
 BASE_DIR = Path(__file__).parent.parent
 MODELS_DIR = BASE_DIR / "data" / "models"
@@ -192,7 +197,13 @@ def normalize_with_ranges(X_train: pd.DataFrame, X_test: pd.DataFrame) -> tuple[
 
 
 def compute_baseline(y_test: np.ndarray, gap_t_proxy: np.ndarray) -> dict[str, float]:
-    """Baseline persistance : y_pred = gap_t (le gap actuel comme prévision)."""
+    """DÉPRÉCIÉE — ancienne baseline « persistance », conservée pour compatibilité.
+
+    ``gap_t_proxy`` valait ``current_level_t - avg_level``, nul sur 77 % du
+    holdout servi : son RMSE gonflé surestimait le lift d'un facteur ~5. Le
+    pipeline utilise désormais ``pipelines.baselines.compute_baselines`` ; cette
+    fonction ne subsiste que pour les appelants externes.
+    """
     pred = np.clip(gap_t_proxy, 0, 5)
     return {
         "baseline_rmse": float(np.sqrt(mean_squared_error(y_test, pred))),
@@ -242,14 +253,20 @@ def train_gap_model(
     y_train = split["y_train"]
     y_test = split["y_test"]
 
-    print("[4] Baseline persistance...")
-    gap_t_proxy = np.clip(
-        split["X_test"]["current_level_t"].astype(float).values -
-        split["X_test"]["avg_level"].astype(float).values,
-        0, 5,
+    print("[4] Baselines de reference...")
+    # La baseline retenue est la PLUS FORTE des baselines legitimes (RMSE la
+    # plus basse), pour que le lift annonce soit le plus conservateur possible.
+    # Tant que la cible est extrapolee, la regle deterministe a un parametre
+    # est le vrai concurrent du modele — voir pipelines/baselines.py.
+    baseline = compute_baselines(
+        split["X_train"], y_train, split["X_test"], y_test
     )
-    baseline = compute_baseline(y_test, gap_t_proxy)
-    print(f"    baseline_rmse={baseline['baseline_rmse']:.4f}")
+    baseline_preds = baseline["baseline_predictions"]
+    for nom, detail in baseline["baselines"].items():
+        marque = "" if detail["legitimate"] else "  (degeneree, hors lift)"
+        print(f"    {nom}: RMSE={detail['rmse']:.4f}{marque}")
+    print(f"    reference retenue : {baseline['baseline_name']} "
+          f"(RMSE={baseline['baseline_rmse']:.4f})")
 
     print("[5] Comparaison candidats (CV-RMSE)...")
     candidates = build_candidates()
@@ -272,25 +289,27 @@ def train_gap_model(
     test_rmse = float(np.sqrt(mean_squared_error(y_test, preds)))
     test_mae = float(mean_absolute_error(y_test, preds))
     test_r2 = float(r2_score(y_test, preds)) if len(y_test) > 1 else 0.0
-    lift_rmse = round(baseline["baseline_rmse"] - test_rmse, 4)
-    print(f"    RMSE={test_rmse:.4f} MAE={test_mae:.4f} R2={test_r2:.4f} lift={lift_rmse:.4f}")
+    print(f"    RMSE={test_rmse:.4f} MAE={test_mae:.4f} R2={test_r2:.4f}")
 
-    # Bootstrap IC95 du lift
+    # Bootstrap IC95 du lift, contre la baseline retenue (contrat partage).
     N_BOOT = 1000
-    rng = np.random.default_rng(RANDOM_STATE)
     n_test = len(y_test)
-    test_idx = np.arange(n_test)
-    boot_lifts: list[float] = []
-    for _ in range(N_BOOT):
-        idx = rng.choice(test_idx, size=n_test, replace=True)
-        boot_rmse_m = float(np.sqrt(mean_squared_error(y_test[idx], preds[idx])))
-        boot_rmse_b = float(np.sqrt(mean_squared_error(y_test[idx], gap_t_proxy[idx])))
-        boot_lifts.append(boot_rmse_b - boot_rmse_m)
-    boot_lifts = np.asarray(boot_lifts)
-    lift_ci = (float(np.percentile(boot_lifts, 2.5)), float(np.percentile(boot_lifts, 97.5)))
-    lift_significant = bool(lift_ci[0] > 0)
+    lift_rmse, lift_ci, lift_significant = bootstrap_lift_ci95(
+        y_test, preds, baseline_preds, n_boot=N_BOOT, seed=RANDOM_STATE
+    )
+    print(f"    lift={lift_rmse:.4f} IC95=[{lift_ci[0]:.4f}, {lift_ci[1]:.4f}] "
+          f"significatif={lift_significant}")
 
-    decision = "accept" if (lift_rmse > 0 and len(y_test) >= 20) else "reject"
+    # Cohérence avec la règle de gouvernance §2.6 déjà appliquée au registre
+    # (model_registry.significance_promotion_error) : un avantage en point qui
+    # n'est pas significatif à 95 % ne vaut pas acceptation. Un lift positif
+    # mais dont l'IC95 contient 0 est désormais refusé ici aussi, au lieu
+    # d'être accepté puis rétrogradé plus loin dans la chaîne.
+    decision = (
+        "accept"
+        if (lift_rmse > 0 and lift_significant and len(y_test) >= 20)
+        else "reject"
+    )
     print(f"[8] Décision : {decision}")
 
     feature_importances = {}
@@ -328,6 +347,9 @@ def train_gap_model(
             "test_mae": round(test_mae, 4),
             "baseline_rmse": round(baseline["baseline_rmse"], 4),
             "baseline_mae": round(baseline["baseline_mae"], 4),
+            "baseline_name": baseline["baseline_name"],
+            "baseline_selection_rule": baseline["baseline_selection_rule"],
+            "baselines": baseline["baselines"],
             "lift_rmse": lift_rmse,
             "lift_rmse_ci95": [round(lift_ci[0], 4), round(lift_ci[1], 4)],
             "lift_ci95_method": f"bootstrap {N_BOOT} replicas on test sample (n={n_test}), percentile 2.5-97.5",

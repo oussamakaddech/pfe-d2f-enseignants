@@ -62,7 +62,15 @@
     "override_decision": false,
     "override_actor": null,
     "override_date": null,
-    "override_justification": null
+    "override_justification": null,
+    "dataset_path": null,
+    "dataset_rows": null,
+    "baseline_name": null,
+    "baseline_rmse": null,
+    "baseline_lift_rmse": null,
+    "baseline_lift_ci95": null,
+    "baseline_lift_significant_95": null,
+    "data_origin_reason": null
   },
   {
     "model_name": "gap_predictor_temporal",
@@ -127,7 +135,15 @@
     "override_decision": false,
     "override_actor": null,
     "override_date": null,
-    "override_justification": null
+    "override_justification": null,
+    "dataset_path": null,
+    "dataset_rows": null,
+    "baseline_name": null,
+    "baseline_rmse": null,
+    "baseline_lift_rmse": null,
+    "baseline_lift_ci95": null,
+    "baseline_lift_significant_95": null,
+    "data_origin_reason": null
   },
   {
     "model_name": "risk_predictor",
@@ -161,7 +177,15 @@
     "override_decision": false,
     "override_actor": null,
     "override_date": null,
-    "override_justification": null
+    "override_justification": null,
+    "dataset_path": null,
+    "dataset_rows": null,
+    "baseline_name": null,
+    "baseline_rmse": null,
+    "baseline_lift_rmse": null,
+    "baseline_lift_ci95": null,
+    "baseline_lift_significant_95": null,
+    "data_origin_reason": null
   },
   {
     "model_name": "gap_predictor_temporal",
@@ -226,7 +250,15 @@
     "override_decision": false,
     "override_actor": null,
     "override_date": null,
-    "override_justification": null
+    "override_justification": null,
+    "dataset_path": null,
+    "dataset_rows": null,
+    "baseline_name": null,
+    "baseline_rmse": null,
+    "baseline_lift_rmse": null,
+    "baseline_lift_ci95": null,
+    "baseline_lift_significant_95": null,
+    "data_origin_reason": null
   },
   {
     "model_name": "gap_predictor_temporal",
@@ -294,7 +326,15 @@
     "override_decision": false,
     "override_actor": null,
     "override_date": null,
-    "override_justification": null
+    "override_justification": null,
+    "dataset_path": null,
+    "dataset_rows": null,
+    "baseline_name": null,
+    "baseline_rmse": null,
+    "baseline_lift_rmse": null,
+    "baseline_lift_ci95": null,
+    "baseline_lift_significant_95": null,
+    "data_origin_reason": null
   },
   {
     "model_name": "gap_predictor_temporal",
@@ -359,7 +399,15 @@
     "override_decision": false,
     "override_actor": null,
     "override_date": null,
-    "override_justification": null
+    "override_justification": null,
+    "dataset_path": null,
+    "dataset_rows": null,
+    "baseline_name": null,
+    "baseline_rmse": null,
+    "baseline_lift_rmse": null,
+    "baseline_lift_ci95": null,
+    "baseline_lift_significant_95": null,
+    "data_origin_reason": null
   },
   {
     "model_name": "gap_predictor_temporal",
@@ -412,7 +460,7 @@
     "approval_status": "APPROVED",
     "approval_date": "2026-09-22T03:09:33.098746+00:00",
     "approval_actor": "decision-projet:2026-09-22",
-    "notes": "PROMU ACTIVE (decision projet, preuve multi-datasets) : Gradient Boosting retenu apres comparaison a protocole identique sur les six corpus du projet (GB meilleur accuracy +/-1.0 sur 4/6 corpus, ex-aequo sur un 5e) dont corpus reel 67.6% vs 29.4% baseline ; gain RMSE significatif sur le corpus reel, lift IC95 [0.9253, 1.9289]). Test sur le holdout servi : RMSE 1.214 / MAE 1.1082 / R2 0.2458 (meilleur que MLP 1.2319/1.1556/0.2234) ; gain NON SIGNIFICATIF (delta IC95 [-0.1243, 0.1087] inclut 0), documente. Limite connue : cibles EXTRAPOLATED_TARGET, volume reel limite (217 lignes). | RETROGRADE le 2026-09-22 (audit d'autorite §2.6) : le gain du modele n'est pas statistiquement significatif sur le corpus de production (IC95 de la difference de RMSE incluant 0). La regle « aucune promotion sur un avantage non significatif », appliquee a v1.2.0, est desormais AUTOMATIQUE (model_registry.significance_promotion_error) : cette version ne peut plus etre promue sans nouvelle mesure significative. Le service sert le moteur heuristique explicable (ML_SERVING_MODE=HEURISTIC). | OVERRIDE DECLARE (decision-projet:2026-09-22, 2026-09-22) : Decision projet : servir le meilleur modele disponible malgre un gain non significatif sur le holdout servi (GB 1.2140 vs MLP 1.2319, IC95 [-0.1243, +0.1087]) — GB meilleur en point sur les deux regimes (reel 1.2140 ; sim1500 0.6246), meilleur accuracy +/-1.0 sur 4/6 corpus du projet. Exception TRACEE et REVERSIBLE (rollback gap_predictor_temporal_v111.joblib).",
+    "notes": "PROMU ACTIVE (decision projet, preuve multi-datasets) : Gradient Boosting retenu apres comparaison a protocole identique sur les six corpus du projet (GB meilleur accuracy +/-1.0 sur 4/6 corpus, ex-aequo sur un 5e) dont corpus reel 67.6% vs 29.4% baseline ; gain RMSE mesure contre la baseline de reference extrapolation_rule (RMSE 1.221) : lift +0.0070, IC95 [-0.1267, +0.1344], significatif=false). Test sur le holdout servi : RMSE 1.214 / MAE 1.1082 / R2 0.2458 (meilleur que MLP 1.2319/1.1556/0.2234) ; gain NON SIGNIFICATIF (delta IC95 [-0.1243, 0.1087] inclut 0), documente. Limite connue : cibles EXTRAPOLATED_TARGET, volume reel limite (217 lignes). | RETROGRADE le 2026-09-22 (audit d'autorite §2.6) : le gain du modele n'est pas statistiquement significatif sur le corpus de production (IC95 de la difference de RMSE incluant 0). La regle « aucune promotion sur un avantage non significatif », appliquee a v1.2.0, est desormais AUTOMATIQUE (model_registry.significance_promotion_error) : cette version ne peut plus etre promue sans nouvelle mesure significative. Le service sert le moteur heuristique explicable (ML_SERVING_MODE=HEURISTIC). | OVERRIDE DECLARE (decision-projet:2026-09-22, 2026-09-22) : Decision projet : servir le meilleur modele disponible malgre un gain non significatif sur le holdout servi (GB 1.2140 vs MLP 1.2319, IC95 [-0.1243, +0.1087]) — GB meilleur en point sur les deux regimes (reel 1.2140 ; sim1500 0.6246), meilleur accuracy +/-1.0 sur 4/6 corpus du projet. Exception TRACEE et REVERSIBLE (rollback gap_predictor_temporal_v111.joblib). | LIFT RECALCULE (audit baselines, 2026-09-22) : l'ancien lift de 1.2629 etait mesure contre clip(current_level_t - avg_level, 0, 5), nulle sur 77% du holdout. Contre la baseline legitime la plus forte (extrapolation_rule, RMSE 1.221), le lift reel est +0.0070 (IC95 [-0.1267, +0.1344], significatif=false). Artefact inchange (SHA 59312ec9...).",
     "target_validity": "EXTRAPOLATED_TARGET",
     "real_future_observation_count": 217,
     "distinct_observation_months": 0,
@@ -429,7 +477,18 @@
     "override_decision": true,
     "override_actor": "decision-projet:2026-09-22",
     "override_date": "2026-09-22T03:09:30.910983+00:00",
-    "override_justification": "Decision projet : servir le meilleur modele disponible malgre un gain non significatif sur le holdout servi (GB 1.2140 vs MLP 1.2319, IC95 [-0.1243, +0.1087]) — GB meilleur en point sur les deux regimes (reel 1.2140 ; sim1500 0.6246), meilleur accuracy +/-1.0 sur 4/6 corpus du projet. Exception TRACEE et REVERSIBLE (rollback gap_predictor_temporal_v111.joblib)."
+    "override_justification": "Decision projet : servir le meilleur modele disponible malgre un gain non significatif sur le holdout servi (GB 1.2140 vs MLP 1.2319, IC95 [-0.1243, +0.1087]) — GB meilleur en point sur les deux regimes (reel 1.2140 ; sim1500 0.6246), meilleur accuracy +/-1.0 sur 4/6 corpus du projet. Exception TRACEE et REVERSIBLE (rollback gap_predictor_temporal_v111.joblib).",
+    "dataset_path": "data/clean/training_corpus_provenanced.csv",
+    "dataset_rows": 217,
+    "baseline_name": "extrapolation_rule",
+    "baseline_rmse": 1.221,
+    "baseline_lift_rmse": 0.007,
+    "baseline_lift_ci95": [
+      -0.1267,
+      0.1344
+    ],
+    "baseline_lift_significant_95": false,
+    "data_origin_reason": "corpus 100 % réel (source_type=postgresql_d2f, is_synthetic=false sur 217/217 lignes) mais sans attestation institutionnelle : la garde _corpus_institutionally_verified impose DEMO_SEED. L'étiquette décrit le niveau d'attestation, pas l'origine des données."
   },
   {
     "model_name": "gap_predictor_temporal",
@@ -499,6 +558,14 @@
     "override_decision": false,
     "override_actor": null,
     "override_date": null,
-    "override_justification": null
+    "override_justification": null,
+    "dataset_path": null,
+    "dataset_rows": null,
+    "baseline_name": null,
+    "baseline_rmse": null,
+    "baseline_lift_rmse": null,
+    "baseline_lift_ci95": null,
+    "baseline_lift_significant_95": null,
+    "data_origin_reason": null
   }
 ]

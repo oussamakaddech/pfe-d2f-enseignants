@@ -170,20 +170,57 @@
     "test_r2": 0.2458,
     "test_rmse": 1.214,
     "test_mae": 1.1082,
-    "baseline_rmse": 2.4949,
-    "baseline_mae": 2.0911,
-    "lift_rmse": 1.2629,
+    "baseline_rmse": 1.221,
+    "baseline_mae": 1.1601,
+    "lift_rmse": 0.007,
     "lift_rmse_ci95": [
-      0.9606,
-      1.5527
+      -0.1267,
+      0.1344
     ],
-    "lift_ci95_method": "bootstrap 1000 replicas on test sample (n=43), percentile 2.5-97.5",
-    "lift_significant_95": true,
+    "lift_ci95_method": "bootstrap 1000 replicas on test sample (n=43), percentile 2.5-97.5, baseline=extrapolation_rule",
+    "lift_significant_95": false,
     "rmse_mlp_reference": 1.2319,
     "mae_mlp_reference": 1.1556,
     "r2_mlp_reference": 0.2234,
     "delta_rmse_ic95_lo": -0.1243,
-    "delta_rmse_ic95_hi": 0.1087
+    "delta_rmse_ic95_hi": 0.1087,
+    "baseline_name": "extrapolation_rule",
+    "baseline_selection_rule": "RMSE la plus basse parmi les baselines légitimes",
+    "baselines": {
+      "extrapolation_rule": {
+        "rmse": 1.221,
+        "mae": 1.1601,
+        "legitimate": true,
+        "required_level_calibrated_on_train": 3.95
+      },
+      "train_mean": {
+        "rmse": 1.4727,
+        "mae": 1.286,
+        "legitimate": true
+      },
+      "train_median": {
+        "rmse": 1.4041,
+        "mae": 1.1395,
+        "legitimate": true
+      },
+      "persistence_proxy": {
+        "rmse": 2.4949,
+        "mae": 2.0911,
+        "legitimate": false,
+        "zero_share": 0.7674,
+        "note": "dégénérée : nulle sur 77% du holdout — écartée du calcul du lift"
+      }
+    },
+    "lift_legacy_persistence_proxy": {
+      "baseline_rmse": 2.4949,
+      "lift_rmse": 1.2629,
+      "note": "baseline dégénérée (nulle sur 77 % du holdout) — chiffre conservé pour la traçabilité, jamais pour annoncer un gain",
+      "lift_rmse_ci95": [
+        0.9606,
+        1.5527
+      ],
+      "lift_significant_95": true
+    }
   },
   "feature_importances": {},
   "feature_ranges": {

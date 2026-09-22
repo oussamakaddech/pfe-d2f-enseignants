@@ -29,6 +29,8 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.neural_network import MLPRegressor
 from xgboost import XGBRegressor
 
+from pipelines.baselines import compute_baselines
+
 BASE = Path(__file__).parent.parent
 OUT_JSON = BASE / "reports" / "audit_model_comparison_datasets.json"
 OUT_MD = BASE / "reports" / "audit_model_comparison_datasets.md"
@@ -127,13 +129,14 @@ def audit_dataset(name: str, path: Path) -> dict[str, object]:
     y_train = train[TARGET_COL].clip(0, 5).values
     y_test = test[TARGET_COL].clip(0, 5).values
 
-    gap_t_proxy = np.clip(
-        test[FEATURE_COLS].astype(float)["current_level_t"].values
-        - test[FEATURE_COLS].astype(float)["avg_level"].values,
-        0, 5,
-    )
-    baseline_rmse = float(np.sqrt(mean_squared_error(y_test, gap_t_proxy)))
-    baseline_mae = float(mean_absolute_error(y_test, gap_t_proxy))
+    # Baseline de reference = contrat partage (pipelines/baselines.py). L'ancien
+    # proxy de persistance (current_level_t - avg_level) est degenere sur le
+    # corpus servi : il gonflait le lift de tous les candidats de ce tableau.
+    baseline = compute_baselines(train, y_train, test, y_test)
+    gap_t_proxy = baseline["baseline_predictions"]
+    baseline_name = baseline["baseline_name"]
+    baseline_rmse = float(baseline["baseline_rmse"])
+    baseline_mae = float(baseline["baseline_mae"])
     baseline_r2 = float(r2_score(y_test, gap_t_proxy))
     baseline_acc_pm05 = round(float(np.mean(np.abs(gap_t_proxy - y_test) <= 0.5)) * 100, 1)
     baseline_acc_pm10 = round(float(np.mean(np.abs(gap_t_proxy - y_test) <= 1.0)) * 100, 1)
@@ -192,6 +195,8 @@ def audit_dataset(name: str, path: Path) -> dict[str, object]:
         "data_origin": data_origin,
         "seed": SEED,
         "baseline": {
+            "name": baseline_name,
+            "detail": baseline["baselines"],
             "rmse": round(baseline_rmse, 4),
             "mae": round(baseline_mae, 4),
             "r2": round(baseline_r2, 4),
@@ -226,7 +231,7 @@ def main() -> int:
             f"Lignes exclues (valeurs non numeriques) : {res['rows_dropped_non_numeric']}",
             "| Candidat | RMSE | MAE | R2 | Acc. ±0,5 | Acc. ±1,0 | lift RMSE vs baseline (IC95) | Decision |",
             "|---|---|---|---|---|---|---|---|",
-            f"| Baseline (persistance gap_t) | {res['baseline']['rmse']:.4f} | {res['baseline']['mae']:.4f} | {res['baseline']['r2']:.4f} | {res['baseline']['accuracy_pm05']:.1f} % | {res['baseline']['accuracy_pm10']:.1f} % | - | reference |",
+            f"| Baseline ({res['baseline']['name']}) | {res['baseline']['rmse']:.4f} | {res['baseline']['mae']:.4f} | {res['baseline']['r2']:.4f} | {res['baseline']['accuracy_pm05']:.1f} % | {res['baseline']['accuracy_pm10']:.1f} % | - | reference |",
         ]
         for r in sorted(res["candidates"], key=lambda x: x["rmse"]):
             lines.append(

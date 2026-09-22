@@ -104,6 +104,27 @@ class RegistryEntry:
     override_actor: str | None = None
     override_date: str | None = None
     override_justification: str | None = None
+    # Identite du corpus (audit 2026-09-22) : ``dataset_version`` reprend la
+    # colonne du fichier, qui pouvait porter le meme libelle qu'un corpus
+    # different (le corpus 217 lignes est etiquete v1.1.0 alors que le corpus
+    # du modele v1.1.0 comptait 172 lignes). Le chemin et le nombre de lignes
+    # levent l'ambiguite sans toucher au ``dataset_hash``, qui reste l'ancre
+    # de gouvernance.
+    dataset_path: str | None = None
+    dataset_rows: int | None = None
+    # Lift mesure contre la baseline de reference (pipelines/baselines.py).
+    # Hors de ``metrics`` : ce dictionnaire n'accepte que des scalaires
+    # positifs, alors qu'un lift peut etre negatif. Ne pas confondre avec
+    # ``lift_significant_95``/``lift_rmse_ci95``, qui portent la comparaison
+    # au modele de reference precedent (regle §2.6).
+    baseline_name: str | None = None
+    baseline_rmse: float | None = None
+    baseline_lift_rmse: float | None = None
+    baseline_lift_ci95: list[float] | None = None
+    baseline_lift_significant_95: bool | None = None
+    # Raison lisible de l'etiquette ``data_origin`` quand elle peut surprendre
+    # (corpus 100 % reel classe DEMO_SEED faute d'attestation institutionnelle).
+    data_origin_reason: str | None = None
 
     # Sérialise l'entrée du registre en dictionnaire (pour écriture JSON).
     def to_dict(self) -> dict[str, Any]:
