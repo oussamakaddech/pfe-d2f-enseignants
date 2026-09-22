@@ -46,7 +46,7 @@ const scopeBase = {
   total_competencies_count: 26,
   scope: {},
   computed_at: '2026-09-21T00:00:00Z',
-} as never;
+};
 
 const setup = () => {
   mocks.useAnalyzeTeacher.mockReturnValue({ isPending: false, isError: false, mutate: vi.fn() });
@@ -341,7 +341,7 @@ describe('AnalyticsTeacherPage', () => {
     });
     mocks.useTeacherScopeAnalysis.mockReturnValue({
       isLoading: false,
-      data: { ...scopeBase, niveaux_sur_scope: 0 },
+      data: { ...scopeBase, niveaux_sur_scope: 0 } as never,
     });
     render(<AnalyticsTeacherPage />, { wrapper });
 
@@ -359,7 +359,7 @@ describe('AnalyticsTeacherPage', () => {
     });
     mocks.useTeacherScopeAnalysis.mockReturnValue({
       isLoading: false,
-      data: { ...scopeBase, niveaux_sur_scope: 7 },
+      data: { ...scopeBase, niveaux_sur_scope: 7 } as never,
     });
     render(<AnalyticsTeacherPage />, { wrapper });
 
