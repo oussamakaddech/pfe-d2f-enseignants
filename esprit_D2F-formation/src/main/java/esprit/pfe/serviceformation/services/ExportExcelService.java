@@ -4,6 +4,8 @@ import esprit.pfe.serviceformation.dto.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.WorkbookUtil;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFPrintSetup;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
@@ -23,22 +25,36 @@ import java.util.stream.Collectors;
 public class ExportExcelService {
     private final FormationWorkflowService formationWorkflowService;
 
-    private static final short COLOR_DARK_BLUE = (short) 0x1F4E79;
-    private static final short COLOR_LIGHT_BLUE = (short) 0xBDD7EE;
-    private static final short COLOR_DATE_BG = (short) 0xDAE3F3;
-    private static final short COLOR_ALT_ROW = (short) 0xDEEAF1;
-    private static final short COLOR_BORDER = (short) 0xB8CCE4;
-    private static final short COLOR_HEADER_BORDER = (short) 0x2E75B6;
+    // Couleurs RGB réelles. Un `short` était interprété comme un INDICE de la
+    // palette Excel (0-64) : des valeurs comme 0x1F4E79 étant hors palette,
+    // Excel affichait des cases NOIRES. On passe donc de vraies couleurs ARGB.
+    private static final byte[] RGB_DARK_BLUE = {(byte) 0x1F, (byte) 0x4E, (byte) 0x79};
+    private static final byte[] RGB_LIGHT_BLUE = {(byte) 0xBD, (byte) 0xD7, (byte) 0xEE};
+    private static final byte[] RGB_DATE_BG = {(byte) 0xDA, (byte) 0xE3, (byte) 0xF3};
+    private static final byte[] RGB_ALT_ROW = {(byte) 0xDE, (byte) 0xEA, (byte) 0xF1};
+    private static final byte[] RGB_BORDER = {(byte) 0xB8, (byte) 0xCC, (byte) 0xE4};
+    private static final byte[] RGB_HEADER_BORDER = {(byte) 0x2E, (byte) 0x75, (byte) 0xB6};
 
-    private void setAllBorders(CellStyle style, BorderStyle borderStyle, short color) {
+    /** Remplissage uni avec une couleur RGB (jamais un indice de palette). */
+    private static void setFillColor(CellStyle style, byte[] rgb) {
+        if (style instanceof XSSFCellStyle xssfStyle) {
+            xssfStyle.setFillForegroundColor(new XSSFColor(rgb, null));
+        }
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+    }
+
+    private static void setAllBorders(CellStyle style, BorderStyle borderStyle, byte[] rgb) {
         style.setBorderTop(borderStyle);
-        style.setTopBorderColor(color);
         style.setBorderBottom(borderStyle);
-        style.setBottomBorderColor(color);
         style.setBorderLeft(borderStyle);
-        style.setLeftBorderColor(color);
         style.setBorderRight(borderStyle);
-        style.setRightBorderColor(color);
+        if (style instanceof XSSFCellStyle xssfStyle) {
+            XSSFColor color = new XSSFColor(rgb, null);
+            xssfStyle.setTopBorderColor(color);
+            xssfStyle.setBottomBorderColor(color);
+            xssfStyle.setLeftBorderColor(color);
+            xssfStyle.setRightBorderColor(color);
+        }
     }
 
     public ByteArrayOutputStream exportFormationsAvance(LocalDate startDate, LocalDate endDate) throws IOException {
@@ -201,7 +217,7 @@ public class ExportExcelService {
                 Row r = sheet.createRow(rowIndex);
                 boolean isAlt = (rowIndex % 2 == 0);
                 CellStyle rowStyle = isAlt ? altStyle : dataStyle;
-                writeSeanceRow(r, s, idx, total, rowStyle);
+                writeSeanceRow(r, s, rowStyle);
 
                 if (isAfternoonSeance(s) && idx < total) {
                     rowIndex++;
@@ -226,7 +242,7 @@ public class ExportExcelService {
         setupPageSetup(sheet);
     }
 
-    private void writeSeanceRow(Row r, SeanceExport s, int idx, int total, CellStyle style) {
+    private void writeSeanceRow(Row r, SeanceExport s, CellStyle style) {
         Cell c1 = r.createCell(1);
         c1.setCellValue(s.titreFormation);
         c1.setCellStyle(style);
@@ -250,8 +266,23 @@ public class ExportExcelService {
         c5.setCellStyle(style);
 
         Cell c6 = r.createCell(6);
-        c6.setCellValue(idx + "/" + total);
+        c6.setCellValue(formatSeanceLabel(s));
         c6.setCellStyle(style);
+    }
+
+    /**
+     * Libellé de la colonne « Séance » : la numérotation RÉELLE de la séance
+     * dans la formation (« 3/6 »), et non un index recalculé par journée qui
+     * affichait systématiquement « 1/1 ».
+     */
+    private String formatSeanceLabel(SeanceExport s) {
+        if (s.numeroSeance == null) {
+            return "-";
+        }
+        if (s.totalSeances == null || s.totalSeances <= 0) {
+            return String.valueOf(s.numeroSeance);
+        }
+        return s.numeroSeance + "/" + s.totalSeances;
     }
 
     private void applyDateMerging(Sheet sheet, LocalDate date, int groupStart, int groupEnd,
@@ -385,28 +416,65 @@ public class ExportExcelService {
 
     private void addFilteredSeances(List<SeanceExport> allSeances, FormationResponseDTO formation,
                                      LocalDate startDate, LocalDate endDate) {
-        for (SeanceDTO seance : formation.getSeances()) {
+        // Numérotation calculée sur TOUTES les séances de la formation (et non sur
+        // celles de la seule journée) : « 3/6 » au lieu d'un « 1/1 » systématique.
+        List<SeanceDTO> ordered = orderedSeances(formation);
+        int total = ordered.size();
+        for (int i = 0; i < total; i++) {
+            SeanceDTO seance = ordered.get(i);
             LocalDate dateSeance = seance.getDateSeance();
             if (dateSeance != null && !dateSeance.isBefore(startDate) && !dateSeance.isAfter(endDate)) {
-                allSeances.add(mapToSeanceExport(formation, seance));
+                allSeances.add(mapToSeanceExport(formation, seance, i + 1, total));
             }
         }
     }
 
-    private SeanceExport mapToSeanceExport(FormationResponseDTO formation, SeanceDTO seance) {
+    /** Séances d'une formation triées chronologiquement (date, heure, id). */
+    private List<SeanceDTO> orderedSeances(FormationResponseDTO formation) {
+        List<SeanceDTO> seances = new ArrayList<>(formation.getSeances());
+        seances.sort(Comparator
+                .comparing(SeanceDTO::getDateSeance, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(SeanceDTO::getHeureDebut, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(SeanceDTO::getIdSeance, Comparator.nullsLast(Comparator.naturalOrder())));
+        return seances;
+    }
+
+    private SeanceExport mapToSeanceExport(FormationResponseDTO formation, SeanceDTO seance,
+                                           int ordre, int total) {
         SeanceExport exp = new SeanceExport();
         exp.dateSeance = seance.getDateSeance();
         exp.heureDebut = seance.getHeureDebut();
         exp.heureFin = seance.getHeureFin();
-        exp.salle = seance.getSalle();
+        // Salle : celle de la séance, sinon celle de la formation (jamais perdue).
+        exp.salle = firstNonBlank(seance.getSalle(), formation.getSalle());
         exp.titreFormation = formation.getTitreFormation();
-        exp.formateurs = formatFormateurs(seance);
+        // Animateurs : ceux de la séance, sinon ceux de la formation.
+        exp.formateurs = firstNonBlank(formatFormateurs(seance), formatFormateurs(formation));
         exp.equipe = formatEquipe(formation);
+        exp.numeroSeance = seance.getNumeroSeance() != null ? seance.getNumeroSeance() : ordre;
+        exp.totalSeances = seance.getTotalSeances() != null ? seance.getTotalSeances() : total;
         return exp;
+    }
+
+    /** Première valeur non vide (repli de colonne). */
+    private String firstNonBlank(String first, String second) {
+        if (first != null && !first.isBlank()) {
+            return first;
+        }
+        return second != null && !second.isBlank() ? second : null;
     }
 
     private String formatFormateurs(SeanceDTO seance) {
         return Optional.ofNullable(seance.getAnimateurs())
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(a -> a.getNom() + " " + a.getPrenom())
+                .collect(Collectors.joining(", "));
+    }
+
+    /** Animateurs de la formation (repli quand la séance n'en porte aucun). */
+    private String formatFormateurs(FormationResponseDTO formation) {
+        return Optional.ofNullable(formation.getAnimateurs())
                 .orElse(Collections.emptyList())
                 .stream()
                 .map(a -> a.getNom() + " " + a.getPrenom())
@@ -468,10 +536,9 @@ public class ExportExcelService {
         style.setFont(font);
         style.setAlignment(HorizontalAlignment.CENTER);
         style.setVerticalAlignment(VerticalAlignment.CENTER);
-        style.setFillForegroundColor(COLOR_DARK_BLUE);
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        setFillColor(style, RGB_DARK_BLUE);
         style.setWrapText(true);
-        setAllBorders(style, BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
+        setAllBorders(style, BorderStyle.MEDIUM, RGB_HEADER_BORDER);
         return style;
     }
 
@@ -487,10 +554,9 @@ public class ExportExcelService {
         style.setFont(font);
         style.setAlignment(HorizontalAlignment.CENTER);
         style.setVerticalAlignment(VerticalAlignment.CENTER);
-        style.setFillForegroundColor(COLOR_LIGHT_BLUE);
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        setFillColor(style, RGB_LIGHT_BLUE);
         style.setWrapText(true);
-        setAllBorders(style, BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
+        setAllBorders(style, BorderStyle.MEDIUM, RGB_HEADER_BORDER);
         return style;
     }
 
@@ -503,10 +569,9 @@ public class ExportExcelService {
         style.setFont(font);
         style.setAlignment(HorizontalAlignment.CENTER);
         style.setVerticalAlignment(VerticalAlignment.CENTER);
-        style.setFillForegroundColor(COLOR_DARK_BLUE);
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        setFillColor(style, RGB_DARK_BLUE);
         style.setWrapText(true);
-        setAllBorders(style, BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
+        setAllBorders(style, BorderStyle.MEDIUM, RGB_HEADER_BORDER);
         return style;
     }
 
@@ -521,12 +586,11 @@ public class ExportExcelService {
         font.setColor(IndexedColors.WHITE.getIndex());
         font.setFontHeightInPoints((short) 11);
         style.setFont(font);
-        style.setFillForegroundColor(COLOR_DARK_BLUE);
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        setFillColor(style, RGB_DARK_BLUE);
         style.setAlignment(HorizontalAlignment.CENTER);
         style.setVerticalAlignment(VerticalAlignment.CENTER);
         style.setWrapText(true);
-        setAllBorders(style, BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
+        setAllBorders(style, BorderStyle.MEDIUM, RGB_HEADER_BORDER);
         return style;
     }
 
@@ -536,11 +600,10 @@ public class ExportExcelService {
         font.setBold(true);
         font.setFontHeightInPoints((short) 11);
         style.setFont(font);
-        style.setFillForegroundColor(COLOR_DATE_BG);
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        setFillColor(style, RGB_DATE_BG);
         style.setAlignment(HorizontalAlignment.CENTER);
         style.setVerticalAlignment(VerticalAlignment.CENTER);
-        setAllBorders(style, BorderStyle.THIN, COLOR_BORDER);
+        setAllBorders(style, BorderStyle.THIN, RGB_BORDER);
         return style;
     }
 
@@ -563,7 +626,7 @@ public class ExportExcelService {
         style.setAlignment(HorizontalAlignment.LEFT);
         style.setVerticalAlignment(VerticalAlignment.CENTER);
         style.setWrapText(true);
-        setAllBorders(style, BorderStyle.THIN, COLOR_BORDER);
+        setAllBorders(style, BorderStyle.THIN, RGB_BORDER);
         return style;
     }
 
@@ -572,12 +635,11 @@ public class ExportExcelService {
         Font font = workbook.createFont();
         font.setFontHeightInPoints((short) 10);
         style.setFont(font);
-        style.setFillForegroundColor(COLOR_ALT_ROW);
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        setFillColor(style, RGB_ALT_ROW);
         style.setAlignment(HorizontalAlignment.LEFT);
         style.setVerticalAlignment(VerticalAlignment.CENTER);
         style.setWrapText(true);
-        setAllBorders(style, BorderStyle.THIN, COLOR_BORDER);
+        setAllBorders(style, BorderStyle.THIN, RGB_BORDER);
         return style;
     }
 
@@ -587,11 +649,10 @@ public class ExportExcelService {
         font.setBold(true);
         font.setFontHeightInPoints((short) 10);
         style.setFont(font);
-        style.setFillForegroundColor(COLOR_DATE_BG);
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        setFillColor(style, RGB_DATE_BG);
         style.setAlignment(HorizontalAlignment.LEFT);
         style.setVerticalAlignment(VerticalAlignment.CENTER);
-        setAllBorders(style, BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
+        setAllBorders(style, BorderStyle.MEDIUM, RGB_HEADER_BORDER);
         return style;
     }
 
@@ -603,5 +664,7 @@ public class ExportExcelService {
         String titreFormation;
         String formateurs;
         String equipe;
+        Integer numeroSeance;
+        Integer totalSeances;
     }
 }

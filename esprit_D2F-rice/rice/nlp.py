@@ -71,6 +71,8 @@ _RE_SINGLE_DIGIT = r"^(\d)[ \t]*$"
 # Text extraction
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Transforme une table PDF avec en-tête en lignes texte "Champ: valeur"
+# (ajoutées au texte brut pour le NER et le regex).
 def _serialize_table_header(header: List[str], data_rows: List[List[str]], lines: List[str]) -> None:
     for row in data_rows:
         parts = []
@@ -81,6 +83,8 @@ def _serialize_table_header(header: List[str], data_rows: List[List[str]], lines
             lines.append(" | ".join(parts))
 
 
+# Transforme une table PDF SANS en-tête : ligne à 2 cellules → "clé: valeur",
+# ligne à plus de 2 cellules → jonction des 4 premières cellules.
 def _serialize_table_kv(table, lines: List[str]) -> None:
     for row in table:
         if not row:
@@ -93,6 +97,8 @@ def _serialize_table_kv(table, lines: List[str]) -> None:
             lines.append(" | ".join(non_empty[:4]))
 
 
+# Classe une table PDF : sépare la ligne d'en-tête (si détectée) des lignes
+# de données. Renvoie (header, data_rows, has_header).
 def _classify_table(table) -> Tuple[List[str], List[List[str]], bool]:
     header: List[str] = []
     data_rows: List[List[str]] = []
@@ -107,6 +113,8 @@ def _classify_table(table) -> Tuple[List[str], List[List[str]], bool]:
     return header, data_rows, bool(header and data_rows)
 
 
+# Sérialise toutes les tables d'un PDF en texte exploitable
+# (avec en-tête → "Champ: valeur", sans → paires clés/valeurs).
 def _serialize_pdf_tables(tables: list) -> str:
     lines: List[str] = []
     for table in tables:
@@ -211,6 +219,7 @@ def _ocr_scanned_pdf(data: bytes) -> str:
     return result
 
 
+# Extrait le texte d'un fichier DOCX (python-docx) : concatène les paragraphes.
 def _extract_docx(data: bytes) -> str:
     if not _DOCX_OK:
         raise HTTPException(500, "python-docx not installed")
@@ -557,6 +566,7 @@ def _llm_extract_metadata(text: str) -> Dict[str, Any]:
 _LLM_VALID_ROLES = {"responsable", "coordinateur", "enseignant", "intervenant"}
 
 
+# Extrait le texte saisi par le LLM (nettoyage + longueur min + casse optionnelle).
 def _extract_llm_text(value: Any, min_len: int = 1, uppercase: bool = False) -> Optional[str]:
     if not isinstance(value, str):
         return None
@@ -568,6 +578,7 @@ def _extract_llm_text(value: Any, min_len: int = 1, uppercase: bool = False) -> 
     return cleaned
 
 
+# Valide/extrait une liste de noms renvoyée par le LLM (chaînes propres uniquement).
 def _extract_llm_names(value: Any) -> List[str]:
     if not isinstance(value, list):
         return []
@@ -575,6 +586,7 @@ def _extract_llm_names(value: Any) -> List[str]:
     return [n for n in names if n]
 
 
+# Valide/extrait le mapping nom → rôle du LLM (responsable/coordinateur/enseignant).
 def _extract_llm_roles(value: Any) -> Dict[str, str]:
     if not isinstance(value, dict):
         return {}
@@ -587,6 +599,9 @@ def _extract_llm_roles(value: Any) -> Dict[str, str]:
     return roles
 
 
+# Filtre la sortie JSON brute du LLM : ne garde que les champs valides
+# (code module, nom, UP, responsable, noms/rôles enseignants, prérequis,
+# objectif) — défense contre les hallucinations du modèle.
 def _sanitize_llm_metadata(result: Dict[str, Any]) -> Dict[str, Any]:
     out: Dict[str, Any] = {}
 
@@ -1063,10 +1078,13 @@ def _is_valid_enseignant_value(value: str) -> bool:
     return True
 
 
+# Normalise une ligne de table : chaînes stripped, cellules vides → "".
 def _norm_row(row) -> List[str]:
     return [str(c).strip() if c else "" for c in row]
 
 
+# Cherche la valeur d'une cellule "décalée" (libellé dans une ligne, valeur
+# dans la suivante) — cas fréquent des fiches PDF mal structurées.
 def _lookup_shifted_cell(table, row_idx: int, col_idx: int, cells_norm: List[str], table_row: List[str]) -> str:
     if row_idx + 1 >= len(table):
         return ""
@@ -1078,6 +1096,8 @@ def _lookup_shifted_cell(table, row_idx: int, col_idx: int, cells_norm: List[str
     return ""
 
 
+# Récupère la valeur associée à un libellé dans une table : cellule à droite,
+# sinon ligne suivante (même colonne), sinon cellule décalée.
 def _get_cell_value(cells: List[str], table, row_idx: int, col_idx: int) -> str:
     if col_idx + 1 < len(cells) and cells[col_idx + 1].strip():
         return cells[col_idx + 1].strip()
@@ -1095,6 +1115,7 @@ def _get_cell_value(cells: List[str], table, row_idx: int, col_idx: int) -> str:
     return ""
 
 
+# Stocke le responsable du module dans les métadonnées (première occurrence gagnante).
 def _handle_table_responsable(value: str, meta: Dict[str, Any]) -> None:
     if "responsable" not in meta:
         cleaned = _clean_name(value)
@@ -1102,6 +1123,7 @@ def _handle_table_responsable(value: str, meta: Dict[str, Any]) -> None:
             meta["responsable"] = cleaned
 
 
+# Stocke le coordinateur dans les métadonnées ET l'ajoute à la liste des enseignants (rôle "coordinateur").
 def _handle_table_coordinateur(value: str, meta: Dict[str, Any]) -> None:
     if "coordinateur" not in meta:
         cleaned = _clean_name(value)
@@ -1111,6 +1133,7 @@ def _handle_table_coordinateur(value: str, meta: Dict[str, Any]) -> None:
             meta.setdefault("enseignants_roles", {})[cleaned] = "coordinateur"
 
 
+# Découpe une liste d'enseignants (cellule table) et les ajoute avec le rôle "enseignant".
 def _handle_table_enseignant(value: str, meta: Dict[str, Any]) -> None:
     names = _split_names(value)
     for n in names:
@@ -1118,6 +1141,7 @@ def _handle_table_enseignant(value: str, meta: Dict[str, Any]) -> None:
         meta.setdefault("enseignants_roles", {})[n] = "enseignant"
 
 
+# Extrait le nom du module depuis une cellule table (nettoie les suffixes parasites).
 def _handle_table_nom_module(value: str, meta: Dict[str, Any]) -> None:
     if "nom_module" not in meta:
         raw_val = value.strip().rstrip(".")
@@ -1126,6 +1150,7 @@ def _handle_table_nom_module(value: str, meta: Dict[str, Any]) -> None:
             meta["nom_module"] = raw_val
 
 
+# Extrait le code du module (doit contenir au moins un chiffre, ex: GC05-F).
 def _handle_table_code_module(value: str, meta: Dict[str, Any]) -> None:
     if "code_module" not in meta:
         code = value.strip().upper()
@@ -1133,16 +1158,19 @@ def _handle_table_code_module(value: str, meta: Dict[str, Any]) -> None:
             meta["code_module"] = code
 
 
+# Extrait l'unité pédagogique (spécialité) depuis une cellule table.
 def _handle_table_unite_pedagogique(value: str, meta: Dict[str, Any]) -> None:
     if "unite_pedagogique" not in meta and len(value) > 2:
         meta["unite_pedagogique"] = value.strip()
 
 
+# Extrait les prérequis du module depuis une cellule table.
 def _handle_table_prerequis(value: str, meta: Dict[str, Any]) -> None:
     if "prerequis" not in meta:
         meta["prerequis"] = value.strip()
 
 
+# Extrait les objectifs du module (retours à la ligne normalisés).
 def _handle_table_objectif(value: str, meta: Dict[str, Any]) -> None:
     if "objectif" not in meta:
         meta["objectif"] = re.sub(_RE_WHITESPACE_NEWLINE, " ", value).strip()
@@ -1160,18 +1188,23 @@ _TABLE_META_HANDLERS = {
 }
 
 
+# Parcourt TOUTES les cellules de TOUTES les tables PDF pour trouver les
+# libellés de métadonnées (Responsable, Code, HE…) via _TABLE_NER_LABELS.
 def _scan_tables_for_meta(raw_tables: List, meta: Dict[str, Any]) -> None:
     for table in raw_tables:
         for row_idx, row in enumerate(table):
             _scan_table_row_for_meta(table, row_idx, row, meta)
 
 
+# Applique le scan NER à chaque cellule d'une ligne de table.
 def _scan_table_row_for_meta(table, row_idx: int, row, meta: Dict[str, Any]) -> None:
     cells = [str(c).strip() if c else "" for c in row]
     for col_idx, cell in enumerate(cells):
         _apply_table_meta_cell(cells, table, row_idx, col_idx, cell, meta)
 
 
+# Une cellule reconnue comme libellé (ex: "Responsable") → cherche sa valeur
+# (cellule voisine / ligne suivante) puis délègue au handler correspondant.
 def _apply_table_meta_cell(
     cells: List[str],
     table,
@@ -1325,6 +1358,7 @@ def _extract_regex_objectif(text: str) -> Optional[str]:
     return None
 
 
+# Fusionne les métadonnées extraites par le LLM (prioritaires si présentes).
 def _merge_llm_meta(text: str, meta: Dict[str, Any]) -> None:
     llm_meta = _llm_extract_metadata(text)
     for key in ("code_module", "nom_module", "unite_pedagogique", "responsable", "prerequis", "objectif"):
@@ -1336,6 +1370,8 @@ def _merge_llm_meta(text: str, meta: Dict[str, Any]) -> None:
         meta["enseignants_roles"] = llm_meta["enseignants_roles"]
 
 
+# Complète les métadonnées par défaut avec les extractions regex
+# (code, nom, UP, responsable) — uniquement si pas déjà remplies.
 def _apply_regex_meta_defaults(text: str, meta: Dict[str, Any]) -> None:
     meta.setdefault("code_module", _extract_regex_code_module(text))
     meta.setdefault("nom_module", _extract_regex_nom_module(text))
@@ -1343,6 +1379,8 @@ def _apply_regex_meta_defaults(text: str, meta: Dict[str, Any]) -> None:
     meta.setdefault("responsable", _extract_regex_responsable(text))
 
 
+# Si aucun enseignant n'a encore été trouvé, utilise l'extraction regex
+# (section "Enseignants/Intervenants") pour remplir la liste.
 def _ensure_regex_enseignants(text: str, meta: Dict[str, Any]) -> None:
     if "enseignants_noms" in meta:
         return
@@ -1354,6 +1392,7 @@ def _ensure_regex_enseignants(text: str, meta: Dict[str, Any]) -> None:
         meta.setdefault("enseignants_roles", {})[name] = "enseignant"
 
 
+# Ajoute un enseignant (nom + rôle) aux listes de métadonnées, sans doublon de structure.
 def _append_meta_enseignant(meta: Dict[str, Any], name: Optional[str], role: str) -> None:
     if not name:
         return
@@ -1361,6 +1400,9 @@ def _append_meta_enseignant(meta: Dict[str, Any], name: Optional[str], role: str
     meta.setdefault("enseignants_roles", {})[name] = role
 
 
+# Fusionne les enseignants trouvés par motifs regex : labels standards
+# ("Enseignants:", "Intervenants:"), équipe pédagogique, "Prénom NOM" isolé,
+# et coordinateur.
 def _merge_pattern_enseignants(text: str, meta: Dict[str, Any]) -> None:
     # Standard enseignants / intervenants label patterns (from regex meta)
     ens_match = _RE_ENSEIGNANTS.search(text) or _RE_ENSEIGNANTS_DUAL.search(text)
@@ -1385,6 +1427,7 @@ def _merge_pattern_enseignants(text: str, meta: Dict[str, Any]) -> None:
         _append_meta_enseignant(meta, _clean_name(coord_match.group(1).strip()), "coordinateur")
 
 
+# Garantit que le responsable figure dans la liste des enseignants avec son rôle.
 def _ensure_responsable_presence(meta: Dict[str, Any]) -> None:
     responsable = meta.get("responsable")
     if not responsable:
@@ -1394,11 +1437,15 @@ def _ensure_responsable_presence(meta: Dict[str, Any]) -> None:
         meta["enseignants_noms"] = [responsable]
 
 
+# Complète les champs texte (prérequis, objectifs) via regex si absents.
 def _set_regex_text_fields(text: str, meta: Dict[str, Any]) -> None:
     meta.setdefault("prerequis", _extract_regex_prerequis(text))
     meta.setdefault("objectif", _extract_regex_objectif(text))
 
 
+# ── Extraction des MÉTADONNÉES d'une fiche (NER hybride) ────────────────────
+# Pipeline complet dans l'ordre de priorité : LLM → tables PDF → regex
+# → motifs enseignants → responsable → dédoublonnage → champs texte.
 def _extract_metadata(text: str, raw_tables: Optional[List] = None) -> Dict[str, Any]:
     meta: Dict[str, Any] = {}
 
@@ -1498,6 +1545,8 @@ def _is_metadata_line(text: str) -> bool:
     return False
 
 
+# Teste si une ligne du bloc AA doit être ignorée (lignes parasites type
+# "AA Acquis", "Niveau", "(1 :", "d'approfondissement"...).
 def _is_aa_skip(stripped: str) -> bool:
     if not stripped:
         return True
@@ -1514,6 +1563,8 @@ def _is_aa_skip(stripped: str) -> bool:
     return False
 
 
+# Isole le bloc "Acquis d'apprentissage" : texte entre le titre AA et la
+# section suivante ("Contenu détaillé" / "Plan du cours").
 def _extract_aa_block(text: str) -> Optional[str]:
     header_match = _RE_AA_BLOCK.search(text)
     if not header_match:
@@ -1526,6 +1577,8 @@ def _extract_aa_block(text: str) -> Optional[str]:
     return block.lstrip("\r\n")
 
 
+# Découpe le bloc AA en tokens : markers "AA 1 ..." et lignes de texte,
+# en sautant les lignes parasites et les lignes de métadonnées.
 def _parse_aa_lines(block: str) -> List[Dict[str, Any]]:
     parsed: List[Dict[str, Any]] = []
     for line in block.split('\n'):
@@ -1542,6 +1595,9 @@ def _parse_aa_lines(block: str) -> List[Dict[str, Any]]:
     return parsed
 
 
+# Fallback quand aucun marker "AA n" structuré n'a été trouvé :
+# 1) regex stricte "AA n texte bloom" sur tout le texte ; 2) sinon les
+# puces/lignes longues du bloc deviennent des AA avec niveau Bloom déduit.
 def _extract_aa_no_marker(parsed: List[Dict[str, Any]], text: str) -> List[Dict[str, Any]]:
     acquis: List[Dict[str, Any]] = []
     for m in _RE_AA_LINE.finditer(text):
@@ -1568,6 +1624,8 @@ def _extract_aa_no_marker(parsed: List[Dict[str, Any]], text: str) -> List[Dict[
     return acquis
 
 
+# Extrait le niveau Bloom d'une ligne AA : nombre final simple ("... 4"),
+# double ("3 et 4" → max) ou chiffre isolé. Renvoie (bloom, texte restant).
 def _parse_aa_bloom(rest: str) -> Tuple[int, str]:
     bm_multi = _RE_AA_BLOOM_MULTI.search(rest)
     if bm_multi:
@@ -1580,6 +1638,7 @@ def _parse_aa_bloom(rest: str) -> Tuple[int, str]:
     return 0, rest
 
 
+# Détecte un niveau Bloom "debout" sur sa propre ligne ("3 et 4", "5").
 def _collect_standalone_bloom(ct: str) -> Optional[int]:
     bm = _RE_AA_STANDALONE_MULTI.match(ct)
     if bm:
@@ -1590,6 +1649,8 @@ def _collect_standalone_bloom(ct: str) -> Optional[int]:
     return None
 
 
+# Collecte les lignes qui suivent le DERNIER marker AA (texte de continuation
+# + éventuel niveau Bloom debout) — utilisées pour compléter le dernier AA.
 def _collect_trailing(parsed: List[Dict[str, Any]], mi: int) -> Tuple[List[str], Optional[int]]:
     trailing_bloom: Optional[int] = None
     trailing: List[str] = []
@@ -1605,6 +1666,8 @@ def _collect_trailing(parsed: List[Dict[str, Any]], mi: int) -> Tuple[List[str],
     return trailing, trailing_bloom
 
 
+# Trouve où couper le texte entre deux markers AA : le début du texte du
+# segment suivant = première ligne commençant par une majuscule non-article.
 def _find_split_point(text_between: List[str]) -> int:
     for k, t in enumerate(text_between):
         if not t:
@@ -1614,6 +1677,8 @@ def _find_split_point(text_between: List[str]) -> int:
     return len(text_between)
 
 
+# Assemble le contexte d'un segment AA : numéro, Bloom (inline + debout),
+# texte entre le marker précédent et celui-ci (à répartir avant/après).
 def _collect_segment_context(
     parsed: List[Dict[str, Any]],
     marker_indices: List[int],
@@ -1638,6 +1703,8 @@ def _collect_segment_context(
     return aa_num, bloom, rest, text_between, bloom_standalone, marker_index
 
 
+# Reporte sur le segment précédent : le Bloom debout trouvé après lui (si
+# son propre Bloom vaut 0) et le texte d'après-split qui lui appartient.
 def _apply_previous_segment_updates(
     segments: List[Dict[str, Any]],
     bloom_standalone: Optional[int],
@@ -1649,6 +1716,7 @@ def _apply_previous_segment_updates(
         segments[-1]['post'].extend(post_text_prev)
 
 
+# Pour le DERNIER marker AA : collecte les lignes qui le suivent (fin de bloc).
 def _collect_segment_trailing(
     parsed: List[Dict[str, Any]],
     marker_index: int,
@@ -1659,6 +1727,8 @@ def _collect_segment_trailing(
     return _collect_trailing(parsed, marker_index)
 
 
+# Construit les segments AA : pour chaque marker, répartit le texte
+# (précédent/suivant), résout le niveau Bloom et les continuations.
 def _build_aa_segments(parsed: List[Dict[str, Any]], marker_indices: List[int]) -> List[Dict[str, Any]]:
     segments: List[Dict[str, Any]] = []
     last_idx = len(marker_indices) - 1
@@ -1681,6 +1751,9 @@ def _build_aa_segments(parsed: List[Dict[str, Any]], marker_indices: List[int]) 
     return segments
 
 
+# Finalise les segments : assemble le texte complet, nettoie (Situation/
+# Durée/Rendu), complète le Bloom manquant par détection NLP et élimine
+# les faux AA (trop courts ou métadonnées).
 def _finalize_aa_segments(segments: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     acquis: List[Dict[str, Any]] = []
     for seg in segments:
@@ -1699,6 +1772,9 @@ def _finalize_aa_segments(segments: List[Dict[str, Any]]) -> List[Dict[str, Any]
     return acquis
 
 
+# ── Extraction des ACQUIS D'APPRENTISSAGE (AA) d'une fiche ──────────────────
+# LLM d'abord (si dispo), sinon parsing structuré du bloc AA :
+# bloc → lignes → segments par marker → finalisation.
 def _extract_acquis_apprentissage(text: str) -> List[Dict[str, Any]]:
     if _LLM_OK:
         llm_acquis = _llm_extract_acquis(text)
@@ -1731,6 +1807,7 @@ _RE_CHECKMARK = re.compile(r"^[\u2714\u2713\u2611\u2610][ \t]*([^\n]{1,300})$", 
 _RE_BULLET    = re.compile(r"^[\-\u2022\*\u203A\u25E6\u25AA][ \t]{1,20}([^\n]{1,300})$", re.MULTILINE)
 _RE_NUMBERED  = re.compile(r"^\d+[\.\)][ \t]{1,20}([^\n]{1,300})$", re.MULTILINE)
 
+# Extrait les items (puces, checkmarks, numéros) d'un bloc de séance.
 def _extract_block_items(block: str) -> List[str]:
     items: List[str] = []
     for pattern in [_RE_CHECKMARK, _RE_BULLET, _RE_NUMBERED]:
@@ -1738,6 +1815,7 @@ def _extract_block_items(block: str) -> List[str]:
     return [it.strip() for it in items if len(it.strip()) > 5]
 
 
+# Détecte le type d'apprentissage d'une séance : cours intégré, TP, TD, APP, Projet, Labo.
 def _extract_block_type(block: str) -> Optional[str]:
     m = re.search(r"(?:Situation\s*(?:\(s\))?|Type)[ \t]*", block, re.IGNORECASE)
     if not m:
@@ -1749,11 +1827,15 @@ def _extract_block_type(block: str) -> Optional[str]:
     return type_match.group(1).strip()
 
 
+# Détecte la durée d'une séance (ex: "3h").
 def _extract_block_duree(block: str) -> Optional[str]:
     m = re.search(r"^[ \t]*+(?:Dur\u00e9e|Duree)[ \t]*+:?+[ \t]*+(\d{1,4}[ \t]*+h)", block, re.I | re.MULTILINE)
     return m.group(1).strip() if m else None
 
 
+# ── Extraction des SÉANCES ("Séance 1 : titre…", "Chapitre…", "Semaine…") ───
+# LLM d'abord, sinon regex : découpe le texte par séance et extrait pour
+# chacune items, type d'apprentissage et durée.
 def _extract_seances(text: str) -> List[Dict[str, Any]]:
     if _LLM_OK:
         llm_seances = _llm_extract_seances(text)
@@ -1797,6 +1879,8 @@ _RE_COMP_TRUNCATE = re.compile(
 )
 
 
+# Collecte les lignes qui suivent un item de référentiel (description
+# multi-lignes) jusqu'à l'item suivant ou une section de fin.
 def _collect_tail(lines: List[str], start: int) -> Tuple[List[str], int]:
     j = start
     tail: List[str] = []
@@ -1815,6 +1899,8 @@ def _collect_tail(lines: List[str], start: int) -> Tuple[List[str], int]:
     return tail, j
 
 
+# Construit le mapping lettre de domaine → nom ("Compétences dans le domaine
+# Génie Civil (S)" → {"S": "Génie Civil"}) pour les docs référentiels.
 def _build_section_map(text: str) -> Dict[str, str]:
     normalized = re.sub(
         r"dans\s+le\s+domaine\s+de[sl]?\s+",
@@ -1836,12 +1922,17 @@ def _build_section_map(text: str) -> Dict[str, str]:
     return section_map
 
 
+# Nettoie le texte d'une compétence : espaces + coupe avant "Compétence" parasite.
 def _clean_comp_text(raw: str) -> str:
     cleaned = re.sub(_RE_WHITESPACE_NEWLINE, " ", raw)
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return re.split(_RE_COMP_TRUNCATE, cleaned, maxsplit=1)[0].strip()
 
 
+# ── Extraction des COMPÉTENCES d'un document "référentiel" ─────────────────
+# Détecte les items "S1 – Description…" (lettre domaine + numéro), assemble
+# les descriptions multi-lignes, associe domaine + niveau Bloom.
+# Renvoie [] si moins de 3 items (pas un référentiel).
 def _extract_referentiel_competences(text: str) -> List[Dict[str, Any]]:
     section_map = _build_section_map(text)
     lines = text.splitlines()

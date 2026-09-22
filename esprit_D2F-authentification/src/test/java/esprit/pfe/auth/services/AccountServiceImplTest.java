@@ -82,6 +82,7 @@ class AccountServiceImplTest {
         editProfileRequest.setPhoneNumber("0987654321");
 
         updatePasswordRequest = new UpdatePasswordRequest();
+        updatePasswordRequest.setOldPassword("oldPassword123");
         updatePasswordRequest.setNewPassword("newPassword123");
         updatePasswordRequest.setConfirmation("newPassword123");
     }
@@ -220,7 +221,9 @@ class AccountServiceImplTest {
     @Test
     void testUpdatePassword_Success() {
         // Arrange
+        testUser.setPassword("encodedOld");
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        when(encoder.matches("oldPassword123", "encodedOld")).thenReturn(true);
         when(encoder.encode("newPassword123")).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(testUser);
 
@@ -231,6 +234,7 @@ class AccountServiceImplTest {
         assertEquals("Password updated", result);
         assertEquals("encodedPassword", testUser.getPassword());
         verify(userRepository, times(1)).findByUsername("testuser");
+        verify(encoder, times(1)).matches("oldPassword123", "encodedOld");
         verify(encoder, times(1)).encode("newPassword123");
         verify(userRepository, times(1)).save(testUser);
     }
@@ -262,6 +266,54 @@ class AccountServiceImplTest {
         );
         assertEquals("Confirm your password again", exception.getMessage());
         verify(userRepository, never()).findByUsername(anyString());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void testUpdatePassword_WrongOldPassword() {
+        // Arrange
+        testUser.setPassword("encodedOld");
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        when(encoder.matches("oldPassword123", "encodedOld")).thenReturn(false);
+
+        // Act & Assert
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> accountService.updatePassword("testuser", updatePasswordRequest)
+        );
+        assertEquals("Le mot de passe actuel est incorrect.", exception.getMessage());
+        verify(encoder, never()).encode(anyString());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void testUpdatePassword_TooShort() {
+        // Arrange
+        updatePasswordRequest.setNewPassword("short");
+        updatePasswordRequest.setConfirmation("short");
+
+        // Act & Assert
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> accountService.updatePassword("testuser", updatePasswordRequest)
+        );
+        assertTrue(exception.getMessage().contains("au moins 8 caractères"));
+        verify(userRepository, never()).findByUsername(anyString());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void testEditProfile_InvalidEmail() {
+        // Arrange
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        editProfileRequest.setEmail("pas-un-email");
+
+        // Act & Assert
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> accountService.editProfile("testuser", editProfileRequest)
+        );
+        assertEquals("Adresse email invalide", exception.getMessage());
         verify(userRepository, never()).save(any(User.class));
     }
 

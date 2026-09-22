@@ -199,9 +199,9 @@ spring:
                 name: notification-cb
                 fallbackUri: forward:/fallback
 
-        # ── Analyse Predictive Service (FastAPI — local 8090, Docker 8000) ──
+        # ── Analyse Predictive Service (FastAPI — port 8000 local comme Docker) ──
         - id: analyse-service
-          uri: ${ANALYSE_SERVICE_URL:http://localhost:8090}
+          uri: ${ANALYSE_SERVICE_URL:http://localhost:8000}
           predicates:
             - Path=/api/analyse/**
           filters:

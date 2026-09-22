@@ -1,0 +1,25 @@
+id,code,nom,competence_id,savoir_type
+1,SAV01,Concevoir des objectifs pédagogiques (taxonomie de Bloom),1,SAVOIR
+2,SAV02,Scénariser des activités actives présentiel/distanciel,1,SAVOIR_FAIRE
+3,SAV03,Principes de l'évaluation par compétences,2,SAVOIR
+4,SAV04,Construire des grilles critériées (Moodle/LMS),2,SAVOIR_FAIRE
+5,SAV05,Modèles théoriques de classe inversée,3,SAVOIR
+6,SAV06,Animer des séances synchrones interactives,3,SAVOIR_FAIRE
+7,SAV07,Concepts d'intégration et de déploiement continus,4,SAVOIR
+8,SAV08,Écrire des pipelines GitLab CI/GitHub Actions,4,SAVOIR_FAIRE
+9,SAV09,Métriques de qualité logicielle,5,SAVOIR
+10,SAV10,Mener des revues de code efficaces,5,SAVOIR_FAIRE
+11,SAV11,Top 10 OWASP et menaces applicatives,6,SAVOIR
+12,SAV12,Durcir une application et analyser des vulnérabilités,6,SAVOIR_FAIRE
+13,SAV13,Architectures des données et ETL/ELT,7,SAVOIR
+14,SAV14,Construire des pipelines de données avec Python,7,SAVOIR_FAIRE
+15,SAV15,Concepts de machine learning supervisé,8,SAVOIR
+16,SAV16,Entraîner et évaluer des modèles (scikit-learn),8,SAVOIR_FAIRE
+17,SAV17,Cadre d'usage responsable de l'IA générative,9,SAVOIR
+18,SAV18,Intégrer des LLM dans les pratiques pédagogiques,9,SAVOIR_FAIRE
+19,SAV19,Référentiel d'encadrement et éthique de soutenance,10,SAVOIR
+20,SAV20,Suivre et évaluer un projet de fin d'études,10,SAVOIR_FAIRE
+21,SAV21,Principes Scrum et Kanban,11,SAVOIR
+22,SAV22,Animer sprints et rituels agiles,11,SAVOIR_FAIRE
+23,SAV23,Rédaction scientifique et technique en anglais,12,SAVOIR
+24,SAV24,Présenter un sujet technique en anglais,12,SAVOIR_FAIRE

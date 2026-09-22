@@ -1,37 +1,221 @@
 import { Tooltip } from 'antd';
-import { ThunderboltOutlined, ApiOutlined, InfoCircleOutlined } from '@ant-design/icons';
-
-type Mode = 'ML' | 'HEURISTIC_FALLBACK' | undefined;
+import { ThunderboltOutlined, ExperimentOutlined, ApiOutlined } from '@ant-design/icons';
+import type { ModelMode } from '@/models/analyse/analyticsFeature';
 
 interface Props {
-  readonly modelMode: Mode;
+  readonly modelMode: ModelMode | undefined;
   readonly modelVersion?: string | null;
+  /** Nom de l'artefact du modèle (ex : `gap_predictor_temporal`), fourni par l'API. */
+  readonly modelName?: string | null;
+  /** Algorithme du modèle (ex : `Gradient Boosting temporel`), fourni par l'API. */
+  readonly modelAlgorithm?: string | null;
+  /** Validité de la cible prédictive (EXTRAPOLATED_TARGET | REAL_VALIDATED_TARGET | OBSERVED_IN_SIMULATION). */
+  readonly targetValidity?: string | null;
+  readonly validationScope?: string | null;
+  readonly dataOrigin?: string | null;
   readonly size?: 'small' | 'default';
 }
 
 /**
- * Badge visuel compact qui indique si l'analyse repose sur un vrai modele
- * ML (artefact temporel entraine) ou sur le fallback heuristique.
+ * Formate la version d'un artefact : ajoute le préfixe `v` si absent.
+ * - `v1.0.0` reste `v1.0.0` ;
+ * - `1.0.0` devient `v1.0.0` ;
+ * - valeur null/undefined donne `Version inconnue`.
  */
-export default function ModelBadge({ modelMode, modelVersion, size = 'default' }: Props) {
-  const isML = modelMode === 'ML';
-  const tooltip = isML
-    ? `Modele ML actif (${modelVersion ?? 'version inconnue'}) - GradientBoosting temporel entraine sur le corpus DB + synthetique`
-    : 'Mode heuristique (fallback) - pas de modele entraine disponible';
+export function formatModelVersion(version?: string | null): string {
+  if (!version) return 'Version inconnue';
+  return version.startsWith('v') ? version : `v${version}`;
+}
 
-  const cls = isML ? 'at-badge at-badge-ml' : 'at-badge at-badge-heur';
+const MODE_META: Record<
+  NonNullable<ModelMode>,
+  { label: string; description: string; icon: React.ReactNode; cls: string }
+> = {
+  PRODUCTION_ML: {
+    label: 'ML actif',
+    description: 'ML actif — modèle approuvé en production',
+    icon: <ThunderboltOutlined />,
+    cls: 'at-badge at-badge-ml',
+  },
+  DEMO_ML: {
+    label: 'ML de démonstration',
+    description: 'ML de démonstration — données insuffisamment représentatives',
+    icon: <ExperimentOutlined />,
+    cls: 'at-badge at-badge-demo',
+  },
+  ML: {
+    label: 'ML actif',
+    description: 'Modèle ML actif (sans qualification production/démo).',
+    icon: <ThunderboltOutlined />,
+    cls: 'at-badge at-badge-ml',
+  },
+  HEURISTIC: {
+    label: 'Heuristique (repli)',
+    description:
+      'Repli heuristique fail-closed — le modèle ML est indisponible ou non déployé ' +
+      '(raison documentée dans fallback_reason). Score = indice pondéré explicable 0,50/0,12/0,40.',
+    icon: <ApiOutlined />,
+    cls: 'at-badge at-badge-heur',
+  },
+  HEURISTIC_FALLBACK: {
+    label: 'Heuristique',
+    description: 'Analyse heuristique de secours — modèle ML indisponible',
+    icon: <ApiOutlined />,
+    cls: 'at-badge at-badge-heur',
+  },
+};
+
+const SIMULATION_VALIDITIES: ReadonlySet<string> = new Set([
+  'OBSERVED_IN_SIMULATION',
+  'SIMULATION_VALIDATED',
+]);
+
+/** Badge de simulation : priorité targetValidity > validationScope > dataOrigin. */
+function resolveSimulationBadge(
+  targetValidity: string | null | undefined,
+  validationScope: string | null | undefined,
+  dataOrigin: string | null | undefined,
+): { label: string; description: string } | null {
+  const targetMeta = TARGET_VALIDITY_TEXTS[targetValidity ?? ''] ?? null;
+  if (targetMeta && SIMULATION_VALIDITIES.has(targetValidity ?? '')) {
+    return targetMeta;
+  }
+  const scopeMeta = TARGET_VALIDITY_TEXTS[validationScope ?? ''] ?? null;
+  if (scopeMeta && SIMULATION_VALIDITIES.has(validationScope ?? '')) {
+    return scopeMeta;
+  }
+  if (dataOrigin === 'SIMULATED') {
+    return TARGET_VALIDITY_TEXTS['OBSERVED_IN_SIMULATION'];
+  }
+  return null;
+}
+
+/** Parties du tooltip : description, mode, artefact, algorithme, badge. */
+function buildTooltipParts(
+  metaDescription: string,
+  modelMode: ModelMode | undefined,
+  artifact: string,
+  modelVersion: string | null | undefined,
+  version: string,
+  modelAlgorithm: string | null | undefined,
+  displayBadge: { description: string } | null,
+): string[] {
+  const parts = [
+    metaDescription,
+    modelMode ? `Mode : ${modelMode}.` : 'Mode : HEURISTIC_FALLBACK.',
+  ];
+  if (artifact && modelVersion) parts.push(`Artefact : ${artifact} · ${version}.`);
+  else if (artifact) parts.push(`Artefact : ${artifact}.`);
+  else if (modelVersion) parts.push(`Version : ${version}.`);
+  if (modelAlgorithm) parts.push(`Algorithme : ${modelAlgorithm}.`);
+  if (displayBadge) parts.push(displayBadge.description);
+  return parts;
+}
+
+const TARGET_VALIDITY_TEXTS: Record<string, { label: string; description: string }> = {
+  EXTRAPOLATED_TARGET: {
+    label: 'Cible extrapolée',
+    description:
+      'Cible extrapolée — validation démonstration : la cible gap_next_3m est dérivée de ' +
+      "l'historique (tendance glissante). Les métriques (RMSE/MAE/R²) mesurent la qualité de " +
+      "l'extrapolation, pas une performance prédictive observée. Une promotion " +
+      'REAL_VALIDATED_TARGET exigera >= 30 re-mesures réelles sur >= 3 mois distincts.',
+  },
+  REAL_VALIDATED_TARGET: {
+    label: 'Cible validée',
+    description:
+      'Cible validée par re-mesures réelles (target_observation_date) : ' +
+      'la performance est mesurée sur des observations futures réelles.',
+  },
+  OBSERVED_IN_SIMULATION: {
+    label: 'Validé sur données simulées',
+    description:
+      'Pipeline et gouvernance validés de bout en bout sur données simulées réalistes ' +
+      '(générateur documenté, seed 42, backtest M+3, IC bootstrap, calibration) ; ' +
+      'déploiement réel conditionné à l’accès aux données DSI.',
+  },
+  SIMULATION_VALIDATED: {
+    label: 'Validé sur données simulées',
+    description:
+      'Validé sur données simulées — méthodologie complète (pipeline, gouvernance, calibration, backtest) validée ; performance réelle à confirmer sur données institutionnelles DSI.',
+  },
+};
+
+/**
+ * Badge visuel compact indiquant le mode d'exécution du service :
+ * ML de production, ML de démonstration ou fallback heuristique.
+ * Ne présente jamais le mode démo comme un modèle de production.
+ * Le nom et la version de l'artefact proviennent uniquement de l'API
+ * (jamais codés en dur ici). Le badge cible (target_validity) expose
+ * honnêtement le statut de la cible prédictive tant qu'elle n'est pas
+ * validée par des re-mesures réelles.
+ */
+export default function ModelBadge({
+  modelMode,
+  modelVersion,
+  modelName,
+  modelAlgorithm,
+  targetValidity,
+  validationScope,
+  dataOrigin,
+  size = 'default',
+}: Props) {
+  const meta = MODE_META[modelMode ?? 'HEURISTIC_FALLBACK'] ?? MODE_META.HEURISTIC_FALLBACK;
+  const artifact = modelName ? `${modelName}` : '';
+  const version = formatModelVersion(modelVersion);
+  const targetMeta = TARGET_VALIDITY_TEXTS[targetValidity ?? ''] ?? null;
+  // Priorite : targetValidity > validationScope > dataOrigin SIMULATED
+  const simulationBadge = resolveSimulationBadge(targetValidity, validationScope, dataOrigin);
+  const displayBadge = simulationBadge || targetMeta;
+  const tooltip = buildTooltipParts(
+    meta.description,
+    modelMode,
+    artifact,
+    modelVersion,
+    version,
+    modelAlgorithm,
+    displayBadge,
+  ).join(' ');
+
   const fontSize = size === 'small' ? 11 : 12;
   const padding = size === 'small' ? '2px 8px' : '4px 12px';
 
   return (
     <Tooltip title={tooltip}>
-      <span className={cls} style={{ fontSize, padding }}>
-        {isML ? <ThunderboltOutlined /> : <ApiOutlined />}
-        {isML ? ' ML actif' : ' Heuristique'}
-        {isML && modelVersion && (
-          <span style={{ opacity: 0.75, marginLeft: 6 }}>
-            <InfoCircleOutlined style={{ fontSize: '0.85em' }} />
+      <span className={meta.cls} style={{ fontSize, padding }}>
+        {meta.icon}
+        {meta.label}
+        {(modelMode === 'PRODUCTION_ML' || modelMode === 'ML') && (modelName || modelVersion) && (
+          <span style={{ marginLeft: 8, opacity: 0.85 }}>
+            · {artifact}
+            {modelVersion ? ` · ${version}` : ''}
           </span>
+        )}
+        {simulationBadge ? (
+          <span
+            className="at-badge at-badge-heur"
+            style={{
+              marginLeft: 6,
+              fontSize: size === 'small' ? 10 : 11,
+              padding: '1px 6px',
+              background: '#fff3cd',
+              color: '#856404',
+              borderColor: '#ffe69c',
+            }}
+            title={simulationBadge.description}
+          >
+            Validé sur données simulées
+          </span>
+        ) : (
+          targetMeta && (
+            <span
+              className="at-badge at-badge-heur"
+              style={{ marginLeft: 6, fontSize: size === 'small' ? 10 : 11, padding: '1px 6px' }}
+              title={targetMeta.description}
+            >
+              {targetMeta.label}
+            </span>
+          )
         )}
       </span>
     </Tooltip>

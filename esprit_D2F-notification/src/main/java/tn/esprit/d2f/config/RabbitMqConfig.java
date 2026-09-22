@@ -42,7 +42,7 @@ public class RabbitMqConfig {
     }
 
     @Bean
-    public Jackson2JsonMessageConverter jacksonJmsMessageConverter(
+    public Jackson2JsonMessageConverter rabbitMessageConverter(
             com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
         return new Jackson2JsonMessageConverter(objectMapper);
     }

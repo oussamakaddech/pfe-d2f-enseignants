@@ -17,6 +17,7 @@ import java.util.List;
 public class BesoinRefreshScheduler {
 
     private final BesoinFormationRepository repository;
+    private final IBesoinFormationService besoinFormationService;
 
     /**
      * Rafraîchit les besoins de formation toutes les 2 heures.
@@ -32,5 +33,22 @@ public class BesoinRefreshScheduler {
             repository.save(b);
         }
         log.info("{} besoins rafraîchis.", besoins.size());
+    }
+
+    /**
+     * Republication différée (§7) : les besoins ADMIN_APPROVED dont l'événement
+     * RabbitMQ n'est pas parti (broker indisponible au clic admin) sont
+     * republiés jusqu'à succès. Idempotent via le flag eventPublished.
+     */
+    @Scheduled(cron = "0 */30 * * * *")
+    public void republishPendingApprovalEvents() {
+        try {
+            int republished = besoinFormationService.republishPendingEvents();
+            if (republished > 0) {
+                log.info("Événements d'approbation republiés : {}", republished);
+            }
+        } catch (Exception e) {
+            log.error("Échec republication différée des événements : {}", e.getMessage());
+        }
     }
 }

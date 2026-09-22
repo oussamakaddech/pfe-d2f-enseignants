@@ -1,0 +1,555 @@
+{
+  "title": "Validation finale du contrat de features (29)",
+  "generated_at": "2026-08-20T14:49:39.968751+00:00",
+  "feature_schema_version": "1.0",
+  "contract_size": 29,
+  "contract_ok": true,
+  "features": {
+    "current_level_t3": {
+      "name": "current_level_t3",
+      "range": {
+        "min": 1.0,
+        "max": 5.0
+      },
+      "prod_v1.0.0": {
+        "min": 1.0,
+        "max": 5.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 1.0,
+        "max": 5.0,
+        "missing": 0
+      }
+    },
+    "current_level_t2": {
+      "name": "current_level_t2",
+      "range": {
+        "min": 1.0,
+        "max": 5.0
+      },
+      "prod_v1.0.0": {
+        "min": 1.0,
+        "max": 5.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 1.0,
+        "max": 5.0,
+        "missing": 0
+      }
+    },
+    "current_level_t1": {
+      "name": "current_level_t1",
+      "range": {
+        "min": 1.0,
+        "max": 5.0
+      },
+      "prod_v1.0.0": {
+        "min": 1.0,
+        "max": 5.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 1.0,
+        "max": 5.0,
+        "missing": 0
+      }
+    },
+    "current_level_t": {
+      "name": "current_level_t",
+      "range": {
+        "min": 1.0,
+        "max": 4.0
+      },
+      "prod_v1.0.0": {
+        "min": 1.0,
+        "max": 4.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 1.0,
+        "max": 5.0,
+        "missing": 0
+      }
+    },
+    "lag_gap_t3_t2": {
+      "name": "lag_gap_t3_t2",
+      "range": {
+        "min": -2.0,
+        "max": 1.0
+      },
+      "prod_v1.0.0": {
+        "min": -2.0,
+        "max": 2.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": -1.0,
+        "max": 1.0,
+        "missing": 0
+      }
+    },
+    "lag_gap_t2_t1": {
+      "name": "lag_gap_t2_t1",
+      "range": {
+        "min": -1.0,
+        "max": 2.0
+      },
+      "prod_v1.0.0": {
+        "min": -2.0,
+        "max": 2.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": -1.0,
+        "max": 1.0,
+        "missing": 0
+      }
+    },
+    "lag_gap_t1_t": {
+      "name": "lag_gap_t1_t",
+      "range": {
+        "min": -3.0,
+        "max": 2.0
+      },
+      "prod_v1.0.0": {
+        "min": -3.0,
+        "max": 2.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": -1.0,
+        "max": 1.0,
+        "missing": 0
+      }
+    },
+    "rolling_tendance": {
+      "name": "rolling_tendance",
+      "range": {
+        "min": -1.0,
+        "max": 0.6666666666666666
+      },
+      "prod_v1.0.0": {
+        "min": -1.0,
+        "max": 0.6667,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": -0.333,
+        "max": 0.667,
+        "missing": 0
+      }
+    },
+    "days_since_last_training": {
+      "name": "days_since_last_training",
+      "range": {
+        "min": 1.0,
+        "max": 365.0
+      },
+      "prod_v1.0.0": {
+        "min": 1.0,
+        "max": 365.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 0.0,
+        "max": 999.0,
+        "missing": 0
+      }
+    },
+    "training_frequency_per_month": {
+      "name": "training_frequency_per_month",
+      "range": {
+        "min": 0.0,
+        "max": 3.0
+      },
+      "prod_v1.0.0": {
+        "min": 0.0,
+        "max": 3.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 0.0,
+        "max": 0.667,
+        "missing": 0
+      }
+    },
+    "is_long_absent": {
+      "name": "is_long_absent",
+      "range": {
+        "min": 0.0,
+        "max": 1.0
+      },
+      "prod_v1.0.0": {
+        "min": 0.0,
+        "max": 1.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 0.0,
+        "max": 1.0,
+        "missing": 0
+      }
+    },
+    "is_stagnant": {
+      "name": "is_stagnant",
+      "range": {
+        "min": 0.0,
+        "max": 0.0
+      },
+      "prod_v1.0.0": {
+        "min": 0.0,
+        "max": 0.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 0.0,
+        "max": 1.0,
+        "missing": 0
+      }
+    },
+    "avg_level": {
+      "name": "avg_level",
+      "range": {
+        "min": 1.0,
+        "max": 4.5
+      },
+      "prod_v1.0.0": {
+        "min": 1.0,
+        "max": 4.5,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 1.0,
+        "max": 5.0,
+        "missing": 0
+      }
+    },
+    "min_level": {
+      "name": "min_level",
+      "range": {
+        "min": 1.0,
+        "max": 4.0
+      },
+      "prod_v1.0.0": {
+        "min": 1.0,
+        "max": 4.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 1.0,
+        "max": 5.0,
+        "missing": 0
+      }
+    },
+    "max_level": {
+      "name": "max_level",
+      "range": {
+        "min": 1.0,
+        "max": 5.0
+      },
+      "prod_v1.0.0": {
+        "min": 1.0,
+        "max": 5.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 1.0,
+        "max": 5.0,
+        "missing": 0
+      }
+    },
+    "nb_level_5": {
+      "name": "nb_level_5",
+      "range": {
+        "min": 0.0,
+        "max": 1.0
+      },
+      "prod_v1.0.0": {
+        "min": 0.0,
+        "max": 1.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 0.0,
+        "max": 4.0,
+        "missing": 0
+      }
+    },
+    "nb_level_1": {
+      "name": "nb_level_1",
+      "range": {
+        "min": 0.0,
+        "max": 4.0
+      },
+      "prod_v1.0.0": {
+        "min": 0.0,
+        "max": 4.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 0.0,
+        "max": 4.0,
+        "missing": 0
+      }
+    },
+    "nb_savoirs": {
+      "name": "nb_savoirs",
+      "range": {
+        "min": 2.0,
+        "max": 7.0
+      },
+      "prod_v1.0.0": {
+        "min": 2.0,
+        "max": 7.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 2.0,
+        "max": 5.0,
+        "missing": 0
+      }
+    },
+    "nb_competences": {
+      "name": "nb_competences",
+      "range": {
+        "min": 2.0,
+        "max": 6.0
+      },
+      "prod_v1.0.0": {
+        "min": 2.0,
+        "max": 6.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 5.0,
+        "max": 10.0,
+        "missing": 0
+      }
+    },
+    "competency_coverage_rate": {
+      "name": "competency_coverage_rate",
+      "range": {
+        "min": 0.2857142857142857,
+        "max": 1.0
+      },
+      "prod_v1.0.0": {
+        "min": 0.2857,
+        "max": 1.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 0.385,
+        "max": 0.769,
+        "missing": 0
+      }
+    },
+    "nb_formations_completed": {
+      "name": "nb_formations_completed",
+      "range": {
+        "min": 0.0,
+        "max": 3.0
+      },
+      "prod_v1.0.0": {
+        "min": 0.0,
+        "max": 3.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 0.0,
+        "max": 8.0,
+        "missing": 0
+      }
+    },
+    "nb_formations_in_progress": {
+      "name": "nb_formations_in_progress",
+      "range": {
+        "min": 0.0,
+        "max": 0.0
+      },
+      "prod_v1.0.0": {
+        "min": 0.0,
+        "max": 0.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 0.0,
+        "max": 3.0,
+        "missing": 0
+      }
+    },
+    "taux_assiduite": {
+      "name": "taux_assiduite",
+      "range": {
+        "min": 0.0,
+        "max": 0.9411764705882352
+      },
+      "prod_v1.0.0": {
+        "min": 0.0,
+        "max": 0.9412,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 0.0,
+        "max": 1.0,
+        "missing": 0
+      }
+    },
+    "nb_besoins_exprimes": {
+      "name": "nb_besoins_exprimes",
+      "range": {
+        "min": 0.0,
+        "max": 0.0
+      },
+      "prod_v1.0.0": {
+        "min": 0.0,
+        "max": 0.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 0.0,
+        "max": 18.0,
+        "missing": 0
+      }
+    },
+    "nb_besoins_approuves": {
+      "name": "nb_besoins_approuves",
+      "range": {
+        "min": 0.0,
+        "max": 0.0
+      },
+      "prod_v1.0.0": {
+        "min": 0.0,
+        "max": 0.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 0.0,
+        "max": 14.0,
+        "missing": 0
+      }
+    },
+    "avg_eval_score": {
+      "name": "avg_eval_score",
+      "range": {
+        "min": 0.0,
+        "max": 4.5
+      },
+      "prod_v1.0.0": {
+        "min": 0.0,
+        "max": 4.5,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 1.377,
+        "max": 3.912,
+        "missing": 0
+      }
+    },
+    "nb_evaluations": {
+      "name": "nb_evaluations",
+      "range": {
+        "min": 0.0,
+        "max": 3.0
+      },
+      "prod_v1.0.0": {
+        "min": 0.0,
+        "max": 3.0,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 1.0,
+        "max": 18.0,
+        "missing": 0
+      }
+    },
+    "months_since_last_training": {
+      "name": "months_since_last_training",
+      "range": {
+        "min": 0.0328515111695138,
+        "max": 11.990801576872537
+      },
+      "prod_v1.0.0": {
+        "min": 0.0329,
+        "max": 11.9908,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 0.0,
+        "max": 13.0,
+        "missing": 0
+      }
+    },
+    "engagement_score": {
+      "name": "engagement_score",
+      "range": {
+        "min": 0.0,
+        "max": 21.245098039215687
+      },
+      "prod_v1.0.0": {
+        "min": 0.0,
+        "max": 21.2451,
+        "missing": 0
+      },
+      "demo_clean": {
+        "min": 0.021,
+        "max": 1.0,
+        "missing": 0
+      }
+    }
+  },
+  "forbidden_in_X": [
+    "future_level_ref",
+    "future_level_t3",
+    "gap_next_3m",
+    "knowledge_difficulty_level",
+    "required_level",
+    "required_level_t"
+  ],
+  "forbidden_present_in_production": [],
+  "forbidden_present_in_demo": [],
+  "forbidden_columns_present_in_production_dataset": [
+    "gap_next_3m"
+  ],
+  "forbidden_columns_present_in_demo_dataset": [
+    "gap_next_3m",
+    "knowledge_difficulty_level",
+    "required_level"
+  ],
+  "source_time_leq_ref_month": true,
+  "source_time_issues": [],
+  "feature_ranges_in_metadata": 29,
+  "metadata_feature_cols": [
+    "current_level_t3",
+    "current_level_t2",
+    "current_level_t1",
+    "current_level_t",
+    "lag_gap_t3_t2",
+    "lag_gap_t2_t1",
+    "lag_gap_t1_t",
+    "rolling_tendance",
+    "days_since_last_training",
+    "training_frequency_per_month",
+    "is_long_absent",
+    "is_stagnant",
+    "avg_level",
+    "min_level",
+    "max_level",
+    "nb_level_5",
+    "nb_level_1",
+    "nb_savoirs",
+    "nb_competences",
+    "competency_coverage_rate",
+    "nb_formations_completed",
+    "nb_formations_in_progress",
+    "taux_assiduite",
+    "nb_besoins_exprimes",
+    "nb_besoins_approuves",
+    "avg_eval_score",
+    "nb_evaluations",
+    "months_since_last_training",
+    "engagement_score"
+  ],
+  "valid": true
+}

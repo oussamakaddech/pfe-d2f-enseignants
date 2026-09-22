@@ -37,11 +37,36 @@ import GroupedRecommendations from '@/components/charts/GroupedRecommendations';
 import WhatIfSimulator from '@/components/charts/WhatIfSimulator';
 import TrainingPathTimeline from '@/components/charts/TrainingPathTimeline';
 import RiskBreakdownPanel from '@/components/analytics/RiskBreakdownPanel';
-import type { SkillGap } from '@/models/analyse';
+import type { SkillGap } from '@/models/analyse/analyticsFeature';
 import { AppPageHeader, brand, shadow } from '@/components/common';
 import '@/styles/pages/teacher-analytics-page.css';
 
 const { Text } = Typography;
+
+/**
+ * Adaptateur du payload legacy /gaps/{id} (niveau_actuel / niveau_requis /
+ * niveau_vise) vers le contrat DTO aligné (observed_result /
+ * knowledge_difficulty_level), utilisé par les composants du feature-module.
+ */
+function toNewSkillGap(gap: import('@/models/analyse').SkillGap): SkillGap {
+  return {
+    id: gap.id,
+    competence_id: gap.competence_id,
+    competence_code: String(gap.competence_id),
+    competence_nom: gap.competence_nom,
+    domaine_nom: gap.domaine_nom,
+    observed_result: gap.niveau_actuel,
+    knowledge_difficulty_level: gap.niveau_requis,
+    gap_score: gap.gap_score,
+    priorite_score: gap.priorite_score,
+    niveau_urgence: gap.niveau_urgence,
+    mois_stagnation: gap.mois_stagnation,
+    en_regression: gap.en_regression,
+    nb_besoins_exprimes: 0,
+    justification: gap.justification,
+    computed_at: gap.computed_at,
+  };
+}
 
 const cardStyle = {
   background: '#fff',
@@ -131,11 +156,14 @@ export default function TeacherAnalyticsPage() {
         <Spin spinning={loading}>
           {gaps?.gaps?.length ? (
             <Row gutter={[16, 16]}>
-              {gaps.gaps.map((gap) => (
-                <Col key={gap.id} xs={24} sm={12} lg={8}>
-                  <SkillGapCard gap={gap} onClick={handleGapClick} />
-                </Col>
-              ))}
+              {gaps.gaps.map((legacyGap) => {
+                const gap = toNewSkillGap(legacyGap);
+                return (
+                  <Col key={gap.id} xs={24} sm={12} lg={8}>
+                    <SkillGapCard gap={gap} onClick={handleGapClick} />
+                  </Col>
+                );
+              })}
             </Row>
           ) : (
             <Empty

@@ -4,6 +4,7 @@ package esprit.pfe.serviceformation.services;
 import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.entities.*;
 import esprit.pfe.serviceformation.repositories.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
@@ -16,8 +17,10 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional
 public class InscriptionService {
@@ -47,9 +50,30 @@ public class InscriptionService {
 
 
     /**
+     * Appartenance au périmètre d'une formation : UP OU département.
+     *
+     * <p>Spécification entreprise : un membre du personnel (CUP, enseignant,
+     * animateur, formateur, chef de département) peut s'inscrire à une
+     * formation si elle est ouverte à tous OU s'il appartient à son
+     * périmètre — l'UP de la formation OU son département.</p>
+     *
+     * @return true si l'enseignant appartient au périmètre de la formation
+     */
+    private boolean belongsToFormationScope(Enseignant ens, Formation f) {
+        String upEns = ens.getUp() != null ? ens.getUp().getId() : null;
+        String deptEns = ens.getDept() != null ? ens.getDept().getId() : null;
+        String upForm = f.getUp() != null ? f.getUp().getId() : null;
+        String deptForm = f.getDepartement() != null ? f.getDepartement().getId() : null;
+        boolean sameUp = upForm != null && upForm.equals(upEns);
+        boolean sameDept = deptForm != null && deptForm.equals(deptEns);
+        return sameUp || sameDept;
+    }
+
+    /**
      * 1. Lister les formations accessibles pour un formateur
      * - doit être visible (inscriptionsOuvertes == true)
-     * - et soit ouverte à tous (ouverte == true), soit liée à son UP
+     * - et soit ouverte à tous (ouverte == true), soit dans son périmètre
+     *   (UP de la formation OU département de la formation)
      */
     @Transactional
     public List<FormationResponseDTO> listerFormationsAccessibles(String enseignantId) {
@@ -57,12 +81,11 @@ public class InscriptionService {
                 .or(() -> enseignantRepo.findByMail(enseignantId))
                 .or(() -> enseignantRepo.findByMailIgnoreCase(enseignantId))
                 .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable"));
-        String upEns = ens.getUp() != null ? ens.getUp().getId() : null;
 
         return formationRepo.findAll().stream()
                 .filter(Formation::isInscriptionsOuvertes) // visibles
                 .filter(f -> f.isOuverte() // ouvertes à tous
-                        || (f.getUp() != null && f.getUp().getId().equals(upEns)) // ou UP correspond
+                        || belongsToFormationScope(ens, f) // ou périmètre UP/département
                 )
                 .map(formationMapper::toResponseDTO)
                 .toList();
@@ -71,7 +94,8 @@ public class InscriptionService {
     /**
      * 2. Créer une demande d’inscription
      * - vérifie d’abord la visibilité
-     * - puis si pas ouverte à tous, s’assure que l’UP matche
+     * - puis si pas ouverte à tous, s’assure que l’enseignant appartient
+     *   au périmètre de la formation (UP OU département)
      */
     @Transactional
     public Inscription demanderInscription(Long formationId, String enseignantId) {
@@ -88,15 +112,14 @@ public class InscriptionService {
                 .or(() -> enseignantRepo.findByMailIgnoreCase(enseignantId))
                 .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable"));
 
-        String upForm = f.getUp() != null ? f.getUp().getId() : null;
-        String upEns = e.getUp() != null ? e.getUp().getId() : null;
-
-        if (!f.isOuverte() && (upForm == null || !upForm.equals(upEns))) {
-            throw new IllegalStateException("Vous n’êtes pas autorisé à vous inscrire à cette formation");
+        if (!f.isOuverte() && !belongsToFormationScope(e, f)) {
+            throw new IllegalStateException(
+                    "Vous n’appartenez ni à l’UP ni au département de cette formation : "
+                    + "inscription non autorisée.");
         }
 
-        // 2. Vérification du chevauchement de dates
-        validateNoOverlap(enseignantId, f);
+        // 2. Vérification du chevauchement de dates (sur l'id réel de la fiche)
+        validateNoOverlap(e.getId(), f);
 
         // 3. Création de l'entité
         Inscription ins = new Inscription();
@@ -267,6 +290,8 @@ public class InscriptionService {
         dto.setTypeSeance(seance.getTypeSeance());
         dto.setDureePratique(seance.getDureePratique());
         dto.setDureeTheorique(seance.getDureeTheorique());
+        dto.setNumeroSeance(seance.getNumeroSeance());
+        dto.setTotalSeances(seance.getTotalSeances());
 
         if (seance.getAnimateurs() != null) {
             dto.setAnimateurs(seance.getAnimateurs().stream().map(this::mapEnseignantToDTO).toList());
@@ -297,13 +322,41 @@ public class InscriptionService {
     public InscriptionDTO mapInscriptionToDTO(Inscription ins) {
         InscriptionDTO dto = new InscriptionDTO();
         dto.setId(ins.getId());
-        dto.setFormation(formationMapper.toResponseDTO(ins.getFormation()));
-        dto.setEnseignant(mapEnseignantToDTO(ins.getEnseignant()));
+        dto.setFormation(safeFormationDTO(ins));
+        dto.setEnseignant(safeEnseignantDTO(ins));
         dto.setEtat(ins.getEtat().toString());
         dto.setDateDemande(ins.getDateDemande());
         dto.setDateTraitement(ins.getDateTraitement());
         dto.setMotif(ins.getMotif());
         return dto;
+    }
+
+    /**
+     * Mapping tolérant : une inscription peut référencer une fiche enseignant
+     * soft-deleted (ex. {@code deleted_at} renseigné, {@code @SQLRestriction} sur
+     * {@code Enseignant}) — Hibernate lève alors {@code EntityNotFoundException}
+     * à l'initialisation du proxy LAZY. On dégrade en DTO partiel (enseignant
+     * {@code null}) plutôt que de faire échouer toute la page en 404.
+     */
+    private EnseignantDTO safeEnseignantDTO(Inscription ins) {
+        try {
+            return mapEnseignantToDTO(ins.getEnseignant());
+        } catch (jakarta.persistence.EntityNotFoundException ex) {
+            log.warn("Inscription {} : enseignant introuvable (fiche supprimée ?) — DTO partiel",
+                    ins.getId());
+            return null;
+        }
+    }
+
+    /** Idem {@link #safeEnseignantDTO} pour une formation soft-deleted. */
+    private FormationResponseDTO safeFormationDTO(Inscription ins) {
+        try {
+            return formationMapper.toResponseDTO(ins.getFormation());
+        } catch (jakarta.persistence.EntityNotFoundException ex) {
+            log.warn("Inscription {} : formation introuvable (supprimée ?) — DTO partiel",
+                    ins.getId());
+            return null;
+        }
     }
 
     @Transactional
@@ -344,6 +397,54 @@ public class InscriptionService {
                 .or(() -> enseignantRepo.findByMailIgnoreCase(emailOrUsername))
                 .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable pour l'utilisateur : " + emailOrUsername));
         return self.findSummariesByEnseignantId(ens.getId(), pageable);
+    }
+
+    /**
+     * Résout l'id de la FICHE enseignant de l'utilisateur (code E00xxx) depuis
+     * son contexte JWT, dans l'ordre de fiabilité (parité findOwnFiche) :
+     * 1. claim {@code userId} → {@code enseignants.user_id} ;
+     * 2. subject (username) → id de fiche ;
+     * 3. email → fiche (repli : plusieurs fiches peuvent partager un email de
+     *    test — l'exception éventuelle est avalée, on renvoie null).
+     * Renvoie {@code null} si aucune fiche n'est résolue.
+     */
+    @Transactional(readOnly = true)
+    public String resolveEnseignantIdFor(esprit.pfe.serviceformation.services.CurrentUser user) {
+        if (user == null) {
+            return null;
+        }
+        try {
+            if (user.userId() != null && !user.userId().isBlank()) {
+                Optional<Enseignant> byUserId = enseignantRepo.findByUserId(user.userId());
+                if (byUserId.isPresent()) {
+                    return byUserId.get().getId();
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Résolution fiche par userId impossible : {}", e.getMessage());
+        }
+        try {
+            if (user.username() != null && !user.username().isBlank()) {
+                Optional<Enseignant> byId = enseignantRepo.findById(user.username());
+                if (byId.isPresent()) {
+                    return byId.get().getId();
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Résolution fiche par username impossible : {}", e.getMessage());
+        }
+        try {
+            if (user.email() != null && !user.email().isBlank()) {
+                Optional<Enseignant> byMail = enseignantRepo.findByMailIgnoreCase(user.email());
+                if (byMail.isPresent()) {
+                    return byMail.get().getId();
+                }
+            }
+        } catch (Exception e) {
+            // Email partagé par plusieurs fiches (données de test) : ambigu.
+            log.debug("Résolution fiche par email ambiguë/échouée : {}", e.getMessage());
+        }
+        return null;
     }
 
     @Transactional(readOnly = true)

@@ -10,10 +10,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Arrays;
 import java.util.List;
@@ -58,14 +60,14 @@ class EvaluationFormateurServiceExtendedTest {
         dto.setSatisfaisant(true);
         dto.setCommentaire("Très bien");
 
-        lenient().when(authClient.enseignantExists(anyString())).thenReturn(true);
+        lenient().when(formationClient.getEnseignantById(anyString())).thenReturn(new Object());
     }
 
     @Test
     void ajouterEvalParticipant_shouldSaveAndReturn() {
         when(evaluationRepository.save(any())).thenReturn(entity);
 
-        EvaluationFormateurDTO result = service.ajouterEvalParticipant(dto);
+        EvaluationFormateurDTO result = service.ajouterEvalParticipant(dto, "admin@test.com", "ROLE_ADMIN");
 
         assertNotNull(result);
         assertEquals(1L, result.getIdEvalParticipant());
@@ -85,7 +87,7 @@ class EvaluationFormateurServiceExtendedTest {
         updated.setEnseignantId("ens-001");
         updated.setFormationId(100L);
 
-        EvaluationFormateurDTO result = service.modifierEvalParticipant(1L, updated);
+        EvaluationFormateurDTO result = service.modifierEvalParticipant(1L, updated, "admin@test.com", "ROLE_ADMIN");
 
         assertNotNull(result);
         verify(evaluationRepository).save(any());
@@ -95,7 +97,7 @@ class EvaluationFormateurServiceExtendedTest {
     void modifierEvalParticipant_notFound_shouldThrow() {
         when(evaluationRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThrows(RuntimeException.class, () -> service.modifierEvalParticipant(999L, dto));
+        assertThrows(RuntimeException.class, () -> service.modifierEvalParticipant(999L, dto, "admin@test.com", "ROLE_ADMIN"));
     }
 
     @Test
@@ -134,8 +136,16 @@ class EvaluationFormateurServiceExtendedTest {
     @Test
     void listAllEvaluationsDto_shouldReturnList() {
         when(evaluationRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", null,
+                        List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
 
-        Page<EvaluationFormateurDTO> result = service.listAllEvaluationsDto(Pageable.ofSize(10));
+        Page<EvaluationFormateurDTO> result;
+        try {
+            result = service.listAllEvaluationsDto(Pageable.ofSize(10));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
 
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
@@ -172,7 +182,7 @@ class EvaluationFormateurServiceExtendedTest {
         dto2.setFormationId(200L);
         dto2.setNote(14.0f);
 
-        service.createEvaluationsBulk(Arrays.asList(dto, dto2));
+        service.createEvaluationsBulk(Arrays.asList(dto, dto2), "admin@test.com", "ROLE_ADMIN");
 
         verify(evaluationRepository).saveAll(any());
     }
@@ -203,7 +213,7 @@ class EvaluationFormateurServiceExtendedTest {
         updateDto.setEnseignantId("ens-001");
         updateDto.setNote(15.0f);
 
-        service.updateEvaluationsBulkByFormation(100L, List.of(updateDto));
+        service.updateEvaluationsBulkByFormation(100L, List.of(updateDto), "admin@test.com", "ROLE_ADMIN");
 
         verify(evaluationRepository).delete(entityToDelete);
         verify(evaluationRepository).save(any());
@@ -224,7 +234,7 @@ class EvaluationFormateurServiceExtendedTest {
         newDto.setEnseignantId("ens-new");
         newDto.setNote(16.0f);
 
-        service.updateEvaluationsBulkByFormation(100L, List.of(updateDto, newDto));
+        service.updateEvaluationsBulkByFormation(100L, List.of(updateDto, newDto), "admin@test.com", "ROLE_ADMIN");
 
         verify(evaluationRepository, atLeast(2)).save(any());
     }

@@ -1,0 +1,315 @@
+{
+  "dataset_path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\clean\\training_corpus_clean.csv",
+  "dataset_version": "v1.1.0",
+  "feature_count": 29,
+  "target": "gap_next_3m",
+  "forbidden_in_X": [
+    "future_attendance",
+    "future_evaluation",
+    "future_gap",
+    "future_level",
+    "gap_next_3m",
+    "required_level",
+    "required_level_t"
+  ],
+  "leakage_detected": false,
+  "leakage_columns": [],
+  "features": [
+    {
+      "feature_name": "current_level_t3",
+      "dtype": "int64",
+      "source_table": "competence.enseignant_competences",
+      "source_column": "niveau",
+      "aggregation_window": "t-3",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "current_level_t2",
+      "dtype": "int64",
+      "source_table": "competence.enseignant_competences",
+      "source_column": "niveau",
+      "aggregation_window": "t-2",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "current_level_t1",
+      "dtype": "int64",
+      "source_table": "competence.enseignant_competences",
+      "source_column": "niveau",
+      "aggregation_window": "t-1",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "current_level_t",
+      "dtype": "int64",
+      "source_table": "competence.enseignant_competences",
+      "source_column": "niveau",
+      "aggregation_window": "t",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "lag_gap_t3_t2",
+      "dtype": "int64",
+      "source_table": "derived",
+      "source_column": "current_level_t2 - current_level_t3",
+      "aggregation_window": "t-3..t-2",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "lag_gap_t2_t1",
+      "dtype": "int64",
+      "source_table": "derived",
+      "source_column": "current_level_t1 - current_level_t2",
+      "aggregation_window": "t-2..t-1",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "lag_gap_t1_t",
+      "dtype": "int64",
+      "source_table": "derived",
+      "source_column": "current_level_t - current_level_t1",
+      "aggregation_window": "t-1..t",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "rolling_tendance",
+      "dtype": "float64",
+      "source_table": "derived",
+      "source_column": "(current_level_t - current_level_t3) / 3",
+      "aggregation_window": "t-3..t",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "days_since_last_training",
+      "dtype": "float64",
+      "source_table": "formation.inscriptions",
+      "source_column": "date_demande",
+      "aggregation_window": "t",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "training_frequency_per_month",
+      "dtype": "float64",
+      "source_table": "formation.inscriptions",
+      "source_column": "count(APPROVED) / months",
+      "aggregation_window": "t",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "is_long_absent",
+      "dtype": "int64",
+      "source_table": "derived",
+      "source_column": "days_since_last_training > 180",
+      "aggregation_window": "t",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "is_stagnant",
+      "dtype": "int64",
+      "source_table": "derived",
+      "source_column": "days_since_last_training > 365",
+      "aggregation_window": "t",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "avg_level",
+      "dtype": "float64",
+      "source_table": "competence.enseignant_competences",
+      "source_column": "avg(niveau)",
+      "aggregation_window": "historique",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "min_level",
+      "dtype": "float64",
+      "source_table": "competence.enseignant_competences",
+      "source_column": "min(niveau)",
+      "aggregation_window": "historique",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "max_level",
+      "dtype": "float64",
+      "source_table": "competence.enseignant_competences",
+      "source_column": "max(niveau)",
+      "aggregation_window": "historique",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "nb_level_5",
+      "dtype": "float64",
+      "source_table": "competence.enseignant_competences",
+      "source_column": "count(niveau=5)",
+      "aggregation_window": "historique",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "nb_level_1",
+      "dtype": "float64",
+      "source_table": "competence.enseignant_competences",
+      "source_column": "count(niveau=1)",
+      "aggregation_window": "historique",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "nb_savoirs",
+      "dtype": "float64",
+      "source_table": "competence.enseignant_competences",
+      "source_column": "count(savoir_id)",
+      "aggregation_window": "historique",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "nb_competences",
+      "dtype": "float64",
+      "source_table": "competence.enseignant_competences",
+      "source_column": "count(distinct competence_id)",
+      "aggregation_window": "historique",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "competency_coverage_rate",
+      "dtype": "float64",
+      "source_table": "derived",
+      "source_column": "nb_savoirs / max_savoirs",
+      "aggregation_window": "historique",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "nb_formations_completed",
+      "dtype": "float64",
+      "source_table": "formation.inscriptions",
+      "source_column": "count(etat=APPROVED)",
+      "aggregation_window": "historique",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "nb_formations_in_progress",
+      "dtype": "float64",
+      "source_table": "formation.inscriptions",
+      "source_column": "count(etat=EN_COURS)",
+      "aggregation_window": "historique",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "taux_assiduite",
+      "dtype": "float64",
+      "source_table": "formation.presences",
+      "source_column": "avg(presence)",
+      "aggregation_window": "historique",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "nb_besoins_exprimes",
+      "dtype": "float64",
+      "source_table": "besoin.besoin_formation",
+      "source_column": "count(*)",
+      "aggregation_window": "historique",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "nb_besoins_approuves",
+      "dtype": "float64",
+      "source_table": "besoin.besoin_formation",
+      "source_column": "count(approuve_admin=true)",
+      "aggregation_window": "historique",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "avg_eval_score",
+      "dtype": "float64",
+      "source_table": "evaluation.evaluation_formateur",
+      "source_column": "avg(note)",
+      "aggregation_window": "historique",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "nb_evaluations",
+      "dtype": "float64",
+      "source_table": "evaluation.evaluation_formateur",
+      "source_column": "count(*)",
+      "aggregation_window": "historique",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "months_since_last_training",
+      "dtype": "float64",
+      "source_table": "formation.inscriptions",
+      "source_column": "days_since_last_training / 30.44",
+      "aggregation_window": "t",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    },
+    {
+      "feature_name": "engagement_score",
+      "dtype": "float64",
+      "source_table": "derived",
+      "source_column": "n_done*2 + n_eval*1.5 + n_needs + taux*5 + avg_eval*2",
+      "aggregation_window": "historique",
+      "max_allowed_date": "ref_month",
+      "actual_max_date": "ref_month",
+      "leakage_status": "OK"
+    }
+  ],
+  "verification": {
+    "required_level_in_X": false,
+    "gap_next_3m_in_X": false,
+    "future_columns_in_X": false,
+    "all_features_timestamp_le_ref_month": true
+  }
+}

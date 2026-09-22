@@ -18,18 +18,27 @@ import tn.esprit.d2f.dto.BesoinFormationEventPublisher;
 import tn.esprit.d2f.dto.BesoinFormationRequest;
 import tn.esprit.d2f.dto.BesoinFormationResponse;
 import tn.esprit.d2f.entity.BesoinFormation;
-import tn.esprit.d2f.entity.Notification;
+import tn.esprit.d2f.entity.enumerations.CreatorRole;
+import tn.esprit.d2f.entity.enumerations.ApprovalStep;
+import tn.esprit.d2f.entity.enumerations.BesoinStatus;
+import tn.esprit.d2f.entity.enumerations.TypeBesoin;
+import tn.esprit.d2f.exception.InvalidWorkflowTransitionException;
 import tn.esprit.d2f.exception.ResourceNotFoundException;
 import tn.esprit.d2f.mapper.BesoinFormationMapper;
+import tn.esprit.d2f.repository.BesoinApprovalHistoryRepository;
+import tn.esprit.d2f.repository.BesoinCompetenceRepository;
 import tn.esprit.d2f.repository.BesoinFormationRepository;
 import tn.esprit.d2f.repository.NotificationRepository;
-import tn.esprit.d2f.entity.enumerations.TypeBesoin;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,10 +50,23 @@ class BesoinFormationServiceImplTest {
     private BesoinFormationEventPublisher eventPublisher;
     @Mock
     private NotificationRepository notificationRepository;
-    
+    @Mock
+    private ReviewerScopeService reviewerScopeService;
+    @Mock
+    private BesoinApprovalHistoryRepository historyRepository;
+    @Mock
+    private BesoinCompetenceRepository besoinCompetenceRepository;
+    /** Notification e-mail D2F (ajout/modification par CUP ou chef). */
+    @Mock
+    private BesoinFormationMailNotifier mailNotifier;
+
     private BesoinFormationMapper besoinFormationMapper = new BesoinFormationMapper();
 
     private BesoinFormationServiceImpl service;
+
+    /** Périmètre ADMIN de l'utilisateur de test (test-admin). */
+    private static final ReviewerScopeService.ResolvedScope ADMIN_SCOPE =
+            new ReviewerScopeService.ResolvedScope("test-admin", "test-admin", CreatorRole.ADMIN, null, null, true);
 
     @BeforeEach
     void setUp() {
@@ -52,7 +74,11 @@ class BesoinFormationServiceImplTest {
                 besoinFormationRepository,
                 eventPublisher,
                 notificationRepository,
-                besoinFormationMapper
+                besoinFormationMapper,
+                reviewerScopeService,
+                historyRepository,
+                besoinCompetenceRepository,
+                mailNotifier
         );
         // Provide an ADMIN security context for service methods that read SecurityContextHolder
         SecurityContextHolder.getContext().setAuthentication(
@@ -68,6 +94,7 @@ class BesoinFormationServiceImplTest {
         SecurityContextHolder.clearContext();
     }
 
+
     @Test
     void retrieveAllBesoinFormations_shouldReturnPage() {
         Pageable pageable = PageRequest.of(0, 10);
@@ -77,13 +104,17 @@ class BesoinFormationServiceImplTest {
         besoin.setDureeFormation(10);
         Page<BesoinFormation> page = new PageImpl<>(Collections.singletonList(besoin));
 
-        when(besoinFormationRepository.findAll(pageable)).thenReturn(page);
+        // DSI §: la liste courante exclut les besoins approuvés par le D2F
+        // (ADMIN_APPROVED / FORMATION_CREATED) — consultation via /approved.
+        when(besoinFormationRepository.findByStatusNotIn(anyCollection(), eq(pageable))).thenReturn(page);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
 
         Page<BesoinFormationResponse> result = service.retrieveAllBesoinFormations(pageable);
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        verify(besoinFormationRepository).findAll(pageable);
+        verify(besoinFormationRepository).findByStatusNotIn(anyCollection(), eq(pageable));
+        verify(besoinFormationRepository, never()).findAll(pageable);
     }
 
     @Test
@@ -95,6 +126,7 @@ class BesoinFormationServiceImplTest {
         besoin.setDureeFormation(10);
 
         when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
 
         BesoinFormationResponse result = service.retrieveBesoinFormation(id);
 
@@ -115,12 +147,16 @@ class BesoinFormationServiceImplTest {
     void addBesoinFormation_shouldSaveAndReturnResponse() {
         BesoinFormationRequest request = new BesoinFormationRequest();
         request.setTitre("New Formation");
+        request.setTypeBesoin(TypeBesoin.INDIVIDUEL);
+        request.setUp("UP1");
+        request.setDepartement("DEP1");
         BesoinFormation savedBesoin = new BesoinFormation();
         savedBesoin.setIdBesoinFormation(1L);
         savedBesoin.setTitre("New Formation");
         savedBesoin.setNbMaxParticipants(20);
         savedBesoin.setDureeFormation(10);
 
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(savedBesoin);
 
         BesoinFormationResponse result = service.addBesoinFormation(request);
@@ -128,6 +164,83 @@ class BesoinFormationServiceImplTest {
         assertNotNull(result);
         assertEquals("New Formation", result.getTitre());
         verify(besoinFormationRepository).save(any(BesoinFormation.class));
+    }
+
+    @Test
+    void addBesoinFormation_teacherUsesServerScopeAndIgnoresPayloadScope() {
+        BesoinFormationRequest request = new BesoinFormationRequest();
+        request.setTitre("Formation individuelle");
+        request.setTypeBesoin(TypeBesoin.INDIVIDUEL);
+        request.setUp("UP-client");
+        request.setDepartement("DEP-client");
+        ReviewerScopeService.ResolvedScope teacher = new ReviewerScopeService.ResolvedScope(
+                "teacher", "teacher-id", CreatorRole.ENSEIGNANT, "UP-server", "DEP-server", false);
+        BesoinFormation saved = new BesoinFormation();
+        saved.setIdBesoinFormation(2L);
+
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(teacher);
+        when(besoinFormationRepository.save(any(BesoinFormation.class))).thenAnswer(invocation -> {
+            BesoinFormation value = invocation.getArgument(0);
+            assertEquals("UP-server", value.getUp());
+            assertEquals("DEP-server", value.getDepartement());
+            assertEquals(ApprovalStep.CUP, value.getCurrentApprovalStep());
+            assertEquals(BesoinStatus.SUBMITTED, value.getStatus());
+            return saved;
+        });
+
+        service.addBesoinFormation(request);
+
+        verify(besoinFormationRepository).save(any(BesoinFormation.class));
+    }
+
+    /**
+     * Le type de besoin est libre pour tous les rôles (seul {@code null} est rejeté) :
+     * un enseignant peut donc créer un besoin COLLECTIF, mais son périmètre reste
+     * celui du serveur et l'étape initiale reste le CUP.
+     */
+    @Test
+    void addBesoinFormation_teacherCollectiveNeedKeepsServerScopeAndCupStep() {
+        BesoinFormationRequest request = new BesoinFormationRequest();
+        request.setTitre("Besoin collectif");
+        request.setTypeBesoin(TypeBesoin.COLLECTIF);
+        request.setUp("UP-client");
+        request.setDepartement("DEP-client");
+        ReviewerScopeService.ResolvedScope teacher = new ReviewerScopeService.ResolvedScope(
+                "teacher", "teacher-id", CreatorRole.ENSEIGNANT, "UP1", "DEP1", false);
+        BesoinFormation saved = new BesoinFormation();
+        saved.setIdBesoinFormation(3L);
+
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(teacher);
+        when(besoinFormationRepository.save(any(BesoinFormation.class))).thenAnswer(invocation -> {
+            BesoinFormation value = invocation.getArgument(0);
+            assertEquals(TypeBesoin.COLLECTIF, value.getTypeBesoin());
+            assertEquals("UP1", value.getUp());
+            assertEquals("DEP1", value.getDepartement());
+            assertEquals(ApprovalStep.CUP, value.getCurrentApprovalStep());
+            assertEquals(BesoinStatus.SUBMITTED, value.getStatus());
+            return saved;
+        });
+
+        service.addBesoinFormation(request);
+
+        verify(besoinFormationRepository).save(any(BesoinFormation.class));
+    }
+
+    @Test
+    void pendingApproval_adminReceivesAllNonTerminalSteps() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
+        // DSI §: seul le D2F (ROLE_ADMIN) approuve — sa file d'attente couvre
+        // toutes les étapes non terminales (CUP, chef, admin).
+        when(besoinFormationRepository.findByCurrentApprovalStepIn(
+                List.of(ApprovalStep.CUP, ApprovalStep.CHEF_DEPARTEMENT, ApprovalStep.ADMIN), pageable))
+                .thenReturn(Page.empty());
+
+        service.retrievePendingApproval(pageable);
+
+        verify(besoinFormationRepository).findByCurrentApprovalStepIn(
+                List.of(ApprovalStep.CUP, ApprovalStep.CHEF_DEPARTEMENT, ApprovalStep.ADMIN), pageable);
+        verify(besoinFormationRepository, never()).findByCurrentApprovalStep(any(), any());
     }
 
     @Test
@@ -183,8 +296,9 @@ class BesoinFormationServiceImplTest {
         assertEquals("Updated Titre", existing.getTitre());
         assertEquals("Updated Obj", existing.getObjectifFormation());
         assertEquals("UP", existing.getUp());
-        // Verify both CUP refusal and Admin approval notifications are triggered
-        verify(notificationRepository, times(2)).save(any(Notification.class));
+        // Workflow sécurisé : une modification n'émet une notification que si
+        // un flag d'approbation passe à false (refus d'étape). Ici tous les
+        // flags restent inchangés côté entité → aucune notification attendue.
         verify(besoinFormationRepository).save(existing);
     }
 
@@ -201,7 +315,8 @@ class BesoinFormationServiceImplTest {
         besoin.setNbMaxParticipants(20);
         besoin.setDureeFormation(10);
 
-        when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
+        when(besoinFormationRepository.findByIdForUpdate(id)).thenReturn(Optional.of(besoin));
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(besoin);
 
         BesoinFormationResponse result = service.approuverBesoin(id);
@@ -241,7 +356,8 @@ class BesoinFormationServiceImplTest {
         b.setApprouveAdmin(false);
         b.setEventPublished(false);
 
-        when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(b));
+        when(besoinFormationRepository.findByIdForUpdate(id)).thenReturn(Optional.of(b));
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(b);
 
         service.approuverBesoin(id);
@@ -251,11 +367,11 @@ class BesoinFormationServiceImplTest {
     }
 
     @Test
-    void approuverBesoin_whenAlreadyPublished_shouldNotPublishAgain() {
+    void approuverBesoin_whenAlreadyTreated_shouldRejectTransition() {
         long id = 1L;
         BesoinFormation besoin = new BesoinFormation();
         besoin.setIdBesoinFormation(id);
-        // All steps already completed — falls to the 'else' branch (no action)
+        // All steps already completed — the need is terminal : 409 expected.
         besoin.setApprouveCUP(true);
         besoin.setApprouveChefDep(true);
         besoin.setApprouveAdmin(true);
@@ -263,14 +379,14 @@ class BesoinFormationServiceImplTest {
         besoin.setNbMaxParticipants(20);
         besoin.setDureeFormation(10);
 
-        when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
-        when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(besoin);
+        when(besoinFormationRepository.findByIdForUpdate(id)).thenReturn(Optional.of(besoin));
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
 
-        BesoinFormationResponse result = service.approuverBesoin(id);
-
-        assertTrue(result.getApprouveAdmin());
+        assertThrows(InvalidWorkflowTransitionException.class, () -> service.approuverBesoin(id));
         verify(eventPublisher, never()).publish(any());
+        verify(besoinFormationRepository, never()).save(any(BesoinFormation.class));
     }
+
     @Test
     void approuverBesoin_whenPublisherFails_shouldStillReturnResponse() {
         long id = 1L;
@@ -284,21 +400,25 @@ class BesoinFormationServiceImplTest {
         besoin.setNbMaxParticipants(20);
         besoin.setDureeFormation(10);
 
-        when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
+        when(besoinFormationRepository.findByIdForUpdate(id)).thenReturn(Optional.of(besoin));
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(besoin);
         doThrow(new RuntimeException("MQ Error")).when(eventPublisher).publish(any());
 
-        // publishApprovalEvent has a try-catch — publisher failure must NOT roll back the approval
+        // publishApprovalEvent has a bounded retry (3 attempts) — publisher failure
+        // must NOT roll back the approval, and the scheduler will republish later.
         BesoinFormationResponse result = service.approuverBesoin(id);
 
         assertNotNull(result);
         assertTrue(result.getApprouveAdmin());
-        verify(eventPublisher).publish(any());
+        assertEquals(tn.esprit.d2f.entity.enumerations.BesoinStatus.ADMIN_APPROVED, besoin.getStatus());
+        verify(eventPublisher, times(3)).publish(any());
     }
 
     @Test
     void retrieveApprovedBesoinFormations_shouldReturnPage() {
         Pageable pageable = PageRequest.of(0, 10);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.findByApprouveAdminTrue(pageable)).thenReturn(Page.empty());
         service.retrieveApprovedBesoinFormations(pageable);
         verify(besoinFormationRepository).findByApprouveAdminTrue(pageable);
@@ -307,6 +427,7 @@ class BesoinFormationServiceImplTest {
     @Test
     void retrieveByUp_shouldReturnPage() {
         Pageable pageable = PageRequest.of(0, 10);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.findByUp("UP1", pageable)).thenReturn(Page.empty());
         service.retrieveByUp("UP1", pageable);
         verify(besoinFormationRepository).findByUp("UP1", pageable);
@@ -315,9 +436,34 @@ class BesoinFormationServiceImplTest {
     @Test
     void retrieveByDepartement_shouldReturnPage() {
         Pageable pageable = PageRequest.of(0, 10);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.findByDepartement("DEP", pageable)).thenReturn(Page.empty());
         service.retrieveByDepartement("DEP", pageable);
         verify(besoinFormationRepository).findByDepartement("DEP", pageable);
+    }
+
+    @Test
+    void retrieveByUp_cupHorsPerimetre_doitLever403() {
+        Pageable pageable = PageRequest.of(0, 10);
+        ReviewerScopeService.ResolvedScope cup = new ReviewerScopeService.ResolvedScope(
+                "cup-user", "cup-user", CreatorRole.CUP, "UP1", "DEPT_GL", false);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(cup);
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.security.access.AccessDeniedException.class,
+                () -> service.retrieveByUp("UP_AUTRE", pageable));
+        verify(besoinFormationRepository, never()).findByUp(anyString(), any(Pageable.class));
+    }
+
+    @Test
+    void retrieveByDepartement_chefHorsPerimetre_doitLever403() {
+        Pageable pageable = PageRequest.of(0, 10);
+        ReviewerScopeService.ResolvedScope chef = new ReviewerScopeService.ResolvedScope(
+                "chef-user", "chef-user", CreatorRole.CHEF_DEPARTEMENT, null, "DEPT_GL", false);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(chef);
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.security.access.AccessDeniedException.class,
+                () -> service.retrieveByDepartement("DEPT_AUTRE", pageable));
+        verify(besoinFormationRepository, never()).findByDepartement(anyString(), any(Pageable.class));
     }
 
     @Test

@@ -10,7 +10,9 @@ import tn.esprit.d2f.dto.BesoinCompetenceDTO;
 import tn.esprit.d2f.entity.BesoinCompetence;
 import tn.esprit.d2f.repository.BesoinCompetenceRepository;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -37,21 +39,31 @@ public class BesoinCompetenceServiceImpl implements IBesoinCompetenceService {
     @Transactional
     public List<BesoinCompetenceDTO> replaceAll(Long besoinId, List<BesoinCompetenceDTO> links) {
         repository.deleteByBesoinId(besoinId);
-        List<BesoinCompetence> entities = links.stream()
+        // V27 — multi-sélection sous-compétences/savoirs : déduplication défensive
+        // (protège l'index unique uq_besoin_comp_besoin_comp_souscomp_savoir d'un 500).
+        Map<String, BesoinCompetence> unique = new LinkedHashMap<>();
+        links.stream()
                 .filter(l -> l.getCompetenceId() != null)
-                .map(l -> BesoinCompetence.builder()
-                        .besoinId(besoinId)
-                        .domaineId(l.getDomaineId())
-                        .competenceId(l.getCompetenceId())
-                        .competenceNom(l.getCompetenceNom())
-                        .savoirId(l.getSavoirId())
-                        .savoirNom(l.getSavoirNom())
-                        .sousCompetenceId(l.getSousCompetenceId())
-                        .build())
-                .toList();
-        return repository.saveAll(entities).stream()
+                .forEach(l -> {
+                    BesoinCompetence entity = BesoinCompetence.builder()
+                            .besoinId(besoinId)
+                            .domaineId(l.getDomaineId())
+                            .competenceId(l.getCompetenceId())
+                            .competenceNom(l.getCompetenceNom())
+                            .savoirId(l.getSavoirId())
+                            .savoirNom(l.getSavoirNom())
+                            .sousCompetenceId(l.getSousCompetenceId())
+                            .sousCompetenceNom(l.getSousCompetenceNom())
+                            .build();
+                    unique.putIfAbsent(dedupKey(entity), entity);
+                });
+        return repository.saveAll(List.copyOf(unique.values())).stream()
                 .map(this::toDTO)
                 .toList();
+    }
+
+    private static String dedupKey(BesoinCompetence e) {
+        return e.getCompetenceId() + ":" + e.getSousCompetenceId() + ":" + e.getSavoirId();
     }
 
     private BesoinCompetenceDTO toDTO(BesoinCompetence e) {
@@ -64,6 +76,7 @@ public class BesoinCompetenceServiceImpl implements IBesoinCompetenceService {
                 .savoirId(e.getSavoirId())
                 .savoirNom(e.getSavoirNom())
                 .sousCompetenceId(e.getSousCompetenceId())
+                .sousCompetenceNom(e.getSousCompetenceNom())
                 .build();
     }
 }

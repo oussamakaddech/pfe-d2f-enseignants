@@ -1,0 +1,355 @@
+{
+  "title": "Pipeline démo ML — validation technique sur données synthétiques",
+  "dataset": {
+    "rows": 1000,
+    "synthetic_teachers": 100,
+    "competencies": 13,
+    "periods_months": 18,
+    "seed": 42,
+    "dataset_hash": "f56dd8c49005734a7df33b66a4777528164ede06759745c34b7fe64a30d0e4ec",
+    "data_origin": "SYNTHETIC",
+    "is_synthetic": true,
+    "institutional_verified": false,
+    "granularity": "teacher_id + competence_id + ref_month (snapshot historique t-3..t embarqué)"
+  },
+  "cleaning": {
+    "rows_before": 1013,
+    "rows_after": 1000,
+    "rows_corrected": 25,
+    "rows_imputed": 12,
+    "rows_removed": 8,
+    "rows_quarantined": 5,
+    "reasons": {
+      "date_invalide": 2,
+      "valeur_non_numerique": 3,
+      "conversion_types": 0,
+      "hors_plage_gap_next_3m": 4,
+      "hors_plage_attendance_rate": 9,
+      "hors_plage_evaluation_score": 12,
+      "manquant_evaluation_score": 12,
+      "doublon_exact": 8
+    }
+  },
+  "pipeline": {
+    "n_features": 29,
+    "target": "gap_next_3m",
+    "leakage_ok": true,
+    "split": {
+      "train_months": [
+        "2025-01",
+        "2025-02",
+        "2025-03",
+        "2025-04",
+        "2025-05",
+        "2025-06",
+        "2025-07",
+        "2025-08",
+        "2025-09",
+        "2025-10",
+        "2025-11",
+        "2025-12"
+      ],
+      "validation_months": [
+        "2026-01",
+        "2026-02",
+        "2026-03"
+      ],
+      "test_months": [
+        "2026-04",
+        "2026-05",
+        "2026-06"
+      ],
+      "train_rows": 664,
+      "validation_rows": 154,
+      "test_rows": 182
+    },
+    "seeds": [
+      42,
+      43,
+      44,
+      45
+    ]
+  },
+  "results_gap": {
+    "comparison": [
+      {
+        "Modèle": "baseline_persistence",
+        "RMSE": 1.1203,
+        "MAE": 0.6808,
+        "R²": -0.4882,
+        "Tolérance ±0,10": 0.3901,
+        "Tolérance ±0,20": 0.456,
+        "Gain vs baseline (%)": 0.0,
+        "Temps inférence (ms)": 0.0,
+        "Décision": "baseline"
+      },
+      {
+        "Modèle": "baseline_mean",
+        "RMSE": 0.9531,
+        "MAE": 0.7838,
+        "R²": -0.0772,
+        "Tolérance ±0,10": 0.0769,
+        "Tolérance ±0,20": 0.1758,
+        "Gain vs baseline (%)": 14.9246,
+        "Temps inférence (ms)": 0.0,
+        "Décision": "baseline"
+      },
+      {
+        "Modèle": "gradient_boosting",
+        "RMSE": 0.749,
+        "MAE": 0.4642,
+        "R²": 0.3348,
+        "Tolérance ±0,10": 0.2967,
+        "Tolérance ±0,20": 0.4066,
+        "Gain vs baseline (%)": 33.1474,
+        "Temps inférence (ms)": 1.7,
+        "Décision": "retenu_demo"
+      },
+      {
+        "Modèle": "xgboost",
+        "RMSE": 0.7632,
+        "MAE": 0.47,
+        "R²": 0.3092,
+        "Tolérance ±0,10": 0.3132,
+        "Tolérance ±0,20": 0.4176,
+        "Gain vs baseline (%)": 31.8754,
+        "Temps inférence (ms)": 9.0425,
+        "Décision": "retenu_demo"
+      },
+      {
+        "Modèle": "mlp",
+        "RMSE": 0.7402,
+        "MAE": 0.4316,
+        "R²": 0.3495,
+        "Tolérance ±0,10": 0.3626,
+        "Tolérance ±0,20": 0.4725,
+        "Gain vs baseline (%)": 33.9329,
+        "Temps inférence (ms)": 1.69,
+        "Décision": "retenu_demo"
+      }
+    ],
+    "best_model": "mlp",
+    "bootstrap": {
+      "model": "mlp",
+      "seed": 42,
+      "n_bootstrap": 1000,
+      "bootstrap_seed": 2026,
+      "method": "1000 réplications avec remise sur l'échantillon test (n=182), IC percentile 2.5-97.5",
+      "ic95_rmse": [
+        0.5846,
+        0.9618
+      ],
+      "ic95_mae": [
+        0.3708,
+        0.5533
+      ],
+      "ic95_improvement_vs_persistence_pct": [
+        18.7605,
+        43.4197
+      ],
+      "mean_rmse": 0.7657,
+      "mean_mae": 0.4578,
+      "mean_improvement_pct": 31.3383,
+      "std_rmse": 0.0992,
+      "std_mae": 0.0459
+    },
+    "multi_seed": [
+      {
+        "model_name": "baseline_persistence",
+        "rmse_mean": 1.1203,
+        "rmse_std": 0.0,
+        "rmse_min": 1.1203,
+        "rmse_max": 1.1203,
+        "mae_mean": 0.6808,
+        "mae_std": 0.0,
+        "r2_mean": -0.4882,
+        "r2_std": 0.0,
+        "improvement_mean": 0.0,
+        "inference_time_ms_mean": 0.0
+      },
+      {
+        "model_name": "baseline_mean",
+        "rmse_mean": 0.9531,
+        "rmse_std": 0.0,
+        "rmse_min": 0.9531,
+        "rmse_max": 0.9531,
+        "mae_mean": 0.7838,
+        "mae_std": 0.0,
+        "r2_mean": -0.0772,
+        "r2_std": 0.0,
+        "improvement_mean": 14.9246,
+        "inference_time_ms_mean": 0.0
+      },
+      {
+        "model_name": "gradient_boosting",
+        "rmse_mean": 0.749,
+        "rmse_std": 0.0062,
+        "rmse_min": 0.7422,
+        "rmse_max": 0.756,
+        "mae_mean": 0.4642,
+        "mae_std": 0.006,
+        "r2_mean": 0.3348,
+        "r2_std": 0.011,
+        "improvement_mean": 33.1474,
+        "inference_time_ms_mean": 1.7
+      },
+      {
+        "model_name": "xgboost",
+        "rmse_mean": 0.7632,
+        "rmse_std": 0.0043,
+        "rmse_min": 0.7569,
+        "rmse_max": 0.7663,
+        "mae_mean": 0.47,
+        "mae_std": 0.0034,
+        "r2_mean": 0.3092,
+        "r2_std": 0.0077,
+        "improvement_mean": 31.8754,
+        "inference_time_ms_mean": 9.0425
+      },
+      {
+        "model_name": "mlp",
+        "rmse_mean": 0.7402,
+        "rmse_std": 0.0306,
+        "rmse_min": 0.7033,
+        "rmse_max": 0.7706,
+        "mae_mean": 0.4316,
+        "mae_std": 0.0334,
+        "r2_mean": 0.3495,
+        "r2_std": 0.0534,
+        "improvement_mean": 33.9329,
+        "inference_time_ms_mean": 1.69
+      }
+    ]
+  },
+  "results_risk": {
+    "heuristic_six_factors": {
+      "accuracy": 1.0,
+      "balanced_accuracy": 1.0,
+      "precision_macro": 1.0,
+      "recall_macro": 1.0,
+      "f1_macro": 1.0,
+      "f1_weighted": 1.0,
+      "confusion_matrix": [
+        [
+          51,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          122,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          9,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "roc_auc": 0.9952,
+      "pr_auc": 0.9982,
+      "test_rows": 182,
+      "weights": {
+        "stagnation": 0.25,
+        "decline": 0.2,
+        "attendance": 0.2,
+        "low_eval": 0.15,
+        "repeated_need": 0.1,
+        "low_engagement": 0.1
+      },
+      "explainability": "RiskProfile.factors : normalized_value, weight, contribution, label (app/domain/services/risk_calculator.py)"
+    },
+    "random_forest": {
+      "model": "RandomForestClassifier(n_estimators=200, max_depth=5, class_weight=balanced_subsample)",
+      "accuracy": 0.8242,
+      "balanced_accuracy": 0.581,
+      "precision_macro": 0.5336,
+      "recall_macro": 0.581,
+      "f1_macro": 0.5547,
+      "f1_weighted": 0.8049,
+      "confusion_matrix": [
+        [
+          45,
+          6,
+          0,
+          0
+        ],
+        [
+          17,
+          105,
+          0,
+          0
+        ],
+        [
+          0,
+          9,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "roc_auc": 0.9463,
+      "pr_auc": 0.977,
+      "test_rows": 182,
+      "n_classes": 3
+    },
+    "risk_labels_origin": "SYNTHETIC"
+  },
+  "results_ranking": {
+    "metrics": {
+      "precision_at_1": 0.9833,
+      "precision_at_3": 0.8167,
+      "precision_at_5": 0.6833,
+      "recall_at_3": 0.7623,
+      "ndcg_at_3": 0.9833,
+      "map_at_3": 0.9833
+    },
+    "relevance_labels_origin": "SYNTHETIC"
+  },
+  "inference_application": {
+    "n_rows_tested": 107,
+    "domain_shift_mean_wasserstein": 0.2486,
+    "prediction_stats": {
+      "mean": 4.658,
+      "std": 1.0594,
+      "min": 0.0,
+      "max": 5.0,
+      "q25": 5.0,
+      "median": 5.0,
+      "q75": 5.0
+    },
+    "warnings": [
+      "Le modèle a été entraîné sur des données synthétiques.",
+      "Les prédictions sur données application sont une démonstration technique, PAS une validation institutionnelle."
+    ]
+  },
+  "serving": {
+    "model_mode": "DEMO_ML",
+    "model_version": "demo-gap-synthetic-v1.0.0",
+    "data_origin": "SYNTHETIC",
+    "dataset_hash": "f56dd8c49005734a7df33b66a4777528164ede06759745c34b7fe64a30d0e4ec",
+    "artifact_sha256": "09228ab2e99cd8fa450c63385b62eb657b4eb50bd84261dc4c5428fc5e99499e",
+    "institutional_verified": false,
+    "promotion_refused": true
+  },
+  "limits": [
+    "Données 100 % synthétiques — aucune donnée réelle d'ESPRIT utilisée.",
+    "Absence de validation institutionnelle (institutional_verified=false).",
+    "Nécessité de données réelles longitudinales pour toute conclusion sur les enseignants réels."
+  ],
+  "conclusion": "Le corpus synthétique de 1 000 lignes a permis de tester le nettoyage, le contrat de features, l'anti-fuite, l'entraînement, la comparaison des modèles, la stabilité et l'inférence sur les données de l'application. Les métriques obtenues sont valides pour une démonstration technique du pipeline. Elles ne constituent pas une preuve de performance sur les enseignants réels d'ESPRIT. Le modèle généré est donc servi en mode DEMO_ML, tandis que le modèle PRODUCTION_ML reste séparé et soumis à une validation sur des données institutionnelles vérifiées."
+}

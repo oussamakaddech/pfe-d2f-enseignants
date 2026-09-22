@@ -1,4 +1,4 @@
-﻿from sqlalchemy import text
+from sqlalchemy import text
 
 from app.core.logging import get_logger
 from app.domain.entities.alert import Alert
@@ -8,7 +8,18 @@ logger = get_logger("alert_repository")
 ALERT_EVENTS_TABLE = '"analyse".alert_events'
 SEVERITY_FILTER = "severite = :severite"
 STATUS_FILTER = "statut = :statut"
-DEPARTMENT_FILTER = "departement_id = :departement_id"
+# Le filtre département couvre la colonne dénormalisée departement_id (souvent
+# NULL selon le générateur) ET le département de l'enseignant ciblé.
+DEPARTMENT_FILTER = """(
+    departement_id = :departement_id
+    OR (
+        enseignant_id IS NOT NULL
+        AND enseignant_id IN (
+            SELECT e.id FROM formation.enseignants e
+            WHERE e.dept_id = :departement_id AND e.deleted_at IS NULL
+        )
+    )
+)"""
 
 INSERT_ALERT = f"""
     INSERT INTO {ALERT_EVENTS_TABLE}

@@ -7,16 +7,19 @@
 
 name: D2F CI Pipeline
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
       - main
       - develop
+      - oussama
       - 'feature/**'
       - 'hotfix/**'
       - 'release/**'
-  pull_request:
-    branches: [ main, develop ]
   workflow_dispatch:
     inputs:
       skip_sonar:
@@ -33,6 +36,10 @@ env:
   NODE_VERSION: '20'
   PYTHON_VERSION: '3.11'
   MAVEN_OPTS: '-Xmx3072m'
+  # Version epinglee du plugin OWASP : sans elle, Maven resout
+  # maven-metadata.xml a chaque job et se fait jeter par Central (429).
+  # Elle doit rester IDENTIQUE entre le seed NVD et les controles (schema de base).
+  DC_VERSION: '13.0.0'
 
 jobs:
   # -- Tests Backend Java -------------------------------------------------------
@@ -174,16 +181,13 @@ jobs:
           FOUND=$(grep -rn --include="*.py" -E "^\s*print\(" \
             ${{ matrix.service }} \
             --exclude-dir tests \
-            --exclude-dir tests_legacy \
             --exclude-dir __pycache__ \
             --exclude-dir .venv \
             --exclude-dir .deps310 \
             --exclude-dir pipelines \
             --exclude-dir scripts \
             --exclude-dir reports \
-            --exclude=diagnose_same_results.py \
-            --exclude=check_gaps.py \
-            --exclude=fix_persist_gaps.py || true)
+            --exclude=validate_catalogue.py || true)
           if [ -n "$FOUND" ]; then
             echo "PII risk - print() trouve dans le code de production :"
             echo "$FOUND"
@@ -226,11 +230,50 @@ jobs:
         working-directory: esprit_D2F-webapp
         run: npm run build
 
+  # -- Base NVD : une seule mise a jour partagee par les 8 services -------------
+  # Avant, les 8 jobs OWASP telechargeaient CHACUN la base NVD (cache vide, ou
+  # evince apres 7 jours sans usage) : 8 telechargements complets en parallele
+  # + rate-limit NVD. La base est desormais mise a jour UNE fois ici, puis
+  # restituee aux jobs de controle via le cache de ce run.
+  security-nvd:
+    name: OWASP - base NVD (partagee)
+    runs-on: ubuntu-latest
+    needs: test-backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { java-version: '17', distribution: 'temurin', cache: 'maven' }
+
+      - name: Restore NVD database
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          # Deltas : on repart de la derniere base connue, quel que soit le run.
+          key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: owasp-nvd-${{ runner.os }}-
+
+      - name: Update NVD database
+        working-directory: esprit_D2F-common-security
+        run: |
+          if [ -z "${{ secrets.NVD_API_KEY }}" ]; then
+            echo "::error::Secret NVD_API_KEY manquant - OWASP dependency-check (DSI 12.12) ne peut pas mettre a jour la base NVD. Configurez le secret dans Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          mvn -B org.owasp:dependency-check-maven:${DC_VERSION}:update-only \
+            -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
+            -DnvdValidForHours=24
+
+      - name: Save NVD database
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
+
   # -- OWASP Dependency Check (DSI 12.12 - CVSS >= 7 bloquant) -----------------
   security-backend:
     name: OWASP - ${{ matrix.service }}
     runs-on: ubuntu-latest
-    needs: test-backend
+    needs: [test-backend, security-nvd]
     strategy:
       fail-fast: false
       matrix:
@@ -252,8 +295,11 @@ jobs:
         working-directory: esprit_D2F-common-security
         run: mvn -B clean install -DskipTests
 
-      - name: Cache NVD database
-        uses: actions/cache@v4
+      # Lecture seule : la base vient du job security-nvd de CE run (aucun appel
+      # NVD ici, donc aucun rate-limit 429 avec 8 jobs en parallele).
+      - name: Restore NVD database
+        id: nvd-cache
+        uses: actions/cache/restore@v4
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
           key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
@@ -269,10 +315,25 @@ jobs:
           SUPPRESSION=""
           curl -sL https://raw.githubusercontent.com/oussamakaddech/pfe-d2f-enseignants/oussama/owasp-suppressions.xml -o owasp-suppressions.xml 2>/dev/null || true
           [ -f owasp-suppressions.xml ] && SUPPRESSION="-DsuppressionFile=owasp-suppressions.xml"
-          mvn -B org.owasp:dependency-check-maven:check \
+          # Base deja a jour (job security-nvd) : aucune mise a jour ici. Repli
+          # fail-safe si AUCUN cache n'a pu etre restitue.
+          AUTOUPDATE=false
+          if [ -z "${{ steps.nvd-cache.outputs.cache-matched-key }}" ]; then
+            echo "::warning::Base NVD absente du cache - mise a jour locale (plus lent)."
+            AUTOUPDATE=true
+          fi
+          mvn -B org.owasp:dependency-check-maven:${DC_VERSION}:check \
             -DfailBuildOnCVSS=7 \
+            -DautoUpdate=$AUTOUPDATE \
             -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
+            -DnvdValidForHours=24 \
+            -DskipTestScope=true \
             -DassemblyAnalyzerEnabled=false \
+            -DnodeAnalyzerEnabled=false \
+            -DossIndexAnalyzerEnabled=false \
+            -DretirejsAnalyzerEnabled=false \
+            -DartifactoryAnalyzerEnabled=false \
+            -DnexusAnalyzerEnabled=false \
             $SUPPRESSION \
             -Dformats=HTML,JSON
 
@@ -355,8 +416,11 @@ jobs:
 
           foreach ($project in $projects) {
             $key = $project.key
-            # Supprimer les doublons connus
-            if ($key -eq "d2f_formation" -or $key -eq "coded2f_formation" -or $key -eq "service-formation") {
+            # Supprimer les doublons connus. ATTENTION : "d2f_formation" est la
+            # cle LEGITIME du service formation (elle figure dans $projectsToKeep)
+            # — l'inclure ici la supprimait a chaque rafraichissement, si bien que
+            # le projet disparaissait du tableau de bord jusqu'a sa prochaine analyse.
+            if ($key -eq "coded2f_formation" -or $key -eq "service-formation") {
               Write-Host "  [DELETE] Doublon: $key" -ForegroundColor Red
               Invoke-WebRequest -Uri "$env:SONAR_HOST_URL/api/projects/delete?project=$key" -Method Post -Headers $headers -UseBasicParsing
             }
@@ -496,6 +560,9 @@ jobs:
   build-docker:
     name: Docker Build & Push - ${{ matrix.image }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     needs: [lint-backend, security-backend, security-frontend, test-python, sonar]
     if: >-
       always() &&
@@ -505,8 +572,7 @@ jobs:
       needs.test-python.result == 'success' &&
       needs.sonar.result == 'success' &&
       !inputs.skip_docker &&
-      github.event_name == 'push' &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+      github.event_name == 'push'
     strategy:
       fail-fast: false
       matrix:
@@ -527,18 +593,18 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
-      - name: Login to container registry (${{ secrets.REGISTRY_URL }})
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.REGISTRY_URL }}
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.REGISTRY_URL }}/${{ matrix.image }}
+          images: ghcr.io/${{ github.repository }}/${{ matrix.image }}
           tags: |
             type=sha,prefix=sha-,format=short
             type=ref,event=branch

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const httpMocks = vi.hoisted(() => ({
   mockGet: vi.fn(),
@@ -53,8 +53,8 @@ describe('analyticsApi – indivuel', () => {
             competence_id: 1,
             competence_code: 'C1',
             competence_nom: 'Compétence',
-            current_level: 1,
-            target_level: 5,
+            observed_result: 1,
+            knowledge_difficulty_level: 5,
             gap_score: 0.8,
             severity: 'CRITIQUE',
             trend: 'STABLE',
@@ -64,8 +64,8 @@ describe('analyticsApi – indivuel', () => {
             competence_id: 2,
             competence_code: 'C2',
             competence_nom: 'Compétence 2',
-            current_level: 2,
-            target_level: 5,
+            observed_result: 2,
+            knowledge_difficulty_level: 5,
             gap_score: 0.6,
             severity: 'HAUTE',
             trend: 'DECLINING',
@@ -96,6 +96,49 @@ describe('analyticsApi – indivuel', () => {
     expect(resPage2.gaps).toHaveLength(0);
   });
 
+  it('getGaps calcule gaps_summary sur tous les gaps (indépendant du filtre urgence)', async () => {
+    const envelope = {
+      data: {
+        data: [
+          {
+            competence_id: 1,
+            competence_code: 'C1',
+            competence_nom: 'Compétence',
+            observed_result: 1,
+            knowledge_difficulty_level: 5,
+            gap_score: 0.8,
+            severity: 'CRITIQUE',
+            trend: 'DECLINING',
+            as_of: '2026-08-01',
+          },
+          {
+            competence_id: 2,
+            competence_code: 'C2',
+            competence_nom: 'Compétence 2',
+            observed_result: 2,
+            knowledge_difficulty_level: 5,
+            gap_score: 0.6,
+            severity: 'HAUTE',
+            trend: 'STABLE',
+            as_of: '2026-08-01',
+          },
+        ],
+        meta: {},
+        errors: [],
+      },
+    };
+    httpMocks.mockGet.mockResolvedValueOnce(envelope);
+    const res = await analyticsApi.getGaps('T1', { urgence: 'CRITIQUE' });
+    expect(res.gaps).toHaveLength(1);
+    expect(res.gaps_summary).toEqual({
+      total: 2,
+      critical: 1,
+      high: 1,
+      stagnant: 0,
+      declining: 1,
+    });
+  });
+
   it('getRecommendations appelle GET /teachers/:id/recommendations avec competence_id', async () => {
     await analyticsApi.getRecommendations('T1', { competence_id: 7, page: 1 });
     expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/teachers/T1/recommendations`, {
@@ -120,18 +163,50 @@ describe('analyticsApi – indivuel', () => {
           teacher_id: 'T1',
           risk_score: 85,
           risk_level: 'CRITICAL',
-          factors: [{ feature: 'stagnation', value: 0.8, contribution: 0.2 }],
+          factors: [
+            { feature: 'stagnation', value: 0.8, contribution: 0.2 },
+            { feature: 'HIGH_proba', value: 0.62, contribution: 0.3875 },
+          ],
           computed_at: '2026-08-01T00:00:00Z',
         },
-        meta: { teacher_id: 'T1' },
+        meta: { model_mode: 'PRODUCTION_ML', model_version: 'v3' },
         errors: [],
       },
     });
     const res = await analyticsApi.getRisk('T1');
     expect(res.score).toBe(0.85);
+    expect(res.score_percent).toBe(85);
     expect(res.niveau).toBe('CRITIQUE');
+    expect(res.level_label).toBe('Critique');
     expect(res.facteurs[0].nom).toBe('Stagnation');
     expect(res.facteurs[0].valeur_brute).toBe(0.8);
+    expect(res.facteurs[0].categorie).toBe('FACTEUR');
+    expect(res.facteurs[1]).toMatchObject({
+      nom: 'Probabilité classe Élevée',
+      categorie: 'PROBABILITE_ML',
+    });
+    expect(res.model_mode).toBe('PRODUCTION_ML');
+    expect(res.model_version).toBe('v3');
+  });
+
+  it('getRisk tag HEURISTIC_FALLBACK sans meta model_mode', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: {
+        data: {
+          teacher_id: 'T1',
+          risk_score: 30,
+          risk_level: 'MEDIUM',
+          factors: [],
+          computed_at: '2026-08-01T00:00:00Z',
+        },
+        meta: {},
+        errors: [],
+      },
+    });
+    const res = await analyticsApi.getRisk('T1');
+    expect(res.model_mode).toBe('HEURISTIC_FALLBACK');
+    expect(res.score_percent).toBe(30);
+    expect(res.level_label).toBe('Modéré');
   });
 
   it('getRiskHistory transmet mois', async () => {
@@ -294,9 +369,18 @@ describe('analyticsApi – dashboard', () => {
     expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/dashboard/gap-heatmap`);
   });
 
-  it('getAtRisk appelle GET /dashboard/teachers-at-risk', async () => {
-    await analyticsApi.getAtRisk({ departement_id: 'D1', seuil: 0.5 });
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/dashboard/teachers-at-risk`);
+  it('getAtRisk transmet le seuil au backend', async () => {
+    // Le seuil etait accepte puis ignore : la liste restait figee au seuil par
+    // defaut du service, masquant les departements les moins exposes.
+    await analyticsApi.getAtRisk({ departement_id: 'D1', seuil: 0.3 });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/dashboard/teachers-at-risk`, {
+      params: { seuil: 0.3 },
+    });
+  });
+
+  it('getAtRisk sans seuil n envoie aucun parametre', async () => {
+    await analyticsApi.getAtRisk({ departement_id: 'D1' });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/dashboard/teachers-at-risk`, undefined);
   });
 
   it('getTeachersByCell transmet limit', async () => {
@@ -400,28 +484,100 @@ describe('analyticsApi – alertes & impact', () => {
 });
 
 describe('analyticsApi – monitoring', () => {
-  it('getModelStatus mappe le statut', async () => {
-    httpMocks.mockGet.mockResolvedValueOnce({
-      data: { gap_model_accuracy: 0.9, last_retrain_status: 'v2', last_retrained: '2024-01-01' },
-    });
+  // Correctif d'audit : le statut vient de /model-health, la seule source qui
+  // MESURE ce qui est affiché. Le mapper codait auparavant en dur l'algorithme,
+  // `features_count: 0`, `integrite_ok: true` et `drift_detected: false`.
+  const modelHealth = {
+    mode: 'PRODUCTION_ML',
+    model_name: 'gap_predictor_temporal',
+    model_version: 'v1.2.0-gb',
+    algorithm: 'gradient_boosting',
+    n_features: 29,
+    r2: 0.2458,
+    rmse: 1.214,
+    mae: 1.1082,
+    accuracy_pm05: 0.14,
+    accuracy_pm10: 0.349,
+    integrity_verified: true,
+    skew_checked: true,
+    skew_detected: false,
+    skew_p_threshold: 0.01,
+    skew_reason: 'aucune dérive KS détectée',
+    fallback_reason: null,
+    inert_features: ['nb_besoins_exprimes'],
+    skew_guard: { enabled: true, test: 'kolmogorov_smirnov_2samp', last_verdict: { min_p_value: 0.4 } },
+  };
+
+  it('getModelStatus lit /model-health et expose le modèle réellement servi', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { data: modelHealth } });
     const res = await analyticsApi.getModelStatus();
-    expect(res.version).toBe('v2');
-    expect(res.accuracy).toBe(0.9);
-    expect(res.algorithme).toBe('GradientBoosting');
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/model-health`);
+    expect(res.version).toBe('v1.2.0-gb');
+    expect(res.algorithme).toBe('gradient_boosting');
+    expect(res.features_count).toBe(29);
+    // `accuracy` porte une vraie exactitude, plus un R2 deguise.
+    expect(res.accuracy).toBe(0.349);
+    expect(res.accuracy_metric).toBe('accuracy_pm10');
+    expect(res.r2).toBe(0.2458);
+    expect(res.integrite_ok).toBe(true);
+    expect(res.source).toBe('modele');
     expect(res.disponible).toBe(true);
   });
 
-  it('getModelStatus marque indisponible si accuracy nulle', async () => {
-    httpMocks.mockGet.mockResolvedValueOnce({ data: { gap_model_accuracy: null } });
+  it('getModelStatus ne prétend pas à l intégrité quand l artefact n est pas chargé', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: {
+        data: {
+          mode: 'HEURISTIC_FALLBACK',
+          integrity_verified: false,
+          fallback_reason: 'artefact absent ou integrite invalide',
+          skew_checked: false,
+        },
+      },
+    });
     const res = await analyticsApi.getModelStatus();
+    expect(res.integrite_ok).toBe(false);
     expect(res.disponible).toBe(false);
+    expect(res.source).toBe('heuristique');
+    expect(res.fallback_reason).toBe('artefact absent ou integrite invalide');
   });
 
-  it('getDrift mappe la dérive', async () => {
-    httpMocks.mockGet.mockResolvedValueOnce({ data: [{ critical: 3 }, { critical: 5 }] });
+  it('getDrift rend null quand le contrôle de dérive n a pas tourné', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: {
+        data: {
+          skew_checked: false,
+          skew_detected: false,
+          skew_reason: 'fenêtre servie insuffisante : 2 enseignants < minimum 10',
+          skew_p_threshold: 0.01,
+          skew_guard: { test: 'kolmogorov_smirnov_2samp', last_verdict: {} },
+        },
+      },
+    });
     const res = await analyticsApi.getDrift();
-    expect(res.valeur_actuelle).toBe(5);
-    expect(res.drift_detected).toBe(false);
+    // Une absence de mesure n'est pas une absence de derive.
+    expect(res.drift_detected).toBeNull();
+    expect(res.metric).toBe('kolmogorov_smirnov_2samp');
+    expect(res.message).toMatch(/insuffisante/);
+  });
+
+  it('getDrift rapporte une dérive réellement mesurée', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: {
+        data: {
+          skew_checked: true,
+          skew_detected: true,
+          skew_features: ['avg_level'],
+          skew_p_threshold: 0.01,
+          skew_guard: { test: 'kolmogorov_smirnov_2samp', last_verdict: { min_p_value: 0.0001 } },
+        },
+      },
+    });
+    const res = await analyticsApi.getDrift();
+    expect(res.drift_detected).toBe(true);
+    expect(res.valeur_actuelle).toBe(0.0001);
+    expect(res.seuil).toBe(0.01);
+    expect(res.message).toMatch(/avg_level/);
   });
 
   it('retrain fait POST /admin/retrain', async () => {
@@ -458,8 +614,8 @@ describe('analyticsApi – scope-analysis', () => {
               competence_id: 1,
               competence_code: 'DEV.BACK',
               competence_nom: 'Backend',
-              current_level: 2,
-              target_level: 5,
+              observed_result: 2,
+              knowledge_difficulty_level: 5,
               gap_score: 0.75,
               severity: 'CRITIQUE',
               trend: 'STABLE',
@@ -478,7 +634,11 @@ describe('analyticsApi – scope-analysis', () => {
           ],
           scoped_competencies_count: 3,
           total_competencies_count: 12,
-          is_fallback_global: false,
+          scope: {
+            type: 'DEPARTMENT',
+            is_global: false,
+            label: 'Département Génie Logiciel',
+          },
           computed_at: '2026-08-02T00:00:00Z',
         },
         meta: {},
@@ -493,9 +653,85 @@ describe('analyticsApi – scope-analysis', () => {
     expect(out.gaps[0].niveau_urgence).toBe('CRITIQUE');
     expect(out.recommendations).toHaveLength(1);
     expect(out.recommendations[0].formation_titre).toBe('Spring Boot Avance');
+    // Le rang vient de la position dans la liste (deja triee par score) et
+    // commence a 1 : il etait auparavant fige a 0 et l'UI affichait « rang 0 ».
+    expect(out.recommendations[0].rang_dans_parcours).toBe(1);
+    // Cette route ne porte aucune info de prerequis : `null` = inconnu, pour
+    // ne pas afficher un avertissement « Prerequis a verifier » infonde.
+    expect(out.recommendations[0].prerequis_satisfaits).toBeNull();
     expect(out.scoped_competencies_count).toBe(3);
     expect(out.total_competencies_count).toBe(12);
-    expect(out.is_fallback_global).toBe(false);
+    expect(out.scope.type).toBe('DEPARTMENT');
+    expect(out.scope.is_global).toBe(false);
+    expect(out.scope.label).toBe('Département Génie Logiciel');
+    expect(out.scope.fallback).toBe(false);
+    expect(out.scope.fallback_reason).toBeNull();
+  });
+
+  it('getRisk mappe le DTO normalisé (score 0..1, is_capped, facteurs bornés)', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: {
+        data: {
+          teacher_id: 'T1',
+          risk_score: 98,
+          risk_level: 'CRITICAL',
+          score: 0.98,
+          score_percent: 98,
+          level: 'CRITICAL',
+          level_label: 'CRITIQUE',
+          is_capped: false,
+          uncapped_score: 0.98,
+          factors: [
+            {
+              feature: 'critical_gaps',
+              code: 'critical_gaps',
+              label: 'Gaps critiques',
+              raw_value: 12,
+              normalized_value: 1,
+              weight: 0.5,
+              contribution: 0.5,
+              contribution_percent: 50,
+              scope: 'DEPARTMENT',
+            },
+            {
+              feature: 'high_gaps',
+              code: 'high_gaps',
+              label: 'Gaps haute priorité',
+              raw_value: 2,
+              normalized_value: 1,
+              weight: 0.12,
+              contribution: 0.12,
+              contribution_percent: 12,
+            },
+          ],
+          computed_at: '2026-08-02T00:00:00Z',
+        },
+        meta: { model_mode: 'PRODUCTION_ML', model_version: 'v1' },
+        errors: [],
+      },
+    });
+    const score = await analyticsApi.getRisk('T1');
+    expect(score.score).toBe(0.98);
+    expect(score.score_percent).toBe(98);
+    expect(score.niveau).toBe('CRITIQUE');
+    expect(score.is_capped).toBe(false);
+    expect(score.uncapped_score).toBe(0.98);
+    expect(score.facteurs[0]).toMatchObject({
+      nom: 'Gaps critiques',
+      code: 'critical_gaps',
+      valeur_brute: 12,
+      valeur_normalisee: 1,
+      poids: 0.5,
+      contribution: 0.5,
+      contribution_percent: 50,
+      categorie: 'FACTEUR',
+    });
+    // Jamais 300% / 3.000 : la contribution est bornée à 50 % pour 12 gaps critiques.
+    expect(score.facteurs[0].contribution).toBeLessThanOrEqual(1);
+    expect(score.facteurs[0].contribution_percent).toBeLessThanOrEqual(100);
+    expect(score.facteurs[1].contribution_percent).toBe(12);
+    // Périmètre des facteurs (scope du DTO backend) propagé vers l'UI.
+    expect(score.facteurs[0].scope).toBe('DEPARTMENT');
   });
 
   it('getRisk propage model_mode et model_version depuis la meta', async () => {
@@ -515,5 +751,83 @@ describe('analyticsApi – scope-analysis', () => {
     const score = await analyticsApi.getRisk('T1');
     expect(score.model_mode).toBe('ML');
     expect(score.model_version).toBe('2026-08-02T02:00:47');
+  });
+
+  it('getRisk propage model_name et le scope des facteurs depuis le backend', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: {
+        data: {
+          teacher_id: 'T1',
+          risk_score: 90,
+          risk_level: 'CRITICAL',
+          score: 0.9,
+          score_percent: 90,
+          level: 'CRITICAL',
+          level_label: 'CRITIQUE',
+          is_capped: false,
+          uncapped_score: 0.9,
+          factors: [
+            {
+              feature: 'critical_gaps',
+              code: 'critical_gaps',
+              label: 'Gaps critiques du périmètre',
+              raw_value: 3,
+              normalized_value: 1,
+              weight: 0.5,
+              contribution: 0.5,
+              contribution_percent: 50,
+              scope: 'DEPARTMENT',
+            },
+            {
+              feature: 'high_gaps',
+              code: 'high_gaps',
+              label: 'Gaps de haute urgence',
+              raw_value: 0,
+              normalized_value: 0,
+              weight: 0.12,
+              contribution: 0,
+              contribution_percent: 0,
+              scope: 'DEPARTMENT',
+            },
+          ],
+          computed_at: '2026-08-02T00:00:00Z',
+        },
+        meta: {
+          model_mode: 'PRODUCTION_ML',
+          model_version: 'v1.0.0',
+          model_name: 'gap_predictor_temporal',
+        },
+        errors: [],
+      },
+    });
+    const score = await analyticsApi.getRisk('T1');
+    // Nom de l'artefact propagé (badge non vague : mode + nom + version réels).
+    expect(score.model_mode).toBe('PRODUCTION_ML');
+    expect(score.model_version).toBe('v1.0.0');
+    expect(score.model_name).toBe('gap_predictor_temporal');
+    // Libellés backend prioritaires, y compris le libellé scopé départemental.
+    expect(score.facteurs[0].nom).toBe('Gaps critiques du périmètre');
+    expect(score.facteurs[1].nom).toBe('Gaps de haute urgence');
+    expect(score.facteurs[0].scope).toBe('DEPARTMENT');
+    expect(score.facteurs[1].scope).toBe('DEPARTMENT');
+    // Valeur brute = 3 gaps critiques (jamais corrigée arbitrairement côté front).
+    expect(score.facteurs[0].valeur_brute).toBe(3);
+  });
+
+  it('le rang des recommandations suit la position et commence a 1', async () => {
+    const reco = (id: number, score: number) => ({
+      formation_id: id,
+      titre: `Formation ${id}`,
+      competence_id: 1,
+      rank_score: score,
+      reason: 'r',
+      matched_savoirs: [],
+    });
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: { data: [reco(1, 0.9), reco(2, 0.7), reco(3, 0.5)], meta: {}, errors: [] },
+    });
+    const out = await analyticsApi.getRecommendations('T1', {});
+    expect(out.recommendations.map((r) => r.rang_dans_parcours)).toEqual([1, 2, 3]);
+    expect(out.recommendations.every((r) => r.prerequis_satisfaits === null)).toBe(true);
   });
 });

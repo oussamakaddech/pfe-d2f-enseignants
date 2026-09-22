@@ -169,11 +169,30 @@ jobs:
           EOF
         continue-on-error: true
 
+      # -- Cible de publication -------------------------------------------------
+      # L'organisation est sur un plan ou les branches non principales ne sont
+      # pas exploitables : SonarCloud accepte le rapport de `oussama` mais
+      # refuse d'en servir les mesures ("Organization is not allowed to access
+      # data from non main branches"), d'ou l'erreur affichee et un tableau de
+      # bord fige. L'analyse de `oussama` est donc publiee sur la branche
+      # principale du projet, qui redevient le reflet du travail en cours.
+      # `main` et `develop` gardent leur propre nom, et les PR sont laissees au
+      # mode pull request de l'action (sonar.branch.name y est incompatible).
+      - name: Cible SonarCloud (branche)
+        id: sonar_branch
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ] && [ "${{ github.ref_name }}" = "oussama" ]; then
+            echo "arg=-Dsonar.branch.name=main" >> "$GITHUB_OUTPUT"
+          else
+            echo "arg=" >> "$GITHUB_OUTPUT"
+          fi
+
       # -- Scan SonarQube Cloud avec couverture --------------------------------
       - name: SonarQube Cloud Scan
         uses: sonarsource/sonarqube-scan-action@v5
         with:
           args: >
+            ${{ steps.sonar_branch.outputs.arg }}
             -Dsonar.organization=oussamakaddech
             -Dsonar.projectKey=oussamakaddech_pfe-d2f-enseignants
             -Dsonar.host.url=https://sonarcloud.io

@@ -34,12 +34,15 @@ MAGIC_BYTES = {
 }
 
 
+# Renvoie l'extension d'un nom de fichier en minuscules (None si pas d'extension).
 def _extension(filename: str) -> Optional[str]:
     if not filename or "." not in filename:
         return None
     return filename.rsplit(".", 1)[-1].lower()
 
 
+# Détecte les tentatives de path traversal dans un nom de fichier :
+# "..", "/", "\", ou octet nul \x00 → True (fichier à rejeter).
 def _has_path_traversal(filename: str) -> bool:
     if not filename:
         return False

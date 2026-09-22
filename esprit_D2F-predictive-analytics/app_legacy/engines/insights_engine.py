@@ -14,16 +14,18 @@ neutre (`[]` / `{}`) plutôt que de faire échouer la requête (cf. `DashboardEn
 import logging
 import math
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import Integer, func
+from sqlalchemy import Integer, func, or_, text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.observability import safe_kpi
 from app.engines.dashboard_engine import DashboardEngine
 from app.models.db_models import (
-    AlertEvent, DashboardSnapshot, SkillGap, TeacherCompetenceCoverage, TeacherRiskProfile,
+    AlertEvent, DashboardSnapshot, SkillGap, TeacherRiskProfile,
 )
 
 logger = logging.getLogger(__name__)
@@ -34,6 +36,22 @@ _RECENT_DAYS = 30
 _DEMAND_HIGH = 0.50
 _SUPPLY_HIGH = 0.60
 _METHOD_LABEL = "ewma+linear"
+
+# Tags de snapshot : un snapshot par périmètre (deltas comparés à même périmètre).
+_SCOPE_TAGS = {"GLOBAL": "OVERVIEW", "UP": "OVERVIEW-UP", "DEPARTEMENT": "OVERVIEW-DEPT"}
+
+
+@dataclass(frozen=True)
+class OverviewScope:
+    """Périmètre serveur de l'overview (résolu côté API, jamais côté client).
+
+    - GLOBAL (None) : vue complète (ADMIN / auth désactivée) ;
+    - UP : le CUP ne voit que son unité pédagogique ;
+    - DEPARTEMENT : le chef de département que son département.
+    """
+
+    scope_type: str  # "GLOBAL" | "UP" | "DEPARTEMENT"
+    scope_id: str | None
 
 
 class InsightsEngine:
@@ -51,23 +69,30 @@ class InsightsEngine:
         return date.today() - timedelta(days=_RECENT_DAYS)
 
     # ── Tuiles d'en-tête avec deltas ─────────────────────────
-    def overview(self) -> dict[str, Any]:
-        """KPIs de tête de tableau de bord avec variation vs le snapshot précédent."""
+    def overview(self, scope: OverviewScope | None = None) -> dict[str, Any]:
+        """KPIs de tête de tableau de bord avec variation vs le snapshot précédent.
+
+        `scope` (résolu côté API depuis le JWT) limite tous les KPI au
+        périmètre de l'appelant : UP du CUP, département du chef — None = global.
+        """
+        ids = self._scoped_enseignant_ids(scope)
         current = {
-            "nb_enseignants_suivis":  self._safe("nb_enseignants_suivis", self._nb_enseignants_suivis, 0),
-            "score_risque_moyen":     self._safe("score_risque_moyen", self._score_risque_moyen, 0.0),
-            "nb_gaps_critiques":      self._safe("nb_gaps_critiques", self._nb_gaps_critiques, 0),
-            "nb_alertes_nouvelles":   self._safe("nb_alertes_nouvelles", self._nb_alertes_nouvelles, 0),
-            "taux_couverture_global": self._safe("taux_couverture_global", self._taux_couverture_global, 0.0),
+            "nb_enseignants_suivis":  self._safe("nb_enseignants_suivis", lambda: self._nb_enseignants_suivis(ids), 0),
+            "score_risque_moyen":     self._safe("score_risque_moyen", lambda: self._score_risque_moyen(ids), 0.0),
+            "nb_gaps_critiques":      self._safe("nb_gaps_critiques", lambda: self._nb_gaps_critiques(ids), 0),
+            "nb_alertes_nouvelles":   self._safe("nb_alertes_nouvelles", lambda: self._nb_alertes_nouvelles(scope, ids), 0),
+            "taux_couverture_global": self._safe("taux_couverture_global", lambda: self._taux_couverture_global(scope), 0.0),
             "precision_modele":       self._safe("precision_modele", self._precision_modele, None),
         }
 
-        previous = self._previous_overview_snapshot()
+        previous = self._previous_overview_snapshot(scope)
         deltas = self._compute_deltas(current, previous)
 
         # Tendance toujours disponible (sans historique) : moyenne des scores
         # précédents persistés dans teacher_risk_profiles.precedent_score_risque.
-        score_precedent = self._safe("score_risque_moyen_precedent", self._score_risque_moyen_precedent, None)
+        score_precedent = self._safe(
+            "score_risque_moyen_precedent", lambda: self._score_risque_moyen_precedent(ids), None
+        )
 
         result = {
             **current,
@@ -75,64 +100,120 @@ class InsightsEngine:
             "score_risque_moyen_precedent": score_precedent,
             "generated_at": datetime.now(timezone.utc).isoformat(),
         }
-        self._persist_overview_snapshot(current)
+        self._persist_overview_snapshot(current, scope)
         return result
 
-    def _nb_enseignants_suivis(self) -> int:
-        return int(self.db.query(func.count(TeacherRiskProfile.id)).scalar() or 0)
+    # ── Résolution du périmètre (listes d'enseignants) ───────
+    def _scoped_enseignant_ids(self, scope: OverviewScope | None) -> list[str] | None:
+        """Ids des enseignants du périmètre ; None = vue globale.
 
-    def _score_risque_moyen(self) -> float:
-        val = self.db.query(func.avg(TeacherRiskProfile.score_risque)).scalar()
+        Deny-by-default : un périmètre UP/DEPARTEMENT avec un scope_id
+        indéterminé renvoie une liste vide (aucune donnée, jamais le global).
+        """
+        if scope is None or scope.scope_type == "GLOBAL" or not scope.scope_id:
+            return None
+        column = "up_id" if scope.scope_type == "UP" else "dept_id"
+        # column provient d'une whitelist interne (jamais d'une entrée client).
+        rows = self.db.execute(
+            text(
+                f"SELECT id FROM formation.enseignants "
+                f"WHERE deleted_at IS NULL AND {column} = :sid"
+            ),
+            {"sid": scope.scope_id},
+        ).scalars().all()
+        return list(rows)
+
+    def _nb_enseignants_suivis(self, ids: list[str] | None = None) -> int:
+        q = self.db.query(func.count(TeacherRiskProfile.id))
+        if ids is not None:
+            q = q.filter(TeacherRiskProfile.enseignant_id.in_(ids))
+        return int(q.scalar() or 0)
+
+    def _score_risque_moyen(self, ids: list[str] | None = None) -> float:
+        q = self.db.query(func.avg(TeacherRiskProfile.score_risque))
+        if ids is not None:
+            q = q.filter(TeacherRiskProfile.enseignant_id.in_(ids))
+        val = q.scalar()
         return round(float(val), 4) if val is not None else 0.0
 
-    def _score_risque_moyen_precedent(self) -> float | None:
-        val = (
+    def _score_risque_moyen_precedent(self, ids: list[str] | None = None) -> float | None:
+        q = (
             self.db.query(func.avg(TeacherRiskProfile.precedent_score_risque))
             .filter(TeacherRiskProfile.precedent_score_risque.isnot(None))
-            .scalar()
         )
+        if ids is not None:
+            q = q.filter(TeacherRiskProfile.enseignant_id.in_(ids))
+        val = q.scalar()
         return round(float(val), 4) if val is not None else None
 
-    def _nb_gaps_critiques(self) -> int:
-        return int(
-            self.db.query(func.count(SkillGap.id))
-            .filter(
-                SkillGap.computed_at >= self._recent_cutoff(),
-                SkillGap.niveau_urgence == "CRITIQUE",
-            )
-            .scalar() or 0
+    def _nb_gaps_critiques(self, ids: list[str] | None = None) -> int:
+        q = self.db.query(func.count(SkillGap.id)).filter(
+            SkillGap.computed_at >= self._recent_cutoff(),
+            SkillGap.niveau_urgence == "CRITIQUE",
         )
+        if ids is not None:
+            q = q.filter(SkillGap.enseignant_id.in_(ids))
+        return int(q.scalar() or 0)
 
-    def _nb_alertes_nouvelles(self) -> int:
-        return int(
-            self.db.query(func.count(AlertEvent.id))
-            .filter(AlertEvent.statut == "NOUVELLE")
-            .scalar() or 0
-        )
+    def _nb_alertes_nouvelles(self, scope: OverviewScope | None = None, ids: list[str] | None = None) -> int:
+        q = self.db.query(func.count(AlertEvent.id)).filter(AlertEvent.statut == "NOUVELLE")
+        if ids is not None:
+            condition = AlertEvent.enseignant_id.in_(ids)
+            # Les alertes de departement (sans enseignant) restent visibles du chef.
+            if scope.scope_type == "DEPARTEMENT" and scope.scope_id:
+                condition = or_(condition, AlertEvent.departement_id == scope.scope_id)
+            q = q.filter(condition)
+        return int(q.scalar() or 0)
 
-    def _taux_couverture_global(self) -> float:
-        """% de couples (enseignant, compétence) au niveau requis.
+    def _taux_couverture_global(self, scope: OverviewScope | None = None) -> float:
+        """% d'enseignants actifs ayant au moins une compétence affectée.
 
-        Calculé depuis ``teacher_competence_coverage`` (snapshot des niveaux réels),
-        et NON depuis ``skill_gaps`` qui ne contient que les écarts — sinon la
-        couverture serait structurellement ~0 %.
+        Source réelle `competence.enseignant_competences` (alignée sur le
+        calcul du dashboard réel `dashboard_real.py` COVERAGE_SQL).
+
+        L'ancienne implémentation lisait la table dénormalisée
+        `analyse.teacher_competence_coverage`, qui n'est plus recalculée par le
+        pipeline (dernier snapshot 2026-07-30) et affichait une couverture
+        fausse (1.3%) alors que la couverture réelle est totale (100%).
         """
-        row = (
-            self.db.query(
-                func.count(TeacherCompetenceCoverage.id).label("total"),
-                func.sum(
-                    func.cast(TeacherCompetenceCoverage.covered, Integer)
-                ).label("couverts"),
+        try:
+            row = self.db.execute(
+                text(
+                    """
+                    SELECT
+                      COUNT(DISTINCT e.id) AS nb_enseignants,
+                      COUNT(DISTINCT CASE WHEN ec.id IS NOT NULL THEN e.id END) AS avec_competences
+                    FROM formation.enseignants e
+                    LEFT JOIN competence.enseignant_competences ec ON ec.enseignant_id = e.id
+                    WHERE e.deleted_at IS NULL
+                      AND (:up_id IS NULL OR e.up_id = :up_id)
+                      AND (:dept_id IS NULL OR e.dept_id = :dept_id)
+                    """,
+                    {
+                        "up_id": scope.scope_id if scope and scope.scope_type == "UP" else None,
+                        "dept_id": scope.scope_id if scope and scope.scope_type == "DEPARTEMENT" else None,
+                    },
+                )
+            ).mappings().first()
+        except SQLAlchemyError as exc:  # pragma: no cover - log + repli 0
+            logging.getLogger(__name__).error(
+                "calcul couverture globale impossible", error=str(exc)
             )
-            .first()
-        )
-        total = int(getattr(row, "total", 0) or 0)
-        couverts = int(getattr(row, "couverts", 0) or 0)
-        return round(couverts / total * 100, 1) if total else 0.0
+            return 0.0
+        nb = int(row["nb_enseignants"] or 0)
+        avec_comp = int(row["avec_competences"] or 0)
+        return round(avec_comp / nb * 100, 1) if nb else 0.0
 
     def _precision_modele(self) -> float | None:
-        from app.services.model_trainer import read_current_accuracy
-        acc = read_current_accuracy()
+        """Précision affichable du modèle servi (part des prédictions à +/- 1 niveau).
+
+        Lisait auparavant ``read_current_accuracy()``, c'est-à-dire un R² —
+        et, avant le correctif du chemin de metadata, le R² d'un modèle
+        obsolète (1.0). Un R² n'est pas un taux de bonnes réponses : le
+        libellé « précision » exige une vraie métrique d'exactitude.
+        """
+        from app.services.model_trainer import read_served_model_metrics
+        acc = read_served_model_metrics().get("accuracy_pm10")
         if acc is None:
             # Fallback: read from the most recent successful retrain log in DB
             from app.models.db_models import ModelRetrainingLog
@@ -146,16 +227,16 @@ class InsightsEngine:
                 acc = float(last_log.accuracy_after)
         return round(float(acc), 3) if acc is not None else None
 
-    def _previous_overview_snapshot(self) -> dict[str, Any] | None:
-        snap = (
-            self.db.query(DashboardSnapshot)
-            .filter(
-                DashboardSnapshot.scope == "OVERVIEW",
-                DashboardSnapshot.snapshot_date < date.today(),
-            )
-            .order_by(DashboardSnapshot.snapshot_date.desc())
-            .first()
+    def _previous_overview_snapshot(self, scope: OverviewScope | None = None) -> dict[str, Any] | None:
+        tag = _SCOPE_TAGS["GLOBAL"] if scope is None else _SCOPE_TAGS.get(scope.scope_type, "OVERVIEW")
+        sid = scope.scope_id if scope is not None else None
+        q = self.db.query(DashboardSnapshot).filter(
+            DashboardSnapshot.scope == tag,
+            DashboardSnapshot.snapshot_date < date.today(),
         )
+        # Deltas compares au meme perimetre uniquement.
+        q = q.filter(DashboardSnapshot.scope_id.is_(None) if sid is None else DashboardSnapshot.scope_id == sid)
+        snap = q.order_by(DashboardSnapshot.snapshot_date.desc()).first()
         return snap.kpis_json if snap and snap.kpis_json else None
 
     @staticmethod
@@ -171,19 +252,28 @@ class InsightsEngine:
                 deltas[key] = None
         return deltas
 
-    def _persist_overview_snapshot(self, current: dict[str, Any]) -> None:
+    def _persist_overview_snapshot(self, current: dict[str, Any], scope: OverviewScope | None = None) -> None:
         """Persistance best-effort du snapshot du jour (pour le calcul des deltas)."""
         try:
+            tag = _SCOPE_TAGS["GLOBAL"] if scope is None else _SCOPE_TAGS.get(scope.scope_type, "OVERVIEW")
+            sid = scope.scope_id if scope is not None else None
+            q = self.db.query(DashboardSnapshot).filter(
+                DashboardSnapshot.scope == tag,
+                DashboardSnapshot.snapshot_date == date.today(),
+            )
             existing = (
-                self.db.query(DashboardSnapshot)
-                .filter_by(scope="OVERVIEW", scope_id=None, snapshot_date=date.today())
+                q.filter(
+                    DashboardSnapshot.scope_id.is_(None)
+                    if sid is None
+                    else DashboardSnapshot.scope_id == sid
+                )
                 .first()
             )
             if existing:
                 existing.kpis_json = current
             else:
                 self.db.add(DashboardSnapshot(
-                    scope="OVERVIEW", scope_id=None,
+                    scope=tag, scope_id=sid,
                     snapshot_date=date.today(), kpis_json=current,
                 ))
             self.db.flush()
@@ -379,11 +469,16 @@ class InsightsEngine:
 
     # ── Matrice offre / demande par compétence ───────────────
     def supply_demand(self) -> list[dict[str, Any]]:
+        # Groupement par compétence UNIQUEMENT (id + nom) : les gaps cohabitent
+        # avec `domaine_nom` NULL (pipeline d2f) et renseigné (pipeline ML) pour
+        # une même compétence — les compter séparément gonflait la liste
+        # (26 "compétences" pour 18 réelles) et scindait les quadrants.
+        # Le domaine affiché est le plus fréquent/non-null (MAX ignore les NULL).
         rows = (
             self.db.query(
                 SkillGap.competence_id,
                 SkillGap.competence_nom,
-                SkillGap.domaine_nom,
+                func.max(SkillGap.domaine_nom).label("domaine_nom"),
                 func.count(SkillGap.id).label("nb"),
                 func.sum(
                     func.cast(SkillGap.niveau_actuel >= SkillGap.niveau_requis, Integer)
@@ -395,7 +490,7 @@ class InsightsEngine:
                 ).label("nb_critiques"),
             )
             .filter(SkillGap.computed_at >= self._recent_cutoff())
-            .group_by(SkillGap.competence_id, SkillGap.competence_nom, SkillGap.domaine_nom)
+            .group_by(SkillGap.competence_id, SkillGap.competence_nom)
             .all()
         )
 

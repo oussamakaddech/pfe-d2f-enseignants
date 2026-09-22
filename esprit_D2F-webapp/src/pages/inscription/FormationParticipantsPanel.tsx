@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Card, Avatar, Tag, Typography, Input, Space } from 'antd';
+import { useMemo } from 'react';
+import { Card, Avatar, Tag, Space } from 'antd';
 import {
   TeamOutlined,
   CheckCircleOutlined,
@@ -8,14 +8,11 @@ import {
   UserOutlined,
   MailOutlined,
   ApartmentOutlined,
-  SearchOutlined,
 } from '@ant-design/icons';
 import { useInscriptionsByFormation } from '@/hooks/formation';
 import { InscriptionStatGrid, PageLoader, EmptyStateStandard } from '@/components/common';
 import { brand, neutral } from '@/styles/themes/tokens';
 import type { Id } from '@/models/common';
-
-const { Text } = Typography;
 
 type Etat = 'APPROVED' | 'PENDING' | 'REJECTED';
 
@@ -55,7 +52,6 @@ function normalizeList(data: unknown): Inscription[] {
 
 export default function FormationParticipantsPanel({ formationId }: Readonly<{ formationId: Id }>) {
   const { data, isLoading } = useInscriptionsByFormation(formationId);
-  const [search, setSearch] = useState('');
 
   const list = useMemo(() => normalizeList(data), [data]);
 
@@ -68,20 +64,6 @@ export default function FormationParticipantsPanel({ formationId }: Readonly<{ f
     }),
     [list],
   );
-
-  const displayed = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return list;
-    return list.filter((i) => {
-      const e = i.enseignant ?? {};
-      return (
-        `${e.prenom ?? ''} ${e.nom ?? ''}`.toLowerCase().includes(term) ||
-        (e.mail ?? '').toLowerCase().includes(term) ||
-        (e.deptLibelle ?? '').toLowerCase().includes(term) ||
-        (e.upLibelle ?? '').toLowerCase().includes(term)
-      );
-    });
-  }, [list, search]);
 
   return (
     <Card
@@ -133,18 +115,6 @@ export default function FormationParticipantsPanel({ formationId }: Readonly<{ f
             ]}
           />
 
-          {/* Recherche */}
-          {list.length > 0 && (
-            <Input
-              allowClear
-              prefix={<SearchOutlined style={{ color: neutral[400] }} />}
-              placeholder="Rechercher un participant (nom, email, département…)"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ maxWidth: 360, marginBottom: 16 }}
-            />
-          )}
-
           {/* Liste des participants */}
           {list.length === 0 ? (
             <EmptyStateStandard
@@ -153,7 +123,7 @@ export default function FormationParticipantsPanel({ formationId }: Readonly<{ f
             />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {displayed.map((i) => {
+              {list.map((i) => {
                 const e = i.enseignant ?? {};
                 const meta = ETAT_META[i.etat] ?? ETAT_META.PENDING;
                 const fullName = `${e.prenom ?? ''} ${e.nom ?? ''}`.trim() || '—';
@@ -224,11 +194,6 @@ export default function FormationParticipantsPanel({ formationId }: Readonly<{ f
                   </div>
                 );
               })}
-              {displayed.length === 0 && (
-                <Text type="secondary" style={{ padding: '8px 4px' }}>
-                  Aucun participant ne correspond à la recherche.
-                </Text>
-              )}
             </div>
           )}
         </>

@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Card, Space, Typography, Tooltip } from 'antd';
 import { WarningOutlined, FallOutlined } from '@ant-design/icons';
-import type { SkillGap } from '@/models/analyse';
+import type { SkillGap } from '@/models/analyse/analyticsFeature';
 import RiskBadge from './RiskBadge';
 import PredictionScoreBar from './PredictionScoreBar';
 
@@ -62,34 +62,34 @@ const SkillGapCard = memo(function SkillGapCard({
           </Text>
         )}
 
-        {/* Niveaux */}
+        {/* Résultat observé vs difficulté du savoir */}
         <Space
           style={{ width: '100%', justifyContent: 'space-between' }}
           size={compact ? 8 : 16}
           wrap
         >
-          <Tooltip title="Niveau actuel">
+          <Tooltip title="Résultat réel observé de l'enseignant">
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#1e40af', lineHeight: 1 }}>
-                {gap.niveau_actuel}
+                {gap.observed_result}
                 <span style={{ fontSize: 12, color: '#94a3b8' }}>/5</span>
               </div>
               <Text type="secondary" style={{ fontSize: 11 }}>
-                {NIVEAU_LABEL[gap.niveau_actuel]}
+                {NIVEAU_LABEL[gap.observed_result]}
               </Text>
             </div>
           </Tooltip>
 
           <div style={{ fontSize: 18, color: '#94a3b8' }}>→</div>
 
-          <Tooltip title="Niveau requis">
+          <Tooltip title="Niveau de difficulté du savoir (référentiel)">
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#b51200', lineHeight: 1 }}>
-                {gap.niveau_requis}
+                {gap.knowledge_difficulty_level}
                 <span style={{ fontSize: 12, color: '#94a3b8' }}>/5</span>
               </div>
               <Text type="secondary" style={{ fontSize: 11 }}>
-                {NIVEAU_LABEL[gap.niveau_requis]}
+                {NIVEAU_LABEL[gap.knowledge_difficulty_level]}
               </Text>
             </div>
           </Tooltip>

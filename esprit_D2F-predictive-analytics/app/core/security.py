@@ -87,3 +87,17 @@ def require_roles(*roles: str):
         return user
 
     return dependency
+
+
+def get_optional_current_user(request: Request, settings: Settings = Depends(get_settings)) -> CurrentUser | None:
+    """Utilisateur connecté si un jeton est présent, sinon None.
+
+    Utilisé par les endpoints de reporting accessibles sans authentification au
+    niveau du service (la gateway applique le RBAC) : le périmètre CUP/chef
+    n'est appliqué que lorsqu'un utilisateur est identifiable.
+    """
+    if not settings.jwt_auth_enabled:
+        return CurrentUser(username="system", user_id="system", email="", roles=frozenset({"SYSTEM"}))
+    if not request.headers.get("Authorization", "").strip():
+        return None
+    return get_current_user(request, settings)

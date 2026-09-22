@@ -54,7 +54,7 @@ class SkillPassportAuthorizationServiceTest {
                 .hasMessageContaining("propre passeport");
     }
 
-    // ── Parité : animateur / formateur accèdent à LEUR propre passeport ──────
+    // ── Parité : animateur accède à LEUR propre passeport ──────
 
     @Test
     void animateur_canAccessOwnPassport() {

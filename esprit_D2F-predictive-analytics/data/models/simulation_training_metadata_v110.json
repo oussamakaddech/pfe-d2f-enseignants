@@ -1,0 +1,180 @@
+{
+  "model_name": "gap_predictor_temporal",
+  "model_version": "simulation-v1.1.0",
+  "algorithm": "xgboost",
+  "trained_at": "2026-09-14T01:20:21.157675",
+  "n_features": 29,
+  "feature_cols": [
+    "current_level_t3",
+    "current_level_t2",
+    "current_level_t1",
+    "current_level_t",
+    "lag_gap_t3_t2",
+    "lag_gap_t2_t1",
+    "lag_gap_t1_t",
+    "rolling_tendance",
+    "days_since_last_training",
+    "training_frequency_per_month",
+    "is_long_absent",
+    "is_stagnant",
+    "avg_level",
+    "min_level",
+    "max_level",
+    "nb_level_5",
+    "nb_level_1",
+    "nb_savoirs",
+    "nb_competences",
+    "competency_coverage_rate",
+    "nb_formations_completed",
+    "nb_formations_in_progress",
+    "taux_assiduite",
+    "nb_besoins_exprimes",
+    "nb_besoins_approuves",
+    "avg_eval_score",
+    "nb_evaluations",
+    "months_since_last_training",
+    "engagement_score"
+  ],
+  "feature_schema_version": "1.0",
+  "n_samples": 10920,
+  "n_train": 8736,
+  "n_test": 2184,
+  "data_sources": {
+    "total_rows": 10920,
+    "real_rows": 0,
+    "synthetic_rows": 10920,
+    "synthetic_share_pct": 100.0,
+    "real_share_pct": 0.0,
+    "dataset_version": "simulation-v1.0.0"
+  },
+  "dataset_version": "simulation-v1.0.0",
+  "data_origin": "SIMULATED",
+  "target_validity": "OBSERVED_IN_SIMULATION",
+  "validation_scope": "SIMULATION_VALIDATED",
+  "is_extrapolated": false,
+  "metrics": {
+    "test_rmse": 0.5247,
+    "test_mae": 0.375,
+    "test_r2": 0.6961
+  },
+  "feature_ranges": {
+    "current_level_t3": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "current_level_t2": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "current_level_t1": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "current_level_t": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "lag_gap_t3_t2": {
+      "min": -1.0,
+      "max": 1.0
+    },
+    "lag_gap_t2_t1": {
+      "min": -1.0,
+      "max": 1.0
+    },
+    "lag_gap_t1_t": {
+      "min": -1.0,
+      "max": 1.0
+    },
+    "rolling_tendance": {
+      "min": -0.667,
+      "max": 0.667
+    },
+    "days_since_last_training": {
+      "min": 0.0,
+      "max": 999.0
+    },
+    "training_frequency_per_month": {
+      "min": 0.0,
+      "max": 0.538
+    },
+    "is_long_absent": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "is_stagnant": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "avg_level": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "min_level": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "max_level": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "nb_level_5": {
+      "min": 0.0,
+      "max": 4.0
+    },
+    "nb_level_1": {
+      "min": 0.0,
+      "max": 4.0
+    },
+    "nb_savoirs": {
+      "min": 4.0,
+      "max": 4.0
+    },
+    "nb_competences": {
+      "min": 6.0,
+      "max": 10.0
+    },
+    "competency_coverage_rate": {
+      "min": 0.5,
+      "max": 0.833
+    },
+    "nb_formations_completed": {
+      "min": 0.0,
+      "max": 11.0
+    },
+    "nb_formations_in_progress": {
+      "min": 0.0,
+      "max": 4.0
+    },
+    "taux_assiduite": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "nb_besoins_exprimes": {
+      "min": 0.0,
+      "max": 10.0
+    },
+    "nb_besoins_approuves": {
+      "min": 0.0,
+      "max": 5.0
+    },
+    "avg_eval_score": {
+      "min": 2.122,
+      "max": 3.553
+    },
+    "nb_evaluations": {
+      "min": 4.0,
+      "max": 27.0
+    },
+    "months_since_last_training": {
+      "min": 0.0,
+      "max": 13.0
+    },
+    "engagement_score": {
+      "min": 0.028,
+      "max": 1.0
+    }
+  },
+  "decision": "challenger-non-promu-candidate",
+  "notes": "Challenger XGBoost (e150/d2/lr0.05) entraîné sur le corpus de simulation documenté (10 920 lignes, seed 42, re-mesures M+3 observées). Overlay de démonstration uniquement — JAMAIS présenté comme production sur données réelles. Le serving réel reste gap_predictor_temporal.joblib (v1.1.0 ACTIVE, 217 lignes réelles)."
+}

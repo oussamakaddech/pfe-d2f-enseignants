@@ -4,7 +4,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
@@ -19,11 +18,14 @@ import tn.esprit.d2f.dto.BesoinFormationRequest;
 import tn.esprit.d2f.dto.BesoinFormationResponse;
 import tn.esprit.d2f.entity.BesoinFormation;
 import tn.esprit.d2f.entity.Notification;
+import tn.esprit.d2f.entity.enumerations.CreatorRole;
 import tn.esprit.d2f.entity.enumerations.PeriodCode;
 import tn.esprit.d2f.entity.enumerations.Priorite;
 import tn.esprit.d2f.entity.enumerations.TypeBesoin;
 import tn.esprit.d2f.exception.ResourceNotFoundException;
 import tn.esprit.d2f.mapper.BesoinFormationMapper;
+import tn.esprit.d2f.repository.BesoinApprovalHistoryRepository;
+import tn.esprit.d2f.repository.BesoinCompetenceRepository;
 import tn.esprit.d2f.repository.BesoinFormationRepository;
 import tn.esprit.d2f.repository.NotificationRepository;
 
@@ -33,6 +35,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -49,8 +53,21 @@ class BesoinFormationServiceImplCoverageTest {
     private BesoinFormationEventPublisher eventPublisher;
     @Mock
     private NotificationRepository notificationRepository;
+    @Mock
+    private ReviewerScopeService reviewerScopeService;
+    @Mock
+    private BesoinApprovalHistoryRepository historyRepository;
+    @Mock
+    private BesoinCompetenceRepository besoinCompetenceRepository;
+    /** Notification e-mail D2F (ajout/modification par CUP ou chef). */
+    @Mock
+    private BesoinFormationMailNotifier mailNotifier;
 
     private final BesoinFormationMapper besoinFormationMapper = new BesoinFormationMapper();
+
+    /** Périmètre ADMIN de l'utilisateur de test (test-admin). */
+    private static final ReviewerScopeService.ResolvedScope ADMIN_SCOPE =
+            new ReviewerScopeService.ResolvedScope("test-admin", "test-admin", CreatorRole.ADMIN, null, null, true);
 
     private BesoinFormationServiceImpl service;
 
@@ -60,7 +77,11 @@ class BesoinFormationServiceImplCoverageTest {
                 besoinFormationRepository,
                 eventPublisher,
                 notificationRepository,
-                besoinFormationMapper
+                besoinFormationMapper,
+                reviewerScopeService,
+                historyRepository,
+                besoinCompetenceRepository,
+                mailNotifier
         );
         // Provide an ADMIN security context for service methods that read SecurityContextHolder
         SecurityContextHolder.getContext().setAuthentication(
@@ -202,13 +223,11 @@ class BesoinFormationServiceImplCoverageTest {
 
         service.modifyBesoinFormation(request);
 
-        // Only CUP refusal notification (not admin approval)
-        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository, times(1)).save(captor.capture());
-        Notification savedNotif = captor.getValue();
-        assertEquals("testuser", savedNotif.getUsername());
-        assertTrue(savedNotif.getMessage().contains("refusée"));
-        assertEquals("Reason for refusal", savedNotif.getCommentaire());
+        // Workflow sécurisé : les flags d'approbation reçus via PUT /modify sont
+        // ignorés (décisions via /approve et /reject uniquement) — les
+        // notifications de refus/acceptation partent uniquement si l'entité
+        // était déjà dans cet état.
+        verify(notificationRepository, never()).save(any(Notification.class));
     }
 
     @Test
@@ -230,13 +249,8 @@ class BesoinFormationServiceImplCoverageTest {
 
         service.modifyBesoinFormation(request);
 
-        // Only admin approval notification
-        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository, times(1)).save(captor.capture());
-        Notification savedNotif = captor.getValue();
-        assertEquals("testuser", savedNotif.getUsername());
-        assertTrue(savedNotif.getMessage().contains("acceptée"));
-        assertEquals("Approved", savedNotif.getCommentaire());
+        // Workflow sécurisé : flags ignorés sur /modify → pas de notification.
+        verify(notificationRepository, never()).save(any(Notification.class));
     }
 
     @Test
@@ -281,7 +295,7 @@ class BesoinFormationServiceImplCoverageTest {
 
     @Test
     void approuverBesoin_whenNotFound_shouldThrow() {
-        when(besoinFormationRepository.findById(999L)).thenReturn(Optional.empty());
+        when(besoinFormationRepository.findByIdForUpdate(999L)).thenReturn(Optional.empty());
 
         // Service now throws ResourceNotFoundException (→ HTTP 404) instead of IllegalArgumentException
         // Exception is thrown before SecurityContextHolder is accessed, so no auth setup needed
@@ -307,7 +321,8 @@ class BesoinFormationServiceImplCoverageTest {
         besoin.setNbMaxParticipants(20);
         besoin.setDureeFormation(10);
 
-        when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
+        when(besoinFormationRepository.findByIdForUpdate(id)).thenReturn(Optional.of(besoin));
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(besoin);
 
         BesoinFormationResponse result = service.approuverBesoin(id);
@@ -336,7 +351,8 @@ class BesoinFormationServiceImplCoverageTest {
         besoin.setNbMaxParticipants(20);
         besoin.setDureeFormation(10);
 
-        when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
+        when(besoinFormationRepository.findByIdForUpdate(id)).thenReturn(Optional.of(besoin));
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(besoin);
 
         BesoinFormationResponse result = service.approuverBesoin(id);
@@ -363,7 +379,8 @@ class BesoinFormationServiceImplCoverageTest {
         besoin.setNbMaxParticipants(20);
         besoin.setDureeFormation(10);
 
-        when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
+        when(besoinFormationRepository.findByIdForUpdate(id)).thenReturn(Optional.of(besoin));
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(besoin);
 
         BesoinFormationResponse result = service.approuverBesoin(id);
@@ -380,7 +397,8 @@ class BesoinFormationServiceImplCoverageTest {
     @Test
     void retrieveAllBesoinFormations_emptyPage_shouldReturnEmptyPage() {
         Pageable pageable = PageRequest.of(0, 10);
-        when(besoinFormationRepository.findAll(pageable)).thenReturn(Page.empty());
+        when(besoinFormationRepository.findByStatusNotIn(anyCollection(), eq(pageable))).thenReturn(Page.empty());
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
 
         Page<BesoinFormationResponse> result = service.retrieveAllBesoinFormations(pageable);
 
@@ -407,7 +425,8 @@ class BesoinFormationServiceImplCoverageTest {
         b2.setDureeFormation(10);
         Page<BesoinFormation> page = new PageImpl<>(java.util.List.of(b1, b2));
 
-        when(besoinFormationRepository.findAll(pageable)).thenReturn(page);
+        when(besoinFormationRepository.findByStatusNotIn(anyCollection(), eq(pageable))).thenReturn(page);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
 
         Page<BesoinFormationResponse> result = service.retrieveAllBesoinFormations(pageable);
 
@@ -469,9 +488,9 @@ class BesoinFormationServiceImplCoverageTest {
 
         service.modifyBesoinFormation(request);
 
-        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository, times(1)).save(captor.capture());
-        assertNull(captor.getValue().getCommentaire());
+        // Workflow sécurisé : flags ignorés sur /modify (refus via /reject)
+        // → aucune notification, même avec un commentaire null.
+        verify(notificationRepository, never()).save(any(Notification.class));
     }
 
     // ──────────────────────────────────────────────
@@ -488,6 +507,7 @@ class BesoinFormationServiceImplCoverageTest {
         b.setDureeFormation(5);
         Page<BesoinFormation> page = new PageImpl<>(Collections.singletonList(b));
 
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.findByApprouveAdminTrue(pageable)).thenReturn(page);
 
         Page<BesoinFormationResponse> result = service.retrieveApprovedBesoinFormations(pageable);
@@ -510,6 +530,7 @@ class BesoinFormationServiceImplCoverageTest {
         b.setDureeFormation(5);
         Page<BesoinFormation> page = new PageImpl<>(Collections.singletonList(b));
 
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.findByUp("UP1", pageable)).thenReturn(page);
 
         Page<BesoinFormationResponse> result = service.retrieveByUp("UP1", pageable);
@@ -532,6 +553,7 @@ class BesoinFormationServiceImplCoverageTest {
         b.setDureeFormation(5);
         Page<BesoinFormation> page = new PageImpl<>(Collections.singletonList(b));
 
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.findByDepartement("DEP1", pageable)).thenReturn(page);
 
         Page<BesoinFormationResponse> result = service.retrieveByDepartement("DEP1", pageable);

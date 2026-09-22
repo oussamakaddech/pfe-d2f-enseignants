@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import ContainerDependency, resolve_user_teacher
+from app.api.v1.model_meta import build_model_meta
 from app.core.envelope import ok, ok_page
 from app.core.pagination import PageMeta
 from app.core.security import CurrentUser, require_roles
@@ -59,7 +60,7 @@ def list_alerts(
         total=total,
         pages=ceil(total / size) if total else 0,
     )
-    extras: dict = {"total_matching": total}
+    extras: dict = {"total_matching": total, **build_model_meta(container)}
     if severity_open is not None:
         extras["severity_open"] = severity_open
     return ok_page(

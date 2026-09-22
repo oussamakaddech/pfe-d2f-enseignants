@@ -250,48 +250,71 @@ class DashboardEngine:
         return result[:10]
 
     # ── KPI 3 : Enseignants à risque ─────────────────────────
-    def enseignants_a_risque(self, seuil: float = 0.50) -> list[dict]:
-        rows = (
-            self.db.query(TeacherRiskProfile)
-            .filter(TeacherRiskProfile.score_risque >= seuil)
-            .order_by(TeacherRiskProfile.score_risque.desc())
-            .limit(20)
-            .all()
-        )
+    # Dernier instantané de risque par enseignant.
+    #
+    # La table ``teacher_risk_profiles`` n'est alimentée que par le chemin
+    # d'analyse historique et le planificateur : une analyse lancée depuis la
+    # fiche enseignant (architecture DDD) écrit uniquement dans
+    # ``teacher_risk_snapshots``. Lire les profils faisait donc diverger le
+    # tableau de bord de la fiche enseignant — un même enseignant pouvait y être
+    # CRITIQUE et absent d'ici. On lit désormais la même source que la fiche.
+    _DERNIER_RISQUE_SQL = """
+        SELECT DISTINCT ON (enseignant_id)
+               enseignant_id, score_risque, niveau_risque, tendance
+        FROM "analyse".teacher_risk_snapshots
+        ORDER BY enseignant_id, snapshot_date DESC, computed_at DESC
+    """
+
+    def enseignants_a_risque(self, seuil: float = 0.50, limite: int = 200) -> list[dict]:
+        derniers = self.db.execute(text(self._DERNIER_RISQUE_SQL)).fetchall()
+        rows = sorted(
+            (r for r in derniers if float(r[1] or 0) >= seuil),
+            key=lambda r: float(r[1] or 0),
+            reverse=True,
+        )[:limite]
         if not rows:
             return []
-        ids = [r.enseignant_id for r in rows]
+        ids = [r[0] for r in rows]
+        # Nombre d'écarts critiques par enseignant : absent de l'instantané, il
+        # est dérivé des écarts réellement persistés par la même analyse.
+        crit_rows = self.db.execute(
+            text(
+                'SELECT enseignant_id, COUNT(*) FROM "analyse".skill_gaps '
+                "WHERE enseignant_id = ANY(:ids) AND niveau_urgence = 'CRITIQUE' "
+                "GROUP BY enseignant_id"
+            ),
+            {"ids": ids},
+        ).fetchall()
+        nb_critiques = {str(r[0]): int(r[1]) for r in crit_rows}
         # Import tardif : évite un cycle d'import engine ↔ router au chargement.
         from app.routers.all import _build_signals_from_factors, _fetch_teacher_info
         info = _fetch_teacher_info(self.db, ids)
 
         result: list[dict] = []
         for r in rows:
-            # ``facteurs_risque`` est persisté comme un dict
-            # {"factors": {...}, "contributions": {...}, "weights": {...}} par le
-            # pipeline (analytics._upsert_risk_profile). L'ancien test
-            # ``isinstance(list)`` renvoyait donc toujours [] — bug corrigé ici en
-            # dérivant les signaux depuis le dict, comme les autres dashboards.
-            factors = r.facteurs_risque if isinstance(r.facteurs_risque, dict) else {}
-            factor_details = factors.get("factors", {})
-            signals = _build_signals_from_factors(
-                factor_details.get("no_training", 0),
-                factor_details.get("stagnation", 0),
-                r.nb_gaps_critiques or 0,
-                factor_details.get("unmet_needs", 0),
-            )
-            t_info = info.get(r.enseignant_id, {})
-            teacher_name = t_info.get("teacher_name", r.enseignant_id)
+            enseignant_id = str(r[0])
+            t_info = info.get(enseignant_id)
+            # Identifiants d'analyse sans enseignant correspondant (données
+            # historiques orphelines) : ni nom, ni département, ni UP. Les
+            # afficher polluerait le tableau sans permettre d'agir.
+            if t_info is None:
+                continue
+            nb_crit = nb_critiques.get(enseignant_id, 0)
+            # L'instantané ne porte pas le détail des facteurs ; seul le nombre
+            # d'écarts critiques est connu de façon fiable. Les autres signaux
+            # restent à zéro plutôt que d'être inventés.
+            signals = _build_signals_from_factors(0, 0, nb_crit, 0)
+            teacher_name = t_info.get("teacher_name") or enseignant_id
             result.append({
-                "enseignant_id":     r.enseignant_id,
+                "enseignant_id":     enseignant_id,
                 "teacher_name":      teacher_name,
                 "nom":               teacher_name,
                 "departement":       t_info.get("department"),
                 "up":                t_info.get("up"),
-                "score_risque":      float(r.score_risque),
-                "niveau_risque":     r.niveau_risque,
-                "tendance":          r.tendance,
-                "nb_gaps_critiques": r.nb_gaps_critiques,
+                "score_risque":      float(r[1] or 0),
+                "niveau_risque":     r[2],
+                "tendance":          r[3],
+                "nb_gaps_critiques": nb_crit,
                 "facteurs_risque":   signals,
             })
         return result
@@ -627,9 +650,13 @@ class DashboardEngine:
     # ── KPI 10 : Performance du modèle ───────────────────────
     def model_performance(self) -> dict[str, Any]:
         """Accuracy du modèle de gap + dernier ré-entraînement (spec §4)."""
-        from app.services.model_trainer import read_current_accuracy
+        from app.services.model_trainer import read_served_model_metrics
 
-        gap_accuracy = read_current_accuracy()
+        served = read_served_model_metrics()
+        # « Précision » affichée = part des prédictions à moins d'UN niveau de
+        # la cible, pas le R². Le R² reste exposé sous son propre nom : il
+        # mesure la variance expliquee, jamais un taux de bonnes reponses.
+        gap_accuracy = served.get("accuracy_pm10")
 
         # Indice de pertinence des recommandations : proba de réussite moyenne
         # des recommandations récentes (proxy faute de vérité terrain).
@@ -659,9 +686,25 @@ class DashboardEngine:
         if gap_accuracy is None and last_log and last_log.accuracy_after is not None:
             gap_accuracy = float(last_log.accuracy_after)
 
+        def _round(value: Any, digits: int = 3) -> Any:
+            return round(float(value), digits) if value is not None else None
+
         return {
-            "gap_model_accuracy":       round(float(gap_accuracy), 3) if gap_accuracy is not None else None,
-            "recommendation_avg_proba": round(float(reco_proba), 3) if reco_proba is not None else None,
+            "gap_model_accuracy":       _round(gap_accuracy),
+            # Metrique effectivement portee par gap_model_accuracy : le
+            # consommateur sait ce qu'il affiche au lieu de le supposer.
+            "gap_model_accuracy_metric": "accuracy_pm10" if served.get("accuracy_pm10") is not None else None,
+            "gap_model_accuracy_pm05":  _round(served.get("accuracy_pm05")),
+            "gap_model_accuracy_pm10":  _round(served.get("accuracy_pm10")),
+            "gap_model_r2":             _round(served.get("r2"), 4),
+            "gap_model_rmse":           _round(served.get("rmse"), 4),
+            "gap_model_mae":            _round(served.get("mae"), 4),
+            "gap_model_name":           served.get("model_name"),
+            "gap_model_version":        served.get("model_version"),
+            "gap_model_algorithm":      served.get("algorithm"),
+            "gap_model_features_count": served.get("n_features"),
+            "gap_model_target_validity": served.get("target_validity"),
+            "recommendation_avg_proba": _round(reco_proba),
             "last_retrained":           last_log.retrained_at.isoformat() if last_log and last_log.retrained_at else None,
             "last_retrain_status":      last_log.statut if last_log else None,
         }
@@ -714,15 +757,37 @@ class DashboardEngine:
         return nb_profils, score_risque_moyen, distribution_risques
 
     def _taux_couverture_global(self) -> float:
-        cov = (
-            self.db.query(
-                func.count(TeacherCompetenceCoverage.id),
-                func.sum(func.cast(TeacherCompetenceCoverage.covered, Integer)),
-            ).first()
-        )
-        total_cov = int(cov[0] or 0)
-        couverts = int(cov[1] or 0)
-        return round(couverts / total_cov * 100, 1) if total_cov else 0.0
+        """Couverture réelle : part des enseignants actifs ayant au moins une
+        compétence affectée (source `competence.enseignant_competences`).
+
+        L'ancienne implémentation lisait la table dénormalisée
+        `analyse.teacher_competence_coverage`, qui n'est plus recalculée par le
+        pipeline (dernier snapshot 2026-07-30) et affichait donc une couverture
+        fausse (1.3%) alors que la couverture réelle est totale (100%). On
+        s'aligne désormais sur le calcul du dashboard réel
+        (`app/api/v1/dashboard_real.py`, COVERAGE_SQL).
+        """
+        try:
+            row = self.db.execute(
+                text(
+                    """
+                    SELECT
+                      COUNT(DISTINCT e.id) AS nb_enseignants,
+                      COUNT(DISTINCT CASE WHEN ec.id IS NOT NULL THEN e.id END) AS avec_competences
+                    FROM formation.enseignants e
+                    LEFT JOIN competence.enseignant_competences ec ON ec.enseignant_id = e.id
+                    WHERE e.deleted_at IS NULL
+                    """
+                )
+            ).mappings().first()
+        except SQLAlchemyError as exc:  # pragma: no cover - log + repli 0
+            logging.getLogger(__name__).error(
+                "calcul couverture globale impossible", error=str(exc)
+            )
+            return 0.0
+        nb = int(row["nb_enseignants"] or 0)
+        avec_comp = int(row["avec_competences"] or 0)
+        return round(avec_comp / nb * 100, 1) if nb else 0.0
 
     def real_kpis(self) -> dict[str, Any]:
         nb_suivis = self._count_suivis()

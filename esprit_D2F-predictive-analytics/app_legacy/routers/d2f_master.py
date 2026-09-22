@@ -86,7 +86,7 @@ def load_master_data() -> dict[str, pd.DataFrame]:
 
 def load_kpis() -> dict[str, Any]:
     """Load dashboard KPIs from exports."""
-    with open(EXPORTS_DIR / "dashboard_kpis.json") as f:
+    with open(EXPORTS_DIR / "dashboard_kpis.json", encoding="utf-8") as f:
         return json.load(f)
 
 

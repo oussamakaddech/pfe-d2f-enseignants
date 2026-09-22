@@ -1,0 +1,53 @@
+{
+  "serving_status": {
+    "model_mode": "DEMO_ML",
+    "model_version": "demo-gap-synthetic-v1.0.0",
+    "training_rows": 664,
+    "synthetic_share_pct": 100.0,
+    "institutional_verified": false,
+    "warning": "Résultats de démonstration uniquement."
+  },
+  "registry_entry": {
+    "model_name": "gap_predictor_temporal",
+    "model_version": "demo-gap-synthetic-v1.0.0",
+    "dataset_version": "synthetic-v1.0.0",
+    "data_origin": "SYNTHETIC",
+    "is_synthetic": true,
+    "institutional_verified": false,
+    "status": "DEMO_ONLY",
+    "approval_status": "PENDING",
+    "artifact_sha256": "09228ab2e99cd8fa450c63385b62eb657b4eb50bd84261dc4c5428fc5e99499e",
+    "dataset_hash": "f56dd8c49005734a7df33b66a4777528164ede06759745c34b7fe64a30d0e4ec",
+    "metrics": {
+      "training_time_ms": 219.02,
+      "inference_time_ms": 1.18,
+      "rmse": 0.7706,
+      "mae": 0.4595,
+      "r2": 0.2958,
+      "median_absolute_error": 0.2449,
+      "max_absolute_error": 5.0,
+      "within_tolerance_accuracy_0.10": 0.3626,
+      "within_tolerance_accuracy_0.20": 0.4725,
+      "improvement_vs_persistence_pct": 31.2149
+    },
+    "training_rows": 664,
+    "synthetic_share_pct": 100.0,
+    "notes": "Modèle de démonstration entraîné sur données 100 % synthétiques. Jamais utilisable comme modèle institutionnel validé."
+  },
+  "artifact_integrity": {
+    "ok": true,
+    "error": null
+  },
+  "promotion_guard": {
+    "expected": "PRODUCTION_ML refusé (DemoPromotionRefused attendu)",
+    "production_promotion_refused": true,
+    "no_automatic_promotion": true
+  },
+  "production_unchanged": {
+    "model_registry_hash_same": true,
+    "artifact_v1.0.0_hash_same": true,
+    "model_registry_sha256": "74f3355302a369dd01cdd8b2b9f1e625e421e6d2140ac65d673d7975f2921eec",
+    "artifact_v1.0.0_sha256": "6bbb396c1e28087deeeb402ecf856388510f54a08895dae5415132b08fb35bbe"
+  },
+  "warning": "Le modèle démo est servi en DEMO_ML uniquement. PRODUCTION_ML reste réservé aux modèles validés institutionnellement."
+}

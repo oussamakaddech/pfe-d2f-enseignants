@@ -44,6 +44,7 @@ class ComprehensiveControllersTest {
 
     @Mock private FormationCompetenceService fcService;
     @Mock private FormationClosureService fCustomService;
+    @Mock private CertificateEligibilityService certificateEligibilityService;
     @Mock private OutlookMailService mailService;
     @Mock private ParticipantKpiService pkpiService;
     @Mock private EnseignantService ensService;
@@ -129,7 +130,8 @@ class ComprehensiveControllersTest {
                 .setControllerAdvice(exceptionHandler)
                 .build();
         mockMvcInsc = MockMvcBuilders.standaloneSetup(inscController)
-                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver(),
+                        new org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver())
                 .setMessageConverters(new ByteArrayHttpMessageConverter(), new StringHttpMessageConverter(), converter)
                 .setControllerAdvice(exceptionHandler)
                 .build();

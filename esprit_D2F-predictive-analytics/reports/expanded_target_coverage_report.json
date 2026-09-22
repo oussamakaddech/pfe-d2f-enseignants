@@ -1,0 +1,8 @@
+{
+  "statut": "AUCUNE_AUGMENTATION",
+  "message": "Aucune augmentation réelle possible sans nouvelles données métier.",
+  "generated_at": "2026-08-20T02:20:15.845737+00:00",
+  "lignes_avec_cible_reelle": 0,
+  "lignes_sans_cible": 172,
+  "explication": "La base ne contient qu'une seule ligne par paire (enseignant, savoir) dans competence.enseignant_competences (0 paire dupliquée). Aucune observation de niveau n'existe à ref_month + 3 mois pour quelconque observation : la cible gap_next_3m observée est donc incalculable. Le corpus actuel v1.0.0/v1.1.0 a calculé cette cible par extrapolation de tendance (cur_t + rolling), ce qui est interdit."
+}

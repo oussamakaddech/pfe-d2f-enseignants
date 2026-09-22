@@ -1,6 +1,8 @@
 {
-  "model_name": "gradient_boosting",
-  "trained_at": "2026-08-06T03:44:59.524764",
+  "model_name": "gap_predictor_temporal",
+  "algorithm": "gradient_boosting",
+  "model_version": "v1.2.0-gb",
+  "trained_at": "2026-09-17T23:27:43.535808",
   "n_features": 29,
   "feature_cols": [
     "current_level_t3",
@@ -33,18 +35,19 @@
     "months_since_last_training",
     "engagement_score"
   ],
-  "n_samples": 107,
-  "n_train": 86,
-  "n_test": 21,
+  "feature_schema_version": "1.0",
+  "n_samples": 217,
+  "n_train": 174,
+  "n_test": 43,
   "data_sources": {
-    "synthetic": 0,
-    "real_db": 107,
-    "combined": 107,
-    "real_weight_applied": 1,
-    "synthetic_included": false,
+    "total_rows": 217,
+    "real_rows": 217,
+    "synthetic_rows": 0,
+    "synthetic_share_pct": 0.0,
     "real_share_pct": 100.0,
-    "synthetic_share_pct": 0.0
+    "dataset_version": "v1.1.0"
   },
+  "dataset_version": "v1.1.0",
   "hyperparameters": {
     "random_state": 42,
     "cv": {
@@ -54,7 +57,7 @@
       "random_state": 42
     },
     "split": {
-      "type": "temporal_ordered_no_shuffle",
+      "type": "temporal_strict_cutoff_2026-07-22",
       "train_frac": 0.8,
       "test_frac": 0.2
     },
@@ -80,6 +83,35 @@
         "tol": 0.0001,
         "validation_fraction": 0.1,
         "verbose": 0,
+        "warm_start": false
+      },
+      "mlp": {
+        "activation": "relu",
+        "alpha": 0.01,
+        "batch_size": "auto",
+        "beta_1": 0.9,
+        "beta_2": 0.999,
+        "early_stopping": true,
+        "epsilon": 1e-08,
+        "hidden_layer_sizes": [
+          32,
+          16
+        ],
+        "learning_rate": "constant",
+        "learning_rate_init": 0.001,
+        "loss": "squared_error",
+        "max_fun": 15000,
+        "max_iter": 400,
+        "momentum": 0.9,
+        "n_iter_no_change": 20,
+        "nesterovs_momentum": true,
+        "power_t": 0.5,
+        "random_state": 42,
+        "shuffle": true,
+        "solver": "adam",
+        "tol": 0.0001,
+        "validation_fraction": 0.1,
+        "verbose": false,
         "warm_start": false
       },
       "xgboost": {
@@ -127,58 +159,70 @@
   },
   "cv_folds": 5,
   "split": {
-    "type": "temporal_strict_cutoff_2026-07-22",
-    "note": "corpus dote de date_t (generate_corpus_from_db.py) : split temporel strict au quantile 80% des dates d'acquisition ; fallback sequentiel si date_t absente"
+    "type": "temporal_strict_cutoff_2026-07-22"
   },
   "candidate_cv_scores": {
-    "gradient_boosting": 0.8689,
-    "xgboost": 0.8689
+    "gradient_boosting": 1.2558,
+    "mlp": 1.2294,
+    "xgboost": 1.2912
   },
   "metrics": {
-    "test_r2": 0.6582,
-    "test_rmse": 0.7426,
-    "test_mae": 0.4692,
-    "baseline_rmse": 2.852,
-    "baseline_mae": 2.4484,
-    "lift_rmse": 2.1094,
+    "test_r2": 0.2458,
+    "test_rmse": 1.214,
+    "test_mae": 1.1082,
+    "baseline_rmse": 1.221,
+    "baseline_mae": 1.1601,
+    "lift_rmse": 0.007,
     "lift_rmse_ci95": [
-      1.3237,
-      2.8088
+      -0.1267,
+      0.1344
     ],
-    "lift_ci95_method": "bootstrap 1000 replicas on test sample (n=21), percentile 2.5-97.5",
-    "lift_significant_95": true
+    "lift_ci95_method": "bootstrap 1000 replicas on test sample (n=43), percentile 2.5-97.5, baseline=extrapolation_rule",
+    "lift_significant_95": false,
+    "rmse_mlp_reference": 1.2319,
+    "mae_mlp_reference": 1.1556,
+    "r2_mlp_reference": 0.2234,
+    "delta_rmse_ic95_lo": -0.1243,
+    "delta_rmse_ic95_hi": 0.1087,
+    "baseline_name": "extrapolation_rule",
+    "baseline_selection_rule": "RMSE la plus basse parmi les baselines légitimes",
+    "baselines": {
+      "extrapolation_rule": {
+        "rmse": 1.221,
+        "mae": 1.1601,
+        "legitimate": true,
+        "required_level_calibrated_on_train": 3.95
+      },
+      "train_mean": {
+        "rmse": 1.4727,
+        "mae": 1.286,
+        "legitimate": true
+      },
+      "train_median": {
+        "rmse": 1.4041,
+        "mae": 1.1395,
+        "legitimate": true
+      },
+      "persistence_proxy": {
+        "rmse": 2.4949,
+        "mae": 2.0911,
+        "legitimate": false,
+        "zero_share": 0.7674,
+        "note": "dégénérée : nulle sur 77% du holdout — écartée du calcul du lift"
+      }
+    },
+    "lift_legacy_persistence_proxy": {
+      "baseline_rmse": 2.4949,
+      "lift_rmse": 1.2629,
+      "note": "baseline dégénérée (nulle sur 77 % du holdout) — chiffre conservé pour la traçabilité, jamais pour annoncer un gain",
+      "lift_rmse_ci95": [
+        0.9606,
+        1.5527
+      ],
+      "lift_significant_95": true
+    }
   },
-  "feature_importances": {
-    "current_level_t3": 0.023997,
-    "current_level_t2": 0.020226,
-    "current_level_t1": 0.003937,
-    "current_level_t": 0.283852,
-    "lag_gap_t3_t2": 0.026901,
-    "lag_gap_t2_t1": 0.02142,
-    "lag_gap_t1_t": 0.056388,
-    "rolling_tendance": 0.117792,
-    "days_since_last_training": 0.024212,
-    "training_frequency_per_month": 0.012093,
-    "is_long_absent": 0.004227,
-    "is_stagnant": 0.0,
-    "avg_level": 0.063936,
-    "min_level": 0.063305,
-    "max_level": 0.044724,
-    "nb_level_5": 0.0,
-    "nb_level_1": 0.032622,
-    "nb_savoirs": 0.028291,
-    "nb_competences": 0.05365,
-    "competency_coverage_rate": 0.047064,
-    "nb_formations_completed": 0.006837,
-    "nb_formations_in_progress": 0.0,
-    "taux_assiduite": 0.006283,
-    "nb_besoins_exprimes": 0.0,
-    "nb_besoins_approuves": 0.0,
-    "avg_eval_score": 0.002942,
-    "nb_evaluations": 0.004077,
-    "months_since_last_training": 0.023901,
-    "engagement_score": 0.027323
-  },
+  "feature_importances": {},
   "feature_ranges": {
     "current_level_t3": {
       "min": 1.0,
@@ -194,31 +238,31 @@
     },
     "current_level_t": {
       "min": 1.0,
-      "max": 4.0
+      "max": 5.0
     },
     "lag_gap_t3_t2": {
-      "min": -2.0,
+      "min": -1.0,
       "max": 2.0
     },
     "lag_gap_t2_t1": {
       "min": -2.0,
-      "max": 2.0
+      "max": 3.0
     },
     "lag_gap_t1_t": {
-      "min": -3.0,
-      "max": 2.0
+      "min": -4.0,
+      "max": 4.0
     },
     "rolling_tendance": {
-      "min": -1.0,
-      "max": 0.6666666666666666
+      "min": -1.3333333333333333,
+      "max": 1.0
     },
     "days_since_last_training": {
-      "min": 1.0,
-      "max": 365.0
+      "min": 53.0,
+      "max": 2661.0
     },
     "training_frequency_per_month": {
       "min": 0.0,
-      "max": 3.0
+      "max": 0.4918032786885246
     },
     "is_long_absent": {
       "min": 0.0,
@@ -226,15 +270,15 @@
     },
     "is_stagnant": {
       "min": 0.0,
-      "max": 0.0
+      "max": 1.0
     },
     "avg_level": {
       "min": 1.0,
-      "max": 4.5
+      "max": 5.0
     },
     "min_level": {
       "min": 1.0,
-      "max": 4.0
+      "max": 5.0
     },
     "max_level": {
       "min": 1.0,
@@ -242,35 +286,35 @@
     },
     "nb_level_5": {
       "min": 0.0,
-      "max": 1.0
+      "max": 2.0
     },
     "nb_level_1": {
       "min": 0.0,
       "max": 4.0
     },
     "nb_savoirs": {
-      "min": 2.0,
+      "min": 1.0,
       "max": 6.0
     },
     "nb_competences": {
       "min": 2.0,
-      "max": 6.0
+      "max": 9.0
     },
     "competency_coverage_rate": {
-      "min": 0.3333333333333333,
+      "min": 0.1666666666666666,
       "max": 1.0
     },
     "nb_formations_completed": {
       "min": 0.0,
-      "max": 3.0
+      "max": 2.0
     },
     "nb_formations_in_progress": {
       "min": 0.0,
-      "max": 0.0
+      "max": 4.0
     },
     "taux_assiduite": {
       "min": 0.0,
-      "max": 0.9411764705882352
+      "max": 1.0
     },
     "nb_besoins_exprimes": {
       "min": 0.0,
@@ -289,14 +333,18 @@
       "max": 3.0
     },
     "months_since_last_training": {
-      "min": 0.0328515111695138,
-      "max": 11.990801576872537
+      "min": 1.7411300919842312,
+      "max": 87.41787122207622
     },
     "engagement_score": {
       "min": 0.0,
-      "max": 21.245098039215687
+      "max": 20.5
     }
   },
   "decision": "accept",
-  "notes": "Corrigé par audit DSI : corpus exclusivement réel (training_corpus_from_db.csv), split temporel strict sur date_t (quantile 80%), KFold pour régression, seed 42. Le synthétique random.randint n'est pas utilisé (EXCLUDE_SYNTHETIC=True). Lift documenté avec IC 95% par bootstrap (1000 réplicas) sur l'échantillon de test."
+  "target_validity": "EXTRAPOLATED_TARGET",
+  "target_validity_note": "Cibles extrapolées de la tendance (aucune re-mesure réelle après l'horizon de 3 mois au moment de l'entraînement).",
+  "real_future_observation_count": 217,
+  "distinct_observation_months": null,
+  "notes": "Gradient Boosting v1.2.0-gb PROMU ACTIVE (decision projet, preuve multi-datasets). Protocole : corpus servi 217 lignes (100% real), split 174/43 (ordre fichier, canonique), parite prod (XGBoost exclu), normalisation min-max capturee sur train, seed 42, sidecar SHA-256. Test GB : RMSE 1.2140 / MAE 1.1082 / R2 0.2458 (vs MLP 1.2319/1.1556/0.2234 ; delta IC95 [-0.1243, 0.1087] non significatif, documente). Rollback : v1.1.0 (gap_predictor_temporal_v111.joblib, APPROVED/ARCHIVED)."
 }

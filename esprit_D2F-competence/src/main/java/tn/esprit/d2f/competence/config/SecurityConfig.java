@@ -1,5 +1,6 @@
 package tn.esprit.d2f.competence.config;
 
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,14 +44,30 @@ public class SecurityConfig {
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_CUP = "CUP";
     private static final String ROLE_ENSEIGNANT = "ENSEIGNANT";
-    private static final String ROLE_FORMATEUR = "FORMATEUR";
-    // ANIMATEUR = rôle canonique D2F (équivalent FORMATEUR). Doit accompagner
-    // FORMATEUR partout pour ne pas priver les comptes animateurs d'accès.
     private static final String ROLE_ANIMATEUR = "ANIMATEUR";
     private static final String ROLE_CHEF_DEPARTEMENT = "CHEF_DEPARTEMENT";
 
     @Value("${jwt.secret}")
     private String jwtSecret;
+
+    private static final int MIN_JWT_SECRET_LENGTH = 64;
+
+    @PostConstruct
+    void validateJwtSecret() {
+        if (jwtSecret == null || jwtSecret.isBlank()) {
+            throw new IllegalStateException(
+                "JWT_SECRET est obligatoire et doit etre injecte via variable d'environnement.");
+        }
+        if (jwtSecret.length() < MIN_JWT_SECRET_LENGTH) {
+            throw new IllegalStateException(
+                "JWT_SECRET trop court (" + jwtSecret.length() + " chars). Minimum requis : "
+                    + MIN_JWT_SECRET_LENGTH + " caracteres pour HS512.");
+        }
+        if (jwtSecret.contains("CHANGE_ME") || jwtSecret.contains("change-me")) {
+            throw new IllegalStateException(
+                "JWT_SECRET contient un placeholder (CHANGE_ME). Configurer une valeur reelle en environnement.");
+        }
+    }
 
     @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
     private String allowedOriginsRaw;
@@ -73,14 +90,14 @@ public class SecurityConfig {
                         ).permitAll()
                         // Lecture : tous les rôles
                         .requestMatchers(HttpMethod.GET, API_PATTERN)
-                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR, ROLE_ANIMATEUR, ROLE_CHEF_DEPARTEMENT)
-                        // Création / modification : admin, CUP, Enseignant, Formateur/Animateur
+                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_ANIMATEUR, ROLE_CHEF_DEPARTEMENT)
+                        // Création / modification : admin, CUP, Enseignant, Animateur
                         .requestMatchers(HttpMethod.POST, API_PATTERN)
-                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR, ROLE_ANIMATEUR)
+                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_ANIMATEUR)
                         .requestMatchers(HttpMethod.PUT, API_PATTERN)
-                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR, ROLE_ANIMATEUR)
+                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_ANIMATEUR)
                         .requestMatchers(HttpMethod.PATCH, API_PATTERN)
-                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR, ROLE_ANIMATEUR)
+                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_ANIMATEUR)
                         // Suppression : admin uniquement (COMPETENCE_DELETE = ROLE_ADMIN dans AuthorizationMatrix)
                         .requestMatchers(HttpMethod.DELETE, API_PATTERN)
                             .hasRole(ROLE_ADMIN)

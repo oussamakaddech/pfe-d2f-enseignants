@@ -156,11 +156,53 @@ class EnseignantServiceImplTest {
         assertEquals("Y", result.getChefDepartement());
     }
 
+@Test
+    void testUpdateEnseignant_ResolvesUpByLibelle() {
+        Enseignant existing = new Enseignant();
+        existing.setId("E00100");
+
+        // Le front envoie le libellé dans le champ id ("Génie Civil" au lieu de UP_GC).
+        Up incoming = new Up();
+        incoming.setId("Genie Civil");
+        Up managed = new Up();
+        managed.setId("UP_GC");
+        managed.setLibelle("Genie Civil");
+
+        when(repository.findById("E00100")).thenReturn(Optional.of(existing));
+        when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(upRepository.findById("Genie Civil")).thenReturn(Optional.empty());
+        when(upRepository.findByLibelleIgnoreCase("Genie Civil")).thenReturn(Optional.of(managed));
+
+        Enseignant updated = new Enseignant();
+        updated.setUp(incoming);
+        Enseignant result = service.updateEnseignant("E00100", updated);
+
+        assertNotNull(result.getUp());
+        assertEquals("UP_GC", result.getUp().getId());
+    }
+
+    @Test
+    void testUpdateEnseignant_UpLibelleInexistantLance400() {
+        Enseignant existing = new Enseignant();
+        existing.setId("E00100");
+
+        Up incoming = new Up();
+        incoming.setLibelle("Introuvable");
+
+        when(repository.findById("E00100")).thenReturn(Optional.of(existing));
+        when(upRepository.findByLibelleIgnoreCase("Introuvable")).thenReturn(Optional.empty());
+
+        Enseignant updated = new Enseignant();
+        updated.setUp(incoming);
+        assertThrows(IllegalArgumentException.class,
+                () -> service.updateEnseignant("E00100", updated));
+    }
     @Test
     void testUpdateEnseignant_NotFound() {
         when(repository.findById("1")).thenReturn(Optional.empty());
         Enseignant enseignant = new Enseignant();
-        assertThrows(IllegalStateException.class, () -> service.updateEnseignant("1", enseignant));
+        // Fiche inexistante ou soft-deleted → 404 (EntityNotFoundException), pas 400.
+        assertThrows(EntityNotFoundException.class, () -> service.updateEnseignant("1", enseignant));
     }
 
     @Test

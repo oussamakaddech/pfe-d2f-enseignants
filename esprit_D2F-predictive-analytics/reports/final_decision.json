@@ -1,0 +1,37 @@
+{
+  "title": "Décision finale — validation ML du service",
+  "generated_at": "2026-08-20T15:09:40.121363+00:00",
+  "decision": {
+    "GAP_production": "ACTIVE / PRODUCTION_ML",
+    "GAP_v110": "NOT_PROMOTED",
+    "BEST_DEMO_MODEL": "mlp",
+    "RISQUE_ML": "NOT_AVAILABLE",
+    "RISQUE_heuristique": "KEEP_AS_BASELINE",
+    "RANKING": "KEEP_AS_BASELINE",
+    "DASHBOARD_scope_GLOBAL": "FIXED (200, tests OK)",
+    "PIPELINE": "VALIDATED",
+    "SERVING": "PRODUCTION_ML",
+    "DOCKER": "L'image Docker se construit, démarre, expose le modèle ML en PRODUCTION_ML et protège ses routes par JWT.",
+    "TESTS": "315 passed / 0 failed",
+    "DATASET_PRODUCTION": "VALIDÉ",
+    "DATASET_DEMO": "VALIDÉ",
+    "FEATURES": "VALIDÉ (29, anti-fuite, source_time<=ref_month)"
+  },
+  "decision_finale": "VALIDÉ",
+  "reserves": [
+    "Enrichir le corpus production (107/172 lignes → IC95 larges).",
+    "Réaliser la validation QA DSI en environnement dédié (recette, runbook).",
+    "Ne jamais présenter les métriques du pipeline démo comme des performances ESPRIT (DEMO_ML)."
+  ],
+  "sources": {
+    "tests": "reports/final_test_results.json",
+    "production_registry": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\models\\model_registry.json",
+    "demo_registry": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\models\\demo\\model_registry_demo.json",
+    "model_choice": "reports/final_model_choice.json",
+    "service_validation": "reports/final_service_validation.json",
+    "docker_validation": "reports/final_docker_validation.json",
+    "dataset_production": "reports/final_production_dataset_validation.json",
+    "dataset_demo": "reports/final_demo_dataset_validation.json",
+    "features": "reports/final_feature_validation.json"
+  }
+}

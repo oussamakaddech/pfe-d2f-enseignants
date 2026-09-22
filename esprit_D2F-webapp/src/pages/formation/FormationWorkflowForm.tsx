@@ -159,14 +159,20 @@ export default function FormationWorkflowForm({
           <CompetenciesStep
             compDomaines={wf.compDomaines}
             compCompetences={wf.compCompetences}
-            selectedCompLinks={wf.selectedCompLinks}
-            setSelectedCompLinks={wf.setSelectedCompLinks}
-            rowSavoirs={wf.rowSavoirs}
+            compRows={wf.compRows}
+            savoirsByCompetence={wf.savoirsByCompetence}
+            sousCompetencesByCompetence={wf.sousCompetencesByCompetence}
+            savoirsBySousCompetence={wf.savoirsBySousCompetence}
             compSearch={wf.compSearch}
             setCompSearch={wf.setCompSearch}
-            handleCompetenceSelect={wf.handleCompetenceSelect}
-            handleSavoirSelect={wf.handleSavoirSelect}
-            handleRemoveCompetenceLink={wf.handleRemoveCompetenceLink}
+            addCompRow={wf.addCompRow}
+            removeCompRow={wf.removeCompRow}
+            handleRowDomaineChange={wf.handleRowDomaineChange}
+            handleRowCompetencesChange={wf.handleRowCompetencesChange}
+            handleRowSousCompetencesChange={wf.handleRowSousCompetencesChange}
+            handleRowSavoirsChange={wf.handleRowSavoirsChange}
+            getRowSousCompetenceOptions={wf.getRowSousCompetenceOptions}
+            getRowSavoirOptions={wf.getRowSavoirOptions}
             getCompetenceOptions={wf.getCompetenceOptions}
           />
         );

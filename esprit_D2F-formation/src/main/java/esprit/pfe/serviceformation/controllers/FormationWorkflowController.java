@@ -3,6 +3,7 @@ package esprit.pfe.serviceformation.controllers;
 import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.services.CurrentUser;
 import esprit.pfe.serviceformation.services.ExportExcelService;
 import esprit.pfe.serviceformation.services.FormationService;
 import esprit.pfe.serviceformation.services.FormationWorkflowService;
@@ -76,6 +77,10 @@ public class FormationWorkflowController {
         } catch (IllegalArgumentException e) {
             log.error("Argument invalide lors de la creation de la formation : {}", e.getMessage());
             return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, e.getMessage()));
+        } catch (esprit.pfe.serviceformation.exception.AccessDeniedException e) {
+            // Périmètre CUP/chef : 403 métier (pas 500).
+            log.warn("Accès refusé lors de la creation de la formation : {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
             log.error("Erreur interne lors de la creation de la formation : ", e);
             String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
@@ -104,6 +109,10 @@ public class FormationWorkflowController {
         } catch (IllegalArgumentException e) {
             log.error("Argument invalide lors de la mise a jour de la formation {} : {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, e.getMessage()));
+        } catch (esprit.pfe.serviceformation.exception.AccessDeniedException e) {
+            // Périmètre CUP/chef : 403 métier (pas 500).
+            log.warn("Accès refusé lors de la mise a jour de la formation {} : {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
             log.error("Erreur interne lors de la mise a jour de la formation {} : ", id, e);
             String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
@@ -119,6 +128,10 @@ public class FormationWorkflowController {
             return ResponseEntity.ok("Formation supprimee avec succes !");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(KEY_ERROR, e.getMessage()));
+        } catch (esprit.pfe.serviceformation.exception.AccessDeniedException e) {
+            // Périmètre CUP/chef : 403 métier (pas 500).
+            log.warn("Accès refusé lors de la suppression de la formation {} : {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
             log.error("Erreur interne lors de la suppression de la formation {} : ", id, e);
             String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
@@ -136,6 +149,10 @@ public class FormationWorkflowController {
         } catch (IllegalArgumentException e) {
             log.warn("Formation introuvable : {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, e.getMessage()));
+        } catch (esprit.pfe.serviceformation.exception.AccessDeniedException e) {
+            // Périmètre CUP/chef : 403 métier (pas 500).
+            log.warn("Accès refusé lors de la recuperation de la formation {} : {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
             log.error("Erreur interne lors de la recuperation de la formation {} : ", id, e);
             String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
@@ -152,6 +169,13 @@ public class FormationWorkflowController {
             int from = (int) pageable.getOffset();
             int to = Math.min(from + pageable.getPageSize(), dtos.size());
             return ResponseEntity.ok(new PageImpl<>(from >= dtos.size() ? List.of() : dtos.subList(from, to), pageable, dtos.size()));
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            log.warn("Acces refuse lors de la recuperation des formations : {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(KEY_ERROR, e.getMessage()));
+        } catch (esprit.pfe.serviceformation.exception.AccessDeniedException e) {
+            // Périmètre CUP/chef (ex. non résolu) : 403 métier (pas 500).
+            log.warn("Acces refuse lors de la recuperation des formations : {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
             log.error("Erreur interne lors de la recuperation de toutes les formations : ", e);
             String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
@@ -160,11 +184,15 @@ public class FormationWorkflowController {
     }
 
     @PutMapping("/presence/{id}")
-    @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
-    public ResponseEntity<Object> updatePresence(@PathVariable Long id, @RequestParam boolean present, @RequestParam String commentaire) {
+    @PreAuthorize(AuthorizationMatrix.PRESENCE_MARK)
+    public ResponseEntity<Object> updatePresence(@PathVariable Long id, @RequestParam boolean present,
+                                                 @RequestParam String commentaire,
+                                                 @AuthenticationPrincipal Jwt jwt) {
         try {
-            formationWorkflowService.updatePresence(id, present, commentaire);
+            formationWorkflowService.updatePresence(id, present, commentaire, CurrentUser.fromJwt(jwt));
             return ResponseEntity.ok("Presence mise a jour avec succes !");
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, e.getMessage()));
         }
@@ -216,12 +244,15 @@ public class FormationWorkflowController {
     }
 
     @PutMapping("/seances/{seanceId}/presences/batch")
-    @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
+    @PreAuthorize(AuthorizationMatrix.PRESENCE_MARK)
     public ResponseEntity<Object> batchUpdatePresences(@PathVariable("seanceId") Long seanceId,
-                                                       @RequestBody BatchPresenceUpdateRequest request) {
+                                                       @RequestBody BatchPresenceUpdateRequest request,
+                                                       @AuthenticationPrincipal Jwt jwt) {
         try {
-            List<PresenceDTO> updated = formationWorkflowService.batchUpdatePresences(seanceId, request);
+            List<PresenceDTO> updated = formationWorkflowService.batchUpdatePresences(seanceId, request, CurrentUser.fromJwt(jwt));
             return ResponseEntity.ok(updated);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
@@ -232,12 +263,15 @@ public class FormationWorkflowController {
     }
 
     @PutMapping("/seances/{seanceId}/presences/mark-all")
-    @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
+    @PreAuthorize(AuthorizationMatrix.PRESENCE_MARK)
     public ResponseEntity<Object> markAllPresences(@PathVariable("seanceId") Long seanceId,
-                                                   @RequestParam("present") boolean present) {
+                                                   @RequestParam("present") boolean present,
+                                                   @AuthenticationPrincipal Jwt jwt) {
         try {
-            List<PresenceDTO> updated = formationWorkflowService.markAllPresences(seanceId, present);
+            List<PresenceDTO> updated = formationWorkflowService.markAllPresences(seanceId, present, CurrentUser.fromJwt(jwt));
             return ResponseEntity.ok(updated);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
@@ -280,6 +314,13 @@ public class FormationWorkflowController {
             int from = (int) pageable.getOffset();
             int to = Math.min(from + pageable.getPageSize(), achevees.size());
             return ResponseEntity.ok(new PageImpl<>(from >= achevees.size() ? List.of() : achevees.subList(from, to), pageable, achevees.size()));
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            log.warn("Acces refuse lors de la recuperation des formations achevees : {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(KEY_ERROR, e.getMessage()));
+        } catch (esprit.pfe.serviceformation.exception.AccessDeniedException e) {
+            // Périmètre CUP/chef : 403 métier (pas 500).
+            log.warn("Acces refuse lors de la recuperation des formations achevees : {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
             log.error("Erreur lors de la recuperation des formations achevees : ", e);
             String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
@@ -297,9 +338,26 @@ public class FormationWorkflowController {
         return ResponseEntity.ok(new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size()));
     }
 
+    /**
+     * Calendrier d'un enseignant. Anti-énumération : un non-admin ne peut
+     * consulter que SON calendrier — l'id fourni doit correspondre à
+     * l'identité du JWT (résolution complète id/username/email via le service,
+     * cf. FormationWorkflowService.isSelfCalendar).
+     */
     @GetMapping("/enseignants/{id}/calendar")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
-    public ResponseEntity<FormationsByRoleDTO> getCalendarFormations(@PathVariable("id") String enseignantId) {
+    public ResponseEntity<FormationsByRoleDTO> getCalendarFormations(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable("id") String enseignantId) {
+        if (jwt != null) {
+            CurrentUser user = CurrentUser.fromJwt(jwt);
+            boolean isSelf = formationWorkflowService.isSelfCalendar(enseignantId, user);
+            boolean canViewOther = user.isAdmin() || user.hasGlobalScope() || user.isDepartmentScoped();
+            if (!isSelf && !canViewOther) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "Vous ne pouvez consulter que votre propre calendrier.");
+            }
+        }
         FormationsByRoleDTO dto = formationWorkflowService.getFormationsForCalendar(enseignantId);
         return ResponseEntity.ok(dto);
     }
@@ -340,5 +398,38 @@ public class FormationWorkflowController {
         int from = (int) pageable.getOffset();
         int to = Math.min(from + pageable.getPageSize(), all.size());
         return ResponseEntity.ok(new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size()));
+    }
+
+    /**
+     * Catalogue scopé serveur (§8 droits) : un CUP ne voit que les formations
+     * de son UP, un chef de département celles de son département. Le périmètre
+     * est résolu depuis le JWT côté serveur — non falsifiable par le client.
+     */
+    @GetMapping("/mes-formations-pilote")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    public ResponseEntity<Object> getMesFormationsPilote(
+            @AuthenticationPrincipal Jwt jwt,
+            @PageableDefault(size = 20, sort = "idFormation") Pageable pageable) {
+        try {
+            List<FormationResponseDTO> all = formationWorkflowService
+                    .getMesFormationsPilote(CurrentUser.fromJwt(jwt));
+            int from = (int) pageable.getOffset();
+            int to = Math.min(from + pageable.getPageSize(), all.size());
+            return ResponseEntity.ok(new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size()));
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            log.warn("Acces refuse lors de la recuperation des mes formations pilote : {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(KEY_ERROR, e.getMessage()));
+        } catch (esprit.pfe.serviceformation.exception.AccessDeniedException e) {
+            // Périmètre CUP/chef (ex. non résolu) : 403 métier (pas 500).
+            log.warn("Acces refuse lors de la recuperation des mes formations pilote : {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(KEY_ERROR, e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            log.warn("Erreur metier lors de la recuperation des mes formations pilote : {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, e.getMessage()));
+        } catch (Exception e) {
+            log.error("Erreur interne lors de la recuperation des mes formations pilote : ", e);
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, errorMsg));
+        }
     }
 }

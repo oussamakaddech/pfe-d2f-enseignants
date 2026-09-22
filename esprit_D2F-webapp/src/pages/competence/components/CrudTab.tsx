@@ -24,6 +24,9 @@ interface CrudTabProps<T extends object = Record<string, unknown>> {
   tableProps?: Partial<TableProps<T>>;
   searchable?: boolean;
   searchPlaceholder?: string;
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 export default function CrudTab<T extends object = Record<string, unknown>>({
@@ -38,6 +41,9 @@ export default function CrudTab<T extends object = Record<string, unknown>>({
   tableProps = undefined,
   searchable = true,
   searchPlaceholder = 'Rechercher...',
+  canCreate = true,
+  canEdit = true,
+  canDelete = true,
 }: Readonly<CrudTabProps<T>>) {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);
@@ -94,37 +100,43 @@ export default function CrudTab<T extends object = Record<string, unknown>>({
     <div>
       {/* ── Barre d'outils ─────────────────────────────────────────────── */}
       <Space style={{ marginBottom: 16, width: '100%' }} wrap>
-        <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
-          {addLabel}
-        </Button>
+        {canCreate && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
+            {addLabel}
+          </Button>
+        )}
 
-        <Button
-          icon={selectionMode ? <CloseOutlined /> : <CheckSquareOutlined />}
-          onClick={toggleSelectionMode}
-          type={selectionMode ? 'default' : 'dashed'}
-        >
-          {selectionMode ? 'Annuler la sélection' : 'Sélectionner'}
-        </Button>
+        {(canEdit || canDelete) && (
+          <Button
+            icon={selectionMode ? <CloseOutlined /> : <CheckSquareOutlined />}
+            onClick={toggleSelectionMode}
+            type={selectionMode ? 'default' : 'dashed'}
+          >
+            {selectionMode ? 'Annuler la sélection' : 'Sélectionner'}
+          </Button>
+        )}
 
         {selectionMode && hasSelection && (
           <>
-            {selectedRowKeys.length === 1 && (
+            {selectedRowKeys.length === 1 && canEdit && (
               <Button icon={<EditOutlined />} onClick={handleBulkEdit}>
                 Modifier
               </Button>
             )}
-            <Popconfirm
-              title={`Supprimer ${selectedRowKeys.length} élément(s) ?`}
-              description="Cette action est irréversible."
-              okText="Oui, supprimer"
-              cancelText="Non"
-              okButtonProps={{ danger: true }}
-              onConfirm={handleBulkDelete}
-            >
-              <Button danger icon={<DeleteOutlined />}>
-                Supprimer ({selectedRowKeys.length})
-              </Button>
-            </Popconfirm>
+            {canDelete && (
+              <Popconfirm
+                title={`Supprimer ${selectedRowKeys.length} élément(s) ?`}
+                description="Cette action est irréversible."
+                okText="Oui, supprimer"
+                cancelText="Non"
+                okButtonProps={{ danger: true }}
+                onConfirm={handleBulkDelete}
+              >
+                <Button danger icon={<DeleteOutlined />}>
+                  Supprimer ({selectedRowKeys.length})
+                </Button>
+              </Popconfirm>
+            )}
           </>
         )}
 
@@ -172,31 +184,43 @@ export default function CrudTab<T extends object = Record<string, unknown>>({
         dataSource={filteredData}
         columns={[
           ...columns,
-          {
-            title: 'Actions',
-            key: 'actions',
-            width: 120,
-            render: (_: unknown, record: T) => (
-              <Space>
-                <Tooltip title="Modifier">
-                  <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(record)} />
-                </Tooltip>
-                <Tooltip title="Supprimer">
-                  <Popconfirm
-                    title="Confirmer la suppression ?"
-                    okText="Oui"
-                    cancelText="Non"
-                    onConfirm={() => {
-                      const id = (record as { id?: Id }).id;
-                      if (id != null) onDelete(id);
-                    }}
-                  >
-                    <Button size="small" danger icon={<DeleteOutlined />} />
-                  </Popconfirm>
-                </Tooltip>
-              </Space>
-            ),
-          },
+          ...(canEdit || canDelete
+            ? [
+                {
+                  title: 'Actions',
+                  key: 'actions',
+                  width: 120,
+                  render: (_: unknown, record: T) => (
+                    <Space>
+                      {canEdit && (
+                        <Tooltip title="Modifier">
+                          <Button
+                            size="small"
+                            icon={<EditOutlined />}
+                            onClick={() => onEdit(record)}
+                          />
+                        </Tooltip>
+                      )}
+                      {canDelete && (
+                        <Tooltip title="Supprimer">
+                          <Popconfirm
+                            title="Confirmer la suppression ?"
+                            okText="Oui"
+                            cancelText="Non"
+                            onConfirm={() => {
+                              const id = (record as { id?: Id }).id;
+                              if (id != null) onDelete(id);
+                            }}
+                          >
+                            <Button size="small" danger icon={<DeleteOutlined />} />
+                          </Popconfirm>
+                        </Tooltip>
+                      )}
+                    </Space>
+                  ),
+                },
+              ]
+            : []),
         ]}
         rowKey="id"
         rowSelection={rowSelection}

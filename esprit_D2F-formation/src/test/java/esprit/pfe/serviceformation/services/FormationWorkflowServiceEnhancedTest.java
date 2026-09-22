@@ -62,11 +62,16 @@ class FormationWorkflowServiceEnhancedTest {
     @InjectMocks
     private FormationWorkflowService formationWorkflowService;
 
+    /** Utilisateur à portée globale : contourne le contrôle row-level présences. */
+    private static final CurrentUser ADMIN_USER =
+            new CurrentUser("admin", "1", "admin@esprit.tn", Set.of("ADMIN"));
+
     private FormationWorkflowRequest request;
 
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(formationWorkflowService, "formationMapper", formationMapper);
+        ReflectionTestUtils.setField(formationWorkflowService, "d2fNotificationEmail", "d2f@esprit.tn");
 
         request = new FormationWorkflowRequest();
         request.setTitreFormation("Formation Test");
@@ -307,7 +312,7 @@ class FormationWorkflowServiceEnhancedTest {
         presence.setIdParticipation(1L);
         lenient().when(presenceRepository.findById(1L)).thenReturn(Optional.of(presence));
 
-        formationWorkflowService.updatePresence(1L, true, "OK");
+        formationWorkflowService.updatePresence(1L, true, "OK", ADMIN_USER);
 
         assertThat(presence.isPresent()).isTrue();
         assertThat(presence.getCommentaire()).isEqualTo("OK");
@@ -318,7 +323,7 @@ class FormationWorkflowServiceEnhancedTest {
     void shouldFailUpdatePresenceNotFound() {
         when(presenceRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> formationWorkflowService.updatePresence(999L, true, "OK"));
+        assertThrows(IllegalArgumentException.class, () -> formationWorkflowService.updatePresence(999L, true, "OK", ADMIN_USER));
     }
 
     @Test
@@ -545,7 +550,7 @@ class FormationWorkflowServiceEnhancedTest {
         formationWorkflowService.removeFormationCalendar(formation);
 
         verify(outlookCalendarService).deleteEventInCalendar(any(), eq("event123"));
-        verify(outlookMailService, times(2)).sendMail(any(), anyString(), anyString());
+        verify(outlookMailService, times(1)).sendMail(eq("e1@esprit.tn"), anyString(), anyString());
     }
 
     @Test

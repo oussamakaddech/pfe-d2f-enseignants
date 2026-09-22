@@ -37,6 +37,8 @@ import {
   BankOutlined,
 } from '@ant-design/icons';
 import { useAllAccounts } from '@/hooks/formation/useFormations';
+import { useAllUps } from '@/hooks/formation/useUpCrud';
+import { useAllDepts } from '@/hooks/formation/useDeptCrud';
 import {
   useBanAccount,
   useEnableAccount,
@@ -203,21 +205,30 @@ export default function UnifiedAdministrationPage() {
   const [editTeacherLoading, setEditTeacherLoading] = useState(false);
   const [editTeacherForm] = Form.useForm();
 
-  const ups = useMemo(() => {
-    const set = new Set<string>();
-    teachers.forEach((t) => {
-      if (t.upLibelle) set.add(t.upLibelle);
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [teachers]);
+  /* Référentiels UP / départements (ids réels) pour le modal d'édition :
+   * les options doivent porter les ids, pas les libellés, sinon le back
+   * répond 400 (resolveUp/resolveDept). */
+  const { data: referentialUps = [] } = useAllUps();
+  const { data: referentialDepts = [] } = useAllDepts();
+  const ups = useMemo(
+    () =>
+      (referentialUps as { id?: string | number; libelle?: string; name?: string }[]).map((u) => ({
+        id: String(u.id ?? ''),
+        libelle: String(u.libelle ?? u.name ?? u.id ?? ''),
+      })),
+    [referentialUps],
+  );
 
-  const depts = useMemo(() => {
-    const set = new Set<string>();
-    teachers.forEach((t) => {
-      if (t.deptLibelle) set.add(t.deptLibelle);
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [teachers]);
+  const depts = useMemo(
+    () =>
+      (referentialDepts as { id?: string | number; libelle?: string; name?: string }[]).map(
+        (d) => ({
+          id: String(d.id ?? ''),
+          libelle: String(d.libelle ?? d.name ?? d.id ?? ''),
+        }),
+      ),
+    [referentialDepts],
+  );
 
   /* ── Normalize accounts ── */
   useEffect(() => {
@@ -494,10 +505,21 @@ export default function UnifiedAdministrationPage() {
   /* ── Teacher actions ── */
   const openEditTeacher = (record: UnifiedRow) => {
     setEditingTeacher(record);
+    // Normalise upId/deptId vers les ids du référentiel : une valeur
+    // résiduelle (libellé) est convertie si possible, sinon laissée vide
+    // plutôt qu'envoyée telle quelle (400 côté back).
+    const toRefId = (options: { id: string; libelle: string }[], raw: unknown) => {
+      if (raw == null || raw === '') return undefined;
+      const s = String(raw);
+      if (options.some((o) => o.id === s)) return s;
+      return options.find((o) => o.libelle === s)?.id;
+    };
+    const rawUpId = record.upId ?? (record.up as { id: Id })?.id;
+    const rawDeptId = record.deptId ?? (record.dept as { id: Id })?.id;
     editTeacherForm.setFieldsValue({
       ...record,
-      upId: record.upId ?? (record.up as { id: Id })?.id,
-      deptId: record.deptId ?? (record.dept as { id: Id })?.id,
+      upId: toRefId(ups, rawUpId),
+      deptId: toRefId(depts, rawDeptId),
     });
     setEditTeacherModalOpen(true);
   };
@@ -527,6 +549,14 @@ export default function UnifiedAdministrationPage() {
       await queryClient.invalidateQueries({ queryKey: ['enseignants'] });
       setEditTeacherModalOpen(false);
       setEditingTeacher(null);
+      msgApi.success('Fiche enseignant mise à jour');
+    } catch (err: unknown) {
+      // Ex : 404 si la fiche a été supprimée entre-temps (ligne périmée du
+      // cache) — on affiche le message serveur au lieu d'une rejection non
+      // capturée, et on rafraîchit la liste pour évacuer la ligne fantôme.
+      const e = err as { response?: { data?: { message?: string } } };
+      msgApi.error(e?.response?.data?.message || 'Erreur de modification');
+      await queryClient.invalidateQueries({ queryKey: ['enseignants'] });
     } finally {
       setEditTeacherLoading(false);
     }
@@ -1243,8 +1273,8 @@ export default function UnifiedAdministrationPage() {
         record={editingTeacher as unknown as Record<string, unknown>}
         confirmLoading={editTeacherLoading}
         form={editTeacherForm}
-        ups={ups.map((u) => ({ id: u, libelle: u }))}
-        depts={depts.map((d) => ({ id: d, libelle: d }))}
+        ups={ups}
+        depts={depts}
         onOk={handleEditTeacherSave}
         onCancel={() => {
           setEditTeacherModalOpen(false);

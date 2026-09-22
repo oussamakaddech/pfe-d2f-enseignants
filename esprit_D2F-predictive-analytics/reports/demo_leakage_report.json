@@ -1,0 +1,97 @@
+{
+  "leakage_checks": {
+    "gap_next_3m_in_X": false,
+    "future_gap_in_X": false,
+    "future_observation_in_X": false,
+    "future_evaluation_in_X": false,
+    "future_attendance_in_X": false,
+    "current_observation_in_X": false,
+    "knowledge_difficulty_level_in_X": false
+  },
+  "feature_names_in_X": [
+    "current_level_t3",
+    "current_level_t2",
+    "current_level_t1",
+    "current_level_t",
+    "lag_gap_t3_t2",
+    "lag_gap_t2_t1",
+    "lag_gap_t1_t",
+    "rolling_tendance",
+    "days_since_last_training",
+    "training_frequency_per_month",
+    "is_long_absent",
+    "is_stagnant",
+    "avg_level",
+    "min_level",
+    "max_level",
+    "nb_level_5",
+    "nb_level_1",
+    "nb_savoirs",
+    "nb_competences",
+    "competency_coverage_rate",
+    "nb_formations_completed",
+    "nb_formations_in_progress",
+    "taux_assiduite",
+    "nb_besoins_exprimes",
+    "nb_besoins_approuves",
+    "avg_eval_score",
+    "nb_evaluations",
+    "months_since_last_training",
+    "engagement_score"
+  ],
+  "forbidden_in_X": [
+    "current_observation",
+    "future_attendance",
+    "future_evaluation",
+    "future_gap",
+    "future_level_ref",
+    "future_level_t3",
+    "future_observation",
+    "gap_next_3m",
+    "knowledge_difficulty_level",
+    "required_level",
+    "required_level_t"
+  ],
+  "forbidden_columns_present_in_dataset": [
+    "current_observation",
+    "gap_next_3m",
+    "knowledge_difficulty_level",
+    "required_level"
+  ],
+  "source_time_leq_ref_month": true,
+  "split": {
+    "train_rows": 664,
+    "validation_rows": 154,
+    "test_rows": 182,
+    "train_months": [
+      "2025-01",
+      "2025-02",
+      "2025-03",
+      "2025-04",
+      "2025-05",
+      "2025-06",
+      "2025-07",
+      "2025-08",
+      "2025-09",
+      "2025-10",
+      "2025-11",
+      "2025-12"
+    ],
+    "validation_months": [
+      "2026-01",
+      "2026-02",
+      "2026-03"
+    ],
+    "test_months": [
+      "2026-04",
+      "2026-05",
+      "2026-06"
+    ],
+    "max_train_lt_min_val": true,
+    "max_val_lt_min_test": true,
+    "shuffle_used": false
+  },
+  "feature_schema_hash": "ed7cb127d876709f03f410a11fc00811d999c2901761ad356c9f5f6efda2e053",
+  "dataset_hash": "f56dd8c49005734a7df33b66a4777528164ede06759745c34b7fe64a30d0e4ec",
+  "warning": "knowledge_difficulty_level décrit la difficulté pédagogique du savoir ; il n'est JAMAIS utilisé comme niveau de maîtrise de l'enseignant ni comme feature."
+}

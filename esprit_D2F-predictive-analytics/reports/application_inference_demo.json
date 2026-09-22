@@ -1,0 +1,35 @@
+{
+  "model_mode": "DEMO_ML",
+  "model_version": "demo-gap-synthetic-v1.0.0",
+  "training_origin": "SYNTHETIC",
+  "input_origin": "APPLICATION_DATA",
+  "institutional_verified": false,
+  "n_rows_tested": 107,
+  "prediction_stats": {
+    "mean": 4.658,
+    "std": 1.0594,
+    "min": 0.0,
+    "max": 5.0,
+    "q25": 5.0,
+    "median": 5.0,
+    "q75": 5.0
+  },
+  "validation": {
+    "schema_ok": true,
+    "missing_features_in_app": [],
+    "missing_features_in_synth": [],
+    "type_issues": [],
+    "range_issues": [],
+    "n_app_rows": 107
+  },
+  "domain_shift_summary": {
+    "method": "Wasserstein distance par feature (distribution synth vs application)",
+    "mean_wasserstein": 0.2486,
+    "interpretation": "shift faible (<0.2) : distributions proches ; shift élevé : les données application diffèrent du corpus d'entraînement synthétique — résultats à interpréter avec précaution (inférence de démonstration)."
+  },
+  "warnings": [
+    "Le modèle a été entraîné sur des données synthétiques.",
+    "Les prédictions sur données application sont une démonstration technique, PAS une validation institutionnelle."
+  ],
+  "warning": "Le modèle a été entraîné sur des données synthétiques."
+}

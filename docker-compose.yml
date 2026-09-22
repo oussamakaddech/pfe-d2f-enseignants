@@ -301,6 +301,25 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      # ── Mail : notification e-mail du D2F (ajout / modification d'un besoin) ──
+      # Parité service formation (mêmes variables MAIL_* que le bloc formation) :
+      # SMTP interne DSI, auth + STARTTLS obligatoires côté application, envoi
+      # asynchrone. MAIL_FROM = expéditeur, D2F_NOTIFICATION_EMAIL = destinataire.
+      MAIL_HOST: ${MAIL_HOST:-smtp.internal.dsi.local}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_FROM: ${MAIL_FROM:-${ADMIN_EMAIL:-application.formationdesformateurs@esprit.tn}}
+      D2F_NOTIFICATION_EMAIL: ${D2F_NOTIFICATION_EMAIL:-application.formationdesformateurs@esprit.tn}
+      # ── Azure AD / Microsoft Graph : canal d'envoi e-mail (parité formation) ──
+      # SMTP basic auth désactivé côté Office 365 → même mécanisme Graph que le
+      # service formation (client credentials, boîte Formationdesformateurs).
+      AZURE_AD_ENABLED: ${AZURE_AD_ENABLED:-false}
+      AZURE_AD_CLIENT_ID: ${AZURE_AD_CLIENT_ID:-}
+      AZURE_AD_CLIENT_SECRET: ${AZURE_AD_CLIENT_SECRET:-}
+      AZURE_AD_TENANT_ID: ${AZURE_AD_TENANT_ID:-}
+      AZURE_AD_GRAPH_SCOPE: ${AZURE_AD_GRAPH_SCOPE:-https://graph.microsoft.com/.default}
+      AZURE_AD_MAIL_USERNAME: ${AZURE_AD_MAIL_USERNAME:-Application.Formationdesformateurs@Esprit.tn}
     depends_on:
       postgres:
         condition: service_healthy
@@ -365,6 +384,9 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      # Clients Feign inter-services (placeholders services.*.url)
+      SERVICES_FORMATION_URL: http://d2f-formation:8088
+      SERVICES_AUTH_URL: http://d2f-auth:8085
     depends_on:
       postgres:
         condition: service_healthy
@@ -455,6 +477,8 @@ services:
       AUTH_SERVICE_URL: http://d2f-auth:8085
       # Organisateur de calendrier (DSI §1.1 — externalisé)
       FORMATION_ORGANIZER_EMAIL: ${FORMATION_ORGANIZER_EMAIL:-noreply@d2f.local}
+      # Boîte D2F destinataire des notifications admin (parité service besoin).
+      D2F_NOTIFICATION_EMAIL: ${D2F_NOTIFICATION_EMAIL:-application.formationdesformateurs@esprit.tn}
       # Mail SMTP interne DSI (obligatoire par défaut)
       MAIL_HOST: ${MAIL_HOST:-smtp.internal.dsi.local}
       MAIL_PORT: ${MAIL_PORT:-587}
@@ -478,7 +502,9 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      # Boot réel observé : ~120 s (Flyway + Hibernate). 60 s provoquait un
+      # « unhealthy » avant la fin du démarrage et bloquait analyse-service.
+      start_period: 240s
     networks:
       - d2f-network
 
@@ -497,9 +523,10 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       JWT_SECRET: ${JWT_SECRET}
-      # URLs des microservices appelés (clients REST)
-      AUTH_SERVICE_URL: http://d2f-auth:8085
-      CERTIFICAT_SERVICE_URL: http://d2f-certificat:8086
+      # URLs des microservices appelés (clients REST) — noms alignés sur
+      # application-prod.properties (SERVICES_*_URL), hôtes = noms compose.
+      SERVICES_AUTH_URL: http://d2f-auth:8085
+      SERVICES_CERTIFICAT_URL: http://d2f-certificat:8086
       SERVICES_EVALUATION_URL: http://d2f-evaluation:8087
       SERVICES_FORMATION_URL: http://d2f-formation:8088
       SERVICES_COMPETENCE_URL: http://d2f-competence:8005
@@ -605,6 +632,47 @@ services:
       MESSAGING_ENABLED: "false"
       CORS_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
       MODELS_DIR: /app/data/models
+      # ── Modes d'exécution ML ──────────────────────────────────────────────
+      # ML_SERVING_MODE est un PLAFOND : les controles peuvent refuser
+      # l'activation (HEURISTIC_FALLBACK) et la demande de l'operateur ne peut
+      # que BAISSER le mode, jamais l'elever.
+      # GOUVERNANCE 2026-09-22 (audit d'autorite 2.6) : defaut de deploiement
+      # PRODUCTION_ML avec OVERRIDE DECLARE sur le GB v1.2.0-gb (decision projet
+      # tracee au registre : acteur, date, justification ; mesure non
+      # significative conservee). Retrait de l'override : repasser a HEURISTIC.
+      ML_SERVING_MODE: ${ML_SERVING_MODE:-PRODUCTION_ML}
+      ML_REQUIRE_REAL_DATA: ${ML_REQUIRE_REAL_DATA:-true}
+      ML_SYNTHETIC_TOLERANCE_PCT: ${ML_SYNTHETIC_TOLERANCE_PCT:-50.0}
+      ML_MIN_REAL_ROWS: ${ML_MIN_REAL_ROWS:-50}
+      ML_MIN_R2: ${ML_MIN_R2:-0.0}
+      ML_MAX_RMSE: ${ML_MAX_RMSE:-2.0}
+      ML_MAX_MAE: ${ML_MAX_MAE:-1.5}
+      # Information de configuration de l'artefact monte. La version REELLEMENT
+      # servie n'est jamais lue ici : elle vient de l'entree de registre
+      # (audit d'autorite 2.4 — un ML_MODEL_VERSION errone induisait en erreur).
+      ML_MODEL_VERSION: ${ML_MODEL_VERSION:-v1.2.0-gb}
+      ML_ARTIFACT_PATH: ${ML_ARTIFACT_PATH:-gap_predictor_temporal.joblib}
+      # Artefact du module legacy, ALIGNE sur ML_ARTIFACT_PATH. Absent, il
+      # retombait sur le defaut `gap_predictor.joblib` : le conteneur servait
+      # DEUX modeles differents (DDD = gap_predictor_temporal 29 features
+      # v1.2.0-gb ; legacy = gap_predictor 21 features, R2 1.0 sur 80
+      # echantillons), et les KPI de performance exposaient ceux du second.
+      GAP_MODEL_FILE: ${GAP_MODEL_FILE:-gap_predictor_temporal.joblib}
+      ML_METADATA_PATH: ${ML_METADATA_PATH:-temporal_training_metadata.json}
+      ML_REGISTRY_PATH: ${ML_REGISTRY_PATH:-model_registry.json}
+      ML_FEATURE_SCHEMA_PATH: ${ML_FEATURE_SCHEMA_PATH:-feature_schema.json}
+      # Skew guard KS RÉACTIVÉ : le bruit structurel qui avait imposé sa
+      # désactivation est corrigé dans app/infrastructure/ml/skew_guard.py —
+      # l'unité d'observation est l'enseignant (les features globales ne sont
+      # plus comptées une fois par compétence) et les 29 tests simultanés
+      # passent par la correction de Holm. Mesuré sur le corpus servi :
+      # 47 % de fausses alertes avant, 0 % après, détection d'une dérive
+      # réelle (+0,5 niveau) maintenue à 100 %.
+      ML_SKEW_GUARD_ENABLED: ${ML_SKEW_GUARD_ENABLED:-true}
+    volumes:
+      # L'artefact est monté en lecture seule — il n'est jamais régénéré au
+      # démarrage du conteneur. La promotion/rollback est pilotée explicitement.
+      - ./esprit_D2F-predictive-analytics/data/models:/app/data/models:ro
     depends_on:
       predictive-db-migrate:
         condition: service_completed_successfully
@@ -628,6 +696,10 @@ services:
         VITE_API_URL: ${VITE_API_URL:-/api}
         VITE_NOTIFICATION_URL: ${VITE_NOTIFICATION_URL:-/api}
         VITE_NOTIFICATIONS_WS_URL: ${VITE_NOTIFICATIONS_WS_URL:-}
+        # RICE direct navigateur (dev) ou via gateway /api (prod, défaut) :
+        # RiceService tombe sur API_BASE_URL si vide.
+        VITE_RICE_URL: ${VITE_RICE_URL:-}
+        VITE_FORMATION_SERVICE_URL: ${VITE_FORMATION_SERVICE_URL:-}
     container_name: d2f-webapp
     restart: unless-stopped
     ports:

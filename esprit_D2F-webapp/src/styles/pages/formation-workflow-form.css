@@ -706,6 +706,7 @@
 
 .creation-competence-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: 12px;
   padding: 14px 16px;
@@ -738,6 +739,12 @@
 /* Chaque select dans une ligne compétence */
 .creation-comp-select {
   flex: 1;
+  min-width: 140px;
+}
+
+/* Colonne domaine (un peu plus étroite que les selects compétence/savoir) */
+.creation-comp-domain {
+  flex: 0 0 150px;
   min-width: 140px;
 }
 

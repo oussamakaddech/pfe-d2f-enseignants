@@ -1,4 +1,4 @@
-import type { ComponentType } from 'react';
+﻿import type { ComponentType } from 'react';
 import {
   CalendarOutlined,
   FileTextOutlined,
@@ -58,7 +58,7 @@ export const adminMenu: MenuItem[] = [
     children: [
       { label: 'Administration', key: '/home/administration', icon: SettingOutlined },
       { label: 'Structures (UP/Dépt)', key: '/home/UpDept', icon: ApartmentOutlined },
-      { label: 'Inscriptions', key: '/home/Inscriptions', icon: FileTextOutlined },
+      { label: 'Gestion Inscriptions', key: '/home/Inscriptions', icon: FileTextOutlined },
       { label: 'Gestion des Bureaux', key: '/home/bureaux', icon: BankOutlined },
     ],
   },
@@ -108,12 +108,8 @@ export const cupMenu: MenuItem[] = [
     label: 'FORMATIONS',
     children: [
       { label: 'Nouvelle Formation', key: '/home/Formation/Creer', icon: PlusCircleOutlined },
+      // DSI §: le calendrier (consultation + gestion) est retiré du périmètre CUP.
       { label: 'Catalogue', key: '/home/Formation/Consulter', icon: AppstoreOutlined },
-      {
-        label: 'Gestion Calendrier',
-        key: '/home/Formation/CalendrierGestion',
-        icon: ImportOutlined,
-      },
     ],
   },
   {
@@ -131,12 +127,19 @@ export const cupMenu: MenuItem[] = [
         ],
       },
       { label: 'Suivi des Affectations', key: '/home/affectations', icon: SolutionOutlined },
+      { label: 'Vue RICE', key: '/home/rice', icon: ClusterOutlined },
     ],
   },
   {
     type: 'group',
     label: 'SUIVI',
-    children: [{ label: 'Inscriptions', key: '/home/Inscriptions', icon: FileTextOutlined }],
+    children: [
+      { label: 'Gestion Inscriptions', key: '/home/Inscriptions', icon: FileTextOutlined },
+      // Parité spec CUP (« consulter les présences et les résultats des évaluations »)
+      // + AuthorizationMatrix.PRESENCE_MARK / EVALUATION_READ_CUP incluent ROLE_CUP.
+      { label: 'Présences', key: '/home/animateur-formations', icon: CheckSquareOutlined },
+      { label: 'Évaluations', key: '/home/Evaluations', icon: TrophyOutlined },
+    ],
   },
 ];
 
@@ -152,10 +155,11 @@ export const enseignantMenu: MenuItem[] = [
       { label: 'Déposer un Besoin', key: '/home/besoins/ajouter', icon: PlusCircleOutlined },
     ],
   },
+  { label: 'Calendrier Global', key: '/home/Calendrier', icon: CalendarOutlined },
   { label: 'Mes Présences', key: '/home/mes-presences', icon: EyeOutlined },
   { label: 'Présence & Évaluation', key: '/home/animateur-formations', icon: ReadOutlined },
   { label: 'Évaluations', key: '/home/Evaluations', icon: TrophyOutlined },
-  { label: 'Inscriptions', key: '/home/Inscriptions', icon: AppstoreOutlined },
+  { label: 'Gestion Inscriptions', key: '/home/Inscriptions', icon: AppstoreOutlined },
   { label: 'Mes Certificats', key: '/home/MyCertificate', icon: SafetyCertificateOutlined },
 ];
 
@@ -163,6 +167,8 @@ export const animateurMenu: MenuItem[] = [
   dashboardItem,
   { label: 'Mon espace', key: '/home/personal-dashboard', icon: HomeOutlined },
   { label: "Sessions d'Animation", key: '/home/animateur-formations', icon: ReadOutlined },
+  { label: 'Calendrier Global', key: '/home/Calendrier', icon: CalendarOutlined },
+  { label: 'Mes Présences', key: '/home/mes-presences', icon: EyeOutlined },
   { label: 'Évaluations', key: '/home/Evaluations', icon: TrophyOutlined },
   {
     label: 'Besoins de Formation',
@@ -173,12 +179,13 @@ export const animateurMenu: MenuItem[] = [
       { label: 'Déposer un Besoin', key: '/home/besoins/ajouter', icon: PlusCircleOutlined },
     ],
   },
-  { label: 'Inscriptions', key: '/home/Inscriptions', icon: AppstoreOutlined },
+  { label: 'Gestion Inscriptions', key: '/home/Inscriptions', icon: AppstoreOutlined },
   { label: 'Mes Certificats', key: '/home/MyCertificate', icon: SafetyCertificateOutlined },
 ];
 
 export const responsableDossierMenu: MenuItem[] = [
-  dashboardItem,
+  // Pas d'entrée « Tableau de bord » pour ce rôle (demande métier) : la page
+  // /home reste accessible par URL mais n'est plus exposée dans la navigation.
   { label: 'Catalogue Formations', key: '/home/Formation/Consulter', icon: AppstoreOutlined },
   { label: 'Gestion Documentaire', key: '/home/File', icon: FileTextOutlined },
 ];
@@ -190,13 +197,10 @@ export const chefDepartementMenu: MenuItem[] = [
     type: 'group',
     label: 'FORMATIONS',
     children: [
+      // Parité FORMATION_CREATE = ADMIN, CUP, CHEF_DEPARTEMENT (AuthorizationMatrix).
+      { label: 'Nouvelle Formation', key: '/home/Formation/Creer', icon: PlusCircleOutlined },
+      // DSI §: le calendrier (consultation + gestion) est retiré du périmètre chef.
       { label: 'Catalogue Formations', key: '/home/Formation/Consulter', icon: AppstoreOutlined },
-      { label: 'Calendrier Global', key: '/home/Calendrier', icon: CalendarOutlined },
-      {
-        label: 'Gestion Calendrier',
-        key: '/home/Formation/CalendrierGestion',
-        icon: ImportOutlined,
-      },
     ],
   },
   {
@@ -204,15 +208,27 @@ export const chefDepartementMenu: MenuItem[] = [
     label: 'COMPÉTENCES & BESOINS',
     children: [
       { label: 'Référentiel Compétences', key: '/home/competences', icon: BookOutlined },
-      { label: 'Besoins de Formation', key: '/home/besoins', icon: ReadOutlined },
+      { label: 'Affectations', key: '/home/affectations', icon: SolutionOutlined },
+      // Parité BESOIN_FORMATION_CREATE/READ_ALL : le chef consulte les besoins de
+      // son département et dépose aussi des besoins.
+      {
+        label: 'Besoins de Formation',
+        key: 'besoin_formation_menu',
+        icon: ReadOutlined,
+        children: [
+          { label: 'Liste des Demandes', key: '/home/besoins', icon: SearchOutlined },
+          { label: 'Déposer un Besoin', key: '/home/besoins/ajouter', icon: PlusCircleOutlined },
+        ],
+      },
+      { label: 'Vue RICE', key: '/home/rice', icon: ClusterOutlined },
     ],
   },
   {
     type: 'group',
-    label: 'DOCUMENTS & SUIVI',
+    label: 'SUIVI',
     children: [
-      { label: 'Dossiers de Formation', key: '/home/File', icon: FileTextOutlined },
-      { label: 'Inscriptions', key: '/home/Inscriptions', icon: AppstoreOutlined },
+      { label: 'Gestion Inscriptions', key: '/home/Inscriptions', icon: FileTextOutlined },
+      { label: 'Évaluations', key: '/home/Evaluations', icon: TrophyOutlined },
     ],
   },
 ];

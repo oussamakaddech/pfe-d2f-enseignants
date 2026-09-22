@@ -1,0 +1,31 @@
+id,code,titre_formation,domaine,type_formation,period_code,date_debut,date_fin,etat_formation,inscriptions_ouvertes,ouverte,charge_horaire_global,prerequis,population_cible
+1001,FOR-PED-01,Scénarisation pédagogique active,DOM01,HYBRIDE,WINTER,2026-09-15,2026-10-10,PLANIFIE,TRUE,TRUE,24,"Niveau 4 en COMP01",Enseignants
+1002,FOR-PED-02,Évaluation par compétences (LMS),DOM01,DISTANCIEL,WINTER,2026-09-22,2026-10-17,PLANIFIE,TRUE,TRUE,18,"Niveau 4 en COMP02",Enseignants
+1003,FOR-PED-03,"Classe inversée & numérique éducatif",DOM01,PRESENTIEL,WINTER,2026-10-06,2026-10-31,PLANIFIE,TRUE,TRUE,21,Aucun,Enseignants
+1004,FOR-PED-04,Scénariser un module hybride,DOM01,HYBRIDE,SPRINT,2026-11-10,2026-11-28,PLANIFIE,TRUE,TRUE,30,"Niveau 3 en COMP01","Enseignants & chargés TC"
+1005,FOR-PED-05,Grilles d'évaluation Moodle,DOM01,DISTANCIEL,SUMMER,2026-05-12,2026-06-06,ACHEVE,FALSE,FALSE,12,Aucun,Enseignants
+1006,FOR-PED-06,"Pédagogie active : les bases",DOM01,PRESENTIEL,WINTER,2026-01-13,2026-02-07,ACHEVE,FALSE,FALSE,21,Aucun,Enseignants
+1007,FOR-PED-07,Numérique éducatif,DOM01,DISTANCIEL,SUMMER,2026-06-16,2026-07-11,ACHEVE,FALSE,FALSE,15,Aucun,Enseignants
+1008,FOR-PED-08,Évaluation par compétences avancée,DOM01,HYBRIDE,SUMMER,2026-07-28,2026-09-19,EN_COURS,FALSE,TRUE,24,"Niveau 3 en COMP02",Enseignants
+1009,FOR-DEV-01,CI/CD Pipelines GitLab,DOM02,DISTANCIEL,WINTER,2026-09-29,2026-10-24,PLANIFIE,TRUE,TRUE,24,"Niveau 3 en COMP04","Enseignants Génie Logiciel"
+1010,FOR-DEV-02,Qualité & revue de code,DOM02,PRESENTIEL,WINTER,2026-10-13,2026-11-07,PLANIFIE,TRUE,TRUE,18,"Niveau 4 en COMP05","Enseignants Génie Logiciel"
+1011,FOR-DEV-03,Sécurité applicative OWASP,DOM02,DISTANCIEL,WINTER,2026-11-17,2026-12-12,PLANIFIE,TRUE,TRUE,21,"Niveau 3 en COMP06","Enseignants Informatique"
+1012,FOR-DEV-04,"Conteneurs & CI DevOps",DOM02,HYBRIDE,SUMMER,2026-07-21,2026-09-12,EN_COURS,FALSE,TRUE,30,Aucun,"Enseignants Génie Logiciel"
+1013,FOR-DEV-05,"Revue de code & sécurité en pratique",DOM02,PRESENTIEL,SPRINT,2026-11-24,2026-12-12,PLANIFIE,TRUE,TRUE,27,"Niveau 3 en COMP05","Enseignants Génie Logiciel"
+1014,FOR-DEV-06,Durcissement applicatif,DOM02,DISTANCIEL,WINTER,2026-02-10,2026-03-07,ACHEVE,FALSE,FALSE,21,Aucun,"Enseignants Informatique"
+1015,FOR-DEV-07,DevSecOps end-to-end,DOM02,HYBRIDE,SPRINT,2026-10-20,2026-11-07,PLANIFIE,TRUE,TRUE,36,"Niveau 3 en COMP04","Enseignants Génie Logiciel"
+1016,FOR-DAT-01,Data engineering & pipelines,DOM03,DISTANCIEL,WINTER,2026-09-08,2026-10-03,PLANIFIE,TRUE,TRUE,30,"Niveau 4 en COMP07","Enseignants Data"
+1017,FOR-DAT-02,Machine learning appliqué,DOM03,HYBRIDE,WINTER,2026-10-20,2026-11-14,PLANIFIE,TRUE,TRUE,36,"Niveau 4 en COMP08","Enseignants Data"
+1018,FOR-DAT-03,IA générative responsable,DOM03,DISTANCIEL,WINTER,2026-11-03,2026-11-28,PLANIFIE,TRUE,TRUE,24,Aucun,Tous enseignants
+1019,FOR-DAT-04,Python pour la data,DOM03,PRESENTIEL,SUMMER,2026-06-30,2026-08-22,EN_COURS,FALSE,TRUE,33,Aucun,"Enseignants Data"
+1020,FOR-DAT-05,MLOps & déploiement,DOM03,DISTANCIEL,SPRINT,2026-11-24,2026-12-12,PLANIFIE,TRUE,TRUE,27,"Niveau 3 en COMP08","Enseignants Data"
+1021,FOR-DAT-06,Data governance,DOM03,PRESENTIEL,WINTER,2026-01-27,2026-02-21,ACHEVE,FALSE,FALSE,18,Aucun,"Enseignants Data"
+1022,FOR-DAT-07,"ML & IA éthique en pratique",DOM03,HYBRIDE,WINTER,2026-10-27,2026-11-21,PLANIFIE,TRUE,TRUE,30,"Niveau 3 en COMP08","Enseignants Data"
+1023,FOR-SOF-01,Encadrement de PFE,DOM04,PRESENTIEL,WINTER,2026-09-22,2026-10-17,PLANIFIE,TRUE,TRUE,18,"Niveau 4 en COMP10",Encadrants PFE
+1024,FOR-SOF-02,"Gestion de projet agile Scrum",DOM04,DISTANCIEL,WINTER,2026-10-06,2026-10-31,PLANIFIE,TRUE,TRUE,21,Aucun,"Enseignants & encadrants"
+1025,FOR-SOF-03,Communication en anglais technique,DOM04,DISTANCIEL,WINTER,2026-11-03,2026-11-28,PLANIFIE,TRUE,TRUE,24,Aucun,Tous enseignants
+1026,FOR-SOF-04,"Mentorat & suivi de stage",DOM04,PRESENTIEL,SUMMER,2026-07-14,2026-08-08,ACHEVE,FALSE,FALSE,15,Aucun,Encadrants PFE
+1027,FOR-SOF-05,Animation de board agile,DOM04,PRESENTIEL,WINTER,2026-02-24,2026-03-21,ACHEVE,FALSE,FALSE,12,Aucun,Enseignants
+1028,FOR-SOF-06,Rédaction scientifique en anglais,DOM04,DISTANCIEL,SPRINT,2026-11-24,2026-12-12,PLANIFIE,TRUE,TRUE,21,"Niveau 3 en COMP12","Enseignants-chercheurs"
+1029,FOR-SOF-07,Évaluer par compétences dans les projets,DOM04,HYBRIDE,WINTER,2026-12-01,2026-12-26,PLANIFIE,TRUE,TRUE,24,"Niveau 3 en COMP02",Encadrants PFE
+1030,FOR-PED-09,IA générative dans la pédagogie,DOM01,WORKSHOP,WORKSHOP,2026-10-27,2026-10-31,PLANIFIE,TRUE,TRUE,10,Aucun,Tous enseignants

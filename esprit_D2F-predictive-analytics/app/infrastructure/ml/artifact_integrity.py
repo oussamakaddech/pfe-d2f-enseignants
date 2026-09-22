@@ -34,6 +34,7 @@ class ArtifactIntegrityError(Exception):
     """Erreur levée si le hash ne matche pas ou est absent."""
 
 
+# Calcule le SHA-256 d'un fichier par blocs (gère les gros artefacts).
 def _sha256_of_file(path: Path) -> str:
     h = hashlib.sha256()
     with open(path, "rb") as f:
@@ -42,6 +43,8 @@ def _sha256_of_file(path: Path) -> str:
     return h.hexdigest()
 
 
+# Calcule le HMAC-SHA256 d'un fichier avec la clé de signature
+# (plus fort que le SHA-256 seul : sans la clé, on ne peut pas falsifier le sidecar).
 def _hmac_of_file(path: Path, key: bytes) -> str:
     hm = hmac.new(key, digestmod=hashlib.sha256)
     with open(path, "rb") as f:
@@ -50,6 +53,8 @@ def _hmac_of_file(path: Path, key: bytes) -> str:
     return hm.hexdigest()
 
 
+# Renvoie la clé de signature depuis la variable d'environnement
+# MODEL_SIGNING_KEY (None si non configurée → on retombe sur SHA-256 simple).
 def _signing_key() -> bytes | None:
     raw = os.environ.get(_SIGNING_KEY_ENV, "")
     return raw.encode("utf-8") if raw else None
@@ -60,6 +65,7 @@ def _verification_enabled() -> bool:
     return os.environ.get(_VERIFY_ENV, "true").strip().lower() not in ("false", "0", "no")
 
 
+# Chemin du sidecar d'intégrité attendu : .hmac si une clé est configurée, sinon .sha256.
 def _sidecar_path(path: Path) -> Path:
     key = _signing_key()
     if key:

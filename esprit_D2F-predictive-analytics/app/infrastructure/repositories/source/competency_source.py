@@ -75,8 +75,13 @@ class SqlCompetencySource:
         self, up_id: str | None, dept_id: str | None, specialite: str | None
     ) -> list[Competency]:
         """Retourne les compétences rattachées au périmètre de l'enseignant
-        (département / unité pédagogique / spécialité), avec fallback sur le
-        référentiel global si aucun domaine ne correspond au scope."""
+        (département / unité pédagogique / spécialité).
+
+        Aucun fallback sur le référentiel global : si le périmètre est déclaré
+        mais qu'aucun domaine ne correspond, la liste est vide (comportement
+        honnête — jamais de compétences hors périmètre, ex : Génie Civil pour
+        un enseignant du Département Technologie Web).
+        """
         if not up_id and not dept_id and not specialite:
             return self.list_competencies()
         with self._database.read_connection() as connection:
@@ -84,8 +89,6 @@ class SqlCompetencySource:
                 text(LIST_COMPETENCIES_SCOPED_QUERY),
                 {"up_id": up_id, "dept_id": dept_id, "specialite": specialite},
             ).mappings().all()
-        if not rows:
-            return self.list_competencies()
         return self._build_competencies(rows)
 
     def _build_competencies(self, competency_rows) -> list[Competency]:
@@ -95,7 +98,7 @@ class SqlCompetencySource:
         savoirs_by_competency: dict[int, list[Savoir]] = {}
         for row in savoir_rows:
             savoirs_by_competency.setdefault(int(row["competence_id"]), []).append(
-                Savoir(id=int(row["id"]), code=str(row["code"]), nom=str(row["nom"]), required_level=int(row["required_level"] or 0))
+                Savoir(id=int(row["id"]), code=str(row["code"]), nom=str(row["nom"]), knowledge_difficulty_level=int(row["required_level"] or 0))
             )
 
         competencies: list[Competency] = []

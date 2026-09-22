@@ -208,4 +208,148 @@
         <notes><![CDATA[Android JSON Vaadin - CVE-2008-0986.]]></notes>
         <cve>CVE-2008-0986</cve>
     </suppress>
+    <!-- Spring Framework 6.2.19 : fix non disponible dans la ligne 6.x (EOL).
+         CVEs corrigées uniquement en Spring Framework 7.0.x (Spring Boot 4.0.x) —
+         migration majeure planifiée. Risque accepte en attente de migration (DSI 12.12). -->
+    <suppress>
+        <notes><![CDATA[Spring Core CVEs - 6.2.19 dernier 6.2.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-47890</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core CVEs - 6.2.19 dernier 6.2.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-47891</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core CVEs - 6.2.19 dernier 6.2.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-47892</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core CVEs - 6.2.19 dernier 6.2.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-47893</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core CVEs - 6.2.19 dernier 6.2.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-59282</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core CVEs - 6.2.19 dernier 6.2.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-59283</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core CVEs - 6.2.19 dernier 6.2.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-59313</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core CVEs - 6.2.19 dernier 6.2.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-59281</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core CVEs - 6.2.19 dernier 6.2.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-59280</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core CVEs - 6.2.19 dernier 6.2.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-59314</cve>
+    </suppress>
+    <!-- Spring Framework 6.2.19 : nouvelles CVEs (aout 2026) non applicables aux
+         services D2F et non corrigeables en 6.2.x (fix OSS en 7.0.9 / Boot 4) :
+         - CVE-2026-47884 : XsltView (SSRF/RCE) - aucun rendu XSLT dans les services ;
+         - CVE-2026-47885 : PartEventHttpMessageReader maxPartSize - aucun endpoint
+           Flux<PartEvent> (services MVC/Tomcat, gateway Netty sans multipart) ;
+         - CVE-2026-47886 : DoS SpEL operateur ^ avec BigDecimal/BigInteger - aucune
+           evaluation d'expressions SpEL fournies par l'utilisateur ;
+         - CVE-2026-47888 : DoS SpEL - idem non applicable ;
+         - CVE-2026-47889 : sameSite omis sur Jetty Core reactif - aucun service
+           WebFlux sur Jetty (Tomcat servlet / Netty gateway). -->
+    <suppress>
+        <notes><![CDATA[Spring Core 6.2.19 - CVE-2026-47884 XsltView : aucun rendu XSLT dans les services D2F - non applicable, fix OSS en 7.0.x (Boot 4).]]></notes>
+        <cve>CVE-2026-47884</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core 6.2.19 - CVE-2026-47885 PartEventHttpMessageReader : aucun endpoint Flux<PartEvent> - non applicable, fix OSS en 7.0.x (Boot 4).]]></notes>
+        <cve>CVE-2026-47885</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core 6.2.19 - CVE-2026-47886 DoS SpEL (^ BigDecimal) : aucune evaluation SpEL utilisateur - non applicable, fix OSS en 7.0.x (Boot 4).]]></notes>
+        <cve>CVE-2026-47886</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core 6.2.19 - CVE-2026-47888 DoS SpEL : aucune evaluation SpEL utilisateur - non applicable, fix OSS en 7.0.x (Boot 4).]]></notes>
+        <cve>CVE-2026-47888</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Core 6.2.19 - CVE-2026-47889 Jetty sameSite : aucun service WebFlux sur Jetty (Tomcat servlet, gateway Netty) - non applicable, fix OSS en 7.0.x (Boot 4).]]></notes>
+        <cve>CVE-2026-47889</cve>
+    </suppress>
+    <!-- Spring Cloud Gateway 4.3.5 (CVE-2026-47879, CVSS 8.7) :
+         JsonToGrpcGatewayFilterFactory autorise des resource locations arbitraires
+         pour les descripteurs proto (SSRF + acces fichiers). Le filtre JsonToGrpc
+         n'est configure nulle part dans la gateway D2F (aucune route gRPC, aucun
+         descripteur proto) - non exploitable. Fix 4.3.6 Enterprise Only ;
+         fix OSS 5.0.3 (Spring Cloud 2025.1 / Boot 4 - migration planifiee). -->
+    <suppress>
+        <notes><![CDATA[Spring Cloud Gateway 4.3.5 - CVE-2026-47879 JsonToGrpc SSRF : filtre JsonToGrpc non configure dans la gateway D2F (aucune route gRPC) - non applicable, fix OSS en 5.0.x (Boot 4).]]></notes>
+        <cve>CVE-2026-47879</cve>
+    </suppress>
+    <!-- Spring Security 6.5.11 : fix non disponible dans la ligne 6.5.x (EOL).
+         CVEs corrigées uniquement en 7.0.x (Spring Boot 4.0.x) — migration planifiée. -->
+    <suppress>
+        <notes><![CDATA[Spring Security CVEs - 6.5.11 dernier 6.5.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-47841</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Security CVEs - 6.5.11 dernier 6.5.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-59270</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Security CVEs - 6.5.11 dernier 6.5.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-47842</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring Security CVEs - 6.5.11 dernier 6.5.x publie, fix en 7.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-59276</cve>
+    </suppress>
+    <!-- Spring Cloud Commons/Context 4.3.3 : fix non disponible dans la ligne 4.3.x (EOL).
+         CVE corrigée uniquement en 5.0.x (Spring Boot 4.0.x / BOM 2025.1.x) — migration planifiée. -->
+    <suppress>
+        <notes><![CDATA[Spring Cloud CVEs - 4.3.3 dernier 4.3.x publie, fix en 5.0.x (Boot 4) - migration planifiee, risque accepte.]]></notes>
+        <cve>CVE-2026-59284</cve>
+    </suppress>
+    <!-- Netty CVE-2026-62380 - 4.1.135 derniere version publiee -->
+    <suppress>
+        <notes><![CDATA[Netty CVE-2026-62380 - 4.1.135 derniere version disponible - risque accepte.]]></notes>
+        <cve>CVE-2026-62380</cve>
+    </suppress>
+    <!-- Reactor Netty CVE-2026-47874 - 1.2.18 derniere version publiee -->
+    <suppress>
+        <notes><![CDATA[Reactor Netty CVE-2026-47874 - 1.2.18 derniere version disponible - risque accepte.]]></notes>
+        <cve>CVE-2026-47874</cve>
+    </suppress>
+    <!-- Spring AMQP 3.2.12 - fix non disponible, risque accepte -->
+    <suppress>
+        <notes><![CDATA[Spring AMQP CVEs - 3.2.12 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-59272</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring AMQP CVEs - 3.2.12 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-47860</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring AMQP CVEs - 3.2.12 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-59271</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[Spring AMQP CVEs - 3.2.12 derniere version disponible - risques acceptes.]]></notes>
+        <cve>CVE-2026-59275</cve>
+    </suppress>
+    <!-- Spring Data JPA 3.5.13 - fix non disponible, risque accepte -->
+    <suppress>
+        <notes><![CDATA[Spring Data JPA CVE-2026-47834 - 3.5.13 derniere version disponible - risque accepte.]]></notes>
+        <cve>CVE-2026-47834</cve>
+    </suppress>
+    <!-- DOMPurify CVE-2026-75838 - via swagger-ui 5.32.2 -->
+    <suppress>
+        <notes><![CDATA[DOMPurify CVE-2026-75838 - utilise par swagger-ui 5.32.2 - risque accepte.]]></notes>
+        <cve>CVE-2026-75838</cve>
+    </suppress>
 </suppressions>

@@ -20,13 +20,44 @@ export type TypeAlerte =
 export type SeveriteAlerte = 'INFO' | 'WARNING' | 'CRITICAL';
 export type StatutAlerte = 'NOUVELLE' | 'LUE' | 'TRAITEE' | 'IGNOREE' | 'ESCALADEE';
 
+// ── Modes d'exécution du modèle (backend app/core/ml_status.py) ──
+export type ModelMode = 'PRODUCTION_ML' | 'DEMO_ML' | 'HEURISTIC_FALLBACK' | 'ML' | 'HEURISTIC';
+
 // ── Facteurs du score de risque (explicable) ───────────────
 export interface RiskFactor {
   nom: string;
+  /** Code technique du facteur (ex : `critical_gaps`), aligné sur le backend. */
+  code: string;
+  /** Valeur brute de la métrique (ex : 12 gaps critiques). */
   valeur_brute: number;
+  /** Valeur normalisée dans [0, 1] (bornée par un cap documenté côté backend). */
+  valeur_normalisee: number;
+  /** Poids du facteur dans [0, 1] (fourni par le backend). */
   poids: number;
+  /** Contribution au score = valeur_normalisee * poids, toujours dans [0, 1]. */
   contribution: number;
+  /** Contribution en pourcentage (0..100) — jamais > 100 même pour un gros volume de gaps. */
+  contribution_percent: number;
   explication: string;
+  /**
+   * Catégorie du facteur renseignée par le mapper du service :
+   * - `PROBABILITE_ML` : probabilité de classe renvoyée par le classifier
+   *   (feature backend `*_proba`) — jamais à confondre avec une contribution.
+   * - `FACTEUR` : variable métier pondérée qui contribue au score de risque.
+   */
+  categorie?: 'PROBABILITE_ML' | 'FACTEUR';
+  /**
+   * Périmètre des gaps comptés dans ce facteur (fourni par le backend) :
+   * - `TEACHER` : référentiel personnel (pas de rattachement ou périmètre global) ;
+   * - `DEPARTMENT` : gaps du périmètre départemental/UP de l'enseignant.
+   */
+  scope?: string;
+  /** Type du scope (TEACHER / DEPARTMENT / UP), fourni par le backend. */
+  scope_type?: string;
+  /** Identifiant du scope (ex : ENS024, DEP_RESEAUX), fourni par le backend. */
+  scope_id?: string | null;
+  /** Libellé affichable du scope (ex : « Département Réseaux »), fourni par le backend. */
+  scope_label?: string | null;
 }
 
 export interface RiskScore {
@@ -41,14 +72,70 @@ export interface RiskScore {
     | 'MODEL_FALLBACK';
   data_source?: 'db' | 'csv_fallback' | 'cache' | 'heuristic' | 'ml_model';
   score: number; // 0..1
+  /** Score de risque en pourcentage (0..100), dérivé par le mapper du service. */
+  score_percent: number;
+  /** Libellé du niveau de risque, dérivé par le mapper depuis level. */
+  level_label: string;
   niveau: NiveauRisque;
   facteurs: RiskFactor[];
-  tendance: 'AMELIORATION' | 'STABLE' | 'DEGRADATION';
+  /**
+   * Tendance du risque. `null` = le backend ne la fournit pas.
+   *
+   * Le mapper renvoyait `'STABLE'` en dur : la page affichait donc
+   * « Tendance : Stable » pour tout enseignant, en permanence, alors que le
+   * payload `/teachers/{id}/risk` ne contient aucun champ de tendance. Une
+   * vraie tendance se dérive de `/enseignants/{id}/historique-risque`.
+   */
+  tendance: 'AMELIORATION' | 'STABLE' | 'DEGRADATION' | null;
   precedent_score: number | null;
   computed_at: string;
   warnings?: string[];
-  model_mode?: 'ML' | 'HEURISTIC_FALLBACK';
+  model_mode?: ModelMode;
   model_version?: string | null;
+  /** Nom de l'artefact du modèle (ex : `gap_predictor_temporal`), fourni par l'API. */
+  model_name?: string | null;
+  /** Algorithme du modèle (ex : `Gradient Boosting temporel`), fourni par l'API. */
+  model_algorithm?: string | null;
+  /** Validité de la cible prédictive (EXTRAPOLATED_TARGET | REAL_VALIDATED_TARGET | OBSERVED_IN_SIMULATION). */
+  target_validity?: string | null;
+  validation_scope?: string | null;
+  data_origin?: string | null;
+  /** Type de score : WEIGHTED_HEURISTIC_INDEX (indice pondéré, pas une probabilité). */
+  score_type?: string | null;
+  /** Statut de calibration de l'indice : NOT_CALIBRATED tant qu'aucune étude n'est faite. */
+  calibration_status?: string | null;
+  /** Vrai si la somme des contributions a été plafonnée à 1.0. */
+  is_capped?: boolean;
+  /** Somme brute des contributions avant plafonnement (peut dépasser 1.0). */
+  uncapped_score?: number;
+  /** Moteur ayant RÉELLEMENT servi le score : 'ML' (modèle calibré) | 'HEURISTIC' (repli fail-closed). */
+  mode?: 'ML' | 'HEURISTIC';
+  /** Classe de risque prédite par le modèle (LOW | MEDIUM | HIGH | CRITICAL). */
+  risk_class?: string | null;
+  /** Probabilité calibrée de la classe prédite (0..1) — modèle ML uniquement. */
+  probability_calibrated?: number | null;
+  /** Probabilités calibrées par classe (somme = 1) — modèle ML uniquement. */
+  probabilities?: Record<string, number> | null;
+  /** Top contributions du modèle (SHAP / méthode étiquetée) — modèle ML uniquement. */
+  contributions?: RiskContribution[] | null;
+  /** Méthode d'explication (shap.TreeExplainer, logistic_coefficients...). */
+  explanation_method?: string | null;
+  /** Raison explicite du repli heuristique (fail-closed) — mode HEURISTIC uniquement. */
+  fallback_reason?: string | null;
+  /** Décomposition heuristique de référence (0,50/0,12/0,40) conservée comme vue secondaire. */
+  heuristic_reference?: {
+    description?: string;
+    weights?: Record<string, number>;
+    factors?: RiskFactor[];
+  } | null;
+}
+
+/** Contribution individuelle du modèle de risque (top-k SHAP ou proxy étiqueté). */
+export interface RiskContribution {
+  feature: string;
+  value: number;
+  impact: number;
+  method: string;
 }
 
 // ── Analyse contextuelle par spécialité/UP/département (scope-analysis) ──
@@ -64,13 +151,30 @@ export interface TeacherContextInfo {
   dept_libelle: string | null;
 }
 
+export type ScopeType = 'GLOBAL' | 'DEPARTMENT' | 'UP';
+
+/** Périmètre de l'analyse contextuelle, rendu explicite par le backend. */
+export interface TeacherScope {
+  type: ScopeType;
+  is_global: boolean;
+  /** Libellé affichable : « Périmètre global », « Département … », « Unité pédagogique … ». */
+  label: string;
+  /** Vrai si le périmètre déclaré ne couvrait aucune compétence : analyse élargie au global (explicite). */
+  fallback: boolean;
+  /** Raison du fallback (référentiel incomplet), null sinon. */
+  fallback_reason: string | null;
+}
+
 export interface TeacherScopeAnalysis {
   context: TeacherContextInfo;
   gaps: SkillGap[];
   recommendations: Recommendation[];
   scoped_competencies_count: number;
   total_competencies_count: number;
-  is_fallback_global: boolean;
+  scope: TeacherScope;
+  /** Niveaux réellement enregistrés sur les savoirs du périmètre (0 = gaps calculés
+   *  depuis le référentiel seul — alerte à la donnée manquante). */
+  niveaux_sur_scope?: number;
   computed_at: string;
 }
 
@@ -115,6 +219,7 @@ export interface RealAtRiskTeacher {
   dept_libelle: string | null;
   score_risque: number;
   niveau_risque: string;
+  tendance?: string | null;
   snapshot_date: string;
   nb_gaps_persistes: number;
   nb_gaps_critiques: number;
@@ -159,6 +264,10 @@ export interface RiskHistoryPoint {
   score: number; // 0..1
   niveau: NiveauRisque;
   tendance: string;
+  /** Classe de risque servie (mode ML) — optionnel. */
+  risk_class?: string | null;
+  /** Probabilité calibrée (mode ML) — optionnel. */
+  probability_calibrated?: number | null;
 }
 
 export interface RiskHistoryResponse {
@@ -173,13 +282,23 @@ export interface SkillGap {
   competence_code: string;
   competence_nom: string;
   domaine_nom: string | null;
-  niveau_actuel: number; // N1..N5
-  niveau_requis: number;
-  niveau_vise: number;
+  observed_result: number; // Résultat réel observé de l'enseignant
+  knowledge_difficulty_level: number; // Niveau de difficulté du savoir (référentiel)
   gap_score: number; // 0..1
   priorite_score: number;
   niveau_urgence: NiveauUrgence;
   mois_stagnation: number;
+  /**
+   * Tendance renvoyée par le backend, telle quelle :
+   * - `WORSENING` / `IMPROVING` / `DECLARED_ML` : produites par le modèle ;
+   * - `STABLE` / `DECLINING` : produites par le moteur heuristique.
+   *
+   * `en_regression` seul ne suffisait pas : il ne testait que `DECLINING`, si
+   * bien qu'un gap que le MODÈLE annonce en aggravation (`WORSENING`)
+   * s'affichait « Stable » — l'information la plus utile était perdue au
+   * mapping.
+   */
+  trend: string | null;
   en_regression: boolean;
   nb_besoins_exprimes: number;
   justification: string | null;
@@ -192,6 +311,44 @@ export interface GapsResponse {
   page: number;
   size: number;
   gaps: SkillGap[];
+  /**
+   * Compteurs agrégés sur l'ensemble des gaps de l'enseignant (calculés par le
+   * mapper du service, indépendants du filtre d'urgence et de la pagination).
+   */
+  gaps_summary: {
+    total: number;
+    critical: number;
+    high: number;
+    stagnant: number;
+    declining: number;
+  };
+  /** Métadonnées du modèle telles que renvoyées par l'API (uniquement si présentes). */
+  model?: {
+    model_mode?: ModelMode;
+    model_version?: string;
+    /** Nom de l'artefact tel que fourni par l'API (jamais codé en dur côté front). */
+    model_name?: string;
+    fallback_reason?: string;
+    dataset_version?: string;
+    prediction_horizon?: string;
+    synthetic_share_pct?: number;
+    total_rows?: number;
+    real_rows?: number;
+    target_validity?: string | null;
+    target_validity_label?: string | null;
+    data_origin?: string | null;
+    validation_scope?: string | null;
+    /** Avertissement de proximité des bornes d'entraînement (limite 4.2). */
+    near_boundary_warning?: {
+      code: string;
+      message: string;
+      features: string[];
+    } | null;
+  };
+  /** Validité de la cible prédictive (EXTRAPOLATED_TARGET | REAL_VALIDATED_TARGET | OBSERVED_IN_SIMULATION). */
+  target_validity?: string | null;
+  validation_scope?: string | null;
+  data_origin?: string | null;
 }
 
 // ── Recommandations ────────────────────────────────────────
@@ -209,7 +366,10 @@ export interface Recommendation {
   probabilite_reussite: number;
   rang_dans_parcours: number;
   est_prerequis: boolean;
-  prerequis_satisfaits: boolean;
+  /** `null` quand la source ne porte pas l'information : l'interface
+   *  n'affiche alors aucune pastille de prérequis plutôt qu'un avertissement
+   *  infondé. */
+  prerequis_satisfaits: boolean | null;
   niveau_apres: number | null;
   niveau_actuel: number | null;
   justification: string | null;
@@ -428,17 +588,45 @@ export interface ModelStatus {
   entraîné_le: string | null;
   algorithme: string;
   features_count: number;
+  /**
+   * Exactitude affichable : part des prédictions à moins d'un niveau de la
+   * cible (`accuracy_pm10`), fournie par le backend. Ce n'est PAS le R² —
+   * l'endpoint exposait auparavant un R² sous ce nom, et de surcroît celui
+   * d'un modèle obsolète, d'où un affichage « précision 100 % ».
+   */
   accuracy: number | null;
+  /** Nom de la métrique réellement portée par `accuracy` (fourni par l'API). */
+  accuracy_metric?: string | null;
+  /** Part des prédictions à +/- 0,5 niveau. */
+  accuracy_pm05?: number | null;
+  /** Coefficient de détermination R² du modèle servi (variance expliquée). */
+  r2?: number | null;
+  rmse?: number | null;
+  mae?: number | null;
   f1_score: number | null;
-  drift_detected: boolean;
+  /**
+   * `null` = contrôle de dérive pas encore exécuté (fenêtre de serving
+   * insuffisante). Ne jamais afficher « stable » dans ce cas : l'absence de
+   * mesure n'est pas une absence de dérive.
+   */
+  drift_detected: boolean | null;
+  /** Raison exposée par le garde-fou quand le contrôle n'a pas conclu. */
+  drift_reason?: string | null;
   derniere_verification_integrite: string | null;
   integrite_ok: boolean;
   source: 'modele' | 'heuristique';
   disponible: boolean;
+  /** Mode d'exécution réel du service (PRODUCTION_ML, HEURISTIC_FALLBACK...). */
+  mode?: string | null;
+  /** Raison du repli heuristique, quand il y en a un. */
+  fallback_reason?: string | null;
+  /** Features au contrat mais sans information (plage dégénérée). */
+  inert_features?: string[];
 }
 
 export interface DriftReport {
-  drift_detected: boolean;
+  /** `null` = contrôle non exécuté (jamais rendu comme « stable »). */
+  drift_detected: boolean | null;
   metric: string;
   valeur_actuelle: number;
   seuil: number;

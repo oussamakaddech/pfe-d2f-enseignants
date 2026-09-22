@@ -676,7 +676,8 @@ class InscriptionServiceExtraTest {
             when(enseignantRepo.findById("USER@ESPRIT.TN")).thenReturn(Optional.empty());
             when(enseignantRepo.findByMail("USER@ESPRIT.TN")).thenReturn(Optional.empty());
             when(enseignantRepo.findByMailIgnoreCase("USER@ESPRIT.TN")).thenReturn(Optional.of(e));
-            when(inscriptionRepo.findByEnseignant_Id("USER@ESPRIT.TN")).thenReturn(Collections.emptyList());
+            // Le contrôle de chevauchement utilise l'ID RÉEL de la fiche résolue.
+            when(inscriptionRepo.findByEnseignant_Id("E1")).thenReturn(Collections.emptyList());
             when(inscriptionRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
             Inscription result = service.demanderInscription(1L, "USER@ESPRIT.TN");
@@ -693,7 +694,7 @@ class InscriptionServiceExtraTest {
     class DemanderInscriptionUpNull {
 
         @Test
-        @DisplayName("refuse quand formation non ouverte et upForm null (UP enseignant null)")
+        @DisplayName("refuse quand formation non ouverte, sans UP ni département communs")
         void shouldRejectWhenFormationUpNullAndEnseignantUpNull() {
             Formation f = createFormationWithUp(1L, true, false, null);
             Enseignant e = createEnseignant("E1", null);
@@ -703,11 +704,11 @@ class InscriptionServiceExtraTest {
 
             assertThatThrownBy(() -> service.demanderInscription(1L, "E1"))
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("pas autorisé");
+                    .hasMessageContaining("n’appartenez");
         }
 
         @Test
-        @DisplayName("refuse quand formation non ouverte et upForm null mais upEns non null")
+        @DisplayName("refuse quand formation non ouverte, UP formation null, UP enseignant non null")
         void shouldRejectWhenFormationUpNullButEnseignantUpNotNull() {
             Formation f = createFormationWithUp(1L, true, false, null);
             Up upEns = new Up();
@@ -719,7 +720,7 @@ class InscriptionServiceExtraTest {
 
             assertThatThrownBy(() -> service.demanderInscription(1L, "E1"))
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("pas autorisé");
+                    .hasMessageContaining("n’appartenez");
         }
     }
 
@@ -932,6 +933,45 @@ class InscriptionServiceExtraTest {
             assertThat(dto.getMotif()).isEqualTo("Motif test");
             assertThat(dto.getDateTraitement()).isNotNull();
             assertThat(dto.getFormation()).isNotNull();
+            assertThat(dto.getEnseignant()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("enseignant soft-deleted (proxy EntityNotFoundException) → DTO partiel, pas de 404")
+        void shouldDegradeWhenEnseignantMissing() {
+            Formation f = createFormation(1L, true, true);
+            Inscription ins = mock(Inscription.class);
+            when(ins.getId()).thenReturn(10L);
+            when(ins.getFormation()).thenReturn(f);
+            when(ins.getEnseignant()).thenThrow(new jakarta.persistence.EntityNotFoundException(
+                    "Unable to find esprit.pfe.serviceformation.entities.Enseignant with id E00006"));
+            when(ins.getEtat()).thenReturn(EtatInscription.APPROVED);
+            when(formationMapper.toResponseDTO(f)).thenReturn(new FormationResponseDTO());
+
+            InscriptionDTO dto = service.mapInscriptionToDTO(ins);
+
+            assertThat(dto.getId()).isEqualTo(10L);
+            assertThat(dto.getFormation()).isNotNull();
+            assertThat(dto.getEnseignant()).isNull();
+        }
+
+        @Test
+        @DisplayName("formation soft-deleted (proxy EntityNotFoundException) → DTO partiel, pas de 404")
+        void shouldDegradeWhenFormationMissing() {
+            Enseignant e = createEnseignant("E1", null);
+            Inscription ins = mock(Inscription.class);
+            Formation f = createFormation(1L, true, true);
+            when(ins.getId()).thenReturn(11L);
+            when(ins.getFormation()).thenReturn(f);
+            when(ins.getEnseignant()).thenReturn(e);
+            when(ins.getEtat()).thenReturn(EtatInscription.PENDING);
+            when(formationMapper.toResponseDTO(f)).thenThrow(new jakarta.persistence.EntityNotFoundException(
+                    "Unable to find formation with id 1"));
+
+            InscriptionDTO dto = service.mapInscriptionToDTO(ins);
+
+            assertThat(dto.getId()).isEqualTo(11L);
+            assertThat(dto.getFormation()).isNull();
             assertThat(dto.getEnseignant()).isNotNull();
         }
     }

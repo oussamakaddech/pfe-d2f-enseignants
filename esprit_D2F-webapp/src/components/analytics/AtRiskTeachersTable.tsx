@@ -41,7 +41,7 @@ export default function AtRiskTeachersTable({
       },
       { title: 'UP', dataIndex: 'up', render: (v) => formatUP(v) || 'Non affecté' },
       {
-        title: 'Score de risque',
+        title: 'Indice de risque',
         dataIndex: 'score_risque',
         render: (v: number) => (
           <Progress
@@ -82,10 +82,29 @@ export default function AtRiskTeachersTable({
         sorter: (a, b) => a.nb_gaps_critiques - b.nb_gaps_critiques,
       },
     ],
-    [teachers],
+    // Les colonnes ne dependent que des helpers de module : leur rendu recoit
+    // la ligne en argument. Dependre de `teachers` reconstruisait tout le
+    // descripteur de colonnes a chaque rafraichissement des donnees.
+    [],
   );
 
-  if (!loading && teachers.length === 0) return <Empty description="Aucun enseignant à risque" />;
+  // « Aucun enseignant à risque » serait une fausse réassurance : une liste vide
+  // signifie qu'aucun enseignant n'atteint le seuil retenu, pas qu'aucun
+  // enseignant n'est en difficulté. On dit lequel des deux on constate.
+  if (!loading && teachers.length === 0)
+    return (
+      <Empty
+        description={
+          <>
+            Aucun enseignant au-dessus du seuil de risque retenu.
+            <br />
+            <span style={{ fontSize: 12, opacity: 0.75 }}>
+              Abaissez le seuil pour élargir la liste aux départements moins exposés.
+            </span>
+          </>
+        }
+      />
+    );
 
   return (
     <Table<AtRiskTeacher>
@@ -93,7 +112,8 @@ export default function AtRiskTeachersTable({
       loading={loading}
       columns={columns}
       dataSource={teachers}
-      pagination={{ pageSize: 10 }}
+      scroll={{ x: 'max-content' }}
+      pagination={{ pageSize: 10, showSizeChanger: false, responsive: true }}
       onRow={(r) => ({
         onClick: () => onSelect?.(r.enseignant_id),
         style: { cursor: onSelect ? 'pointer' : 'default' },

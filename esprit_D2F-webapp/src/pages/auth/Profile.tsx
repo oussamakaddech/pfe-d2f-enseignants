@@ -82,9 +82,11 @@ export default function Profile() {
   };
 
   const onFinishPwd = async ({
+    oldPassword,
     newPassword,
     confirmation,
   }: {
+    oldPassword: string;
     newPassword: string;
     confirmation: string;
   }) => {
@@ -94,7 +96,7 @@ export default function Profile() {
     }
     setPasswordSaving(true);
     try {
-      await updatePwdApi({ newPassword, confirmation });
+      await updatePwdApi({ oldPassword, newPassword, confirmation });
       msgApi.success('Mot de passe changé !');
       setIsPwdDrawerOpen(false);
       pwdForm.resetFields();
@@ -261,9 +263,16 @@ export default function Profile() {
             >
               <Form form={pwdForm} layout="vertical" onFinish={onFinishPwd}>
                 <Form.Item
+                  name="oldPassword"
+                  label="Mot de passe actuel"
+                  rules={[{ required: true, message: 'Le mot de passe actuel est requis' }]}
+                >
+                  <Input.Password prefix={<LockOutlined />} />
+                </Form.Item>
+                <Form.Item
                   name="newPassword"
                   label="Nouveau mot de passe"
-                  rules={[{ required: true }]}
+                  rules={[{ required: true }, { min: 8, message: 'Au moins 8 caractères' }]}
                 >
                   <Input.Password prefix={<LockOutlined />} />
                 </Form.Item>

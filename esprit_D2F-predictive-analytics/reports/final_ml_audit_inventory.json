@@ -1,0 +1,250 @@
+{
+  "repository_root": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics",
+  "git": {
+    "commit_audited": "72bb18d278921f2a64cddb424e3bf65d5b07258a",
+    "commit_subject": "feat(ml): finalize ML validation, provenance audit and final reports",
+    "commit_date": "2026-08-20 22:00:02 +0100",
+    "modified_files": 4
+  },
+  "datasets": {
+    "v1.0.0": {
+      "path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\clean\\training_corpus_provenanced.csv",
+      "exists": true,
+      "n_rows": 107,
+      "n_columns": 39,
+      "sha256_file": "2e488b80ba2e7ecf66138af055e4b1dd824dd4c73d93c107662e667e031d2a60",
+      "dataset_hash_repo_windows": "c70523c0d353ccfed62ca432c0a8486a4ec40b5e09aa47859157a71ffc959fdd",
+      "dataset_hash_normalized_lf": "8e39bb44c07a06fa23e59a94099ded2a33a73585a958c7b7681e306006761eb9"
+    },
+    "v1.1.0": {
+      "path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\clean\\training_corpus_provenanced_v110.csv",
+      "exists": true,
+      "n_rows": 172,
+      "n_columns": 40,
+      "sha256_file": "66d222786622bb485987ddfc0853598768e6012307cd69d1724593303463bd16",
+      "dataset_hash_repo_windows": "896609dbdd57d98f0e32e971af6a7357be4064c17d74301856db8abf917e2b47",
+      "dataset_hash_normalized_lf": "30631818efaab3f36ab1e673f573b7bff02d1a24d35fd20a4c5e13fc46a551eb"
+    }
+  },
+  "artifacts": {
+    "v1.0.0": {
+      "path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\models\\gap_predictor_temporal.joblib",
+      "exists": true,
+      "artifact_sha256": "6bbb396c1e28087deeeb402ecf856388510f54a08895dae5415132b08fb35bbe",
+      "sidecar_sha256": "6bbb396c1e28087deeeb402ecf856388510f54a08895dae5415132b08fb35bbe",
+      "sidecar_matches": true
+    },
+    "v1.1.0": {
+      "path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\models\\gap_predictor_temporal_v110.joblib",
+      "exists": true,
+      "artifact_sha256": "4a6dd15fc23ace6b1062a61d97aa6caedcbeae50448a9a943c1ab7b3051b65c4",
+      "sidecar_sha256": "4a6dd15fc23ace6b1062a61d97aa6caedcbeae50448a9a943c1ab7b3051b65c4",
+      "sidecar_matches": true
+    }
+  },
+  "metadata": {
+    "v1.0.0": {
+      "path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\models\\temporal_training_metadata.json",
+      "exists": true,
+      "model_name": "gap_predictor_temporal",
+      "dataset_version": "v1.0.0",
+      "n_samples": 107,
+      "n_train": 86,
+      "n_test": 21,
+      "split": "temporal_strict_cutoff_2026-07-22",
+      "metrics": {
+        "test_r2": 0.1897,
+        "test_rmse": 0.9883,
+        "test_mae": 0.6388,
+        "baseline_rmse": 2.5461,
+        "baseline_mae": 2.1175,
+        "lift_rmse": 1.5578,
+        "lift_rmse_ci95": [
+          0.6885,
+          2.3891
+        ],
+        "lift_ci95_method": "bootstrap 1000 replicas on test sample (n=21), percentile 2.5-97.5",
+        "lift_significant_95": true
+      },
+      "trained_at": "2026-08-19T04:59:51.787114"
+    },
+    "v1.1.0": {
+      "path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\models\\temporal_training_metadata_v110.json",
+      "exists": true,
+      "model_name": "xgboost",
+      "dataset_version": "v1.1.0",
+      "n_samples": 172,
+      "n_train": 138,
+      "n_test": 34,
+      "split": "temporal_strict_cutoff_2026-07-22",
+      "metrics": {
+        "test_r2": 0.0527,
+        "test_rmse": 1.0625,
+        "test_mae": 0.7595,
+        "baseline_rmse": 2.4171,
+        "baseline_mae": 2.0922,
+        "lift_rmse": 1.3546,
+        "lift_rmse_ci95": [
+          0.8369,
+          1.9091
+        ],
+        "lift_ci95_method": "bootstrap 1000 replicas on test sample (n=34), percentile 2.5-97.5",
+        "lift_significant_95": true
+      },
+      "trained_at": "2026-08-19T19:54:46.534667"
+    }
+  },
+  "schemata": {
+    "v1.0.0": {
+      "path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\models\\feature_schema.json",
+      "exists": true,
+      "schema_version": "1.0",
+      "n_features": 29,
+      "target": "gap_next_3m",
+      "forbidden_in_X": [
+        "gap_next_3m",
+        "required_level",
+        "required_level_t"
+      ]
+    },
+    "v1.1.0": {
+      "path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\models\\feature_schema_v110.json",
+      "exists": true,
+      "schema_version": "1.0",
+      "n_features": 29,
+      "target": "gap_next_3m",
+      "forbidden_in_X": [
+        "gap_next_3m",
+        "required_level",
+        "required_level_t"
+      ]
+    }
+  },
+  "registry": {
+    "entries": [
+      {
+        "model_name": "gap_predictor_temporal",
+        "model_version": "v1.0.0",
+        "status": "ACTIVE",
+        "created_at": "2026-08-19T03:59:52.424490+00:00",
+        "dataset_version": "v1.0.0",
+        "dataset_hash": "c70523c0d353ccfed62ca432c0a8486a4ec40b5e09aa47859157a71ffc959fdd",
+        "artifact_sha256": "6bbb396c1e28087deeeb402ecf856388510f54a08895dae5415132b08fb35bbe",
+        "synthetic_share_pct": 0.0,
+        "feature_names": [
+          "current_level_t3",
+          "current_level_t2",
+          "current_level_t1",
+          "current_level_t",
+          "lag_gap_t3_t2",
+          "lag_gap_t2_t1",
+          "lag_gap_t1_t",
+          "rolling_tendance",
+          "days_since_last_training",
+          "training_frequency_per_month",
+          "is_long_absent",
+          "is_stagnant",
+          "avg_level",
+          "min_level",
+          "max_level",
+          "nb_level_5",
+          "nb_level_1",
+          "nb_savoirs",
+          "nb_competences",
+          "competency_coverage_rate",
+          "nb_formations_completed",
+          "nb_formations_in_progress",
+          "taux_assiduite",
+          "nb_besoins_exprimes",
+          "nb_besoins_approuves",
+          "avg_eval_score",
+          "nb_evaluations",
+          "months_since_last_training",
+          "engagement_score"
+        ],
+        "feature_schema_version": "1.0",
+        "metrics": {
+          "rmse": 0.9883,
+          "mae": 0.6388,
+          "r2": 0.1897
+        },
+        "approval_status": "APPROVED",
+        "approval_date": "2026-08-19T03:59:52.445215+00:00",
+        "approval_actor": "ml-engineer",
+        "notes": "Pipeline reproductible : dataset provenancé, split temporel strict, seed 42, anti-fuite (required_level/gap_next_3m exclus), normalisation capturée sur train, sidecar SHA-256.",
+        "dataset_hash_note": "recompute canonical (sort all cols) Windows CRLF; LF variant 8e39bb44c07a06fa23e59a94099ded2a33a73585a958c7b7681e306006761eb9 (conteneur Linux)"
+      },
+      {
+        "model_name": "gap_predictor_temporal",
+        "model_version": "v1.1.0",
+        "status": "CANDIDATE",
+        "created_at": "2026-08-19T18:41:46.291017+00:00",
+        "dataset_version": "v1.1.0",
+        "dataset_hash": "896609dbdd57d98f0e32e971af6a7357be4064c17d74301856db8abf917e2b47",
+        "artifact_sha256": "4a6dd15fc23ace6b1062a61d97aa6caedcbeae50448a9a943c1ab7b3051b65c4",
+        "synthetic_share_pct": 0.0,
+        "feature_names": [
+          "current_level_t3",
+          "current_level_t2",
+          "current_level_t1",
+          "current_level_t",
+          "lag_gap_t3_t2",
+          "lag_gap_t2_t1",
+          "lag_gap_t1_t",
+          "rolling_tendance",
+          "days_since_last_training",
+          "training_frequency_per_month",
+          "is_long_absent",
+          "is_stagnant",
+          "avg_level",
+          "min_level",
+          "max_level",
+          "nb_level_5",
+          "nb_level_1",
+          "nb_savoirs",
+          "nb_competences",
+          "competency_coverage_rate",
+          "nb_formations_completed",
+          "nb_formations_in_progress",
+          "taux_assiduite",
+          "nb_besoins_exprimes",
+          "nb_besoins_approuves",
+          "avg_eval_score",
+          "nb_evaluations",
+          "months_since_last_training",
+          "engagement_score"
+        ],
+        "feature_schema_version": "1.0",
+        "metrics": {
+          "rmse": 1.0625,
+          "mae": 0.7595,
+          "r2": 0.0527
+        },
+        "approval_status": "PENDING",
+        "approval_date": null,
+        "approval_actor": null,
+        "notes": "Pipeline reproductible : dataset provenancé, split temporel strict, seed 42, anti-fuite (required_level/gap_next_3m exclus), normalisation capturée sur train, sidecar SHA-256."
+      }
+    ]
+  },
+  "serving_config": {
+    "DB_MAX_OVERFLOW": "20",
+    "MODELS_DIR": "data/models",
+    "GAP_MODEL_FILE": "gap_predictor_temporal.joblib",
+    "RISK_MODEL_FILE": "risk_detector.joblib",
+    "MIN_TRAINING_SAMPLES": "50",
+    "ML_SERVING_MODE": "PRODUCTION_ML",
+    "ML_REQUIRE_REAL_DATA": "true",
+    "ML_SYNTHETIC_TOLERANCE_PCT": "50.0",
+    "ML_MIN_REAL_ROWS": "50",
+    "ML_MIN_R2": "0.0",
+    "ML_MAX_RMSE": "2.0",
+    "ML_MAX_MAE": "1.5",
+    "ML_MAX_TRAIN_TEST_GAP_PCT": "50.0",
+    "ML_MODEL_VERSION": "v1.0.0",
+    "ML_ARTIFACT_PATH": "gap_predictor_temporal.joblib",
+    "ML_METADATA_PATH": "temporal_training_metadata.json",
+    "ML_REGISTRY_PATH": "model_registry.json",
+    "ML_FEATURE_SCHEMA_PATH": "feature_schema.json"
+  }
+}

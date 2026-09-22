@@ -1,0 +1,5 @@
+id,code,nom,description
+DOM01,PEDAGOGIE,Pédagogie & évaluation,"Conception de séquences, évaluation par compétences et numérique éducatif"
+DOM02,GENIE_LOGICIEL,Génie logiciel & DevOps,"Intégration continue, qualité du code et sécurité applicative"
+DOM03,DATA_IA,Science des données & IA responsable,"Ingénierie des données, apprentissage automatique et IA générative"
+DOM04,SOFT_SKILLS,Soft skills & encadrement,"Encadrement de PFE, gestion agile et communication technique"

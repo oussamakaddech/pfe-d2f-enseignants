@@ -1,7 +1,9 @@
 package esprit.pfe.servicecertificat.services;
 
+import esprit.pfe.servicecertificat.dto.CertificateIndicatorDTO;
 import esprit.pfe.servicecertificat.dto.CertificateRequest;
 import esprit.pfe.servicecertificat.dto.CertificateResponse;
+import esprit.pfe.servicecertificat.dto.CertificateVerificationResponse;
 import esprit.pfe.servicecertificat.entities.Certificate;
 import esprit.pfe.servicecertificat.exception.ResourceNotFoundException;
 import esprit.pfe.servicecertificat.repositories.CertificateRepository;
@@ -13,10 +15,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class CertificateServiceImpl implements CertificateService {
+
+    private static final String REVOKED = "REVOKED";
+    private static final String CERTIFICAT_INTROUVABLE = "Certificat introuvable : ";
 
     private final CertificateRepository certificateRepository;
 
@@ -24,6 +35,7 @@ public class CertificateServiceImpl implements CertificateService {
     @Transactional
     public CertificateResponse create(CertificateRequest request) {
         Certificate certificate = mapToEntity(request);
+        initializeVerificationFields(certificate);
         certificate.setDelivered(false);
         return mapToResponse(certificateRepository.save(certificate));
     }
@@ -50,9 +62,53 @@ public class CertificateServiceImpl implements CertificateService {
     @Transactional
     public CertificateResponse deliver(Long id) {
         Certificate cert = certificateRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Certificat introuvable : " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(CERTIFICAT_INTROUVABLE + id));
+        if (REVOKED.equals(cert.getCertificateStatus())) {
+            throw new IllegalStateException("Un certificat révoqué ne peut pas être délivré : " + id);
+        }
         cert.setDelivered(true);
         return mapToResponse(certificateRepository.save(cert));
+    }
+
+    @Override
+    @Transactional
+    public CertificateResponse revoke(Long id, String reason, String revokedBy) {
+        if (reason == null || reason.isBlank()) {
+            throw new IllegalArgumentException("Le motif de révocation est obligatoire.");
+        }
+        Certificate cert = certificateRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(CERTIFICAT_INTROUVABLE + id));
+        if (REVOKED.equals(cert.getCertificateStatus())) {
+            throw new IllegalStateException("Certificat déjà révoqué : " + id);
+        }
+        cert.setCertificateStatus(REVOKED);
+        cert.setDelivered(false);
+        cert.setRevokedAt(OffsetDateTime.now(ZoneOffset.UTC));
+        cert.setRevokedBy(revokedBy);
+        cert.setRevocationReason(reason);
+        return mapToResponse(certificateRepository.save(cert));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CertificateIndicatorDTO getIndicators() {
+        return CertificateIndicatorDTO.builder()
+                .eligibleCount(certificateRepository.count())
+                .deliveredCount(certificateRepository.countByDeliveredTrue())
+                .pendingCount(certificateRepository.countByDeliveredFalse())
+                .revokedCount(certificateRepository.countByCertificateStatus(REVOKED))
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CertificateIndicatorDTO getIndicatorsByFormation(Long formationId) {
+        return CertificateIndicatorDTO.builder()
+                .eligibleCount(certificateRepository.countByFormationId(formationId))
+                .deliveredCount(certificateRepository.countByFormationIdAndDeliveredTrue(formationId))
+                .pendingCount(certificateRepository.countByFormationIdAndDeliveredFalse(formationId))
+                .revokedCount(certificateRepository.countByFormationIdAndCertificateStatus(formationId, REVOKED))
+                .build();
     }
 
     @Override
@@ -83,9 +139,32 @@ public class CertificateServiceImpl implements CertificateService {
     @Transactional
     public CertificateResponse update(Long id, CertificateRequest request) {
         Certificate cert = certificateRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Certificat introuvable : " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(CERTIFICAT_INTROUVABLE + id));
         updateEntityFromRequest(cert, request);
         return mapToResponse(certificateRepository.save(cert));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CertificateVerificationResponse verify(String certificateNumber) {
+        return certificateRepository.findByCertificateNumberAndCertificateStatus(certificateNumber, "ISSUED")
+                .map(this::mapToVerificationResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("Certificat invalide ou révoqué"));
+    }
+
+    private CertificateVerificationResponse mapToVerificationResponse(Certificate entity) {
+        CertificateVerificationResponse response = new CertificateVerificationResponse();
+        response.setCertificateNumber(entity.getCertificateNumber());
+        response.setNomEnseignant(entity.getNomEnseignant());
+        response.setPrenomEnseignant(entity.getPrenomEnseignant());
+        response.setTitreFormation(entity.getTitreFormation());
+        response.setChargeHoraireGlobal(entity.getChargeHoraireGlobal());
+        response.setDateDebutFormation(entity.getDateDebutFormation());
+        response.setDateFinFormation(entity.getDateFinFormation());
+        response.setIssuedAt(entity.getIssuedAt());
+        response.setCertificateStatus(entity.getCertificateStatus());
+        response.setCompetencesValidees(entity.getCompetencesValidees());
+        return response;
     }
 
     // ── Mapping ──────────────────────────────────────────────────────────────
@@ -93,6 +172,11 @@ public class CertificateServiceImpl implements CertificateService {
     private CertificateResponse mapToResponse(Certificate entity) {
         CertificateResponse res = new CertificateResponse();
         res.setId(entity.getIdCertificate());
+        res.setCertificateNumber(entity.getCertificateNumber());
+        res.setVerificationToken(entity.getVerificationToken());
+        res.setVerificationHash(entity.getVerificationHash());
+        res.setIssuedAt(entity.getIssuedAt());
+        res.setCertificateStatus(entity.getCertificateStatus());
         res.setFormationId(entity.getFormationId());
         res.setTitreFormation(entity.getTitreFormation());
         res.setTypeCertif(entity.getTypeCertif());
@@ -108,6 +192,9 @@ public class CertificateServiceImpl implements CertificateService {
         res.setDelivered(entity.isDelivered());
         res.setCreatedAt(entity.getDateFinFormation());
         res.setPdfFilePath(entity.getPdfFilePath());
+        res.setRevokedAt(entity.getRevokedAt());
+        res.setRevokedBy(entity.getRevokedBy());
+        res.setRevocationReason(entity.getRevocationReason());
         return res;
     }
 
@@ -133,6 +220,29 @@ public class CertificateServiceImpl implements CertificateService {
         Certificate cert = new Certificate();
         updateEntityFromRequest(cert, req);
         return cert;
+    }
+
+    private void initializeVerificationFields(Certificate certificate) {
+        String token = UUID.randomUUID().toString();
+        certificate.setVerificationToken(token);
+        certificate.setVerificationHash(sha256(token + ":" + certificate.getFormationId()
+                + ":" + certificate.getEnseignantId()));
+        certificate.setIssuedAt(OffsetDateTime.now(ZoneOffset.UTC));
+        certificate.setCertificateStatus("ISSUED");
+        certificate.setCertificateNumber("CERT-%d-%06d".formatted(
+                certificate.getIssuedAt().getYear(),
+                // floorMod gère Integer.MIN_VALUE correctement (voir SpotBugs RV_ABSOLUTE_VALUE_OF_HASHCODE).
+                Math.floorMod(token.hashCode(), 1_000_000)));
+    }
+
+    private String sha256(String value) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(value.getBytes(StandardCharsets.UTF_8));
+            return java.util.HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 indisponible", e);
+        }
     }
 
     private void updateEntityFromRequest(Certificate cert, CertificateRequest req) {

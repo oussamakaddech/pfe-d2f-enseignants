@@ -1,0 +1,49 @@
+{
+  "corpus": {
+    "path": "data\\simulation\\simulation_dataset_test1500.csv",
+    "rows": 1500,
+    "n_train": 1200,
+    "n_test": 300,
+    "data_origin": "SIMULATED",
+    "seed": 42,
+    "test_first_date": "2023-08-31",
+    "test_last_date": "2023-09-30",
+    "boundary_date_shared_with_train": true
+  },
+  "split": "tri date_t stable, 80/20, sans shuffle (frontière partagée 2023-08-31 documentée)",
+  "reference_mlp_v110": {
+    "rmse": 0.6488,
+    "mae": 0.4599,
+    "r2": 0.5291,
+    "accuracy_pm05": 66.0,
+    "accuracy_pm10": 88.7
+  },
+  "candidate_gb": {
+    "rmse": 0.6246,
+    "mae": 0.4431,
+    "r2": 0.5636,
+    "accuracy_pm05": 64.3,
+    "accuracy_pm10": 90.3
+  },
+  "delta_rmse_ic95_gb_vs_mlp": [
+    -0.0567,
+    0.0077
+  ],
+  "significant": false,
+  "baseline_audit_reference": {
+    "rmse": 1.2891,
+    "accuracy_pm10": 58.7
+  },
+  "decision": "DOCUMENTED_SIMULATION_CHALLENGER_NON_SIGNIFICANT",
+  "governance": {
+    "data_origin": "SIMULATED",
+    "validation_scope": "SIMULATION_VALIDATED",
+    "target_validity": "OBSERVED_IN_SIMULATION",
+    "serving": "inchange (ML_SERVING_MODE=HEURISTIC, aucun ACTIVE : gate §2.6 fail-closed)",
+    "production_artifact_untouched": "gap_predictor_temporal.joblib intact (SHA 59312ec9...)"
+  },
+  "artifact": "data\\models\\gap_predictor_simulation_test1500_gb.joblib",
+  "artifact_sha256": "b9275455ba44afcec465655ef67c2f9cb7e5774e7b10eb8da5d0f074289420d0",
+  "registered_as": "simulation-test1500-v1.0.0-gb CANDIDATE/PENDING",
+  "at": "2026-09-22T03:05:17.176292+00:00"
+}

@@ -21,10 +21,34 @@ class Settings(BaseSettings):
     database_url: str = Field(default="postgresql://d2f:d2f@localhost:7432/d2f")
     db_connect_timeout: int = 5
 
-    jwt_secret: str = Field(default="change-me-in-prod")
+    jwt_secret: str = ""
     jwt_algorithm: str = "HS512"
     jwt_auth_enabled: bool = True
     public_paths: list[str] = ["/api/v1/analytics/health", "/api/v1/analytics/ready", "/docs", "/redoc", "/openapi.json", "/metrics"]
+
+    @field_validator("jwt_secret")
+    @classmethod
+    def _jwt_secret_strong_in_prod(cls, v: str) -> str:
+        """P0 sécurité (CDC DSI §IV.1) — fail fast en production si le secret
+        JWT est absent, trop court pour HS512 (< 64 chars) ou un placeholder."""
+        import os
+
+        env = os.getenv("APP_ENV", "development").lower()
+        if env in ("prod", "production"):
+            if not v or not v.strip():
+                raise ValueError(
+                    "JWT_SECRET is required in production. Set it via env var or .env file."
+                )
+            if len(v.strip()) < 64:
+                raise ValueError(
+                    f"JWT_SECRET too short ({len(v.strip())} chars). Minimum 64 chars for HS512."
+                )
+            lowered = v.lower()
+            if "change-me" in lowered or "change_me" in lowered or "changeme" in lowered:
+                raise ValueError(
+                    "JWT_SECRET contains a placeholder (CHANGE_ME). Configure a real secret."
+                )
+        return v
 
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
@@ -34,7 +58,11 @@ class Settings(BaseSettings):
     seuil_gap_critique: float = 0.75
     seuil_gap_haute: float = 0.5
     seuil_gap_moyenne: float = 0.25
+    # Bornes de classement du score de risque (0..100).
+    # risk_threshold_high (70) = borne CRITIQUE, partagée avec le déclenchement
+    # des alertes ; risk_threshold_severe (55) = borne ELEVE ; medium (30) = MOYEN.
     risk_threshold_high: float = 70.0
+    risk_threshold_severe: float = 55.0
     risk_threshold_medium: float = 30.0
     collective_min_teachers: int = 3
     stagnation_ref_months: int = 12
@@ -52,10 +80,61 @@ class Settings(BaseSettings):
     )
 
     models_dir: str = "ml/artifacts"
-    gap_model_artifact: str = "gap_predictor.joblib"
+    gap_model_artifact: str = "gap_predictor_temporal.joblib"
     # Kill-switch global du ML (audit DSI 3.3) : à false, AUCUN artefact ML
     # n'est chargé ni utilisé — l'API retombe sur les règles métier déterministes.
     ml_enabled: bool = True
+
+    # ── Modes d'exécution ML ──────────────────────────────────────────────
+    # Mode demandé par l'opérateur. Ce n'est qu'une REQUÊTE : le serveur
+    # applique les contrôles et peut refuser l'activation (fallback).
+    ml_serving_mode: str = "PRODUCTION_ML"
+
+    # Politique de provenance : seuil maximal de lignes synthétiques
+    # dans le corpus d'entraînement. Calculé depuis les lignes du dataset,
+    # jamais depuis une variable arbitraire.
+    ml_synthetic_tolerance_pct: float = 50.0
+    ml_require_real_data: bool = True
+    ml_min_real_rows: int = 50
+
+    # Seuils de promotion du modèle (validation des métriques).
+    ml_min_r2: float = 0.0
+    ml_max_rmse: float = 2.0
+    ml_max_mae: float = 1.5
+    ml_max_train_test_gap_pct: float = 50.0
+
+    # Chemin de l'artefact (chemin relatif au models_dir ou chemin absolu).
+    ml_artifact_path: str = "gap_predictor_temporal.joblib"
+    ml_metadata_path: str = "temporal_training_metadata.json"
+    ml_registry_path: str = "model_registry.json"
+    ml_feature_schema_path: str = "feature_schema.json"
+
+    # Skew guard actif : test KS (deux échantillons) entre les features servies
+    # (fenêtre glissante) et le corpus d'entraînement. p < seuil sur au moins
+    # une feature => dérive de distribution => repli heuristique fail-closed.
+    ml_skew_guard_enabled: bool = True
+    ml_skew_p_threshold: float = 0.01
+    ml_skew_window: int = 30
+    ml_skew_min_window: int = 10
+
+    # Cache TTL du bundle de features serveur (performance) : la page enseignant
+    # appelle 5-6 endpoints qui refont chacun le même bundle (~5 requêtes SQL).
+    # 0 = désactivé ; les lectures renvoient une copie (aucune mutation qui fuit).
+    ml_feature_cache_ttl: float = 60.0
+
+    # ── Classement des recommandations de formation ───────────────────────
+    # Paramètres métier externalisés (CDC DSI 1.1). Valeurs par défaut =
+    # paramétrage historique 70 % contenu / 20 % qualité / 10 % récence.
+    ranking_weight_content: float = 0.70
+    ranking_weight_quality: float = 0.20
+    ranking_weight_recency: float = 0.10
+    # Fenêtre de décroissance de la récence, en jours, après la fin d'une formation.
+    ranking_recency_lookback_days: int = 365
+    # Échelle de notation des évaluations de formation (notes sur 5 par défaut).
+    ranking_eval_scale_max: float = 5.0
+    # Part du score ML dans le mélange heuristique/ML des recommandations
+    # (0.0 = heuristique pure, 1.0 = ML pur).
+    ranking_ml_blend_ratio: float = 0.30
 
     analysis_cache_ttl_hours: int = 24
 

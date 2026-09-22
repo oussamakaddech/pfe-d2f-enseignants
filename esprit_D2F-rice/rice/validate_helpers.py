@@ -7,6 +7,8 @@ from typing import Dict, List, Tuple
 from rice.models import ValidateRequest, ValidateSummary
 
 
+# Insère ou met à jour un domaine en base (ON CONFLICT code → UPDATE).
+# En cas d'erreur : rollback + message ajouté à `errors`, renvoie False.
 def _upsert_domaine(cur, domaine, errors: List[str], conn) -> bool:
     try:
         cur.execute("""
@@ -27,6 +29,7 @@ def _upsert_domaine(cur, domaine, errors: List[str], conn) -> bool:
         return False
 
 
+# Insère ou met à jour une compétence, liée à son domaine (recherche par code).
 def _upsert_competence(cur, competence, domaine_code: str, errors: List[str], conn) -> bool:
     try:
         cur.execute("""
@@ -55,6 +58,7 @@ def _upsert_competence(cur, competence, domaine_code: str, errors: List[str], co
         return False
 
 
+# Insère ou met à jour une sous-compétence, liée à sa compétence parente.
 def _upsert_sous_competence(cur, sc, competence_code: str, errors: List[str], conn) -> bool:
     try:
         cur.execute("""
@@ -81,6 +85,8 @@ def _upsert_sous_competence(cur, sc, competence_code: str, errors: List[str], co
         return False
 
 
+# Crée les liens enseignant ↔ savoir (table enseignant_competences) pour
+# chaque enseignant suggéré. Renvoie le nombre de liens insérés.
 def _insert_savoir_links(cur, savoir, sav_id: str, errors: List[str], conn) -> int:
     lnk = 0
     for ens_id in savoir.enseignantsSuggeres:
@@ -195,6 +201,8 @@ def _process_competence_savoirs(cur, competence, overwrite: bool, counts: Dict[s
             counts["inserted_links"] += lnk
 
 
+# Traite la validation d'une compétence : upsert de la compétence puis
+# traitement de tous ses savoirs (directs + sous-compétences).
 def _process_validate_competence(cur, competence, domaine_code: str, overwrite: bool, counts: Dict[str, int], errors: List[str], conn) -> None:
     if not _upsert_competence(cur, competence, domaine_code, errors, conn):
         return
@@ -203,6 +211,8 @@ def _process_validate_competence(cur, competence, domaine_code: str, overwrite: 
     _process_competence_savoirs(cur, competence, overwrite, counts, errors, conn)
 
 
+# Traite la validation d'un domaine : upsert du domaine puis de toutes
+# ses compétences (récursif sur l'arbre).
 def _process_validate_domaine(cur, domaine, overwrite: bool, counts: Dict[str, int], errors: List[str], conn) -> None:
     if not _upsert_domaine(cur, domaine, errors, conn):
         return
@@ -212,6 +222,8 @@ def _process_validate_domaine(cur, domaine, overwrite: bool, counts: Dict[str, i
         _process_validate_competence(cur, competence, domaine.code, overwrite, counts, errors, conn)
 
 
+# Parcourt TOUTES les propositions (domaines → compétences → savoirs) et
+# renvoie les compteurs d'insert/update/link de la transaction /validate.
 def _process_validate_propositions(cur, request: ValidateRequest, errors: List[str], conn) -> Dict[str, int]:
     counts = {
         "upserted_domaines": 0,
@@ -226,6 +238,8 @@ def _process_validate_propositions(cur, request: ValidateRequest, errors: List[s
     return counts
 
 
+# Construit le résumé final de /validate : log des compteurs + objet
+# ValidateSummary renvoyé au frontend (status ok, 30 premières erreurs max).
 def _build_validate_summary(counts: Dict[str, int], errors: List[str], logger) -> ValidateSummary:
     logger.info(
         f"Validate: domaines={counts['upserted_domaines']} competences={counts['upserted_competences']} "

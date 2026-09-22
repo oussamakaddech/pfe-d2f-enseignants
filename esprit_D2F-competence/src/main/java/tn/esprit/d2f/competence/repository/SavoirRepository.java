@@ -30,21 +30,46 @@ public interface SavoirRepository extends JpaRepository<Savoir, Long> {
     @Query("SELECT s.id FROM Savoir s WHERE s.sousCompetence.id = :sousCompetenceId")
     List<Long> findIdsBySousCompetenceId(@Param("sousCompetenceId") Long sousCompetenceId);
 
-    /** IDs de tous les savoirs appartenant à un domaine (via sous-compétence ou compétence directe) */
-    @Query("SELECT s.id FROM Savoir s WHERE " +
-           "s.sousCompetence.competence.domaine.id = :domaineId OR " +
-           "s.competence.domaine.id = :domaineId")
+    /**
+     * IDs de tous les savoirs appartenant à un domaine (via sous-compétence ou compétence directe).
+     *
+     * <p>LEFT JOIN explicites obligatoires : les navigations implicites en OR
+     * génèrent des INNER JOIN qui excluent les savoirs dont l'autre parent est
+     * NULL (ex. savoirs directs quand on joint via sousCompetence) – la méthode
+     * renvoyait alors une liste incomplète (voire vide), ce qui laissait des
+     * lignes orphelines et provoquait des 409 lors des suppressions en cascade.
+     */
+    @Query("""
+        SELECT DISTINCT s.id FROM Savoir s
+        LEFT JOIN s.sousCompetence sc
+        LEFT JOIN sc.competence c1
+        LEFT JOIN s.competence c2
+        LEFT JOIN c1.domaine d1
+        LEFT JOIN c2.domaine d2
+        WHERE d1.id = :domaineId OR d2.id = :domaineId
+    """)
     List<Long> findIdsByDomaineId(@Param("domaineId") Long domaineId);
 
     @Query("SELECT s FROM Savoir s WHERE LOWER(s.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(s.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(s.code) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<Savoir> searchByKeyword(@Param("keyword") String keyword);
 
-    /** Search savoirs within a specific domaine (via competence.domaine or sousCompetence.competence.domaine). */
-    @Query("SELECT s FROM Savoir s WHERE " +
-           "(s.competence.domaine.id = :domaineId OR s.sousCompetence.competence.domaine.id = :domaineId) AND " +
-           "(LOWER(s.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           " LOWER(s.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           " LOWER(s.code) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    /**
+     * Search savoirs within a specific domaine (via competence.domaine or sousCompetence.competence.domaine).
+     *
+     * <p>LEFT JOIN explicites obligatoires (même raison que {@link #findIdsByDomaineId(Long)} :
+     * les navigations implicites produisent des INNER JOIN qui filtrent les savoirs
+     * dont l'autre parent est NULL).
+     */
+    @Query("""
+        SELECT s FROM Savoir s
+        LEFT JOIN s.competence c1
+        LEFT JOIN s.sousCompetence sc
+        LEFT JOIN sc.competence c2
+        WHERE (c1.domaine.id = :domaineId OR c2.domaine.id = :domaineId) AND
+        (LOWER(s.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
+         LOWER(s.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
+         LOWER(s.code) LIKE LOWER(CONCAT('%', :keyword, '%')))
+    """)
     List<Savoir> searchByDomaineIdAndKeyword(@Param("domaineId") Long domaineId, @Param("keyword") String keyword);
 
     /** Version paginée pour les endpoints de recherche. */
