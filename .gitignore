@@ -194,3 +194,14 @@ esprit_D2F-webapp/public/vendor/
 **/*.drone-qa.yml
 **/*.drone-prod.yml
 **/drone-qa.yml
+
+# Scripts SQL/shell ad hoc de init_db (diagnostic, correctifs one-shot, seeds
+# non numerotes) : seuls README.md et les migrations Vn__ sont versionnes.
+esprit_D2F-predictive-analytics/init_db/check*.sql
+esprit_D2F-predictive-analytics/init_db/fix*.sql
+esprit_D2F-predictive-analytics/init_db/q.sql
+esprit_D2F-predictive-analytics/init_db/verify.sql
+esprit_D2F-predictive-analytics/init_db/list_tables.sql
+esprit_D2F-predictive-analytics/init_db/compute_factors.sql
+esprit_D2F-predictive-analytics/init_db/seed_*.sql
+esprit_D2F-predictive-analytics/init_db/test_*.sh
