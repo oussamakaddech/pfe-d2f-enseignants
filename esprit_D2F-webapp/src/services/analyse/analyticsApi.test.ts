@@ -380,10 +380,7 @@ describe('analyticsApi – dashboard', () => {
 
   it('getAtRisk sans seuil n envoie aucun parametre', async () => {
     await analyticsApi.getAtRisk({ departement_id: 'D1' });
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(
-      `${BASE}/dashboard/teachers-at-risk`,
-      undefined,
-    );
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/dashboard/teachers-at-risk`, undefined);
   });
 
   it('getTeachersByCell transmet limit', async () => {

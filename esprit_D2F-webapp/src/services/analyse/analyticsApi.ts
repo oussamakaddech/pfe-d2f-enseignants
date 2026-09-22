@@ -920,10 +920,9 @@ export const analyticsApi = {
   // invisibles les enseignants des départements les moins exposés.
   getAtRisk(filters?: DashboardFilters & { seuil?: number }): Promise<AtRiskTeacher[]> {
     return axios
-      .get<ApiEnvelope<{ rows: BackendRiskRow[]; count: number }> | BackendRiskRow[]>(
-        `${BASE}/dashboard/teachers-at-risk`,
-        filters?.seuil != null ? { params: { seuil: filters.seuil } } : undefined,
-      )
+      .get<
+        ApiEnvelope<{ rows: BackendRiskRow[]; count: number }> | BackendRiskRow[]
+      >(`${BASE}/dashboard/teachers-at-risk`, filters?.seuil != null ? { params: { seuil: filters.seuil } } : undefined)
       .then((r) => {
         const unwrapped = (r.data as { data?: unknown })?.data ?? r.data;
         const rows = Array.isArray(unwrapped)

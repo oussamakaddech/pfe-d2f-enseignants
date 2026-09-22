@@ -76,15 +76,14 @@ describe('useRiceReport', () => {
     expect(msgApi.error).toHaveBeenCalled();
   });
 
-  it("handleImport envoie le departement COURANT apres un changement de selection", async () => {
+  it('handleImport envoie le departement COURANT apres un changement de selection', async () => {
     // Contrat : la charge utile porte le departement COURANT, pas celui d'un
     // rendu precedent. `departement` etait lu sans figurer dans les
     // dependances du useCallback ; la justesse ne tenait qu'a l'identite
     // instable de `importMutation`, qui forcait la recreation du callback.
     (RiceService.importToDb as ReturnType<typeof vi.fn>).mockResolvedValue({ domainesCreated: 1 });
     const { result, rerender } = renderHook(
-      ({ departement }: { departement: string }) =>
-        useRiceReport({ tree, departement, msgApi }),
+      ({ departement }: { departement: string }) => useRiceReport({ tree, departement, msgApi }),
       { wrapper, initialProps: { departement: 'INFO' } },
     );
 
@@ -97,7 +96,7 @@ describe('useRiceReport', () => {
     expect(payload.departement).toBe('GENIE_CIVIL');
   });
 
-  it("handleImport omet le departement en mode auto", async () => {
+  it('handleImport omet le departement en mode auto', async () => {
     (RiceService.importToDb as ReturnType<typeof vi.fn>).mockResolvedValue({ domainesCreated: 1 });
     const { result } = renderHook(() => useRiceReport({ tree, departement: 'auto', msgApi }), {
       wrapper,

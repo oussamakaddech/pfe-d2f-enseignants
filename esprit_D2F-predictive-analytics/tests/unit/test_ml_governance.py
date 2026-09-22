@@ -629,12 +629,18 @@ def test_provenance_signale_absence_colonne_extrapolation():
 def test_legacy_predictor_lit_les_metadonnees_de_son_artefact():
     """Les metriques exposees doivent appartenir au modele REELLEMENT charge.
 
-    Le predictor legacy lisait "training_metadata.json" en dur, qui decrit un
-    modele obsolete (gradient_boosting, 21 features, test_r2 = 1.0 sur 80
-    echantillons) alors que GAP_MODEL_FILE sert gap_predictor_temporal.joblib
-    (29 features). get_metrics() annoncait donc un R2 parfait n'appartenant pas
+    Le predictor legacy lisait "training_metadata.json" en dur, qui decrit
+    gap_predictor.joblib (gradient_boosting, 21 features, test_r2 = 1.0 sur 80
+    echantillons), meme quand GAP_MODEL_FILE sert gap_predictor_temporal.joblib
+    (29 features). get_metrics() annoncait donc des metriques n'appartenant pas
     au modele servi (CDC DSI 4.2 tracabilite / 4.6 suivi des metriques).
+
+    Le test est agnostique de GAP_MODEL_FILE : il verifie l'APPARIEMENT
+    metadonnees/artefact, pas une valeur de R2 (qui depend de l'artefact
+    configure — 1.0 est la metrique honnete de gap_predictor.joblib).
     """
+    import json
+
     import joblib
 
     from app.main import app  # installe les alias app.* -> app_legacy.*  # noqa: F401
@@ -650,5 +656,20 @@ def test_legacy_predictor_lit_les_metadonnees_de_son_artefact():
     # Les metadonnees chargees decrivent bien l'artefact servi.
     assert predictor.n_features == artefact_features
     assert len(predictor.feature_ranges) == artefact_features
-    # Et le R2 expose n'est plus le 1.0 du modele obsolete.
-    assert predictor.last_metrics.get("test_r2") != 1.0
+
+    # Et les metriques exposees sont celles du fichier apparie a l'artefact.
+    paired_meta = Path(gp.settings.models_dir) / gp.TRAINING_METADATA_FILE
+    paired_metrics = json.loads(paired_meta.read_text(encoding="utf-8")).get("metrics", {})
+    assert predictor.last_metrics == paired_metrics
+
+    # Non-regression : les metriques de l'AUTRE artefact ne doivent pas fuiter.
+    other_name = (
+        "training_metadata.json"
+        if gp.TRAINING_METADATA_FILE != "training_metadata.json"
+        else "temporal_training_metadata.json"
+    )
+    other_meta = Path(gp.settings.models_dir) / other_name
+    if other_meta.exists():
+        other_metrics = json.loads(other_meta.read_text(encoding="utf-8")).get("metrics", {})
+        if other_metrics != paired_metrics:
+            assert predictor.last_metrics != other_metrics

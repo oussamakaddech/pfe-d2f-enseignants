@@ -306,7 +306,11 @@ export default function AppRoutes() {
 
                   {/* Page dédiée de modification (GET détail frais + pleine page).
                     Parité FORMATION_UPDATE : ADMIN, CUP, CHEF_DEPARTEMENT. */}
-                  <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />}>
+                  <Route
+                    element={
+                      <RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />
+                    }
+                  >
                     <Route path="/home/Formation/Modifier/:id" element={<FormationEditPage />} />
                   </Route>
 
@@ -333,9 +337,7 @@ export default function AppRoutes() {
                     ADMIN + RESPONSABLE_DOSSIER — CUP/CHEF_DEPARTEMENT exclus
                     (parité gateway /documents + /onedrive). */}
                   <Route
-                    element={
-                      <RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.RESPONSABLE_DOSSIER]} />
-                    }
+                    element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.RESPONSABLE_DOSSIER]} />}
                   >
                     <Route
                       path="/home/Formation/Consulter/:formationId/documents"

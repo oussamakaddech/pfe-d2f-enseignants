@@ -4,7 +4,13 @@
  * ─────────────────────────────────────────────────────────────────────── */
 import { useState } from 'react';
 import { Row, Col, Skeleton, Button, Pagination, Space, Tabs } from 'antd';
-import { InboxOutlined, PlusOutlined, ClearOutlined, ApartmentOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import {
+  InboxOutlined,
+  PlusOutlined,
+  ClearOutlined,
+  ApartmentOutlined,
+  CheckCircleOutlined,
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
 import { useHasPermission, useUserRole } from '@/routes/guards';
@@ -62,8 +68,7 @@ export default function BesoinList() {
   const [scopesOpen, setScopesOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('active');
   const ctx = useBesoinList();
-  const { data: approvedBesoins = [], isLoading: loadingApproved } =
-    useApprovedBesoins(canReadAll);
+  const { data: approvedBesoins = [], isLoading: loadingApproved } = useApprovedBesoins(canReadAll);
 
   const {
     besoins,
@@ -199,146 +204,146 @@ export default function BesoinList() {
 
       {activeTab === 'active' && (
         <>
-      <BesoinFiltersPanel
-        searchText={searchText}
-        filters={filters}
-        types={types.filter(Boolean) as string[]}
-        ups={typedUps}
-        departements={typedDepts}
-        onSearchChange={setSearchText}
-        onFiltersChange={(f) => setFilters(f as typeof INITIAL_FILTERS)}
-        onReset={() => {
-          setFilters(INITIAL_FILTERS);
-          setSearchText('');
-        }}
-      />
+          <BesoinFiltersPanel
+            searchText={searchText}
+            filters={filters}
+            types={types.filter(Boolean) as string[]}
+            ups={typedUps}
+            departements={typedDepts}
+            onSearchChange={setSearchText}
+            onFiltersChange={(f) => setFilters(f as typeof INITIAL_FILTERS)}
+            onReset={() => {
+              setFilters(INITIAL_FILTERS);
+              setSearchText('');
+            }}
+          />
 
-      <ViewModeToggle
-        value={viewMode}
-        onChange={setViewMode}
-        count={filtered.length}
-        total={stats.total}
-      />
+          <ViewModeToggle
+            value={viewMode}
+            onChange={setViewMode}
+            count={filtered.length}
+            total={stats.total}
+          />
 
-      {canManageScopes && (
-        <Space style={{ marginBottom: 12 }}>
-          <Button icon={<ApartmentOutlined />} onClick={() => setScopesOpen(true)}>
-            Périmètres utilisateurs (UP / départements)
-          </Button>
-        </Space>
-      )}
-
-      {filtered.length === 0 && !loading && (
-        <output className="bf-empty">
-          <div className="bf-empty__illustration" aria-hidden="true">
-            <InboxOutlined />
-          </div>
-          <h3 className="bf-empty__title">
-            {hasActiveFilters
-              ? 'Aucun besoin ne correspond à vos critères'
-              : 'Aucun besoin enregistré'}
-          </h3>
-          <p className="bf-empty__subtitle">
-            {hasActiveFilters
-              ? "Essayez d'élargir vos filtres ou de réinitialiser la recherche pour voir l'ensemble des demandes."
-              : 'Commencez par enregistrer une première demande de formation pour la rendre visible aux unités pédagogiques.'}
-          </p>
-          <div className="bf-empty__actions">
-            {hasActiveFilters && (
-              <Button
-                icon={<ClearOutlined />}
-                onClick={() => {
-                  setFilters(INITIAL_FILTERS);
-                  setSearchText('');
-                }}
-                className="bf-btn bf-btn--ghost"
-              >
-                Réinitialiser les filtres
+          {canManageScopes && (
+            <Space style={{ marginBottom: 12 }}>
+              <Button icon={<ApartmentOutlined />} onClick={() => setScopesOpen(true)}>
+                Périmètres utilisateurs (UP / départements)
               </Button>
-            )}
-            {canAdd && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => navigate('/home/besoins/ajouter')}
-                className="bf-btn bf-btn--primary"
-              >
-                {addLabel}
-              </Button>
-            )}
-          </div>
-        </output>
-      )}
+            </Space>
+          )}
 
-      {viewMode === 'cards' && filtered.length > 0 && (
-        <>
-          <Row gutter={[16, 16]} className="bf-grid">
-            {pagedCards.map((b) => {
-              const br = b as unknown as Record<string, unknown>;
-              const id = getBesoinId(br);
-              return (
-                <Col xs={24} sm={12} lg={8} xxl={6} key={String(id)}>
-                  <BesoinCard
-                    besoin={b}
-                    upLabel={getLabel(findById(typedUps, b.up))}
-                    deptLabel={getLabel(findById(typedDepts, b.departement))}
-                    periodLabel={periodLabelOf(br)}
-                    approvingId={approvingId}
-                    canApprove={canApprove}
-                    canReject={canReject}
-                    canEdit={canEdit}
-                    canDelete={canDelete}
-                    userRole={userRole}
-                    currentUsername={currentUsername}
-                    currentUserId={currentUserId}
-                    onApprove={handleApprove}
-                    onReject={setRejectRecord}
-                    onOpenMail={openMailModal}
-                    onEdit={openEdit}
-                    onDelete={handleDelete}
-                    onOpen={() => openEdit(br)}
-                  />
-                </Col>
-              );
-            })}
-          </Row>
-          <div className="bf-pagination">
-            <Pagination
-              current={page}
-              pageSize={pageSize}
-              total={filtered.length}
-              onChange={(p, s) => {
-                setPage(p);
-                setPageSize(s);
-              }}
-              showSizeChanger
-              pageSizeOptions={[8, 12, 16, 24, 48]}
-              showTotal={(t, [a, b]) => `${a}-${b} sur ${t} besoins`}
+          {filtered.length === 0 && !loading && (
+            <output className="bf-empty">
+              <div className="bf-empty__illustration" aria-hidden="true">
+                <InboxOutlined />
+              </div>
+              <h3 className="bf-empty__title">
+                {hasActiveFilters
+                  ? 'Aucun besoin ne correspond à vos critères'
+                  : 'Aucun besoin enregistré'}
+              </h3>
+              <p className="bf-empty__subtitle">
+                {hasActiveFilters
+                  ? "Essayez d'élargir vos filtres ou de réinitialiser la recherche pour voir l'ensemble des demandes."
+                  : 'Commencez par enregistrer une première demande de formation pour la rendre visible aux unités pédagogiques.'}
+              </p>
+              <div className="bf-empty__actions">
+                {hasActiveFilters && (
+                  <Button
+                    icon={<ClearOutlined />}
+                    onClick={() => {
+                      setFilters(INITIAL_FILTERS);
+                      setSearchText('');
+                    }}
+                    className="bf-btn bf-btn--ghost"
+                  >
+                    Réinitialiser les filtres
+                  </Button>
+                )}
+                {canAdd && (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => navigate('/home/besoins/ajouter')}
+                    className="bf-btn bf-btn--primary"
+                  >
+                    {addLabel}
+                  </Button>
+                )}
+              </div>
+            </output>
+          )}
+
+          {viewMode === 'cards' && filtered.length > 0 && (
+            <>
+              <Row gutter={[16, 16]} className="bf-grid">
+                {pagedCards.map((b) => {
+                  const br = b as unknown as Record<string, unknown>;
+                  const id = getBesoinId(br);
+                  return (
+                    <Col xs={24} sm={12} lg={8} xxl={6} key={String(id)}>
+                      <BesoinCard
+                        besoin={b}
+                        upLabel={getLabel(findById(typedUps, b.up))}
+                        deptLabel={getLabel(findById(typedDepts, b.departement))}
+                        periodLabel={periodLabelOf(br)}
+                        approvingId={approvingId}
+                        canApprove={canApprove}
+                        canReject={canReject}
+                        canEdit={canEdit}
+                        canDelete={canDelete}
+                        userRole={userRole}
+                        currentUsername={currentUsername}
+                        currentUserId={currentUserId}
+                        onApprove={handleApprove}
+                        onReject={setRejectRecord}
+                        onOpenMail={openMailModal}
+                        onEdit={openEdit}
+                        onDelete={handleDelete}
+                        onOpen={() => openEdit(br)}
+                      />
+                    </Col>
+                  );
+                })}
+              </Row>
+              <div className="bf-pagination">
+                <Pagination
+                  current={page}
+                  pageSize={pageSize}
+                  total={filtered.length}
+                  onChange={(p, s) => {
+                    setPage(p);
+                    setPageSize(s);
+                  }}
+                  showSizeChanger
+                  pageSizeOptions={[8, 12, 16, 24, 48]}
+                  showTotal={(t, [a, b]) => `${a}-${b} sur ${t} besoins`}
+                />
+              </div>
+            </>
+          )}
+
+          {viewMode === 'table' && filtered.length > 0 && (
+            <BesoinTable
+              data={filtered as unknown as Record<string, unknown>[]}
+              loading={loading}
+              approvingId={approvingId}
+              canApprove={canApprove}
+              canReject={canReject}
+              canEdit={canEdit}
+              canDelete={canDelete}
+              userRole={userRole}
+              currentUsername={currentUsername}
+              currentUserId={currentUserId}
+              getBesoinId={getBesoinId}
+              onApprove={handleApprove}
+              onReject={setRejectRecord}
+              onOpenMail={openMailModal}
+              onEdit={openEdit}
+              onDelete={handleDelete}
             />
-          </div>
-        </>
-      )}
-
-      {viewMode === 'table' && filtered.length > 0 && (
-        <BesoinTable
-          data={filtered as unknown as Record<string, unknown>[]}
-          loading={loading}
-          approvingId={approvingId}
-          canApprove={canApprove}
-          canReject={canReject}
-          canEdit={canEdit}
-          canDelete={canDelete}
-          userRole={userRole}
-          currentUsername={currentUsername}
-          currentUserId={currentUserId}
-          getBesoinId={getBesoinId}
-          onApprove={handleApprove}
-          onReject={setRejectRecord}
-          onOpenMail={openMailModal}
-          onEdit={openEdit}
-          onDelete={handleDelete}
-        />
-      )}
+          )}
         </>
       )}
 

@@ -68,8 +68,8 @@ async function chooseFormSelect(formItemLabel: string, optionText: string) {
   const selector = item.querySelector('.ant-select-selector') as HTMLElement;
   fireEvent.mouseDown(selector);
   const option = await waitFor(() => {
-    const el = Array.from(document.querySelectorAll('.ant-select-item-option-content')).find(
-      (n) => n.textContent?.includes(optionText),
+    const el = Array.from(document.querySelectorAll('.ant-select-item-option-content')).find((n) =>
+      n.textContent?.includes(optionText),
     );
     expect(el).toBeTruthy();
     return el as HTMLElement;
@@ -98,11 +98,13 @@ describe('EvaluationParticipantPage — filtre enseignant par formation', () => 
         .querySelector('.ant-select-selector')!,
     );
     await waitFor(() => {
-      expect(document.querySelector('.ant-select-dropdown:not(.ant-select-dropdown-hidden)')).toBeTruthy();
+      expect(
+        document.querySelector('.ant-select-dropdown:not(.ant-select-dropdown-hidden)'),
+      ).toBeTruthy();
     });
-    const contents = Array.from(
-      document.querySelectorAll('.ant-select-item-option-content'),
-    ).map((n) => n.textContent);
+    const contents = Array.from(document.querySelectorAll('.ant-select-item-option-content')).map(
+      (n) => n.textContent,
+    );
     expect(contents.some((t) => t?.includes('Si Out'))).toBe(false);
   });
 });

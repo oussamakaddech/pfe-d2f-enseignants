@@ -127,7 +127,7 @@ export default function EvaluationParticipantPage() {
     const current = form.getFieldValue('enseignantId');
     if (current != null && !eligibleEnseignantIds.has(String(current))) {
       form.setFieldsValue({ enseignantId: undefined });
-      msgApi.info("Enseignant réinitialisé : il ne fait pas partie de cette formation.");
+      msgApi.info('Enseignant réinitialisé : il ne fait pas partie de cette formation.');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watchedFormationId, eligibleEnseignantIds]);

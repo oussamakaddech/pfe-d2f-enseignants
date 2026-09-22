@@ -112,10 +112,7 @@ export default function CatalogueTab() {
   // à une formation SAUF l'ADMIN et le RESPONSABLE_DOSSIER (gestionnaires).
   // Le backend revalide l'appartenance au périmètre (UP OU département).
   const isInscribableRole =
-    role === 'enseignant' ||
-    role === 'animateur' ||
-    role === 'cup' ||
-    role === 'chefdepartement';
+    role === 'enseignant' || role === 'animateur' || role === 'cup' || role === 'chefdepartement';
   const isAdminLike = role === 'admin' || role === 'cup';
 
   const { data: enseignant } = useEnseignantById(role === 'cup' ? identifier : undefined);

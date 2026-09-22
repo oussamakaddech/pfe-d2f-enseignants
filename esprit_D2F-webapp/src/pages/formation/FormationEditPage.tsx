@@ -25,7 +25,14 @@ export default function FormationEditPage() {
     <div className="bf-scope bf-page">
       <Breadcrumb
         items={[
-          { href: '/home', title: (<><HomeOutlined /> Accueil</>) },
+          {
+            href: '/home',
+            title: (
+              <>
+                <HomeOutlined /> Accueil
+              </>
+            ),
+          },
           { href: '/home/Formation/Consulter', title: 'Catalogue des formations' },
           { title: <strong>Modifier la formation</strong> },
         ]}

@@ -10,7 +10,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -194,17 +193,37 @@ class BesoinFormationServiceImplTest {
         verify(besoinFormationRepository).save(any(BesoinFormation.class));
     }
 
+    /**
+     * Le type de besoin est libre pour tous les rôles (seul {@code null} est rejeté) :
+     * un enseignant peut donc créer un besoin COLLECTIF, mais son périmètre reste
+     * celui du serveur et l'étape initiale reste le CUP.
+     */
     @Test
-    void addBesoinFormation_teacherCannotCreateCollectiveNeed() {
+    void addBesoinFormation_teacherCollectiveNeedKeepsServerScopeAndCupStep() {
         BesoinFormationRequest request = new BesoinFormationRequest();
         request.setTitre("Besoin collectif");
         request.setTypeBesoin(TypeBesoin.COLLECTIF);
+        request.setUp("UP-client");
+        request.setDepartement("DEP-client");
         ReviewerScopeService.ResolvedScope teacher = new ReviewerScopeService.ResolvedScope(
                 "teacher", "teacher-id", CreatorRole.ENSEIGNANT, "UP1", "DEP1", false);
-        when(reviewerScopeService.resolveCurrentUser()).thenReturn(teacher);
+        BesoinFormation saved = new BesoinFormation();
+        saved.setIdBesoinFormation(3L);
 
-        assertThrows(AccessDeniedException.class, () -> service.addBesoinFormation(request));
-        verify(besoinFormationRepository, never()).save(any());
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(teacher);
+        when(besoinFormationRepository.save(any(BesoinFormation.class))).thenAnswer(invocation -> {
+            BesoinFormation value = invocation.getArgument(0);
+            assertEquals(TypeBesoin.COLLECTIF, value.getTypeBesoin());
+            assertEquals("UP1", value.getUp());
+            assertEquals("DEP1", value.getDepartement());
+            assertEquals(ApprovalStep.CUP, value.getCurrentApprovalStep());
+            assertEquals(BesoinStatus.SUBMITTED, value.getStatus());
+            return saved;
+        });
+
+        service.addBesoinFormation(request);
+
+        verify(besoinFormationRepository).save(any(BesoinFormation.class));
     }
 
     @Test
