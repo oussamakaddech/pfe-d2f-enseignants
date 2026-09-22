@@ -24,6 +24,7 @@ public class EvaluationFormateurService {
     private final esprit.pfe.serviceevaluation.client.FormationClient formationClient;
 
     private static final String ROLE_RESPONSABLE_DOSSIER = "ROLE_RESPONSABLE_DOSSIER";
+    private static final String ROLE_ADMIN = "ROLE_ADMIN";
 
     private void verifierExistence(String enseignantId, Long formationId) {
         if (Boolean.FALSE.equals(formationClient.getFormation(formationId))) {
@@ -57,24 +58,13 @@ public class EvaluationFormateurService {
         if (userRole != null && userRole.contains(ROLE_RESPONSABLE_DOSSIER)) {
             throw new SecurityException("Le responsable dossier ne peut pas évaluer les formateurs.");
         }
-        if (userRole != null && userRole.contains("ROLE_ADMIN")) {
+        if (userRole != null && userRole.contains(ROLE_ADMIN)) {
             return;
         }
         Boolean isAnimateur = formationClient.isAnimateurOfFormation(formationId, evaluatorId);
         if (!Boolean.TRUE.equals(isAnimateur)) {
             throw new SecurityException("Vous devez être animateur de cette formation pour évaluer les participants.");
         }
-    }
-
-    /**
-     * Résout l'identifiant de l'évaluateur à partir du rôle et de l'identité JWT.
-     * Pour un ADMIN, retourne null (pas de vérification d'animateur).
-     */
-    private String resolveEvaluatorId(String evaluatorIdentity, String userRole) {
-        if (userRole != null && userRole.contains("ROLE_ADMIN")) {
-            return null;
-        }
-        return evaluatorIdentity;
     }
 
     // Mapper helper
@@ -186,7 +176,7 @@ public class EvaluationFormateurService {
             return new ListScope(false, null);
         }
         boolean global = auth.getAuthorities().stream().anyMatch(a ->
-                "ROLE_ADMIN".equals(a.getAuthority()) || "ROLE_ANIMATEUR".equals(a.getAuthority()));
+                ROLE_ADMIN.equals(a.getAuthority()) || "ROLE_ANIMATEUR".equals(a.getAuthority()));
         if (global) {
             return new ListScope(true, null);
         }

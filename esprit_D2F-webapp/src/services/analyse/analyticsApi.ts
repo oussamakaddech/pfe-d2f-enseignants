@@ -710,7 +710,7 @@ export const analyticsApi = {
         ApiEnvelope<BackendRecommendation[]>
       >(`${BASE}/teachers/${enseignantId}/recommendations`, { params: { competence_id: opts.competence_id ?? undefined, limit: opts.size ?? 20 } })
       .then((r) => {
-        const recs = (unpack(r.data) ?? []).map(mapRecommendation);
+        const recs = (unpack(r.data) ?? []).map((rec, rank) => mapRecommendation(rec, rank));
         const size = opts.size ?? recs.length;
         const start = (opts.page ?? 0) * size;
         return {
@@ -751,7 +751,9 @@ export const analyticsApi = {
             dept_libelle: raw.context.dept_libelle,
           },
           gaps: (raw.gaps ?? []).map(mapGap),
-          recommendations: (raw.recommendations ?? []).map(mapRecommendation),
+          recommendations: (raw.recommendations ?? []).map((rec, rank) =>
+            mapRecommendation(rec, rank),
+          ),
           scoped_competencies_count: raw.scoped_competencies_count,
           total_competencies_count: raw.total_competencies_count,
           niveaux_sur_scope:

@@ -227,26 +227,45 @@ class ModelRegistry:
         Sinon la promotion est refusee (fail-closed) — le chargement au serving
         echouerait de toute facon (integrite + spec de features).
         """
+        # Ordre des controles inchange : empreinte, significativite, metriques, schema.
+        return (
+            self._sha256_validation_error(entry)
+            or self.significance_promotion_error(entry)
+            or self._metrics_validation_error(entry)
+            or self._feature_schema_validation_error(entry)
+        )
+
+    @staticmethod
+    def _sha256_validation_error(entry: RegistryEntry) -> str | None:
+        """Empreinte hexadecimale de 64 caracteres, sinon refus."""
         sha = (entry.artifact_sha256 or "").strip()
         if len(sha) != 64 or any(c not in "0123456789abcdefABCDEF" for c in sha):
             return f"empreinte SHA-256 invalide ({(sha[:16] or 'vide')}...) : promotion refusee"
-        significance_error = self.significance_promotion_error(entry)
-        if significance_error:
-            return significance_error
+        return None
+
+    @staticmethod
+    def _metrics_validation_error(entry: RegistryEntry) -> str | None:
+        """Metriques finies et non negatives (quand presentes), sinon refus."""
         for name, value in (entry.metrics or {}).items():
             if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value) or value < 0:
                 return f"metrique invalide ({name}={value}) : promotion refusee"
-        if entry.model_name == "gap_predictor_temporal" and entry.feature_names:
-            # Import tardif pour eviter le cycle predictor -> model_registry.
-            from app.infrastructure.ml.predictor import FEATURE_SCHEMA_VERSION, TEMPORAL_FEATURE_COLS
+        return None
 
-            if entry.feature_names != list(TEMPORAL_FEATURE_COLS):
-                return "schema de features incompatible avec le code (liste canonique attendue) : promotion refusee"
-            if entry.feature_schema_version != FEATURE_SCHEMA_VERSION:
-                return (
-                    f"version de schema features incompatible : registre={entry.feature_schema_version}, "
-                    f"code={FEATURE_SCHEMA_VERSION} : promotion refusee"
-                )
+    @staticmethod
+    def _feature_schema_validation_error(entry: RegistryEntry) -> str | None:
+        """Schema de features compatible avec le code servi, sinon refus."""
+        if entry.model_name != "gap_predictor_temporal" or not entry.feature_names:
+            return None
+        # Import tardif pour eviter le cycle predictor -> model_registry.
+        from app.infrastructure.ml.predictor import FEATURE_SCHEMA_VERSION, TEMPORAL_FEATURE_COLS
+
+        if entry.feature_names != list(TEMPORAL_FEATURE_COLS):
+            return "schema de features incompatible avec le code (liste canonique attendue) : promotion refusee"
+        if entry.feature_schema_version != FEATURE_SCHEMA_VERSION:
+            return (
+                f"version de schema features incompatible : registre={entry.feature_schema_version}, "
+                f"code={FEATURE_SCHEMA_VERSION} : promotion refusee"
+            )
         return None
 
     # Gouvernance IC95 (audit d'autorite 2026-09-22, §2.6) : le projet s'est dote

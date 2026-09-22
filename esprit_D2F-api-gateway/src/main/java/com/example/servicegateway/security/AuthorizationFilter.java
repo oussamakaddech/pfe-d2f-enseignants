@@ -76,9 +76,6 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER
     );
 
-    /** Admin + Enseignant + Animateur */
-    private static final List<String> ADMIN_ANIMATEUR = List.of(ROLE_ADMIN, ROLE_ANIMATEUR, ROLE_ENSEIGNANT);
-
     public AuthorizationFilter(JwtTokenProvider tokenProvider) {
         super(Config.class);
         this.tokenProvider = tokenProvider;
@@ -208,6 +205,16 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     }
 
     private List<String> getFormationRoles(String path, HttpMethod method) {
+        List<String> byPath = formationRolesByPath(path, method);
+        return byPath != null ? byPath : formationRolesByMethod(path, method);
+    }
+
+    /**
+     * Regles attachees au CHEMIN, prioritaires sur la methode HTTP.
+     * {@code null} signifie « aucune regle de chemin » : la decision revient a
+     * {@link #formationRolesByMethod(String, HttpMethod)}.
+     */
+    private List<String> formationRolesByPath(String path, HttpMethod method) {
         if (path.contains("/kpi")) return NO_FORMATEUR;
         // DSI §: la « gestion des dossiers de formations » (arborescence OneDrive)
         // est réservée à ADMIN + RESPONSABLE_DOSSIER — CUP/CHEF_DEPARTEMENT exclus.
@@ -224,13 +231,20 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         // RESPONSABLE_DOSSIER — CUP/CHEF_DEPARTEMENT exclus (parité
         // AuthorizationMatrix.DOCUMENT_*). Les GET/DOWNLOAD restent FORMATION_READ.
         if (path.contains("/documents")) {
-            if (method == HttpMethod.POST || method == HttpMethod.PUT
-                    || method == HttpMethod.PATCH || method == HttpMethod.DELETE) {
-                // Parité AuthorizationMatrix.DOCUMENT_* (ni CUP ni CHEF_DEPARTEMENT).
-                return List.of(ROLE_ADMIN, ROLE_RESPONSABLE_DOSSIER);
-            }
-            return ALL_ROLES;
+            // Parité AuthorizationMatrix.DOCUMENT_* (ni CUP ni CHEF_DEPARTEMENT).
+            return isWrite(method) ? List.of(ROLE_ADMIN, ROLE_RESPONSABLE_DOSSIER) : ALL_ROLES;
         }
+        return null;
+    }
+
+    /** Ecriture au sens des documents de formation (POST/PUT/PATCH/DELETE). */
+    private static boolean isWrite(HttpMethod method) {
+        return method == HttpMethod.POST || method == HttpMethod.PUT
+                || method == HttpMethod.PATCH || method == HttpMethod.DELETE;
+    }
+
+    /** Regles attachees a la METHODE HTTP, appliquees apres les regles de chemin. */
+    private List<String> formationRolesByMethod(String path, HttpMethod method) {
         if (method == HttpMethod.DELETE) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT);
         if (path.contains("/inscription/inscriptions") && method == HttpMethod.POST) return ALL_ROLES;
         // Présences d'une séance : marquage autorisé à l'animateur/formateur de la

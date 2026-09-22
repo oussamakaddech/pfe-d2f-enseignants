@@ -114,11 +114,9 @@ public class AnalysePredictiveService {
             log.warn("Service compétence indisponible pour gaps : {}", e.getMessage());
             gaps.addAll(identifierGapsViaEvaluations());
         }
-        gaps.sort((a, b) -> {
-            int orderA = getGraviteOrder(a.get(GRAVITE));
-            int orderB = getGraviteOrder(b.get(GRAVITE));
-            return orderB - orderA;
-        });
+        // Integer.compare : la soustraction peut deborder (S9354).
+        gaps.sort((a, b) -> Integer.compare(
+                getGraviteOrder(b.get(GRAVITE)), getGraviteOrder(a.get(GRAVITE))));
         return gaps;
     }
 
@@ -357,7 +355,9 @@ public class AnalysePredictiveService {
                 besoins.add(besoin);
             });
         }
-        besoins.sort((a, b) -> getPrioriteOrder(b.get(PRIORITE)) - getPrioriteOrder(a.get(PRIORITE)));
+        // Integer.compare : la soustraction peut deborder (S9354).
+        besoins.sort((a, b) -> Integer.compare(
+                getPrioriteOrder(b.get(PRIORITE)), getPrioriteOrder(a.get(PRIORITE))));
         return besoins;
     }
 
