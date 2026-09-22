@@ -484,28 +484,100 @@ describe('analyticsApi – alertes & impact', () => {
 });
 
 describe('analyticsApi – monitoring', () => {
-  it('getModelStatus mappe le statut', async () => {
-    httpMocks.mockGet.mockResolvedValueOnce({
-      data: { gap_model_accuracy: 0.9, last_retrain_status: 'v2', last_retrained: '2024-01-01' },
-    });
+  // Correctif d'audit : le statut vient de /model-health, la seule source qui
+  // MESURE ce qui est affiché. Le mapper codait auparavant en dur l'algorithme,
+  // `features_count: 0`, `integrite_ok: true` et `drift_detected: false`.
+  const modelHealth = {
+    mode: 'PRODUCTION_ML',
+    model_name: 'gap_predictor_temporal',
+    model_version: 'v1.2.0-gb',
+    algorithm: 'gradient_boosting',
+    n_features: 29,
+    r2: 0.2458,
+    rmse: 1.214,
+    mae: 1.1082,
+    accuracy_pm05: 0.14,
+    accuracy_pm10: 0.349,
+    integrity_verified: true,
+    skew_checked: true,
+    skew_detected: false,
+    skew_p_threshold: 0.01,
+    skew_reason: 'aucune dérive KS détectée',
+    fallback_reason: null,
+    inert_features: ['nb_besoins_exprimes'],
+    skew_guard: { enabled: true, test: 'kolmogorov_smirnov_2samp', last_verdict: { min_p_value: 0.4 } },
+  };
+
+  it('getModelStatus lit /model-health et expose le modèle réellement servi', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { data: modelHealth } });
     const res = await analyticsApi.getModelStatus();
-    expect(res.version).toBe('v2');
-    expect(res.accuracy).toBe(0.9);
-    expect(res.algorithme).toBe('GradientBoosting');
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/model-health`);
+    expect(res.version).toBe('v1.2.0-gb');
+    expect(res.algorithme).toBe('gradient_boosting');
+    expect(res.features_count).toBe(29);
+    // `accuracy` porte une vraie exactitude, plus un R2 deguise.
+    expect(res.accuracy).toBe(0.349);
+    expect(res.accuracy_metric).toBe('accuracy_pm10');
+    expect(res.r2).toBe(0.2458);
+    expect(res.integrite_ok).toBe(true);
+    expect(res.source).toBe('modele');
     expect(res.disponible).toBe(true);
   });
 
-  it('getModelStatus marque indisponible si accuracy nulle', async () => {
-    httpMocks.mockGet.mockResolvedValueOnce({ data: { gap_model_accuracy: null } });
+  it('getModelStatus ne prétend pas à l intégrité quand l artefact n est pas chargé', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: {
+        data: {
+          mode: 'HEURISTIC_FALLBACK',
+          integrity_verified: false,
+          fallback_reason: 'artefact absent ou integrite invalide',
+          skew_checked: false,
+        },
+      },
+    });
     const res = await analyticsApi.getModelStatus();
+    expect(res.integrite_ok).toBe(false);
     expect(res.disponible).toBe(false);
+    expect(res.source).toBe('heuristique');
+    expect(res.fallback_reason).toBe('artefact absent ou integrite invalide');
   });
 
-  it('getDrift mappe la dérive', async () => {
-    httpMocks.mockGet.mockResolvedValueOnce({ data: [{ critical: 3 }, { critical: 5 }] });
+  it('getDrift rend null quand le contrôle de dérive n a pas tourné', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: {
+        data: {
+          skew_checked: false,
+          skew_detected: false,
+          skew_reason: 'fenêtre servie insuffisante : 2 enseignants < minimum 10',
+          skew_p_threshold: 0.01,
+          skew_guard: { test: 'kolmogorov_smirnov_2samp', last_verdict: {} },
+        },
+      },
+    });
     const res = await analyticsApi.getDrift();
-    expect(res.valeur_actuelle).toBe(5);
-    expect(res.drift_detected).toBe(false);
+    // Une absence de mesure n'est pas une absence de derive.
+    expect(res.drift_detected).toBeNull();
+    expect(res.metric).toBe('kolmogorov_smirnov_2samp');
+    expect(res.message).toMatch(/insuffisante/);
+  });
+
+  it('getDrift rapporte une dérive réellement mesurée', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: {
+        data: {
+          skew_checked: true,
+          skew_detected: true,
+          skew_features: ['avg_level'],
+          skew_p_threshold: 0.01,
+          skew_guard: { test: 'kolmogorov_smirnov_2samp', last_verdict: { min_p_value: 0.0001 } },
+        },
+      },
+    });
+    const res = await analyticsApi.getDrift();
+    expect(res.drift_detected).toBe(true);
+    expect(res.valeur_actuelle).toBe(0.0001);
+    expect(res.seuil).toBe(0.01);
+    expect(res.message).toMatch(/avg_level/);
   });
 
   it('retrain fait POST /admin/retrain', async () => {

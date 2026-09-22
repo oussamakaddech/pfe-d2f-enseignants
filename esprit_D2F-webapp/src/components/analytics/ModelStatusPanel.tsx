@@ -7,7 +7,33 @@ interface ModelStatusPanelProps {
   readonly loading?: boolean;
 }
 
-/** Panneau de statut du modèle (intégrité, drift, source). */
+/**
+ * Rendu honnête de l'état de dérive.
+ *
+ * `null` signifie « pas encore contrôlé » (fenêtre de serving insuffisante) :
+ * l'afficher en vert « Stable », comme le faisait ce panneau, revenait à
+ * présenter une absence de mesure comme une absence de dérive.
+ */
+function renderDrift(status: ModelStatus) {
+  if (status.drift_detected === null || status.drift_detected === undefined) {
+    return (
+      <Tag color="default" title={status.drift_reason ?? undefined}>
+        Non contrôlée
+      </Tag>
+    );
+  }
+  return status.drift_detected ? (
+    <Tag color="red" title={status.drift_reason ?? undefined}>
+      Détectée
+    </Tag>
+  ) : (
+    <Tag color="green" title={status.drift_reason ?? undefined}>
+      Aucune
+    </Tag>
+  );
+}
+
+/** Panneau de statut du modèle (intégrité, dérive, source). */
 export default function ModelStatusPanel({ status, loading }: ModelStatusPanelProps) {
   if (loading) return <Card loading />;
   if (!status) return <Alert type="error" message="Statut du modèle indisponible" />;
@@ -21,9 +47,8 @@ export default function ModelStatusPanel({ status, loading }: ModelStatusPanelPr
         </Col>
         <Col span={8}>
           <Statistic
-            title="Accuracy"
-            value={status.accuracy ?? '—'}
-            precision={status.accuracy !== null ? 3 : undefined}
+            title="Prédictions à ±1 niveau"
+            value={status.accuracy !== null ? `${(status.accuracy * 100).toFixed(1)} %` : '—'}
             valueStyle={{ fontSize: 18 }}
           />
         </Col>
@@ -37,17 +62,36 @@ export default function ModelStatusPanel({ status, loading }: ModelStatusPanelPr
         <Descriptions.Item label="Intégrité">
           {integrityOk ? (
             <Tag color="green" icon={<CheckCircleOutlined />}>
-              OK (SHA-256 vérifié)
+              OK (SHA-256 vérifié au chargement)
             </Tag>
           ) : (
             <Tag color="red" icon={<WarningOutlined />}>
-              INTÉGRITÉ NON VÉRIFIÉE
+              ARTEFACT NON CHARGÉ — INTÉGRITÉ NON VÉRIFIÉE
             </Tag>
           )}
         </Descriptions.Item>
-        <Descriptions.Item label="Drift">
-          {status.drift_detected ? <Tag color="red">Détecté</Tag> : <Tag color="green">Stable</Tag>}
+        <Descriptions.Item label="Dérive de distribution">
+          {renderDrift(status)}
         </Descriptions.Item>
+        {status.r2 !== null && status.r2 !== undefined && (
+          <Descriptions.Item label="R² (variance expliquée)">
+            {status.r2.toFixed(4)}
+            {status.rmse != null ? ` · RMSE ${status.rmse.toFixed(4)}` : ''}
+          </Descriptions.Item>
+        )}
+        {status.accuracy_pm05 != null && (
+          <Descriptions.Item label="Prédictions à ±0,5 niveau">
+            {(status.accuracy_pm05 * 100).toFixed(1)} %
+          </Descriptions.Item>
+        )}
+        {status.fallback_reason && (
+          <Descriptions.Item label="Raison du repli">{status.fallback_reason}</Descriptions.Item>
+        )}
+        {!!status.inert_features?.length && (
+          <Descriptions.Item label="Features sans information">
+            {status.inert_features.join(', ')}
+          </Descriptions.Item>
+        )}
         <Descriptions.Item label="Source">
           {status.source === 'heuristique' ? (
             <Tag color="orange">Fallback heuristique</Tag>

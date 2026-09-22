@@ -78,7 +78,15 @@ export interface RiskScore {
   level_label: string;
   niveau: NiveauRisque;
   facteurs: RiskFactor[];
-  tendance: 'AMELIORATION' | 'STABLE' | 'DEGRADATION';
+  /**
+   * Tendance du risque. `null` = le backend ne la fournit pas.
+   *
+   * Le mapper renvoyait `'STABLE'` en dur : la page affichait donc
+   * « Tendance : Stable » pour tout enseignant, en permanence, alors que le
+   * payload `/teachers/{id}/risk` ne contient aucun champ de tendance. Une
+   * vraie tendance se dérive de `/enseignants/{id}/historique-risque`.
+   */
+  tendance: 'AMELIORATION' | 'STABLE' | 'DEGRADATION' | null;
   precedent_score: number | null;
   computed_at: string;
   warnings?: string[];
@@ -280,6 +288,17 @@ export interface SkillGap {
   priorite_score: number;
   niveau_urgence: NiveauUrgence;
   mois_stagnation: number;
+  /**
+   * Tendance renvoyée par le backend, telle quelle :
+   * - `WORSENING` / `IMPROVING` / `DECLARED_ML` : produites par le modèle ;
+   * - `STABLE` / `DECLINING` : produites par le moteur heuristique.
+   *
+   * `en_regression` seul ne suffisait pas : il ne testait que `DECLINING`, si
+   * bien qu'un gap que le MODÈLE annonce en aggravation (`WORSENING`)
+   * s'affichait « Stable » — l'information la plus utile était perdue au
+   * mapping.
+   */
+  trend: string | null;
   en_regression: boolean;
   nb_besoins_exprimes: number;
   justification: string | null;
@@ -569,17 +588,45 @@ export interface ModelStatus {
   entraîné_le: string | null;
   algorithme: string;
   features_count: number;
+  /**
+   * Exactitude affichable : part des prédictions à moins d'un niveau de la
+   * cible (`accuracy_pm10`), fournie par le backend. Ce n'est PAS le R² —
+   * l'endpoint exposait auparavant un R² sous ce nom, et de surcroît celui
+   * d'un modèle obsolète, d'où un affichage « précision 100 % ».
+   */
   accuracy: number | null;
+  /** Nom de la métrique réellement portée par `accuracy` (fourni par l'API). */
+  accuracy_metric?: string | null;
+  /** Part des prédictions à +/- 0,5 niveau. */
+  accuracy_pm05?: number | null;
+  /** Coefficient de détermination R² du modèle servi (variance expliquée). */
+  r2?: number | null;
+  rmse?: number | null;
+  mae?: number | null;
   f1_score: number | null;
-  drift_detected: boolean;
+  /**
+   * `null` = contrôle de dérive pas encore exécuté (fenêtre de serving
+   * insuffisante). Ne jamais afficher « stable » dans ce cas : l'absence de
+   * mesure n'est pas une absence de dérive.
+   */
+  drift_detected: boolean | null;
+  /** Raison exposée par le garde-fou quand le contrôle n'a pas conclu. */
+  drift_reason?: string | null;
   derniere_verification_integrite: string | null;
   integrite_ok: boolean;
   source: 'modele' | 'heuristique';
   disponible: boolean;
+  /** Mode d'exécution réel du service (PRODUCTION_ML, HEURISTIC_FALLBACK...). */
+  mode?: string | null;
+  /** Raison du repli heuristique, quand il y en a un. */
+  fallback_reason?: string | null;
+  /** Features au contrat mais sans information (plage dégénérée). */
+  inert_features?: string[];
 }
 
 export interface DriftReport {
-  drift_detected: boolean;
+  /** `null` = contrôle non exécuté (jamais rendu comme « stable »). */
+  drift_detected: boolean | null;
   metric: string;
   valeur_actuelle: number;
   seuil: number;

@@ -311,7 +311,10 @@ function mapRiskProfile(raw: BackendRiskProfile): RiskScore {
     model_version: null,
     model_name: null,
     facteurs,
-    tendance: 'STABLE',
+    // Le payload `/teachers/{id}/risk` ne porte AUCUNE tendance : renvoyer
+    // `'STABLE'` en dur affichait « Tendance : Stable » pour tout le monde,
+    // en permanence. `null` = inconnue, et la vue le dit.
+    tendance: null,
     precedent_score: null,
     computed_at: raw.computed_at ?? new Date().toISOString(),
     warnings: [],
@@ -338,6 +341,12 @@ function mapGap(raw: BackendGapDiagnostic): SkillGap {
     priorite_score: gapScore,
     niveau_urgence: mapUrgence(raw.severity),
     mois_stagnation: 0,
+    trend: raw.trend ?? null,
+    // `en_regression` garde son sens strict : une regression OBSERVEE dans
+    // l'historique des niveaux (`DECLINING`). `WORSENING` est une aggravation
+    // PREDITE par le modele — la confondre avec un constat ferait passer une
+    // prevision pour un fait. La distinction est portee par `trend`, que la
+    // vue affiche telle quelle.
     en_regression: raw.trend === 'DECLINING',
     nb_besoins_exprimes: 0,
     justification: null,
@@ -502,32 +511,85 @@ function computeDistribution(atRisk: AtRiskTeacher[]): DashboardResponse['distri
   return Object.entries(dist).map(([niveau, count]) => ({ niveau: niveau as NiveauRisque, count }));
 }
 
-function mapModelStatus(raw: unknown): ModelStatus {
+/** Nombre exploitable, ou `null` (jamais de 0 inventé à la place d'une valeur absente). */
+function num(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+/**
+ * Statut du modèle à partir de `/model-health` — la seule source qui MESURE
+ * ce qu'on affiche.
+ *
+ * Ce mapper fabriquait auparavant son statut : algorithme `'GradientBoosting'`
+ * codé en dur, `features_count: 0`, `integrite_ok: true` et
+ * `drift_detected: false` inconditionnels. La page affichait donc un badge vert
+ * « OK (SHA-256 vérifié) » et « Drift : Stable » sans qu'aucune vérification
+ * n'ait eu lieu. Tout vient désormais du backend, et ce qui n'a pas été mesuré
+ * est rendu comme tel (`drift_detected: null`).
+ */
+function mapModelHealth(raw: unknown): ModelStatus {
   const r = (raw ?? {}) as Record<string, unknown>;
+  const mode = typeof r.mode === 'string' ? r.mode : null;
+  const servedByMl = mode != null && mode !== 'HEURISTIC_FALLBACK' && mode !== 'HEURISTIC';
+  const guard = (r.skew_guard ?? {}) as Record<string, unknown>;
+  const driftChecked = r.skew_checked === true;
   return {
-    version: (r.last_retrain_status as string) ?? 'n/a',
-    entraîné_le: (r.last_retrained as string) ?? null,
-    algorithme: 'GradientBoosting',
-    features_count: 0,
-    accuracy: (r.gap_model_accuracy as number) ?? null,
+    version: (r.model_version as string) ?? 'n/a',
+    entraîné_le: (r.trained_at as string) ?? null,
+    algorithme: (r.algorithm as string) ?? (r.model_name as string) ?? 'inconnu',
+    features_count: num(r.n_features) ?? 0,
+    accuracy: num(r.accuracy_pm10),
+    accuracy_metric: num(r.accuracy_pm10) !== null ? 'accuracy_pm10' : null,
+    accuracy_pm05: num(r.accuracy_pm05),
+    r2: num(r.r2),
+    rmse: num(r.rmse),
+    mae: num(r.mae),
     f1_score: null,
-    drift_detected: false,
+    // Pas de contrôle exécuté => `null`, surtout pas « pas de dérive ».
+    drift_detected: driftChecked ? r.skew_detected === true : null,
+    drift_reason: (r.skew_reason as string) ?? null,
     derniere_verification_integrite: null,
-    integrite_ok: true,
-    source: 'modele',
-    disponible: r.gap_model_accuracy !== null && r.gap_model_accuracy !== undefined,
+    integrite_ok: r.integrity_verified === true,
+    source: servedByMl ? 'modele' : 'heuristique',
+    disponible: r.integrity_verified === true,
+    mode,
+    fallback_reason: (r.fallback_reason as string) ?? null,
+    inert_features: Array.isArray(r.inert_features) ? (r.inert_features as string[]) : [],
+    ...(guard.enabled === false ? { drift_reason: 'garde-fou de dérive désactivé' } : {}),
   };
 }
 
+/**
+ * Rapport de dérive à partir du garde-fou KS du backend (`/model-health`).
+ *
+ * Construisait auparavant un faux rapport depuis `/dashboard/risk-evolution` :
+ * `drift_detected: false` en dur, seuil 0, métrique `risk_evolution` — une
+ * évolution de risque métier, qui n'a rien d'un test de dérive de
+ * distribution. Le statut « Stable » était donc affirmé sans mesure.
+ */
 function mapDrift(raw: unknown): DriftReport {
-  const points = Array.isArray(raw) ? (raw as Array<{ critical?: number }>) : [];
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const guard = (r.skew_guard ?? {}) as Record<string, unknown>;
+  const verdict = (guard.last_verdict ?? {}) as Record<string, unknown>;
+  const checked = r.skew_checked === true;
+  const features = Array.isArray(r.skew_features) ? (r.skew_features as string[]) : [];
+  let message: string;
+  if (!checked) {
+    message =
+      (r.skew_reason as string) ??
+      "Contrôle de dérive pas encore exécuté : l'absence de mesure n'est pas une absence de dérive.";
+  } else if (r.skew_detected === true) {
+    message = `Dérive de distribution détectée sur : ${features.join(', ')}.`;
+  } else {
+    message = 'Aucune dérive de distribution détectée (test KS, correction de Holm).';
+  }
   return {
-    drift_detected: false,
-    metric: 'risk_evolution',
-    valeur_actuelle: points.length ? (points.at(-1)?.critical ?? 0) : 0,
-    seuil: 0,
+    drift_detected: checked ? r.skew_detected === true : null,
+    metric: (guard.test as string) ?? 'kolmogorov_smirnov_2samp',
+    valeur_actuelle: num(verdict.min_p_value) ?? 0,
+    seuil: num(r.skew_p_threshold) ?? 0,
     jours_depuis_entrainement: 0,
-    message: 'Évolution du risque (backend /dashboard/risk-evolution).',
+    message,
     detected_at: new Date().toISOString(),
   };
 }
@@ -1050,16 +1112,23 @@ export const analyticsApi = {
   },
 
   // ── Monitoring modèle ───────────────────────────────
-  // Endpoint backend réel : /dashboard/model-performance.
+  // Endpoint backend réel : /model-health (identité, exactitude, intégrité et
+  // dérive RÉELLEMENT mesurées du modèle servi).
   getModelStatus(): Promise<ModelStatus> {
     return axios
-      .get<unknown>(`${BASE}/dashboard/model-performance`)
-      .then((r) => mapModelStatus(r.data));
+      .get<{ data?: unknown } | unknown>(`${BASE}/model-health`)
+      .then((r) => {
+        const body = r.data as { data?: unknown };
+        return mapModelHealth(body?.data ?? r.data);
+      });
   },
 
   // Endpoint backend réel : /dashboard/risk-evolution (proxy drift/évolution).
   getDrift(): Promise<DriftReport> {
-    return axios.get<unknown>(`${BASE}/dashboard/risk-evolution`).then((r) => mapDrift(r.data));
+    return axios.get<{ data?: unknown } | unknown>(`${BASE}/model-health`).then((r) => {
+      const body = r.data as { data?: unknown };
+      return mapDrift(body?.data ?? r.data);
+    });
   },
 
   // Endpoint backend réel : /admin/retrain (rollback auto si régression).
