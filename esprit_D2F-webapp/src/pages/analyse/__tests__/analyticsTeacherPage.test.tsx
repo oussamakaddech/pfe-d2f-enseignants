@@ -94,6 +94,16 @@ describe('AnalyticsTeacherPage', () => {
     expect(heading).toHaveTextContent('Wafa BenYoussef');
   });
 
+  // ── Onglets de la page (retrait demande) ──────────────────────
+  it("n'affiche plus l onglet « Gaps de competences »", () => {
+    setup();
+    render(<AnalyticsTeacherPage />, { wrapper });
+    // Les gaps restent visibles via « Analyse contextuelle » (tableau
+    // « Gaps sur le perimetre ») : l onglet dedie etait redondant.
+    expect(screen.queryByText(/Gaps de comp[ée]tences/i)).toBeNull();
+    expect(screen.getByText(/Analyse contextuelle/i)).toBeInTheDocument();
+  });
+
   it("affiche le bouton Lancer l'analyse", () => {
     setup();
     render(<AnalyticsTeacherPage />, { wrapper });

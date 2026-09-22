@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Row, Col, Input, Spin, Empty, Alert, Collapse, Tag, Tabs as AntTabs } from 'antd';
+import { Row, Col, Input, Spin, Empty, Alert, Collapse, Tag, Tooltip, Tabs as AntTabs } from 'antd';
 import {
   ReloadOutlined,
   ExperimentOutlined,
@@ -18,7 +18,7 @@ import {
   useTeacherScopeAnalysis,
   useRiskHistory,
 } from '@/hooks/analytics/useAnalyticsQueries';
-import { GapsTable, RecommendationsList, RiskHistoryChart } from '@/components/analytics';
+import { RecommendationsList, RiskHistoryChart } from '@/components/analytics';
 import ModelBadge, { formatModelVersion } from '@/components/analytics/ModelBadge';
 import RiskFactorRow, { formatScopeLabel } from '@/components/analytics/RiskFactorRow';
 import TeacherScopePanel from '@/components/analytics/TeacherScopePanel';
@@ -46,13 +46,13 @@ const TREND_LABELS: Record<string, string> = {
   DECLINING: 'Dégradation',
 };
 
-function trendClass(trend: string): string {
+function trendClass(trend: string | null): string {
   if (trend === 'AMELIORATION') return 'at-trend-up';
   if (trend === 'DEGRADATION') return 'at-trend-down';
   return 'at-trend-flat';
 }
 
-function trendIcon(trend: string): React.ReactNode {
+function trendIcon(trend: string | null): React.ReactNode {
   if (trend === 'AMELIORATION') return <RiseOutlined />;
   if (trend === 'DEGRADATION') return <FallOutlined />;
   return null;
@@ -295,9 +295,15 @@ function RiskScoreCard({
             )}
             <div className="at-score-meta-row">
               Tendance :{' '}
-              <span className={`at-trend-badge ${trendClass(trend)}`}>
-                {trendIcon(trend)} {TREND_LABELS[trend] ?? trend}
-              </span>
+              {trend ? (
+                <span className={`at-trend-badge ${trendClass(trend)}`}>
+                  {trendIcon(trend)} {TREND_LABELS[trend] ?? trend}
+                </span>
+              ) : (
+                <Tooltip title="Le moteur du risque n'expose pas de tendance. L'évolution du risque est consultable dans l'onglet « Historique du risque ».">
+                  <span className="at-trend-badge at-trend-flat">Non calculée</span>
+                </Tooltip>
+              )}
             </div>
           </div>
         </>
@@ -343,13 +349,16 @@ function GapStatsRow({ stats }: { readonly stats: GapStats }) {
 
 export default function AnalyticsTeacherPage() {
   const { enseignantId = '' } = useParams<{ enseignantId: string }>();
-  const [urgence, setUrgence] = useState<string | undefined>();
-  const [competenceId, setCompetenceId] = useState<number | null>(null);
+  // Le filtre d'urgence et la selection de competence vivaient dans l'onglet
+  // « Gaps de competences », retire : les gaps restent affiches par le panneau
+  // « Analyse contextuelle » (tableau « Gaps sur le perimetre »), qui sert la
+  // meme information. Les etats associes sont donc supprimes plutot que laisses
+  // inertes.
 
   const analyze = useAnalyzeTeacher(enseignantId);
   const risk = useTeacherRisk(enseignantId);
-  const gaps = useTeacherGaps(enseignantId, urgence);
-  const recos = useTeacherRecommendations(enseignantId, competenceId ?? undefined);
+  const gaps = useTeacherGaps(enseignantId);
+  const recos = useTeacherRecommendations(enseignantId);
   const history = useRiskHistory(enseignantId);
   const scope = useTeacherScopeAnalysis(enseignantId);
 
@@ -362,7 +371,10 @@ export default function AnalyticsTeacherPage() {
   const pct = risk.data?.score_percent ?? Math.round(score * 100);
   const level = risk.data?.niveau ?? 'FAIBLE';
   const levelLabel = risk.data?.level_label ?? 'Faible';
-  const trend = risk.data?.tendance ?? 'STABLE';
+  // `null` = le backend ne fournit pas de tendance de risque (le payload
+  // /risk n'en porte aucune). Le defaut 'STABLE' affichait « Tendance :
+  // Stable » pour tout enseignant, en permanence.
+  const trend = risk.data?.tendance ?? null;
   // Le moteur du risque est teste a un seul endroit : toute la page en depend.
   const isMlRisk = risk.data?.mode === 'ML';
 
@@ -443,6 +455,20 @@ export default function AnalyticsTeacherPage() {
 
       {!gaps.isLoading && gapStats.total > 0 && <GapStatsRow stats={gapStats} />}
 
+      {/* Avertissement de serving (gouvernance 7.6, limite 4.2). Il vivait dans
+          l'onglet « Gaps de competences » : en retirant l'onglet il aurait
+          disparu silencieusement, alors qu'il qualifie la fiabilite de TOUTE la
+          page. Il est donc remonte au niveau page. */}
+      {gaps.data?.model?.near_boundary_warning && (
+        <Alert
+          type="warning"
+          showIcon
+          className="at-alert-tab"
+          message="Proche des limites du domaine d'entraînement"
+          description={`${gaps.data.model.near_boundary_warning.message} — la prédiction reste servie (avertissement non bloquant), mais la fiabilité est moindre aux bornes.`}
+        />
+      )}
+
       <div className="at-tabs-card at-animate at-animate-d3">
         <AntTabs
           className="at-tabs"
@@ -451,39 +477,6 @@ export default function AnalyticsTeacherPage() {
               key: 'scope',
               label: tabLabel('Analyse contextuelle', scope.data?.gaps.length),
               children: <TeacherScopePanel data={scope.data} loading={scope.isLoading} />,
-            },
-            {
-              key: 'gaps',
-              label: tabLabel('Gaps de compétences', gapStats.total),
-              children: (
-                <div>
-                  <div className="at-urgence-pills">
-                    {(['FAIBLE', 'MODEREE', 'HAUTE', 'CRITIQUE'] as const).map((u) => (
-                      <button
-                        key={u}
-                        type="button"
-                        className={`at-pill ${urgence === u ? 'is-active' : ''}`}
-                        onClick={() => setUrgence(urgence === u ? undefined : u)}
-                      >
-                        {u}
-                      </button>
-                    ))}
-                  </div>
-                  {gaps.data?.model?.near_boundary_warning && (
-                    <Alert
-                      type="warning"
-                      showIcon
-                      className="at-alert-tab"
-                      message="Proche des limites du domaine d'entraînement"
-                      description={`${gaps.data.model.near_boundary_warning.message} — la prédiction reste servie (avertissement non bloquant), mais la fiabilité est moindre aux bornes.`}
-                    />
-                  )}
-                  <GapsTab
-                    gaps={gaps}
-                    onSelectCompetence={(g) => setCompetenceId(g.competence_id)}
-                  />
-                </div>
-              ),
             },
             {
               key: 'recos',
@@ -1017,28 +1010,3 @@ function RiskMLExplanationPanel({
   );
 }
 
-/* ── Contenu onglet Gaps ──────────────────────────────────────── */
-function GapsTab({
-  gaps,
-  onSelectCompetence,
-}: {
-  readonly gaps: ReturnType<typeof useTeacherGaps>;
-  readonly onSelectCompetence: (g: { competence_id: number }) => void;
-}) {
-  if (gaps.isLoading)
-    return (
-      <div style={{ padding: 30, textAlign: 'center' }}>
-        <Spin />
-      </div>
-    );
-  if (gaps.data?.gaps.length) {
-    return (
-      <GapsTable
-        gaps={gaps.data.gaps}
-        loading={gaps.isLoading}
-        onRowClick={(g) => onSelectCompetence(g)}
-      />
-    );
-  }
-  return <Empty description="Aucun gap — lancez une analyse" />;
-}

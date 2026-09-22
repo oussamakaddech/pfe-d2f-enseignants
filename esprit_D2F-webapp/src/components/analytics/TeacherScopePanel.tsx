@@ -9,6 +9,7 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import type { TeacherScopeAnalysis, SkillGap } from '@/models/analyse/analyticsFeature';
+import GapTrendTag from './GapTrendTag';
 
 const URGENCE_COLOR: Record<string, string> = {
   CRITIQUE: '#ef4444',
@@ -173,11 +174,10 @@ export default function TeacherScopePanel({ data, loading }: Readonly<Props>) {
               },
               {
                 title: 'Tendance',
-                dataIndex: 'en_regression',
+                dataIndex: 'trend',
                 key: 'trend',
-                width: 90,
-                render: (decl: boolean) =>
-                  decl ? <Tag color="error">Régression</Tag> : <Tag>Stable</Tag>,
+                width: 130,
+                render: (_: unknown, gap: SkillGap) => <GapTrendTag gap={gap} />,
               },
             ]}
           />
