@@ -226,11 +226,50 @@ jobs:
         working-directory: esprit_D2F-webapp
         run: npm run build
 
+  # -- Base NVD : une seule mise a jour partagee par les 8 services -------------
+  # Avant, les 8 jobs OWASP telechargeaient CHACUN la base NVD (cache vide, ou
+  # evince apres 7 jours sans usage) : 8 telechargements complets en parallele
+  # + rate-limit NVD. La base est desormais mise a jour UNE fois ici, puis
+  # restituee aux jobs de controle via le cache de ce run.
+  security-nvd:
+    name: OWASP - base NVD (partagee)
+    runs-on: ubuntu-latest
+    needs: test-backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { java-version: '17', distribution: 'temurin', cache: 'maven' }
+
+      - name: Restore NVD database
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          # Deltas : on repart de la derniere base connue, quel que soit le run.
+          key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: owasp-nvd-${{ runner.os }}-
+
+      - name: Update NVD database
+        working-directory: esprit_D2F-common-security
+        run: |
+          if [ -z "${{ secrets.NVD_API_KEY }}" ]; then
+            echo "::error::Secret NVD_API_KEY manquant - OWASP dependency-check (DSI 12.12) ne peut pas mettre a jour la base NVD. Configurez le secret dans Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          mvn -B org.owasp:dependency-check-maven:update-only \
+            -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
+            -DnvdValidForHours=24
+
+      - name: Save NVD database
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
+
   # -- OWASP Dependency Check (DSI 12.12 - CVSS >= 7 bloquant) -----------------
   security-backend:
     name: OWASP - ${{ matrix.service }}
     runs-on: ubuntu-latest
-    needs: test-backend
+    needs: [test-backend, security-nvd]
     strategy:
       fail-fast: false
       matrix:
@@ -252,14 +291,14 @@ jobs:
         working-directory: esprit_D2F-common-security
         run: mvn -B clean install -DskipTests
 
-      - name: Cache NVD database
-        uses: actions/cache@v4
+      # Lecture seule : la base vient du job security-nvd de CE run (aucun appel
+      # NVD ici, donc aucun rate-limit 429 avec 8 jobs en parallele).
+      - name: Restore NVD database
+        id: nvd-cache
+        uses: actions/cache/restore@v4
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
-          # Cle statique (sans hash des poms) : la base NVD s'auto-met a jour
-          # par deltas a chaque run. Avec un hash, chaque changement de pom
-          # forcait un re-telechargement complet + rate-limit NVD (429).
-          key: owasp-nvd-${{ runner.os }}
+          key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
           restore-keys: owasp-nvd-${{ runner.os }}-
 
       - name: OWASP Dependency Check
@@ -272,8 +311,16 @@ jobs:
           SUPPRESSION=""
           curl -sL https://raw.githubusercontent.com/oussamakaddech/pfe-d2f-enseignants/oussama/owasp-suppressions.xml -o owasp-suppressions.xml 2>/dev/null || true
           [ -f owasp-suppressions.xml ] && SUPPRESSION="-DsuppressionFile=owasp-suppressions.xml"
+          # Base deja a jour (job security-nvd) : aucune mise a jour ici. Repli
+          # fail-safe si AUCUN cache n'a pu etre restitue.
+          AUTOUPDATE=false
+          if [ -z "${{ steps.nvd-cache.outputs.cache-matched-key }}" ]; then
+            echo "::warning::Base NVD absente du cache - mise a jour locale (plus lent)."
+            AUTOUPDATE=true
+          fi
           mvn -B org.owasp:dependency-check-maven:check \
             -DfailBuildOnCVSS=7 \
+            -DautoUpdate=$AUTOUPDATE \
             -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
             -DnvdValidForHours=24 \
             -DskipTestScope=true \
