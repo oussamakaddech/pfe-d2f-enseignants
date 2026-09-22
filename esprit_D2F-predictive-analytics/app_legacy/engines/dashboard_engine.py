@@ -650,9 +650,13 @@ class DashboardEngine:
     # ── KPI 10 : Performance du modèle ───────────────────────
     def model_performance(self) -> dict[str, Any]:
         """Accuracy du modèle de gap + dernier ré-entraînement (spec §4)."""
-        from app.services.model_trainer import read_current_accuracy
+        from app.services.model_trainer import read_served_model_metrics
 
-        gap_accuracy = read_current_accuracy()
+        served = read_served_model_metrics()
+        # « Précision » affichée = part des prédictions à moins d'UN niveau de
+        # la cible, pas le R². Le R² reste exposé sous son propre nom : il
+        # mesure la variance expliquee, jamais un taux de bonnes reponses.
+        gap_accuracy = served.get("accuracy_pm10")
 
         # Indice de pertinence des recommandations : proba de réussite moyenne
         # des recommandations récentes (proxy faute de vérité terrain).
@@ -682,9 +686,25 @@ class DashboardEngine:
         if gap_accuracy is None and last_log and last_log.accuracy_after is not None:
             gap_accuracy = float(last_log.accuracy_after)
 
+        def _round(value: Any, digits: int = 3) -> Any:
+            return round(float(value), digits) if value is not None else None
+
         return {
-            "gap_model_accuracy":       round(float(gap_accuracy), 3) if gap_accuracy is not None else None,
-            "recommendation_avg_proba": round(float(reco_proba), 3) if reco_proba is not None else None,
+            "gap_model_accuracy":       _round(gap_accuracy),
+            # Metrique effectivement portee par gap_model_accuracy : le
+            # consommateur sait ce qu'il affiche au lieu de le supposer.
+            "gap_model_accuracy_metric": "accuracy_pm10" if served.get("accuracy_pm10") is not None else None,
+            "gap_model_accuracy_pm05":  _round(served.get("accuracy_pm05")),
+            "gap_model_accuracy_pm10":  _round(served.get("accuracy_pm10")),
+            "gap_model_r2":             _round(served.get("r2"), 4),
+            "gap_model_rmse":           _round(served.get("rmse"), 4),
+            "gap_model_mae":            _round(served.get("mae"), 4),
+            "gap_model_name":           served.get("model_name"),
+            "gap_model_version":        served.get("model_version"),
+            "gap_model_algorithm":      served.get("algorithm"),
+            "gap_model_features_count": served.get("n_features"),
+            "gap_model_target_validity": served.get("target_validity"),
+            "recommendation_avg_proba": _round(reco_proba),
             "last_retrained":           last_log.retrained_at.isoformat() if last_log and last_log.retrained_at else None,
             "last_retrain_status":      last_log.statut if last_log else None,
         }

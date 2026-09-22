@@ -181,7 +181,11 @@ class GapPredictor:
         try:
             meta_path = os.path.join(settings.models_dir, TRAINING_METADATA_FILE)
             if os.path.exists(meta_path):
-                with open(meta_path) as f:
+                # encoding explicite : sans lui, Windows lit en cp1252 et tout
+                # texte accentue de la metadata (libelles de baselines, notes
+                # de gouvernance) revient mojibake — les metriques exposees ne
+                # correspondaient alors plus au fichier apparie a l'artefact.
+                with open(meta_path, encoding="utf-8") as f:
                     self.training_metadata = json.load(f)
             self.model = load_with_hash_check(MODEL_PATH)
             meta = self.training_metadata

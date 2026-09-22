@@ -205,8 +205,15 @@ class InsightsEngine:
         return round(avec_comp / nb * 100, 1) if nb else 0.0
 
     def _precision_modele(self) -> float | None:
-        from app.services.model_trainer import read_current_accuracy
-        acc = read_current_accuracy()
+        """Précision affichable du modèle servi (part des prédictions à +/- 1 niveau).
+
+        Lisait auparavant ``read_current_accuracy()``, c'est-à-dire un R² —
+        et, avant le correctif du chemin de metadata, le R² d'un modèle
+        obsolète (1.0). Un R² n'est pas un taux de bonnes réponses : le
+        libellé « précision » exige une vraie métrique d'exactitude.
+        """
+        from app.services.model_trainer import read_served_model_metrics
+        acc = read_served_model_metrics().get("accuracy_pm10")
         if acc is None:
             # Fallback: read from the most recent successful retrain log in DB
             from app.models.db_models import ModelRetrainingLog
