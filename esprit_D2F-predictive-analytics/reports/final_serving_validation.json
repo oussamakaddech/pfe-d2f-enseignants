@@ -11,8 +11,8 @@
           "department_id": null,
           "competence_id": 3,
           "severity": "CRITICAL",
-          "title": "Gap critique â€” QualitÃ© & Tests",
-          "message": "Niveau actuel 0/5, requis 5/5 sur la compÃ©tence Â« QualitÃ© & Tests Â». Score prioritÃ© : 1.0.",
+          "title": "Gap critique — Qualité & Tests",
+          "message": "Niveau actuel 0/5, requis 5/5 sur la compétence « Qualité & Tests ». Score priorité : 1.0.",
           "details": {
             "gap_score": 1.0,
             "niveau_actuel": 0,
@@ -31,8 +31,8 @@
           "department_id": null,
           "competence_id": 3,
           "severity": "CRITICAL",
-          "title": "Gap critique â€” QualitÃ© & Tests",
-          "message": "Niveau actuel 1/5, requis 5/5 sur la compÃ©tence Â« QualitÃ© & Tests Â». Score prioritÃ© : 0.87.",
+          "title": "Gap critique — Qualité & Tests",
+          "message": "Niveau actuel 1/5, requis 5/5 sur la compétence « Qualité & Tests ». Score priorité : 0.87.",
           "details": {
             "gap_score": 0.87,
             "niveau_actuel": 1,
@@ -51,8 +51,8 @@
           "department_id": null,
           "competence_id": 3,
           "severity": "CRITICAL",
-          "title": "Gap critique â€” QualitÃ© & Tests",
-          "message": "Niveau actuel 0/5, requis 5/5 sur la compÃ©tence Â« QualitÃ© & Tests Â». Score prioritÃ© : 1.0.",
+          "title": "Gap critique — Qualité & Tests",
+          "message": "Niveau actuel 0/5, requis 5/5 sur la compétence « Qualité & Tests ». Score priorité : 1.0.",
           "details": {
             "gap_score": 1.0,
             "niveau_actuel": 0,
@@ -71,8 +71,8 @@
           "department_id": null,
           "competence_id": 3,
           "severity": "CRITICAL",
-          "title": "Gap critique â€” QualitÃ© & Tests",
-          "message": "Niveau actuel 1/5, requis 5/5 sur la compÃ©tence Â« QualitÃ© & Tests Â». Score prioritÃ© : 1.0.",
+          "title": "Gap critique — Qualité & Tests",
+          "message": "Niveau actuel 1/5, requis 5/5 sur la compétence « Qualité & Tests ». Score priorité : 1.0.",
           "details": {
             "gap_score": 1.0,
             "niveau_actuel": 1,
@@ -91,8 +91,8 @@
           "department_id": null,
           "competence_id": 8,
           "severity": "CRITICAL",
-          "title": "Gap critique â€” Conception PÃ©dagogique",
-          "message": "Niveau actuel 0/5, requis 5/5 sur la compÃ©tence Â« Conception PÃ©dagogique Â». Score prioritÃ© : 1.0.",
+          "title": "Gap critique — Conception Pédagogique",
+          "message": "Niveau actuel 0/5, requis 5/5 sur la compétence « Conception Pédagogique ». Score priorité : 1.0.",
           "details": {
             "gap_score": 1.0,
             "niveau_actuel": 0,
@@ -127,7 +127,7 @@
         "alertes_recentes": [
           {
             "id": 899,
-            "titre": "Gap critique â€” QualitÃ© & Tests",
+            "titre": "Gap critique — Qualité & Tests",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T20:00:41.884435+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -135,7 +135,7 @@
           },
           {
             "id": 898,
-            "titre": "Gap critique â€” QualitÃ© & Tests",
+            "titre": "Gap critique — Qualité & Tests",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T16:36:11.293712+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -143,7 +143,7 @@
           },
           {
             "id": 897,
-            "titre": "Gap critique â€” QualitÃ© & Tests",
+            "titre": "Gap critique — Qualité & Tests",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T16:36:11.293707+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -151,7 +151,7 @@
           },
           {
             "id": 896,
-            "titre": "Gap critique â€” Conception PÃ©dagogique",
+            "titre": "Gap critique — Conception Pédagogique",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T16:34:35.311500+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -159,7 +159,7 @@
           },
           {
             "id": 895,
-            "titre": "Gap critique â€” Conception PÃ©dagogique",
+            "titre": "Gap critique — Conception Pédagogique",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T16:34:35.311499+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -167,7 +167,7 @@
           },
           {
             "id": 894,
-            "titre": "Gap critique â€” Machine Learning",
+            "titre": "Gap critique — Machine Learning",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T16:34:35.311498+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -175,7 +175,7 @@
           },
           {
             "id": 893,
-            "titre": "Gap critique â€” Machine Learning",
+            "titre": "Gap critique — Machine Learning",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T16:34:35.311496+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -183,7 +183,7 @@
           },
           {
             "id": 892,
-            "titre": "Gap critique â€” SÃ©curitÃ© Applicative",
+            "titre": "Gap critique — Sécurité Applicative",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T16:34:35.311495+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -191,7 +191,7 @@
           },
           {
             "id": 891,
-            "titre": "Gap critique â€” SÃ©curitÃ© Applicative",
+            "titre": "Gap critique — Sécurité Applicative",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T16:34:35.311494+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -199,7 +199,7 @@
           },
           {
             "id": 890,
-            "titre": "Gap critique â€” SÃ©curitÃ© Applicative",
+            "titre": "Gap critique — Sécurité Applicative",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T16:34:35.311492+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -207,7 +207,7 @@
           },
           {
             "id": 889,
-            "titre": "Gap critique â€” QualitÃ© & Tests",
+            "titre": "Gap critique — Qualité & Tests",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T16:34:35.311491+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -215,7 +215,7 @@
           },
           {
             "id": 888,
-            "titre": "Gap critique â€” QualitÃ© & Tests",
+            "titre": "Gap critique — Qualité & Tests",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T16:34:35.311490+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -223,7 +223,7 @@
           },
           {
             "id": 887,
-            "titre": "Gap critique â€” DÃ©veloppement Frontend",
+            "titre": "Gap critique — Développement Frontend",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T16:34:35.311485+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -231,7 +231,7 @@
           },
           {
             "id": 886,
-            "titre": "Gap critique â€” Conception PÃ©dagogique",
+            "titre": "Gap critique — Conception Pédagogique",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T16:33:18.878975+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -239,7 +239,7 @@
           },
           {
             "id": 885,
-            "titre": "Gap critique â€” Conception PÃ©dagogique",
+            "titre": "Gap critique — Conception Pédagogique",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T16:33:18.878974+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -247,7 +247,7 @@
           },
           {
             "id": 884,
-            "titre": "Gap critique â€” Machine Learning",
+            "titre": "Gap critique — Machine Learning",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T16:33:18.878972+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -255,7 +255,7 @@
           },
           {
             "id": 883,
-            "titre": "Gap critique â€” Machine Learning",
+            "titre": "Gap critique — Machine Learning",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T16:33:18.878971+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -263,7 +263,7 @@
           },
           {
             "id": 882,
-            "titre": "Gap critique â€” DÃ©veloppement Frontend",
+            "titre": "Gap critique — Développement Frontend",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T16:33:18.878965+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -271,7 +271,7 @@
           },
           {
             "id": 881,
-            "titre": "Gap critique â€” SÃ©curitÃ© Applicative",
+            "titre": "Gap critique — Sécurité Applicative",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T16:32:53.214966+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -279,7 +279,7 @@
           },
           {
             "id": 880,
-            "titre": "Gap critique â€” SÃ©curitÃ© Applicative",
+            "titre": "Gap critique — Sécurité Applicative",
             "severite": "CRITICAL",
             "created_at": "2026-07-31T16:32:53.214964+00:00",
             "type_alerte": "GAP_CRITIQUE",
@@ -316,7 +316,7 @@
             "nb_critiques": 11,
             "competence_id": 3,
             "score_demande": 0.26,
-            "competence_nom": "QualitÃ© & Tests"
+            "competence_nom": "Qualité & Tests"
           },
           {
             "nb_gaps": 19,
@@ -324,7 +324,7 @@
             "nb_critiques": 10,
             "competence_id": 4,
             "score_demande": 0.2556,
-            "competence_nom": "SÃ©curitÃ© Applicative"
+            "competence_nom": "Sécurité Applicative"
           },
           {
             "nb_gaps": 17,
@@ -340,7 +340,7 @@
             "nb_critiques": 10,
             "competence_id": 2,
             "score_demande": 0.2333,
-            "competence_nom": "DÃ©veloppement Frontend"
+            "competence_nom": "Développement Frontend"
           },
           {
             "nb_gaps": 16,
@@ -348,7 +348,7 @@
             "nb_critiques": 6,
             "competence_id": 1,
             "score_demande": 0.2044,
-            "competence_nom": "DÃ©veloppement Backend"
+            "competence_nom": "Développement Backend"
           },
           {
             "nb_gaps": 14,
@@ -364,7 +364,7 @@
             "nb_critiques": 6,
             "competence_id": 8,
             "score_demande": 0.1156,
-            "competence_nom": "Conception PÃ©dagogique"
+            "competence_nom": "Conception Pédagogique"
           },
           {
             "nb_gaps": 7,
@@ -372,7 +372,7 @@
             "nb_critiques": 3,
             "competence_id": 11,
             "score_demande": 0.0911,
-            "competence_nom": "PÃ©dagogie NumÃ©rique"
+            "competence_nom": "Pédagogie Numérique"
           },
           {
             "nb_gaps": 5,
@@ -380,7 +380,7 @@
             "nb_critiques": 5,
             "competence_id": 13,
             "score_demande": 0.0778,
-            "competence_nom": "Structures et BÃ©ton ArmÃ©"
+            "competence_nom": "Structures et Béton Armé"
           },
           {
             "nb_gaps": 5,
@@ -388,7 +388,7 @@
             "nb_critiques": 4,
             "competence_id": 15,
             "score_demande": 0.0733,
-            "competence_nom": "Topographie et GÃ©otechnique"
+            "competence_nom": "Topographie et Géotechnique"
           }
         ],
         "department_gap_heatmap": [
@@ -396,49 +396,49 @@
             "avg_gap": 1.0,
             "departement": "DEPT_GC",
             "competence_id": 13,
-            "competence_nom": "Structures et BÃ©ton ArmÃ©",
+            "competence_nom": "Structures et Béton Armé",
             "enseignants_count": 5
           },
           {
             "avg_gap": 1.0,
             "departement": "DEPT_GC",
             "competence_id": 14,
-            "competence_nom": "MatÃ©riaux de Construction",
+            "competence_nom": "Matériaux de Construction",
             "enseignants_count": 4
           },
           {
             "avg_gap": 1.0,
             "departement": "non_affecte",
             "competence_id": 8,
-            "competence_nom": "Conception PÃ©dagogique",
+            "competence_nom": "Conception Pédagogique",
             "enseignants_count": 5
           },
           {
             "avg_gap": 0.938,
             "departement": "DEPT_RT",
             "competence_id": 10,
-            "competence_nom": "SystÃ¨mes & Cloud",
+            "competence_nom": "Systèmes & Cloud",
             "enseignants_count": 4
           },
           {
             "avg_gap": 0.917,
             "departement": "DEPT_TECH_WEB",
             "competence_id": 2,
-            "competence_nom": "DÃ©veloppement Frontend",
+            "competence_nom": "Développement Frontend",
             "enseignants_count": 3
           },
           {
             "avg_gap": 0.9,
             "departement": "DEPT_GC",
             "competence_id": 15,
-            "competence_nom": "Topographie et GÃ©otechnique",
+            "competence_nom": "Topographie et Géotechnique",
             "enseignants_count": 5
           },
           {
             "avg_gap": 0.893,
             "departement": "non_affecte",
             "competence_id": 4,
-            "competence_nom": "SÃ©curitÃ© Applicative",
+            "competence_nom": "Sécurité Applicative",
             "enseignants_count": 7
           },
           {
@@ -452,7 +452,7 @@
             "avg_gap": 0.863,
             "departement": "non_affecte",
             "competence_id": 1,
-            "competence_nom": "DÃ©veloppement Backend",
+            "competence_nom": "Développement Backend",
             "enseignants_count": 8
           },
           {
@@ -466,35 +466,35 @@
             "avg_gap": 0.833,
             "departement": "DEPT_RT",
             "competence_id": 4,
-            "competence_nom": "SÃ©curitÃ© Applicative",
+            "competence_nom": "Sécurité Applicative",
             "enseignants_count": 6
           },
           {
             "avg_gap": 0.831,
             "departement": "non_affecte",
             "competence_id": 2,
-            "competence_nom": "DÃ©veloppement Frontend",
+            "competence_nom": "Développement Frontend",
             "enseignants_count": 8
           },
           {
             "avg_gap": 0.812,
             "departement": "DEPT_INF2",
             "competence_id": 8,
-            "competence_nom": "Conception PÃ©dagogique",
+            "competence_nom": "Conception Pédagogique",
             "enseignants_count": 4
           },
           {
             "avg_gap": 0.8,
             "departement": "non_affecte",
             "competence_id": 3,
-            "competence_nom": "QualitÃ© & Tests",
+            "competence_nom": "Qualité & Tests",
             "enseignants_count": 8
           },
           {
             "avg_gap": 0.75,
             "departement": "DEPT_WEB",
             "competence_id": 3,
-            "competence_nom": "QualitÃ© & Tests",
+            "competence_nom": "Qualité & Tests",
             "enseignants_count": 4
           },
           {
@@ -508,21 +508,21 @@
             "avg_gap": 0.75,
             "departement": "DEPT_GL",
             "competence_id": 2,
-            "competence_nom": "DÃ©veloppement Frontend",
+            "competence_nom": "Développement Frontend",
             "enseignants_count": 2
           },
           {
             "avg_gap": 0.75,
             "departement": "DEPT_TECH_WEB",
             "competence_id": 3,
-            "competence_nom": "QualitÃ© & Tests",
+            "competence_nom": "Qualité & Tests",
             "enseignants_count": 2
           },
           {
             "avg_gap": 0.75,
             "departement": "DEPT_IA",
             "competence_id": 9,
-            "competence_nom": "IngÃ©nierie des DonnÃ©es",
+            "competence_nom": "Ingénierie des Données",
             "enseignants_count": 2
           },
           {
@@ -536,35 +536,35 @@
             "avg_gap": 0.667,
             "departement": "DEPT_TECH_WEB",
             "competence_id": 8,
-            "competence_nom": "Conception PÃ©dagogique",
+            "competence_nom": "Conception Pédagogique",
             "enseignants_count": 3
           },
           {
             "avg_gap": 0.625,
             "departement": "DEPT_WEB",
             "competence_id": 4,
-            "competence_nom": "SÃ©curitÃ© Applicative",
+            "competence_nom": "Sécurité Applicative",
             "enseignants_count": 4
           },
           {
             "avg_gap": 0.625,
             "departement": "DEPT_GL",
             "competence_id": 3,
-            "competence_nom": "QualitÃ© & Tests",
+            "competence_nom": "Qualité & Tests",
             "enseignants_count": 2
           },
           {
             "avg_gap": 0.607,
             "departement": "DEPT_INFO",
             "competence_id": 3,
-            "competence_nom": "QualitÃ© & Tests",
+            "competence_nom": "Qualité & Tests",
             "enseignants_count": 7
           },
           {
             "avg_gap": 0.583,
             "departement": "DEPT_GL",
             "competence_id": 1,
-            "competence_nom": "DÃ©veloppement Backend",
+            "competence_nom": "Développement Backend",
             "enseignants_count": 3
           },
           {
@@ -578,42 +578,42 @@
             "avg_gap": 0.562,
             "departement": "DEPT_INFO",
             "competence_id": 2,
-            "competence_nom": "DÃ©veloppement Frontend",
+            "competence_nom": "Développement Frontend",
             "enseignants_count": 4
           },
           {
             "avg_gap": 0.562,
             "departement": "DEPT_WEB",
             "competence_id": 1,
-            "competence_nom": "DÃ©veloppement Backend",
+            "competence_nom": "Développement Backend",
             "enseignants_count": 4
           },
           {
             "avg_gap": 0.562,
             "departement": "DEPT_INF2",
             "competence_id": 11,
-            "competence_nom": "PÃ©dagogie NumÃ©rique",
+            "competence_nom": "Pédagogie Numérique",
             "enseignants_count": 4
           },
           {
             "avg_gap": 0.55,
             "departement": "DEPT_INFO",
             "competence_id": 1,
-            "competence_nom": "DÃ©veloppement Backend",
+            "competence_nom": "Développement Backend",
             "enseignants_count": 5
           },
           {
             "avg_gap": 0.542,
             "departement": "DEPT_INFO",
             "competence_id": 4,
-            "competence_nom": "SÃ©curitÃ© Applicative",
+            "competence_nom": "Sécurité Applicative",
             "enseignants_count": 6
           },
           {
             "avg_gap": 0.5,
             "departement": "DEPT_WEB",
             "competence_id": 2,
-            "competence_nom": "DÃ©veloppement Frontend",
+            "competence_nom": "Développement Frontend",
             "enseignants_count": 4
           },
           {
@@ -641,7 +641,7 @@
             "avg_gap": 0.167,
             "departement": "DEPT_TECH_WEB",
             "competence_id": 11,
-            "competence_nom": "PÃ©dagogie NumÃ©rique",
+            "competence_nom": "Pédagogie Numérique",
             "enseignants_count": 3
           },
           {
@@ -850,7 +850,7 @@
             "avg_level_gain": 1.0,
             "nb_recommandee": 327,
             "completion_rate": 1.0,
-            "formation_titre": "SÃ©curitÃ© Web et OWASP Top 10"
+            "formation_titre": "Sécurité Web et OWASP Top 10"
           }
         ],
         "alertes_critiques_ouvertes": 36,
@@ -868,13 +868,13 @@
             ],
             "formation_id": 2,
             "impact_estime": 0.805,
-            "formation_titre": "SÃ©curitÃ© Web et OWASP Top 10",
+            "formation_titre": "Sécurité Web et OWASP Top 10",
             "enseignants_cibles": 16,
             "nb_recommandations": 28,
             "proba_reussite_moy": 0.657,
             "competences_couvertes": [
-              "QualitÃ© & Tests",
-              "SÃ©curitÃ© Applicative"
+              "Qualité & Tests",
+              "Sécurité Applicative"
             ]
           },
           {
@@ -895,7 +895,7 @@
             "nb_recommandations": 24,
             "proba_reussite_moy": 0.63,
             "competences_couvertes": [
-              "DÃ©veloppement Frontend"
+              "Développement Frontend"
             ]
           },
           {
@@ -911,12 +911,12 @@
             ],
             "formation_id": 6,
             "impact_estime": 0.875,
-            "formation_titre": "IngÃ©nierie PÃ©dagogique et Conception de Cours",
+            "formation_titre": "Ingénierie Pédagogique et Conception de Cours",
             "enseignants_cibles": 17,
             "nb_recommandations": 20,
             "proba_reussite_moy": 0.656,
             "competences_couvertes": [
-              "Conception PÃ©dagogique"
+              "Conception Pédagogique"
             ]
           },
           {
@@ -965,12 +965,12 @@
             ],
             "formation_id": 1,
             "impact_estime": 0.75,
-            "formation_titre": "Atelier Spring Boot 3 & JPA AvancÃ©",
+            "formation_titre": "Atelier Spring Boot 3 & JPA Avancé",
             "enseignants_cibles": 9,
             "nb_recommandations": 9,
             "proba_reussite_moy": 0.611,
             "competences_couvertes": [
-              "DÃ©veloppement Backend"
+              "Développement Backend"
             ]
           },
           {
@@ -980,13 +980,13 @@
             ],
             "formation_id": 11,
             "impact_estime": 0.938,
-            "formation_titre": "BIM & ModÃ©lisation Structure 3D",
+            "formation_titre": "BIM & Modélisation Structure 3D",
             "enseignants_cibles": 4,
             "nb_recommandations": 6,
             "proba_reussite_moy": 0.5,
             "competences_couvertes": [
-              "Structures et BÃ©ton ArmÃ©",
-              "Topographie et GÃ©otechnique"
+              "Structures et Béton Armé",
+              "Topographie et Géotechnique"
             ]
           },
           {
@@ -1001,7 +1001,7 @@
             "nb_recommandations": 2,
             "proba_reussite_moy": 0.5,
             "competences_couvertes": [
-              "IngÃ©nierie des DonnÃ©es"
+              "Ingénierie des Données"
             ]
           },
           {
@@ -1016,7 +1016,7 @@
             "nb_recommandations": 2,
             "proba_reussite_moy": 0.5,
             "competences_couvertes": [
-              "IngÃ©nierie des DonnÃ©es"
+              "Ingénierie des Données"
             ]
           }
         ],
@@ -1096,7 +1096,7 @@
         {
           "competence_id": 4,
           "competence_code": "RES.SEC",
-          "competence_nom": "SÃ©curitÃ© Applicative",
+          "competence_nom": "Sécurité Applicative",
           "current_level": 0.0,
           "target_level": 5.0,
           "gap_score": 1.0,
@@ -1107,7 +1107,7 @@
         {
           "competence_id": 10,
           "competence_code": "SYS.CLOUD",
-          "competence_nom": "SystÃ¨mes & Cloud",
+          "competence_nom": "Systèmes & Cloud",
           "current_level": 0.0,
           "target_level": 5.0,
           "gap_score": 1.0,
@@ -1228,7 +1228,7 @@
           {
             "competence_id": 4,
             "competence_code": "RES.SEC",
-            "competence_nom": "SÃ©curitÃ© Applicative",
+            "competence_nom": "Sécurité Applicative",
             "current_level": 0,
             "target_level": 5,
             "gap_score": 1.0,
@@ -1239,7 +1239,7 @@
           {
             "competence_id": 10,
             "competence_code": "SYS.CLOUD",
-            "competence_nom": "SystÃ¨mes & Cloud",
+            "competence_nom": "Systèmes & Cloud",
             "current_level": 0,
             "target_level": 5,
             "gap_score": 1.0,

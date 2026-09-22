@@ -106,3 +106,91 @@ launch-all.ps1
 load-env.ps1
 generate_collecte_besoins.py
 seed_analyse_tables.py
+
+# =============================================================================
+# Fichiers de travail locaux (convention projet : prefixe "_")
+# -----------------------------------------------------------------------------
+# Tout fichier ou dossier dont le nom commence par "_" est un brouillon local
+# (diagnostic, dump, script jetable) et ne doit JAMAIS etre commite.
+# Les exceptions ci-dessous sont du code source legitime.
+# =============================================================================
+_*
+# Exceptions : code source legitime commencant par "_"
+# - packages Python
+!__init__.py
+!__main__.py
+# - dossiers de tests frontend
+!__tests__/
+!**/__tests__/
+# - shim d'import du service predictive-analytics
+!_legacy_compat.py
+# - regles de routage du build frontend
+!_redirects
+# Re-affirmation apres les exceptions : les caches Python restent ignores
+__pycache__/
+*.pyc
+
+# --- Artefacts SonarQube / analyse qualite ---
+.sonar-logs/
+**/.sonar_lock
+sonar-issues.json
+*.pid
+
+# --- Sorties de tests et de couverture ---
+jacoco*.txt
+pytest_out.txt
+test_output.txt
+**/htmlcov/
+**/lcov.info
+
+# --- Brouillons divers ---
+**/tok_cases.json
+
+# =============================================================================
+# Artefacts generes : analyse qualite, couverture, sorties de tests
+# -----------------------------------------------------------------------------
+# Ces fichiers sont produits par les outils locaux (SonarQube, pytest, vitest,
+# maven) et ne doivent jamais etre commites : les analyses les regenerent.
+# =============================================================================
+
+# Sorties de couverture
+**/cov_*.txt
+**/coverage_output.txt
+**/cov_tree.json
+
+# Dumps d'API SonarQube (webapp)
+esprit_D2F-webapp/ct.json
+esprit_D2F-webapp/m.json
+esprit_D2F-webapp/nh.json
+esprit_D2F-webapp/nv.json
+esprit_D2F-webapp/qg.json
+
+# Rapports QA generes (predictive-analytics)
+esprit_D2F-predictive-analytics/qa/qa_report.json
+esprit_D2F-predictive-analytics/qa/qa_report.md
+esprit_D2F-predictive-analytics/qa/audit_*/
+
+# Artefacts de build Maven / TypeScript
+**/effective-pom.xml
+**/effective-pom
+**/*.tsbuildinfo
+
+# Sorties Playwright
+**/test-results/
+
+# PDF de test generes par le service certificat
+esprit_D2F-certificat/certificate_*.pdf
+
+# Bibliotheques tierces du template frontend (non referencees par le code)
+esprit_D2F-webapp/public/vendor/
+
+# Extraits de referentiel / dumps produits par les scripts d'audit
+**/referentiel_extracted.json
+**/exemple_web.txt
+**/test_fiche_tv.txt
+**/kpi-test.spec.ts
+
+# Pipelines CI legacy (Drone) : la CI de reference est GitHub Actions
+**/*.drone-qa.yml
+**/*.drone-prod.yml
+**/drone-qa.yml

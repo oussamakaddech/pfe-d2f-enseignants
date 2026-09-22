@@ -85,9 +85,9 @@ jobs:
           reporter: java-junit
           fail-on-error: false
 
-  # -- Analyse statique Java (SpotBugs) â€” DSI : lint backend bloquant -----------
-  # Garde-fou contre les bugs sÃ©rieux (rank <= 9 : correctness/sÃ©curitÃ© de haute
-  # gravitÃ©), exÃ©cutÃ© sur chaque push sans dÃ©pendre du runner self-hosted Sonar.
+  # -- Analyse statique Java (SpotBugs) — DSI : lint backend bloquant -----------
+  # Garde-fou contre les bugs sérieux (rank <= 9 : correctness/sécurité de haute
+  # gravité), exécuté sur chaque push sans dépendre du runner self-hosted Sonar.
   lint-backend:
     name: SpotBugs - ${{ matrix.service }}
     runs-on: ubuntu-latest
@@ -177,26 +177,13 @@ jobs:
           FOUND=$(grep -rn --include="*.py" -E "^\s*print\(" \
             ${{ matrix.service }} \
             --exclude-dir tests \
-            --exclude-dir tests_legacy \
             --exclude-dir __pycache__ \
             --exclude-dir .venv \
             --exclude-dir .deps310 \
             --exclude-dir pipelines \
             --exclude-dir scripts \
             --exclude-dir reports \
-            --exclude=diagnose_same_results.py \
-            --exclude=verify_ens015.py \
-            --exclude=verify_teachers.py \
-            --exclude=risk_check.py \
-            --exclude=audit_all_teachers.py \
-            --exclude=audit_teachers_end_to_end.py \
-            --exclude=check_gaps.py \
-            --exclude=fix_persist_gaps.py \
-            --exclude=validate_catalogue.py \
-            --exclude=_fix_train_source.py \
-            --exclude=_fix_model_name.py \
-            --exclude=_fix_candidates.py \
-            --exclude=_patch_meta.py || true)
+            --exclude=validate_catalogue.py || true)
           if [ -n "$FOUND" ]; then
             echo "PII risk - print() trouve dans le code de production :"
             echo "$FOUND"

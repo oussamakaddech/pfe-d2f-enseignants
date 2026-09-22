@@ -17,7 +17,7 @@ public class PresenceDTO {
     private String commentaire;
     private String recordedBy;
     private LocalDateTime recordedAt;
-    private EnseignantDTO enseignant; // Facultatif : dÃ©tails de l'enseignant associÃ©
+    private EnseignantDTO enseignant; // Facultatif : détails de l'enseignant associé
 
     // Adding missing fields that are being used in tests
     private String enseignantId;

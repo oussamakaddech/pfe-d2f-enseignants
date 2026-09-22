@@ -16,8 +16,8 @@
       "department_id": null,
       "competence_id": 3,
       "severity": "CRITICAL",
-      "title": "Gap critique â€” QualitÃ© & Tests",
-      "message": "Niveau actuel 0/5, requis 5/5 sur la compÃ©tence Â« QualitÃ© & Tests Â». Score prioritÃ© : 1.0.",
+      "title": "Gap critique — Qualité & Tests",
+      "message": "Niveau actuel 0/5, requis 5/5 sur la compétence « Qualité & Tests ». Score priorité : 1.0.",
       "details": {
         "gap_score": 1.0,
         "niveau_actuel": 0,
@@ -53,7 +53,7 @@
     "alertes_recentes": [
       {
         "id": 899,
-        "titre": "Gap critique â€” QualitÃ© & Tests",
+        "titre": "Gap critique — Qualité & Tests",
         "severite": "CRITICAL",
         "created_at": "2026-07-31T20:00:41.884435+00:00",
         "type_alerte": "GAP_CRITIQUE",
@@ -61,7 +61,7 @@
       },
       {
         "id": 898,
-        "titre": "Gap critique â€” QualitÃ© & Tests",
+        "titre": "Gap critique — Qualité & Tests",
         "severite": "CRITICAL",
         "created_at": "2026-07-31T16:36:11.293712+00:00",
         "type_alerte": "GAP_CRITIQUE",
@@ -69,7 +69,7 @@
       },
       {
         "id": 897,
-        "titre": "Gap critique â€” QualitÃ© & Tests",
+        "titre": "Gap critique — Qualité & Tests",
         "severite": "CRITICAL",
         "created_at": "2026-07-31T16:36:11.293707+00:00",
  
@@ -83,7 +83,7 @@
     {
       "competence_id": 4,
       "competence_code": "RES.SEC",
-      "competence_nom": "SÃ©curitÃ© Applicative",
+      "competence_nom": "Sécurité Applicative",
       "current_level": 0.0,
       "target_level": 5.0,
       "gap_score": 1.0,
@@ -94,7 +94,7 @@
     {
       "competence_id": 10,
       "competence_code": "SYS.CLOUD",
-      "competence_nom": "SystÃ¨mes & Cloud",
+      "competence_nom": "Systèmes & Cloud",
       "current_level": 0.0,
       "target_level": 5.0,
       "gap_score": 1.0,

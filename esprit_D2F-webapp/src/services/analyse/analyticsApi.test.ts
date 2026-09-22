@@ -29,7 +29,7 @@ beforeEach(() => {
   httpMocks.mockPatch.mockResolvedValue({ data: {} });
 });
 
-describe('analyticsApi â€“ indivuel', () => {
+describe('analyticsApi – indivuel', () => {
   it('analyze appelle POST sur /analysis/:id', async () => {
     await analyticsApi.analyze('T1');
     expect(httpMocks.mockPost).toHaveBeenCalledWith(`${BASE}/analysis/T1`);
@@ -45,14 +45,14 @@ describe('analyticsApi â€“ indivuel', () => {
     });
   });
 
-  it('getGaps filtre urgence et pagine cÃ´tÃ© client', async () => {
+  it('getGaps filtre urgence et pagine côté client', async () => {
     const envelope = {
       data: {
         data: [
           {
             competence_id: 1,
             competence_code: 'C1',
-            competence_nom: 'CompÃ©tence',
+            competence_nom: 'Compétence',
             observed_result: 1,
             knowledge_difficulty_level: 5,
             gap_score: 0.8,
@@ -63,7 +63,7 @@ describe('analyticsApi â€“ indivuel', () => {
           {
             competence_id: 2,
             competence_code: 'C2',
-            competence_nom: 'CompÃ©tence 2',
+            competence_nom: 'Compétence 2',
             observed_result: 2,
             knowledge_difficulty_level: 5,
             gap_score: 0.6,
@@ -96,14 +96,14 @@ describe('analyticsApi â€“ indivuel', () => {
     expect(resPage2.gaps).toHaveLength(0);
   });
 
-  it('getGaps calcule gaps_summary sur tous les gaps (indÃ©pendant du filtre urgence)', async () => {
+  it('getGaps calcule gaps_summary sur tous les gaps (indépendant du filtre urgence)', async () => {
     const envelope = {
       data: {
         data: [
           {
             competence_id: 1,
             competence_code: 'C1',
-            competence_nom: 'CompÃ©tence',
+            competence_nom: 'Compétence',
             observed_result: 1,
             knowledge_difficulty_level: 5,
             gap_score: 0.8,
@@ -114,7 +114,7 @@ describe('analyticsApi â€“ indivuel', () => {
           {
             competence_id: 2,
             competence_code: 'C2',
-            competence_nom: 'CompÃ©tence 2',
+            competence_nom: 'Compétence 2',
             observed_result: 2,
             knowledge_difficulty_level: 5,
             gap_score: 0.6,
@@ -229,8 +229,8 @@ describe('analyticsApi â€“ indivuel', () => {
   });
 });
 
-describe('analyticsApi â€“ dashboard', () => {
-  it('mappe le payload rÃ©el /dashboard/global vers le type UI', async () => {
+describe('analyticsApi – dashboard', () => {
+  it('mappe le payload réel /dashboard/global vers le type UI', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({
       data: {
         data: {
@@ -319,7 +319,7 @@ describe('analyticsApi â€“ dashboard', () => {
     expect(res.kpis.score_risque_moyen).toBe(0.4);
   });
 
-  it('dÃ©rive la distribution des risques de la liste Ã  risque', async () => {
+  it('dérive la distribution des risques de la liste à risque', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({
       data: {
         data: {
@@ -369,9 +369,21 @@ describe('analyticsApi â€“ dashboard', () => {
     expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/dashboard/gap-heatmap`);
   });
 
-  it('getAtRisk appelle GET /dashboard/teachers-at-risk', async () => {
-    await analyticsApi.getAtRisk({ departement_id: 'D1', seuil: 0.5 });
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/dashboard/teachers-at-risk`);
+  it('getAtRisk transmet le seuil au backend', async () => {
+    // Le seuil etait accepte puis ignore : la liste restait figee au seuil par
+    // defaut du service, masquant les departements les moins exposes.
+    await analyticsApi.getAtRisk({ departement_id: 'D1', seuil: 0.3 });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/dashboard/teachers-at-risk`, {
+      params: { seuil: 0.3 },
+    });
+  });
+
+  it('getAtRisk sans seuil n envoie aucun parametre', async () => {
+    await analyticsApi.getAtRisk({ departement_id: 'D1' });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      `${BASE}/dashboard/teachers-at-risk`,
+      undefined,
+    );
   });
 
   it('getTeachersByCell transmet limit', async () => {
@@ -403,8 +415,8 @@ describe('analyticsApi â€“ dashboard', () => {
   });
 });
 
-describe('analyticsApi â€“ alertes & impact', () => {
-  it("getAlerts lit l'enveloppe rÃ©elle et mappe les alertes", async () => {
+describe('analyticsApi – alertes & impact', () => {
+  it("getAlerts lit l'enveloppe réelle et mappe les alertes", async () => {
     httpMocks.mockGet.mockResolvedValueOnce({
       data: {
         data: [
@@ -416,8 +428,8 @@ describe('analyticsApi â€“ alertes & impact', () => {
             department_id: null,
             competence_id: 3,
             severity: 'CRITICAL',
-            title: 'Gap critique dÃ©tectÃ©',
-            message: 'Ã‰cart sÃ©vÃ¨re',
+            title: 'Gap critique détecté',
+            message: 'Écart sévère',
             details: {},
             status: 'NOUVELLE',
             created_at: '2026-07-01T10:00:00Z',
@@ -474,7 +486,7 @@ describe('analyticsApi â€“ alertes & impact', () => {
   });
 });
 
-describe('analyticsApi â€“ monitoring', () => {
+describe('analyticsApi – monitoring', () => {
   it('getModelStatus mappe le statut', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({
       data: { gap_model_accuracy: 0.9, last_retrain_status: 'v2', last_retrained: '2024-01-01' },
@@ -492,7 +504,7 @@ describe('analyticsApi â€“ monitoring', () => {
     expect(res.disponible).toBe(false);
   });
 
-  it('getDrift mappe la dÃ©rive', async () => {
+  it('getDrift mappe la dérive', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: [{ critical: 3 }, { critical: 5 }] });
     const res = await analyticsApi.getDrift();
     expect(res.valeur_actuelle).toBe(5);
@@ -512,7 +524,7 @@ describe('analyticsApi â€“ monitoring', () => {
   });
 });
 
-describe('analyticsApi â€“ scope-analysis', () => {
+describe('analyticsApi – scope-analysis', () => {
   it('getTeacherScopeAnalysis appelle GET /teachers/:id/scope-analysis', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({
       data: {
@@ -556,7 +568,7 @@ describe('analyticsApi â€“ scope-analysis', () => {
           scope: {
             type: 'DEPARTMENT',
             is_global: false,
-            label: 'DÃ©partement GÃ©nie Logiciel',
+            label: 'Département Génie Logiciel',
           },
           computed_at: '2026-08-02T00:00:00Z',
         },
@@ -572,16 +584,22 @@ describe('analyticsApi â€“ scope-analysis', () => {
     expect(out.gaps[0].niveau_urgence).toBe('CRITIQUE');
     expect(out.recommendations).toHaveLength(1);
     expect(out.recommendations[0].formation_titre).toBe('Spring Boot Avance');
+    // Le rang vient de la position dans la liste (deja triee par score) et
+    // commence a 1 : il etait auparavant fige a 0 et l'UI affichait « rang 0 ».
+    expect(out.recommendations[0].rang_dans_parcours).toBe(1);
+    // Cette route ne porte aucune info de prerequis : `null` = inconnu, pour
+    // ne pas afficher un avertissement « Prerequis a verifier » infonde.
+    expect(out.recommendations[0].prerequis_satisfaits).toBeNull();
     expect(out.scoped_competencies_count).toBe(3);
     expect(out.total_competencies_count).toBe(12);
     expect(out.scope.type).toBe('DEPARTMENT');
     expect(out.scope.is_global).toBe(false);
-    expect(out.scope.label).toBe('DÃ©partement GÃ©nie Logiciel');
+    expect(out.scope.label).toBe('Département Génie Logiciel');
     expect(out.scope.fallback).toBe(false);
     expect(out.scope.fallback_reason).toBeNull();
   });
 
-  it('getRisk mappe le DTO normalisÃ© (score 0..1, is_capped, facteurs bornÃ©s)', async () => {
+  it('getRisk mappe le DTO normalisé (score 0..1, is_capped, facteurs bornés)', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({
       data: {
         data: {
@@ -609,7 +627,7 @@ describe('analyticsApi â€“ scope-analysis', () => {
             {
               feature: 'high_gaps',
               code: 'high_gaps',
-              label: 'Gaps haute prioritÃ©',
+              label: 'Gaps haute priorité',
               raw_value: 2,
               normalized_value: 1,
               weight: 0.12,
@@ -639,11 +657,11 @@ describe('analyticsApi â€“ scope-analysis', () => {
       contribution_percent: 50,
       categorie: 'FACTEUR',
     });
-    // Jamais 300% / 3.000 : la contribution est bornÃ©e Ã  50 % pour 12 gaps critiques.
+    // Jamais 300% / 3.000 : la contribution est bornée à 50 % pour 12 gaps critiques.
     expect(score.facteurs[0].contribution).toBeLessThanOrEqual(1);
     expect(score.facteurs[0].contribution_percent).toBeLessThanOrEqual(100);
     expect(score.facteurs[1].contribution_percent).toBe(12);
-    // PÃ©rimÃ¨tre des facteurs (scope du DTO backend) propagÃ© vers l'UI.
+    // Périmètre des facteurs (scope du DTO backend) propagé vers l'UI.
     expect(score.facteurs[0].scope).toBe('DEPARTMENT');
   });
 
@@ -683,7 +701,7 @@ describe('analyticsApi â€“ scope-analysis', () => {
             {
               feature: 'critical_gaps',
               code: 'critical_gaps',
-              label: 'Gaps critiques du pÃ©rimÃ¨tre',
+              label: 'Gaps critiques du périmètre',
               raw_value: 3,
               normalized_value: 1,
               weight: 0.5,
@@ -714,16 +732,33 @@ describe('analyticsApi â€“ scope-analysis', () => {
       },
     });
     const score = await analyticsApi.getRisk('T1');
-    // Nom de l'artefact propagÃ© (badge non vague : mode + nom + version rÃ©els).
+    // Nom de l'artefact propagé (badge non vague : mode + nom + version réels).
     expect(score.model_mode).toBe('PRODUCTION_ML');
     expect(score.model_version).toBe('v1.0.0');
     expect(score.model_name).toBe('gap_predictor_temporal');
-    // LibellÃ©s backend prioritaires, y compris le libellÃ© scopÃ© dÃ©partemental.
-    expect(score.facteurs[0].nom).toBe('Gaps critiques du pÃ©rimÃ¨tre');
+    // Libellés backend prioritaires, y compris le libellé scopé départemental.
+    expect(score.facteurs[0].nom).toBe('Gaps critiques du périmètre');
     expect(score.facteurs[1].nom).toBe('Gaps de haute urgence');
     expect(score.facteurs[0].scope).toBe('DEPARTMENT');
     expect(score.facteurs[1].scope).toBe('DEPARTMENT');
-    // Valeur brute = 3 gaps critiques (jamais corrigÃ©e arbitrairement cÃ´tÃ© front).
+    // Valeur brute = 3 gaps critiques (jamais corrigée arbitrairement côté front).
     expect(score.facteurs[0].valeur_brute).toBe(3);
+  });
+
+  it('le rang des recommandations suit la position et commence a 1', async () => {
+    const reco = (id: number, score: number) => ({
+      formation_id: id,
+      titre: `Formation ${id}`,
+      competence_id: 1,
+      rank_score: score,
+      reason: 'r',
+      matched_savoirs: [],
+    });
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: { data: [reco(1, 0.9), reco(2, 0.7), reco(3, 0.5)], meta: {}, errors: [] },
+    });
+    const out = await analyticsApi.getRecommendations('T1', {});
+    expect(out.recommendations.map((r) => r.rang_dans_parcours)).toEqual([1, 2, 3]);
+    expect(out.recommendations.every((r) => r.prerequis_satisfaits === null)).toBe(true);
   });
 });
