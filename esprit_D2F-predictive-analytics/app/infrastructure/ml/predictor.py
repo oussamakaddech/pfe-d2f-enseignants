@@ -1004,16 +1004,28 @@ class ArtifactModelPort:
                     path=str(path),
                 )
                 return
-            M = (
+            numeric = (
                 df[TEMPORAL_FEATURE_COLS]
                 .apply(lambda s: pd.to_numeric(s, errors="coerce"))
                 .dropna()
-                .to_numpy(dtype=float)
             )
-            rows = self._skew_guard.set_reference_from_matrix(M)
+            M = numeric.to_numpy(dtype=float)
+            # Unité d'observation = l'enseignant : le serving prédit par blocs
+            # (toutes les compétences d'un enseignant) et une quinzaine de
+            # features sont constantes dans un bloc. Sans ce groupage, le test
+            # KS compte n lignes là où il n'y a qu'une observation et déclenche
+            # en masse sur des données pourtant conformes (mesuré : 47 % de
+            # fausses alertes sur le corpus servi, 0 % avec le groupage).
+            groups = None
+            if "teacher_id" in df.columns:
+                candidate = df.loc[numeric.index, "teacher_id"]
+                if candidate.notna().all():
+                    groups = candidate.to_numpy()
+            rows = self._skew_guard.set_reference_from_matrix(M, groups=groups)
             logger.info(
                 "skew guard : référence d'entraînement capturée (test KS armé)",
                 rows=rows,
+                unit="enseignant" if groups is not None else "ligne",
                 corpus=str(path),
             )
         except Exception as exc:  # pragma: no cover - consultatif
@@ -1045,7 +1057,48 @@ class ArtifactModelPort:
             "skew_reason": skew.reason,
             "fallback_reason": self._fallback_reason,
             "skew_guard": self._skew_guard.status(),
+            "inert_features": self._inert_features(),
+            # Identite et exactitude du modele servi. Sans ces champs, les
+            # consommateurs (page de monitoring) fabriquaient un statut :
+            # algorithme code en dur, nombre de features a 0, integrite et
+            # absence de derive affirmees sans mesure.
+            "algorithm": meta.get("algorithm"),
+            "n_features": meta.get("n_features") or (len(entry.feature_names) if entry else None),
+            "accuracy_pm05": self._registry_accuracy(entry, "accuracy_pm05"),
+            "accuracy_pm10": self._registry_accuracy(entry, "accuracy_pm10"),
+            "target_validity": entry.target_validity if entry else None,
+            # Integrite REELLE : l'artefact n'est charge qu'apres verification
+            # du SHA-256 (artifact_integrity). Modele absent => non verifie.
+            "integrity_verified": self._model is not None,
+            "trained_at": meta.get("trained_at"),
         }
+
+    @staticmethod
+    def _registry_accuracy(entry: Any, key: str) -> float | None:
+        """Exactitude du registre (pourcentage) ramenee en ratio 0..1."""
+        if entry is None:
+            return None
+        try:
+            value = (entry.metrics or {}).get(key)
+            return round(float(value) / 100.0, 4) if value is not None else None
+        except (TypeError, ValueError):
+            return None
+
+    def _inert_features(self) -> list[str]:
+        """Features sans information dans le corpus d'entraînement.
+
+        Une plage dégénérée (``min == max``) est normalisée à 0 au serving :
+        la feature est présente au contrat mais ne transporte rien. Les
+        exposer évite de laisser croire que les 29 entrées du schéma pèsent
+        toutes dans la prédiction (audit 2026-09-22 : 2 features constantes
+        sur le corpus servi).
+        """
+        ranges = (self._metadata or {}).get("feature_ranges") or {}
+        return sorted(
+            nom
+            for nom, borne in ranges.items()
+            if isinstance(borne, dict) and borne.get("min") == borne.get("max")
+        )
 
     def _widened_ranges_error(self) -> str | None:
         """Erreur si les plages de l'artefact chargé dépassent celles de la
@@ -1409,7 +1462,10 @@ class ArtifactModelPort:
         # Skew guard actif (test KS, p < seuil) : accumulation des features
         # servies puis contrôle de dérive contre la référence d'entraînement.
         # Dérive détectée => repli heuristique fail-closed avec raison tracée.
-        self._skew_guard.record_serving(X)
+        # Clé = l'enseignant : réinterroger la même fiche remplace son
+        # observation au lieu de saturer la fenêtre de copies identiques
+        # (sans quoi un simple rafraîchissement de page fabrique une dérive).
+        self._skew_guard.record_serving(X, key=str(teacher_id))
         skew = self._skew_guard.evaluate()
         if skew.skew_detected:
             self._fallback_reason = skew.reason

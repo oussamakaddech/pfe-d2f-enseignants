@@ -652,15 +652,23 @@ services:
       # (audit d'autorite 2.4 — un ML_MODEL_VERSION errone induisait en erreur).
       ML_MODEL_VERSION: ${ML_MODEL_VERSION:-v1.2.0-gb}
       ML_ARTIFACT_PATH: ${ML_ARTIFACT_PATH:-gap_predictor_temporal.joblib}
+      # Artefact du module legacy, ALIGNE sur ML_ARTIFACT_PATH. Absent, il
+      # retombait sur le defaut `gap_predictor.joblib` : le conteneur servait
+      # DEUX modeles differents (DDD = gap_predictor_temporal 29 features
+      # v1.2.0-gb ; legacy = gap_predictor 21 features, R2 1.0 sur 80
+      # echantillons), et les KPI de performance exposaient ceux du second.
+      GAP_MODEL_FILE: ${GAP_MODEL_FILE:-gap_predictor_temporal.joblib}
       ML_METADATA_PATH: ${ML_METADATA_PATH:-temporal_training_metadata.json}
       ML_REGISTRY_PATH: ${ML_REGISTRY_PATH:-model_registry.json}
       ML_FEATURE_SCHEMA_PATH: ${ML_FEATURE_SCHEMA_PATH:-feature_schema.json}
-      # Skew guard KS désactivé (opérateur) : le corpus réel (217 lignes,
-      # features globales constantes par enseignant) rend le test KS à deux
-      # échantillons structurellement bruité — faux positifs p=0.0 en masse
-      # qui basculaient tout le serving en heuristique. La validation par
-      # plages (feature_schema) + provenance + registre restent actives.
-      ML_SKEW_GUARD_ENABLED: ${ML_SKEW_GUARD_ENABLED:-false}
+      # Skew guard KS RÉACTIVÉ : le bruit structurel qui avait imposé sa
+      # désactivation est corrigé dans app/infrastructure/ml/skew_guard.py —
+      # l'unité d'observation est l'enseignant (les features globales ne sont
+      # plus comptées une fois par compétence) et les 29 tests simultanés
+      # passent par la correction de Holm. Mesuré sur le corpus servi :
+      # 47 % de fausses alertes avant, 0 % après, détection d'une dérive
+      # réelle (+0,5 niveau) maintenue à 100 %.
+      ML_SKEW_GUARD_ENABLED: ${ML_SKEW_GUARD_ENABLED:-true}
     volumes:
       # L'artefact est monté en lecture seule — il n'est jamais régénéré au
       # démarrage du conteneur. La promotion/rollback est pilotée explicitement.
