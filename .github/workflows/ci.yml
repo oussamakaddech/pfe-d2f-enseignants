@@ -36,6 +36,10 @@ env:
   NODE_VERSION: '20'
   PYTHON_VERSION: '3.11'
   MAVEN_OPTS: '-Xmx3072m'
+  # Version epinglee du plugin OWASP : sans elle, Maven resout
+  # maven-metadata.xml a chaque job et se fait jeter par Central (429).
+  # Elle doit rester IDENTIQUE entre le seed NVD et les controles (schema de base).
+  DC_VERSION: '13.0.0'
 
 jobs:
   # -- Tests Backend Java -------------------------------------------------------
@@ -255,7 +259,7 @@ jobs:
             echo "::error::Secret NVD_API_KEY manquant - OWASP dependency-check (DSI 12.12) ne peut pas mettre a jour la base NVD. Configurez le secret dans Settings > Secrets and variables > Actions."
             exit 1
           fi
-          mvn -B org.owasp:dependency-check-maven:update-only \
+          mvn -B org.owasp:dependency-check-maven:${DC_VERSION}:update-only \
             -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
             -DnvdValidForHours=24
 
@@ -318,7 +322,7 @@ jobs:
             echo "::warning::Base NVD absente du cache - mise a jour locale (plus lent)."
             AUTOUPDATE=true
           fi
-          mvn -B org.owasp:dependency-check-maven:check \
+          mvn -B org.owasp:dependency-check-maven:${DC_VERSION}:check \
             -DfailBuildOnCVSS=7 \
             -DautoUpdate=$AUTOUPDATE \
             -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
