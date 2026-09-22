@@ -122,7 +122,7 @@ public class EvaluationGlobaleService {
     }
 
     public Page<EvaluationGlobaleDTO> getAllEvaluationGlobales(Pageable pageable) {
-        ListScope scope = resolveListScope();
+        EvaluationListScope.ListScope scope = EvaluationListScope.resolve(formationClient);
         if (scope.global()) {
             return evaluationGlobaleRepository.findAll(pageable)
                     .map(this::mapToDto);
@@ -134,52 +134,4 @@ public class EvaluationGlobaleService {
                 .map(this::mapToDto);
     }
 
-    /** Périmètre de lecture : global (ADMIN/ANIMATEUR) ou évaluations personnelles. */
-    private record ListScope(boolean global, String ficheId) {
-    }
-
-    private ListScope resolveListScope() {
-        org.springframework.security.core.Authentication auth =
-                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
-            return new ListScope(false, null);
-        }
-        boolean global = auth.getAuthorities().stream().anyMatch(a ->
-                "ROLE_ADMIN".equals(a.getAuthority()) || "ROLE_ANIMATEUR".equals(a.getAuthority()));
-        if (global) {
-            return new ListScope(true, null);
-        }
-        return new ListScope(false, resolveFicheId(callerIdentity(auth)));
-    }
-
-    private String callerIdentity(org.springframework.security.core.Authentication auth) {
-        Object principal = auth.getPrincipal();
-        if (principal instanceof org.springframework.security.oauth2.jwt.Jwt jwt) {
-            String email = jwt.getClaimAsString("email");
-            if (email != null && !email.isBlank()) {
-                return email;
-            }
-        }
-        return auth.getName();
-    }
-
-    /** Résout l'id de fiche via le service formation (accepte id ou mail). */
-    private String resolveFicheId(String identity) {
-        if (identity == null || identity.isBlank()) {
-            return null;
-        }
-        try {
-            Object found = formationClient.getEnseignantById(identity);
-            if (found instanceof java.util.Map<?, ?> map) {
-                Object id = map.get("id");
-                return id != null ? String.valueOf(id) : null;
-            }
-            if (found instanceof String s && !s.isBlank()) {
-                return s;
-            }
-            return null;
-        } catch (Exception e) {
-            return null;
-        }
-    }
 }

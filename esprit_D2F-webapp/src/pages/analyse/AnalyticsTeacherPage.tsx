@@ -80,8 +80,8 @@ interface HeroProps {
   readonly pct: number;
   readonly levelLabel: string;
   readonly scoreNonSignificatif: boolean;
-  readonly gapsModel?: GapsModelInfo;
-  readonly risk?: RiskPayload;
+  readonly gapsModel?: NonNullable<GapsModelInfo>;
+  readonly risk?: NonNullable<RiskPayload>;
   readonly analyzePending: boolean;
   readonly onAnalyze: () => void;
   readonly onRefresh: () => void;

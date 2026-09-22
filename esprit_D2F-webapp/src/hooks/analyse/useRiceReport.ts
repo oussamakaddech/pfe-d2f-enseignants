@@ -46,7 +46,7 @@ const countSavoirsInArray = (savoirs: RiceSavoir[] | undefined) => {
   let covered = 0;
   for (const s of savoirs ?? []) {
     total++;
-    if ((s.enseignantsSuggeres ?? []).filter(isRealEnseignantId).length > 0) covered++;
+    if ((s.enseignantsSuggeres ?? []).some(isRealEnseignantId)) covered++;
   }
   return { total, covered };
 };

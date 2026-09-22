@@ -36,7 +36,8 @@ class FeignServiceAuthInterceptorTest {
         String payloadJson = new String(
                 java.util.Base64.getUrlDecoder().decode(parts[1]),
                 java.nio.charset.StandardCharsets.UTF_8);
-        assertThat(payloadJson).contains("\"scope\":\"ROLE_SVC_EVALUATION\"");
-        assertThat(payloadJson).doesNotContain("FORMATEUR");
+        assertThat(payloadJson)
+                .contains("\"scope\":\"ROLE_SVC_EVALUATION\"")
+                .doesNotContain("FORMATEUR");
     }
 }

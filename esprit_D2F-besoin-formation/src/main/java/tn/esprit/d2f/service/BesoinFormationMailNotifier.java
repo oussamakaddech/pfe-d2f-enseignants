@@ -106,7 +106,10 @@ public class BesoinFormationMailNotifier {
         }
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
+            // multipart=true OBLIGATOIRE : setText(texte, html) exige le mode multipart
+            // (sinon MimeMessageHelper leve IllegalStateException et le repli SMTP
+            // n'envoyait jamais rien — l'echec etait masque par le catch best-effort).
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
             if (from != null && !from.isBlank()) {
                 helper.setFrom(from);
             }
