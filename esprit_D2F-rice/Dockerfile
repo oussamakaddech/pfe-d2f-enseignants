@@ -63,7 +63,6 @@ WORKDIR /app
 # Selective COPY — application code only (no tests, no cache, no temp files)
 COPY --chown=esprit:esprit main.py .
 COPY --chown=esprit:esprit rice_analyzer.py .
-COPY --chown=esprit:esprit extract_referentiel.py .
 COPY --chown=esprit:esprit rice/ ./rice/
 COPY --chown=esprit:esprit refs/ ./refs/
 
