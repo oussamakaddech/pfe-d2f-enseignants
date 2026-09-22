@@ -84,7 +84,15 @@ figures/
 org/
 automation/
 docs/
-infra/
+# `infra/*` et non `infra/` : avec la barre finale git n'entre meme pas dans le
+# dossier, et aucune exception n'est alors possible. Le provisionnement
+# Postgres EST du code source — il etait avale par cette regle, si bien que la
+# creation des roles et des droits inter-schemas ne vivait que dans le volume
+# local : un clone neuf demarrait une base sans role applicatif. Aucun secret
+# n'y figure, les mots de passe viennent des variables DB_PASSWORD_*.
+infra/*
+!infra/postgres/
+!infra/postgres/**
 reports/
 .freebuff/
 
