@@ -649,6 +649,7 @@ const TARGET_VALIDITY_LABELS: Record<string, string> = {
 const VALIDATION_SCOPE_LABELS: Record<string, string> = {
   SIMULATION_VALIDATED: 'Validé sur données simulées',
   REAL_VALIDATED: 'Validé sur données réelles DSI',
+  DEMO_VALIDATED: 'Base de démonstration — validation non institutionnelle',
 };
 
 /** Libellé de validité de la cible (repli : valeur brute API). */

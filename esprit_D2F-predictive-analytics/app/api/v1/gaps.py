@@ -53,6 +53,12 @@ def list_gaps(
                 fallback_reason
                 or "dernier calcul hors modèle ML : moteur heuristique explicable appliqué"
             )
+            # Audit d'autorite 2026-09-22 (§3.4, point 2) : les lignes servies ne
+            # viennent PAS du modele — annoncer sa version (v1.2.0-gb) laisserait
+            # croire le contraire. La version disponible reste consultable via
+            # `provenance` / `registry_entry` du port, pas comme version servie.
+            meta["model_version"] = None
+            meta["model_name"] = None
     if severity:
         gaps = [gap for gap in gaps if gap.severity.api_value() == severity.upper()]
     # GOUVERNANCE 7.6 (limite 4.2) : avertissement non bloquant quand une

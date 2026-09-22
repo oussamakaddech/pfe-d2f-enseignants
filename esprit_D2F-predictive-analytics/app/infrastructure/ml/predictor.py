@@ -758,15 +758,13 @@ class ArtifactModelPort:
         target_validity = self._target_validity()
         # Etape 4 : exposition data_origin et validation_scope (gouvernance simulation)
         data_origin, validation_scope = self._resolve_data_origin(entry, meta, prov)
-        # Etape 4.5 : si un corpus de simulation documente existe (seed 42, re-mesures M+3),
-        # le serving PRODUCTION_ML reste fonctionnel mais son etiquette devient
-        # "production technique — demonstration sur donnees simulees".
-        # On expose donc en plus les metadonnees de simulation (sidecar), tout en
-        # conservant le registry actif reel pour la non-regression.
+        # Audit d'autorite 2026-09-22 (§3.8) : l'etiquette d'origine/portee vient de
+        # l'ENTREE DE REGISTRE du modele servi — jamais de la simple presence d'un
+        # manifeste de simulation sur le disque (un modele DEMO_SEED etait
+        # relabellise SIMULATED/SIMULATION_VALIDATED, l'API contredisait le
+        # registre et affichait « Valide sur donnees simulees » a tort).
+        # Le manifeste reste expose a titre informatif via la cle `simulation`.
         simulation_info = self._load_simulation_info(data_origin)
-        if simulation_info is not None and data_origin == "DEMO_SEED":
-            data_origin = DATA_ORIGIN_SIMULATED
-            validation_scope = VALIDATION_SCOPE_SIMULATION
         return {
             "name": "gap_predictor_temporal",
             "available": mode in (PRODUCTION_ML, DEMO_ML),
