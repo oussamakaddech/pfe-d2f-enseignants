@@ -17,6 +17,7 @@ Produit :
 """
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -29,8 +30,18 @@ CLEAN_DIR = BASE_DIR / "data" / "clean"
 REPORTS_DIR = BASE_DIR / "reports"
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
-INPUT_PATH = CLEAN_DIR / "training_corpus_provenanced_v110.csv"
-OUTPUT_PATH = CLEAN_DIR / "training_corpus_clean.csv"
+# Corpus nettoyé par défaut = celui qui ENTRAÎNE LE MODÈLE SERVI.
+# Correctif d'audit (2026-09-22) : le pipeline pointait sur le corpus v1.1.0
+# (172 lignes), archivé depuis la promotion de v1.2.0-gb. Les rapports de
+# nettoyage décrivaient donc un corpus que plus aucun modèle n'utilisait,
+# pendant que le corpus réellement servi (217 lignes) n'était jamais audité.
+DEFAULT_INPUT_PATH = CLEAN_DIR / "training_corpus_provenanced.csv"
+DEFAULT_OUTPUT_PATH = CLEAN_DIR / "training_corpus_clean.csv"
+LEGACY_INPUT_PATH = CLEAN_DIR / "training_corpus_provenanced_v110.csv"
+
+# Compatibilité : anciens appelants important INPUT_PATH/OUTPUT_PATH.
+INPUT_PATH = DEFAULT_INPUT_PATH
+OUTPUT_PATH = DEFAULT_OUTPUT_PATH
 
 # Plages de valeurs valides
 RANGES = {
@@ -267,6 +278,20 @@ def _check_ranges(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, list[dict]]:
     return df, out_of_range, range_actions
 
 
+def _naive_dates(serie: pd.Series) -> pd.Series:
+    """Dates comparables : parse puis retire le fuseau horaire s'il y en a un.
+
+    Le corpus servi porte un ``created_at`` en UTC (tz-aware) là où les corpus
+    plus anciens étaient naïfs. Comparer une colonne tz-aware à un
+    ``Timestamp`` naïf lève ``TypeError`` et faisait planter le contrôle des
+    dates dès qu'on branchait le pipeline sur le corpus du modèle servi.
+    """
+    dates = pd.to_datetime(serie, errors="coerce", utc=False)
+    if isinstance(dates.dtype, pd.DatetimeTZDtype):
+        dates = dates.dt.tz_localize(None)
+    return dates
+
+
 def _check_dates(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, list[dict]]:
     """E. Dates."""
     df = df.copy()
@@ -278,7 +303,7 @@ def _check_dates(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, list[dict]]:
     for col in ["ref_month", "date_t", "created_at"]:
         if col not in df.columns:
             continue
-        dates = pd.to_datetime(df[col], errors="coerce")
+        dates = _naive_dates(df[col])
         n_invalid = int(dates.isna().sum())
         n_future = int((dates > today).sum())
         if n_invalid > 0:
@@ -295,8 +320,8 @@ def _check_dates(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, list[dict]]:
 
     # Ordre temporel : ref_month <= date_t
     if "ref_month" in df.columns and "date_t" in df.columns:
-        ref = pd.to_datetime(df["ref_month"], errors="coerce")
-        dt = pd.to_datetime(df["date_t"], errors="coerce")
+        ref = _naive_dates(df["ref_month"])
+        dt = _naive_dates(df["date_t"])
         mask = (ref.notna() & dt.notna() & (ref > dt))
         n_order = int(mask.sum())
         if n_order > 0:
@@ -365,16 +390,29 @@ def _validate_granularity(df: pd.DataFrame) -> dict:
     return result
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Nettoyage tracable du corpus")
+    parser.add_argument(
+        "--input",
+        default=str(DEFAULT_INPUT_PATH),
+        help="corpus a nettoyer (defaut : le corpus du modele servi)",
+    )
+    parser.add_argument(
+        "--output", default=str(DEFAULT_OUTPUT_PATH), help="corpus nettoye en sortie"
+    )
+    args = parser.parse_args(argv)
+    input_path, output_path = Path(args.input), Path(args.output)
+
     print("=" * 70)
     print("PIPELINE DE NETTOYAGE TRACABLE DU DATASET")
     print("=" * 70)
+    print(f"[0] Corpus d'entree : {input_path}")
 
-    if not INPUT_PATH.exists():
-        print(f"[ERROR] Dataset introuvable : {INPUT_PATH}")
+    if not input_path.exists():
+        print(f"[ERROR] Dataset introuvable : {input_path}")
         return 1
 
-    df = pd.read_csv(INPUT_PATH)
+    df = pd.read_csv(input_path)
     n_initial = len(df)
     print(f"[1] Dataset initial : {n_initial} lignes, {len(df.columns)} colonnes")
 
@@ -422,15 +460,15 @@ def main() -> int:
     n_removed = n_initial - n_final
 
     # Export du dataset nettoyé
-    df.to_csv(OUTPUT_PATH, index=False)
+    df.to_csv(output_path, index=False)
     dataset_hash = _dataset_hash(df)
-    print(f"\n[9] Dataset nettoyé : {OUTPUT_PATH}")
+    print(f"\n[9] Dataset nettoyé : {output_path}")
     print(f"    {n_final} lignes (initial={n_initial}, supprimées={n_removed})")
     print(f"    hash={dataset_hash[:16]}...")
 
     # Rapport de nettoyage
     report = {
-        "dataset_path": str(INPUT_PATH),
+        "dataset_path": str(input_path),
         "dataset_version": str(df["dataset_version"].iloc[0]) if "dataset_version" in df.columns else "unknown",
         "dataset_hash_after": dataset_hash,
         "initial_rows": n_initial,
