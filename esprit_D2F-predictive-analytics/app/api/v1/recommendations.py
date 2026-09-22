@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import ContainerDependency, resolve_user_teacher
+from app.api.v1.model_meta import build_model_meta
 from app.core.envelope import ok
 from app.core.scope import enforce_teacher_access, resolve_teacher_or_404
 from app.core.security import CurrentUser, require_roles
@@ -26,13 +27,34 @@ def list_recommendations(
     enforce_teacher_access(user, teacher, user_teacher)
 
     if competence_id is not None:
-        recommendations = container.recommend_trainings.execute(teacher_id, competence_id, limit)
+        recommendations = container.recommend_trainings.execute(
+            teacher_id, competence_id, limit,
+            dept_id=teacher.dept_id, up_id=teacher.up_id,
+        )
     else:
         recommendations = _recommend_top_gaps(container, teacher_id, limit)
-    return ok(
-        [RecommendationOut(**r.to_dict()) for r in recommendations],
-        {"limit": limit, "competence_id": competence_id},
+    # Contrat d'API (audit d'autorité 2026-09-22, §3.6 + §3.3) : les
+    # recommandations n'exposaient NI le moteur qui les a produites NI le fait
+    # qu'une justification est indisponible. Les deux sont désormais explicites.
+    meta = build_model_meta(container)
+    payload = [RecommendationOut(**r.to_dict()) for r in recommendations]
+    justified = sum(1 for item in payload if item.justified)
+    meta.update(
+        {
+            "limit": limit,
+            "competence_id": competence_id,
+            "recommandations": len(payload),
+            "justifiees": justified,
+            "justification_indisponible": len(payload) - justified,
+            "taux_justification_pct": round(100.0 * justified / len(payload), 1) if payload else 0.0,
+            "justification_note": (
+                "Une recommandation est « justifiée » si elle couvre au moins un savoir "
+                "réellement manquant pour l'enseignant. Cause racine des justifications "
+                "indisponibles : liens formation↔savoir incomplets dans le référentiel."
+            ),
+        }
     )
+    return ok(payload, meta)
 
 
 def _recommend_top_gaps(container, teacher_id: str, limit: int) -> list:
@@ -55,8 +77,16 @@ def _recommend_top_gaps(container, teacher_id: str, limit: int) -> list:
     ordered = sorted(best_score.items(), key=lambda kv: kv[1], reverse=True)
 
     merged: dict[int, Recommendation] = {}
+    # Périmètre de l'enseignant (parité avec l'analyse contextuelle) : sans
+    # dept/up, TOUTES les formations de la compétence sont candidates, y
+    # compris hors département/UP — recommandations hors périmètre.
+    teacher = container.teacher_source.get_teacher(teacher_id)
+    dept_id = teacher.dept_id if teacher else None
+    up_id = teacher.up_id if teacher else None
     for competence_id, _ in ordered:
-        for recommendation in container.recommend_trainings.execute(teacher_id, competence_id, limit):
+        for recommendation in container.recommend_trainings.execute(
+            teacher_id, competence_id, limit, dept_id=dept_id, up_id=up_id,
+        ):
             existing = merged.get(recommendation.formation_id)
             if existing is None or recommendation.rank_score > existing.rank_score:
                 merged[recommendation.formation_id] = recommendation

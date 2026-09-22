@@ -30,7 +30,10 @@ export function formatScopeLabel(factor: RiskFactor): string | null {
  * Le nom du facteur et son périmètre sont affichés sur deux lignes
  * distinctes (label + scope, deux champs séparés).
  */
-export default function RiskFactorRow({ facteur }: Readonly<{ facteur: RiskFactor }>) {
+export default function RiskFactorRow({
+  facteur,
+  hideScope = false,
+}: Readonly<{ facteur: RiskFactor; hideScope?: boolean }>) {
   const contribPct = Math.min(
     100,
     Math.round(Math.abs(facteur.contribution_percent ?? facteur.contribution * 100)),
@@ -44,7 +47,10 @@ export default function RiskFactorRow({ facteur }: Readonly<{ facteur: RiskFacto
     <div className="at-factor-row" data-testid={`factor-${facteur.code ?? facteur.nom}`}>
       <div>
         <div className="at-factor-name">{label}</div>
-        {scopeLabel ? (
+        {/* `hideScope` : quand tous les facteurs partagent le meme perimetre,
+            l'appelant l'affiche une seule fois en entete au lieu de le repeter
+            sur chaque ligne. */}
+        {scopeLabel && !hideScope ? (
           <div className="at-factor-scope" style={{ fontSize: 11, color: 'var(--at-ink3)' }}>
             {scopeLabel}
           </div>

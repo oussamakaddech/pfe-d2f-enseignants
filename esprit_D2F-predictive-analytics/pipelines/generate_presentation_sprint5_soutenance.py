@@ -123,7 +123,7 @@ add_slide("Objectifs et chaîne de traitement", [
 
 # 5. API et contrat
 add_slide("API et contrat de service", [
-    ("Routes : /teachers/{id}/gaps | risk | recommendations | scope-analysis · POST /analysis/{id} · /dashboard/real/impact | /alerts | /model/status", 0, False, None),
+    ("Routes : /teachers/{id}/gaps | risk | recommendations | scope-analysis · POST /analysis/{id} · /dashboard/real/impact | /alerts | /model-health", 0, False, None),
     ("Contrat exposé dans chaque réponse : model_mode, model_version, model_name, fallback_reason", 0, True, VERT),
     ("Une ligne produite par le modèle porte DECLARED_ML ; une ligne heuristique porte HEURISTIC_FALLBACK", 1, False, None),
     ("En cas d'incohérence, le repli est toujours annoncé — jamais un mode ML inexact", 1, False, None),

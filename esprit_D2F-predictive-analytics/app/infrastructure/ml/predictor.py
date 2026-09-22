@@ -29,6 +29,16 @@ from sqlalchemy import text
 
 from app.core.logging import get_logger
 from app.core.ml_status import DEMO_ML, HEURISTIC_FALLBACK, PRODUCTION_ML
+from app.domain.services.risk_calculator import (
+    GAP_RISK_CRITICAL_CAP,
+    GAP_RISK_HIGH_CAP,
+    GAP_RISK_WEIGHTS,
+    gap_risk_score,
+)
+
+# Ordre de permissivite des modes : un plafond ne peut que BAISSER le mode issu
+# des controles de gouvernance (jamais l'elever). Voir `_decide_mode`.
+MODE_RANK: dict[str, int] = {HEURISTIC_FALLBACK: 0, DEMO_ML: 1, PRODUCTION_ML: 2}
 from app.domain.entities.risk_profile import RiskFactor, RiskProfile
 from app.domain.entities.skill_gap import SkillGap
 from app.domain.value_objects.enums import RiskLevel, Severity, Trend
@@ -67,12 +77,13 @@ from app.infrastructure.ml.risk_features import (
 logger = get_logger("ml_predictor")
 
 # Normalisation du score de risque (règle métier dérivée des gaps) :
-# - Caps documentés : au-delà de ces bornes, le facteur normalisé reste 1.0.
-# - Poids : somme = 1.02 (> 1.0) -> le score final est plafonné à 1.0 et le
-#   dépassement éventuel est exposé via RiskProfile.is_capped/uncapped_score.
-CRITICAL_GAP_CAP = 2.0
-HIGH_GAP_CAP = 1.0
-RISK_RULE_WEIGHTS = {"critical_gaps": 0.50, "high_gaps": 0.12, "avg_gap_score": 0.40}
+# la formule vit dans le domaine (`risk_calculator.gap_risk_score`) pour être
+# partagée par TOUS les chemins qui exposent un score calculé depuis les écart
+# (serving, tableau de bord, legacy). Les alias ci-dessous sont conservés pour
+# compatibilité d'import.
+CRITICAL_GAP_CAP = GAP_RISK_CRITICAL_CAP
+HIGH_GAP_CAP = GAP_RISK_HIGH_CAP
+RISK_RULE_WEIGHTS = GAP_RISK_WEIGHTS
 
 
 def rule_risk_from_gaps(
@@ -111,32 +122,14 @@ def rule_risk_from_gaps(
     critical = sum(1 for g in gaps if g.severity == Severity.CRITICAL)
     high = sum(1 for g in gaps if g.severity == Severity.HIGH)
     avg_gap = float(np.mean([g.gap_score for g in gaps]))
-
-    n_critical_norm = min(1.0, critical / CRITICAL_GAP_CAP)
-    n_high_norm = min(1.0, high / HIGH_GAP_CAP)
-    avg_norm = min(1.0, max(0.0, avg_gap))
-    contrib_critical = n_critical_norm * RISK_RULE_WEIGHTS["critical_gaps"]
-    contrib_high = n_high_norm * RISK_RULE_WEIGHTS["high_gaps"]
-    contrib_avg = avg_norm * RISK_RULE_WEIGHTS["avg_gap_score"]
-    uncapped = contrib_critical + contrib_high + contrib_avg
-    score_01 = min(1.0, max(0.0, uncapped))
-    risk_score = round(100.0 * score_01, 2)
-    is_capped = uncapped > 1.0
-    if risk_score >= 75:
-        level = RiskLevel.CRITICAL
-    elif risk_score >= 50:
-        level = RiskLevel.HIGH
-    elif risk_score >= 30:
-        level = RiskLevel.MEDIUM
-    else:
-        level = RiskLevel.LOW
+    computed = gap_risk_score(critical, high, avg_gap)
     factors = (
         RiskFactor(
             feature="critical_gaps",
             value=float(critical),
-            normalized_value=round(n_critical_norm, 4),
-            weight=RISK_RULE_WEIGHTS["critical_gaps"],
-            contribution=round(contrib_critical, 4),
+            normalized_value=computed.normalized["critical_gaps"],
+            weight=GAP_RISK_WEIGHTS["critical_gaps"],
+            contribution=round(computed.contributions["critical_gaps"], 4),
             label="Gaps critiques",
             scope=scope,
             scope_type=scope_type,
@@ -146,9 +139,9 @@ def rule_risk_from_gaps(
         RiskFactor(
             feature="high_gaps",
             value=float(high),
-            normalized_value=round(n_high_norm, 4),
-            weight=RISK_RULE_WEIGHTS["high_gaps"],
-            contribution=round(contrib_high, 4),
+            normalized_value=computed.normalized["high_gaps"],
+            weight=GAP_RISK_WEIGHTS["high_gaps"],
+            contribution=round(computed.contributions["high_gaps"], 4),
             label="Gaps de haute urgence",
             scope=scope,
             scope_type=scope_type,
@@ -158,9 +151,9 @@ def rule_risk_from_gaps(
         RiskFactor(
             feature="avg_gap_score",
             value=round(avg_gap, 4),
-            normalized_value=round(avg_norm, 4),
-            weight=RISK_RULE_WEIGHTS["avg_gap_score"],
-            contribution=round(contrib_avg, 4),
+            normalized_value=computed.normalized["avg_gap_score"],
+            weight=GAP_RISK_WEIGHTS["avg_gap_score"],
+            contribution=round(computed.contributions["avg_gap_score"], 4),
             label="Profondeur moyenne des gaps",
             scope=scope,
             scope_type=scope_type,
@@ -170,11 +163,11 @@ def rule_risk_from_gaps(
     )
     return RiskProfile(
         teacher_id=teacher_id,
-        risk_score=risk_score,
-        risk_level=level,
+        risk_score=computed.risk_score,
+        risk_level=computed.level,
         factors=factors,
-        is_capped=is_capped,
-        uncapped_score=round(uncapped, 4),
+        is_capped=computed.is_capped,
+        uncapped_score=round(computed.uncapped, 4),
     )
 
 
@@ -338,10 +331,25 @@ class ArtifactModelPort:
         return None
 
     def _provenance_error(self) -> str | None:
-        """Erreur de provenance du corpus (part synthétique / données réelles)."""
+        """Erreur de provenance du corpus (part synthétique / données réelles).
+
+        Vérifie aussi la COHÉRENCE DU HASH (audit d'autorité 2026-09-22, §3.4
+        point 3) : le corpus de provenance était résolu par nom de fichier et
+        son hash n'était jamais comparé à celui de l'entrée ACTIVE — remplacer
+        le fichier suffisait à faire annoncer au service une provenance qui
+        n'est pas celle du modèle servi. Fail-closed : repli heuristique.
+        """
         prov = self._provenance_report
         if prov is None or prov.errors:
             return "provenance indisponible (corpus absent ou colonnes manquantes)"
+        entry = self._registry.active()
+        if entry is not None and entry.dataset_hash and prov.dataset_hash:
+            if prov.dataset_hash != entry.dataset_hash:
+                return (
+                    "provenance incoherente : hash du corpus "
+                    f"{prov.dataset_hash[:8]}... != hash declare par l'entree ACTIVE "
+                    f"{entry.dataset_hash[:8]}... (dataset_hash non verifie auparavant)"
+                )
         tolerance = float(getattr(self._settings, "ml_synthetic_tolerance_pct", 50.0))
         require_real = bool(getattr(self._settings, "ml_require_real_data", True))
         min_real = int(getattr(self._settings, "ml_min_real_rows", 50))
@@ -386,27 +394,41 @@ class ArtifactModelPort:
             return f"MAE={test_mae:.3f} > maximum autorise {max_mae:.3f}"
         return None
 
-    def _operator_mode_decision(self) -> tuple[str | None, str | None]:
-        """Volonté de l'opérateur quant au mode de service.
+    def _operator_mode_ceiling(self) -> tuple[str, str | None]:
+        """Volonté de l'opérateur = PLAFOND de mode, jamais un droit d'activation.
 
-        Retourne (mode_a_servir, raison_d_ecart) ; (None, None) signifie que
-        l'opérateur demande bien PRODUCTION_ML — aucun écart.
+        Retourne (mode_plafond, raison) ; ``(PRODUCTION_ML, None)`` signifie que
+        l'opérateur ne restreint rien. Le plafond ne peut que **baisser** le mode
+        obtenu par les contrôles : demander DEMO_ML ne rend jamais servi un
+        artefact non approuvé, et demander HEURISTIC coupe le ML quel que soit
+        l'état du registre (mode par défaut de la production, conformément à la
+        décision de gouvernance du 2026-09-22 : aucun modèle n'a d'IC95 excluant
+        zéro sur le corpus réel, donc aucun modèle n'est promu).
+
+        Valeurs acceptées : PRODUCTION_ML | DEMO_ML | HEURISTIC (_FALLBACK).
         """
         requested = str(getattr(self._settings, "ml_serving_mode", PRODUCTION_ML)).upper()
         if requested == PRODUCTION_ML:
-            return None, None
+            return PRODUCTION_ML, None
         if requested == DEMO_ML:
             return DEMO_ML, "demande explicite du mode DEMO_ML par l'operateur"
+        if requested in ("HEURISTIC", HEURISTIC_FALLBACK):
+            return HEURISTIC_FALLBACK, (
+                "mode heuristique demande par l'operateur : aucun modele promu "
+                "(regle IC95 — le gain du dernier candidat n'est pas significatif "
+                "sur le corpus de production)"
+            )
         return HEURISTIC_FALLBACK, f"mode demande non reconnu : {requested}"
 
-    def _decide_mode(self) -> str:
-        """Routage dynamique entre PRODUCTION_ML / DEMO_ML / HEURISTIC_FALLBACK.
+    def _governed_mode(self) -> str:
+        """Mode maximal autorisé par les contrôles, avant la volonté opérateur.
 
         Ne retourne PRODUCTION_ML que si TOUTES les conditions sont satisfaites :
         - kill-switch actif ;
         - artefact charge avec integrite validee ;
         - metadata presente et features compatibles ;
-        - provenance calculee et dans la tolerance ;
+        - provenance calculee, dans la tolerance ET coherente avec le hash du
+          corpus declare par l'entree ACTIVE du registre ;
         - registre : entree ACTIVE et APPROVED, hash coherent ;
         - metriques minimales satisfaites.
         """
@@ -434,7 +456,8 @@ class ArtifactModelPort:
 
         registry_error = self._registry_rejection_reason(meta)
         if registry_error:
-            # Modele disponible et valide mais non approuve pour la production.
+            # Modele disponible et valide mais non approuve pour la production :
+            # utilisable en demonstration UNIQUEMENT si l'operateur le demande.
             self._fallback_reason = registry_error
             return DEMO_ML
 
@@ -443,14 +466,22 @@ class ArtifactModelPort:
             self._fallback_reason = metrics_error
             return DEMO_ML
 
-        operator_mode, operator_reason = self._operator_mode_decision()
-        if operator_mode is not None:
-            # L'operateur demande explicitement un autre mode.
-            self._fallback_reason = operator_reason
-            return operator_mode
-
-        self._fallback_reason = None
         return PRODUCTION_ML
+
+    def _decide_mode(self) -> str:
+        """Routage dynamique entre PRODUCTION_ML / DEMO_ML / HEURISTIC_FALLBACK.
+
+        Gouvernance : le mode des contrôles est un **maximum** ; la demande de
+        l'opérateur ne peut que le plafonner vers le bas (jamais l'élever).
+        """
+        mode = self._governed_mode()
+        ceiling, ceiling_reason = self._operator_mode_ceiling()
+        if MODE_RANK[ceiling] < MODE_RANK[mode]:
+            self._fallback_reason = ceiling_reason
+            mode = ceiling
+        if mode == PRODUCTION_ML:
+            self._fallback_reason = None
+        return mode
 
     def _effective_mode(self) -> str:
         """Retourne le mode courant en recalculant la decision (fail-live)."""
@@ -719,6 +750,11 @@ class ArtifactModelPort:
         meta = self._metadata or {}
         prov = self._provenance_report
         entry = self._registry.active()
+        # Audit d'autorite 2026-09-22 (§3.4, point 2) : en mode degrade, AUCUN
+        # modele n'a produit la reponse — annoncer malgre tout une
+        # `model_version` laissait croire que ce modele etait servi. Le champ
+        # n'est renseigne que lorsque le mode est effectivement ML.
+        ml_mode = mode in (PRODUCTION_ML, DEMO_ML)
         target_validity = self._target_validity()
         # Etape 4 : exposition data_origin et validation_scope (gouvernance simulation)
         data_origin, validation_scope = self._resolve_data_origin(entry, meta, prov)
@@ -737,8 +773,8 @@ class ArtifactModelPort:
             "kill_switch": not self._ml_enabled,
             "mode": mode,
             "model_mode": mode,
-            "model_version": entry.model_version if entry else None,
-            "artifact_name": entry.model_name if entry else None,
+            "model_version": entry.model_version if (entry and ml_mode) else None,
+            "artifact_name": entry.model_name if (entry and ml_mode) else None,
             "fallback_reason": self._fallback_reason,
             "version": meta.get("trained_at") or "unknown",
             "model_name": meta.get("model_name", "gradient_boosting"),

@@ -33,6 +33,14 @@ class DatasetProvenanceReport:
     synthetic_rows: int = 0
     synthetic_share_pct: float = 0.0
     real_share_pct: float = 0.0
+    # Lignes dont la CIBLE n'a pas été ré-observée mais dérivée de l'historique
+    # (``is_extrapolated``). Une ligne peut être parfaitement réelle
+    # (is_synthetic=false) et porter malgré tout un label extrapolé : sans cette
+    # métrique, un corpus 100 % extrapolé s'annonce « 0 % synthétique », ce qui
+    # laisse croire à des cibles observées.
+    extrapolated_rows: int = 0
+    extrapolated_share_pct: float = 0.0
+    observed_target_rows: int = 0
     dataset_version: str | None = None
     min_date: str | None = None
     max_date: str | None = None
@@ -53,6 +61,9 @@ class DatasetProvenanceReport:
             "synthetic_rows": self.synthetic_rows,
             "synthetic_share_pct": round(self.synthetic_share_pct, 2),
             "real_share_pct": round(self.real_share_pct, 2),
+            "extrapolated_rows": self.extrapolated_rows,
+            "extrapolated_share_pct": round(self.extrapolated_share_pct, 2),
+            "observed_target_rows": self.observed_target_rows,
             "dataset_version": self.dataset_version,
             "min_date": self.min_date,
             "max_date": self.max_date,
@@ -78,13 +89,13 @@ class DatasetProvenanceReport:
 
 
 def file_hash(df: pd.DataFrame) -> str:
-    """SHA-256 stable du contenu du dataset (tri des lignes + index r�initialis�).
+    """SHA-256 stable du contenu du dataset (tri des lignes + index réinitialisé).
 
     Deux normalisations OBLIGATOIRES pour un hash identique sur toutes les
     plateformes :
     - lineterminator="\\n" : to_csv() suit sinon l'os.linesep (CRLF sur Windows,
-      LF sur Linux) et le hash diff�re entre CI et local pour un m�me dataset ;
-    - kind="stable" : ordonnancement d�terministe des lignes dupliqu�es.
+      LF sur Linux) et le hash diffère entre CI et local pour un même dataset ;
+    - kind="stable" : ordonnancement déterministe des lignes dupliquées.
     """
     if df is None or df.empty:
         return hashlib.sha256(b"").hexdigest()
@@ -136,6 +147,7 @@ def compute_provenance(df: pd.DataFrame, dataset_version: str | None = None) -> 
     report.synthetic_rows = int(df["is_synthetic"].sum())
     report.synthetic_share_pct = round(100.0 * report.synthetic_rows / max(1, report.total_rows), 2)
     report.real_share_pct = round(100.0 - report.synthetic_share_pct, 2)
+    _fill_extrapolation(df, report)
     report.dataset_hash = file_hash(df)
 
     dates = df["created_at"].dropna().astype(str)
@@ -145,6 +157,26 @@ def compute_provenance(df: pd.DataFrame, dataset_version: str | None = None) -> 
 
     _fill_stats(df, report)
     return report
+
+
+def _fill_extrapolation(df: pd.DataFrame, report: DatasetProvenanceReport) -> None:
+    """Mesure la part de cibles extrapolées (label non ré-observé).
+
+    Colonne absente : on ne présume rien (0 ligne extrapolée comptée) et on
+    signale l'angle mort dans ``errors`` plutôt que d'annoncer implicitement
+    des cibles observées.
+    """
+    if "is_extrapolated" not in df.columns:
+        report.errors.append(
+            "colonne is_extrapolated absente : part de cibles extrapolées non vérifiable"
+        )
+        return
+    flags = df["is_extrapolated"].apply(_coerce_bool)
+    report.extrapolated_rows = int(flags.sum())
+    report.observed_target_rows = int((~flags).sum())
+    report.extrapolated_share_pct = round(
+        100.0 * report.extrapolated_rows / max(1, report.total_rows), 2
+    )
 
 
 # Remplit les statistiques du rapport : distribution de la cible gap_next_3m,

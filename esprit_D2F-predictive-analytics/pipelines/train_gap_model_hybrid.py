@@ -1,4 +1,4 @@
-﻿"""Entrainement du gap predictor temporel — VERSION CORRIGÉE PAR AUDIT.
+"""Entrainement du gap predictor temporel — VERSION CORRIGÉE PAR AUDIT.
 
 CORRECTIONS APPORTÉES :
   1. Le corpus de 5000 lignes synthetiques est considere OBSOLETE : l'audit DSI

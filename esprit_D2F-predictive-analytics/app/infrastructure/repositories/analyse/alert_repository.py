@@ -1,4 +1,4 @@
-﻿from sqlalchemy import text
+from sqlalchemy import text
 
 from app.core.logging import get_logger
 from app.domain.entities.alert import Alert

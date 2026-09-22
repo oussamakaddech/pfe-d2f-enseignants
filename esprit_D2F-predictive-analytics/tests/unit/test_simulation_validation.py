@@ -345,18 +345,28 @@ def test_serving_unchanged_for_demo_environment():
     df = pd.read_csv(real_path)
     assert len(df) > 0, "corpus reel non vide"
     assert df["is_synthetic"].astype(bool).sum() == 0, "0 % synthetique"
-    # Registry : GB v1.2.0-gb ACTIVE et APPROVED
+    # Registry : GOUVERNANCE 2026-09-22 (audit d'autorite), revision du meme jour :
+    # le GB v1.2.0-gb est ACTIVE/APPROVED sous OVERRIDE DECLARE (decision projet
+    # tracee : acteur, date, justification) ; sa mesure non significative
+    # (IC95 [-0.1243, +0.1087]) reste enregistree honnetement. Invariant : toute
+    # entree ACTIVE non significative doit porter un override declare.
     reg_data = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
     active = [e for e in reg_data if e.get("status") == "ACTIVE"]
-    assert active, "aucune entree ACTIVE"
-    assert active[0]["model_version"] == "v1.2.0-gb", "serving prod : GB v1.2.0-gb ACTIVE"
-    assert active[0]["approval_status"] == "APPROVED"
-    assert active[0]["synthetic_share_pct"] == 0.0
+    for entry in active:
+        if entry.get("lift_significant_95") is False:
+            assert entry.get("override_decision") is True, (
+                "une entree ACTIVE non significative doit porter un override declare"
+            )
+    gb = [e for e in reg_data if e.get("model_version") == "v1.2.0-gb"][0]
+    assert gb["status"] == "ACTIVE", "GB v1.2.0-gb ACTIVE sous override declare"
+    assert gb["approval_status"] == "APPROVED"
+    assert gb["lift_significant_95"] is False
+    assert gb["override_decision"] is True and gb["override_actor"]
+    assert gb["synthetic_share_pct"] == 0.0
     legacy_v1 = [e for e in reg_data if e.get("model_version") == "v1.0.0"]
     assert legacy_v1 and legacy_v1[0]["status"] == "ARCHIVED", "v1.0.0 conservee (ARCHIVED)"
     sim_entries = [e for e in reg_data if e.get("model_version") == "simulation-v1.0.0"]
     assert sim_entries, "simulation-v1.0.0 conservee pour rollback"
-
     # Verifie que le port ML reste en PRODUCTION_ML quand on l'interroge
     # (kill-switch actif, provenance ok, registre approuve)
     from app.core.config import Settings
@@ -389,6 +399,10 @@ def test_serving_unchanged_for_demo_environment():
     settings.seuil_gap_moyenne = 0.25
     database = MagicMock()
     port = ArtifactModelPort(settings, database)
-    # Le mode ne doit pas etre HEURISTIC_FALLBACK du seul fait de la simulation
+    # GOUVERNANCE 2026-09-22 (revision) : le GB v1.2.0-gb est ACTIVE/APPROVED
+    # sous override declare (decision projet tracee) -> le mode effectif vient
+    # du registre et vaut PRODUCTION_ML, avec la version de l'entree ACTIVE.
+    # Jamais mensonger : pas de mode ML sans entree ACTIVE correspondante.
     mode = port._effective_mode()
-    assert mode in ("PRODUCTION_ML", "DEMO_ML"), f"mode doit rester ML, got {mode}"
+    assert mode == "PRODUCTION_ML", f"mode attendu PRODUCTION_ML, got {mode}"
+    assert port._registry.active() is not None, "une entree ACTIVE est servie (override declare)"

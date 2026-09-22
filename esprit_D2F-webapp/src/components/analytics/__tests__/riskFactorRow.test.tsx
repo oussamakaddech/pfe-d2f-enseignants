@@ -81,4 +81,25 @@ describe('RiskFactorRow', () => {
     render(<RiskFactorRow facteur={marwaFactor} />);
     expect(screen.queryByText(/périmètre :/)).not.toBeInTheDocument();
   });
+
+  it('hideScope masque le perimetre de la ligne (il est alors affiche en entete)', () => {
+    // Les trois facteurs du score portent le meme perimetre : le repeter sur
+    // chaque ligne remplissait le panneau sans rien apporter.
+    const facteur = {
+      nom: 'Gaps critiques',
+      code: 'critical_gaps',
+      valeur_brute: 2,
+      contribution: 0.5,
+      contribution_percent: 50,
+      scope_type: 'DEPARTMENT',
+      scope_label: 'Département Réseaux',
+    } as never;
+    const { rerender } = render(<RiskFactorRow facteur={facteur} />);
+    expect(screen.getByText('Périmètre : Département Réseaux')).toBeInTheDocument();
+
+    rerender(<RiskFactorRow facteur={facteur} hideScope />);
+    expect(screen.queryByText('Périmètre : Département Réseaux')).toBeNull();
+    // Le facteur lui-meme reste affiche.
+    expect(screen.getByText('Gaps critiques')).toBeInTheDocument();
+  });
 });

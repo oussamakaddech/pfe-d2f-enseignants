@@ -48,7 +48,10 @@ export const resolvePrimaryRole = (
     const known = tokens.find((token) => knownRoles.includes(token));
     if (known) return known;
   }
-  return tokens[0];
+  // `tokens` est non vide ici, mais sous `noUncheckedIndexedAccess` l'accès
+  // indexé reste typé `string | undefined` : on retombe explicitement sur la
+  // même valeur que le cas « aucun rôle » plutôt que de forcer le type.
+  return tokens[0] ?? '';
 };
 
 /**

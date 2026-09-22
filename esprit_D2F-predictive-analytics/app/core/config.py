@@ -58,7 +58,11 @@ class Settings(BaseSettings):
     seuil_gap_critique: float = 0.75
     seuil_gap_haute: float = 0.5
     seuil_gap_moyenne: float = 0.25
+    # Bornes de classement du score de risque (0..100).
+    # risk_threshold_high (70) = borne CRITIQUE, partagée avec le déclenchement
+    # des alertes ; risk_threshold_severe (55) = borne ELEVE ; medium (30) = MOYEN.
     risk_threshold_high: float = 70.0
+    risk_threshold_severe: float = 55.0
     risk_threshold_medium: float = 30.0
     collective_min_teachers: int = 3
     stagnation_ref_months: int = 12
@@ -117,6 +121,20 @@ class Settings(BaseSettings):
     # appelle 5-6 endpoints qui refont chacun le même bundle (~5 requêtes SQL).
     # 0 = désactivé ; les lectures renvoient une copie (aucune mutation qui fuit).
     ml_feature_cache_ttl: float = 60.0
+
+    # ── Classement des recommandations de formation ───────────────────────
+    # Paramètres métier externalisés (CDC DSI 1.1). Valeurs par défaut =
+    # paramétrage historique 70 % contenu / 20 % qualité / 10 % récence.
+    ranking_weight_content: float = 0.70
+    ranking_weight_quality: float = 0.20
+    ranking_weight_recency: float = 0.10
+    # Fenêtre de décroissance de la récence, en jours, après la fin d'une formation.
+    ranking_recency_lookback_days: int = 365
+    # Échelle de notation des évaluations de formation (notes sur 5 par défaut).
+    ranking_eval_scale_max: float = 5.0
+    # Part du score ML dans le mélange heuristique/ML des recommandations
+    # (0.0 = heuristique pure, 1.0 = ML pur).
+    ranking_ml_blend_ratio: float = 0.30
 
     analysis_cache_ttl_hours: int = 24
 

@@ -37,7 +37,10 @@ export default function RecommendationsList({
               <div>
                 <Typography.Text strong>{r.formation_titre}</Typography.Text>
                 <div style={{ fontSize: 12, color: '#8c8c8c' }}>
-                  {r.competence_nom ?? '—'} · rang {r.rang_dans_parcours}
+                  {/* Sans savoir apparie, l'API ne renvoie aucun nom de competence :
+                      on omet le libelle et son separateur plutot que d'afficher un
+                      tiret qui n'apprend rien. */}
+                  {r.competence_nom ? `${r.competence_nom} · ` : ''}rang {r.rang_dans_parcours}
                 </div>
               </div>
               <Tag color="geekblue">
@@ -46,11 +49,10 @@ export default function RecommendationsList({
             </div>
             <div style={{ marginTop: 6 }}>
               {r.est_prerequis && <Tag color="gold">prérequis</Tag>}
-              {r.prerequis_satisfaits ? (
-                <Tag color="green">Prérequis satisfaits</Tag>
-              ) : (
-                <Tag color="orange">Prérequis à vérifier</Tag>
-              )}
+              {/* `null` = la source ne porte pas l'information : on n'affiche
+                  rien plutôt qu'un avertissement infondé. */}
+              {r.prerequis_satisfaits === true && <Tag color="green">Prérequis satisfaits</Tag>}
+              {r.prerequis_satisfaits === false && <Tag color="orange">Prérequis à vérifier</Tag>}
               {r.statut === 'ACCEPTEE' && (
                 <Tag color="green" icon={<CheckCircleOutlined />}>
                   acceptée

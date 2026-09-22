@@ -22,7 +22,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -160,7 +160,7 @@ def finalize(gb_wins, m_mlp, m_gb, lo, hi, gb, p_gb, y_te, corpus_hash, override
     entry = RegistryEntry(
         model_name="gap_predictor_temporal",
         model_version=GB_VERSION,
-        status=STATUS_ACTIVE if gb_wins else STATUS_CANDIDATE,
+        status=STATUS_ACTIVE if (gb_wins or override) else STATUS_CANDIDATE,
         created_at=(existing.created_at if existing else f"{date.today().isoformat()}T00:00:00Z"),
         dataset_version="v1.1.0",
         dataset_hash=corpus_hash,
@@ -176,8 +176,8 @@ def finalize(gb_wins, m_mlp, m_gb, lo, hi, gb, p_gb, y_te, corpus_hash, override
             "accuracy_pm05": round(float(np.mean(np.abs(np.clip(p_gb, 0, 5) - y_te) <= 0.5) * 100), 1),
             "accuracy_pm10": round(float(np.mean(np.abs(np.clip(p_gb, 0, 5) - y_te) <= 1.0) * 100), 1),
         },
-        approval_status=APPROVAL_APPROVED if gb_wins else APPROVAL_PENDING,
-        approval_actor="pipeline:decide_gb_production" if gb_wins else None,
+        approval_status=APPROVAL_APPROVED if (gb_wins or override) else APPROVAL_PENDING,
+        approval_actor="pipeline:decide_gb_production" if (gb_wins or override) else None,
         notes=(
             ("PROMU ACTIVE (decision projet, preuve multi-datasets) : Gradient Boosting "
              "retenu apres comparaison a protocole identique sur les six corpus du projet "
@@ -187,7 +187,9 @@ def finalize(gb_wins, m_mlp, m_gb, lo, hi, gb, p_gb, y_te, corpus_hash, override
              f"Test sur le holdout servi : RMSE {m_gb['rmse']} / MAE {m_gb['mae']} / R2 {m_gb['r2']} "
              f"(meilleur que MLP {m_mlp['rmse']}/{m_mlp['mae']}/{m_mlp['r2']}) ; gain NON SIGNIFICATIF "
              f"(delta IC95 [{lo}, {hi}] inclut 0), documente. "
-             "Limite connue : cibles EXTRAPOLATED_TARGET, volume reel limite (217 lignes).") if override else
+             "Limite connue : cibles EXTRAPOLATED_TARGET, volume reel limite (217 lignes). "
+             "OVERRIDE DECLARE (acteur pipeline:decide_gb_production) : la regle §2.6 est "
+             "explicitement ecartee pour cette version — decision tracee et reversible.") if override else
             ("PROMU ACTIVE : gain RMSE significatif vs MLP v1.1.0 sur le holdout servi "
              f"(delta IC95 [{lo}, {hi}]).") if gb_wins and significant else
             ("CANDIDATE : refus de promotion — le GB ne bat pas le MLP v1.1.0 de facon "
@@ -201,13 +203,28 @@ def finalize(gb_wins, m_mlp, m_gb, lo, hi, gb, p_gb, y_te, corpus_hash, override
         data_origin=DATA_ORIGIN_DEMO_SEED,
         validation_scope=VALIDATION_SCOPE_DEMO,
         seed=RANDOM_STATE,
+        # Gouvernance §2.6 : la mesure reste enregistree honnetement (False +
+        # IC95) ; une promotion par override s'accompagne de sa declaration
+        # tracee (acteur, date, justification) — jamais d'override silencieux.
+        lift_significant_95=significant,
+        lift_rmse_ci95=[lo, hi],
+        override_decision=bool(override),
+        override_actor="pipeline:decide_gb_production" if override else None,
+        override_date=(datetime.now(timezone.utc).isoformat() if override else None),
+        override_justification=(
+            "Decision projet (2026-09-22) : servir le meilleur modele disponible (GB) "
+            "malgre un gain non significatif sur le holdout servi — meilleur en point "
+            f"({m_gb['rmse']} vs MLP {m_mlp['rmse']}), meilleur accuracy +/-1.0 sur 4/6 "
+            "corpus, gagnant du regime grand volume (1500 lignes). Exception tracee, "
+            "reversible (rollback v1.1.0)."
+        ) if override else None,
     )
     if existing is not None:
         entries = [entry if e.model_version == GB_VERSION else e for e in registry.entries()]
         registry._save(entries)
     else:
         registry.register(entry)
-    if gb_wins:
+    if gb_wins or override:
         registry.promote_to_active(entry, actor="pipeline:decide_gb_production")
         import shutil
         shutil.copyfile(artifact_path, MODELS / "gap_predictor_temporal.joblib")

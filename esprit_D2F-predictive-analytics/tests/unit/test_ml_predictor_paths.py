@@ -38,9 +38,43 @@ def _port_ml(**overrides) -> ArtifactModelPort:
             synthetic_share_pct=0.0, real_share_pct=100.0,
             dataset_version="v1.0.0", dataset_hash="abc",
         ),
+        "_registry": _fake_active_registry(),
     }
     defaults.update(overrides)
     return _port(**defaults)
+
+
+
+def _fake_active_registry():
+    """Registre hermetique : entree ACTIVE dont le dataset_hash correspond a la
+    provenance simulee des tests ("abc"). Les tests ne dependent donc plus de
+    l'etat REEL du registre, qui porte desormais un ACTIVE legitime (v1.2.0-gb,
+    override declare du 2026-09-22)."""
+    import tempfile
+    from pathlib import Path as _Path
+
+    from app.infrastructure.ml.model_registry import (
+        APPROVAL_APPROVED,
+        STATUS_ACTIVE,
+        ModelRegistry,
+        RegistryEntry,
+    )
+    from app.infrastructure.ml.predictor import FEATURE_SCHEMA_VERSION, TEMPORAL_FEATURE_COLS
+
+    tmp = _Path(tempfile.mkdtemp())
+    registry = ModelRegistry(tmp / "reg.json", tmp)
+    registry.register(RegistryEntry(
+        model_name="gap_predictor_temporal",
+        model_version="v-test-active",
+        status=STATUS_ACTIVE,
+        approval_status=APPROVAL_APPROVED,
+        dataset_hash="abc",
+        artifact_sha256="a" * 64,
+        synthetic_share_pct=0.0,
+        feature_names=list(TEMPORAL_FEATURE_COLS),
+        feature_schema_version=FEATURE_SCHEMA_VERSION,
+    ))
+    return registry
 
 
 def _ml_port_with_gaps(_model, bundle=BUNDLE, db_script=None) -> ArtifactModelPort:
@@ -172,28 +206,28 @@ def test_predict_risk_fallback_low_level():
 
 
 # ------------------------------------------------------------ Statut ML
-def test_status_reports_active_when_model_loaded():
-    """Le modèle est réellement actif (PRODUCTION_ML) : le port charge
-    l'artefact réel depuis data/models."""
+def test_status_reports_production_ml_under_declared_override():
+    """Etat REEL du serving : GB v1.2.0-gb ACTIVE/APPROVED sous override declare.
+
+    La decision projet du 2026-09-22 a promu le GB en ecartant explicitement la
+    regle ?2.6 (mesure non significative conservee au registre). Le mode effectif
+    est donc PRODUCTION_ML avec la version de l'entree ACTIVE, sans raison de
+    repli ; risque et pertinence restent fail-closed (aucun artefact).
+    """
     port = _port()
     status = port.status()
-    assert status["available"] is True
+    entry = port._registry.active()
+    assert entry is not None and entry.override_decision is True, (
+        "l'entree ACTIVE doit porter un override declare (decision projet tracee)"
+    )
     assert status["model_mode"] == "PRODUCTION_ML"
+    assert status["model_version"] == entry.model_version
+    assert status["fallback_reason"] is None
     assert status["kill_switch"] is False
     assert status["risk_model"]["available"] is False
     assert status["relevance_model"]["available"] is False
     assert status["provenance"]["synthetic_share_pct"] == 0.0
-    # Version du dataset = celle de l'entrée ACTIVE du registre réel (évolue
-    # à chaque réentraînement/promotion — ne pas coder en dur).
-    active_entry = port._registry.active()
-    assert status["provenance"]["dataset_version"] == (
-        active_entry.dataset_version if active_entry else None
-    )
-    # Version = celle de l'entrée ACTIVE du registre réel (évolue à chaque
-    # réentraînement/promotion — ne pas coder en dur).
-    assert status["model_version"] == (active_entry.model_version if active_entry else None)
     assert status["prediction_horizon"] == "3m"
-
 
 def test_status_reports_drift_when_metadata():
     port = _port(

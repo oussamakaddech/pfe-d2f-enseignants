@@ -1,7 +1,7 @@
 from app.application.ports import AnalysisRepository, BesoinSource, CompetencySource, EvaluationSource, FormationSource, ModelPort
 from app.core.config import Settings
 from app.domain.entities.risk_profile import RiskProfile
-from app.domain.services.risk_calculator import RiskInputs, compute_risk
+from app.domain.services.risk_calculator import RiskInputs, RiskThresholds, compute_risk
 
 DECLINE_LOOKBACK_MONTHS = 12
 STAGNATION_LOOKBACK_MONTHS = 18
@@ -131,7 +131,17 @@ class ComputeRisk:
             repeated_need_count=float(needs),
             days_since_last_activity=last_activity,
         )
-        return compute_risk(inputs, self._settings.risk_weights)
+        return compute_risk(inputs, self._settings.risk_weights, self._risk_thresholds())
+
+    # Bornes de classement issues de la configuration (CDC DSI 1.1 : aucun
+    # seuil metier en dur). Sans ce cablage, RISK_THRESHOLD_MEDIUM etait
+    # declare dans .env.example mais n'avait aucun effet.
+    def _risk_thresholds(self) -> RiskThresholds:
+        return RiskThresholds(
+            medium=self._settings.risk_threshold_medium,
+            high=self._settings.risk_threshold_severe,
+            critical=self._settings.risk_threshold_high,
+        )
 
     # Nombre de mois depuis la dernière mise à jour de niveau de l'enseignant
     # (= stagnation). Aucune donnée → valeur de référence 18 mois.
@@ -148,6 +158,23 @@ class ComputeRisk:
 
     # Détecte une régression de niveau : True si au moins un savoir a un
     # niveau actuel strictement inférieur à son premier niveau enregistré.
+    #
+    # LIMITE CONNUE (décision métier en attente) : en base, la table
+    # competence.enseignant_competences porte la contrainte
+    # UNIQUE (enseignant_id, savoir_id). Elle stocke donc un ÉTAT, pas un
+    # historique : la source ne peut jamais produire deux événements pour un
+    # même savoir, et la condition len(levels) >= 2 n'est jamais satisfaite en
+    # production. Le facteur "decline" (poids 0.20 par défaut) vaut donc
+    # toujours 0, tout en restant compté au dénominateur de compute_risk :
+    # le score de risque est plafonné à 80/100 au lieu de 100.
+    #
+    # Deux issues possibles, à arbitrer par le métier :
+    #   1. historiser les niveaux (table dédiée) pour alimenter réellement le
+    #      facteur ;
+    #   2. sortir "decline" de RISK_WEIGHTS tant qu'il n'est pas alimenté, ce
+    #      qui redonne au score toute son amplitude.
+    # Le comportement actuel est volontairement inchangé : le corriger
+    # déplacerait TOUS les scores de risque déjà produits.
     def _has_decline(self, history: dict[int, list[tuple[str, int]]]) -> bool:
         for events in history.values():
             levels = [level for _, level in events]

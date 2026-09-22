@@ -15,10 +15,13 @@ MODELS_DIR = Path(__file__).parent.parent.parent / "data" / "models"
     not (MODELS_DIR / "gap_predictor_temporal.joblib").exists(),
     reason="artefact ML absent",
 )
-def test_predictor_temporal_model_active_in_production():
-    """Le gap predictor temporel est ACTIF en production (PRODUCTION_ML)
-    après validation de l'intégrité, de la provenance (0% synthétique),
-    des features compatibles et des métriques minimales."""
+def test_predictor_temporal_model_served_under_declared_override():
+    """L'artefact temporel se charge (integrite SHA-256, provenance 0 %
+    synthetique, features compatibles, metriques minimales) et il EST servi :
+    la decision projet du 2026-09-22 a promu le GB v1.2.0-gb ACTIVE/APPROVED
+    sous OVERRIDE DECLARE (mesure non significative conservee au registre,
+    acteur + date + justification traces). L'etat expose doit rester honnete :
+    mode PRODUCTION_ML, version = entree ACTIVE, aucune raison de repli."""
     settings = MagicMock()
     settings.models_dir = str(MODELS_DIR)
     settings.gap_model_artifact = "gap_predictor_temporal.joblib"
@@ -38,24 +41,22 @@ def test_predictor_temporal_model_active_in_production():
     settings.seuil_gap_moyenne = 0.25
 
     port = ArtifactModelPort(settings, database=MagicMock())
+    active = port._registry.active()
     status = port.status()
+    assert active is not None and active.override_decision is True, (
+        "entree ACTIVE sous override declare (decision projet tracee)"
+    )
     assert status["model_mode"] == "PRODUCTION_ML"
-    assert status["available"] is True
-    assert "drift_check" in status
+    assert status["fallback_reason"] is None
+    assert status["model_version"] == active.model_version
+    assert status["drift_check"] is not None and "drift_check" in status
     assert status["kill_switch"] is False
-    assert status["provenance"]["synthetic_share_pct"] == 0.0
-    # Version du dataset = celle du corpus provenancé réel (évolue à chaque
-    # régénération — ne pas coder en dur, vérifier la cohérence registre).
-    assert status["provenance"]["dataset_version"] == (
-        port._registry.active().dataset_version if port._registry.active() else None
-    )
-    # Version = celle de l'entrée ACTIVE du registre réel (évolue à chaque
-    # réentraînement/promotion — ne pas coder en dur).
-    assert status["model_version"] == (
-        port._registry.active().model_version if port._registry.active() else None
-    )
+    provenance = status["provenance"]
+    assert provenance["synthetic_share_pct"] == 0.0
+    if active is not None:
+        assert provenance["dataset_version"] == active.dataset_version
     assert status["prediction_horizon"] == "3m"
-
+    assert status["available"] is True
 
 def test_kill_switch_disables_all_ml():
     """ML_ENABLED=false (kill-switch global) : aucun artefact chargé."""

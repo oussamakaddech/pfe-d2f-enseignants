@@ -69,6 +69,7 @@ class Container:
         self.recommend_trainings = RecommendTrainings(
             self.competency_source, self.formation_source, self.analysis_repository,
             model_port=self.model_port,
+            settings=settings,
         )
         self.analyze_teacher_scope = AnalyzeTeacherScope(
             self.competency_source, self.recommend_trainings, settings,

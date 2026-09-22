@@ -54,21 +54,28 @@ class _FakePicklableModel:
 # ---------------------------------------------------------------------------
 def test_target_validity_exposed_in_contract():
     """Le contrat ML (registre + metadata + status()) expose target_validity
-    pour la version active — EXTRAPOLATED_TARGET (v1.0.0 DEMO_SEED) ou
-    OBSERVED_IN_SIMULATION (simulation-v1.0.0 servie en demonstration).
-    JAMAIS REAL_VALIDATED_TARGET (aucune re-mesure future reelle n'existe)."""
+    pour la version active — EXTRAPOLATED_TARGET (DEMO_SEED) ou
+    OBSERVED_IN_SIMULATION (simulation servie en demonstration).
+    JAMAIS REAL_VALIDATED_TARGET (aucune re-mesure future reelle n'existe).
+
+    Depuis la décision de gouvernance du 2026-09-22 (audit d'autorité §2.6),
+    AUCUNE version n'est ACTIVE : le gain du dernier candidat n'est pas
+    statistiquement significatif. Le test accepte donc l'absence d'entrée
+    ACTIVE et vérifie que, dans ce cas, l'honnêteté de l'étiquetage reste
+    portée par la metadata et par status()."""
     registry_path = MODELS_DIR / "model_registry.json"
     assert registry_path.exists()
     registry = json.loads(registry_path.read_text(encoding="utf-8"))
     active = [e for e in registry if e.get("status") == "ACTIVE"]
-    assert active, "aucune entrée ACTIVE"
-    assert active[0].get("target_validity") in (TARGET_VALIDITY_EXTRAPOLATED, "OBSERVED_IN_SIMULATION"), (
-        "la version ACTIVE doit porter target_validity=EXTRAPOLATED_TARGET "
-        "ou OBSERVED_IN_SIMULATION (aucune re-mesure future réelle n'existe)"
-    )
-    assert active[0].get("target_validity") != "REAL_VALIDATED_TARGET", (
-        "aucune version ACTIVE ne peut revendiquer REAL_VALIDATED_TARGET"
-    )
+    for entry in active:
+        assert entry.get("target_validity") in (TARGET_VALIDITY_EXTRAPOLATED, "OBSERVED_IN_SIMULATION"), (
+            "la version ACTIVE doit porter target_validity=EXTRAPOLATED_TARGET "
+            "ou OBSERVED_IN_SIMULATION (aucune re-mesure future réelle n'existe)"
+        )
+    for entry in registry:
+        assert entry.get("target_validity") != "REAL_VALIDATED_TARGET", (
+            "aucune version ne peut revendiquer REAL_VALIDATED_TARGET sans re-mesures réelles"
+        )
 
     # Metadata sidecar cohérente.
     meta = json.loads((MODELS_DIR / "temporal_training_metadata.json").read_text(encoding="utf-8"))
@@ -582,38 +589,62 @@ def test_serving_unchanged_for_35_teachers():
     target_n = len(df)
     target_teachers = int(df["teacher_id"].nunique())
 
-    # 11b. Le registre : la version servie en production est le GB v1.2.0-gb
-    # (promu après comparaison multi-datasets, corpus DB réel, 0 % synthétique,
-    # APPROVED) ; v1.1.0 et v1.0.0 restent archivées (rollback possible,
-    # artefacts intacts).
+    # 11b. Le registre : GOUVERNANCE 2026-09-22 (audit d'autorite), REVISEE le
+    # meme jour : le GB v1.2.0-gb est ACTIVE/APPROVED sous OVERRIDE DECLARE
+    # (decision projet tracee : acteur, date, justification). Sa mesure reste
+    # honnete (gain non significatif, IC95 [-0.1243, +0.1087]). Invariant : toute
+    # entree ACTIVE non significative DOIT porter un override declare.
     registry = json.loads((MODELS_DIR / "model_registry.json").read_text(encoding="utf-8"))
-    active = [e for e in registry if e.get("status") == "ACTIVE"][0]
-    assert active["approval_status"] == "APPROVED"
-    assert active["model_version"] == "v1.2.0-gb", "serving prod : GB v1.2.0-gb ACTIVE"
-    assert active["synthetic_share_pct"] == 0.0
+    active = [e for e in registry if e.get("status") == "ACTIVE"]
+    for entry in active:
+        if entry.get("lift_significant_95") is False:
+            assert entry.get("override_decision") is True and entry.get("override_actor"), (
+                "une entree ACTIVE non significative doit porter un override declare"
+            )
+    gb = [e for e in registry if e.get("model_version") == "v1.2.0-gb"][0]
+    assert gb["status"] == "ACTIVE" and gb["approval_status"] == "APPROVED", (
+        "GB v1.2.0-gb promu ACTIVE/APPROVED sous override declare (decision projet)"
+    )
+    assert gb["lift_significant_95"] is False and gb["lift_rmse_ci95"] == [-0.1243, 0.1087]
+    assert gb["override_decision"] is True and gb["override_actor"]
+    assert gb["synthetic_share_pct"] == 0.0
     legacy = [e for e in registry if e.get("model_version") == "v1.0.0" and e.get("status") == "ARCHIVED"]
-    assert legacy, "v1.0.0 conservée (ARCHIVED) pour rollback"
+    assert legacy, "v1.0.0 conservee (ARCHIVED) pour rollback"
     mlp_v110 = [e for e in registry if e.get("model_version") == "v1.1.0" and e.get("status") == "ARCHIVED"]
-    assert mlp_v110, "v1.1.0 conservée (ARCHIVED) pour rollback"
-
-
-    # 11c. Décision de mode inchangée avec les contrôles actuels :
-    # registre approuvé + provenance réelle + métériques dans les seuils.
+    assert mlp_v110, "v1.1.0 conservee (ARCHIVED) pour rollback"
+    # 11c. Le corpus de production reste 0 % synthetique et la provenance reste
+    # calculable (les controles de donnees n'ont pas ete assouplis).
     from app.infrastructure.ml.dataset_provenance import compute_provenance
 
-    prov = compute_provenance(df, dataset_version=active.get("dataset_version", ""))
+    prov = compute_provenance(df, dataset_version=str(gb.get("dataset_version", "")))
     assert prov.real_rows == target_n
     assert prov.synthetic_share_pct == 0.0
     settings = _settings()
     port = ArtifactModelPort(settings, MagicMock())
     assert port._provenance_error() is None, "provenance doit rester valide (lignes réelles >= 50)"
-    assert port._registry_rejection_reason({}) is None, "registre doit rester approuvé"
 
-    # 11d. Les nouveaux contrôles n'altèrent pas _decide_mode : l'ordre
-    # des vérifications et les tolérances du serving sont inchangés.
+    # 11d. Etat reel : une entree ACTIVE/APPROVED existe (GB v1.2.0-gb, override
+    # declare du 2026-09-22) -> le mode effectif est PRODUCTION_ML et le registre
+    # ne porte aucune raison de rejet.
+    assert port._registry_rejection_reason({}) is None
+    assert port._effective_mode() == PRODUCTION_ML
+
+    # 11d-bis. Fail-closed conserve : SANS entree approuvee, JAMAIS PRODUCTION_ML
+    # (registre isole : la garantie est testee sans dependre de l'etat reel).
+    import tempfile
+    from pathlib import Path as _Path
+
+    from app.infrastructure.ml.model_registry import ModelRegistry as _ModelRegistry
+
+    isolated = _Path(tempfile.mkdtemp())
+    port._registry = _ModelRegistry(isolated / "reg.json", isolated)
+    assert port._registry_rejection_reason({}) is not None, "registre: aucune entree approuvee"
+    assert port._effective_mode() != PRODUCTION_ML, "sans entree approuvee : jamais PRODUCTION_ML"
+
+    # 11e. Les controles de mode restent recalcules a chaque appel (fail-live)
+    # et le plafond operateur ne peut que baisser le mode.
     source = (BASE_DIR / "app" / "infrastructure" / "ml" / "predictor.py").read_text(encoding="utf-8")
     assert "self._fallback_reason = None" in source
     assert "return PRODUCTION_ML" in source
-    # Le kill-switch, la provenance, le registre et les bornes restent
-    # recalculés à chaque appel (fail-live conservé).
     assert "_decide_mode" in source
+    assert "MODE_RANK[ceiling] < MODE_RANK[mode]" in source

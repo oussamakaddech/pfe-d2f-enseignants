@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import ContainerDependency, resolve_user_teacher
+from app.api.v1.model_meta import build_model_meta
 from app.core.envelope import ok_page
 from app.core.pagination import paginate
 from app.core.scope import enforce_teacher_access, resolve_teacher_or_404
@@ -30,51 +31,27 @@ def list_gaps(
     # Lecture seule : renvoie le dernier snapshot persisté. Le recalcul est déclenché
     # via POST /analysis/{id} ou par le scheduler batch — jamais à chaque lecture.
     gaps = container.analysis_repository.list_gaps_by_teacher(teacher_id)
-    model_mode = None
-    model_version = None
-    model_name = None
-    fallback_reason = None
-    dataset_version = None
-    prediction_horizon = None
-    synthetic_share_pct = None
-    target_validity = None
-    target_validity_label = None
-    data_origin = None
-    validation_scope = None
-    provenance = {}
-    predictions: list[dict] = []
-    try:
-        status = container.model_port.status()
-        model_mode = status.get("model_mode") or status.get("mode")
-        model_version = status.get("model_version") or status.get("version")
-        model_name = status.get("artifact_name") or status.get("model_name")
-        fallback_reason = status.get("fallback_reason")
-        prediction_horizon = status.get("prediction_horizon")
-        target_validity = status.get("target_validity")
-        target_validity_label = status.get("target_validity_label")
-        data_origin = status.get("data_origin")
-        validation_scope = status.get("validation_scope")
-        provenance = status.get("provenance") or {}
-        if isinstance(provenance, dict):
-            dataset_version = provenance.get("dataset_version")
-            synthetic_share_pct = provenance.get("synthetic_share_pct")
-    except Exception:
-        pass
-    # Mode effectif des lignes servies : les marqueurs DECLARED_ML / WORSENING
-    # ne sont produits que par le modèle ; STABLE / DECLINING uniquement par le
-    # moteur heuristique (compute_gaps._heuristic_on). Si les lignes persistées
-    # portent des tendances heuristiques alors que le statut global annonce un
-    # mode ML (ex : features hors plages au dernier calcul), on expose
-    # HEURISTIC_FALLBACK — jamais un mode ML mensonger.
+    # Bloc meta contractuel (audit d'autorité 2026-09-22 §3.6) : model_mode /
+    # model_version / fallback_reason / provenance, construit par le helper
+    # partagé — jamais recopié à la main endpoint par endpoint.
+    meta = build_model_meta(container)
+    model_mode = meta["model_mode"]
+    fallback_reason = meta["fallback_reason"]
+    # Mode effectif des lignes servies (fail-closed) : les marqueurs DECLARED_ML /
+    # WORSENING ne sont produits QUE par le modèle. IMPROVING est AMBIGU (produit
+    # aussi bien par le ML que par l'heuristique avec historique), STABLE /
+    # DECLINING uniquement par l'heuristique — donc SEULE la présence d'un
+    # marqueur ML prouve le ML. Sans marqueur, on expose HEURISTIC_FALLBACK,
+    # jamais un mode ML mensonger (ex : heuristique IMPROVING à tort, ou lignes
+    # calculées hors plages d'entraînement).
     if gaps and model_mode in ("PRODUCTION_ML", "DEMO_ML"):
         trends = {getattr(g.trend, "value", str(g.trend)) for g in gaps}
         rows_from_ml = bool(trends & {"DECLARED_ML", "WORSENING"})
-        rows_heuristic_only = bool(trends & {"STABLE", "DECLINING"})
-        if not rows_from_ml and rows_heuristic_only:
+        if not rows_from_ml:
             model_mode = "HEURISTIC_FALLBACK"
             fallback_reason = (
                 fallback_reason
-                or "dernier calcul hors plages d'entraînement : moteur heuristique explicable appliqué"
+                or "dernier calcul hors modèle ML : moteur heuristique explicable appliqué"
             )
     if severity:
         gaps = [gap for gap in gaps if gap.severity.api_value() == severity.upper()]
@@ -86,25 +63,13 @@ def list_gaps(
     except Exception:
         near_boundary = None
     page_result = paginate([GapOut(**gap.to_dict()) for gap in gaps], page, size)
+    predictions = []
     if model_mode in ("PRODUCTION_ML", "DEMO_ML"):
         predictions = [gap.to_dict() for gap in gaps]
-    return ok_page(
-        page_result.data,
-        page_result.meta,
-        {
-            "model_mode": model_mode,
-            "model_version": model_version,
-            "model_name": model_name,
-            "fallback_reason": fallback_reason,
-            "dataset_version": dataset_version,
-            "prediction_horizon": prediction_horizon,
-            "target_validity": target_validity,
-            "target_validity_label": target_validity_label,
-            "data_origin": data_origin,
-            "validation_scope": validation_scope,
-            "synthetic_share_pct": synthetic_share_pct,
-            "provenance": provenance,
-            "predictions": predictions,
-            "near_boundary_warning": near_boundary,
-        },
-    )
+    # Le mode effectif des LIGNES serties peut être plus bas que le mode du
+    # port : on réexpose le couple cohérent mode/raison.
+    meta["model_mode"] = model_mode
+    meta["fallback_reason"] = fallback_reason
+    meta["predictions"] = predictions
+    meta["near_boundary_warning"] = near_boundary
+    return ok_page(page_result.data, page_result.meta, meta)

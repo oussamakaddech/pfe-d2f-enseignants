@@ -633,8 +633,13 @@ services:
       CORS_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
       MODELS_DIR: /app/data/models
       # ── Modes d'exécution ML ──────────────────────────────────────────────
-      # ML_SERVING_MODE est une REQUÊTE : les contrôles peuvent refuser
-      # l'activation (HEURISTIC_FALLBACK) si les conditions ne sont pas réunies.
+      # ML_SERVING_MODE est un PLAFOND : les controles peuvent refuser
+      # l'activation (HEURISTIC_FALLBACK) et la demande de l'operateur ne peut
+      # que BAISSER le mode, jamais l'elever.
+      # GOUVERNANCE 2026-09-22 (audit d'autorite 2.6) : defaut de deploiement
+      # PRODUCTION_ML avec OVERRIDE DECLARE sur le GB v1.2.0-gb (decision projet
+      # tracee au registre : acteur, date, justification ; mesure non
+      # significative conservee). Retrait de l'override : repasser a HEURISTIC.
       ML_SERVING_MODE: ${ML_SERVING_MODE:-PRODUCTION_ML}
       ML_REQUIRE_REAL_DATA: ${ML_REQUIRE_REAL_DATA:-true}
       ML_SYNTHETIC_TOLERANCE_PCT: ${ML_SYNTHETIC_TOLERANCE_PCT:-50.0}
@@ -642,7 +647,10 @@ services:
       ML_MIN_R2: ${ML_MIN_R2:-0.0}
       ML_MAX_RMSE: ${ML_MAX_RMSE:-2.0}
       ML_MAX_MAE: ${ML_MAX_MAE:-1.5}
-      ML_MODEL_VERSION: ${ML_MODEL_VERSION:-v1.0.0}
+      # Information de configuration de l'artefact monte. La version REELLEMENT
+      # servie n'est jamais lue ici : elle vient de l'entree de registre
+      # (audit d'autorite 2.4 — un ML_MODEL_VERSION errone induisait en erreur).
+      ML_MODEL_VERSION: ${ML_MODEL_VERSION:-v1.2.0-gb}
       ML_ARTIFACT_PATH: ${ML_ARTIFACT_PATH:-gap_predictor_temporal.joblib}
       ML_METADATA_PATH: ${ML_METADATA_PATH:-temporal_training_metadata.json}
       ML_REGISTRY_PATH: ${ML_REGISTRY_PATH:-model_registry.json}

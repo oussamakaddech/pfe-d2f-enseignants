@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import ContainerDependency, resolve_user_teacher
+from app.api.v1.model_meta import build_model_meta
 from app.core.envelope import ok
 from app.core.security import CurrentUser, require_roles
 from app.infrastructure.container import Container
@@ -51,7 +52,9 @@ def get_dashboard(
     # Le périmètre du CUP (UP) et du chef (département) est résolu côté serveur.
     scope, scope_id = _enforce_role_scope(container, user, scope, scope_id)
     kpis = container.build_dashboards.execute(scope=scope, scope_id=scope_id)
-    return ok(kpis)
+    # Contrat d'API (audit d'autorité 2026-09-22, §3.6) : un tableau de bord
+    # doit dire quel moteur l'a produit.
+    return ok(kpis, {**build_model_meta(container), "scope": scope, "scope_id": scope_id})
 
 
 @router.get("/latest")
@@ -63,9 +66,11 @@ def get_latest_dashboard(
 ):
     scope, scope_id = _enforce_role_scope(container, user, scope, scope_id)
     snapshot = container.dashboard_repository.latest_snapshot(scope, scope_id)
+    meta = {**build_model_meta(container), "scope": scope, "scope_id": scope_id, "snapshot": None}
     if snapshot is None:
-        return ok(None, {"scope": scope, "scope_id": scope_id, "snapshot": None})
-    return ok(snapshot, {"scope": scope, "scope_id": scope_id})
+        return ok(None, meta)
+    meta["snapshot"] = None
+    return ok(snapshot, meta)
 
 
 @router.get("/declining")
@@ -77,4 +82,4 @@ def get_declining_trends(
 ):
     scope, scope_id = _enforce_role_scope(container, user, scope, scope_id)
     trends = container.dashboard_repository.declining_trends(scope, scope_id)
-    return ok(trends, {"scope": scope, "scope_id": scope_id})
+    return ok(trends, {**build_model_meta(container), "scope": scope, "scope_id": scope_id})

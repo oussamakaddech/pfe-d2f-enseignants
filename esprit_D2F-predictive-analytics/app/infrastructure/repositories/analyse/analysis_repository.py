@@ -73,9 +73,11 @@ class SqlAnalysisRepository:
                             "competence_id": gap.competence_id,
                             "competence_code": gap.competence_code,
                             "competence_nom": gap.competence_nom,
-                            "niveau_actuel": int(gap.observed_result),
-                            "niveau_requis": int(gap.knowledge_difficulty_level),
-                            "niveau_vise": int(gap.knowledge_difficulty_level),
+                            # Colonnes SMALLINT : la moyenne (ex 2.5) est ARRONDIe,
+                            # jamais tronquée (int() affichait 2 au lieu de 2.5->3).
+                            "niveau_actuel": round(gap.observed_result),
+                            "niveau_requis": round(gap.knowledge_difficulty_level),
+                            "niveau_vise": round(gap.knowledge_difficulty_level),
                             "gap_score": gap.gap_score,
                             # Les colonnes suivantes sont NOT NULL sans default en base.
                             # On fournit des valeurs derivees coherentes (impact=urgence=priorite=gap).

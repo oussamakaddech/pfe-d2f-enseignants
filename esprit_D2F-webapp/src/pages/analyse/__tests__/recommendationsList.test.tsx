@@ -60,4 +60,18 @@ describe('RecommendationsList', () => {
     render(<RecommendationsList recommendations={[reco]} />);
     expect(screen.getByText('Prérequis satisfaits')).toBeInTheDocument();
   });
+
+  it('sans nom de competence : n affiche ni tiret ni separateur, seulement le rang', () => {
+    // L API ne renvoie un nom de competence que si un savoir a ete apparie.
+    // Afficher « — · rang 2 » remplissait la ligne sans rien apprendre.
+    render(<RecommendationsList recommendations={[{ ...reco, competence_nom: null }]} />);
+    expect(screen.getByText(/rang 1/)).toBeInTheDocument();
+    expect(screen.queryByText(/—/)).toBeNull();
+    expect(screen.queryByText(/·/)).toBeNull();
+  });
+
+  it('avec un nom de competence : le libelle et le rang sont separes par un point median', () => {
+    render(<RecommendationsList recommendations={[reco]} />);
+    expect(screen.getByText(/Python · rang 1/)).toBeInTheDocument();
+  });
 });

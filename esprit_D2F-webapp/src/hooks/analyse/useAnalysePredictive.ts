@@ -190,27 +190,19 @@ export function useBulkUpdateAlerts() {
   return useMutation({
     mutationFn: (payload: BulkAlertUpdateRequest) =>
       AnalysePredictiveService.bulkUpdateAlerts(payload),
-    onMutate: async (newStatus) => {
-      await qc.cancelQueries({ queryKey: ['analyse', 'alerts-summary'] });
-      const previousData = qc.getQueryData(['analyse', 'alerts-summary']);
-      qc.setQueryData(['analyse', 'alerts-summary'], (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          alerts: (old.alerts ?? []).map((a: any) =>
-            newStatus.alert_ids.includes(a.id)
-              ? { ...a, statut: newStatus.statut, commentaire_traitement: newStatus.commentaire }
-              : a,
-          ),
-        };
-      });
-      return { previousData };
-    },
-    onError: (_err, _newStatus, context) => {
-      if (context?.previousData) {
-        qc.setQueryData(['analyse', 'alerts-summary'], context.previousData);
-      }
-    },
+    // Aucune mise a jour optimiste ici, volontairement.
+    //
+    // GET /alerts/summary ne renvoie QUE des agregats : by_type, by_severite,
+    // by_statut, total, nouvelles, critiques_ouvertes, top_competences,
+    // top_departements. Il n'existe aucun tableau `alerts` dans la reponse.
+    // L'ancien onMutate mappait `old.alerts`, toujours undefined : il ne
+    // changeait donc rien a l'ecran et ecrivait en plus une cle fantome
+    // `alerts: []` dans le cache. Le cast `any` masquait l'ecart de contrat.
+    //
+    // Recalculer les compteurs de facon optimiste n'est pas possible : la
+    // charge utile ne porte que les identifiants et le NOUVEAU statut, jamais
+    // le statut precedent des alertes ciblees. On s'en remet donc au
+    // rafraichissement, qui reste immediat a l'echelle de l'interface.
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['analyse', 'alerts-summary'] });
     },

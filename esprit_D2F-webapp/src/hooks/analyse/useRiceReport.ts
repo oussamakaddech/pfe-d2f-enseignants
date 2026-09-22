@@ -34,34 +34,52 @@ interface UseRiceReportProps {
   onImportSuccess?: (result: ImportReport) => void;
 }
 
+/** Un enseignant « réel » exclut les ajouts externes et manuels du RICE. */
+const isRealEnseignantId = (id: EnseignantId): boolean =>
+  !String(id).startsWith('ext_') && !String(id).startsWith('manual_');
+
+// Helpers PURS : aucune dépendance à l'état du hook. Définis au niveau du
+// module, ils gardent une identité stable d'un rendu à l'autre et n'ont donc
+// pas à figurer dans les tableaux de dépendances des useCallback.
+const countSavoirsInArray = (savoirs: RiceSavoir[] | undefined) => {
+  let total = 0;
+  let covered = 0;
+  for (const s of savoirs ?? []) {
+    total++;
+    if ((s.enseignantsSuggeres ?? []).filter(isRealEnseignantId).length > 0) covered++;
+  }
+  return { total, covered };
+};
+
+const buildSavoirPayload = (savoirs: RiceSavoir[] | undefined) =>
+  (savoirs ?? []).map((s: RiceSavoir) => ({
+    code: s.code,
+    nom: s.nom,
+    description: s.description ?? null,
+    type: s.type,
+    niveau: s.niveau,
+    enseignantIds: (s.enseignantsSuggeres ?? []).filter(isRealEnseignantId),
+  }));
+
+const buildSousCompetencePayload = (sc: RiceSousCompetence) => ({
+  code: sc.code,
+  nom: sc.nom,
+  description: sc.description ?? null,
+  savoirs: buildSavoirPayload(sc.savoirs),
+});
+
+const buildCompetencePayload = (c: RiceCompetence) => ({
+  code: c.code,
+  nom: c.nom,
+  description: c.description ?? null,
+  ordre: c.ordre ?? 1,
+  savoirs: buildSavoirPayload(c.savoirs),
+  sousCompetences: (c.sousCompetences ?? []).map(buildSousCompetencePayload),
+});
+
 export function useRiceReport({ tree, departement, msgApi, onImportSuccess }: UseRiceReportProps) {
   const [report, setReport] = useState<ImportReport | null>(null);
   const queryClient = useQueryClient();
-
-  const countSavoirsInArray = (savoirs: RiceSavoir[] | undefined) => {
-    let total = 0;
-    let covered = 0;
-    for (const s of savoirs ?? []) {
-      total++;
-      const realIds = (s.enseignantsSuggeres ?? []).filter(
-        (id: EnseignantId) => !String(id).startsWith('ext_') && !String(id).startsWith('manual_'),
-      );
-      if (realIds.length > 0) covered++;
-    }
-    return { total, covered };
-  };
-
-  const buildSavoirPayload = (savoirs: RiceSavoir[] | undefined) =>
-    (savoirs ?? []).map((s: RiceSavoir) => ({
-      code: s.code,
-      nom: s.nom,
-      description: s.description ?? null,
-      type: s.type,
-      niveau: s.niveau,
-      enseignantIds: (s.enseignantsSuggeres ?? []).filter(
-        (id: EnseignantId) => !String(id).startsWith('ext_') && !String(id).startsWith('manual_'),
-      ),
-    }));
 
   const computeClientCoverage = useCallback(() => {
     const result: Record<string, number> = {};
@@ -102,22 +120,6 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }: Us
     [queryClient],
   );
 
-  const buildSousCompetencePayload = (sc: RiceSousCompetence) => ({
-    code: sc.code,
-    nom: sc.nom,
-    description: sc.description ?? null,
-    savoirs: buildSavoirPayload(sc.savoirs),
-  });
-
-  const buildCompetencePayload = (c: RiceCompetence) => ({
-    code: c.code,
-    nom: c.nom,
-    description: c.description ?? null,
-    ordre: c.ordre ?? 1,
-    savoirs: buildSavoirPayload(c.savoirs),
-    sousCompetences: (c.sousCompetences ?? []).map(buildSousCompetencePayload),
-  });
-
   const handleImport = useCallback(async () => {
     const payload: Record<string, unknown> = {
       domaines: tree.map((d: RiceDomaine) => ({
@@ -147,7 +149,21 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }: Us
       const e = err as { response?: { data?: { message?: string } } };
       msgApi.error(e.response?.data?.message ?? "Erreur lors de l'import en base");
     }
-  }, [tree, computeClientCoverage, msgApi, onImportSuccess, importMutation, queryClient]);
+    // `departement` EST lu dans la charge utile et doit donc figurer ici.
+    // L'omission ne produisait pas de bug visible car `importMutation` change
+    // d'identite a chaque rendu et forcait deja la recreation du callback :
+    // la justesse reposait sur une dependance instable, pas sur le code. Si
+    // cette identite se stabilise, le callback figerait le departement du
+    // rendu precedent et l'import partirait sur le mauvais perimetre.
+  }, [
+    tree,
+    departement,
+    computeClientCoverage,
+    msgApi,
+    onImportSuccess,
+    importMutation,
+    queryClient,
+  ]);
 
   const loadImportHistory = useCallback(() => {
     historyQuery.refetch();

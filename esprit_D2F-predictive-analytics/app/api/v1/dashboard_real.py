@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import text
 
 from app.api.deps import ContainerDependency, resolve_user_teacher
+from app.api.v1.model_meta import build_model_meta
 from app.core.envelope import ok
 from app.core.security import CurrentUser, require_roles
 
@@ -310,12 +311,17 @@ def get_real_dashboard_impact(
     )
     kpis["model"] = container.model_port.status()
 
-    return ok({
-        "kpis": kpis,
-        "heatmap": [dict(r) for r in heatmap_rows],
-        "at_risk_teachers": [dict(r) for r in at_risk_rows],
-        "top_formations": [dict(r) for r in top_formations],
-        "coverage_by_dept": [dict(r) for r in coverage_rows],
-        "data_source": "database",
-        "note": "Donnees reelles issues des schemas formation/competence/analyse",
-    })
+    return ok(
+        {
+            "kpis": kpis,
+            "heatmap": [dict(r) for r in heatmap_rows],
+            "at_risk_teachers": [dict(r) for r in at_risk_rows],
+            "top_formations": [dict(r) for r in top_formations],
+            "coverage_by_dept": [dict(r) for r in coverage_rows],
+            "data_source": "database",
+            "note": "Donnees reelles issues des schemas formation/competence/analyse",
+        },
+        # Contrat d'API (audit d'autorité 2026-09-22, §3.6) : le tableau de bord
+        # réel expose lui aussi le moteur qui l'a produit.
+        build_model_meta(container),
+    )

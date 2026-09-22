@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Row, Col, Input, Spin, Empty, Alert, Collapse, Tabs as AntTabs } from 'antd';
+import { Row, Col, Input, Spin, Empty, Alert, Collapse, Tag, Tabs as AntTabs } from 'antd';
 import {
   ReloadOutlined,
   ExperimentOutlined,
@@ -20,7 +20,7 @@ import {
 } from '@/hooks/analytics/useAnalyticsQueries';
 import { GapsTable, RecommendationsList, RiskHistoryChart } from '@/components/analytics';
 import ModelBadge, { formatModelVersion } from '@/components/analytics/ModelBadge';
-import RiskFactorRow from '@/components/analytics/RiskFactorRow';
+import RiskFactorRow, { formatScopeLabel } from '@/components/analytics/RiskFactorRow';
 import TeacherScopePanel from '@/components/analytics/TeacherScopePanel';
 import { riskColor } from '@/utils/analytics/format';
 import type { ModelMode, RiskContribution, RiskFactor } from '@/models/analyse/analyticsFeature';
@@ -62,6 +62,285 @@ function tabLabel(base: string, count?: number): string {
   return count ? `${base} (${count})` : base;
 }
 
+/* Types derives des hooks : une seule source de verite pour les props des
+ * sous-composants (RiskData / GapsData sont declares plus bas, hoistes). */
+type RiskPayload = RiskData['data'];
+type GapsModelInfo = NonNullable<GapsData['data']>['model'];
+interface GapStats {
+  readonly total: number;
+  readonly critical: number;
+  readonly high: number;
+  readonly stagnant: number;
+  readonly declining: number;
+}
+
+interface HeroProps {
+  readonly enseignantId: string;
+  readonly nom: string;
+  readonly pct: number;
+  readonly levelLabel: string;
+  readonly scoreNonSignificatif: boolean;
+  readonly gapsModel?: GapsModelInfo;
+  readonly risk?: RiskPayload;
+  readonly analyzePending: boolean;
+  readonly onAnalyze: () => void;
+  readonly onRefresh: () => void;
+}
+
+/* ── Bandeau d'identite + moteurs reellement utilises ──────────────── */
+function TeacherHero({
+  enseignantId,
+  nom,
+  pct,
+  levelLabel,
+  scoreNonSignificatif,
+  gapsModel,
+  risk,
+  analyzePending,
+  onAnalyze,
+  onRefresh,
+}: HeroProps) {
+  const initiales = nom
+    ? nom
+        .split(' ')
+        .map((mot) => mot[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase()
+    : enseignantId.slice(-2);
+
+  return (
+    <div className="at-hero at-animate">
+      <div className="at-hero-glow" />
+      <div className="at-hero-row">
+        <div className="at-hero-avatar">{initiales}</div>
+        <div className="at-hero-info">
+          <div className="at-hero-kicker">
+            <AimOutlined /> Analyse prédictive — Enseignant
+          </div>
+          <h1 className="at-hero-title">{nom || enseignantId}</h1>
+          <p
+            className="at-hero-sub"
+            title={
+              scoreNonSignificatif
+                ? "Aucun niveau de compétence n'est enregistré sur ce périmètre : le moteur retient un niveau actuel de 0, ce qui porte tous les écarts à leur maximum. L'indice reflète l'absence de données, pas le risque réel de l'enseignant."
+                : "Indice pondéré explicable (facteurs, caps, profil comportemental) — indice d'aide au classement, PAS une probabilité calibrée."
+            }
+          >
+            Indice de risque : <b>{pct} / 100</b> (non calibré) · {levelLabel}
+            {scoreNonSignificatif && (
+              <>
+                {' '}
+                <Tag color="warning" className="at-tag-reserve">
+                  non significatif — aucun niveau enregistré
+                </Tag>
+              </>
+            )}
+          </p>
+          {/* Deux moteurs distincts : les ecarts et le risque. Chaque badge decrit
+              le moteur qui a reellement produit SON resultat — l'API fournit les
+              deux (model_mode / model_name / model_version). */}
+          <span className="at-hero-engines">
+            <span className="at-hero-engine-label">Moteur des écarts :</span>
+            <ModelBadge
+              modelMode={gapsModel?.model_mode}
+              modelVersion={gapsModel?.model_version}
+              modelName={gapsModel?.model_name}
+              targetValidity={gapsModel?.target_validity}
+              validationScope={gapsModel?.validation_scope}
+              dataOrigin={gapsModel?.data_origin}
+              size="small"
+            />
+            <span className="at-hero-engine-label">Moteur du risque :</span>
+            <ModelBadge
+              modelMode={risk?.model_mode}
+              modelVersion={risk?.model_version}
+              modelName={risk?.model_name}
+              targetValidity={risk?.target_validity ?? gapsModel?.target_validity}
+              validationScope={risk?.validation_scope ?? gapsModel?.validation_scope}
+              dataOrigin={risk?.data_origin ?? gapsModel?.data_origin}
+              size="small"
+            />
+          </span>
+        </div>
+        <div className="at-hero-actions">
+          <Input
+            value={nom ? `${nom} (${enseignantId})` : enseignantId}
+            disabled
+            placeholder="Enseignant"
+            className="at-hero-input"
+          />
+          <button
+            type="button"
+            className="at-btn at-btn-primary"
+            disabled={analyzePending}
+            onClick={onAnalyze}
+          >
+            <ExperimentOutlined />
+            {analyzePending ? 'Analyse...' : "Lancer l'analyse"}
+          </button>
+          <button type="button" className="at-btn" onClick={onRefresh}>
+            <ReloadOutlined /> Rafraîchir
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface ScoreCardProps {
+  readonly pct: number;
+  readonly score: number;
+  readonly levelLabel: string;
+  readonly color: string;
+  readonly trend: string;
+  readonly isMlRisk: boolean;
+  readonly riskClass?: string | null;
+  readonly precedentScore?: number | null;
+  readonly scoreNonSignificatif: boolean;
+  readonly loading: boolean;
+}
+
+/* ── Carte de score ────────────────────────────────────────────────
+ * Quand le score n'est pas significatif (aucun niveau enregistre), la carte est
+ * volontairement DESATUREE : anneau et pastille passent au gris neutre. Le
+ * chiffre reste affiche — on ne cache rien — mais il cesse d'etre mis en scene
+ * comme un verdict rouge alors qu'il ne mesure qu'une donnee absente. */
+function RiskScoreCard({
+  pct,
+  score,
+  levelLabel,
+  color,
+  trend,
+  isMlRisk,
+  riskClass,
+  precedentScore,
+  scoreNonSignificatif,
+  loading,
+}: ScoreCardProps) {
+  const circumference = 2 * Math.PI * 70;
+  const offset = circumference * (1 - score);
+  const couleurServie = scoreNonSignificatif ? 'var(--at-ink3)' : color;
+
+  return (
+    <div
+      className={`at-score-card at-animate at-animate-d1${scoreNonSignificatif ? ' is-non-significatif' : ''}`}
+      style={{ '--score-color': couleurServie } as React.CSSProperties}
+    >
+      {loading ? (
+        <div className="at-score-loading">
+          <Spin />
+        </div>
+      ) : (
+        <>
+          <div className="at-score-gauge">
+            <svg className="at-score-ring" viewBox="0 0 160 160">
+              <circle className="at-score-ring-bg" cx="80" cy="80" r="70" />
+              <circle
+                className="at-score-ring-fill"
+                cx="80"
+                cy="80"
+                r="70"
+                style={{
+                  strokeDasharray: circumference,
+                  strokeDashoffset: offset,
+                  stroke: couleurServie,
+                }}
+              />
+            </svg>
+            <div
+              className="at-score-label"
+              title="Indice de risque (non calibré) — pas une probabilité"
+            >
+              <div className="at-score-pct">
+                {pct}
+                <span className="at-score-pct-sign">/100</span>
+              </div>
+            </div>
+          </div>
+          <div
+            className="at-score-tag"
+            style={{ color: couleurServie, borderColor: couleurServie }}
+          >
+            {levelLabel}
+          </div>
+          <div
+            className="at-score-meta"
+            title={
+              isMlRisk
+                ? `Score servi par le modèle ML calibré : probabilité calibrée de la classe ${riskClassLabel(riskClass)} (validation sur données simulées). Décomposition : contributions du modèle (vue principale) + heuristique de référence (vue secondaire).`
+                : "Indice pondéré explicable : facteurs normalisés × poids (0,50 gaps critiques / 0,12 gaps haute urgence / 0,40 profondeur moyenne), plafonnement documenté, profil comportemental. Indice d'aide au classement — PAS une probabilité calibrée."
+            }
+          >
+            <div className="at-score-meta-row at-score-meta-small">
+              {isMlRisk ? (
+                <>
+                  Probabilité calibrée {pct}% · classe <b>{riskClassLabel(riskClass)}</b> (modèle
+                  ML, validé sur données simulées)
+                </>
+              ) : (
+                <>Indice de risque {pct} / 100 (non calibré)</>
+              )}
+            </div>
+            {scoreNonSignificatif && (
+              <div className="at-score-meta-row at-score-reserve">
+                Score non significatif : aucun niveau enregistré, tous les écarts sont au maximum
+                par défaut.
+              </div>
+            )}
+            {precedentScore != null && (
+              <div className="at-score-meta-row">
+                Précédent : <b>{Math.round(precedentScore * 100)}</b> / 100
+              </div>
+            )}
+            <div className="at-score-meta-row">
+              Tendance :{' '}
+              <span className={`at-trend-badge ${trendClass(trend)}`}>
+                {trendIcon(trend)} {TREND_LABELS[trend] ?? trend}
+              </span>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ── Compteurs d'ecarts ────────────────────────────────────────────── */
+function GapStatsRow({ stats }: { readonly stats: GapStats }) {
+  const pastilles = [
+    { valeur: stats.total, libelle: 'Gaps détectés', accent: 'var(--at-brand)' },
+    {
+      valeur: stats.critical,
+      libelle: 'Critiques',
+      accent: stats.critical > 0 ? 'var(--at-danger)' : 'var(--at-success)',
+    },
+    { valeur: stats.stagnant, libelle: 'Stagnants', accent: 'var(--at-warning)' },
+    {
+      valeur: stats.declining,
+      libelle: 'En régression',
+      accent: stats.declining > 0 ? 'var(--at-danger)' : 'var(--at-success)',
+    },
+  ];
+
+  return (
+    <div className="at-stats at-animate at-animate-d2">
+      {pastilles.map((p) => (
+        <div
+          key={p.libelle}
+          className="at-stat"
+          style={{ '--accent': p.accent } as React.CSSProperties}
+        >
+          <div className="at-stat-value" style={{ color: p.accent }}>
+            {p.valeur}
+          </div>
+          <div className="at-stat-label">{p.libelle}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function AnalyticsTeacherPage() {
   const { enseignantId = '' } = useParams<{ enseignantId: string }>();
   const [urgence, setUrgence] = useState<string | undefined>();
@@ -79,200 +358,65 @@ export default function AnalyticsTeacherPage() {
     [gaps.data?.gaps_summary],
   );
 
-  const pct = risk.data?.score_percent ?? Math.round((risk.data?.score ?? 0) * 100);
   const score = risk.data?.score ?? 0;
+  const pct = risk.data?.score_percent ?? Math.round(score * 100);
   const level = risk.data?.niveau ?? 'FAIBLE';
   const levelLabel = risk.data?.level_label ?? 'Faible';
-  const color = riskColor(level);
-  const circumference = 2 * Math.PI * 70;
-  const offset = circumference * (1 - score);
-
   const trend = risk.data?.tendance ?? 'STABLE';
-  const trendCls = trendClass(trend);
-  const trendIco = trendIcon(trend);
+  // Le moteur du risque est teste a un seul endroit : toute la page en depend.
+  const isMlRisk = risk.data?.mode === 'ML';
+
+  // Aucun niveau enregistré sur le périmètre : le moteur retient un niveau
+  // actuel de 0 pour chaque savoir, ce qui porte TOUS les écarts à leur maximum
+  // et gonfle mécaniquement l'indice de risque. Le score n'est alors pas une
+  // mesure du risque de l'enseignant, mais la conséquence d'une donnée absente.
+  // On garde le chiffre affiché, tout en cessant de le présenter comme un
+  // verdict : sans cette réserve, un enseignant jamais évalué apparaît CRITIQUE.
+  const scoreNonSignificatif = scope.data?.niveaux_sur_scope === 0;
+
+  const nom = risk.data?.enseignant_nom || scope.data?.context?.nom_complet || '';
 
   return (
     <div className="at-root">
-      {/* ── Hero ───────────────────────────────────────────── */}
-      <div className="at-hero at-animate">
-        <div className="at-hero-glow" />
-        <div className="at-hero-row">
-          <div className="at-hero-avatar">
-            {risk.data?.enseignant_nom
-              ? risk.data.enseignant_nom
-                  .split(' ')
-                  .map((w: string) => w[0])
-                  .join('')
-                  .slice(0, 2)
-                  .toUpperCase()
-              : enseignantId.slice(-2)}
-          </div>
-          <div className="at-hero-info">
-            <div className="at-hero-kicker">
-              <AimOutlined /> Analyse prédictive — Enseignant
-            </div>
-            <h1 className="at-hero-title">
-              {risk.data?.enseignant_nom || scope.data?.context?.nom_complet || enseignantId}
-            </h1>
-            <p
-              className="at-hero-sub"
-              title="Indice pondéré explicable (facteurs, caps, profil comportemental) — indice d'aide au classement, PAS une probabilité calibrée."
-            >
-              Indice de risque : <b>{pct} / 100</b> (non calibré) · {levelLabel}
-            </p>
-            <span
-              style={{
-                display: 'flex',
-                gap: 10,
-                marginTop: 8,
-                flexWrap: 'wrap',
-                alignItems: 'center',
-              }}
-            >
-              {/* Deux moteurs distincts : les écarts et le risque. Chaque badge
-                  décrit le moteur qui a réellement produit SON résultat — l'API
-                  fournit les deux (model_mode/model_name/model_version). */}
-              <span style={{ fontSize: 12, color: 'var(--at-ink2)' }}>Moteur des écarts :</span>
-              <ModelBadge
-                modelMode={gaps.data?.model?.model_mode}
-                modelVersion={gaps.data?.model?.model_version}
-                modelName={gaps.data?.model?.model_name}
-                targetValidity={gaps.data?.model?.target_validity}
-                validationScope={gaps.data?.model?.validation_scope}
-                dataOrigin={gaps.data?.model?.data_origin}
-                size="small"
-              />
-              <span style={{ fontSize: 12, color: 'var(--at-ink2)' }}>Moteur du risque :</span>
-              <ModelBadge
-                modelMode={risk.data?.model_mode}
-                modelVersion={risk.data?.model_version}
-                modelName={risk.data?.model_name}
-                targetValidity={risk.data?.target_validity ?? gaps.data?.target_validity}
-                validationScope={risk.data?.validation_scope ?? gaps.data?.validation_scope}
-                dataOrigin={risk.data?.data_origin ?? gaps.data?.data_origin}
-                size="small"
-              />
-            </span>
-          </div>
-          <div className="at-hero-actions">
-            <Input
-              value={
-                risk.data?.enseignant_nom
-                  ? `${risk.data.enseignant_nom} (${enseignantId})`
-                  : enseignantId
-              }
-              disabled
-              placeholder="Enseignant"
-              style={{
-                width: 220,
-                background: 'var(--at-panel2)',
-                borderColor: 'var(--at-line)',
-                color: 'var(--at-ink)',
-                borderRadius: 12,
-              }}
-            />
-            <button
-              type="button"
-              className="at-btn at-btn-primary"
-              disabled={analyze.isPending}
-              onClick={() => analyze.mutate()}
-            >
-              <ExperimentOutlined />
-              {analyze.isPending ? 'Analyse...' : "Lancer l'analyse"}
-            </button>
-            <button type="button" className="at-btn" onClick={() => risk.refetch()}>
-              <ReloadOutlined /> Rafraîchir
-            </button>
-          </div>
-        </div>
-      </div>
+      <TeacherHero
+        enseignantId={enseignantId}
+        nom={nom}
+        pct={pct}
+        levelLabel={levelLabel}
+        scoreNonSignificatif={scoreNonSignificatif}
+        gapsModel={gaps.data?.model}
+        risk={risk.data}
+        analyzePending={analyze.isPending}
+        onAnalyze={() => analyze.mutate()}
+        onRefresh={() => risk.refetch()}
+      />
 
-      {/* ── Score + Factors ───────────────────────────────── */}
       {risk.isError && (
         <Alert
           type="error"
           showIcon
           message="Impossible de charger l'analyse du risque"
-          style={{ marginBottom: 16 }}
+          className="at-alert-block"
         />
       )}
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+
+      <Row gutter={[16, 16]} className="at-row-block">
         <Col xs={24} md={8}>
-          <div
-            className="at-score-card at-animate at-animate-d1"
-            style={{ '--score-color': color } as React.CSSProperties}
-          >
-            {risk.isLoading ? (
-              <div style={{ padding: 40, textAlign: 'center' }}>
-                <Spin />
-              </div>
-            ) : (
-              <>
-                <div className="at-score-gauge">
-                  <svg className="at-score-ring" viewBox="0 0 160 160">
-                    <circle className="at-score-ring-bg" cx="80" cy="80" r="70" />
-                    <circle
-                      className="at-score-ring-fill"
-                      cx="80"
-                      cy="80"
-                      r="70"
-                      style={{
-                        strokeDasharray: circumference,
-                        strokeDashoffset: offset,
-                        stroke: color,
-                      }}
-                    />
-                  </svg>
-                  <div
-                    className="at-score-label"
-                    title="Indice de risque (non calibré) — pas une probabilité"
-                  >
-                    <div className="at-score-pct">
-                      {pct}
-                      <span className="at-score-pct-sign">/100</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="at-score-tag" style={{ color, borderColor: color }}>
-                  {levelLabel}
-                </div>
-                <div
-                  className="at-score-meta"
-                  title={
-                    risk.data?.mode === 'ML'
-                      ? `Score servi par le modèle ML calibré : probabilité calibrée de la classe ${riskClassLabel(risk.data?.risk_class)} (validation sur données simulées). Décomposition : contributions du modèle (vue principale) + heuristique de référence (vue secondaire).`
-                      : "Indice pondéré explicable : facteurs normalisés × poids (0,50 gaps critiques / 0,12 gaps haute urgence / 0,40 profondeur moyenne), plafonnement documenté, profil comportemental. Indice d'aide au classement — PAS une probabilité calibrée."
-                  }
-                >
-                  <div className="at-score-meta-row" style={{ fontSize: 11 }}>
-                    {risk.data?.mode === 'ML' ? (
-                      <>
-                        Probabilité calibrée {pct}% · classe{' '}
-                        <b>{riskClassLabel(risk.data?.risk_class)}</b> (modèle ML, validé sur
-                        données simulées)
-                      </>
-                    ) : (
-                      <>Indice de risque {pct} / 100 (non calibré)</>
-                    )}
-                  </div>
-                  {risk.data?.precedent_score != null && (
-                    <div className="at-score-meta-row">
-                      Précédent : <b>{Math.round(risk.data.precedent_score * 100)}</b> / 100
-                    </div>
-                  )}
-                  <div className="at-score-meta-row">
-                    Tendance :{' '}
-                    <span className={`at-trend-badge ${trendCls}`}>
-                      {trendIco} {TREND_LABELS[trend] ?? trend}
-                    </span>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+          <RiskScoreCard
+            pct={pct}
+            score={score}
+            levelLabel={levelLabel}
+            color={riskColor(level)}
+            trend={trend}
+            isMlRisk={isMlRisk}
+            riskClass={risk.data?.risk_class}
+            precedentScore={risk.data?.precedent_score}
+            scoreNonSignificatif={scoreNonSignificatif}
+            loading={risk.isLoading}
+          />
         </Col>
         <Col xs={24} md={16}>
-          {risk.data?.mode === 'ML' ? (
+          {isMlRisk ? (
             <RiskMLExplanationPanel
               contributions={risk.data?.contributions}
               explanationMethod={risk.data?.explanation_method}
@@ -289,72 +433,16 @@ export default function AnalyticsTeacherPage() {
               levelLabel={levelLabel}
             />
           )}
-          {risk.data?.mode === 'HEURISTIC' && risk.data?.fallback_reason && (
-            <Alert
-              type="warning"
-              showIcon
-              style={{ marginTop: 8 }}
-              message="Score servi par l'heuristique (repli fail-closed)"
-              description={risk.data.fallback_reason}
-            />
-          )}
+          {/* La raison du repli n'est plus affichee ici : elle etait redondante.
+              Le moteur reellement utilise reste visible sur le badge « Moteur du
+              risque » en entete, et le detail technique figure dans l'onglet
+              Modeles, ligne « Raison du repli ». La garantie de tracabilite est
+              donc conservee, sans texte technique brut dans la vue principale. */}
         </Col>
       </Row>
 
-      {/* ── Stats pills ────────────────────────────────────── */}
-      {!gaps.isLoading && gapStats.total > 0 && (
-        <div className="at-stats at-animate at-animate-d2">
-          <div className="at-stat" style={{ '--accent': 'var(--at-brand)' } as React.CSSProperties}>
-            <div className="at-stat-value" style={{ color: 'var(--at-brand)' }}>
-              {gapStats.total}
-            </div>
-            <div className="at-stat-label">Gaps détectés</div>
-          </div>
-          <div
-            className="at-stat"
-            style={
-              {
-                '--accent': gapStats.critical > 0 ? 'var(--at-danger)' : 'var(--at-success)',
-              } as React.CSSProperties
-            }
-          >
-            <div
-              className="at-stat-value"
-              style={{ color: gapStats.critical > 0 ? 'var(--at-danger)' : 'var(--at-success)' }}
-            >
-              {gapStats.critical}
-            </div>
-            <div className="at-stat-label">Critiques</div>
-          </div>
-          <div
-            className="at-stat"
-            style={{ '--accent': 'var(--at-warning)' } as React.CSSProperties}
-          >
-            <div className="at-stat-value" style={{ color: 'var(--at-warning)' }}>
-              {gapStats.stagnant}
-            </div>
-            <div className="at-stat-label">Stagnants</div>
-          </div>
-          <div
-            className="at-stat"
-            style={
-              {
-                '--accent': gapStats.declining > 0 ? 'var(--at-danger)' : 'var(--at-success)',
-              } as React.CSSProperties
-            }
-          >
-            <div
-              className="at-stat-value"
-              style={{ color: gapStats.declining > 0 ? 'var(--at-danger)' : 'var(--at-success)' }}
-            >
-              {gapStats.declining}
-            </div>
-            <div className="at-stat-label">En régression</div>
-          </div>
-        </div>
-      )}
+      {!gaps.isLoading && gapStats.total > 0 && <GapStatsRow stats={gapStats} />}
 
-      {/* ── Tabs ───────────────────────────────────────────── */}
       <div className="at-tabs-card at-animate at-animate-d3">
         <AntTabs
           className="at-tabs"
@@ -385,7 +473,7 @@ export default function AnalyticsTeacherPage() {
                     <Alert
                       type="warning"
                       showIcon
-                      style={{ marginBottom: 12 }}
+                      className="at-alert-tab"
                       message="Proche des limites du domaine d'entraînement"
                       description={`${gaps.data.model.near_boundary_warning.message} — la prédiction reste servie (avertissement non bloquant), mais la fiabilité est moindre aux bornes.`}
                     />
@@ -452,6 +540,14 @@ function FactorsPanel({
   const topProba = probas.length
     ? probas.reduce((a, b) => (b.valeur_brute > a.valeur_brute ? b : a), probas[0])
     : null;
+  // Perimetre partage par TOUS les facteurs du score : il est alors redondant
+  // de le repeter ligne par ligne. `null` des qu'un facteur differe.
+  const perimetresScore = facteursScore.map((f) => formatScopeLabel(f));
+  const perimetreCommun =
+    perimetresScore.length > 0 &&
+    perimetresScore.every((x) => x !== null && x === perimetresScore[0])
+      ? perimetresScore[0]
+      : null;
   return (
     <div className="at-factors">
       {probas.length > 0 && (
@@ -502,8 +598,11 @@ function FactorsPanel({
             </div>
             Explication du score (facteurs pondérés)
           </div>
+          {/* Perimetre commun : tous les facteurs portent le meme, on l'affiche
+              une seule fois en entete plutot que de le repeter sur chaque ligne. */}
+          {perimetreCommun && <div className="at-factors-scope">{perimetreCommun}</div>}
           {facteursScore.map((f) => (
-            <RiskFactorRow key={f.code ?? f.nom} facteur={f} />
+            <RiskFactorRow key={f.code ?? f.nom} facteur={f} hideScope={perimetreCommun !== null} />
           ))}
         </>
       )}
@@ -917,7 +1016,6 @@ function RiskMLExplanationPanel({
   );
 }
 
-/* ── Contenu onglet Gaps ──────────────────────────────────────── */
 /* ── Contenu onglet Gaps ──────────────────────────────────────── */
 function GapsTab({
   gaps,

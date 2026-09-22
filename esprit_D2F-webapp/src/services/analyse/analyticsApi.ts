@@ -375,7 +375,15 @@ interface BackendTeacherScopeAnalysis {
   computed_at: string;
 }
 
-function mapRecommendation(raw: BackendRecommendation): Recommendation {
+/**
+ * Projette une recommandation du service d'analyse vers le modèle de l'UI.
+ *
+ * `index` est la position dans la liste renvoyée par l'API, déjà triée par
+ * score décroissant. Le rang en découle donc directement et commence à 1,
+ * conformément à ce que persiste le service. Auparavant ce champ était figé à
+ * 0 et l'interface affichait « rang 0 » pour toutes les recommandations.
+ */
+function mapRecommendation(raw: BackendRecommendation, index = 0): Recommendation {
   return {
     id: hashId(`${raw.formation_id}`),
     formation_id: raw.formation_id,
@@ -388,9 +396,13 @@ function mapRecommendation(raw: BackendRecommendation): Recommendation {
     score_reussite: 0,
     score_disponibilite: 0,
     probabilite_reussite: raw.rank_score,
-    rang_dans_parcours: 0,
+    rang_dans_parcours: index + 1,
     est_prerequis: false,
-    prerequis_satisfaits: false,
+    // Cette route ne transporte aucune information de prérequis. Renvoyer
+    // `false` faisait afficher un avertissement « Prérequis à vérifier » sur
+    // chaque recommandation, alors que rien ne le justifiait. `null` = inconnu,
+    // et l'interface n'affiche alors aucune pastille.
+    prerequis_satisfaits: null,
     niveau_apres: null,
     niveau_actuel: null,
     justification: raw.reason || null,
@@ -902,12 +914,16 @@ export const analyticsApi = {
       });
   },
 
-  // Endpoint backend réel : /dashboard/teachers-at-risk (seuil 0.5 fixe).
-  getAtRisk(_filters?: DashboardFilters & { seuil?: number }): Promise<AtRiskTeacher[]> {
+  // Endpoint backend réel : /dashboard/teachers-at-risk.
+  // Le seuil est désormais transmis : il était auparavant accepté puis ignoré,
+  // ce qui figeait la liste au seuil par défaut du service et rendait
+  // invisibles les enseignants des départements les moins exposés.
+  getAtRisk(filters?: DashboardFilters & { seuil?: number }): Promise<AtRiskTeacher[]> {
     return axios
-      .get<
-        ApiEnvelope<{ rows: BackendRiskRow[]; count: number }> | BackendRiskRow[]
-      >(`${BASE}/dashboard/teachers-at-risk`)
+      .get<ApiEnvelope<{ rows: BackendRiskRow[]; count: number }> | BackendRiskRow[]>(
+        `${BASE}/dashboard/teachers-at-risk`,
+        filters?.seuil != null ? { params: { seuil: filters.seuil } } : undefined,
+      )
       .then((r) => {
         const unwrapped = (r.data as { data?: unknown })?.data ?? r.data;
         const rows = Array.isArray(unwrapped)

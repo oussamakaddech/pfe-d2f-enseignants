@@ -347,7 +347,10 @@ export interface Recommendation {
   probabilite_reussite: number;
   rang_dans_parcours: number;
   est_prerequis: boolean;
-  prerequis_satisfaits: boolean;
+  /** `null` quand la source ne porte pas l'information : l'interface
+   *  n'affiche alors aucune pastille de prérequis plutôt qu'un avertissement
+   *  infondé. */
+  prerequis_satisfaits: boolean | null;
   niveau_apres: number | null;
   niveau_actuel: number | null;
   justification: string | null;

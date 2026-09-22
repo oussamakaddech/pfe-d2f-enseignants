@@ -50,7 +50,11 @@ def detect_collective_needs(
     min_teachers: int,
 ) -> list[TrainingNeed]:
     key_count: Counter[tuple[int, str, str | None]] = Counter()
+    # Gap de reference pour le libelle (premier rencontre) ET gap minimal
+    # reellement observe : la preuve annonce un "min_gap_score", elle doit donc
+    # porter le minimum du groupe, pas le score de la premiere ligne croisee.
     first_gap: dict[tuple[int, str, str | None], SkillGap] = {}
+    min_score: dict[tuple[int, str, str | None], float] = {}
 
     for teacher_id, gaps in gaps_by_teacher.items():
         scope = teacher_scopes.get(teacher_id)
@@ -62,12 +66,16 @@ def detect_collective_needs(
             key = (gap.competence_id, scope_type, scope_id)
             key_count[key] += 1
             first_gap.setdefault(key, gap)
+            previous = min_score.get(key)
+            if previous is None or gap.gap_score < previous:
+                min_score[key] = gap.gap_score
 
     needs: list[TrainingNeed] = []
     for (competence_id, scope_type, scope_id), count in key_count.items():
         if count < min_teachers:
             continue
-        gap = first_gap[(competence_id, scope_type, scope_id)]
+        key = (competence_id, scope_type, scope_id)
+        gap = first_gap[key]
         needs.append(
             TrainingNeed(
                 need_type=NeedTypeCollective,
@@ -75,7 +83,7 @@ def detect_collective_needs(
                 competence_code=gap.competence_code,
                 competence_nom=gap.competence_nom,
                 teachers_count=count,
-                evidence={"min_gap_score": round(gap.gap_score, 4), "teachers_threshold": min_teachers},
+                evidence={"min_gap_score": round(min_score[key], 4), "teachers_threshold": min_teachers},
                 scope_type=scope_type,
                 scope_id=scope_id,
             )

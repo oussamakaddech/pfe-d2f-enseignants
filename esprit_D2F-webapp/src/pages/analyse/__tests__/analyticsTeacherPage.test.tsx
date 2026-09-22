@@ -38,6 +38,16 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   </QueryClientProvider>
 );
 
+const scopeBase = {
+  context: { nom_complet: 'Fatma Jlassi', mail: 'f.jlassi@esprit.tn' },
+  gaps: [],
+  recommendations: [],
+  scoped_competencies_count: 3,
+  total_competencies_count: 26,
+  scope: {},
+  computed_at: '2026-09-21T00:00:00Z',
+} as never;
+
 const setup = () => {
   mocks.useAnalyzeTeacher.mockReturnValue({ isPending: false, isError: false, mutate: vi.fn() });
   mocks.useTeacherRisk.mockReturnValue({ isLoading: false, data: undefined });
@@ -318,5 +328,78 @@ describe('AnalyticsTeacherPage', () => {
     expect(html).not.toContain('probabilité de risque');
     expect(html).not.toContain('probabilite de risque');
     expect(html).not.toContain('probability of risk');
+  });
+
+  it('qualifie l indice de risque quand AUCUN niveau n est enregistre sur le perimetre', () => {
+    // Sans niveau enregistre, le moteur retient un niveau actuel de 0 : tous
+    // les ecarts passent au maximum et l indice grimpe mecaniquement. Un
+    // enseignant jamais evalue apparaissait donc CRITIQUE sans reserve.
+    setup();
+    mocks.useTeacherRisk.mockReturnValue({
+      isLoading: false,
+      data: { score: 0.89, score_percent: 89, niveau: 'CRITIQUE', level_label: 'Critique' },
+    });
+    mocks.useTeacherScopeAnalysis.mockReturnValue({
+      isLoading: false,
+      data: { ...scopeBase, niveaux_sur_scope: 0 },
+    });
+    render(<AnalyticsTeacherPage />, { wrapper });
+
+    expect(screen.getByText(/non significatif — aucun niveau enregistré/i)).toBeInTheDocument();
+    expect(screen.getByText(/tous les écarts sont au maximum par défaut/i)).toBeInTheDocument();
+    // Le chiffre reste affiche : on qualifie, on ne masque pas.
+    expect(screen.getAllByText(/89/).length).toBeGreaterThan(0);
+  });
+
+  it('ne qualifie PAS l indice quand des niveaux existent sur le perimetre', () => {
+    setup();
+    mocks.useTeacherRisk.mockReturnValue({
+      isLoading: false,
+      data: { score: 0.89, score_percent: 89, niveau: 'CRITIQUE', level_label: 'Critique' },
+    });
+    mocks.useTeacherScopeAnalysis.mockReturnValue({
+      isLoading: false,
+      data: { ...scopeBase, niveaux_sur_scope: 7 },
+    });
+    render(<AnalyticsTeacherPage />, { wrapper });
+
+    expect(screen.queryByText(/non significatif — aucun niveau enregistré/i)).toBeNull();
+  });
+
+  it('gouvernance : en repli heuristique, la raison reste consultable dans l onglet Modeles', () => {
+    // L alerte qui repetait cette raison sur la vue principale a ete retiree :
+    // elle affichait un texte technique brut deja present ici. La garantie de
+    // tracabilite (« en cas de repli, sa raison ») repose donc desormais sur
+    // cet onglet et sur le badge « Moteur du risque » en entete.
+    setup();
+    mocks.useTeacherRisk.mockReturnValue({
+      isLoading: false,
+      data: {
+        enseignant_id: 'T1',
+        enseignant_nom: 'Nom Test',
+        score: 0.89,
+        score_percent: 89,
+        niveau: 'CRITIQUE',
+        level_label: 'Critique',
+        facteurs: [],
+        tendance: 'STABLE',
+        precedent_score: null,
+        computed_at: new Date().toISOString(),
+        mode: 'HEURISTIC',
+        model_mode: 'HEURISTIC_FALLBACK',
+        fallback_reason: 'modele de risque non deploye : decision=reject',
+      },
+    });
+    render(<AnalyticsTeacherPage />, { wrapper });
+
+    // L alerte supprimee de la vue principale n est plus rendue. On vise son
+    // titre exact : l expression « repli fail-closed » subsiste legitimement
+    // dans l onglet Modeles, qui est rendu en permanence (forceRender).
+    expect(screen.queryByText("Score servi par l'heuristique (repli fail-closed)")).toBeNull();
+
+    // Mais il reste accessible, avec son libelle, dans l onglet Modeles.
+    screen.getByText('Modèles').click();
+    expect(screen.getByText(/Raison du repli/)).toBeInTheDocument();
+    expect(screen.getAllByText(/decision=reject/).length).toBeGreaterThanOrEqual(1);
   });
 });

@@ -57,6 +57,12 @@ class RecommendationOut(BaseModel):
     rank_score: float
     reason: str
     matched_savoirs: list[str]
+    # Justification explicite (audit d'autorité 2026-09-22, §3.3) : le statut et
+    # le libellé accompagnent TOUJOURS la recommandation — une recommandation non
+    # justifiée ne doit jamais être indiscernable d'une recommandation justifiée.
+    justification_status: str | None = None
+    justification_label: str | None = None
+    justified: bool = False
 
 
 class AnalysisOut(BaseModel):

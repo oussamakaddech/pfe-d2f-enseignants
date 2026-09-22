@@ -1,7 +1,7 @@
-﻿"""Tests ciblÃ©s â€” ComputeRisk.execute_serving (branches ML) et execute_legacy.
+"""Tests ciblés — ComputeRisk.execute_serving (branches ML) et execute_legacy.
 
-Couvre : serving ML avec rÃ©fÃ©rence heuristique (et Ã©chec de rÃ©fÃ©rence), repli
-rÃ¨gles sur les gaps, repli heuristique comportementale, execute_legacy
+Couvre : serving ML avec référence heuristique (et échec de référence), repli
+règles sur les gaps, repli heuristique comportementale, execute_legacy
 (moteur ml / rules), _stagnation_months (None / date invalide).
 """
 from __future__ import annotations
@@ -33,7 +33,7 @@ def _profile(teacher_id: str = "ens-001") -> RiskProfile:
 
 
 class MlServingModelPort(FakeModelPort):
-    """Port ML qui sert un profil calibrÃ© (payload ML non nul)."""
+    """Port ML qui sert un profil calibré (payload ML non nul)."""
 
     def predict_risk_serving(self, teacher_id: str):
         return _profile(teacher_id), {"data_origin": "SIMULATED"}, None
@@ -43,14 +43,14 @@ class MlServingModelPort(FakeModelPort):
 
 
 class MlServingNoReferenceModelPort(MlServingModelPort):
-    """Port ML servant un profil mais dont la rÃ©fÃ©rence heuristique Ã©choue."""
+    """Port ML servant un profil mais dont la référence heuristique échoue."""
 
     def heuristic_risk_reference(self, teacher_id: str) -> RiskProfile:
         raise RuntimeError("reference indisponible")
 
 
 class RulesFallbackModelPort(FakeModelPort):
-    """Port ML : serving Ã©choue, repli rÃ¨gles sur les gaps."""
+    """Port ML : serving échoue, repli règles sur les gaps."""
 
     def predict_risk_serving(self, teacher_id: str):
         return None, None, "risk ML indisponible"
@@ -60,7 +60,7 @@ class RulesFallbackModelPort(FakeModelPort):
 
 
 class HeuristicOnlyModelPort(FakeModelPort):
-    """Port ML : aucun modÃ¨le â€” repli heuristique comportementale."""
+    """Port ML : aucun modèle — repli heuristique comportementale."""
 
     def predict_risk_serving(self, teacher_id: str):
         return None, None, "risk ML indisponible"
@@ -128,7 +128,7 @@ def test_execute_serving_ml_mode_reference_fails():
 
 
 def test_execute_serving_replis_regles_puis_heuristique():
-    # 1. Repli rÃ¨gles sur les gaps
+    # 1. Repli règles sur les gaps
     use_case, _ = _compute_risk(RulesFallbackModelPort())
     profile, mode, _, _, serving = use_case.execute_serving("ens-001")
     assert mode == "HEURISTIC"
@@ -196,10 +196,10 @@ def test_stagnation_months_date_valide():
 
 def test_has_decline_et_heuristique():
     use_case, _ = _compute_risk(FakeModelPort())
-    # RÃ©gression : premier niveau 4, dernier 2
+    # Régression : premier niveau 4, dernier 2
     history = {101: [("2026-01-31", 4), ("2026-02-28", 2)]}
     assert use_case._has_decline(history) is True
-    # Progression : pas de rÃ©gression
+    # Progression : pas de régression
     history_ok = {101: [("2026-01-31", 2), ("2026-02-28", 4)]}
     assert use_case._has_decline(history_ok) is False
     # Historique trop court

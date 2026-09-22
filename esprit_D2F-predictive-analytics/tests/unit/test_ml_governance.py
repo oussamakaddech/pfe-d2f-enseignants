@@ -115,18 +115,49 @@ def test_no_teacher_leak_in_feature_bundle():
 # 2. Conservation du ranking heuristique
 # ---------------------------------------------------------------------------
 def test_ranking_heuristic_preserved():
-    """Le classement des formations reste 0.70*contenu + 0.20*qualité + 0.10*fraîcheur."""
+    """Le classement des formations reste 0.70*contenu + 0.20*qualité + 0.10*fraîcheur.
+
+    Verification par le COMPORTEMENT et non par le texte source : les poids sont
+    desormais externalises (CDC DSI 1.1), mais le parametrage par defaut doit
+    rester strictement identique a l'historique.
+    """
+    from datetime import date
+
+    from app.domain.entities.competency import Competency, Savoir
+    from app.domain.entities.teacher_competency_state import TeacherCompetencyState
     from app.domain.services import ranking_service
+    from app.domain.services.ranking_service import RankingWeights, TrainingCandidate, rank_score
 
     assert ranking_service.WEIGHT_CONTENT == 0.70
     assert ranking_service.WEIGHT_QUALITY == 0.20
     assert ranking_service.WEIGHT_RECENCY == 0.10
+    defaults = RankingWeights()
+    assert (defaults.content, defaults.quality, defaults.recency) == (0.70, 0.20, 0.10)
 
-    import inspect
-    source = inspect.getsource(ranking_service.rank_score)
-    assert "WEIGHT_CONTENT" in source
-    assert "WEIGHT_QUALITY" in source
-    assert "WEIGHT_RECENCY" in source
+    competency = Competency(
+        id=1, code="C1", nom="C", domaine_id=None, domaine_nom=None,
+        savoirs=(Savoir(id=1, code="S1", nom="s1", knowledge_difficulty_level=4),),
+    )
+    state = TeacherCompetencyState(
+        teacher_id="T", competency=competency, observed_result=1.0,
+        previous_observed_result=None, savoir_levels={1: 1},
+    )
+    today = date(2026, 1, 1)
+
+    def candidate(savoir_ids, avg_eval, end_date=None):
+        return TrainingCandidate(
+            formation_id=1, titre="f", savoir_ids=frozenset(savoir_ids),
+            start_date=None, end_date=end_date, avg_eval_score=avg_eval,
+        )
+
+    # contenu=1.0 | qualite=1.0 (5/5) | recence=1.0 (a venir) -> 0.70+0.20+0.10
+    assert rank_score(candidate({1}, 5.0), state, today) == pytest.approx(1.00)
+    # contenu=0.0 (aucun savoir manquant couvert) -> 0.20+0.10
+    assert rank_score(candidate({999}, 5.0), state, today) == pytest.approx(0.30)
+    # qualite=0.0 (note 0/5) -> 0.70+0.10
+    assert rank_score(candidate({1}, 0.0), state, today) == pytest.approx(0.80)
+    # recence=0.0 (terminee il y a un an) -> 0.70+0.20
+    assert rank_score(candidate({1}, 5.0, date(2025, 1, 1)), state, today) == pytest.approx(0.90)
 
 
 # ---------------------------------------------------------------------------
@@ -539,3 +570,85 @@ def test_register_model_institutional_record_requires_attestation(tmp_path, monk
         attestation_dsi="ATT-DSI-2027-001",
     )
     assert entry3["data_origin"] == "INSTITUTIONAL_RECORD"
+
+
+def test_provenance_distingue_synthetique_et_extrapole():
+    """Une ligne REELLE peut porter une cible EXTRAPOLEE.
+
+    Le corpus reel servi est 100 % reel (synthetic_share_pct = 0) mais 100 %
+    extrapole : aucune cible n'a ete re-observee a M+3. Sans cette metrique, la
+    meta de l'API n'expose que "0 % synthetique", ce qui laisse croire a des
+    observations terrain (CDC DSI 4.2 - tracabilite de la release IA).
+    """
+    import pandas as pd
+
+    from app.infrastructure.ml.dataset_provenance import compute_provenance
+
+    df = pd.DataFrame(
+        {
+            "source_type": ["DB"] * 4,
+            "source_id": ["1", "2", "3", "4"],
+            "is_synthetic": [False, False, False, False],
+            "created_at": ["2026-01-01"] * 4,
+            "dataset_version": ["v1"] * 4,
+            "is_extrapolated": [True, True, True, False],
+            "gap_next_3m": [1.0, 2.0, 3.0, 0.0],
+        }
+    )
+    report = compute_provenance(df, dataset_version="v1")
+
+    assert report.synthetic_share_pct == 0.0      # aucune ligne fabriquee
+    assert report.real_rows == 4
+    assert report.extrapolated_rows == 3          # mais 3 cibles non observees
+    assert report.observed_target_rows == 1
+    assert report.extrapolated_share_pct == 75.0
+    assert report.to_dict()["extrapolated_share_pct"] == 75.0
+
+
+def test_provenance_signale_absence_colonne_extrapolation():
+    """Colonne absente : angle mort signale, jamais presume observe."""
+    import pandas as pd
+
+    from app.infrastructure.ml.dataset_provenance import compute_provenance
+
+    df = pd.DataFrame(
+        {
+            "source_type": ["DB"],
+            "source_id": ["1"],
+            "is_synthetic": [False],
+            "created_at": ["2026-01-01"],
+            "dataset_version": ["v1"],
+            "gap_next_3m": [1.0],
+        }
+    )
+    report = compute_provenance(df, dataset_version="v1")
+    assert report.extrapolated_rows == 0
+    assert any("is_extrapolated" in e for e in report.errors)
+
+
+def test_legacy_predictor_lit_les_metadonnees_de_son_artefact():
+    """Les metriques exposees doivent appartenir au modele REELLEMENT charge.
+
+    Le predictor legacy lisait "training_metadata.json" en dur, qui decrit un
+    modele obsolete (gradient_boosting, 21 features, test_r2 = 1.0 sur 80
+    echantillons) alors que GAP_MODEL_FILE sert gap_predictor_temporal.joblib
+    (29 features). get_metrics() annoncait donc un R2 parfait n'appartenant pas
+    au modele servi (CDC DSI 4.2 tracabilite / 4.6 suivi des metriques).
+    """
+    import joblib
+
+    from app.main import app  # installe les alias app.* -> app_legacy.*  # noqa: F401
+    import app_legacy.ml.gap_predictor as gp
+
+    if not Path(gp.MODEL_PATH).exists():
+        pytest.skip("artefact gap predictor absent de cet environnement")
+
+    predictor = gp.GapPredictor()
+    artefact_features = getattr(joblib.load(gp.MODEL_PATH), "n_features_in_", None)
+
+    assert artefact_features is not None
+    # Les metadonnees chargees decrivent bien l'artefact servi.
+    assert predictor.n_features == artefact_features
+    assert len(predictor.feature_ranges) == artefact_features
+    # Et le R2 expose n'est plus le 1.0 du modele obsolete.
+    assert predictor.last_metrics.get("test_r2") != 1.0

@@ -1,12 +1,24 @@
 """Canonical teacher ID policy enforcement.
 
-ENS-only format rule:
-  - Canonical: ``ENS`` + 3-6 digits (e.g. ENS001, ENS042) or ``ENS_`` +
-    alphanumeric suffix for seeded/special teachers (e.g. ENS_T01, ENS_GC1)
-  - Legacy:    ``T``   + 3 digits (e.g. T001, T042) — REJECTED on new endpoints
+Deux formats canoniques coexistent, pour deux origines distinctes :
+  - ``ENS`` + 3-6 chiffres (ENS001, ENS042), ou ``ENS_`` + suffixe
+    alphanumerique (ENS_T01, ENS_GC1) : identifiants issus des migrations
+    de peuplement du referentiel.
+  - ``E`` + 5 chiffres (E00004, E00007) : identifiants generes par
+    l'application elle-meme. Le service formation les fabrique dans
+    EnseignantServiceImpl.nextAvailableEnseignantId() via
+    String.format("E%05d", next). Tout enseignant cree depuis l'interface
+    porte donc ce format.
 
-The ``teacher_id_mapping`` table provides the T→ENS bridge for the
-compatibility adapter (/api/v1/compat/teacher/{legacyId}).
+Format historique rejete :
+  - ``T`` + 3 a 6 chiffres (T001, T042) — refuse sur les nouveaux endpoints.
+
+La table ``teacher_id_mapping`` fournit la passerelle T -> ENS pour
+l'adaptateur de compatibilite (/api/v1/compat/teacher/{legacyId}).
+
+NOTE : le format ``E#####`` etait auparavant absent de cette politique. Les
+enseignants crees par l'application etaient donc refuses en 400 sur les routes
+qui l'appliquent, alors que toutes les autres routes les servaient normalement.
 """
 
 from __future__ import annotations
@@ -19,12 +31,19 @@ from app.core.observability import dsi_error_body
 
 # Regexes — compiled once at import time.
 _CANONICAL_ENS_RE = re.compile(r"^ENS(?:\d{3,6}|_[A-Z0-9]{1,10})$")
+# Identifiants generes par l'application (String.format("E%05d", n)).
+_CANONICAL_E_RE = re.compile(r"^E\d{5}$")
 _LEGACY_T_RE = re.compile(r"^T\d{3,6}$")
 
 
 def is_canonical_ens(teacher_id: str) -> bool:
-    """Return True if *teacher_id* matches the canonical ENS format."""
-    return bool(_CANONICAL_ENS_RE.match(teacher_id.strip().upper()))
+    """Vrai si *teacher_id* est dans l'un des deux formats canoniques.
+
+    ``ENS...`` (peuplement du referentiel) ou ``E#####`` (genere par
+    l'application). Le format historique ``T###`` reste exclu.
+    """
+    normalise = teacher_id.strip().upper()
+    return bool(_CANONICAL_ENS_RE.match(normalise) or _CANONICAL_E_RE.match(normalise))
 
 
 def is_legacy_t(teacher_id: str) -> bool:

@@ -14,6 +14,13 @@ Validité de la cible (gouvernance 7.6) :
 - ``REAL_VALIDATED_TARGET`` : la cible provient de re-mesures réelles
   (target_observation_date). Promotion possible SEULEMENT si
   real_future_observation_count >= 30 ET distinct_observation_months >= 3.
+
+Exception de gouvernance (decision projet du 2026-09-22) : la regle « aucune
+promotion sur un avantage non significatif » (§2.6 de l'audit d'autorite) reste
+en place, mais une version peut en etre explicitement ECARTEE via
+``declare_override`` — acteur, date et justification sont alors enregistres dans
+l'entree, et ``enforce_governance_ic95`` respecte cette declaration (maintien
+ACTIVE journalise, pas de retrogravation silencieuse).
 """
 from __future__ import annotations
 
@@ -83,6 +90,20 @@ class RegistryEntry:
     # accompagnant les donnees institutionnelles. Aucune attestation existe
     # aujourd'hui — une promotion REAL_VALIDATED sans attestation est refusee.
     attestation_dsi: str | None = None
+    # Gouvernance IC95 (audit d'autorite 2026-09-22, §2.6) : resultat REEL du
+    # test de significativite du gain du modele (bootstrap de la difference de
+    # RMSE contre le modele de reference / la baseline honnete, sur le corpus
+    # de production). ``None`` = non declare (entrees anterieures a la regle) ;
+    # ``False`` = l'IC95 inclut 0 => promotion AUTOMATIQUEMENT refusee.
+    lift_significant_95: bool | None = None
+    lift_rmse_ci95: list[float] | None = None
+    # Exception de gouvernance TRACEE (decision projet du 2026-09-22). La mesure
+    # reste honnete (lift_significant_95=false) ; l'override est NOMINE, DATE et
+    # JUSTIFIE, et reste visible dans le registre. Aucun override silencieux.
+    override_decision: bool = False
+    override_actor: str | None = None
+    override_date: str | None = None
+    override_justification: str | None = None
 
     # Sérialise l'entrée du registre en dictionnaire (pour écriture JSON).
     def to_dict(self) -> dict[str, Any]:
@@ -198,6 +219,8 @@ class ModelRegistry:
 
         Un nouvel artefact ne doit etre promu ACTIVE/APPROVED que si :
         - son empreinte SHA-256 est une chaine hexadecimale de 64 caracteres ;
+        - le gain declare est SIGNIFICATIF (IC95 excluant 0, §2.6 du rapport
+          d'autorite 2026-09-22) quand le resultat du test est renseigne ;
         - ses metriques sont finies et non negatives (quand presentes) ;
         - son schema de features est compatible avec le code (gap_predictor_temporal :
           liste canonique + version de schema ; autres modeles : structural checks).
@@ -207,6 +230,9 @@ class ModelRegistry:
         sha = (entry.artifact_sha256 or "").strip()
         if len(sha) != 64 or any(c not in "0123456789abcdefABCDEF" for c in sha):
             return f"empreinte SHA-256 invalide ({(sha[:16] or 'vide')}...) : promotion refusee"
+        significance_error = self.significance_promotion_error(entry)
+        if significance_error:
+            return significance_error
         for name, value in (entry.metrics or {}).items():
             if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value) or value < 0:
                 return f"metrique invalide ({name}={value}) : promotion refusee"
@@ -220,6 +246,48 @@ class ModelRegistry:
                 return (
                     f"version de schema features incompatible : registre={entry.feature_schema_version}, "
                     f"code={FEATURE_SCHEMA_VERSION} : promotion refusee"
+                )
+        return None
+
+    # Gouvernance IC95 (audit d'autorite 2026-09-22, §2.6) : le projet s'est dote
+    # d'une regle explicite — aucune promotion sur un avantage numerique non
+    # significatif (IC95 de la difference de RMSE incluant 0). Cette regle etait
+    # appliquee a la main, donc contournable : le GB `v1.2.0-gb` a ete promu par
+    # override alors que sa propre mesure disait `significant: false`, tandis
+    # qu'un gain comparable (XGBoost `v1.2.0`) avait ete refuse. Elle est
+    # desormais AUTOMATIQUE : une entree qui DECLARE sa non-significativite ne
+    # peut plus etre promue, quelle que soit la volonte de l'operateur.
+    # Absence des champs = pas de refus (compatibilite avec les entrees
+    # anterieures a la regle, qui ne portaient pas le resultat du test).
+    def significance_promotion_error(self, entry: RegistryEntry) -> str | None:
+        """Raison de refus pour gain non significatif (None si significatif/non declare).
+
+        Exception de gouvernance TRACEE (decision projet du 2026-09-22) : une entree
+        portant ``override_decision=True`` est promouvable — la regle n'est pas
+        supprimee, elle est explicitement ecartee pour cette version, avec acteur,
+        date et justification enregistres (jamais silencieux, jamais implicite).
+        """
+        if entry.override_decision:
+            return None
+        if entry.lift_significant_95 is False:
+            ci = entry.lift_rmse_ci95
+            detail = ""
+            if isinstance(ci, (list, tuple)) and len(ci) == 2:
+                detail = f" IC95 delta RMSE [{float(ci[0]):+.4f}, {float(ci[1]):+.4f}]."
+            return (
+                "gain non significatif (lift_significant_95=false) : promotion refusee"
+                " — regle « aucune promotion sur un avantage non significatif »." + detail
+            )
+        ci = entry.lift_rmse_ci95
+        if isinstance(ci, (list, tuple)) and len(ci) == 2:
+            try:
+                low, high = float(ci[0]), float(ci[1])
+            except (TypeError, ValueError):
+                return None
+            if low <= 0 <= high:
+                return (
+                    f"gain non significatif (IC95 delta RMSE [{low:+.4f}, {high:+.4f}] inclut 0) : "
+                    "promotion refusee — regle « aucune promotion sur un avantage non significatif »."
                 )
         return None
 
@@ -293,6 +361,28 @@ class ModelRegistry:
         self.register(entry)
         approved = self.approve(entry.model_version, actor)
         return approved or entry
+
+    def declare_override(self, model_version: str, actor: str, justification: str) -> RegistryEntry | None:
+        """Déclare une exception de gouvernance TRACÉE pour une version.
+
+        Décision projet explicite (jamais implicite) : l'entrée conserve sa mesure
+        honnête (``lift_significant_95=false``) mais devient promouvable ; l'override
+        est nommé (acteur), daté et justifié, et reste visible dans le registre.
+        Utilisé par ``pipelines/promote_gb_override.py`` (décision 2026-09-22).
+        """
+        entries = self._load()
+        target = next((e for e in entries if e.model_version == model_version), None)
+        if target is None:
+            return None
+        target.override_decision = True
+        target.override_actor = actor
+        target.override_date = datetime.now(timezone.utc).isoformat()
+        target.override_justification = justification
+        target.notes = (target.notes + " | " if target.notes else "") + (
+            f"OVERRIDE DECLARE ({actor}, {target.override_date[:10]}) : {justification}"
+        )
+        self._save(entries)
+        return target
 
     def requires_demo(self, entry: RegistryEntry | None) -> bool:
         """True si le modèle est disponible mais doit être présenté en DEMO_ML

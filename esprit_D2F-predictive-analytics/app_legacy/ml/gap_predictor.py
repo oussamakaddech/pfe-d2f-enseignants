@@ -48,7 +48,26 @@ from app.ml.feature_engineering import (
 logger = logging.getLogger(__name__)
 
 MODEL_PATH = os.path.join(settings.models_dir, settings.gap_model_file)
-TRAINING_METADATA_FILE = "training_metadata.json"
+# Métadonnées APPARIÉES à l'artefact réellement chargé.
+#
+# Auparavant figé sur "training_metadata.json", qui décrit un modèle obsolète
+# (gradient_boosting, 21 features, test_r2=1.0 sur 80 échantillons) alors que
+# GAP_MODEL_FILE sert gap_predictor_temporal.joblib (29 features). Le predictor
+# exposait donc via get_metrics() un R² de 1.0 n'appartenant pas au modèle
+# chargé, et alimentait apply_normalization() avec des plages de features d'un
+# autre modèle.
+#
+# Le nom se déduit désormais de l'artefact, avec repli sur l'ancien fichier
+# pour rester compatible avec un déploiement qui sert encore gap_predictor.joblib.
+def _metadata_file_for(model_file: str) -> str:
+    stem = os.path.splitext(os.path.basename(model_file))[0]
+    candidate = "temporal_training_metadata.json" if "temporal" in stem else "training_metadata.json"
+    if os.path.exists(os.path.join(settings.models_dir, candidate)):
+        return candidate
+    return "training_metadata.json"
+
+
+TRAINING_METADATA_FILE = _metadata_file_for(settings.gap_model_file)
 
 # DEPRECATED — these features include current_level and required_level
 # which cause target leakage when predicting the gap.

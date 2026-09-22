@@ -86,11 +86,14 @@ class ComputeGaps:
         today = date.today()
         gaps: list[SkillGap] = []
 
-        previous_levels = {sid: events[0][1] for sid, events in history.items() if events}
+        # Référence de tendance = PREMIER niveau daté connu pour chaque savoir
+        # (l'historique est trié par date_acquisition ASC). Prendre le dernier
+        # événement le rendrait égal au niveau courant, ce qui effacerait toute
+        # régression réellement enregistrée.
+        reference_levels = {sid: events[0][1] for sid, events in history.items() if events}
 
         for competency in competencies:
             current_level = self._average_current_level(competency, levels)
-            previous_level = self._average_current_level(competency, previous_levels)
             gap_score, severity = compute_gap(
                 current_level,
                 float(competency.target_level),
@@ -98,7 +101,7 @@ class ComputeGaps:
                 self._settings.seuil_gap_haute,
                 self._settings.seuil_gap_moyenne,
             )
-            trend = trend_from_levels(current_level, previous_level)
+            trend = self._trend_for(competency, levels, reference_levels)
             gaps.append(
                 SkillGap(
                     teacher_id=teacher_id,
@@ -126,3 +129,29 @@ class ComputeGaps:
         if not any(values):
             return 0.0
         return sum(values) / len(ids)
+
+    @staticmethod
+    def _trend_for(
+        competency,
+        current_levels: dict[int, int],
+        reference_levels: dict[int, int],
+    ) -> Trend:
+        """Tendance calculée à périmètre STRICTEMENT identique des deux côtés.
+
+        On ne retient que les savoirs disposant d'une référence datée, et on
+        moyenne le niveau courant ET la référence sur ce même sous-ensemble.
+
+        Comparer une moyenne « 0 pour les savoirs non renseignés, divisée par
+        tous les savoirs » à une moyenne « calculée sur les seuls savoirs
+        connus » fabriquerait une tendance à partir d'un simple écart de
+        dénominateur : un enseignant partiellement évalué et parfaitement
+        stable apparaîtrait DECLINING.
+
+        Aucun savoir daté -> STABLE : on n'invente pas de tendance.
+        """
+        ids = [sid for sid in sorted(competency.savoir_ids()) if sid in reference_levels]
+        if not ids:
+            return Trend.STABLE
+        current = sum(current_levels.get(sid, 0) for sid in ids) / len(ids)
+        reference = sum(reference_levels[sid] for sid in ids) / len(ids)
+        return trend_from_levels(current, reference)
