@@ -20,8 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -92,7 +94,7 @@ class BesoinFormationMailNotifierTest {
     @DisplayName("Graph en échec : repli SMTP, aucune exception propagée")
     void graphEnEchecRepliSmtp() {
         when(mailSender.createMimeMessage()).thenReturn(new MimeMessage((jakarta.mail.Session) null));
-        org.mockito.Mockito.doThrow(new IllegalStateException("Graph HS"))
+        doThrow(new IllegalStateException("Graph HS"))
                 .when(graphSender).sendMail(anyString(), anyString(), anyString());
         BesoinFormationMailNotifier notifier = notifier(mailSender, graphSender, RECIPIENT, "smtp.office365.com");
 
@@ -167,7 +169,7 @@ class BesoinFormationMailNotifierTest {
         notifier.notifyD2FBesoinChanged(besoin(), "chef_departement", "modifié", "b@esprit.tn");
         notifier.notifyD2FBesoinChanged(besoin(), "ADMIN", "modifié", "c@esprit.tn");
 
-        verify(graphSender, org.mockito.Mockito.times(3))
+        verify(graphSender, times(3))
                 .sendMail(eq(RECIPIENT), anyString(), html.capture());
         assertTrue(html.getAllValues().get(0).contains("<strong>CUP</strong>"));
         assertTrue(html.getAllValues().get(1).contains("Chef de département"));

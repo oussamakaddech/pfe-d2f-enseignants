@@ -416,8 +416,11 @@ jobs:
 
           foreach ($project in $projects) {
             $key = $project.key
-            # Supprimer les doublons connus
-            if ($key -eq "d2f_formation" -or $key -eq "coded2f_formation" -or $key -eq "service-formation") {
+            # Supprimer les doublons connus. ATTENTION : "d2f_formation" est la
+            # cle LEGITIME du service formation (elle figure dans $projectsToKeep)
+            # — l'inclure ici la supprimait a chaque rafraichissement, si bien que
+            # le projet disparaissait du tableau de bord jusqu'a sa prochaine analyse.
+            if ($key -eq "coded2f_formation" -or $key -eq "service-formation") {
               Write-Host "  [DELETE] Doublon: $key" -ForegroundColor Red
               Invoke-WebRequest -Uri "$env:SONAR_HOST_URL/api/projects/delete?project=$key" -Method Post -Headers $headers -UseBasicParsing
             }

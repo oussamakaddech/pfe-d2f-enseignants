@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -96,7 +97,7 @@ class BesoinGraphMailSenderTest {
         sender.sendMail("d2f@esprit.tn", "sujet", "<p>1</p>");
         sender.sendMail("d2f@esprit.tn", "sujet", "<p>2</p>");
 
-        verify(sendMailRequest, org.mockito.Mockito.times(2)).post();
+        verify(sendMailRequest, times(2)).post();
     }
 
     @SuppressWarnings("unchecked")

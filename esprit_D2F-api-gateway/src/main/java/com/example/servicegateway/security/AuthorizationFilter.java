@@ -11,6 +11,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Gateway Authorization Filter
@@ -205,36 +206,38 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     }
 
     private List<String> getFormationRoles(String path, HttpMethod method) {
-        List<String> byPath = formationRolesByPath(path, method);
-        return byPath != null ? byPath : formationRolesByMethod(path, method);
+        return formationRolesByPath(path, method)
+                .orElseGet(() -> formationRolesByMethod(path, method));
     }
 
     /**
      * Regles attachees au CHEMIN, prioritaires sur la methode HTTP.
-     * {@code null} signifie « aucune regle de chemin » : la decision revient a
-     * {@link #formationRolesByMethod(String, HttpMethod)}.
+     * Un resultat vide signifie « aucune regle de chemin » : la decision revient
+     * a {@link #formationRolesByMethod(String, HttpMethod)}.
      */
-    private List<String> formationRolesByPath(String path, HttpMethod method) {
-        if (path.contains("/kpi")) return NO_FORMATEUR;
+    private Optional<List<String>> formationRolesByPath(String path, HttpMethod method) {
+        if (path.contains("/kpi")) return Optional.of(NO_FORMATEUR);
         // DSI §: la « gestion des dossiers de formations » (arborescence OneDrive)
         // est réservée à ADMIN + RESPONSABLE_DOSSIER — CUP/CHEF_DEPARTEMENT exclus.
-        if (path.contains("/onedrive")) return List.of(ROLE_ADMIN, ROLE_RESPONSABLE_DOSSIER);
+        if (path.contains("/onedrive")) return Optional.of(List.of(ROLE_ADMIN, ROLE_RESPONSABLE_DOSSIER));
         // DSI §: le calendrier des ateliers (consultation « Calendrier Global » et
         // gestion) est retiré du périmètre CUP / CHEF_DEPARTEMENT (parité
         // AuthorizationMatrix.CALENDAR_READ). Les écritures restent de toute façon
         // bloquées côté backend (REFERENTIEL_IMPORT = ADMIN).
         if (path.contains("/calendar"))
-            return List.of(ROLE_ADMIN, ROLE_ENSEIGNANT,
-                    ROLE_ANIMATEUR, ROLE_RESPONSABLE_DOSSIER);
+            return Optional.of(List.of(ROLE_ADMIN, ROLE_ENSEIGNANT,
+                    ROLE_ANIMATEUR, ROLE_RESPONSABLE_DOSSIER));
         // ── Documents de formation ────────────────────────────────────────────
         // DSI § : « gestion des dossiers de formations » réservée à ADMIN +
         // RESPONSABLE_DOSSIER — CUP/CHEF_DEPARTEMENT exclus (parité
         // AuthorizationMatrix.DOCUMENT_*). Les GET/DOWNLOAD restent FORMATION_READ.
         if (path.contains("/documents")) {
             // Parité AuthorizationMatrix.DOCUMENT_* (ni CUP ni CHEF_DEPARTEMENT).
-            return isWrite(method) ? List.of(ROLE_ADMIN, ROLE_RESPONSABLE_DOSSIER) : ALL_ROLES;
+            return Optional.of(isWrite(method)
+                    ? List.of(ROLE_ADMIN, ROLE_RESPONSABLE_DOSSIER)
+                    : ALL_ROLES);
         }
-        return null;
+        return Optional.empty();
     }
 
     /** Ecriture au sens des documents de formation (POST/PUT/PATCH/DELETE). */
