@@ -56,7 +56,6 @@ public class FormationWorkflowService {
     private final EmailAuditLogRepository emailAuditLogRepository;
     // Scoping CRUD CUP/chef (optionnel : null dans les tests unitaires qui
     // construisent le service manuellement — les contrôles sont alors sautés).
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
     private AnimatorScopeService animatorScopeService;
     private FormationWorkflowService self;
 
@@ -68,6 +67,16 @@ public class FormationWorkflowService {
     @org.springframework.beans.factory.annotation.Autowired
     public void setSelf(@Lazy FormationWorkflowService self) {
         this.self = self;
+    }
+
+    /**
+     * Périmètre CUP/chef, injecté par setter plutôt que par champ (S6813) :
+     * la dépendance reste optionnelle et les tests unitaires qui construisent
+     * le service à la main la laissent simplement nulle.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setAnimatorScopeService(AnimatorScopeService animatorScopeService) {
+        this.animatorScopeService = animatorScopeService;
     }
 
     public FormationWorkflowService(DocumentRepository documentRepository,
@@ -1707,7 +1716,8 @@ public class FormationWorkflowService {
             presence.setCommentaire(comment);
         }
         presence.setRecordedBy(user != null ? user.username() : null);
-        presence.setRecordedAt(LocalDateTime.now());
+        // Fuseau explicite (S8688) : identique au defaut implicite precedent.
+        presence.setRecordedAt(LocalDateTime.now(ZoneId.systemDefault()));
     }
 
     public List<MesPresenceDTO> getMesPresences(String email) {
