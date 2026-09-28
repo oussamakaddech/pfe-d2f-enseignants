@@ -26,13 +26,21 @@
         <spring-cloud.version>2025.0.3</spring-cloud.version> <!-- Ajout de la version Spring Cloud -->
     </properties>
 
-    <!-- Gestion des dépendances Spring Cloud -->
+    <!-- Gestion des dépendances Spring Cloud + Azure SDK (parité service formation) -->
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
                 <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Azure SDK BOM -->
+            <dependency>
+                <groupId>com.azure</groupId>
+                <artifactId>azure-sdk-bom</artifactId>
+                <version>1.2.16</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -112,10 +120,28 @@
             <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
 
-        <!-- Spring Boot Mail -->
+        <!-- Spring Boot Mail (repli si azure.ad.enabled=false) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
+        <!-- Microsoft Graph (parité service formation / besoin-formation) :
+             seul canal opérationnel, SMTP basic auth désactivé côté Office 365 -->
+        <dependency>
+            <groupId>com.microsoft.graph</groupId>
+            <artifactId>microsoft-graph</artifactId>
+            <version>5.77.0</version>
+        </dependency>
+
+        <!-- Azure Identity & Core - version gérée via BOM -->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-identity</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-core</artifactId>
         </dependency>
 
         <!-- Spring Boot Validation -->

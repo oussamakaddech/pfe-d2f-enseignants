@@ -37,6 +37,7 @@ const Forbidden403 = lazy(() => import('@/pages/error/Forbidden403'));
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
 const Login = lazy(() => import('@/pages/admin/gererComptes/Login'));
 const PasswordRecovery = lazy(() => import('@/pages/admin/gererComptes/PasswordRecovery'));
+const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'));
 const Profile = lazy(() => import('@/pages/auth/Profile'));
 const EditProfile = lazy(() => import('@/pages/auth/EditProfile'));
 const UpdatePassword = lazy(() => import('@/pages/admin/gererComptes/UpdatePassword'));
@@ -66,7 +67,6 @@ const AnalyticsDashboardPage = lazy(() => import('@/pages/analyse/AnalyticsDashb
 const HeatmapPage = lazy(() => import('@/pages/analyse/HeatmapPage'));
 const ModelMonitoringPage = lazy(() => import('@/pages/analyse/ModelMonitoringPage'));
 const ForecastPage = lazy(() => import('@/pages/analyse/ForecastPage'));
-const D2FOverviewPage = lazy(() => import('@/pages/analyse/D2FOverviewPage'));
 
 function PageSkeleton() {
   return (
@@ -106,6 +106,7 @@ export default function AppRoutes() {
               <Route path="/register" element={<Register />} />
               <Route path="/403" element={<Forbidden403 />} />
               <Route path="/password-recovery" element={<PasswordRecovery />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/profile" element={<Navigate to="/home/profile" replace />} />
 
               <Route element={<PrivateRoute />}>
@@ -268,8 +269,10 @@ export default function AppRoutes() {
                     <Route path="/home/analytics/benchmark" element={<PeerBenchmarkPage />} />
                     <Route path="/home/analytics/anomalies" element={<AnomalyDetectionPage />} />
                     <Route path="/home/analytics/pilotage" element={<ForecastPage />} />
-                    {/* D2F master view — source unique de vérité */}
-                    <Route path="/home/analytics/d2f" element={<D2FOverviewPage />} />
+                    {/* Ancienne vue « D2F master » : elle affichait des enseignants
+                        pseudonymisés lus dans des CSV figés du service (aucune donnée de
+                        la base, audit 2026-09-24). Redirigée vers le tableau de bord réel. */}
+                    <Route path="/home/analytics/d2f" element={<Navigate to="/home/analytics/dashboard" replace />} />
                   </Route>
 
                   <Route element={<RoleGuard allowedRoles={[ROLES.ENSEIGNANT, ROLES.ANIMATEUR]} />}>
@@ -281,16 +284,19 @@ export default function AppRoutes() {
                       <RoleGuard
                         allowedRoles={[
                           ROLES.ADMIN,
+                          ROLES.CUP,
                           ROLES.ENSEIGNANT,
                           ROLES.ANIMATEUR,
                           ROLES.RESPONSABLE_DOSSIER,
+                          ROLES.CHEF_DEPARTEMENT,
                         ]}
                       />
                     }
                   >
-                    {/* DSI §: le calendrier (consultation + gestion) est retiré
-                      du périmètre CUP / CHEF_DEPARTEMENT (parité gateway +
-                      AuthorizationMatrix.CALENDAR_READ). */}
+                    {/* Calendrier réouvert au CUP / CHEF_DEPARTEMENT (demande
+                      métier) : uniquement leurs formations d'inscription
+                      (parité gateway + AuthorizationMatrix.CALENDAR_READ,
+                      filtrage dans CalendrierPage). */}
                     <Route path="/home/Calendrier" element={<CalendrierPage />} />
                     <Route path="/home/calendar/:enseignantId" element={<CalendarEnseignant />} />
                   </Route>

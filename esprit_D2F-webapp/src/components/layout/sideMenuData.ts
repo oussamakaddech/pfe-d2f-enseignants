@@ -107,7 +107,9 @@ export const cupMenu: MenuItem[] = [
     label: 'FORMATIONS',
     children: [
       { label: 'Nouvelle Formation', key: '/home/Formation/Creer', icon: PlusCircleOutlined },
-      // DSI §: le calendrier (consultation + gestion) est retiré du périmètre CUP.
+      // Calendrier réouvert au CUP (demande métier) : uniquement les formations
+      // où il est inscrit (filtrage dans CalendrierPage).
+      { label: 'Calendrier Global', key: '/home/Calendrier', icon: CalendarOutlined },
       { label: 'Catalogue', key: '/home/Formation/Consulter', icon: AppstoreOutlined },
     ],
   },
@@ -141,7 +143,8 @@ export const cupMenu: MenuItem[] = [
 ];
 
 export const enseignantMenu: MenuItem[] = [
-  dashboardItem,
+  // Pas d'entrée « Tableau de bord » pour ce rôle (demande métier) : la page
+  // /home reste accessible par URL mais n'est plus exposée dans la navigation.
   { label: 'Mon espace', key: '/home/personal-dashboard', icon: HomeOutlined },
   {
     label: 'Besoins de Formation',
@@ -161,7 +164,8 @@ export const enseignantMenu: MenuItem[] = [
 ];
 
 export const animateurMenu: MenuItem[] = [
-  dashboardItem,
+  // Pas d'entrée « Tableau de bord » pour ce rôle (demande métier) : la page
+  // /home reste accessible par URL mais n'est plus exposée dans la navigation.
   { label: 'Mon espace', key: '/home/personal-dashboard', icon: HomeOutlined },
   { label: "Sessions d'Animation", key: '/home/animateur-formations', icon: ReadOutlined },
   { label: 'Calendrier Global', key: '/home/Calendrier', icon: CalendarOutlined },
@@ -195,7 +199,9 @@ export const chefDepartementMenu: MenuItem[] = [
     children: [
       // Parité FORMATION_CREATE = ADMIN, CUP, CHEF_DEPARTEMENT (AuthorizationMatrix).
       { label: 'Nouvelle Formation', key: '/home/Formation/Creer', icon: PlusCircleOutlined },
-      // DSI §: le calendrier (consultation + gestion) est retiré du périmètre chef.
+      // Calendrier réouvert au chef (demande métier) : uniquement les formations
+      // où il est inscrit (filtrage dans CalendrierPage).
+      { label: 'Calendrier Global', key: '/home/Calendrier', icon: CalendarOutlined },
       { label: 'Catalogue Formations', key: '/home/Formation/Consulter', icon: AppstoreOutlined },
     ],
   },

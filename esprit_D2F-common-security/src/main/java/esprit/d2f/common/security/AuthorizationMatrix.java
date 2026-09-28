@@ -69,11 +69,12 @@ public final class AuthorizationMatrix {
             "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_RESPONSABLE_DOSSIER','ROLE_ANIMATEUR','ROLE_ENSEIGNANT')";
 
     // ── Calendrier des ateliers ───────────────────────────────────────────
-    // DSI §: le calendrier (consultation « Calendrier Global » et gestion) est
-    // retire du perimetre CUP / CHEF_DEPARTEMENT. ADMIN, ENSEIGNANT,
-    // ANIMATEUR et RESPONSABLE_DOSSIER conservent l'acces.
+    // Calendrier Global rouvert au CUP / CHEF_DEPARTEMENT (demande metier) :
+    // consultation limitee a leurs formations d'inscription (filtrage
+    // applicatif dans CalendrierPage). La gestion reste ADMIN
+    // (REFERENTIEL_IMPORT).
     public static final String CALENDAR_READ =
-            "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT','ROLE_ANIMATEUR','ROLE_RESPONSABLE_DOSSIER')";
+            "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_ANIMATEUR','ROLE_RESPONSABLE_DOSSIER','ROLE_CHEF_DEPARTEMENT')";
 
     // ── Documents de formation ─────────────────────────────────────────
     // DSI § : la « gestion des dossiers de formations » (documents d'une

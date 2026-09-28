@@ -71,6 +71,11 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT
     );
 
+    /** Tableau de bord exécutif (/home hors espace personnel) : pilotage + responsable dossier. */
+    private static final List<String> EXECUTIVE_DASHBOARD_ROLES = List.of(
+        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER
+    );
+
     /** Admin + CUP + Enseignant + Chef de département + Animateur + D2F + Responsable dossier */
     private static final List<String> NO_FORMATEUR = List.of(
         ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_ANIMATEUR,
@@ -220,13 +225,14 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         // DSI §: la « gestion des dossiers de formations » (arborescence OneDrive)
         // est réservée à ADMIN + RESPONSABLE_DOSSIER — CUP/CHEF_DEPARTEMENT exclus.
         if (path.contains("/onedrive")) return Optional.of(List.of(ROLE_ADMIN, ROLE_RESPONSABLE_DOSSIER));
-        // DSI §: le calendrier des ateliers (consultation « Calendrier Global » et
-        // gestion) est retiré du périmètre CUP / CHEF_DEPARTEMENT (parité
-        // AuthorizationMatrix.CALENDAR_READ). Les écritures restent de toute façon
-        // bloquées côté backend (REFERENTIEL_IMPORT = ADMIN).
+        // Calendrier des ateliers réouvert au CUP / CHEF_DEPARTEMENT (demande
+        // métier) : consultation « Calendrier Global » limitée à leurs
+        // formations d'inscription (parité AuthorizationMatrix.CALENDAR_READ).
+        // Les écritures restent de toute façon bloquées côté backend
+        // (REFERENTIEL_IMPORT = ADMIN).
         if (path.contains("/calendar"))
-            return Optional.of(List.of(ROLE_ADMIN, ROLE_ENSEIGNANT,
-                    ROLE_ANIMATEUR, ROLE_RESPONSABLE_DOSSIER));
+            return Optional.of(List.of(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT,
+                    ROLE_ANIMATEUR, ROLE_RESPONSABLE_DOSSIER, ROLE_CHEF_DEPARTEMENT));
         // ── Documents de formation ────────────────────────────────────────────
         // DSI § : « gestion des dossiers de formations » réservée à ADMIN +
         // RESPONSABLE_DOSSIER — CUP/CHEF_DEPARTEMENT exclus (parité
@@ -237,6 +243,14 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
                     ? List.of(ROLE_ADMIN, ROLE_RESPONSABLE_DOSSIER)
                     : ALL_ROLES);
         }
+        // Annulation d'une demande d'inscription par son propriétaire
+        // (DELETE /inscription/inscriptions/{id}, parité
+        // AuthorizationMatrix.INSCRIPTION_CREATE) : l'anti-IDOR est appliqué
+        // côté backend (enseignantId comparé au JWT + propriétaire revérifié,
+        // PENDING uniquement). Les autres DELETE restent ADMIN/CUP/CHEF.
+        if (method == HttpMethod.DELETE && path.matches(".*/inscription/inscriptions/\\d+"))
+            return Optional.of(List.of(ROLE_CUP, ROLE_ENSEIGNANT,
+                    ROLE_ANIMATEUR, ROLE_CHEF_DEPARTEMENT));
         return Optional.empty();
     }
 
@@ -332,7 +346,17 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     private List<String> getAnalyseRoles(String path) {
         if (path.contains("/predict/train")) return ADMIN_ONLY;
         if (path.contains("/dashboard/") || path.contains("/detect/")) return ADMIN_CUP;
-        return NO_FORMATEUR;
+        // Agrégats non nominatifs affichés par le tableau de bord exécutif, que le
+        // responsable dossier voit aussi.
+        if (path.endsWith("/v1/analytics/formations-par-periode")
+                || path.endsWith("/v1/analytics/formations-par-up")) {
+            return EXECUTIVE_DASHBOARD_ROLES;
+        }
+        // Tout le reste est nominatif : écarts, risque, prévisions, recommandations
+        // et alertes d'un enseignant. Réservé au pilotage. Avant, NO_FORMATEUR
+        // laissait un enseignant lire les données d'un autre enseignant, et aucun
+        // écran enseignant ou animateur n'appelle l'API d'analyse.
+        return ADMIN_CUP;
     }
 
     /**

@@ -52,10 +52,11 @@ public class InscriptionService {
     /**
      * Appartenance au périmètre d'une formation : UP OU département.
      *
-     * <p>Spécification entreprise : un membre du personnel (CUP, enseignant,
-     * animateur, formateur, chef de département) peut s'inscrire à une
-     * formation si elle est ouverte à tous OU s'il appartient à son
-     * périmètre — l'UP de la formation OU son département.</p>
+     * <p>Spécification entreprise (périmètre STRICT) : un membre du personnel
+     * (CUP, enseignant, animateur, formateur, chef de département) ne voit et
+     * ne rejoint que les formations de son périmètre — l'UP de la formation
+     * OU son département. Le flag « ouverte à tous » n'ouvre plus le
+     * catalogue hors périmètre.</p>
      *
      * @return true si l'enseignant appartient au périmètre de la formation
      */
@@ -70,10 +71,10 @@ public class InscriptionService {
     }
 
     /**
-     * 1. Lister les formations accessibles pour un formateur
+     * 1. Lister les formations accessibles pour un formateur (périmètre STRICT)
      * - doit être visible (inscriptionsOuvertes == true)
-     * - et soit ouverte à tous (ouverte == true), soit dans son périmètre
-     *   (UP de la formation OU département de la formation)
+     * - et dans son périmètre (UP de la formation OU département de la
+     *   formation) — le flag « ouverte à tous » n'élargit plus le catalogue.
      */
     @Transactional
     public List<FormationResponseDTO> listerFormationsAccessibles(String enseignantId) {
@@ -84,18 +85,16 @@ public class InscriptionService {
 
         return formationRepo.findAll().stream()
                 .filter(Formation::isInscriptionsOuvertes) // visibles
-                .filter(f -> f.isOuverte() // ouvertes à tous
-                        || belongsToFormationScope(ens, f) // ou périmètre UP/département
-                )
+                .filter(f -> belongsToFormationScope(ens, f)) // périmètre UP/département strict
                 .map(formationMapper::toResponseDTO)
                 .toList();
     }
 
     /**
-     * 2. Créer une demande d’inscription
+     * 2. Créer une demande d’inscription (périmètre STRICT)
      * - vérifie d’abord la visibilité
-     * - puis si pas ouverte à tous, s’assure que l’enseignant appartient
-     *   au périmètre de la formation (UP OU département)
+     * - puis s’assure que l’enseignant appartient au périmètre de la
+     *   formation (UP OU département)
      */
     @Transactional
     public Inscription demanderInscription(Long formationId, String enseignantId) {
@@ -112,7 +111,7 @@ public class InscriptionService {
                 .or(() -> enseignantRepo.findByMailIgnoreCase(enseignantId))
                 .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable"));
 
-        if (!f.isOuverte() && !belongsToFormationScope(e, f)) {
+        if (!belongsToFormationScope(e, f)) {
             throw new IllegalStateException(
                     "Vous n’appartenez ni à l’UP ni au département de cette formation : "
                     + "inscription non autorisée.");
@@ -266,10 +265,15 @@ public class InscriptionService {
     public void annulerInscription(Long inscriptionId, String enseignantId) {
         Inscription ins = inscriptionRepo.findById(inscriptionId)
                 .orElseThrow(() -> new IllegalArgumentException("Demande introuvable"));
-        if (enseignantId != null
-                && ins.getEnseignant() != null
-                && !enseignantId.equalsIgnoreCase(ins.getEnseignant().getId())) {
-            throw new IllegalStateException("Vous n'êtes pas autorisé à annuler cette demande.");
+        String ownerId = ins.getEnseignant() != null ? ins.getEnseignant().getId() : null;
+        if (enseignantId != null && ownerId != null && !enseignantId.equalsIgnoreCase(ownerId)) {
+            // Le frontend envoie l'email OU le code fiche : un email qui
+            // désigne la fiche propriétaire est accepté (même personne).
+            String resolved = enseignantRepo.findByMailIgnoreCase(enseignantId)
+                    .map(Enseignant::getId).orElse(null);
+            if (resolved == null || !resolved.equalsIgnoreCase(ownerId)) {
+                throw new IllegalStateException("Vous n'êtes pas autorisé à annuler cette demande.");
+            }
         }
         if (ins.getEtat() != EtatInscription.PENDING) {
             throw new IllegalStateException("Seules les demandes en attente peuvent être annulées.");

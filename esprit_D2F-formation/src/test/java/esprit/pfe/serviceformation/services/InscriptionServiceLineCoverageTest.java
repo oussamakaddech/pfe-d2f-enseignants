@@ -185,14 +185,14 @@ class InscriptionServiceLineCoverageTest {
         }
 
         @Test
-        @DisplayName("enseignant with null UP")
+        @DisplayName("enseignant with null UP sees nothing (strict scope)")
         void enseignantNullUp() {
             enseignant.setUp(null);
             when(enseignantRepo.findById("ENS001")).thenReturn(Optional.of(enseignant));
             when(formationRepo.findAll()).thenReturn(new ArrayList<>(List.of(formation)));
 
             List<FormationResponseDTO> result = inscriptionService.listerFormationsAccessibles("ENS001");
-            assertThat(result).hasSize(1);
+            assertThat(result).isEmpty();
         }
 
         @Test
@@ -223,6 +223,8 @@ class InscriptionServiceLineCoverageTest {
             f2.setTitreFormation("F2");
             f2.setInscriptionsOuvertes(true);
             f2.setOuverte(true);
+            // Périmètre strict : même UP que l'enseignant, sinon exclue.
+            f2.setUp(up);
             f2.setSeances(new ArrayList<>());
 
             when(enseignantRepo.findById("ENS001")).thenReturn(Optional.of(enseignant));

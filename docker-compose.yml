@@ -239,6 +239,16 @@ services:
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USERNAME: ${MAIL_USERNAME}
       MAIL_PASSWORD: ${MAIL_PASSWORD}
+      # Microsoft Graph API (parité besoin-formation-service) : seul canal
+      # opérationnel, SMTP basic auth désactivé côté Office 365.
+      AZURE_AD_ENABLED: ${AZURE_AD_ENABLED:-false}
+      AZURE_AD_CLIENT_ID: ${AZURE_AD_CLIENT_ID:-}
+      AZURE_AD_CLIENT_SECRET: ${AZURE_AD_CLIENT_SECRET:-}
+      AZURE_AD_TENANT_ID: ${AZURE_AD_TENANT_ID:-}
+      AZURE_AD_GRAPH_SCOPE: ${AZURE_AD_GRAPH_SCOPE:-https://graph.microsoft.com/.default}
+      AZURE_AD_MAIL_USERNAME: ${AZURE_AD_MAIL_USERNAME:-Application.Formationdesformateurs@Esprit.tn}
+      # URL publique du frontend pour les liens directs (reset mot de passe).
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       APP_COOKIE_SECURE: "false"
       APP_COOKIE_SAMESITE: "Lax"
       APP_SECURITY_DEFAULT_ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
@@ -637,9 +647,10 @@ services:
       # l'activation (HEURISTIC_FALLBACK) et la demande de l'operateur ne peut
       # que BAISSER le mode, jamais l'elever.
       # GOUVERNANCE 2026-09-22 (audit d'autorite 2.6) : defaut de deploiement
-      # PRODUCTION_ML avec OVERRIDE DECLARE sur le GB v1.2.0-gb (decision projet
-      # tracee au registre : acteur, date, justification ; mesure non
-      # significative conservee). Retrait de l'override : repasser a HEURISTIC.
+      # PRODUCTION_ML avec OVERRIDE DECLARE sur le XGB v1.3.0-xgb (2026-09-27 :
+      # corpus corrige apres V16, 200 lignes reelles ; meilleur ML observe sans
+      # ecart significatif au GB, regle simple non battue, mesures conservees
+      # au registre). Retrait de l'override : repasser a HEURISTIC.
       ML_SERVING_MODE: ${ML_SERVING_MODE:-PRODUCTION_ML}
       ML_REQUIRE_REAL_DATA: ${ML_REQUIRE_REAL_DATA:-true}
       ML_SYNTHETIC_TOLERANCE_PCT: ${ML_SYNTHETIC_TOLERANCE_PCT:-50.0}
@@ -650,7 +661,7 @@ services:
       # Information de configuration de l'artefact monte. La version REELLEMENT
       # servie n'est jamais lue ici : elle vient de l'entree de registre
       # (audit d'autorite 2.4 — un ML_MODEL_VERSION errone induisait en erreur).
-      ML_MODEL_VERSION: ${ML_MODEL_VERSION:-v1.2.0-gb}
+      ML_MODEL_VERSION: ${ML_MODEL_VERSION:-v1.3.0-xgb}
       ML_ARTIFACT_PATH: ${ML_ARTIFACT_PATH:-gap_predictor_temporal.joblib}
       # Artefact du module legacy, ALIGNE sur ML_ARTIFACT_PATH. Absent, il
       # retombait sur le defaut `gap_predictor.joblib` : le conteneur servait
@@ -696,8 +707,9 @@ services:
         VITE_API_URL: ${VITE_API_URL:-/api}
         VITE_NOTIFICATION_URL: ${VITE_NOTIFICATION_URL:-/api}
         VITE_NOTIFICATIONS_WS_URL: ${VITE_NOTIFICATIONS_WS_URL:-}
-        # RICE direct navigateur (dev) ou via gateway /api (prod, défaut) :
-        # RiceService tombe sur API_BASE_URL si vide.
+        # RICE passe TOUJOURS par la gateway (/api → /api/rice/**) : le port
+        # 8001 n'est pas publié sur l'hôte et un appel direct contournerait le
+        # contrôle JWT. Vide = API_BASE_URL.
         VITE_RICE_URL: ${VITE_RICE_URL:-}
         VITE_FORMATION_SERVICE_URL: ${VITE_FORMATION_SERVICE_URL:-}
     container_name: d2f-webapp

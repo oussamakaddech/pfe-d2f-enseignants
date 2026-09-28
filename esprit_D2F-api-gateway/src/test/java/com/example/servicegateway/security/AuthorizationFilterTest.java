@@ -264,9 +264,18 @@ class AuthorizationFilterTest {
         "/api/analyse/detect/gaps, GET, D2F, true",
         "/api/analyse/summary, GET, CHEF_DEPARTEMENT, true",
         "/api/analyse/summary, GET, FORMATEUR, false",
-        "/api/analyse/any, GET, ENSEIGNANT, true",
-        "/api/analyse/any, GET, ANIMATEUR, true",
+        // Données nominatives d'analyse : pilotage uniquement (un enseignant ne
+        // lit pas les écarts/risques d'un autre enseignant).
+        "/api/analyse/any, GET, ENSEIGNANT, false",
+        "/api/analyse/any, GET, ANIMATEUR, false",
         "/api/analyse/any, GET, FORMATEUR, false",
+        "/api/analyse/v1/analytics/gaps/ENS015, GET, ENSEIGNANT, false",
+        "/api/analyse/v1/analytics/gaps/ENS015, GET, RESPONSABLE_DOSSIER, false",
+        "/api/analyse/v1/analytics/gaps/ENS015, GET, CHEF_DEPARTEMENT, true",
+        // Agrégats non nominatifs du tableau de bord exécutif.
+        "/api/analyse/v1/analytics/formations-par-up, GET, RESPONSABLE_DOSSIER, true",
+        "/api/analyse/v1/analytics/formations-par-periode, GET, RESPONSABLE_DOSSIER, true",
+        "/api/analyse/v1/analytics/formations-par-periode, GET, ENSEIGNANT, false",
         "/api/v1/analyse-predictive/overview, GET, ADMIN, true",
         "/api/v1/analyse-predictive/overview, GET, CUP, true",
         "/api/v1/analyse-predictive/overview, GET, ENSEIGNANT, false",
@@ -281,7 +290,21 @@ class AuthorizationFilterTest {
         "/api/formation/seances/1/presences, PUT, ANIMATEUR, true",
         "/api/formation/seances/1/presences, PATCH, ANIMATEUR, true",
         "/api/formation/seances/1/presences, PUT, D2F, false",
-        "/api/formation/seances/1/presence/2, PUT, ENSEIGNANT, true"
+        "/api/formation/seances/1/presence/2, PUT, ENSEIGNANT, true",
+        // Calendrier Global rouvert au CUP / CHEF_DEPARTEMENT (demande métier).
+        "/api/formation/calendar, GET, CUP, true",
+        "/api/formation/calendar, GET, CHEF_DEPARTEMENT, true",
+        "/api/formation/calendar, GET, ENSEIGNANT, true",
+        "/api/formation/calendar, GET, FORMATEUR, false",
+        // Annulation d'inscription par le propriétaire (INSCRIPTION_CREATE).
+        "/api/formation/inscription/inscriptions/47, DELETE, ENSEIGNANT, true",
+        "/api/formation/inscription/inscriptions/47, DELETE, ANIMATEUR, true",
+        "/api/formation/inscription/inscriptions/47, DELETE, CUP, true",
+        "/api/formation/inscription/inscriptions/47, DELETE, CHEF_DEPARTEMENT, true",
+        "/api/formation/inscription/inscriptions/47, DELETE, FORMATEUR, false",
+        // Les autres DELETE formation restent ADMIN/CUP/CHEF.
+        "/api/formation/any, DELETE, ENSEIGNANT, false",
+        "/api/formation/any, DELETE, ADMIN, true"
     })
     void testAuthorizationMatrix(String path, String method, String role, boolean expectedAllowed) {
         MockServerHttpRequest request = MockServerHttpRequest.method(HttpMethod.valueOf(method), path)

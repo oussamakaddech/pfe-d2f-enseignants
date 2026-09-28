@@ -62,6 +62,8 @@ class InscriptionServiceEnhancedTest {
 
     @Test
     void testListerFormationsAccessibles_WithNullUp() {
+        // Périmètre strict : un enseignant sans UP ni département ne voit
+        // aucune formation, même « ouverte à tous ».
         Enseignant ens = new Enseignant();
         ens.setId("E1");
         ens.setUp(null);
@@ -73,7 +75,7 @@ class InscriptionServiceEnhancedTest {
         when(formationRepo.findAll()).thenReturn(List.of(f1));
 
         List<FormationResponseDTO> result = service.listerFormationsAccessibles("E1");
-        assertEquals(1, result.size());
+        assertTrue(result.isEmpty());
     }
 
     @Test
@@ -125,7 +127,11 @@ class InscriptionServiceEnhancedTest {
 
     @Test
     void testDemanderInscription_WithOverlap() {
+        // Périmètre strict : enseignant et formation demandée partagent la même UP.
+        Up up = new Up();
+        up.setId("UP1");
         Formation f1 = createValidFormation(1L);
+        f1.setUp(up);
         f1.setDateDebut(LocalDate.of(2024, Month.JANUARY, 1));
         f1.setDateFin(LocalDate.of(2024, Month.JANUARY, 5));
 
@@ -137,6 +143,7 @@ class InscriptionServiceEnhancedTest {
 
         Enseignant e = new Enseignant();
         e.setId("E1");
+        e.setUp(up);
         when(enseignantRepo.findById(anyString())).thenReturn(Optional.of(e));
 
         Inscription existingInscription = new Inscription();
@@ -149,7 +156,11 @@ class InscriptionServiceEnhancedTest {
 
     @Test
     void testDemanderInscription_WithRejectedOverlap() {
+        // Périmètre strict : enseignant et formation demandée partagent la même UP.
+        Up up = new Up();
+        up.setId("UP1");
         Formation f1 = createValidFormation(1L);
+        f1.setUp(up);
         f1.setDateDebut(LocalDate.of(2024, Month.JANUARY, 1));
         f1.setDateFin(LocalDate.of(2024, Month.JANUARY, 5));
 
@@ -161,6 +172,7 @@ class InscriptionServiceEnhancedTest {
 
         Enseignant e = new Enseignant();
         e.setId("E1");
+        e.setUp(up);
         when(enseignantRepo.findById(anyString())).thenReturn(Optional.of(e));
 
         Inscription existingInscription = new Inscription();

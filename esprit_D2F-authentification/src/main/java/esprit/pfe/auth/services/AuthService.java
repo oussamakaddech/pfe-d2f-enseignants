@@ -85,6 +85,9 @@ public class AuthService {
     @Value("${app.mail.from:noreply@d2f.local}")
     private String mailFrom;
 
+    @Value("${app.frontend.base-url:http://localhost:3000}")
+    private String frontendBaseUrl;
+
     @Value("${app.admin.email:admin@d2f.local}")
     private String adminEmail;
 
@@ -184,11 +187,15 @@ public class AuthService {
             return;
         }
         final var key = UUID.randomUUID().toString();
+        String resetLink = frontendBaseUrl + "/reset-password?token=" + key;
         SimpleMailMessage simpleMailMessage = new SimpleMailMessage();
         simpleMailMessage.setTo(emailAddress);
-        simpleMailMessage.setSubject("Password reset");
+        simpleMailMessage.setSubject("Réinitialisation de votre mot de passe");
         simpleMailMessage.setFrom(mailFrom);
-        simpleMailMessage.setText("To change your password add this confirmation token: " + key);
+        simpleMailMessage.setText("Bonjour,\n\n"
+                + "Pour réinitialiser votre mot de passe, cliquez sur ce lien (valide 15 minutes) :\n"
+                + resetLink + "\n\n"
+                + "Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.");
         emailService.send(simpleMailMessage);
 
         PiiSafeLogger.info(AuthService.class, String.format(LOG_MESSAGE_RESET_REQUEST, emailAddress, ip));

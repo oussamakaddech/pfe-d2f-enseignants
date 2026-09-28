@@ -146,13 +146,14 @@ export default function CalendrierPage() {
   const [editedParticipants, setEditedParticipants] = useState('');
 
   // ── Scoping par rôle ─────────────────────────────────────────────
-  // ADMIN : vision globale (toutes les formations). Tous les autres
-  // rôles (sauf RESPONSABLE_DOSSIER, sans accès au calendrier) voient
-  // uniquement les formations auxquelles ils participent ou qu'ils
+  // ADMIN : vision globale (toutes les formations). CUP / CHEF_DEPARTEMENT :
+  // uniquement les formations où ils sont inscrits (asParticipant). Tous les
+  // autres rôles voient les formations auxquelles ils participent ou qu'ils
   // animent (backend /enseignants/{id}/calendar).
   const { data: profile } = useProfile();
   const role = normalizeRole(profile?.role);
   const isAdmin = role === 'admin';
+  const isInscritOnly = role === 'cup' || role === 'chefdepartement';
   const identifier = profile?.emailAddress || profile?.email || profile?.id;
   const { data: enseignantSelf } = useEnseignantById(!isAdmin ? identifier : undefined);
   const { data: myCalendar = { asAnimateur: [], asParticipant: [] }, isLoading: myLoading } =
@@ -168,20 +169,21 @@ export default function CalendrierPage() {
     refetch: refetchFormations,
   } = useAllFormations();
 
-  // ADMIN → toutes les formations ; autre rôle → animées + participées.
+  // ADMIN → toutes les formations ; CUP/chef → inscrites uniquement ;
+  // autre rôle → animées + participées.
   const scopedFormations = useMemo<Formation[]>(() => {
     if (isAdmin) return Array.isArray(formations) ? formations : [];
     const animateur = Array.isArray(myCalendar.asAnimateur) ? myCalendar.asAnimateur : [];
     const participant = Array.isArray(myCalendar.asParticipant) ? myCalendar.asParticipant : [];
     // Déduplique (une formation peut être animée ET participée).
     const seen = new Set<string>();
-    return [...animateur, ...participant].filter((f) => {
+    return [...(isInscritOnly ? [] : animateur), ...participant].filter((f) => {
       const key = String(f.idFormation);
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
-  }, [isAdmin, formations, myCalendar]);
+  }, [isAdmin, isInscritOnly, formations, myCalendar]);
 
   const isLoading = isAdmin ? allLoading : myLoading;
 

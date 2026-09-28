@@ -282,6 +282,37 @@ class InscriptionServiceExtraTest {
         }
 
         @Test
+        @DisplayName("supprime quand l'email du propriétaire est fourni (frontend envoie email ou code)")
+        void shouldCancelWhenOwnerEmailProvided() {
+            Formation f = createFormation(1L, true, true);
+            Enseignant e = createEnseignant("E1", null);
+            Inscription ins = createInscription(10L, f, e, EtatInscription.PENDING);
+
+            when(inscriptionRepo.findById(10L)).thenReturn(Optional.of(ins));
+            when(enseignantRepo.findByMailIgnoreCase("E1@esprit.tn")).thenReturn(Optional.of(e));
+
+            service.annulerInscription(10L, "E1@esprit.tn");
+
+            verify(inscriptionRepo).delete(ins);
+        }
+
+        @Test
+        @DisplayName("refuse si l'email fourni ne correspond à aucune fiche du propriétaire")
+        void shouldThrowWhenEmailDoesNotMatchOwner() {
+            Formation f = createFormation(1L, true, true);
+            Enseignant e = createEnseignant("E1", null);
+            Enseignant other = createEnseignant("E2", null);
+            Inscription ins = createInscription(10L, f, e, EtatInscription.PENDING);
+
+            when(inscriptionRepo.findById(10L)).thenReturn(Optional.of(ins));
+            when(enseignantRepo.findByMailIgnoreCase("E2@esprit.tn")).thenReturn(Optional.of(other));
+
+            assertThatThrownBy(() -> service.annulerInscription(10L, "E2@esprit.tn"))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("pas autorisé");
+        }
+
+        @Test
         @DisplayName("refuse si l'état n'est pas PENDING")
         void shouldThrowWhenNotPending() {
             Formation f = createFormation(1L, true, true);
@@ -340,8 +371,11 @@ class InscriptionServiceExtraTest {
         @Test
         @DisplayName("retourne le DTO correspondant à l'inscription créée")
         void shouldReturnMappedDTO() {
-            Formation f = createFormation(1L, true, true);
-            Enseignant e = createEnseignant("E1", null);
+            // Périmètre strict : enseignant et formation partagent la même UP.
+            Up up = new Up();
+            up.setId("UP1");
+            Formation f = createFormationWithUp(1L, true, true, up);
+            Enseignant e = createEnseignant("E1", up);
             Inscription saved = createInscription(1L, f, e, EtatInscription.PENDING);
 
             when(formationRepo.findById(1L)).thenReturn(Optional.of(f));
@@ -644,12 +678,15 @@ class InscriptionServiceExtraTest {
         @Test
         @DisplayName("résout l'enseignant via findByMailIgnoreCase")
         void shouldResolveByMailIgnoreCase() {
-            Enseignant e = createEnseignant("E1", null);
+            // Périmètre strict : enseignant et formation partagent la même UP.
+            Up up = new Up();
+            up.setId("UP1");
+            Enseignant e = createEnseignant("E1", up);
             when(enseignantRepo.findById("USER@ESPRIT.TN")).thenReturn(Optional.empty());
             when(enseignantRepo.findByMail("USER@ESPRIT.TN")).thenReturn(Optional.empty());
             when(enseignantRepo.findByMailIgnoreCase("USER@ESPRIT.TN")).thenReturn(Optional.of(e));
 
-            Formation f = createFormation(1L, true, true);
+            Formation f = createFormationWithUp(1L, true, true, up);
             when(formationRepo.findAll()).thenReturn(List.of(f));
             when(formationMapper.toResponseDTO(f)).thenReturn(new FormationResponseDTO());
 
@@ -669,8 +706,11 @@ class InscriptionServiceExtraTest {
         @Test
         @DisplayName("résout l'enseignant via findByMailIgnoreCase pour la demande")
         void shouldResolveByMailIgnoreCaseForDemande() {
-            Formation f = createFormation(1L, true, true);
-            Enseignant e = createEnseignant("E1", null);
+            // Périmètre strict : enseignant et formation partagent la même UP.
+            Up up = new Up();
+            up.setId("UP1");
+            Formation f = createFormationWithUp(1L, true, true, up);
+            Enseignant e = createEnseignant("E1", up);
 
             when(formationRepo.findById(1L)).thenReturn(Optional.of(f));
             when(enseignantRepo.findById("USER@ESPRIT.TN")).thenReturn(Optional.empty());
@@ -733,7 +773,10 @@ class InscriptionServiceExtraTest {
         @Test
         @DisplayName("pas de chevauchement quand l'inscription existante a des dates nulles")
         void shouldNotOverlapWhenExistingDatesNull() {
-            Formation fTarget = createFormation(1L, true, true);
+            // Périmètre strict : enseignant et formation cible partagent la même UP.
+            Up up = new Up();
+            up.setId("UP1");
+            Formation fTarget = createFormationWithUp(1L, true, true, up);
             fTarget.setDateDebut(LocalDate.of(2025, Month.JUNE, 1));
             fTarget.setDateFin(LocalDate.of(2025, Month.JUNE, 10));
 
@@ -741,7 +784,7 @@ class InscriptionServiceExtraTest {
             fExisting.setDateDebut(null);
             fExisting.setDateFin(null);
 
-            Enseignant e = createEnseignant("E1", null);
+            Enseignant e = createEnseignant("E1", up);
 
             Inscription existing = createInscription(10L, fExisting, e, EtatInscription.APPROVED);
 
@@ -759,7 +802,10 @@ class InscriptionServiceExtraTest {
         @Test
         @DisplayName("pas de chevauchement quand la cible a des dates nulles")
         void shouldNotOverlapWhenTargetDatesNull() {
-            Formation fTarget = createFormation(1L, true, true);
+            // Périmètre strict : enseignant et formation cible partagent la même UP.
+            Up up = new Up();
+            up.setId("UP1");
+            Formation fTarget = createFormationWithUp(1L, true, true, up);
             fTarget.setDateDebut(null);
             fTarget.setDateFin(null);
 
@@ -767,7 +813,7 @@ class InscriptionServiceExtraTest {
             fExisting.setDateDebut(LocalDate.of(2025, Month.JUNE, 1));
             fExisting.setDateFin(LocalDate.of(2025, Month.JUNE, 10));
 
-            Enseignant e = createEnseignant("E1", null);
+            Enseignant e = createEnseignant("E1", up);
 
             Inscription existing = createInscription(10L, fExisting, e, EtatInscription.APPROVED);
 
