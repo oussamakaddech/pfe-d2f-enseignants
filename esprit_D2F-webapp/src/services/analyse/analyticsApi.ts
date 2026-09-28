@@ -833,9 +833,23 @@ export const analyticsApi = {
   },
 
   // Dashboard impact reel (donnees base PostgreSQL, pas le CSV legacy).
-  getRealDashboardImpact(): Promise<RealDashboardImpact> {
+  // Les filtres sont appliqués CÔTÉ BACKEND : sans eux les KPI resteraient
+  // globaux quand l'utilisateur change département/UP/niveau/période.
+  getRealDashboardImpact(params?: {
+    dept_id?: string;
+    up_id?: string;
+    niveau_risque?: string;
+    days?: number;
+  }): Promise<RealDashboardImpact> {
     return axios
-      .get<ApiEnvelope<RealDashboardImpact>>(`${BASE}/dashboard/real/impact`)
+      .get<ApiEnvelope<RealDashboardImpact>>(`${BASE}/dashboard/real/impact`, {
+        params: {
+          dept_id: params?.dept_id,
+          up_id: params?.up_id,
+          niveau_risque: params?.niveau_risque,
+          days: params?.days,
+        },
+      })
       .then((r) => unpack(r.data));
   },
 
@@ -1040,6 +1054,8 @@ export const analyticsApi = {
       departement_id?: string;
       page?: number;
       size?: number;
+      /** Fenêtre de récence (jours) : même période que le tableau de bord. */
+      since_days?: number;
     } = {},
   ): Promise<AlertListResponse> {
     return axios
@@ -1051,6 +1067,7 @@ export const analyticsApi = {
           status: filters.statut,
           target_type: filters.type_alerte,
           department_id: filters.departement_id,
+          since_days: filters.since_days,
         },
       })
       .then((r) => {
@@ -1116,7 +1133,7 @@ export const analyticsApi = {
   // dérive RÉELLEMENT mesurées du modèle servi).
   getModelStatus(): Promise<ModelStatus> {
     return axios
-      .get<{ data?: unknown } | unknown>(`${BASE}/model-health`)
+      .get<unknown>(`${BASE}/model-health`)
       .then((r) => {
         const body = r.data as { data?: unknown };
         return mapModelHealth(body?.data ?? r.data);
@@ -1125,7 +1142,7 @@ export const analyticsApi = {
 
   // Endpoint backend réel : /dashboard/risk-evolution (proxy drift/évolution).
   getDrift(): Promise<DriftReport> {
-    return axios.get<{ data?: unknown } | unknown>(`${BASE}/model-health`).then((r) => {
+    return axios.get<unknown>(`${BASE}/model-health`).then((r) => {
       const body = r.data as { data?: unknown };
       return mapDrift(body?.data ?? r.data);
     });

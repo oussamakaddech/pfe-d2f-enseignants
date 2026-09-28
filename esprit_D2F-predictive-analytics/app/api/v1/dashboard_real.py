@@ -8,7 +8,7 @@ Retourne :
 """
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 
 from app.api.deps import ContainerDependency, resolve_user_teacher
@@ -273,6 +273,203 @@ LIMIT 15
 """
 
 
+# Niveaux de risque acceptés pour le filtre (valeurs UI normalisées ;
+# la comparaison SQL mappe les variantes stockées : CRITICAL/HIGH/MEDIUM).
+NIVEAUX_RISQUE_FILTRE = ("FAIBLE", "MODERE", "ELEVE", "CRITIQUE")
+
+
+def normalize_niveau_filter(niveau_risque: str | None) -> str | None:
+    """Normalise le filtre niveau de risque (None = pas de filtre).
+
+    Lève HTTP 400 sur valeur inconnue (jamais de repli silencieux : un filtre
+    mal orthographié qui s'appliquerait à vide fausserait les statistiques).
+    """
+    if niveau_risque is None:
+        return None
+    niveau = niveau_risque.upper()
+    if niveau not in NIVEAUX_RISQUE_FILTRE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"niveau_risque invalide : {niveau_risque!r} "
+            f"(attendu : {', '.join(NIVEAUX_RISQUE_FILTRE)})",
+        )
+    return niveau
+
+# Dernier snapshot de risque par enseignant + enseignants actifs du périmètre
+# (département + UP + niveau de risque). Utilisé UNIQUEMENT quand au moins un
+# filtre est actif ; sans filtre, le chemin historique est conservé à l'identique.
+_LATEST_RISK_CTE = """
+latest_risk AS (
+  SELECT DISTINCT ON (enseignant_id)
+    enseignant_id, score_risque, niveau_risque
+  FROM "analyse".teacher_risk_snapshots
+  ORDER BY enseignant_id, computed_at DESC NULLS LAST, snapshot_date DESC
+),
+scope_teachers AS (
+  SELECT e.id
+  FROM formation.enseignants e
+  LEFT JOIN latest_risk lr ON lr.enseignant_id = e.id
+  WHERE e.deleted_at IS NULL
+    AND (:dept_id IS NULL OR e.dept_id = :dept_id)
+    AND (:up_id IS NULL OR e.up_id = :up_id)
+    AND (:niveau IS NULL OR CASE
+      WHEN UPPER(lr.niveau_risque) IN ('CRITIQUE', 'CRITICAL') THEN 'CRITIQUE'
+      WHEN UPPER(lr.niveau_risque) IN ('ELEVE', 'HIGH') THEN 'ELEVE'
+      WHEN UPPER(lr.niveau_risque) IN ('MODERE', 'MEDIUM') THEN 'MODERE'
+      ELSE 'FAIBLE' END = :niveau)
+)
+"""
+
+_IN_SCOPE = "IN (SELECT id FROM scope_teachers)"
+
+KPIS_FILTERED_SQL = f"""
+WITH {_LATEST_RISK_CTE}
+SELECT
+  (SELECT COUNT(*) FROM scope_teachers) AS nb_enseignants,
+  (SELECT COUNT(DISTINCT sg.enseignant_id) FROM "analyse".skill_gaps sg
+     WHERE sg.enseignant_id {_IN_SCOPE}) AS nb_enseignants_avec_gaps,
+  (SELECT COUNT(DISTINCT ec.enseignant_id) FROM competence.enseignant_competences ec
+     WHERE ec.enseignant_id {_IN_SCOPE}) AS nb_enseignants_avec_competences,
+  (SELECT COUNT(*) FROM "analyse".skill_gaps sg
+     WHERE UPPER(sg.niveau_urgence) = 'CRITIQUE'
+       AND sg.enseignant_id {_IN_SCOPE}) AS nb_gaps_critiques,
+  (SELECT COUNT(*) FROM "analyse".skill_gaps sg
+     WHERE UPPER(sg.niveau_urgence) = 'HAUTE'
+       AND sg.enseignant_id {_IN_SCOPE}) AS nb_gaps_haute,
+  (SELECT COUNT(*) FROM "analyse".skill_gaps sg
+     WHERE sg.enseignant_id {_IN_SCOPE}) AS nb_gaps_total,
+  (SELECT ROUND(AVG(sg.gap_score)::numeric, 4) FROM "analyse".skill_gaps sg
+     WHERE sg.enseignant_id {_IN_SCOPE}) AS avg_gap_score,
+  (SELECT COUNT(*) FROM "analyse".alert_events a
+     WHERE a.statut IN ('NOUVELLE', 'LUE')
+       AND (:days IS NULL OR a.created_at >= now() - make_interval(days => :days))
+       AND (a.enseignant_id {_IN_SCOPE}
+         OR (a.enseignant_id IS NULL AND :dept_id IS NOT NULL
+             AND a.departement_id = :dept_id))) AS nb_alertes_non_traitees,
+  (SELECT COUNT(*) FROM "analyse".alert_events a
+     WHERE UPPER(a.severite) IN ('CRITIQUE', 'CRITICAL')
+       AND a.statut IN ('NOUVELLE', 'LUE')
+       AND (:days IS NULL OR a.created_at >= now() - make_interval(days => :days))
+       AND (a.enseignant_id {_IN_SCOPE}
+         OR (a.enseignant_id IS NULL AND :dept_id IS NOT NULL
+             AND a.departement_id = :dept_id))) AS nb_alertes_critiques,
+  (SELECT ROUND(AVG(lr.score_risque)::numeric, 4) FROM latest_risk lr
+     WHERE lr.enseignant_id {_IN_SCOPE}) AS avg_risk_score
+"""
+
+HEATMAP_FILTERED_SQL = f"""
+WITH {_LATEST_RISK_CTE}
+SELECT
+  e.dept_id,
+  d.libelle AS dept_libelle,
+  c.id AS competence_id,
+  c.code AS competence_code,
+  c.nom AS competence_nom,
+  ROUND(AVG(sg.gap_score)::numeric, 4) AS avg_gap_score,
+  COUNT(*) AS nb_occurrences,
+  COUNT(*) FILTER (WHERE UPPER(sg.niveau_urgence) = 'CRITIQUE') AS nb_critiques,
+  COUNT(*) FILTER (WHERE UPPER(sg.niveau_urgence) = 'HAUTE') AS nb_haute,
+  COUNT(DISTINCT sg.enseignant_id) AS nb_enseignants_touches
+FROM "analyse".skill_gaps sg
+JOIN formation.enseignants e ON e.id = sg.enseignant_id AND e.deleted_at IS NULL
+LEFT JOIN formation.departements d ON d.id = e.dept_id
+JOIN competence.competences c ON c.id = sg.competence_id
+WHERE sg.enseignant_id {_IN_SCOPE}
+GROUP BY e.dept_id, d.libelle, c.id, c.code, c.nom
+HAVING COUNT(*) > 0
+ORDER BY nb_critiques DESC, avg_gap_score DESC
+"""
+
+AT_RISK_FILTERED_SQL = f"""
+WITH {_LATEST_RISK_CTE}
+SELECT
+  rs.enseignant_id,
+  e.nom,
+  e.prenom,
+  e.specialite,
+  e.grade,
+  e.up_id,
+  e.dept_id,
+  u.libelle AS up_libelle,
+  d.libelle AS dept_libelle,
+  rs.score_risque,
+  rs.niveau_risque,
+  rs.tendance,
+  rs.snapshot_date,
+  COALESCE(sg.nb_gaps, 0) AS nb_gaps_persistes,
+  COALESCE(sg.nb_critiques, 0) AS nb_gaps_critiques,
+  COALESCE(sg.max_gap, 0) AS max_gap_score
+FROM (
+  SELECT DISTINCT ON (enseignant_id)
+    enseignant_id, score_risque, niveau_risque, tendance, snapshot_date
+  FROM "analyse".teacher_risk_snapshots
+  ORDER BY enseignant_id, computed_at DESC NULLS LAST, snapshot_date DESC
+) rs
+JOIN formation.enseignants e ON e.id = rs.enseignant_id AND e.deleted_at IS NULL
+LEFT JOIN formation.ups u ON u.id = e.up_id
+LEFT JOIN formation.departements d ON d.id = e.dept_id
+LEFT JOIN (
+  SELECT enseignant_id,
+         COUNT(*) AS nb_gaps,
+         COUNT(*) FILTER (WHERE UPPER(niveau_urgence) = 'CRITIQUE') AS nb_critiques,
+         MAX(gap_score) AS max_gap
+  FROM "analyse".skill_gaps
+  GROUP BY enseignant_id
+) sg ON sg.enseignant_id = rs.enseignant_id
+WHERE e.id {_IN_SCOPE}
+ORDER BY rs.score_risque DESC
+LIMIT 50
+"""
+
+TOP_FORMATIONS_FILTERED_SQL = f"""
+WITH {_LATEST_RISK_CTE}
+SELECT
+  r.formation_id,
+  f.titre_formation,
+  r.competence_id,
+  c.nom AS competence_nom,
+  COUNT(*) AS nb_recommandations,
+  COUNT(DISTINCT r.enseignant_id) AS nb_enseignants,
+  ROUND(AVG(r.score_global)::numeric, 4) AS score_moyen,
+  ROUND(MAX(r.score_global)::numeric, 4) AS score_max,
+  (SELECT COUNT(*) FROM "analyse".recommendations r2
+   JOIN formation.enseignants e2 ON e2.id = r2.enseignant_id AND e2.deleted_at IS NULL
+   WHERE r2.formation_id = r.formation_id AND r2.statut IN ('SUGGESTED', 'PROPOSEE')) AS en_attente
+FROM "analyse".recommendations r
+JOIN formation.enseignants e ON e.id = r.enseignant_id AND e.deleted_at IS NULL
+LEFT JOIN formation.formations f ON f.id_formation = r.formation_id
+LEFT JOIN competence.competences c ON c.id = r.competence_id
+WHERE r.enseignant_id {_IN_SCOPE}
+GROUP BY r.formation_id, f.titre_formation, r.competence_id, c.nom
+ORDER BY nb_recommandations DESC, score_moyen DESC
+LIMIT 15
+"""
+
+COVERAGE_FILTERED_SQL = f"""
+WITH {_LATEST_RISK_CTE}
+SELECT
+  e.dept_id,
+  d.libelle AS dept_libelle,
+  COUNT(DISTINCT e.id) AS nb_enseignants,
+  COUNT(DISTINCT CASE WHEN ec.id IS NOT NULL THEN e.id END) AS nb_enseignants_avec_competences,
+  COUNT(ec.id) AS nb_affectations,
+  ROUND(AVG(CASE
+    WHEN ec.niveau IN ('N5_EXPERT','EXPERT','NIVEAU_5','5') THEN 5
+    WHEN ec.niveau IN ('N4_AVANCE','AVANCE','NIVEAU_4','4') THEN 4
+    WHEN ec.niveau IN ('N3_INTERMEDIAIRE','CONFIRME','NIVEAU_3','3') THEN 3
+    WHEN ec.niveau IN ('N2_ELEMENTAIRE','INITIE','NIVEAU_2','2') THEN 2
+    WHEN ec.niveau IN ('N1_DEBUTANT','DEBUTANT','NIVEAU_1','1') THEN 1
+    ELSE 0 END)::numeric, 2) AS niveau_moyen
+FROM formation.enseignants e
+LEFT JOIN formation.departements d ON d.id = e.dept_id
+LEFT JOIN competence.enseignant_competences ec ON ec.enseignant_id = e.id
+WHERE e.deleted_at IS NULL
+  AND e.id {_IN_SCOPE}
+GROUP BY e.dept_id, d.libelle
+ORDER BY nb_enseignants DESC
+"""
+
+
 def _resolve_dept_filter(user: CurrentUser, container: ContainerDependency) -> tuple[str, dict]:
     """Return (SQL fragment, params) for department scoping.
 
@@ -286,22 +483,68 @@ def _resolve_dept_filter(user: CurrentUser, container: ContainerDependency) -> t
     return "", {}
 
 
+def _with_significance(container: ContainerDependency, rows) -> list[dict]:
+    """Ajoute ``niveaux_sur_scope`` et ``score_significatif`` à chaque ligne.
+
+    Sans aucun niveau enregistré sur son périmètre, un enseignant a tous ses
+    écarts au maximum par défaut : son indice (souvent CRITIQUE) mesure
+    l'absence de données, pas un risque. La page enseignant le signale déjà
+    (« non significatif ») ; le tableau de bord applique la même règle pour ne
+    pas classer ces comptes en tête des enseignants à risque.
+    """
+    scope_cache: dict = {}
+    annotated: list[dict] = []
+    for row in rows:
+        item = dict(row)
+        niveaux = container.analyze_teacher_scope.count_levels_on_scope(
+            item["enseignant_id"], item.get("up_id"), item.get("dept_id"),
+            item.get("specialite"), scope_cache,
+        )
+        item["niveaux_sur_scope"] = niveaux
+        item["score_significatif"] = niveaux > 0
+        annotated.append(item)
+    return annotated
+
+
 @router.get("/impact")
 def get_real_dashboard_impact(
     container: ContainerDependency,
     user: Annotated[CurrentUser, Depends(require_roles(*DECISION_ROLES))],
+    dept_id: Annotated[str | None, Query()] = None,
+    up_id: Annotated[str | None, Query()] = None,
+    niveau_risque: Annotated[str | None, Query()] = None,
+    days: Annotated[int | None, Query(ge=1, le=730)] = None,
 ):
     _, dept_params = _resolve_dept_filter(user, container)
-    # dept_id=None when no scoping needed → (:dept_id IS NULL OR ...) is always true
-    dept_id = dept_params.get("dept_id")
+    forced_dept = dept_params.get("dept_id")
+    if forced_dept:
+        # CHEF_DEPARTEMENT : périmètre imposé (le paramètre est ignoré).
+        dept_id = forced_dept
+
+    niveau = normalize_niveau_filter(niveau_risque)
+
+    # Sans filtre actif : chemin historique conservé à l'identique
+    # (mêmes requêtes, mêmes chiffres). Avec filtre : requêtes périmétrées.
+    filtered = any([dept_id, up_id, niveau, days is not None])
 
     db = container.database
-    with db.read_connection() as conn:
-        kpis_row = conn.execute(text(KPIS_SCOPED_SQL), {"dept_id": dept_id}).mappings().first()
-        heatmap_rows = conn.execute(text(HEATMAP_SCOPED_SQL), {"dept_id": dept_id}).mappings().all()
-        at_risk_rows = conn.execute(text(AT_RISK_SCOPED_SQL), {"dept_id": dept_id}).mappings().all()
-        top_formations = conn.execute(text(TOP_FORMATIONS_SCOPED_SQL), {"dept_id": dept_id}).mappings().all()
-        coverage_rows = conn.execute(text(COVERAGE_SQL), {"dept_id": dept_id}).mappings().all()
+    if filtered:
+        params = {"dept_id": dept_id, "up_id": up_id, "niveau": niveau, "days": days}
+        with db.read_connection() as conn:
+            kpis_row = conn.execute(text(KPIS_FILTERED_SQL), params).mappings().first()
+            heatmap_rows = conn.execute(text(HEATMAP_FILTERED_SQL), params).mappings().all()
+            at_risk_rows = conn.execute(text(AT_RISK_FILTERED_SQL), params).mappings().all()
+            top_formations = conn.execute(text(TOP_FORMATIONS_FILTERED_SQL), params).mappings().all()
+            coverage_rows = conn.execute(text(COVERAGE_FILTERED_SQL), params).mappings().all()
+    else:
+        # dept_id=None when no scoping needed → (:dept_id IS NULL OR ...) is always true
+        dept_id = forced_dept
+        with db.read_connection() as conn:
+            kpis_row = conn.execute(text(KPIS_SCOPED_SQL), {"dept_id": dept_id}).mappings().first()
+            heatmap_rows = conn.execute(text(HEATMAP_SCOPED_SQL), {"dept_id": dept_id}).mappings().all()
+            at_risk_rows = conn.execute(text(AT_RISK_SCOPED_SQL), {"dept_id": dept_id}).mappings().all()
+            top_formations = conn.execute(text(TOP_FORMATIONS_SCOPED_SQL), {"dept_id": dept_id}).mappings().all()
+            coverage_rows = conn.execute(text(COVERAGE_SQL), {"dept_id": dept_id}).mappings().all()
 
     kpis = dict(kpis_row) if kpis_row else {}
     # Normalisation legere
@@ -315,11 +558,18 @@ def get_real_dashboard_impact(
         {
             "kpis": kpis,
             "heatmap": [dict(r) for r in heatmap_rows],
-            "at_risk_teachers": [dict(r) for r in at_risk_rows],
+            "at_risk_teachers": _with_significance(container, at_risk_rows),
             "top_formations": [dict(r) for r in top_formations],
             "coverage_by_dept": [dict(r) for r in coverage_rows],
             "data_source": "database",
             "note": "Donnees reelles issues des schemas formation/competence/analyse",
+            "scope": {
+                "dept_id": dept_id,
+                "up_id": up_id,
+                "niveau_risque": niveau,
+                "days": days,
+                "filtered": filtered,
+            },
         },
         # Contrat d'API (audit d'autorité 2026-09-22, §3.6) : le tableau de bord
         # réel expose lui aussi le moteur qui l'a produit.

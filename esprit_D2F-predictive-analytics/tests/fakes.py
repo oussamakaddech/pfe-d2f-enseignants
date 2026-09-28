@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from app.core.config import Settings
 from app.domain.entities.alert import Alert
@@ -123,12 +123,17 @@ class FakeAnalysisRepository:
         self.gaps: list[SkillGap] = []
         self.risk: list[RiskProfile] = []
         self.recommendations: list[Recommendation] = []
+        # Raison du dernier repli par enseignant (journal ml_observability).
+        self.serving_reasons: dict[str, str] = {}
 
     def save_skill_gaps(self, gaps: list[SkillGap], teacher_id: str | None = None) -> None:
         self.gaps = list(gaps)
 
     def list_gaps_by_teacher(self, teacher_id: str) -> list[SkillGap]:
         return [g for g in self.gaps if g.teacher_id == teacher_id]
+
+    def last_serving_fallback_reason(self, teacher_id: str) -> str | None:
+        return self.serving_reasons.get(teacher_id)
 
     def save_risk_snapshot(self, profile: RiskProfile) -> None:
         self.risk.append(profile)
@@ -222,25 +227,38 @@ class FakeAlertRepository:
             return False
         return True
 
-    def list_alerts(self, page: int, size: int, severity: str | None = None, status: str | None = None, target_type: str | None = None, department_id: str | None = None) -> tuple[list[Alert], int]:
-        matching = [a for a in self.alerts if self._matches(a, severity, status, target_type) and (not department_id or a.department_id == department_id)]
+    @staticmethod
+    def _matches_since(alert: Alert, since_days: int | None) -> bool:
+        if since_days is None:
+            return True
+        created = alert.created_at
+        if created is None:
+            return False
+        now = datetime.utcnow()
+        if getattr(created, "tzinfo", None) is not None:
+            now = datetime.now(timezone.utc)
+        return (now - created).days < since_days
+
+    def list_alerts(self, page: int, size: int, severity: str | None = None, status: str | None = None, target_type: str | None = None, department_id: str | None = None, since_days: int | None = None) -> tuple[list[Alert], int]:
+        matching = [a for a in self.alerts if self._matches(a, severity, status, target_type) and (not department_id or a.department_id == department_id) and self._matches_since(a, since_days)]
         start = (page - 1) * size
         return matching[start : start + size], len(matching)
 
-    def list_for_teacher(self, teacher_id: str, page: int, size: int, severity: str | None = None, status: str | None = None) -> tuple[list[Alert], int]:
-        matching = [a for a in self.alerts if a.teacher_id == teacher_id and self._matches(a, severity, status, None)]
+    def list_for_teacher(self, teacher_id: str, page: int, size: int, severity: str | None = None, status: str | None = None, since_days: int | None = None) -> tuple[list[Alert], int]:
+        matching = [a for a in self.alerts if a.teacher_id == teacher_id and self._matches(a, severity, status, None) and self._matches_since(a, since_days)]
         start = (page - 1) * size
         return matching[start : start + size], len(matching)
 
-    def list_for_department(self, department_id: str, page: int, size: int, severity: str | None = None, status: str | None = None) -> tuple[list[Alert], int]:
-        matching = [a for a in self.alerts if a.department_id == department_id and self._matches(a, severity, status, None)]
+    def list_for_department(self, department_id: str, page: int, size: int, severity: str | None = None, status: str | None = None, since_days: int | None = None) -> tuple[list[Alert], int]:
+        matching = [a for a in self.alerts if a.department_id == department_id and self._matches(a, severity, status, None) and self._matches_since(a, since_days)]
         start = (page - 1) * size
         return matching[start : start + size], len(matching)
 
     def count_open_by_severity(self, severity: str | None = None, status: str | None = None,
                                target_type: str | None = None,
                                teacher_id: str | None = None,
-                               department_id: str | None = None) -> dict[str, int]:
+                               department_id: str | None = None,
+                               since_days: int | None = None) -> dict[str, int]:
         result = {"CRITICAL": 0, "WARNING": 0, "INFO": 0}
         for alert in self.alerts:
             if alert.status not in ("NOUVELLE", "LUE"):
@@ -254,6 +272,8 @@ class FakeAlertRepository:
             if teacher_id and alert.teacher_id != teacher_id:
                 continue
             if department_id and alert.department_id != department_id:
+                continue
+            if not self._matches_since(alert, since_days):
                 continue
             sev = alert.severity.upper()
             bucket = "CRITICAL" if sev in ("CRITICAL", "CRITIQUE") else "WARNING" if sev in ("WARNING", "HAUTE", "MOYENNE") else "INFO"

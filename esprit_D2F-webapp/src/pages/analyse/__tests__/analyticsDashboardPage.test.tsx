@@ -28,7 +28,7 @@ vi.mock('@/services/analyse/analyticsApi', () => ({
   analyticsApi: { getTeachersByCell: mocks.getTeachersByCell },
 }));
 
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from 'antd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -42,7 +42,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   </QueryClientProvider>
 );
 
-const setup = () => {
+const setup = (atRisk: Record<string, unknown>[] = []) => {
   mocks.useRealDashboardImpact.mockReturnValue({
     data: {
       kpis: {
@@ -58,7 +58,7 @@ const setup = () => {
         taux_couverture_pct: 83.3,
       },
       heatmap: [],
-      at_risk_teachers: [],
+      at_risk_teachers: atRisk,
       top_formations: [],
       coverage_by_dept: [],
       data_source: 'database',
@@ -98,5 +98,79 @@ describe('AnalyticsDashboardPage', () => {
     setup();
     render(<AnalyticsDashboardPage />, { wrapper });
     expect(screen.getByText(/Export CSV/i)).toBeInTheDocument();
+  });
+
+  it('transmet les filtres (périmètre + période) au backend des statistiques', () => {
+    // Non-régression : les 8 KPI restaient globaux quand on changeait de filtre
+    // car useRealDashboardImpact/useAlerts étaient appelés sans paramètres.
+    setup();
+    render(<AnalyticsDashboardPage />, { wrapper });
+    expect(mocks.useRealDashboardImpact).toHaveBeenCalledWith({
+      dept_id: undefined,
+      up_id: undefined,
+      niveau_risque: undefined,
+      days: 30,
+    });
+    expect(mocks.useAlerts).toHaveBeenCalledWith(
+      expect.objectContaining({ since_days: 30 }),
+    );
+
+    // Changer la période refetch les statistiques sur la nouvelle fenêtre.
+    fireEvent.click(screen.getByText('7 j'));
+    expect(mocks.useRealDashboardImpact).toHaveBeenLastCalledWith({
+      dept_id: undefined,
+      up_id: undefined,
+      niveau_risque: undefined,
+      days: 7,
+    });
+    expect(mocks.useAlerts).toHaveBeenLastCalledWith(
+      expect.objectContaining({ since_days: 7 }),
+    );
+  });
+  it("liste tous les enseignants et isole les scores sans niveau dans la vue à risque", () => {
+    const row = (id: string, prenom: string, score: number, significatif: boolean) => ({
+      enseignant_id: id,
+      nom: 'TEST',
+      prenom,
+      specialite: null,
+      grade: null,
+      up_id: 'UP_IA',
+      dept_id: 'DEPT_IA',
+      up_libelle: 'UP IA',
+      dept_libelle: 'IA',
+      score_risque: score,
+      niveau_risque: 'CRITICAL',
+      tendance: 'STABLE',
+      snapshot_date: '2026-09-24',
+      nb_gaps_persistes: 3,
+      nb_gaps_critiques: 2,
+      max_gap_score: 0.75,
+      niveaux_sur_scope: significatif ? 4 : 0,
+      score_significatif: significatif,
+    });
+    setup([
+      row('E1', 'SansNiveau', 0.89, false),
+      row('E2', 'AvecNiveau', 0.77, true),
+      row('E3', 'Faible', 0.3, true),
+    ]);
+    render(<AnalyticsDashboardPage />, { wrapper });
+    const ranked = () =>
+      Array.from(document.querySelectorAll('.ar-teacher-link')).map((e) => e.textContent);
+    expect(screen.getByText('1 / 3')).toBeInTheDocument();
+
+    // Vue par défaut : TOUS les enseignants, classés par indice ; le compte sans
+    // niveau reste visible mais signalé.
+    expect(ranked()).toEqual(['SansNiveau TEST', 'AvecNiveau TEST', 'Faible TEST']);
+    expect(screen.getByText('Données insuffisantes')).toBeInTheDocument();
+
+    // Vue « À risque » : seuls les scores significatifs >= 0,5 ; le compte sans
+    // niveau est cité dans l'avertissement.
+    fireEvent.click(screen.getByText('À risque ≥ 0,5 (1)'));
+    expect(ranked()).toEqual(['AvecNiveau TEST']);
+    expect(
+      screen.getByText(/1 enseignant\(s\) exclu\(s\) du classement : aucun niveau enregistré/),
+    ).toBeInTheDocument();
+    const link = screen.getByRole('link', { name: 'SansNiveau TEST' });
+    expect(link).toHaveAttribute('href', '/home/analytics/teacher/E1');
   });
 });

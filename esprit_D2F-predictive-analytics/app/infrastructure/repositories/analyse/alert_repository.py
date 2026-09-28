@@ -1,3 +1,5 @@
+import json
+
 from sqlalchemy import text
 
 from app.core.logging import get_logger
@@ -27,7 +29,7 @@ INSERT_ALERT = f"""
          skill_gap_id, severite, titre, message, details_json, statut, created_at, updated_at)
     VALUES
         (:type_alerte, :cible_type, :enseignant_id, :departement_id, :competence_id,
-         :skill_gap_id, :severite, :titre, :message, :details_json, :statut, now(), now())
+         :skill_gap_id, :severite, :titre, :message, CAST(:details_json AS jsonb), :statut, now(), now())
     RETURNING id, created_at
 """
 
@@ -36,6 +38,10 @@ SELECT_ALERT = f"""
            skill_gap_id, severite, titre, message, details_json, statut, created_at
     FROM {ALERT_EVENTS_TABLE}
 """
+
+# Fenêtre de récence (filtre « période » du tableau de bord) : alertes créées
+# dans les N derniers jours. Paramètre :since_days (entier >= 1).
+SINCE_FILTER = "created_at >= now() - make_interval(days => :since_days)"
 
 UPDATE_STATUS = f"""
     UPDATE {ALERT_EVENTS_TABLE}
@@ -84,7 +90,9 @@ class SqlAlertRepository:
                     "severite": alert.severity,
                     "titre": alert.title,
                     "message": alert.message,
-                    "details_json": alert.details or {},
+                    # psycopg2 n'adapte pas un dict : sans sérialisation, chaque INSERT
+                    # échouait (« can't adapt type dict ») et aucune alerte n'était persistée.
+                    "details_json": json.dumps(alert.details or {}, ensure_ascii=False, default=str),
                     "statut": alert.status,
                 },
             ).mappings().first()
@@ -119,7 +127,13 @@ class SqlAlertRepository:
         rows = session.execute(text(query + " LIMIT :limit OFFSET :offset"), {**params, "limit": size, "offset": (page - 1) * size}).mappings().all()
         return [self._map_row(row) for row in rows], total
 
-    def list_alerts(self, page: int, size: int, severity: str | None = None, status: str | None = None, target_type: str | None = None, department_id: str | None = None) -> tuple[list[Alert], int]:
+    @staticmethod
+    def _apply_since(filters: list[str], params: dict, since_days: int | None) -> None:
+        if since_days is not None:
+            filters.append(SINCE_FILTER)
+            params["since_days"] = since_days
+
+    def list_alerts(self, page: int, size: int, severity: str | None = None, status: str | None = None, target_type: str | None = None, department_id: str | None = None, since_days: int | None = None) -> tuple[list[Alert], int]:
         filters, params = [], {}
         if severity:
             filters.append(SEVERITY_FILTER)
@@ -133,10 +147,11 @@ class SqlAlertRepository:
         if department_id:
             filters.append(DEPARTMENT_FILTER)
             params["departement_id"] = department_id
+        self._apply_since(filters, params, since_days)
         with self._database.read_connection() as connection:
             return self._run(connection, self._build_query(filters), params, page, size)
 
-    def list_for_teacher(self, teacher_id: str, page: int, size: int, severity: str | None = None, status: str | None = None) -> tuple[list[Alert], int]:
+    def list_for_teacher(self, teacher_id: str, page: int, size: int, severity: str | None = None, status: str | None = None, since_days: int | None = None) -> tuple[list[Alert], int]:
         filters, params = ["enseignant_id = :enseignant_id"], {"enseignant_id": teacher_id}
         if severity:
             filters.append(SEVERITY_FILTER)
@@ -144,10 +159,11 @@ class SqlAlertRepository:
         if status:
             filters.append(STATUS_FILTER)
             params["statut"] = status.upper()
+        self._apply_since(filters, params, since_days)
         with self._database.read_connection() as connection:
             return self._run(connection, self._build_query(filters), params, page, size)
 
-    def list_for_department(self, department_id: str, page: int, size: int, severity: str | None = None, status: str | None = None) -> tuple[list[Alert], int]:
+    def list_for_department(self, department_id: str, page: int, size: int, severity: str | None = None, status: str | None = None, since_days: int | None = None) -> tuple[list[Alert], int]:
         filters, params = [DEPARTMENT_FILTER], {"departement_id": department_id}
         if severity:
             filters.append(SEVERITY_FILTER)
@@ -155,6 +171,7 @@ class SqlAlertRepository:
         if status:
             filters.append(STATUS_FILTER)
             params["statut"] = status.upper()
+        self._apply_since(filters, params, since_days)
         with self._database.read_connection() as connection:
             return self._run(connection, self._build_query(filters), params, page, size)
 
@@ -166,7 +183,8 @@ class SqlAlertRepository:
     def count_open_by_severity(self, severity: str | None = None, status: str | None = None,
                                target_type: str | None = None,
                                teacher_id: str | None = None,
-                               department_id: str | None = None) -> dict[str, int]:
+                               department_id: str | None = None,
+                               since_days: int | None = None) -> dict[str, int]:
         """Nb d'alertes OUVRES (NOUVELLE/LUE) par bucket de severite, meme scope que la liste."""
         filters, params = ["statut IN ('NOUVELLE', 'LUE')"], {}
         if severity:
@@ -184,6 +202,7 @@ class SqlAlertRepository:
         if department_id:
             filters.append(DEPARTMENT_FILTER)
             params["departement_id"] = department_id
+        self._apply_since(filters, params, since_days)
         with self._database.read_connection() as connection:
             rows = connection.execute(
                 text(self._severity_breakdown_query(filters)), params

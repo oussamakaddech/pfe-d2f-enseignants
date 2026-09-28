@@ -102,7 +102,6 @@ export const adminMenu: MenuItem[] = [
 
 export const cupMenu: MenuItem[] = [
   dashboardItem,
-  { label: 'Analyse Prédictive', key: '/home/AnalysePredictive', icon: LineChartOutlined },
   {
     type: 'group',
     label: 'FORMATIONS',
@@ -126,8 +125,6 @@ export const cupMenu: MenuItem[] = [
           { label: 'Déposer un Besoin', key: '/home/besoins/ajouter', icon: PlusCircleOutlined },
         ],
       },
-      { label: 'Suivi des Affectations', key: '/home/affectations', icon: SolutionOutlined },
-      { label: 'Vue RICE', key: '/home/rice', icon: ClusterOutlined },
     ],
   },
   {
@@ -192,7 +189,6 @@ export const responsableDossierMenu: MenuItem[] = [
 
 export const chefDepartementMenu: MenuItem[] = [
   dashboardItem,
-  { label: 'Analyse Prédictive', key: '/home/AnalysePredictive', icon: LineChartOutlined },
   {
     type: 'group',
     label: 'FORMATIONS',
@@ -208,7 +204,6 @@ export const chefDepartementMenu: MenuItem[] = [
     label: 'COMPÉTENCES & BESOINS',
     children: [
       { label: 'Référentiel Compétences', key: '/home/competences', icon: BookOutlined },
-      { label: 'Affectations', key: '/home/affectations', icon: SolutionOutlined },
       // Parité BESOIN_FORMATION_CREATE/READ_ALL : le chef consulte les besoins de
       // son département et dépose aussi des besoins.
       {
@@ -220,7 +215,6 @@ export const chefDepartementMenu: MenuItem[] = [
           { label: 'Déposer un Besoin', key: '/home/besoins/ajouter', icon: PlusCircleOutlined },
         ],
       },
-      { label: 'Vue RICE', key: '/home/rice', icon: ClusterOutlined },
     ],
   },
   {

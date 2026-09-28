@@ -52,6 +52,7 @@ import useAppNotification from '@/hooks/ui/useAppNotification';
 import CreateAccountDrawer, { ACCOUNT_ROLES } from '@/pages/admin/gererComptes/CreateAccountDrawer';
 import TeacherEditModal from '@/components/enseignant/TeacherEditModal';
 import { StatCard, RoleBadge } from '@/components/common';
+import { normalizeRole, extractRoles } from '@/utils/constants/roles';
 import { brand, neutral } from '@/styles/themes/tokens';
 import '@/styles/pages/list-accounts.css';
 import '@/styles/pages/teachers-data-grid.css';
@@ -62,7 +63,7 @@ const { Option } = Select;
 
 type AccountStatus = 'ACTIF' | 'BLOQUÉ' | 'INCONNU';
 
-interface UnifiedRow {
+export interface UnifiedRow {
   // 'merged' = compte + fiche enseignant liés (même userId) affichés sur une
   // seule ligne. Porte alors À LA FOIS les champs compte et les champs fiche :
   // userId = id du compte auth (actions compte), id = id de la fiche E00xxx (actions fiche).
@@ -122,6 +123,53 @@ const SORT_OPTIONS: { value: UnifiedSort; label: string }[] = [
 
 const TYPE_LABELS: Record<string, string> = { P: 'Permanent', V: 'Vacataire', C: 'Contractuel' };
 const isTruthyFlag = (v: unknown) => v === 'O' || v === 'Y' || v === '1';
+
+/** Options du filtre par rôle : les 5 rôles créables + ADMIN (non créable
+ *  depuis le drawer mais présent en base — les stats le comptent). La
+ *  comparaison se fait sur rôles normalisés (voir rowAccountRoles). */
+const ROLE_FILTER_OPTIONS: { value: string; label: string }[] = [
+  { value: 'ADMIN', label: 'Administrateur' },
+  ...ACCOUNT_ROLES.map((r) => ({ value: r.value, label: r.label })),
+];
+
+/** Rôles normalisés d'une ligne pour le filtre par rôle.
+ *  - compte / fusionné : rôles du compte (préfixe `ROLE_`, casse et
+ *    séparateurs ignorés ; scope composé supporté) ;
+ *  - fiche sans compte : aucun rôle d'accès — rattachée implicitement à
+ *    « enseignant » (c'est une fiche enseignant, pas un compte). */
+function rowAccountRoles(row: UnifiedRow): string[] {
+  if (row._type === 'teacher') return ['enseignant'];
+  return extractRoles(row.role);
+}
+
+export interface UnifiedRowFilters {
+  searchText: string;
+  roleFilter: string[];
+  typeFilter: string;
+  statusFilter: 'ALL' | AccountStatus;
+}
+
+/** Filtrage pur (testable) des lignes unifiées : rôle normalisé des deux
+ *  côtés, donc `ROLE_ADMIN`, `admin` et `ADMIN` se valent. */
+export function filterUnifiedRows(rows: UnifiedRow[], filters: UnifiedRowFilters): UnifiedRow[] {
+  const term = filters.searchText.trim().toLowerCase();
+  const roleSet = filters.roleFilter.map(normalizeRole).filter(Boolean);
+
+  return rows.filter((row) => {
+    const hasAccount = row._type === 'account' || row._type === 'merged';
+    const hasTeacher = row._type === 'teacher' || row._type === 'merged';
+    if (hasAccount && filters.statusFilter !== 'ALL' && row.status !== filters.statusFilter)
+      return false;
+    if (roleSet.length > 0) {
+      const rowRoles = rowAccountRoles(row);
+      if (!roleSet.some((r) => rowRoles.includes(r))) return false;
+    }
+    if (hasTeacher && filters.typeFilter !== 'ALL' && row.type !== filters.typeFilter)
+      return false;
+    if (!term) return true;
+    return matchesSearchTerm(row, term);
+  });
+}
 
 function accountFullName(a: UnifiedRow): string {
   return `${a.firstName || ''} ${a.lastName || ''}`.trim().toLowerCase();
@@ -186,7 +234,6 @@ export default function UnifiedAdministrationPage() {
 
   /* ── Unified state ── */
   const [searchText, setSearchText] = useState('');
-  const [sourceFilter, setSourceFilter] = useState<'ALL' | 'account' | 'teacher'>('ALL');
   const [roleFilter, setRoleFilter] = useState<string[]>([]);
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [statusFilter] = useState<'ALL' | AccountStatus>('ALL');
@@ -314,11 +361,11 @@ export default function UnifiedAdministrationPage() {
       totalTeachers: teachers.length,
       activeAccounts: accounts.filter((a) => a.status === 'ACTIF').length,
       blockedAccounts: accounts.filter((a) => a.status === 'BLOQUÉ').length,
-      admins: accounts.filter((a) => (a.role ?? '').toUpperCase() === 'ADMIN').length,
-      enseignants: accounts.filter((a) => (a.role ?? '').toUpperCase() === 'ENSEIGNANT').length,
-      chefsDept: accounts.filter((a) => (a.role ?? '').toUpperCase() === 'CHEF_DEPARTEMENT').length,
-      animateurs: accounts.filter((a) => (a.role ?? '').toUpperCase() === 'ANIMATEUR').length,
-      cup: accounts.filter((a) => (a.role ?? '').toUpperCase() === 'CUP').length,
+      admins: accounts.filter((a) => normalizeRole(a.role) === 'admin').length,
+      enseignants: accounts.filter((a) => normalizeRole(a.role) === 'enseignant').length,
+      chefsDept: accounts.filter((a) => normalizeRole(a.role) === 'chefdepartement').length,
+      animateurs: accounts.filter((a) => normalizeRole(a.role) === 'animateur').length,
+      cup: accounts.filter((a) => normalizeRole(a.role) === 'cup').length,
       permTeachers: teachers.filter((t) => t.type === 'P').length,
       vacTeachers: teachers.filter((t) => t.type === 'V').length,
       contractTeachers: teachers.filter((t) => t.type === 'C').length,
@@ -328,22 +375,11 @@ export default function UnifiedAdministrationPage() {
 
   /* ── Filtered & sorted data ── */
   const displayedData = useMemo(() => {
-    const term = searchText.trim().toLowerCase();
-    const roleSet = roleFilter.map((r) => r.toUpperCase());
-
-    const filtered = unifiedData.filter((row) => {
-      // Une ligne fusionnée a les deux natures : elle passe le filtre Source
-      // qu'on demande "account" ou "teacher".
-      const hasAccount = row._type === 'account' || row._type === 'merged';
-      const hasTeacher = row._type === 'teacher' || row._type === 'merged';
-      if (sourceFilter === 'account' && !hasAccount) return false;
-      if (sourceFilter === 'teacher' && !hasTeacher) return false;
-      if (hasAccount && statusFilter !== 'ALL' && row.status !== statusFilter) return false;
-      if (hasAccount && roleSet.length > 0 && !roleSet.includes((row.role ?? '').toUpperCase()))
-        return false;
-      if (hasTeacher && typeFilter !== 'ALL' && row.type !== typeFilter) return false;
-      if (!term) return true;
-      return matchesSearchTerm(row, term);
+    const filtered = filterUnifiedRows(unifiedData, {
+      searchText,
+      roleFilter,
+      typeFilter,
+      statusFilter,
     });
 
     const sorted = [...filtered];
@@ -372,14 +408,10 @@ export default function UnifiedAdministrationPage() {
         break;
     }
     return sorted;
-  }, [unifiedData, searchText, sourceFilter, roleFilter, typeFilter, statusFilter, sortBy]);
+  }, [unifiedData, searchText, roleFilter, typeFilter, statusFilter, sortBy]);
 
   const hasActiveFilters =
-    !!searchText ||
-    sourceFilter !== 'ALL' ||
-    roleFilter.length > 0 ||
-    typeFilter !== 'ALL' ||
-    statusFilter !== 'ALL';
+    !!searchText || roleFilter.length > 0 || typeFilter !== 'ALL' || statusFilter !== 'ALL';
 
   const fetchAll = () => {
     void refetchAccounts();
@@ -1098,16 +1130,6 @@ export default function UnifiedAdministrationPage() {
           style={{ maxWidth: 300 }}
         />
         <Select
-          value={sourceFilter}
-          onChange={setSourceFilter}
-          style={{ minWidth: 150 }}
-          options={[
-            { value: 'ALL', label: 'Tous' },
-            { value: 'account', label: 'Comptes uniquement' },
-            { value: 'teacher', label: 'Enseignants uniquement' },
-          ]}
-        />
-        <Select
           mode="multiple"
           allowClear
           maxTagCount="responsive"
@@ -1115,7 +1137,7 @@ export default function UnifiedAdministrationPage() {
           onChange={setRoleFilter}
           placeholder="Rôle"
           style={{ minWidth: 160 }}
-          options={ACCOUNT_ROLES.map((r) => ({ value: r.value, label: r.label }))}
+          options={ROLE_FILTER_OPTIONS}
         />
         <Select
           value={typeFilter}
@@ -1310,24 +1332,48 @@ function AccountStatusBadgeComponent({ status }: Readonly<{ status: AccountStatu
   );
 }
 
+function normalizeTeacherTypeCode(type: unknown): 'P' | 'V' | 'C' | null {
+  const v = String(type ?? '')
+    .trim()
+    .toUpperCase();
+  if (v === 'P' || v === 'PERMANENT' || v === 'PERMANENTE') return 'P';
+  if (v === 'V' || v === 'VACATAIRE') return 'V';
+  if (v === 'C' || v === 'CONTRACTUEL' || v === 'CONTRACTUELLE' || v === 'CONTRACTOR')
+    return 'C';
+  return null;
+}
+
 function getTypeTagComponent(type?: string) {
-  if (type === 'P')
+  const norm = normalizeTeacherTypeCode(type);
+  if (norm === 'P')
     return (
       <span className="teachers-type-tag teachers-type-tag--perm">
         <span className="teachers-type-dot teachers-type-dot--perm" /> Permanent
       </span>
     );
-  if (type === 'V')
+  if (norm === 'V')
     return (
       <span className="teachers-type-tag teachers-type-tag--vac">
         <span className="teachers-type-dot teachers-type-dot--vac" /> Vacataire
       </span>
     );
-  if (type === 'C')
+  if (norm === 'C')
     return (
       <span className="teachers-type-tag teachers-type-tag--cont">
         <span className="teachers-type-dot teachers-type-dot--cont" /> Contractuel
       </span>
     );
-  return type || <span style={{ color: neutral[300] }}>—</span>;
+  // Valeur non canonique (ex. 'T', 'A' issus d'un import Excel stocké brut) :
+  // affichée telle quelle dans un tag neutre — pas de libellé inventé.
+  const raw = String(type ?? '').trim();
+  if (!raw) return <span style={{ color: neutral[300] }}>—</span>;
+  return (
+    <span
+      className="teachers-type-tag teachers-type-tag--other"
+      title={`Type non référencé : ${raw}`}
+    >
+      <span className="teachers-type-dot teachers-type-dot--other" />
+      {raw}
+    </span>
+  );
 }

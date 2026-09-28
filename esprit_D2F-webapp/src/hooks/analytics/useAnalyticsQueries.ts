@@ -96,10 +96,17 @@ export function useTeacherScopeAnalysis(enseignantId: string) {
   });
 }
 
-export function useRealDashboardImpact() {
+export interface RealImpactFilters {
+  dept_id?: string;
+  up_id?: string;
+  niveau_risque?: string;
+  days?: number;
+}
+
+export function useRealDashboardImpact(filters?: RealImpactFilters) {
   return useQuery({
-    queryKey: ['analytics', 'dashboard', 'real-impact'],
-    queryFn: () => analyticsApi.getRealDashboardImpact(),
+    queryKey: ['analytics', 'dashboard', 'real-impact', filters ?? null],
+    queryFn: () => analyticsApi.getRealDashboardImpact(filters),
     staleTime: 60_000,
   });
 }
@@ -191,6 +198,7 @@ export function useAlerts(filters?: {
   departement_id?: string;
   page?: number;
   size?: number;
+  since_days?: number;
 }) {
   return useQuery({
     queryKey: ['analytics', 'alerts', filters],

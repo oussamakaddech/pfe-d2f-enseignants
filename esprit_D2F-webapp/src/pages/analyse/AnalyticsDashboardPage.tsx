@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Row,
   Col,
@@ -87,18 +87,20 @@ function formatActiveFilterLabel(count: number): string {
 /* ── Définitions métier des KPI (affichées en tooltip) ──────── */
 const KPI_DEFS: Record<string, string> = {
   'Enseignants en base':
-    'Enseignants actifs présents en base (formation.enseignants, deleted_at IS NULL).',
+    'Enseignants actifs du périmètre filtré (formation.enseignants, deleted_at IS NULL).',
   'Indice de risque moyen':
-    'Score moyen des derniers snapshots de risque (0–1). Seuils : < 0,25 Faible · 0,25–0,5 Modéré · 0,5–0,75 Élevé · ≥ 0,75 Critique.',
+    'Score moyen des derniers snapshots de risque du périmètre filtré (0–1). Seuils : < 0,25 Faible · 0,25–0,5 Modéré · 0,5–0,75 Élevé · ≥ 0,75 Critique.',
   'Gaps critiques':
-    "Écarts d'urgence CRITIQUE calculés sur les données réelles (analyse.skill_gaps).",
-  'Alertes non traitées': 'Alertes réelles au statut NOUVELLE ou LUE (analyse.alert_events).',
+    "Écarts d'urgence CRITIQUE du périmètre filtré, calculés sur les données réelles (analyse.skill_gaps).",
+  'Alertes non traitées':
+    'Alertes réelles au statut NOUVELLE ou LUE, créées sur la période sélectionnée (analyse.alert_events).',
   'Taux de couverture':
-    'Part des enseignants actifs ayant au moins une compétence affectée (competence.enseignant_competences).',
-  'Gaps haute priorité': "Écarts d'urgence HAUTE sur les données réelles.",
+    'Part des enseignants actifs du périmètre filtré ayant au moins une compétence affectée (competence.enseignant_competences).',
+  'Gaps haute priorité': "Écarts d'urgence HAUTE du périmètre filtré, sur les données réelles.",
   'Avec gaps calculés':
-    'Enseignants distincts présents dans la table des gaps (analyse.skill_gaps).',
-  'Alertes critiques ouvertes': 'Alertes réelles de sévérité CRITICAL/CRITIQUE non traitées.',
+    'Enseignants distincts du périmètre filtré présents dans la table des gaps (analyse.skill_gaps).',
+  'Alertes critiques ouvertes':
+    'Alertes réelles de sévérité CRITICAL/CRITIQUE non traitées, créées sur la période sélectionnée.',
 };
 
 /* ── Petite carte KPI « riche » (dégradé + bulle d'icône) ──────── */
@@ -258,7 +260,16 @@ function toAtRiskTeacher(row: RealDashboardImpact['at_risk_teachers'][number]): 
     niveau_risque: toNiveauRisque(row.niveau_risque),
     nb_gaps_critiques: row.nb_gaps_critiques ?? 0,
     tendance: row.tendance ?? 'STABLE',
+    score_significatif: row.score_significatif,
   };
+}
+
+/** Score exploitable pour un classement : un enseignant sans aucun niveau
+ *  enregistré a tous ses écarts au maximum par défaut, son indice (souvent
+ *  CRITIQUE) mesure l'absence de données. Champ absent (ancien backend) :
+ *  considéré significatif. */
+function isSignificant(t: AtRiskTeacher): boolean {
+  return t.score_significatif !== false;
 }
 
 /** Heatmap réelle (département × compétence) → format UI.
@@ -314,20 +325,30 @@ export default function AnalyticsDashboardPage() {
   const jump = (id: string) =>
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  const impact = useRealDashboardImpact();
+  // Les filtres (département/UP/niveau/période) sont envoyés au backend :
+  // les 8 KPI sont recalculés sur le périmètre, pas seulement les tableaux.
+  const impact = useRealDashboardImpact({
+    dept_id: filters.departement_id,
+    up_id: filters.up_id,
+    niveau_risque: filters.niveau_risque,
+    days: windowDays,
+  });
   const [alertsPage, setAlertsPage] = useState<number>(1);
-  const alerts = useAlerts({ departement_id: filters.departement_id, page: alertsPage, size: 100 });
+  const alerts = useAlerts({
+    departement_id: filters.departement_id,
+    page: alertsPage,
+    size: 100,
+    since_days: windowDays,
+  });
   const updateAlert = useUpdateAlert();
   const supplyDemand = useSupplyDemand();
 
   // Accumule les pages d'alertes (charge plus) ; reset dès que le filtre change.
   const [accumAlerts, setAccumAlerts] = useState<AlertEvent[]>([]);
   useEffect(() => {
-    if (filters.departement_id !== undefined) {
-      setAlertsPage(1);
-      setAccumAlerts([]);
-    }
-  }, [filters.departement_id]);
+    setAlertsPage(1);
+    setAccumAlerts([]);
+  }, [filters.departement_id, windowDays]);
   useEffect(() => {
     const page = alerts.data?.alerts ?? [];
     setAccumAlerts((prev) => {
@@ -383,15 +404,45 @@ export default function AnalyticsDashboardPage() {
       .map(([value, label]) => ({ value, label }));
   }, [data]);
 
+  /** Vue du tableau : tous les enseignants suivis (défaut) ou seulement ceux à risque. */
+  const [riskView, setRiskView] = useState<'all' | 'atRisk'>('all');
+
+  /** Tous les enseignants suivis, classés par indice, avec les filtres de la page. */
+  const allTeachersRanked = useMemo<AtRiskTeacher[]>(
+    () =>
+      allAtRisk
+        .filter(
+          (t) =>
+            (!filters.departement_id || t.departement === filters.departement_id) &&
+            (!filters.up_id || t.up === filters.up_id) &&
+            (!filters.niveau_risque || t.niveau_risque === filters.niveau_risque),
+        )
+        .sort((a, b) => b.score_risque - a.score_risque),
+    [allAtRisk, filters.departement_id, filters.up_id, filters.niveau_risque],
+  );
+
   const filteredAtRisk = useMemo<AtRiskTeacher[]>(() => {
     return allAtRisk.filter(
       (t) =>
+        isSignificant(t) &&
         t.score_risque >= 0.5 &&
         (!filters.departement_id || t.departement === filters.departement_id) &&
         (!filters.up_id || t.up === filters.up_id) &&
         (!filters.niveau_risque || t.niveau_risque === filters.niveau_risque),
     );
   }, [allAtRisk, filters.departement_id, filters.up_id, filters.niveau_risque]);
+
+  /** Exclus du classement : aucun niveau enregistré sur leur périmètre. */
+  const withoutLevels = useMemo<AtRiskTeacher[]>(
+    () =>
+      allAtRisk.filter(
+        (t) =>
+          !isSignificant(t) &&
+          (!filters.departement_id || t.departement === filters.departement_id) &&
+          (!filters.up_id || t.up === filters.up_id),
+      ),
+    [allAtRisk, filters.departement_id, filters.up_id],
+  );
 
   const filteredHeatmap = useMemo<HeatmapCell[]>(() => {
     return allHeatmap.filter(
@@ -643,7 +694,7 @@ export default function AnalyticsDashboardPage() {
             </Tag>
           )}
           <span className="ad-filters-active__hint">
-            At-risk, heatmap et alertes sont filtrés · tendances sur {trendWindow.label}
+            Statistiques, at-risk, heatmap et alertes filtrés · tendances sur {trendWindow.label}
           </span>
         </div>
       )}
@@ -750,24 +801,62 @@ export default function AnalyticsDashboardPage() {
         <Col xs={24} lg={14}>
           <Section
             id="sec-atrisk"
-            title="Enseignants à risque (score ≥ 0,5)"
+            title="Enseignants — indice de risque"
             icon={<SafetyCertificateOutlined />}
             extra={
-              <Tooltip
-                title={`${filteredAtRisk.length} enseignant(s) avec score ≥ 0,5 sur ${allAtRisk.length} suivis`}
-              >
-                <Tag color={filteredAtRisk.length ? 'red' : 'default'}>
-                  {filteredAtRisk.length} / {allAtRisk.length}
-                </Tag>
-              </Tooltip>
+              <span className="ad-risk-view">
+                <Segmented
+                  size="small"
+                  value={riskView}
+                  onChange={(v) => setRiskView(v as 'all' | 'atRisk')}
+                  options={[
+                    { value: 'all', label: `Tous (${allTeachersRanked.length})` },
+                    { value: 'atRisk', label: `À risque ≥ 0,5 (${filteredAtRisk.length})` },
+                  ]}
+                />
+                <Tooltip
+                  title={`${filteredAtRisk.length} enseignant(s) avec score ≥ 0,5 sur ${allAtRisk.length} suivis`}
+                >
+                  <Tag color={filteredAtRisk.length ? 'red' : 'default'}>
+                    {filteredAtRisk.length} / {allAtRisk.length}
+                  </Tag>
+                </Tooltip>
+              </span>
             }
             loading={impact.isLoading}
           >
             <AtRiskTeachersTable
-              teachers={filteredAtRisk}
+              teachers={riskView === 'all' ? allTeachersRanked : filteredAtRisk}
               loading={impact.isLoading}
               onSelect={(id) => navigate(`/home/analytics/teacher/${id}`)}
             />
+            {riskView === 'atRisk' && withoutLevels.length > 0 && (
+              <Alert
+                className="ad-no-levels"
+                type="warning"
+                showIcon
+                message={`${withoutLevels.length} enseignant(s) exclu(s) du classement : aucun niveau enregistré`}
+                description={
+                  <>
+                    Sans niveau saisi sur leur périmètre, tous leurs écarts sont au maximum par
+                    défaut : leur indice reflète l&apos;absence de données, pas un risque réel.
+                    Faire saisir leurs niveaux pour les évaluer :{' '}
+                    {withoutLevels.map((t, i) => (
+                      <span key={t.enseignant_id}>
+                        {i > 0 && ', '}
+                        <Link
+                          className="ad-no-levels__link"
+                          to={`/home/analytics/teacher/${t.enseignant_id}`}
+                        >
+                          {t.nom}
+                        </Link>
+                      </span>
+                    ))}
+                    .
+                  </>
+                }
+              />
+            )}
           </Section>
         </Col>
         <Col xs={24} lg={10}>
