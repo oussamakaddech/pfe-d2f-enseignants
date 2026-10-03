@@ -213,3 +213,8 @@ esprit_D2F-predictive-analytics/init_db/list_tables.sql
 esprit_D2F-predictive-analytics/init_db/compute_factors.sql
 esprit_D2F-predictive-analytics/init_db/seed_*.sql
 esprit_D2F-predictive-analytics/init_db/test_*.sh
+
+# Corpus de simulation DEDIE au modele de risque (34 Mo) : regenere a l identique
+# par pipelines.train_risk_model (graine 2026, 400 enseignants, hash dans la metadata).
+esprit_D2F-predictive-analytics/data/simulation/simulation_dataset_risk_n*_seed*.csv
+esprit_D2F-predictive-analytics/data/simulation/simulation_dataset_risk_n*_seed*_manifest.json

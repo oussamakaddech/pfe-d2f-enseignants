@@ -105,9 +105,22 @@ GRANT SELECT ON "competence".savoirs           TO app_user_formation;
 -- ---------------------------------------------------------------------
 -- 4. Rôle RICE
 -- ---------------------------------------------------------------------
--- Le service RICE ne possède aucun schéma : il lit le référentiel exposé
--- dans `public` et écrit via les API des autres services.
+-- Le service RICE ne possède aucun schéma : il lit le référentiel officiel
+-- (schéma competence) et l'annuaire enseignant (schéma formation), et écrit
+-- via les API des autres services. Sans ces lectures, l'analyse retombait
+-- en silence sur des référentiels JSON dont les codes n'existent pas en base
+-- et ne suggérait aucun enseignant par compétence.
 GRANT USAGE ON SCHEMA "public" TO app_user_rice;
+GRANT USAGE ON SCHEMA "competence" TO app_user_rice;
+GRANT SELECT ON "competence".domaines               TO app_user_rice;
+GRANT SELECT ON "competence".competences            TO app_user_rice;
+GRANT SELECT ON "competence".sous_competences       TO app_user_rice;
+GRANT SELECT ON "competence".savoirs                TO app_user_rice;
+GRANT SELECT ON "competence".niveau_savoir_requis   TO app_user_rice;
+GRANT SELECT ON "competence".enseignant_competences TO app_user_rice;
+-- Annuaire : colonnes d'identification seulement (pas de mail ni de téléphone).
+GRANT USAGE ON SCHEMA "formation" TO app_user_rice;
+GRANT SELECT (id, nom, prenom, deleted_at) ON "formation".enseignants TO app_user_rice;
 
 -- ---------------------------------------------------------------------
 -- 5. Contrôle : aucune écriture croisée
@@ -121,3 +134,6 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE
   ON ALL TABLES IN SCHEMA "competence"
   FROM app_user_formation;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE
+  ON ALL TABLES IN SCHEMA "competence", "formation"
+  FROM app_user_rice;

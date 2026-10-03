@@ -661,7 +661,7 @@ services:
       # Information de configuration de l'artefact monte. La version REELLEMENT
       # servie n'est jamais lue ici : elle vient de l'entree de registre
       # (audit d'autorite 2.4 — un ML_MODEL_VERSION errone induisait en erreur).
-      ML_MODEL_VERSION: ${ML_MODEL_VERSION:-v1.3.0-xgb}
+      ML_MODEL_VERSION: ${ML_MODEL_VERSION:-v1.3.1-xgb}
       ML_ARTIFACT_PATH: ${ML_ARTIFACT_PATH:-gap_predictor_temporal.joblib}
       # Artefact du module legacy, ALIGNE sur ML_ARTIFACT_PATH. Absent, il
       # retombait sur le defaut `gap_predictor.joblib` : le conteneur servait
