@@ -57,6 +57,19 @@ import { useDepartements } from '@/hooks/formation/useFormations';
 
 const { Text } = Typography;
 
+/**
+ * Clés de domaine d'un savoir pour le filtre : identifiant du référentiel,
+ * ou repli legacy (code / nom du champ `domaine`).
+ */
+function domaineFilterKeys(domaine: unknown, domaineId: unknown): string[] {
+  let legacy: unknown = domaine ?? '';
+  if (typeof domaine === 'object' && domaine !== null) {
+    const d = domaine as { code?: unknown; nom?: unknown };
+    legacy = d.code ?? d.nom ?? '';
+  }
+  return [String(domaineId), String(legacy ?? '')];
+}
+
 export default function CompetenceMatchingPage() {
   const saveAssignments = useRiceSaveAssignments();
   const createEnseignantHook = useRiceCreateEnseignant();
@@ -416,16 +429,11 @@ export default function CompetenceMatchingPage() {
       const h = hierarchies.get(String(s.id));
       if (selectedDept !== 'all' && deptByDomaine.get(h?.domaineId ?? '') !== selectedDept)
         return false;
-      if (state.filters.domaine !== 'all') {
-        // Clé référentiel (id) ou repli legacy (code / nom du champ `domaine`)
-        const domaine = s.domaine;
-        const legacy =
-          typeof domaine === 'object' && domaine !== null
-            ? (domaine.code ?? domaine.nom ?? '')
-            : (domaine ?? '');
-        const keys = [h?.domaineId, String(legacy ?? '')].map(String);
-        if (!keys.includes(String(state.filters.domaine))) return false;
-      }
+      if (
+        state.filters.domaine !== 'all' &&
+        !domaineFilterKeys(s.domaine, h?.domaineId).includes(String(state.filters.domaine))
+      )
+        return false;
       if (
         state.filters.competence !== 'all' &&
         String(h?.competenceId ?? '') !== String(state.filters.competence)

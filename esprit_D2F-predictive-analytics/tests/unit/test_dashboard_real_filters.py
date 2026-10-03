@@ -25,9 +25,9 @@ def test_normalize_niveau_filter_none_and_valid():
 
 
 def test_normalize_niveau_filter_rejects_unknown():
-    with pytest.raises(HTTPException) as exc_info:
+    # La route traduit cette erreur en HTTP 400 (test_invalid_niveau_rejected_before_query).
+    with pytest.raises(ValueError, match="niveau_risque invalide"):
         normalize_niveau_filter("URGENT")
-    assert exc_info.value.status_code == 400
 
 
 def test_filtered_sql_uses_scope_cte_and_legacy_does_not():

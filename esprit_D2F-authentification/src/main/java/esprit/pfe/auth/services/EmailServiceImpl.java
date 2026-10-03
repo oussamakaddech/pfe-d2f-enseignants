@@ -27,7 +27,8 @@ public class EmailServiceImpl implements EmailService {
     public void send(SimpleMailMessage mail) {
         AuthGraphMailSender graph = graphSenders.getIfAvailable();
         if (graph != null) {
-            String to = mail.getTo() != null && mail.getTo().length > 0 ? mail.getTo()[0] : null;
+            String[] recipients = mail.getTo();
+            String to = recipients != null && recipients.length > 0 ? recipients[0] : null;
             graph.sendMail(to, mail.getSubject(), mail.getText());
             return;
         }

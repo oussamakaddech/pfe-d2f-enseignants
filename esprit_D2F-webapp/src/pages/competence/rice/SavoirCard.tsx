@@ -1,5 +1,5 @@
-import { memo, useMemo, useState } from 'react';
-import { Avatar, Dropdown, Input, Select, Space, Tag, Tooltip, Typography } from 'antd';
+import { memo, useMemo } from 'react';
+import { Avatar, Button, Dropdown, Input, Select, Space, Tag, Tooltip, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   DeleteOutlined,
@@ -91,7 +91,6 @@ const SavoirCard = memo(function SavoirCard({
   allEnseignants,
   inlineHint,
 }: Readonly<SavoirCardProps>) {
-  const [hovered, setHovered] = useState(false);
   const isEditing = editingNom?.path?.join('-') === `${di}-${ci}-${sci}-${si}`;
   const assigned = useMemo(() => {
     const ids = (savoir.enseignantsSuggeres ?? []).map(String);
@@ -134,29 +133,15 @@ const SavoirCard = memo(function SavoirCard({
   };
 
   return (
-    /* Draggable savoir card; keyboard users access the dropdown menu (MoreOutlined) for assign / move actions.
-       Un conteneur, pas un <button> : il contient des champs (niveau, renommage)
-       qui ne peuvent pas prendre le focus dans un bouton. */
+    /* Carte glissable. Le focus clavier est porté par la ligne de l'arbre
+       (role="treeitem", TreeBrowser) ; les actions (affecter, déplacer…) sont
+       au clavier via le bouton « Actions », toujours présent dans le DOM.
+       Un conteneur, pas un <button> : il contient des champs (niveau, renommage). */
     <div
-      role="group"
-      tabIndex={0}
-      aria-roledescription="draggable"
-      aria-label={`Savoir ${savoir.code} — ${savoir.nom}. Glisser pour assigner ou utiliser le menu Plus pour les actions clavier.`}
       className={`savoir-card${isBeingDragged ? ' is-dragging' : ''}`}
       draggable
       onDragStart={(e) => onSavoirDragStart(e, di, ci, sci, si)}
       onDragEnd={onSavoirDragEnd}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      // Pas de gestion du clic : déplacer le focus vers le menu à chaque clic
-      // refermait aussitôt le sélecteur de niveau (perte de focus).
-      onKeyDown={(e) => {
-        if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
-          e.preventDefault();
-          const trigger = e.currentTarget.querySelector<HTMLElement>('.savoir-card-menu-trigger');
-          trigger?.focus();
-        }
-      }}
     >
       <span className="savoir-drag-handle">
         <HolderOutlined />
@@ -253,14 +238,16 @@ const SavoirCard = memo(function SavoirCard({
         </Space>
       )}
 
-      {hovered && (
-        <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-          <MoreOutlined
-            className="savoir-card-menu-trigger"
-            style={{ color: '#64748b', cursor: 'pointer' }}
-          />
-        </Dropdown>
-      )}
+      <Dropdown menu={{ items: menuItems }} trigger={['click']}>
+        <Button
+          type="text"
+          size="small"
+          className="savoir-card-menu-trigger"
+          aria-label={`Actions sur le savoir ${savoir.code}`}
+          icon={<MoreOutlined style={{ color: '#64748b' }} />}
+          onClick={(e) => e.stopPropagation()}
+        />
+      </Dropdown>
     </div>
   );
 });

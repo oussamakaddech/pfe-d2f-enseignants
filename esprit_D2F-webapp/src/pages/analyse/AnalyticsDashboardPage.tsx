@@ -306,6 +306,12 @@ function toTopFormation(row: RealDashboardImpact['top_formations'][number]): Top
  *   - /dashboard/supply-demand, /dashboard/training-impact
  *   - /dashboard/risk-evolution-daily (tendances quotidiennes)
  */
+
+/** Couleur du taux de couverture : vert ≥ 80 %, orange ≥ 50 %, rouge sinon. */
+function coverageColor(pct: number): string {
+  if (pct >= 80) return 'green';
+  return pct >= 50 ? 'orange' : 'red';
+}
 export default function AnalyticsDashboardPage() {
   const [windowDays, setWindowDays] = useState<number>(30);
   const [filters, setFilters] = useState<DashboardFilters>({});
@@ -1164,7 +1170,7 @@ function CoverageByDeptTable({ rows }: { readonly rows: RealCoverageByDept[] }) 
                   <Tag>{total}</Tag>
                 </td>
                 <td>
-                  <Tag color={pct >= 80 ? 'green' : pct >= 50 ? 'orange' : 'red'}>{pct} %</Tag>
+                  <Tag color={coverageColor(pct)}>{pct} %</Tag>
                   <div style={{ fontSize: 11, color: '#94a3b8' }}>
                     {covered}/{total} avec compétences
                   </div>

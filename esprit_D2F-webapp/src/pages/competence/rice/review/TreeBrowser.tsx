@@ -126,7 +126,8 @@ function renderSavoirItem(
   return (
     <div
       key={savoir.tmpId ?? `${di}-${ci}-${sci}-${si}`}
-      role="button"
+      role="treeitem"
+      aria-selected={isSelected}
       tabIndex={0}
       className={`tree-node-row${isSelected ? ' selected' : ''}`}
       onClick={() =>
@@ -187,7 +188,8 @@ function renderSousCompBlock(sc: SousCompNode, di: number, ci: number, sci: numb
   return (
     <div className="tree-sous-comp" key={`sc-${di}-${ci}-${sci}`}>
       <div
-        role="button"
+        role="treeitem"
+        aria-selected={isSelected}
         tabIndex={0}
         className={`tree-node-row${isSelected ? ' selected' : ''}`}
         onClick={() =>
@@ -363,7 +365,8 @@ function renderDomainBlock(domaine: DomaineNode, di: number, ctx: TreeCtx) {
   return (
     <div key={dKey} className="tree-domaine">
       <div
-        role="button"
+        role="treeitem"
+        aria-selected={isSelected}
         tabIndex={0}
         className={`tree-node-row${isSelected ? ' selected' : ''}`}
         onClick={() =>
@@ -440,5 +443,11 @@ function renderDomainBlock(domaine: DomaineNode, di: number, ctx: TreeCtx) {
 }
 
 export default function TreeBrowser({ tree, ctx }: Readonly<TreeBrowserProps>) {
-  return <>{(tree ?? []).map((domaine, di) => renderDomainBlock(domaine, di, ctx))}</>;
+  // Arbre navigable : chaque ligne sélectionnable est un `treeitem` (rôle
+  // interactif) ; elle contient des champs, elle ne peut donc pas être un <button>.
+  return (
+    <div role="tree" aria-label="Arbre des compétences extraites">
+      {(tree ?? []).map((domaine, di) => renderDomainBlock(domaine, di, ctx))}
+    </div>
+  );
 }

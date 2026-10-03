@@ -1,5 +1,3 @@
-import type { ModelMode } from '@/models/analyse/analyticsFeature';
-
 /**
  * Explication lisible du moteur qui a servi une analyse, dérivée de
  * `fallback_reason` (texte libre du service prédictif).
@@ -18,9 +16,15 @@ export interface EngineNote {
   readonly tone: 'info' | 'warning';
 }
 
+/**
+ * Mode renvoyé par l'API (mode du modèle ou libellé historique `ML` / `HEURISTIC`) :
+ * reçu comme chaîne libre, comparé aux valeurs connues.
+ */
+type EngineModeInput = string | null | undefined;
+
 const ML_MODES: ReadonlySet<string> = new Set(['PRODUCTION_ML', 'DEMO_ML', 'ML']);
 
-export function isMlMode(mode: ModelMode | string | null | undefined): boolean {
+export function isMlMode(mode: EngineModeInput): boolean {
   return ML_MODES.has(mode ?? '');
 }
 
@@ -51,7 +55,7 @@ const GAP_REASONS: ReadonlyArray<{ pattern: RegExp; note: Omit<EngineNote, 'deta
 
 /** Note du moteur des écarts ; `null` quand le ML a servi (le badge suffit). */
 export function describeGapEngine(
-  mode: ModelMode | string | null | undefined,
+  mode: EngineModeInput,
   fallbackReason: string | null | undefined,
 ): EngineNote | null {
   if (isMlMode(mode)) return null;
@@ -67,9 +71,9 @@ export function describeGapEngine(
  * modèle ML quand il a servi les écarts, heuristiques sinon).
  */
 export function describeRiskEngine(
-  riskMode: 'ML' | 'HEURISTIC' | string | null | undefined,
+  riskMode: EngineModeInput,
   fallbackReason: string | null | undefined,
-  gapsMode: ModelMode | string | null | undefined,
+  gapsMode: EngineModeInput,
 ): EngineNote | null {
   if (riskMode === 'ML') return null;
   const detail = fallbackReason?.trim() || null;

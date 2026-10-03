@@ -312,6 +312,19 @@
   opacity: 1;
 }
 
+/* Bouton « Actions » : toujours dans le DOM (accès clavier), affiché au survol
+   de la carte ou dès qu'un élément de la ligne a le focus. */
+.savoir-card .savoir-card-menu-trigger {
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.savoir-card:hover .savoir-card-menu-trigger,
+.savoir-card:focus-within .savoir-card-menu-trigger,
+.tree-node-row:focus-visible .savoir-card-menu-trigger {
+  opacity: 1;
+}
+
 /* Unassigned hint */
 .savoir-unassigned-hint {
   color: #94a3b8;

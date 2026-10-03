@@ -281,17 +281,17 @@ NIVEAUX_RISQUE_FILTRE = ("FAIBLE", "MODERE", "ELEVE", "CRITIQUE")
 def normalize_niveau_filter(niveau_risque: str | None) -> str | None:
     """Normalise le filtre niveau de risque (None = pas de filtre).
 
-    Lève HTTP 400 sur valeur inconnue (jamais de repli silencieux : un filtre
-    mal orthographié qui s'appliquerait à vide fausserait les statistiques).
+    Lève ValueError sur valeur inconnue — la route la traduit en HTTP 400
+    (jamais de repli silencieux : un filtre mal orthographié qui s'appliquerait
+    à vide fausserait les statistiques).
     """
     if niveau_risque is None:
         return None
     niveau = niveau_risque.upper()
     if niveau not in NIVEAUX_RISQUE_FILTRE:
-        raise HTTPException(
-            status_code=400,
-            detail=f"niveau_risque invalide : {niveau_risque!r} "
-            f"(attendu : {', '.join(NIVEAUX_RISQUE_FILTRE)})",
+        raise ValueError(
+            f"niveau_risque invalide : {niveau_risque!r} "
+            f"(attendu : {', '.join(NIVEAUX_RISQUE_FILTRE)})"
         )
     return niveau
 
@@ -506,7 +506,10 @@ def _with_significance(container: ContainerDependency, rows) -> list[dict]:
     return annotated
 
 
-@router.get("/impact")
+@router.get(
+    "/impact",
+    responses={400: {"description": "Filtre niveau_risque invalide (FAIBLE, MODERE, ELEVE, CRITIQUE)"}},
+)
 def get_real_dashboard_impact(
     container: ContainerDependency,
     user: Annotated[CurrentUser, Depends(require_roles(*DECISION_ROLES))],
@@ -521,7 +524,10 @@ def get_real_dashboard_impact(
         # CHEF_DEPARTEMENT : périmètre imposé (le paramètre est ignoré).
         dept_id = forced_dept
 
-    niveau = normalize_niveau_filter(niveau_risque)
+    try:
+        niveau = normalize_niveau_filter(niveau_risque)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     # Sans filtre actif : chemin historique conservé à l'identique
     # (mêmes requêtes, mêmes chiffres). Avec filtre : requêtes périmétrées.

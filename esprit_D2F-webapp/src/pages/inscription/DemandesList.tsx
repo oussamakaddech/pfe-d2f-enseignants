@@ -73,12 +73,13 @@ interface Demande {
  *  arrive avec `enseignant: null` : on la garde avec un objet vide plutôt que
  *  de crasher le rendu (React #31 / TypeError sur `.prenom`). */
 export function normalizeDemandes(data: unknown): Demande[] {
-  const list: unknown[] = Array.isArray(data)
-    ? data
-    : (data as { content?: unknown } | null) &&
-        Array.isArray((data as { content?: unknown }).content)
-      ? ((data as { content: unknown[] }).content as unknown[])
-      : [];
+  let list: unknown[] = [];
+  if (Array.isArray(data)) {
+    list = data;
+  } else {
+    const content = (data as { content?: unknown } | null)?.content;
+    if (Array.isArray(content)) list = content;
+  }
   return (list as Demande[]).map((r) => ({ ...r, enseignant: r.enseignant ?? {} }));
 }
 

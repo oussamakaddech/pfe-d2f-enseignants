@@ -1775,15 +1775,7 @@ public class FormationWorkflowService {
                     dto.setHeureFin(p.getSeanceFormation().getHeureFin() != null ? p.getSeanceFormation().getHeureFin().toString() : null);
                     dto.setSalle(p.getSeanceFormation().getSalle());
                     if (p.getSeanceFormation().getFormation() != null) {
-                        try {
-                            dto.setFormationId(p.getSeanceFormation().getFormation().getIdFormation());
-                            dto.setTitreFormation(p.getSeanceFormation().getFormation().getTitreFormation());
-                            dto.setEtatFormation(p.getSeanceFormation().getFormation().getEtatFormation() != null
-                                    ? p.getSeanceFormation().getFormation().getEtatFormation().toString() : null);
-                        } catch (jakarta.persistence.EntityNotFoundException archived) {
-                            // Formation archivée (soft-delete) : l'historique de
-                            // présence est conservé, sans le détail formation.
-                        }
+                        copyFormationDetails(dto, p.getSeanceFormation().getFormation());
                     }
                 } catch (jakarta.persistence.EntityNotFoundException archived) {
                     // Séance rattachée à une formation archivée : présence gardée sans détail.
@@ -1791,6 +1783,22 @@ public class FormationWorkflowService {
             }
             return dto;
         }).toList();
+    }
+
+    /**
+     * Recopie le détail de la formation d'une présence. Une formation archivée
+     * (soft-delete) lève EntityNotFoundException au chargement paresseux :
+     * l'historique de présence est alors conservé, sans le détail formation.
+     */
+    private static void copyFormationDetails(MesPresenceDTO dto, Formation formation) {
+        try {
+            dto.setFormationId(formation.getIdFormation());
+            dto.setTitreFormation(formation.getTitreFormation());
+            dto.setEtatFormation(formation.getEtatFormation() != null
+                    ? formation.getEtatFormation().toString() : null);
+        } catch (jakarta.persistence.EntityNotFoundException archived) {
+            // Formation archivée : présence conservée sans le détail formation.
+        }
     }
 
     public List<FormationResponseDTO> getFormationsAchevees() {

@@ -126,6 +126,18 @@ const SORT_OPTIONS: { value: UnifiedSort; label: string }[] = [
 const TYPE_LABELS: Record<string, string> = { P: 'Permanent', V: 'Vacataire', C: 'Contractuel' };
 const isTruthyFlag = (v: unknown) => v === 'O' || v === 'Y' || v === '1';
 
+/** Infobulle du bouton bloquer / débloquer d'une ligne. */
+function blockTooltip(hasAccount: boolean, isActive: boolean): string {
+  if (!hasAccount) return 'Pas de compte : utilisez le bouton « Créer un compte »';
+  return isActive ? 'Bloquer le compte' : 'Débloquer le compte';
+}
+
+/** Infobulle du bouton supprimer selon ce que porte la ligne. */
+function deleteTooltip(isMerged: boolean, hasAccount: boolean): string {
+  if (isMerged) return 'Supprimer (compte + fiche)';
+  return hasAccount ? 'Supprimer le compte' : 'Supprimer la fiche';
+}
+
 /** Options du filtre par rôle : les 5 rôles créables + ADMIN (non créable
  *  depuis le drawer mais présent en base — les stats le comptent). La
  *  comparaison se fait sur rôles normalisés (voir rowAccountRoles). */
@@ -635,6 +647,8 @@ export default function UnifiedAdministrationPage() {
       const newUserId = String(createdAny.userId ?? createdAny.id ?? '');
       // 2) rattacher la fiche EXISTANTE au compte (aucune nouvelle fiche créée)
       const isStructure = v.role === 'CUP' || v.role === 'CHEF_DEPARTEMENT';
+      // Indicateurs O/N de la fiche, dérivés du rôle de structure choisi.
+      const structureFlag = (role: string) => (v.role === role ? 'O' : 'N');
       const upId = fiche.upId ?? (fiche.up as { id: Id } | undefined)?.id;
       const deptId = fiche.deptId ?? (fiche.dept as { id: Id } | undefined)?.id;
       try {
@@ -645,12 +659,8 @@ export default function UnifiedAdministrationPage() {
           mail: fiche.mail,
           type: fiche.type,
           etat: fiche.etat,
-          cup: isStructure ? (v.role === 'CUP' ? 'O' : 'N') : fiche.cup,
-          chefDepartement: isStructure
-            ? v.role === 'CHEF_DEPARTEMENT'
-              ? 'O'
-              : 'N'
-            : fiche.chefDepartement,
+          cup: isStructure ? structureFlag('CUP') : fiche.cup,
+          chefDepartement: isStructure ? structureFlag('CHEF_DEPARTEMENT') : fiche.chefDepartement,
           grade: fiche.grade,
           telephone: fiche.telephone,
           photoUrl: fiche.photoUrl,
@@ -1008,15 +1018,7 @@ export default function UnifiedAdministrationPage() {
                 className="accounts-action-btn"
               />
             </Tooltip>
-            <Tooltip
-              title={
-                hasAccount
-                  ? isActive
-                    ? 'Bloquer le compte'
-                    : 'Débloquer le compte'
-                  : 'Pas de compte : utilisez le bouton « Créer un compte »'
-              }
-            >
+            <Tooltip title={blockTooltip(hasAccount, isActive)}>
               <Button
                 shape="circle"
                 icon={isActive ? <LockOutlined /> : <UnlockOutlined />}
@@ -1040,15 +1042,7 @@ export default function UnifiedAdministrationPage() {
               cancelText="Annuler"
               okButtonProps={{ danger: true }}
             >
-              <Tooltip
-                title={
-                  record._type === 'merged'
-                    ? 'Supprimer (compte + fiche)'
-                    : hasAccount
-                      ? 'Supprimer le compte'
-                      : 'Supprimer la fiche'
-                }
-              >
+              <Tooltip title={deleteTooltip(record._type === 'merged', hasAccount)}>
                 <Button
                   shape="circle"
                   danger

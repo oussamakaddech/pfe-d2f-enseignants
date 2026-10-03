@@ -40,7 +40,10 @@ def _scope_alerts(container, user, page, size, severity, status, target_type, de
     return [], 0, severity_open
 
 
-@router.get("")
+@router.get(
+    "",
+    responses={400: {"description": "severity_bucket invalide (CRITICAL, WARNING ou INFO)"}},
+)
 def list_alerts(
     container: ContainerDependency,
     user: Annotated[CurrentUser, Depends(require_roles(*DECISION_ROLES))],

@@ -45,8 +45,9 @@ const getNode = (t: RiceDomaine[], path: RiceTreePath): Record<string, unknown> 
 // Liste de savoirs d'un conteneur [di, ci, sci] (sci = -1 : la compétence).
 const savoirListOf = (t: RiceDomaine[], [di, ci, sci]: RiceTreePath): RiceSavoir[] => {
   const comp = t[di].competences![ci];
-  if (sci === -1) return (comp.savoirs ??= []);
-  return (comp.sousCompetences![sci].savoirs ??= []);
+  const container = sci === -1 ? comp : comp.sousCompetences![sci];
+  container.savoirs ??= [];
+  return container.savoirs;
 };
 
 const pushSavoirFlat = (args: {
