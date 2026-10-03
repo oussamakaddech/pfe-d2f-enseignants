@@ -23,6 +23,7 @@ import {
   EditOutlined,
   DeleteOutlined,
   UserOutlined,
+  UserAddOutlined,
   MailOutlined,
   PhoneOutlined,
   TeamOutlined,
@@ -48,6 +49,7 @@ import {
 } from '@/hooks/auth/useAuthService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import EnseignantService from '@/services/formation/EnseignantService';
+import { createAccount as createAccountApi } from '@/services/auth/AccountService';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 import CreateAccountDrawer, { ACCOUNT_ROLES } from '@/pages/admin/gererComptes/CreateAccountDrawer';
 import TeacherEditModal from '@/components/enseignant/TeacherEditModal';
@@ -164,8 +166,7 @@ export function filterUnifiedRows(rows: UnifiedRow[], filters: UnifiedRowFilters
       const rowRoles = rowAccountRoles(row);
       if (!roleSet.some((r) => rowRoles.includes(r))) return false;
     }
-    if (hasTeacher && filters.typeFilter !== 'ALL' && row.type !== filters.typeFilter)
-      return false;
+    if (hasTeacher && filters.typeFilter !== 'ALL' && row.type !== filters.typeFilter) return false;
     if (!term) return true;
     return matchesSearchTerm(row, term);
   });
@@ -594,6 +595,89 @@ export default function UnifiedAdministrationPage() {
     }
   };
 
+  /* ── Créer un compte pour une fiche enseignant existante (sans compte) ── */
+  const [linkFiche, setLinkFiche] = useState<UnifiedRow | null>(null);
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [linkForm] = Form.useForm();
+
+  const openLinkAccount = (record: UnifiedRow) => {
+    const mail = String(record.mail ?? '');
+    linkForm.resetFields();
+    linkForm.setFieldsValue({
+      username: mail
+        .split('@')[0]
+        .toLowerCase()
+        .replaceAll(/[^a-z0-9._-]/g, ''),
+      role: 'ENSEIGNANT',
+    });
+    setLinkFiche(record);
+  };
+
+  const handleLinkAccountSave = async () => {
+    if (!linkFiche?.id) return;
+    setLinkLoading(true);
+    try {
+      const v = await linkForm.validateFields();
+      const fiche = linkFiche;
+      // 1) compte auth (rôle choisi) avec l'e-mail de la fiche
+      const created = await createAccountApi(
+        {
+          username: v.username,
+          password: v.password,
+          firstName: String(fiche.prenom ?? ''),
+          lastName: String(fiche.nom ?? ''),
+          email: String(fiche.mail ?? ''),
+          phoneNumber: String(fiche.telephone ?? ''),
+        },
+        v.role,
+      );
+      const createdAny = created as { userId?: string; id?: string };
+      const newUserId = String(createdAny.userId ?? createdAny.id ?? '');
+      // 2) rattacher la fiche EXISTANTE au compte (aucune nouvelle fiche créée)
+      const isStructure = v.role === 'CUP' || v.role === 'CHEF_DEPARTEMENT';
+      const upId = fiche.upId ?? (fiche.up as { id: Id } | undefined)?.id;
+      const deptId = fiche.deptId ?? (fiche.dept as { id: Id } | undefined)?.id;
+      try {
+        await EnseignantService.updateEnseignant(String(fiche.id), {
+          id: fiche.id,
+          nom: fiche.nom,
+          prenom: fiche.prenom,
+          mail: fiche.mail,
+          type: fiche.type,
+          etat: fiche.etat,
+          cup: isStructure ? (v.role === 'CUP' ? 'O' : 'N') : fiche.cup,
+          chefDepartement: isStructure
+            ? v.role === 'CHEF_DEPARTEMENT'
+              ? 'O'
+              : 'N'
+            : fiche.chefDepartement,
+          grade: fiche.grade,
+          telephone: fiche.telephone,
+          photoUrl: fiche.photoUrl,
+          upId,
+          deptId,
+          up: upId ? { id: upId } : null,
+          dept: deptId ? { id: deptId } : null,
+          userId: newUserId,
+        });
+        msgApi.success(`Compte "${v.username}" créé et lié à la fiche`);
+      } catch {
+        msgApi.warning(
+          `Compte "${v.username}" créé, mais la fiche n'a pas pu être rattachée. Réessayez via « Modifier la fiche ».`,
+        );
+      }
+      setLinkFiche(null);
+      fetchAll();
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } }; errorFields?: unknown };
+      if (!e?.errorFields) {
+        msgApi.error(e?.response?.data?.message || 'Erreur de création du compte');
+      }
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
   const handleDeleteTeacher = async (record: UnifiedRow) => {
     if (!record.id) return;
     await EnseignantService.deleteEnseignant(String(record.id));
@@ -856,7 +940,7 @@ export default function UnifiedAdministrationPage() {
       title: 'Actions',
       key: 'actions',
       fixed: 'right',
-      width: 210,
+      width: 170,
       render: (_, record) => {
         // Compte archivé (soft-deleted) : uniquement suppression définitive.
         if (record.deleted) {
@@ -874,121 +958,103 @@ export default function UnifiedAdministrationPage() {
             </Space>
           );
         }
-        if (record._type === 'merged') {
-          return (
-            <Space size={2}>
+        // Colonne uniforme : mêmes 4 emplacements pour toute ligne (compte, fiche
+        // ou les deux). Une action non applicable est grisée avec son motif.
+        const hasAccount = record._type === 'merged' || record._type === 'account';
+        const hasFiche = record._type === 'merged' || record._type === 'teacher';
+        const noFiche = 'Aucune fiche enseignant liée à ce compte';
+        const isActive = record.status === 'ACTIF';
+        const fullName =
+          `${record.firstName || record.prenom || ''} ${record.lastName || record.nom || ''}`.trim() ||
+          record.userName ||
+          'cet utilisateur';
+        const onDelete = () => {
+          if (record._type === 'merged') handleDeleteMerged(record);
+          else if (record._type === 'account') handleDeleteAccount(record);
+          else handleDeleteTeacher(record);
+        };
+        return (
+          <Space size={4}>
+            {hasAccount ? (
               <Tooltip title="Modifier le compte (rôle, identité)">
                 <Button
                   shape="circle"
                   icon={<EditOutlined />}
                   onClick={() => handleEditAccount(record)}
+                  aria-label="Modifier le compte"
                   className="accounts-action-btn"
                 />
               </Tooltip>
-              <Tooltip title="Modifier la fiche (type, UP, dépt)">
+            ) : (
+              <Tooltip title="Créer un compte pour cette fiche">
                 <Button
                   shape="circle"
-                  icon={<SolutionOutlined />}
-                  onClick={() => openEditTeacher(record)}
+                  type="primary"
+                  ghost
+                  icon={<UserAddOutlined />}
+                  onClick={() => openLinkAccount(record)}
+                  aria-label="Créer un compte"
                   className="accounts-action-btn"
                 />
               </Tooltip>
-              <Tooltip
-                title={record.status === 'ACTIF' ? 'Bloquer le compte' : 'Débloquer le compte'}
-              >
-                <Button
-                  shape="circle"
-                  icon={record.status === 'ACTIF' ? <LockOutlined /> : <UnlockOutlined />}
-                  onClick={() => handleToggleStatus(record)}
-                  className={
-                    record.status === 'ACTIF'
-                      ? 'accounts-action-btn accounts-action-btn--block'
-                      : 'accounts-action-btn accounts-action-btn--activate'
-                  }
-                />
-              </Tooltip>
-              <Tooltip title="Supprimer (compte + fiche)">
-                <Button
-                  shape="circle"
-                  danger
-                  icon={<DeleteOutlined />}
-                  className="accounts-action-btn accounts-action-btn--delete"
-                  onClick={() => handleDeleteMerged(record)}
-                />
-              </Tooltip>
-            </Space>
-          );
-        }
-        if (record._type === 'account') {
-          const fullName =
-            `${record.firstName || ''} ${record.lastName || ''}`.trim() ||
-            record.userName ||
-            'cet utilisateur';
-          return (
-            <Space size={4}>
-              <Tooltip title="Modifier">
-                <Button
-                  shape="circle"
-                  icon={<EditOutlined />}
-                  onClick={() => handleEditAccount(record)}
-                  className="accounts-action-btn"
-                />
-              </Tooltip>
-              <Tooltip title={record.status === 'ACTIF' ? 'Bloquer' : 'Débloquer'}>
-                <Button
-                  shape="circle"
-                  icon={record.status === 'ACTIF' ? <LockOutlined /> : <UnlockOutlined />}
-                  onClick={() => handleToggleStatus(record)}
-                  className={
-                    record.status === 'ACTIF'
-                      ? 'accounts-action-btn accounts-action-btn--block'
-                      : 'accounts-action-btn accounts-action-btn--activate'
-                  }
-                />
-              </Tooltip>
-              <Popconfirm
-                title="Supprimer ?"
-                description={`${fullName} sera supprimé.`}
-                onConfirm={() => handleDeleteAccount(record)}
-                okText="Supprimer"
-                cancelText="Annuler"
-                okButtonProps={{ danger: true }}
-              >
-                <Tooltip title="Supprimer">
-                  <Button
-                    shape="circle"
-                    danger
-                    icon={<DeleteOutlined />}
-                    className="accounts-action-btn accounts-action-btn--delete"
-                  />
-                </Tooltip>
-              </Popconfirm>
-            </Space>
-          );
-        }
-        return (
-          <Space size={4}>
-            <Tooltip title="Modifier l'enseignant">
+            )}
+            <Tooltip title={hasFiche ? 'Modifier la fiche (type, UP, dépt)' : noFiche}>
               <Button
                 shape="circle"
-                icon={<EditOutlined />}
-                className="accounts-action-btn"
+                icon={<SolutionOutlined />}
+                disabled={!hasFiche}
                 onClick={() => openEditTeacher(record)}
+                aria-label="Modifier la fiche"
+                className="accounts-action-btn"
               />
             </Tooltip>
+            <Tooltip
+              title={
+                hasAccount
+                  ? isActive
+                    ? 'Bloquer le compte'
+                    : 'Débloquer le compte'
+                  : 'Pas de compte : utilisez le bouton « Créer un compte »'
+              }
+            >
+              <Button
+                shape="circle"
+                icon={isActive ? <LockOutlined /> : <UnlockOutlined />}
+                disabled={!hasAccount}
+                onClick={() => handleToggleStatus(record)}
+                aria-label={isActive ? 'Bloquer' : 'Débloquer'}
+                className={
+                  isActive
+                    ? 'accounts-action-btn accounts-action-btn--block'
+                    : 'accounts-action-btn accounts-action-btn--activate'
+                }
+              />
+            </Tooltip>
+            {/* Ligne fusionnée : handleDeleteMerged ouvre déjà sa propre confirmation. */}
             <Popconfirm
               title="Supprimer ?"
-              description={`${record.nom || ''} ${record.prenom || ''} sera supprimé.`}
-              onConfirm={() => handleDeleteTeacher(record)}
+              description={`${fullName} sera supprimé.`}
+              disabled={record._type === 'merged'}
+              onConfirm={onDelete}
               okText="Supprimer"
               cancelText="Annuler"
               okButtonProps={{ danger: true }}
             >
-              <Tooltip title="Supprimer">
+              <Tooltip
+                title={
+                  record._type === 'merged'
+                    ? 'Supprimer (compte + fiche)'
+                    : hasAccount
+                      ? 'Supprimer le compte'
+                      : 'Supprimer la fiche'
+                }
+              >
                 <Button
                   shape="circle"
                   danger
                   icon={<DeleteOutlined />}
+                  aria-label="Supprimer"
+                  onClick={record._type === 'merged' ? onDelete : undefined}
                   className="accounts-action-btn accounts-action-btn--delete"
                 />
               </Tooltip>
@@ -1197,6 +1263,68 @@ export default function UnifiedAdministrationPage() {
         />
       </Card>
 
+      {/* ── Créer un compte pour une fiche existante ── */}
+      <Modal
+        title={`Créer un compte pour ${linkFiche?.prenom ?? ''} ${linkFiche?.nom ?? ''}`.trim()}
+        open={!!linkFiche}
+        onCancel={() => setLinkFiche(null)}
+        onOk={handleLinkAccountSave}
+        confirmLoading={linkLoading}
+        okText="Créer le compte"
+        cancelText="Annuler"
+        destroyOnHidden
+      >
+        <Text type="secondary">
+          Le compte utilisera l&apos;e-mail de la fiche ({String(linkFiche?.mail ?? '')}) et sera
+          rattaché à la fiche existante.
+        </Text>
+        <Form form={linkForm} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item
+            name="username"
+            label="Nom d'utilisateur"
+            rules={[{ required: true, message: "Le nom d'utilisateur est requis" }]}
+          >
+            <Input prefix={<UserOutlined />} />
+          </Form.Item>
+          <Form.Item
+            name="password"
+            label="Mot de passe"
+            rules={[
+              { required: true, message: 'Le mot de passe est requis' },
+              {
+                pattern: /^(?=.*[A-Za-z])(?=.*\d).{8,72}$/,
+                message: '8 à 72 caractères, avec au moins une lettre et un chiffre',
+              },
+            ]}
+          >
+            <Input.Password />
+          </Form.Item>
+          <Form.Item
+            name="confirm"
+            label="Confirmer le mot de passe"
+            dependencies={['password']}
+            rules={[
+              { required: true, message: 'Confirmez le mot de passe' },
+              ({ getFieldValue }) => ({
+                validator: (_, val) =>
+                  !val || getFieldValue('password') === val
+                    ? Promise.resolve()
+                    : Promise.reject(new Error('Les mots de passe ne correspondent pas')),
+              }),
+            ]}
+          >
+            <Input.Password />
+          </Form.Item>
+          <Form.Item name="role" label="Rôle" rules={[{ required: true }]}>
+            <Select
+              options={ACCOUNT_ROLES.filter((r) =>
+                ['ENSEIGNANT', 'ANIMATEUR', 'CUP', 'CHEF_DEPARTEMENT'].includes(r.value),
+              ).map((r) => ({ value: r.value, label: r.label }))}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+
       {/* ── Create Account Drawer ── */}
       <CreateAccountDrawer
         open={drawerVisible}
@@ -1338,8 +1466,7 @@ function normalizeTeacherTypeCode(type: unknown): 'P' | 'V' | 'C' | null {
     .toUpperCase();
   if (v === 'P' || v === 'PERMANENT' || v === 'PERMANENTE') return 'P';
   if (v === 'V' || v === 'VACATAIRE') return 'V';
-  if (v === 'C' || v === 'CONTRACTUEL' || v === 'CONTRACTUELLE' || v === 'CONTRACTOR')
-    return 'C';
+  if (v === 'C' || v === 'CONTRACTUEL' || v === 'CONTRACTUELLE' || v === 'CONTRACTOR') return 'C';
   return null;
 }
 

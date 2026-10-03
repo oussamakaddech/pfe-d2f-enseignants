@@ -70,13 +70,14 @@ const DashboardKpiGrid = memo(function DashboardKpiGrid({
   const totalFormPrev = useTotalFormations(prev.start, prev.end);
   const participants = useUniqueParticipants(scope.start, scope.end);
   const presenceQ = useGlobalParticipantKPI(scope.start, scope.end);
-  const overview = useOverview();
+  const overview = useOverview(scope.isPilotage);
   const besoins = useBesoins(isAdmin);
   const global = useGlobalDashboard(isAdmin);
 
   // ── Sources CUP (scopées serveur) ──
   const upQ = useParticipationByUp(!isAdmin);
-  const inactifs = useInactifs(!isAdmin);
+  // Liste nominative : rôles de pilotage seulement (refusée au responsable dossier).
+  const inactifs = useInactifs(scope.isPilotage && !isAdmin);
 
   const presence = (presenceQ.data as GlobalParticipantKPI | undefined)?.tauxParticipation;
   const ups = upQ.data?.items ?? [];

@@ -5,10 +5,32 @@ import { SearchOutlined, EditOutlined, DeleteOutlined, MailOutlined } from '@ant
 
 // ─── Helper renderers ────────────────────────────────────────────────────────
 
+// Normalise le code `type` issu des fiches (import Excel = valeur brute,
+// casse/accents/libellés complets possibles) vers le canonique P/V/C.
+// Retourne null si la valeur est inconnue — l'appelant affiche alors la
+// valeur brute dans un tag neutre au lieu d'inventer un libellé.
+export function normalizeTeacherType(type: unknown): 'P' | 'V' | 'C' | null {
+  const v = String(type ?? '')
+    .trim()
+    .toUpperCase();
+  if (v === 'P' || v === 'PERMANENT' || v === 'PERMANENTE') return 'P';
+  if (v === 'V' || v === 'VACATAIRE') return 'V';
+  if (v === 'C' || v === 'CONTRACTUEL' || v === 'CONTRACTUELLE' || v === 'CONTRACTOR')
+    return 'C';
+  return null;
+}
+
+export const TEACHER_TYPE_LABELS: Record<'P' | 'V' | 'C', string> = {
+  P: 'Permanent',
+  V: 'Vacataire',
+  C: 'Contractuel',
+};
+
 export const getAvatarClass = (type: string): string => {
-  if (type === 'P') return 'teachers-avatar teachers-avatar--perm';
-  if (type === 'V') return 'teachers-avatar teachers-avatar--vac';
-  if (type === 'C') return 'teachers-avatar teachers-avatar--cont';
+  const norm = normalizeTeacherType(type);
+  if (norm === 'P') return 'teachers-avatar teachers-avatar--perm';
+  if (norm === 'V') return 'teachers-avatar teachers-avatar--vac';
+  if (norm === 'C') return 'teachers-avatar teachers-avatar--cont';
   return 'teachers-avatar teachers-avatar--other';
 };
 
@@ -19,28 +41,35 @@ export const getInitials = (nom: string, prenom: string): string => {
 };
 
 export const getTypeTag = (type: string) => {
-  if (type === 'P')
+  const norm = normalizeTeacherType(type);
+  if (norm === 'P')
     return (
       <span className="teachers-type-tag teachers-type-tag--perm">
         <span className="teachers-type-dot teachers-type-dot--perm" /> Permanent
       </span>
     );
-  if (type === 'V')
+  if (norm === 'V')
     return (
       <span className="teachers-type-tag teachers-type-tag--vac">
         <span className="teachers-type-dot teachers-type-dot--vac" /> Vacataire
       </span>
     );
-  if (type === 'C')
+  if (norm === 'C')
     return (
       <span className="teachers-type-tag teachers-type-tag--cont">
         <span className="teachers-type-dot teachers-type-dot--cont" /> Contractuel
       </span>
     );
+  // Valeur non canonique (ex. 'T', 'A' issus d'un import) : affichée telle
+  // quelle dans un tag neutre — pas de libellé inventé.
+  const raw = String(type ?? '').trim();
   return (
-    <span className="teachers-type-tag teachers-type-tag--other">
+    <span
+      className="teachers-type-tag teachers-type-tag--other"
+      title={`Type non référencé : ${raw || 'vide'}`}
+    >
       <span className="teachers-type-dot teachers-type-dot--other" />
-      {type || '—'}
+      {raw || '—'}
     </span>
   );
 };

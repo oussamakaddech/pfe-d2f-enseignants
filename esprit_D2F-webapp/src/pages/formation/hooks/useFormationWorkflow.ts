@@ -370,12 +370,13 @@ function mergeFormateursAccounts(
     formateurs.map((f) => f.userName).filter((n): n is string => Boolean(n)),
   );
   const enriched = formateurs.map((f) => {
-    const prefix = f.mail ? f.mail.split('@')[0] : '';
+    const prefix = f.mail ? f.mail.split('@')[0].toLowerCase() : '';
+    const fMail = (f.mail || '').toLowerCase();
     const match = enseignantsData.find(
       (ex) =>
         (typeof ex.id === 'string' && fUserNames.has(ex.id)) ||
-        ex.mail === f.mail ||
-        ex.mail?.split('@')[0] === prefix,
+        (!!fMail && (ex.mail || '').toLowerCase() === fMail) ||
+        (!!prefix && (ex.mail || '').split('@')[0].toLowerCase() === prefix),
     );
     return match
       ? {
@@ -783,15 +784,31 @@ export function useFormationWorkflow({
     [enseignants],
   );
 
-  const optionsAnim = [...formateursList, ...manualAnimateurs].filter(
+  // Animateurs = comptes ANIMATEUR sans fiche enseignant + toutes les fiches enseignants
+  // (même source que l'édition : un enseignant peut animer sans compte ANIMATEUR).
+  const sameLibelle = (a?: string, b?: string) =>
+    (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase();
+  const mailKey = (mail?: string) => {
+    const v = (mail || '').trim().toLowerCase();
+    return v ? v.split('@')[0] : '';
+  };
+  const ensMailKeys = new Set(enseignantsList.map((e) => mailKey(e.mail)).filter(Boolean));
+  const accountAnimateurs = formateursList.filter((a) => {
+    const k = mailKey(a.mail);
+    return !k || !ensMailKeys.has(k);
+  });
+  const optionsAnim = [...accountAnimateurs, ...enseignantsList, ...manualAnimateurs].filter(
     (x) =>
-      (!animFilterUp || x.upLibelle === animFilterUp.libelle) &&
-      (!animFilterDept || x.deptLibelle === animFilterDept.libelle),
+      (!animFilterUp || sameLibelle(x.upLibelle, animFilterUp.libelle)) &&
+      (!animFilterDept || sameLibelle(x.deptLibelle, animFilterDept.libelle)),
   );
 
   // Emails already covered by the animateurs pool → exclude from participants
   const animateurMailSet = new Set(
-    optionsAnim.map((a) => (a.mail || '').toLowerCase()).filter(Boolean),
+    // pool non filtré : un filtre UP/département ne doit pas modifier la liste des participants
+    [...formateursList, ...manualAnimateurs]
+      .map((a) => (a.mail || '').toLowerCase())
+      .filter(Boolean),
   );
 
   // Participants = formation-service enseignants + auth accounts (ENSEIGNANT + ANIMATEUR)
@@ -835,8 +852,8 @@ export function useFormationWorkflow({
     ...manualParticipants,
   ].filter(
     (x) =>
-      (!partFilterUp || x.upLibelle === partFilterUp.libelle) &&
-      (!partFilterDept || x.deptLibelle === partFilterDept.libelle),
+      (!partFilterUp || sameLibelle(x.upLibelle, partFilterUp.libelle)) &&
+      (!partFilterDept || sameLibelle(x.deptLibelle, partFilterDept.libelle)),
   );
 
   useEffect(() => {

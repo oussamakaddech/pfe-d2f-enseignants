@@ -13,6 +13,7 @@ import {
   Space,
   Spin,
   Statistic,
+  Table,
   Typography,
 } from 'antd';
 import {
@@ -160,7 +161,6 @@ export default function ReportStep({
       );
     if (!importHistory || importHistory.length === 0)
       return <Empty description="Aucun import précédent" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
-    const { Table } = require('antd') as typeof import('antd');
     return (
       <Table
         dataSource={importHistory.map((r, i) => ({ ...r, key: i }))}

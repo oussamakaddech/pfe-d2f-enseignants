@@ -224,6 +224,11 @@ export interface RealAtRiskTeacher {
   nb_gaps_persistes: number;
   nb_gaps_critiques: number;
   max_gap_score: number;
+  /** Niveaux réellement enregistrés sur le périmètre de l'enseignant. */
+  niveaux_sur_scope?: number;
+  /** false : aucun niveau enregistré, tous les écarts sont au maximum par
+   *  défaut — l'indice mesure l'absence de données, pas un risque. */
+  score_significatif?: boolean;
 }
 
 export interface RealTopFormation {
@@ -467,6 +472,8 @@ export interface AtRiskTeacher {
   niveau_risque: NiveauRisque;
   nb_gaps_critiques: number;
   tendance: string;
+  /** false : score non significatif (aucun niveau enregistré). */
+  score_significatif?: boolean;
 }
 
 export interface DecliningSkill {
@@ -496,6 +503,21 @@ export interface TrendPoint {
   nb_gaps_critiques: number;
   score_risque_moyen: number;
   nb_alertes: number;
+}
+
+/** Point de tendance QUOTIDIENNE du risque (un instantané par enseignant et
+ *  par jour) : alimente la courbe « Tendances d'évolution du risque ». */
+export interface DailyTrendPoint {
+  /** Date ISO (YYYY-MM-DD). */
+  date: string;
+  /** Score de risque moyen du jour (0–1). */
+  score_risque_moyen: number;
+  /** Enseignants en niveau CRITIQUE ce jour-là. */
+  nb_critiques: number;
+  /** Enseignants en niveau ÉLEVÉ ce jour-là. */
+  nb_eleves: number;
+  /** Enseignants avec snapshot ce jour-là. */
+  nb_enseignants: number;
 }
 
 export interface DashboardFilters {

@@ -52,6 +52,8 @@ import {
   shouldHydrateData,
 } from './components/matchingTypes';
 import { useMatchingReferential } from './hooks/useMatchingReferential';
+import { resolveDept, resolveDeptId, resolveUp } from './rice/teacherAffiliation';
+import { useDepartements } from '@/hooks/formation/useFormations';
 
 const { Text } = Typography;
 
@@ -82,6 +84,16 @@ export default function CompetenceMatchingPage() {
   }, [state.enseignants]);
 
   const { domaines, competences, sousCompetences } = useMatchingReferential();
+  const { data: deptsData = [] } = useDepartements();
+  // Le service formation attend `deptId` : le champ texte `departement` était
+  // ignoré, la modification du département n'avait aucun effet.
+  const deptOptions = useMemo(
+    () =>
+      (deptsData as { id?: string; libelle?: string; nom?: string }[])
+        .filter((d) => d.id)
+        .map((d) => ({ value: String(d.id), label: d.libelle || d.nom || String(d.id) })),
+    [deptsData],
+  );
 
   /** Hiérarchie résolue de chaque savoir (id → domaine › compétence › sous-compétence). */
   const hierarchies = useMemo(() => {
@@ -109,15 +121,28 @@ export default function CompetenceMatchingPage() {
     [hierarchies, emptyHierarchy],
   );
 
+  const selectedDept = state.filters.departement;
+  /** Département de rattachement de chaque domaine du référentiel (id domaine → deptId). */
+  const deptByDomaine = useMemo(() => {
+    const map = new Map<string, string>();
+    domaines.forEach((d) => {
+      if (d.id !== undefined && d.id !== null && d.departementId)
+        map.set(String(d.id), String(d.departementId));
+    });
+    return map;
+  }, [domaines]);
+
   const domainOptions = useMemo(() => {
     const map = new Map<string, string>();
     domaines.forEach((d) => {
       if (d.id === undefined || d.id === null) return;
+      if (selectedDept !== 'all' && String(d.departementId ?? '') !== selectedDept) return;
       map.set(String(d.id), String(d.nom ?? d.code ?? String(d.id)));
     });
     // Repli : domaines legacy portés par les savoirs (référentiel RICE)
     (state.savoirs || []).forEach((s) => {
       const h = hierarchies.get(String(s.id));
+      if (selectedDept !== 'all' && deptByDomaine.get(h?.domaineId ?? '') !== selectedDept) return;
       if (h?.domaineId && !map.has(h.domaineId)) {
         map.set(h.domaineId, h.domaineNom || h.domaineId);
       }
@@ -126,13 +151,13 @@ export default function CompetenceMatchingPage() {
       { value: 'all', label: 'Tous les domaines' },
       ...Array.from(map.entries()).map(([value, label]) => ({ value, label })),
     ];
-  }, [domaines, state.savoirs, hierarchies]);
+  }, [domaines, state.savoirs, hierarchies, selectedDept, deptByDomaine]);
 
   const competenceOptions = useMemo(() => {
     const selectedDomaine = state.filters.domaine;
     const list = (competences || []).filter((c) => {
-      if (selectedDomaine === 'all') return true;
-      return String(c.domaineId ?? '') === String(selectedDomaine);
+      if (selectedDomaine !== 'all') return String(c.domaineId ?? '') === String(selectedDomaine);
+      return selectedDept === 'all' || deptByDomaine.get(String(c.domaineId ?? '')) === selectedDept;
     });
     return [
       { value: 'all', label: 'Toutes les compétences' },
@@ -141,7 +166,7 @@ export default function CompetenceMatchingPage() {
         label: String(c.nom ?? c.code ?? String(c.id)),
       })),
     ];
-  }, [competences, state.filters.domaine]);
+  }, [competences, state.filters.domaine, selectedDept, deptByDomaine]);
 
   const sousCompetenceOptions = useMemo(() => {
     const selectedCompetence = state.filters.competence;
@@ -150,11 +175,11 @@ export default function CompetenceMatchingPage() {
       if (selectedCompetence !== 'all') {
         return String(sc.competenceId ?? '') === String(selectedCompetence);
       }
-      if (selectedDomaine !== 'all') {
-        const comp = (competences || []).find((c) => String(c.id) === String(sc.competenceId));
-        return String(comp?.domaineId ?? '') === String(selectedDomaine);
-      }
-      return true;
+      const comp = (competences || []).find((c) => String(c.id) === String(sc.competenceId));
+      if (selectedDomaine !== 'all') return String(comp?.domaineId ?? '') === String(selectedDomaine);
+      return (
+        selectedDept === 'all' || deptByDomaine.get(String(comp?.domaineId ?? '')) === selectedDept
+      );
     });
     return [
       { value: 'all', label: 'Toutes les sous-compétences' },
@@ -163,10 +188,24 @@ export default function CompetenceMatchingPage() {
         label: String(sc.nom ?? sc.code ?? String(sc.id)),
       })),
     ];
-  }, [sousCompetences, competences, state.filters.competence, state.filters.domaine]);
+  }, [
+    sousCompetences,
+    competences,
+    state.filters.competence,
+    state.filters.domaine,
+    selectedDept,
+    deptByDomaine,
+  ]);
 
   const handleDomaineChange = useCallback((v: string) => {
     dispatch({ type: 'SET_FILTER', payload: { key: 'domaine', value: v } });
+    dispatch({ type: 'SET_FILTER', payload: { key: 'competence', value: 'all' } });
+    dispatch({ type: 'SET_FILTER', payload: { key: 'sousCompetence', value: 'all' } });
+  }, []);
+
+  const handleDepartementChange = useCallback((v: string) => {
+    dispatch({ type: 'SET_FILTER', payload: { key: 'departement', value: v } });
+    dispatch({ type: 'SET_FILTER', payload: { key: 'domaine', value: 'all' } });
     dispatch({ type: 'SET_FILTER', payload: { key: 'competence', value: 'all' } });
     dispatch({ type: 'SET_FILTER', payload: { key: 'sousCompetence', value: 'all' } });
   }, []);
@@ -187,11 +226,11 @@ export default function CompetenceMatchingPage() {
     state.filters.competence !== 'all' ||
     state.filters.sousCompetence !== 'all';
 
-  const dept = state.filters.departement;
-  const normalizedDept = dept === 'all' ? null : dept;
-  const { data: savoirsData = [], refetch: refetchSavoirs } = useRiceSavoirs(normalizedDept);
-  const { data: enseignantsData = [], refetch: refetchEnseignants } =
-    useRiceEnseignants(normalizedDept);
+  // Tout est chargé puis filtré ici : le service compétence ignore le paramètre
+  // `departement` (les savoirs n'étaient jamais filtrés) et la liste du filtre ne
+  // proposait aucun département.
+  const { data: savoirsData = [], refetch: refetchSavoirs } = useRiceSavoirs(null);
+  const { data: enseignantsData = [], refetch: refetchEnseignants } = useRiceEnseignants(null);
 
   const reloadData = useCallback(async () => {
     await Promise.all([refetchSavoirs(), refetchEnseignants()]);
@@ -319,7 +358,7 @@ export default function CompetenceMatchingPage() {
       form.setFieldsValue({
         prenom: ens.prenom,
         nom: ens.nom,
-        departement: ens.departement,
+        deptId: resolveDeptId(ens) || undefined,
         grade: ens.grade,
       });
       setShowCreateModal(true);
@@ -372,6 +411,8 @@ export default function CompetenceMatchingPage() {
     return (state.savoirs || []).filter((s) => {
       if (q && !`${s.nom} ${s.code}`.toLowerCase().includes(q)) return false;
       const h = hierarchies.get(String(s.id));
+      if (selectedDept !== 'all' && deptByDomaine.get(h?.domaineId ?? '') !== selectedDept)
+        return false;
       if (state.filters.domaine !== 'all') {
         // Clé référentiel (id) ou repli legacy (code / nom du champ `domaine`)
         const domaine = s.domaine;
@@ -396,7 +437,7 @@ export default function CompetenceMatchingPage() {
         return false;
       return true;
     });
-  }, [state.savoirs, state.filters, state.assignments, hierarchies]);
+  }, [state.savoirs, state.filters, state.assignments, hierarchies, selectedDept, deptByDomaine]);
 
   const pendingTotal = useMemo(
     () => state.pendingChanges.add.length + state.pendingChanges.remove.length,
@@ -436,9 +477,12 @@ export default function CompetenceMatchingPage() {
 
   const sortedEnseignants = useMemo(() => {
     let list = [...state.enseignants];
+    if (selectedDept !== 'all') list = list.filter((e) => resolveDeptId(e) === selectedDept);
     if (ensSearch.trim()) {
       const q = ensSearch.toLowerCase();
-      list = list.filter((e) => `${e.prenom} ${e.nom}`.toLowerCase().includes(q));
+      list = list.filter((e) =>
+        `${e.prenom} ${e.nom} ${resolveDept(e)}`.toLowerCase().includes(q),
+      );
     }
     if (ensSort === 'name')
       list.sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`));
@@ -453,7 +497,7 @@ export default function CompetenceMatchingPage() {
           (assignmentCountByEns[String(a.id)] || 0) - (assignmentCountByEns[String(b.id)] || 0),
       );
     return list;
-  }, [state.enseignants, ensSearch, ensSort, assignmentCountByEns]);
+  }, [state.enseignants, ensSearch, ensSort, assignmentCountByEns, selectedDept]);
 
   let savoirsContent;
   if (state.loading.data) {
@@ -578,8 +622,8 @@ export default function CompetenceMatchingPage() {
               <span className="enseignant-full-name">
                 {ens.prenom as string} {ens.nom as string}
               </span>
-              <span className="enseignant-details-text">
-                {(ens.departement as string) || 'Département N/A'}
+              <span className="enseignant-details-text" title={resolveUp(ens) || undefined}>
+                {resolveDept(ens) || 'Département non renseigné'}
               </span>
             </div>
             <div className="enseignant-action-buttons">
@@ -646,12 +690,12 @@ export default function CompetenceMatchingPage() {
           <Space size="middle">
             <Select
               value={state.filters.departement}
-              onChange={(v) => {
-                dispatch({ type: 'SET_FILTER', payload: { key: 'departement', value: v } });
-                reloadData();
-              }}
+              onChange={handleDepartementChange}
+              showSearch
+              optionFilterProp="label"
+              popupMatchSelectWidth={false}
               style={{ width: 180, maxWidth: '100%' }}
-              options={[{ value: 'all', label: 'Tous les départements' }]}
+              options={[{ value: 'all', label: 'Tous les départements' }, ...deptOptions]}
             />
             <Select
               value={state.filters.domaine ?? 'all'}
@@ -813,8 +857,14 @@ export default function CompetenceMatchingPage() {
               <Input />
             </Form.Item>
           </div>
-          <Form.Item name="departement" label="Département">
-            <Input />
+          <Form.Item name="deptId" label="Département">
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="Choisir un département"
+              options={deptOptions}
+            />
           </Form.Item>
           <Form.Item name="grade" label="Grade">
             <Input />

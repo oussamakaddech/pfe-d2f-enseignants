@@ -20,6 +20,11 @@ vi.mock('@/hooks/analyse/useRiceService', () => ({
   useRiceDeactivateEnseignant: vi.fn(() => ({ mutateAsync: vi.fn() })),
 }));
 
+// Liste des départements (modale d'édition) : pas de QueryClient dans ces tests.
+vi.mock('@/hooks/formation/useFormations', () => ({
+  useDepartements: vi.fn(() => ({ data: [{ id: 'DEPT_WEB', libelle: 'Développement Web' }] })),
+}));
+
 vi.mock('../hooks/useMatchingReferential', () => ({
   useMatchingReferential: vi.fn(() => ({
     domaines: [{ id: 'd1', nom: 'D1' }],

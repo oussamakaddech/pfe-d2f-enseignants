@@ -20,6 +20,12 @@ import {
 } from '@/hooks/analytics/useAnalyticsQueries';
 import { RecommendationsList, RiskHistoryChart } from '@/components/analytics';
 import ModelBadge, { formatModelVersion } from '@/components/analytics/ModelBadge';
+import {
+  describeGapEngine,
+  describeRiskEngine,
+  isMlMode,
+  type EngineNote,
+} from '@/components/analytics/engineStatus';
 import RiskFactorRow, { formatScopeLabel } from '@/components/analytics/RiskFactorRow';
 import TeacherScopePanel from '@/components/analytics/TeacherScopePanel';
 import { riskColor } from '@/utils/analytics/format';
@@ -87,6 +93,16 @@ interface HeroProps {
   readonly onRefresh: () => void;
 }
 
+/* Pourquoi un moteur n'est pas le ML : resume lisible, raison brute en infobulle. */
+function EngineNoteText({ note }: Readonly<{ note: EngineNote | null }>) {
+  if (!note) return null;
+  return (
+    <Tooltip title={note.detail ? `Raison renvoyée par le service : ${note.detail}` : undefined}>
+      <span className={`at-hero-engine-note at-hero-engine-note-${note.tone}`}>{note.label}</span>
+    </Tooltip>
+  );
+}
+
 /* ── Bandeau d'identite + moteurs reellement utilises ──────────────── */
 function TeacherHero({
   enseignantId,
@@ -123,7 +139,7 @@ function TeacherHero({
             className="at-hero-sub"
             title={
               scoreNonSignificatif
-                ? "Aucun niveau de compétence n'est enregistré sur ce périmètre : le moteur retient un niveau actuel de 0, ce qui porte tous les écarts à leur maximum. L'indice reflète l'absence de données, pas le risque réel de l'enseignant."
+                ? "Aucun niveau de compétence n'est enregistré sur ce périmètre : le moteur retient un niveau couvert de 0, ce qui porte tous les écarts de couverture à leur maximum. L'indice reflète l'absence de données, pas le risque réel de l'enseignant."
                 : "Indice pondéré explicable (facteurs, caps, profil comportemental) — indice d'aide au classement, PAS une probabilité calibrée."
             }
           >
@@ -151,6 +167,9 @@ function TeacherHero({
               dataOrigin={gapsModel?.data_origin}
               size="small"
             />
+            <EngineNoteText
+              note={describeGapEngine(gapsModel?.model_mode, gapsModel?.fallback_reason)}
+            />
             <span className="at-hero-engine-label">Moteur du risque :</span>
             <ModelBadge
               modelMode={risk?.model_mode}
@@ -161,6 +180,11 @@ function TeacherHero({
               dataOrigin={risk?.data_origin ?? gapsModel?.data_origin}
               size="small"
             />
+            {risk && (
+              <EngineNoteText
+                note={describeRiskEngine(risk.mode, risk.fallback_reason, gapsModel?.model_mode)}
+              />
+            )}
           </span>
         </div>
         <div className="at-hero-actions">
@@ -269,7 +293,7 @@ function RiskScoreCard({
             title={
               isMlRisk
                 ? `Score servi par le modèle ML calibré : probabilité calibrée de la classe ${riskClassLabel(riskClass)} (validation sur données simulées). Décomposition : contributions du modèle (vue principale) + heuristique de référence (vue secondaire).`
-                : "Indice pondéré explicable : facteurs normalisés × poids (0,50 gaps critiques / 0,12 gaps haute urgence / 0,40 profondeur moyenne), plafonnement documenté, profil comportemental. Indice d'aide au classement — PAS une probabilité calibrée."
+                : "Indice pondéré explicable : facteurs normalisés × poids (0,50 écarts de couverture critiques / 0,12 écarts haute urgence / 0,40 profondeur moyenne), plafonnement documenté, profil comportemental. Indice d'aide au classement — PAS une probabilité calibrée."
             }
           >
             <div className="at-score-meta-row at-score-meta-small">
@@ -315,7 +339,7 @@ function RiskScoreCard({
 /* ── Compteurs d'ecarts ────────────────────────────────────────────── */
 function GapStatsRow({ stats }: { readonly stats: GapStats }) {
   const pastilles = [
-    { valeur: stats.total, libelle: 'Gaps détectés', accent: 'var(--at-brand)' },
+    { valeur: stats.total, libelle: 'Écarts de couverture', accent: 'var(--at-brand)' },
     {
       valeur: stats.critical,
       libelle: 'Critiques',
@@ -458,8 +482,10 @@ export default function AnalyticsTeacherPage() {
       {/* Avertissement de serving (gouvernance 7.6, limite 4.2). Il vivait dans
           l'onglet « Gaps de competences » : en retirant l'onglet il aurait
           disparu silencieusement, alors qu'il qualifie la fiabilite de TOUTE la
-          page. Il est donc remonte au niveau page. */}
-      {gaps.data?.model?.near_boundary_warning && (
+          page. Il est donc remonte au niveau page. Affiche seulement si le
+          modele a REELLEMENT servi les ecarts : en repli heuristique, le texte
+          « la prediction reste servie » etait faux. */}
+      {gaps.data?.model?.near_boundary_warning && isMlMode(gaps.data.model.model_mode) && (
         <Alert
           type="warning"
           showIcon

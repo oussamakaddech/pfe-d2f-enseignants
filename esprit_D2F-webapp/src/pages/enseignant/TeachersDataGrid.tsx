@@ -16,7 +16,7 @@ import { writeExcel, exportDateLabel, isoDate } from 'utils/helpers/excelExport'
 import CreateAccountDrawer from '@/pages/admin/gererComptes/CreateAccountDrawer';
 import TeacherEditModal from '@/components/enseignant/TeacherEditModal';
 import TeacherCreateModal from './components/TeacherCreateModal';
-import { useTeachersColumns } from './components/TeachersTableColumns';
+import { useTeachersColumns, normalizeTeacherType } from './components/TeachersTableColumns';
 import { useTeachersDataGrid } from './hooks/useTeachersDataGrid';
 // Design tokens are used via CSS classes — see TeachersDataGrid.css
 import '@/styles/pages/teachers-data-grid.css';
@@ -36,6 +36,13 @@ type Row = Record<string, unknown>;
 type TeacherSort = 'nom_asc' | 'nom_desc' | 'type' | 'up' | 'dept' | 'email';
 
 const TYPE_LABELS: Record<string, string> = { P: 'Permanent', V: 'Vacataire', C: 'Contractuel' };
+
+/** Libellé d'option de filtre : canonique si connu, valeur brute sinon. */
+function typeFilterLabel(t: string): string {
+  const norm = normalizeTeacherType(t);
+  if (norm) return TYPE_LABELS[norm];
+  return t;
+}
 
 const SORT_OPTIONS: { value: TeacherSort; label: string }[] = [
   { value: 'nom_asc', label: 'Nom (A → Z)' },
@@ -171,9 +178,8 @@ export default function TeachersDataGrid({ embedded = false }: { embedded?: bool
 
   const exportExcel = () => {
     const rows = displayedData.map((e: Record<string, unknown>) => {
-      let eType = String(e.type || '');
-      if (e.type === 'P') eType = 'Permanent';
-      else if (e.type === 'V') eType = 'Vacataire';
+      const norm = normalizeTeacherType(e.type);
+      const eType = norm ? TYPE_LABELS[norm] : String(e.type || '');
       return {
         Nom: String(e.nom || ''),
         Prénom: String(e.prenom || ''),
@@ -201,8 +207,12 @@ export default function TeachersDataGrid({ embedded = false }: { embedded?: bool
     );
   };
 
-  const permCount = data.filter((d: Record<string, unknown>) => d.type === 'P').length;
-  const vacCount = data.filter((d: Record<string, unknown>) => d.type === 'V').length;
+  const permCount = data.filter(
+    (d: Record<string, unknown>) => normalizeTeacherType(d.type) === 'P',
+  ).length;
+  const vacCount = data.filter(
+    (d: Record<string, unknown>) => normalizeTeacherType(d.type) === 'V',
+  ).length;
   const cupCount = data.filter(
     (d: Record<string, unknown>) => d.cup === 'O' || d.cup === 'Y' || d.cup === '1',
   ).length;
@@ -350,7 +360,7 @@ export default function TeachersDataGrid({ embedded = false }: { embedded?: bool
             style={{ minWidth: 150 }}
             options={[
               { value: 'ALL', label: 'Tous les types' },
-              ...typeOptions.map((t) => ({ value: t, label: TYPE_LABELS[t] ?? t })),
+              ...typeOptions.map((t) => ({ value: t, label: typeFilterLabel(t) })),
             ]}
           />
           <Select

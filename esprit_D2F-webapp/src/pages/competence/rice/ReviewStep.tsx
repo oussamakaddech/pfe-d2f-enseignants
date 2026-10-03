@@ -17,6 +17,7 @@ import type {
   SelectedNode,
   TreeCtx,
 } from './review/TreeBrowser';
+import type { EnseignantId, RiceEditingNom } from '@/models/competence';
 import '@/styles/pages/review-step.css';
 
 const { Text } = Typography;
@@ -85,34 +86,39 @@ function appendSCSavoirs(
 interface LiveStats {
   totalSavoirs: number;
   enseignantsAssigned: number;
+  totalDomaines?: number;
   totalComp?: number;
   totalSC?: number;
 }
+
+const countLabel = (n: number | undefined, singular: string, plural = `${singular}s`) =>
+  `${n ?? 0} ${(n ?? 0) > 1 ? plural : singular}`;
 
 interface ReviewStepProps {
   tree: DomaineNode[];
   setTree: (tree: DomaineNode[]) => void;
   treeSearch: string;
   setTreeSearch: (v: string) => void;
-  editingNom: { path: number[]; value: string } | null;
-  setEditingNom: (v: { path: number[]; value: string } | null) => void;
-  startRename: (id: string) => void;
-  commitRename: (id: string, val: string) => void;
+  editingNom: RiceEditingNom | null;
+  setEditingNom: React.Dispatch<React.SetStateAction<RiceEditingNom | null>>;
+  startRename: (path: number[], nom: string) => void;
+  commitRename: () => void;
   deleteSavoir: (...args: number[]) => void;
   deleteSC: (...args: number[]) => void;
   deleteComp: (...args: number[]) => void;
   deleteDomaine: (di: number) => void;
-  toggleType: (di: number, ci: number, sci: number) => void;
-  setNiveau: (di: number, ci: number, sci: number, niveau: string) => void;
-  setEnseignants: (di: number, ci: number, sci: number, ids: string[]) => void;
-  openMerge: (source: string, target: string) => void;
-  setMergeModal: (v: { open: boolean; source: string; target: string } | null) => void;
+  // Contrat de SavoirCard : un savoir est désigné par [di, ci, sci, si].
+  toggleType: (di: number, ci: number, sci: number, si: number) => void;
+  setNiveau: (di: number, ci: number, sci: number, si: number, niveau: string) => void;
+  setEnseignants: (di: number, ci: number, sci: number, si: number, ids: EnseignantId[]) => void;
+  openMerge: (di: number, ci: number, sci: number, si: number) => void;
+  setMergeModal: (open: boolean) => void;
   liveStats: LiveStats;
   treeFilteredIndices?: Record<string, Set<string>>;
   departement: string;
   dbEnseignants: EnseignantRef[];
   allSavoirsFlat: SavoirNode[];
-  onSavoirDragStart: (e: React.DragEvent, node: SavoirNode) => void;
+  onSavoirDragStart: (e: React.DragEvent, di: number, ci: number, sci: number, si: number) => void;
   onSavoirDragEnd: (e: React.DragEvent) => void;
   setCurrentStep: (step: number) => void;
   updateNodeField: (path: number[], field: string, value: unknown) => void;
@@ -120,6 +126,17 @@ interface ReviewStepProps {
   setCreateEnsTarget?: (v: { path: number[] } | null) => void;
   setCreateEnsData?: (v: { nom: string; prenom: string; mail: string } | null) => void;
   setCreateEnsModal?: (v: boolean) => void;
+}
+
+// Clés de dépliage de tous les domaines et compétences de l'arbre.
+function expandKeys(tree: DomaineNode[]): { domains: string[]; comps: string[] } {
+  const domains: string[] = [];
+  const comps: string[] = [];
+  (tree ?? []).forEach((d, di) => {
+    domains.push(`d-${di}`);
+    (d.competences ?? []).forEach((_, ci) => comps.push(`d-${di}-c-${ci}`));
+  });
+  return { domains, comps };
 }
 
 function pushScOpts(
@@ -169,9 +186,13 @@ export default function ReviewStep({
   setCreateEnsData,
   setCreateEnsModal,
 }: Readonly<ReviewStepProps>) {
-  const [expandedDomainKeys, setExpandedDomainKeys] = useState<string[]>([]);
-  const [expandedCompKeys, setExpandedCompKeys] = useState<string[]>([]);
-  const [showSearch, setShowSearch] = useState(false);
+  // Arbre déplié à l'arrivée : l'étape sert à relire chaque savoir proposé.
+  const [expandedDomainKeys, setExpandedDomainKeys] = useState<string[]>(
+    () => expandKeys(tree).domains,
+  );
+  const [expandedCompKeys, setExpandedCompKeys] = useState<string[]>(
+    () => expandKeys(tree).comps,
+  );
   const [showInlineHint, setShowInlineHint] = useState(true);
   const [localTeachers] = useState<EnseignantRef[]>([]);
   const [selectedNode, setSelectedNode] = useState<SelectedNode>(null);
@@ -230,14 +251,9 @@ export default function ReviewStep({
       setExpandedCompKeys([]);
       return;
     }
-    const dk: string[] = [];
-    const ck: string[] = [];
-    (tree ?? []).forEach((d, di) => {
-      dk.push(`d-${di}`);
-      (d.competences ?? []).forEach((_, ci) => ck.push(`d-${di}-c-${ci}`));
-    });
-    setExpandedDomainKeys(dk);
-    setExpandedCompKeys(ck);
+    const { domains, comps } = expandKeys(tree);
+    setExpandedDomainKeys(domains);
+    setExpandedCompKeys(comps);
   };
 
   const markMatch = (value: string | undefined): React.ReactNode => {
@@ -348,8 +364,8 @@ export default function ReviewStep({
     markMatch,
     selectedNode,
     setSelectedNode,
-    editingNom: editingNom as unknown as Record<string, string> | null,
-    setEditingNom: setEditingNom as unknown as (v: Record<string, string> | null) => void,
+    editingNom,
+    setEditingNom,
     commitRename,
     startRename,
     toggleType,
@@ -368,10 +384,10 @@ export default function ReviewStep({
     <div className="review-layout">
       <div className="review-header">
         <DepartmentBadge deptCode={departement} showIcon />
-        <Text>1 domaine</Text>
-        <Text>{liveStats.totalComp} compétence</Text>
-        <Text>{liveStats.totalSC} sous-comp</Text>
-        <Text>{liveStats.totalSavoirs} savoirs</Text>
+        <Text>{countLabel(liveStats.totalDomaines, 'domaine')}</Text>
+        <Text>{countLabel(liveStats.totalComp, 'compétence')}</Text>
+        <Text>{countLabel(liveStats.totalSC, 'sous-compétence')}</Text>
+        <Text>{countLabel(liveStats.totalSavoirs, 'savoir')}</Text>
         <div className="review-progress-wrap">
           <div className="review-progress-track">
             <div
@@ -383,21 +399,16 @@ export default function ReviewStep({
             {assignedSavoirs}/{allSavoirsFlat.length} savoirs couverts ({coverage}%)
           </Text>
         </div>
-        <div style={{ marginLeft: 'auto' }}>
-          {showSearch ? (
-            <Input
-              size="small"
-              allowClear
-              value={treeSearch}
-              onChange={(e) => setTreeSearch(e.target.value)}
-              placeholder="Rechercher..."
-              style={{ width: 220 }}
-              onBlur={() => !treeSearch && setShowSearch(false)}
-            />
-          ) : (
-            <Button icon={<SearchOutlined />} size="small" onClick={() => setShowSearch(true)} />
-          )}
-        </div>
+        <Input
+          size="small"
+          allowClear
+          prefix={<SearchOutlined />}
+          value={treeSearch}
+          onChange={(e) => setTreeSearch(e.target.value)}
+          placeholder="Rechercher un savoir, un code…"
+          aria-label="Rechercher dans la structure"
+          className="review-search"
+        />
       </div>
 
       <div className="review-tree-col">
@@ -415,35 +426,15 @@ export default function ReviewStep({
             }
           />
         )}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 10,
-          }}
-        >
+        <div className="review-tree-toolbar">
           <Space>
             <ApartmentOutlined />
             <Text strong>Structure de compétences</Text>
             <Badge count={liveStats.totalSavoirs} style={{ background: '#4f46e5' }} />
           </Space>
-          <Space>
-            <Button size="small" onClick={() => setExpandedDomainKeys([])}>
-              Tout replier
-            </Button>
-            <Button size="small" onClick={toggleExpandAll}>
-              {allExpanded ? 'Tout replier' : 'Tout déplier'}
-            </Button>
-            <Input
-              size="small"
-              placeholder="Rechercher..."
-              value={treeSearch}
-              onChange={(e) => setTreeSearch(e.target.value)}
-              allowClear
-              style={{ width: 180 }}
-            />
-          </Space>
+          <Button size="small" onClick={toggleExpandAll}>
+            {allExpanded ? 'Tout replier' : 'Tout déplier'}
+          </Button>
         </div>
         <TreeBrowser tree={tree} ctx={ctx} />
       </div>

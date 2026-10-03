@@ -132,10 +132,10 @@ export default function TeacherScopePanel({ data, loading }: Readonly<Props>) {
       {/* ── Gaps ──────────────────────────────────────────────────────── */}
       <div className="at-scope-section">
         <div className="at-scope-section-head">
-          <AlertOutlined /> Gaps sur le périmètre ({data.gaps.length})
+          <AlertOutlined /> Écarts de couverture sur le périmètre ({data.gaps.length})
         </div>
         {data.gaps.length === 0 ? (
-          <Empty description="Aucun gap sur le périmètre" />
+          <Empty description="Aucun écart de couverture sur le périmètre" />
         ) : (
           <Table<SkillGap>
             size="small"
@@ -155,7 +155,7 @@ export default function TeacherScopePanel({ data, loading }: Readonly<Props>) {
                 ),
               },
               {
-                title: 'Gap',
+                title: 'Écart',
                 dataIndex: 'gap_score',
                 key: 'gap',
                 width: 90,

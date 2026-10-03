@@ -92,12 +92,13 @@ function mergeAuthAccountAnimateurs(
     formateurs.map((f) => f.userName).filter((n): n is string => Boolean(n)),
   );
   const enriched = formateurs.map((f) => {
-    const prefix = f.mail ? f.mail.split('@')[0] : '';
+    const prefix = f.mail ? f.mail.split('@')[0].toLowerCase() : '';
+    const fMail = (f.mail || '').toLowerCase();
     const match = enseignantsData.find(
       (ex) =>
         (typeof ex.id === 'string' && fUserNames.has(ex.id)) ||
-        ex.mail === f.mail ||
-        (ex.mail ?? '').split('@')[0] === prefix,
+        (!!fMail && (ex.mail ?? '').toLowerCase() === fMail) ||
+        (!!prefix && (ex.mail ?? '').split('@')[0].toLowerCase() === prefix),
     );
     return match
       ? {

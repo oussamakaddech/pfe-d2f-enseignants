@@ -28,10 +28,21 @@ export default function AtRiskTeachersTable({
       {
         title: 'Enseignant',
         dataIndex: 'nom',
-        render: (v) => (
-          <button type="button" className="ar-teacher-link">
-            {v}
-          </button>
+        render: (v, r: AtRiskTeacher) => (
+          <>
+            <button type="button" className="ar-teacher-link">
+              {v}
+            </button>
+            {r.score_significatif === false && (
+              <Tag
+                color="default"
+                style={{ marginLeft: 6 }}
+                title="Aucun niveau saisi : tous les écarts sont au maximum par défaut, l'indice ne mesure pas un risque réel."
+              >
+                Données insuffisantes
+              </Tag>
+            )}
+          </>
         ),
       },
       {
@@ -77,7 +88,7 @@ export default function AtRiskTeachersTable({
         ),
       },
       {
-        title: 'Gaps critiques',
+        title: 'Écarts critiques',
         dataIndex: 'nb_gaps_critiques',
         sorter: (a, b) => a.nb_gaps_critiques - b.nb_gaps_critiques,
       },

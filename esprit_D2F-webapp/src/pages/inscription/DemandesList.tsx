@@ -68,12 +68,17 @@ interface Demande {
 }
 
 /** Le backend peut renvoyer soit un tableau, soit un Page<…> ({content:[…]}).
- *  On normalise défensivement (cf. FormationParticipantsPanel). */
-function normalizeDemandes(data: unknown): Demande[] {
-  if (Array.isArray(data)) return data as Demande[];
-  const obj = data as { content?: unknown } | null;
-  if (obj && Array.isArray(obj.content)) return obj.content as Demande[];
-  return [];
+ *  On normalise défensivement (cf. FormationParticipantsPanel).
+ *  Une demande dont la fiche enseignant a disparu (compte supprimé/archivé)
+ *  arrive avec `enseignant: null` : on la garde avec un objet vide plutôt que
+ *  de crasher le rendu (React #31 / TypeError sur `.prenom`). */
+export function normalizeDemandes(data: unknown): Demande[] {
+  const list: unknown[] = Array.isArray(data)
+    ? data
+    : (data as { content?: unknown } | null) && Array.isArray((data as { content?: unknown }).content)
+      ? ((data as { content: unknown[] }).content as unknown[])
+      : [];
+  return (list as Demande[]).map((r) => ({ ...r, enseignant: r.enseignant ?? {} }));
 }
 
 interface DemandesColumnFilterDropdownProps {
@@ -401,7 +406,8 @@ export default function DemandesList() {
           </Avatar>
           <div>
             <div style={{ fontWeight: 600 }}>
-              {r.enseignant.prenom} {r.enseignant.nom}
+              {`${r.enseignant.prenom ?? ''} ${r.enseignant.nom ?? ''}`.trim() ||
+                'Enseignant inconnu'}
             </div>
             <Text type="secondary" style={{ fontSize: 12 }}>
               <MailOutlined style={{ marginRight: 4 }} />

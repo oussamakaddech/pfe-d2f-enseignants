@@ -6,6 +6,7 @@ import { Button, Input, Space, Tag, Typography } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 import SavoirCard from '../SavoirCard';
 import { cloneDeep } from '../constants';
+import type { EnseignantId, RiceEditingNom } from '@/models/competence';
 
 type SavoirCardProps = ComponentProps<typeof SavoirCard>;
 
@@ -18,7 +19,7 @@ export type SavoirNode = {
   nom?: string;
   niveau?: string;
   type?: string;
-  enseignantsSuggeres?: unknown[];
+  enseignantsSuggeres?: EnseignantId[];
   [key: string]: unknown;
 };
 export type SousCompNode = { code?: string; nom?: string; savoirs?: SavoirNode[] };
@@ -46,17 +47,17 @@ export interface TreeCtx {
   markMatch: (value: string | undefined) => React.ReactNode;
   selectedNode: SelectedNode;
   setSelectedNode: (node: SelectedNode) => void;
-  editingNom: Record<string, string> | null;
-  setEditingNom: (v: Record<string, string> | null) => void;
-  commitRename: (id: string, val: string) => void;
-  startRename: (id: string) => void;
-  toggleType: (di: number, ci: number, sci: number) => void;
-  setNiveau: (di: number, ci: number, sci: number, niveau: string) => void;
-  setEnseignants: (di: number, ci: number, sci: number, ids: string[]) => void;
+  editingNom: RiceEditingNom | null;
+  setEditingNom: React.Dispatch<React.SetStateAction<RiceEditingNom | null>>;
+  commitRename: () => void;
+  startRename: (path: number[], nom: string) => void;
+  toggleType: SavoirCardProps['toggleType'];
+  setNiveau: SavoirCardProps['setNiveau'];
+  setEnseignants: SavoirCardProps['setEnseignants'];
   deleteSavoir: (...args: number[]) => void;
-  openMerge: (source: string, target: string) => void;
-  setMergeModal: (v: { open: boolean; source: string; target: string } | null) => void;
-  onSavoirDragStart: (e: React.DragEvent, node: SavoirNode) => void;
+  openMerge: SavoirCardProps['openMerge'];
+  setMergeModal: SavoirCardProps['setMergeModal'];
+  onSavoirDragStart: SavoirCardProps['onSavoirDragStart'];
   onSavoirDragEnd: (e: React.DragEvent) => void;
   mergedEnseignants: EnseignantRef[];
   showInlineHint: boolean;
@@ -99,13 +100,9 @@ function renderSavoirItem(
     selectedNode.path?.[1] === ci &&
     selectedNode.path?.[2] === sci &&
     selectedNode.path?.[3] === si;
-  // NOTE: the review-flow `ctx` callbacks have looser/different signatures than
-  // SavoirCard's prop contract (e.g. setNiveau is 4-arg here vs 5-arg in SavoirCard).
-  // We cast at this boundary to preserve the existing runtime wiring without
-  // altering behavior; the underlying signature divergence should be reconciled
-  // separately if the review editor's callbacks are reworked.
-  const savoirCardProps = {
-    savoir,
+  const savoirCardProps: SavoirCardProps = {
+    // Les nœuds de revue ont code/type optionnels ; SavoirCard les affiche tels quels.
+    savoir: savoir as SavoirCardProps['savoir'],
     di,
     ci,
     sci,
@@ -125,11 +122,11 @@ function renderSavoirItem(
     isBeingDragged: false,
     allEnseignants: mergedEnseignants,
     inlineHint: showInlineHint && (savoir.enseignantsSuggeres ?? []).length === 0,
-  } as unknown as SavoirCardProps;
+  };
   return (
-    <button
+    <div
       key={savoir.tmpId ?? `${di}-${ci}-${sci}-${si}`}
-      type="button"
+      role="button"
       tabIndex={0}
       className={`tree-node-row${isSelected ? ' selected' : ''}`}
       onClick={() =>
@@ -140,7 +137,7 @@ function renderSavoirItem(
         })
       }
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
           e.preventDefault();
           setSelectedNode({
             type: 'savoir',
@@ -151,7 +148,7 @@ function renderSavoirItem(
       }}
     >
       <SavoirCard {...savoirCardProps} />
-    </button>
+    </div>
   );
 }
 
@@ -189,8 +186,8 @@ function renderSousCompBlock(sc: SousCompNode, di: number, ci: number, sci: numb
     selectedNode.path?.[2] === sci;
   return (
     <div className="tree-sous-comp" key={`sc-${di}-${ci}-${sci}`}>
-      <button
-        type="button"
+      <div
+        role="button"
         tabIndex={0}
         className={`tree-node-row${isSelected ? ' selected' : ''}`}
         onClick={() =>
@@ -201,7 +198,7 @@ function renderSousCompBlock(sc: SousCompNode, di: number, ci: number, sci: numb
           })
         }
         onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
+          if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
             e.preventDefault();
             setSelectedNode({
               type: 'sousComp',
@@ -222,10 +219,10 @@ function renderSousCompBlock(sc: SousCompNode, di: number, ci: number, sci: numb
           {isEditingPath([di, ci, sci]) ? (
             <Input
               size="small"
-              value={(editingNom as Record<string, string>)?.value}
-              onChange={(e) => setEditingNom({ ...editingNom, value: e.target.value })}
-              onPressEnter={() => commitRename('', '')}
-              onBlur={() => commitRename('', '')}
+              value={editingNom?.value}
+              onChange={(e) => editingNom && setEditingNom({ ...editingNom, value: e.target.value })}
+              onPressEnter={commitRename}
+              onBlur={commitRename}
               onKeyDown={(e) => e.key === 'Escape' && setEditingNom(null)}
               autoFocus
               style={{ width: 240 }}
@@ -248,7 +245,7 @@ function renderSousCompBlock(sc: SousCompNode, di: number, ci: number, sci: numb
           }}
           icon={<EditOutlined />}
         />
-      </button>
+      </div>
       {renderSavoirsList(sc.savoirs, di, ci, sci, ctx)}
     </div>
   );
@@ -282,10 +279,10 @@ function renderCompetenceBlock(comp: CompNode, di: number, ci: number, ctx: Tree
           {isEditingPath([di, ci]) ? (
             <Input
               size="small"
-              value={(editingNom as Record<string, string>)?.value}
-              onChange={(e) => setEditingNom({ ...editingNom, value: e.target.value })}
-              onPressEnter={() => commitRename('', '')}
-              onBlur={() => commitRename('', '')}
+              value={editingNom?.value}
+              onChange={(e) => editingNom && setEditingNom({ ...editingNom, value: e.target.value })}
+              onPressEnter={commitRename}
+              onBlur={commitRename}
               onKeyDown={(e) => e.key === 'Escape' && setEditingNom(null)}
               autoFocus
               style={{ width: 260 }}
@@ -361,8 +358,8 @@ function renderDomainBlock(domaine: DomaineNode, di: number, ctx: TreeCtx) {
   const isSelected = selectedNode?.type === 'domaine' && selectedNode.path?.[0] === di;
   return (
     <div key={dKey} className="tree-domaine">
-      <button
-        type="button"
+      <div
+        role="button"
         tabIndex={0}
         className={`tree-node-row${isSelected ? ' selected' : ''}`}
         onClick={() =>
@@ -373,7 +370,7 @@ function renderDomainBlock(domaine: DomaineNode, di: number, ctx: TreeCtx) {
           })
         }
         onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
+          if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
             e.preventDefault();
             setSelectedNode({
               type: 'domaine',
@@ -389,10 +386,10 @@ function renderDomainBlock(domaine: DomaineNode, di: number, ctx: TreeCtx) {
           {isEditingPath([di]) ? (
             <Input
               size="small"
-              value={(editingNom as Record<string, string>)?.value}
-              onChange={(e) => setEditingNom({ ...editingNom, value: e.target.value })}
-              onPressEnter={() => commitRename('', '')}
-              onBlur={() => commitRename('', '')}
+              value={editingNom?.value}
+              onChange={(e) => editingNom && setEditingNom({ ...editingNom, value: e.target.value })}
+              onPressEnter={commitRename}
+              onBlur={commitRename}
               onKeyDown={(e) => e.key === 'Escape' && setEditingNom(null)}
               autoFocus
               style={{ width: 260 }}
@@ -429,7 +426,7 @@ function renderDomainBlock(domaine: DomaineNode, di: number, ctx: TreeCtx) {
             icon={<EditOutlined />}
           />
         </Space>
-      </button>
+      </div>
       {dOpen &&
         (domaine.competences ?? []).map((comp, ci) => renderCompetenceBlock(comp, di, ci, ctx))}
     </div>

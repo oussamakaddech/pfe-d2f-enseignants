@@ -613,6 +613,21 @@
   color: var(--at-ink2);
 }
 
+/* Pourquoi le moteur n'est pas le ML (resume ; raison brute en infobulle). */
+.at-hero-engine-note {
+  font-size: 12px;
+  font-style: italic;
+  cursor: help;
+}
+
+.at-hero-engine-note-info {
+  color: var(--at-ink2);
+}
+
+.at-hero-engine-note-warning {
+  color: var(--at-warning);
+}
+
 .at-hero-input {
   width: 220px;
   background: var(--at-panel2, var(--at-surface2));

@@ -45,7 +45,7 @@ import {
   useRealDashboardImpact,
   useAlerts,
   useUpdateAlert,
-  useRiskTrends,
+  useDailyRiskTrends,
 } from '@/hooks/analytics/useAnalyticsQueries';
 import { useSupplyDemand } from '@/hooks/analyse/useAnalysePredictive';
 import { analyticsApi } from '@/services/analyse/analyticsApi';
@@ -54,8 +54,8 @@ import {
   TrendChart,
   Heatmap,
   AlertCenter,
-  TrainingImpactPanel,
 } from '@/components/analytics';
+import type { AlertServerFilters } from '@/components/analytics/AlertCenter';
 import SupplyDemandChart from '@/components/charts/SupplyDemandChart';
 import type {
   DashboardFilters,
@@ -64,6 +64,7 @@ import type {
   HeatmapCell,
   TopFormation,
   RealDashboardImpact,
+  RealCoverageByDept,
   AlertEvent,
 } from '@/models/analyse/analyticsFeature';
 import {
@@ -90,15 +91,15 @@ const KPI_DEFS: Record<string, string> = {
     'Enseignants actifs du périmètre filtré (formation.enseignants, deleted_at IS NULL).',
   'Indice de risque moyen':
     'Score moyen des derniers snapshots de risque du périmètre filtré (0–1). Seuils : < 0,25 Faible · 0,25–0,5 Modéré · 0,5–0,75 Élevé · ≥ 0,75 Critique.',
-  'Gaps critiques':
+  'Écarts de couverture critiques':
     "Écarts d'urgence CRITIQUE du périmètre filtré, calculés sur les données réelles (analyse.skill_gaps).",
   'Alertes non traitées':
     'Alertes réelles au statut NOUVELLE ou LUE, créées sur la période sélectionnée (analyse.alert_events).',
   'Taux de couverture':
     'Part des enseignants actifs du périmètre filtré ayant au moins une compétence affectée (competence.enseignant_competences).',
-  'Gaps haute priorité': "Écarts d'urgence HAUTE du périmètre filtré, sur les données réelles.",
-  'Avec gaps calculés':
-    'Enseignants distincts du périmètre filtré présents dans la table des gaps (analyse.skill_gaps).',
+  'Écarts de couverture prioritaires': "Écarts de couverture d'urgence HAUTE du périmètre filtré, sur les données réelles.",
+  'Avec écarts calculés':
+    'Enseignants distincts du périmètre filtré présents dans la table des écarts de couverture (analyse.skill_gaps).',
   'Alertes critiques ouvertes':
     'Alertes réelles de sévérité CRITICAL/CRITIQUE non traitées, créées sur la période sélectionnée.',
 };
@@ -307,7 +308,7 @@ function toTopFormation(row: RealDashboardImpact['top_formations'][number]): Top
  *   - /dashboard/real/impact  (KPIs, heatmap, à-risque, formations)
  *   - /alerts                 (alertes réelles)
  *   - /dashboard/supply-demand, /dashboard/training-impact
- *   - /dashboard/risk-evolution (tendances mensuelles)
+ *   - /dashboard/risk-evolution-daily (tendances quotidiennes)
  */
 export default function AnalyticsDashboardPage() {
   const [windowDays, setWindowDays] = useState<number>(30);
@@ -334,11 +335,23 @@ export default function AnalyticsDashboardPage() {
     days: windowDays,
   });
   const [alertsPage, setAlertsPage] = useState<number>(1);
+  // Filtres type/sévérité du widget AlertCenter, poussés au backend pour
+  // paginer sur tout le volume (pas seulement la page chargée).
+  const [alertServerFilters, setAlertServerFilters] = useState<AlertServerFilters>({});
+  const handleAlertServerFilterChange = (next: AlertServerFilters) => {
+    setAlertServerFilters((prev) =>
+      prev.type_alerte === next.type_alerte && prev.severity_bucket === next.severity_bucket
+        ? prev
+        : next,
+    );
+  };
   const alerts = useAlerts({
     departement_id: filters.departement_id,
     page: alertsPage,
     size: 100,
     since_days: windowDays,
+    type_alerte: alertServerFilters.type_alerte,
+    severity_bucket: alertServerFilters.severity_bucket,
   });
   const updateAlert = useUpdateAlert();
   const supplyDemand = useSupplyDemand();
@@ -348,7 +361,12 @@ export default function AnalyticsDashboardPage() {
   useEffect(() => {
     setAlertsPage(1);
     setAccumAlerts([]);
-  }, [filters.departement_id, windowDays]);
+  }, [
+    filters.departement_id,
+    windowDays,
+    alertServerFilters.type_alerte,
+    alertServerFilters.severity_bucket,
+  ]);
   useEffect(() => {
     const page = alerts.data?.alerts ?? [];
     setAccumAlerts((prev) => {
@@ -359,10 +377,9 @@ export default function AnalyticsDashboardPage() {
   }, [alerts.data?.alerts, alertsPage]);
   const canLoadMoreAlerts = !!alerts.data && alerts.data.total > accumAlerts.length;
 
-  // Fenêtre temporelle → fenêtre des tendances (le backend agrège par mois).
+  // Fenêtre temporelle → courbe quotidienne (un point par jour).
   const trendWindow = WINDOWS.find((w) => w.days === windowDays) ?? WINDOWS[3];
-  const trendMonths = Math.max(1, Math.round(trendWindow.days / 30));
-  const trends = useRiskTrends(trendMonths);
+  const trends = useDailyRiskTrends(windowDays);
 
   const data = impact.data;
   const kpis = data?.kpis;
@@ -375,6 +392,14 @@ export default function AnalyticsDashboardPage() {
   const allHeatmap = useMemo<HeatmapCell[]>(() => (data?.heatmap ?? []).map(toHeatmapCell), [data]);
   const topFormations = useMemo<TopFormation[]>(
     () => (data?.top_formations ?? []).map(toTopFormation),
+    [data],
+  );
+
+  /** Couverture réelle par département (enseignants, affectations, niveau moyen). */
+  const coverageByDept = useMemo<RealCoverageByDept[]>(
+    () => [...(data?.coverage_by_dept ?? [])].sort(
+      (a, b) => (b.nb_enseignants ?? 0) - (a.nb_enseignants ?? 0),
+    ),
     [data],
   );
 
@@ -491,12 +516,12 @@ export default function AnalyticsDashboardPage() {
     const rows = [
       { indicateur: 'Enseignants en base', valeur: formatCount(kpis?.nb_enseignants) },
       {
-        indicateur: 'Enseignants avec gaps calculés',
+        indicateur: 'Enseignants avec écarts calculés',
         valeur: formatCount(kpis?.nb_enseignants_avec_gaps),
       },
       { indicateur: 'Indice de risque moyen', valeur: (kpis?.avg_risk_score ?? 0).toFixed(2) },
-      { indicateur: 'Gaps critiques', valeur: formatCount(kpis?.nb_gaps_critiques) },
-      { indicateur: 'Gaps haute priorité', valeur: formatCount(kpis?.nb_gaps_haute) },
+      { indicateur: 'Écarts de couverture critiques', valeur: formatCount(kpis?.nb_gaps_critiques) },
+      { indicateur: 'Écarts de couverture prioritaires', valeur: formatCount(kpis?.nb_gaps_haute) },
       { indicateur: 'Alertes non traitées', valeur: formatCount(kpis?.nb_alertes_non_traitees) },
       { indicateur: 'Alertes critiques ouvertes', valeur: formatCount(kpis?.nb_alertes_critiques) },
       { indicateur: 'Taux de couverture (%)', valeur: (kpis?.taux_couverture_pct ?? 0).toFixed(1) },
@@ -725,12 +750,12 @@ export default function AnalyticsDashboardPage() {
         </Col>
         <Col xs={12} md={6}>
           <RichKpi
-            title="Gaps critiques"
+            title="Écarts de couverture critiques"
             tone="danger"
             icon={<AlertOutlined />}
             value={formatCount(kpis?.nb_gaps_critiques)}
             hint="Urgence CRITIQUE"
-            tooltip={KPI_DEFS['Gaps critiques']}
+            tooltip={KPI_DEFS['Écarts de couverture critiques']}
             loading={impact.isLoading}
             onClick={() => jump('sec-heatmap')}
           />
@@ -763,11 +788,11 @@ export default function AnalyticsDashboardPage() {
         </Col>
         <Col xs={12} md={6}>
           <RichKpi
-            title="Gaps haute priorité"
+            title="Écarts de couverture prioritaires"
             tone="warning"
             icon={<FallOutlined />}
             value={formatCount(kpis?.nb_gaps_haute)}
-            tooltip={KPI_DEFS['Gaps haute priorité']}
+            tooltip={KPI_DEFS['Écarts de couverture prioritaires']}
             loading={impact.isLoading}
             onClick={() => jump('sec-heatmap')}
           />
@@ -862,11 +887,17 @@ export default function AnalyticsDashboardPage() {
         <Col xs={24} lg={10}>
           <Section
             id="sec-impact"
-            title="Impact des formations"
-            icon={<TrophyOutlined />}
+            title="Couverture par département"
+            icon={<BankOutlined />}
             loading={impact.isLoading}
           >
-            <TrainingImpactPanel />
+            {coverageByDept.length ? (
+              <CoverageByDeptTable rows={coverageByDept} />
+            ) : (
+              <div className="ad-empty">
+                <Empty description="Aucune donnée de couverture" />
+              </div>
+            )}
           </Section>
         </Col>
 
@@ -928,6 +959,7 @@ export default function AnalyticsDashboardPage() {
               onLoadMore={() => setAlertsPage((p) => p + 1)}
               onUpdate={(id, payload) => updateAlert.mutate({ id, payload })}
               onSelectEnseignant={(id) => navigate(`/home/analytics/teacher/${id}`)}
+              onServerFilterChange={handleAlertServerFilterChange}
             />
           </Section>
         </Col>
@@ -1101,6 +1133,52 @@ function PriorityActions({
         </li>
       ))}
     </ul>
+  );
+}
+
+/* ── Tableau « Couverture par département » (données réelles) ─── */
+function CoverageByDeptTable({ rows }: { readonly rows: RealCoverageByDept[] }) {
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table className="ad-drill-tbl">
+        <thead>
+          <tr>
+            <th>Département</th>
+            <th>Enseignants</th>
+            <th>Couverture</th>
+            <th>Affectations</th>
+            <th>Niveau moyen</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => {
+            const total = r.nb_enseignants ?? 0;
+            const covered = r.nb_enseignants_avec_competences ?? 0;
+            const pct = total > 0 ? Math.round((100 * covered) / total) : 0;
+            return (
+              <tr key={String(r.dept_id ?? i)}>
+                <td>
+                  <b>{r.dept_libelle ?? formatDepartment(r.dept_id ?? '')}</b>
+                </td>
+                <td>
+                  <Tag>{total}</Tag>
+                </td>
+                <td>
+                  <Tag color={pct >= 80 ? 'green' : pct >= 50 ? 'orange' : 'red'}>
+                    {pct} %
+                  </Tag>
+                  <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                    {covered}/{total} avec compétences
+                  </div>
+                </td>
+                <td>{formatCount(r.nb_affectations)}</td>
+                <td style={{ fontWeight: 600 }}>{Number(r.niveau_moyen ?? 0).toFixed(2)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

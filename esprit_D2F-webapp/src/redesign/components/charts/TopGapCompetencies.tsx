@@ -68,7 +68,7 @@ export default function TopGapCompetencies({
   const maxGap = rows.reduce((m, r) => Math.max(m, r.avgGap), 0.0001);
 
   if (loading && cells.length === 0) return <ChartSkeleton height={240} />;
-  if (cells.length === 0) return <div className="rd-empty">Aucun écart de compétence calculé</div>;
+  if (cells.length === 0) return <div className="rd-empty">Aucun écart de couverture calculé</div>;
 
   return (
     <div className="rd-topgap">

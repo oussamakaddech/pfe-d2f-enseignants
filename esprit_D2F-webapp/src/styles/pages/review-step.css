@@ -5,9 +5,12 @@
 /* ── Layout ───────────────────────────────────────────────────────────────────── */
 .review-layout {
   display: grid;
-  grid-template-columns: 1fr 360px;
-  grid-template-rows: auto 1fr auto;
+  /* minmax(0, …) : sans lui, le contenu de l'arbre fixe la largeur minimale de
+     la colonne et le titre finit écrit lettre par lettre. */
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   height: calc(100vh - 120px);
+  min-height: 560px;
   gap: 0;
   background: #f8f9fc;
 }
@@ -25,6 +28,12 @@
   flex-wrap: wrap;
   min-height: 48px;
   height: auto;
+}
+
+.review-search {
+  margin-left: auto;
+  width: 260px;
+  max-width: 100%;
 }
 
 /* ── Progress bar ─────────────────────────────────────────────────────────────── */
@@ -73,6 +82,15 @@
   padding: 16px;
   background: #f8f9fc;
   border-right: 1px solid #e8eaf0;
+}
+
+.review-tree-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 /* ── Props panel ──────────────────────────────────────────────────────────────── */
@@ -125,6 +143,9 @@
 
 /* Generic clickable row */
 .tree-node-row {
+  display: block;
+  width: 100%;
+  text-align: left;
   cursor: pointer;
   border-radius: 6px;
   border-left: 3px solid transparent;
@@ -136,6 +157,11 @@
 
 .tree-node-row:hover {
   background: #f1f5f9;
+}
+
+.tree-node-row:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
 }
 
 .tree-node-row.selected {
@@ -176,6 +202,38 @@
   animation: fadeInPanel 200ms ease both;
 }
 
+.props-panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 12px;
+  min-width: 0;
+}
+
+.props-panel-kind {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.props-panel-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Collé en bas du panneau, sur fond opaque : le formulaire défile dessous
+   sans que les libellés passent sous le bouton. */
+.props-panel-actions {
+  position: sticky;
+  bottom: -16px;
+  margin: 12px -16px -16px;
+  padding: 12px 16px 16px;
+  background: #fff;
+  border-top: 1px solid #e8eaf0;
+}
+
 @keyframes fadeInPanel {
   from {
     opacity: 0;
@@ -203,15 +261,14 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
    SavoirCard (savoir-*)
    ═══════════════════════════════════════════════════════════════════════════════ */
-button.savoir-card {
-  appearance: none;
-  font: inherit;
-  text-align: left;
-  width: 100%;
-  outline: none;
+.savoir-card:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
 }
 
 .savoir-card {
+  text-align: left;
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -363,7 +420,27 @@ button.savoir-card {
 }
 
 /* ── Responsive ───────────────────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .review-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    height: auto;
+  }
+
+  .review-tree-col,
+  .review-props-panel {
+    grid-column: 1;
+    max-height: 70vh;
+    border-right: none;
+    border-bottom: 1px solid #e8eaf0;
+  }
+}
+
 @media (max-width: 768px) {
+  .review-search {
+    width: 100%;
+  }
+
   .review-layout {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr auto auto;

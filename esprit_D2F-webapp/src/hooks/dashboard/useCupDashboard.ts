@@ -210,6 +210,7 @@ export function useCupDashboard(pilotage: boolean = true, access: CupDashboardAc
     isCup: true,
     isEnseignant: false,
     isAnimateur: false,
+    isPilotage: true,
     start: dayjs().subtract(11, 'month').startOf('month').format('YYYY-MM-DD'),
     end: dayjs().endOf('month').format('YYYY-MM-DD'),
     rangeKey: '12m',

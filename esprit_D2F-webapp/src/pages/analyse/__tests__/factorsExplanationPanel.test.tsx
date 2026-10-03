@@ -32,7 +32,7 @@ describe('FactorsExplanationPanel', () => {
   it('affiche « valeur X · contribution Y% » (jamais 3.000 ni 300%)', () => {
     const facteurs: RiskFactor[] = [
       baseFactor({
-        nom: 'Gaps critiques',
+        nom: 'Écarts de couverture critiques',
         code: 'critical_gaps',
         valeur_brute: 12,
         valeur_normalisee: 1,

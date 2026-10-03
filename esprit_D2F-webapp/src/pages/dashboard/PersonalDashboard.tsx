@@ -45,6 +45,7 @@ export default function PersonalDashboard({ role: roleProp }: { readonly role?: 
       isCup: false,
       isEnseignant: roleKey === 'enseignant',
       isAnimateur: roleKey === 'animateur',
+      isPilotage: false,
       start,
       end,
       rangeKey: '12m',

@@ -146,7 +146,7 @@ describe('AnalyticsTeacherPage', () => {
       },
     });
     render(<AnalyticsTeacherPage />, { wrapper });
-    expect(screen.getByText('Gaps détectés')).toBeInTheDocument();
+    expect(screen.getByText('Écarts de couverture')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getAllByText('1')).toHaveLength(2);
   });
@@ -412,4 +412,101 @@ describe('AnalyticsTeacherPage', () => {
     expect(screen.getByText(/Raison du repli/)).toBeInTheDocument();
     expect(screen.getAllByText(/decision=reject/).length).toBeGreaterThanOrEqual(1);
   });
+});
+
+describe('AnalyticsTeacherPage — pourquoi le ML n a pas servi', () => {
+  it('cas Fatma Jlassi : explique « non applicable : aucun niveau saisi » et la source du risque', () => {
+    setup();
+    mocks.useTeacherGaps.mockReturnValue({
+      isLoading: false,
+      data: {
+        gaps: [],
+        model: {
+          model_mode: 'HEURISTIC_FALLBACK',
+          fallback_reason: "prédiction ML vide : aucun savoir évaluable pour l'enseignant",
+        },
+      },
+    });
+    mocks.useTeacherRisk.mockReturnValue({
+      isLoading: false,
+      data: {
+        enseignant_id: 'ENS903',
+        enseignant_nom: 'Fatma Jlassi',
+        score: 0.89,
+        score_percent: 89,
+        niveau: 'CRITIQUE',
+        level_label: 'Critique',
+        facteurs: [],
+        tendance: 'STABLE',
+        precedent_score: null,
+        computed_at: new Date().toISOString(),
+        mode: 'HEURISTIC',
+        model_mode: 'HEURISTIC_FALLBACK',
+        fallback_reason: 'modele de risque non deploye : decision=reject',
+      },
+    });
+    render(<AnalyticsTeacherPage />, { wrapper });
+
+    expect(screen.getByText('Modèle ML non applicable : aucun niveau saisi')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Formule pondérée sur les écarts heuristiques (modèle de risque non validé)',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('écarts servis par le ML : aucune note sur les écarts, le risque cite les écarts ML', () => {
+    setup();
+    mocks.useTeacherGaps.mockReturnValue({
+      isLoading: false,
+      data: { gaps: [], model: { model_mode: 'PRODUCTION_ML', model_version: 'v1.2.0-gb' } },
+    });
+    mocks.useTeacherRisk.mockReturnValue({
+      isLoading: false,
+      data: {
+        enseignant_id: 'ENS015',
+        score: 0.29,
+        score_percent: 29,
+        niveau: 'FAIBLE',
+        level_label: 'Faible',
+        facteurs: [],
+        tendance: 'STABLE',
+        precedent_score: null,
+        computed_at: new Date().toISOString(),
+        mode: 'HEURISTIC',
+        model_mode: 'HEURISTIC_FALLBACK',
+        fallback_reason: 'modele de risque non deploye : decision=reject',
+      },
+    });
+    render(<AnalyticsTeacherPage />, { wrapper });
+
+    expect(screen.queryByText(/Modèle ML non applicable/)).toBeNull();
+    expect(
+      screen.getByText(
+        'Formule pondérée sur les écarts prédits par le ML (modèle de risque non validé)',
+      ),
+    ).toBeInTheDocument();
+  });
+  it.each([
+    ['PRODUCTION_ML', true],
+    ['HEURISTIC_FALLBACK', false],
+  ])(
+    "avertissement « proche des limites » seulement si le modèle a servi (%s)",
+    (mode, visible) => {
+      setup();
+      mocks.useTeacherGaps.mockReturnValue({
+        isLoading: false,
+        data: {
+          gaps: [],
+          model: {
+            model_mode: mode,
+            near_boundary_warning: { code: 'NEAR', message: '13 feature(s) proches', features: [] },
+          },
+        },
+      });
+      render(<AnalyticsTeacherPage />, { wrapper });
+      // en repli heuristique, « la prédiction reste servie » serait faux
+      expect(screen.queryByText("Proche des limites du domaine d'entraînement") !== null).toBe(visible);
+    },
+  );
 });

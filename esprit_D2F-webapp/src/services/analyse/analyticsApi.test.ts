@@ -410,6 +410,31 @@ describe('analyticsApi – dashboard', () => {
     expect(res[0].nb_gaps_critiques).toBe(2);
     expect(res[0].score_risque_moyen).toBe(0.6);
   });
+
+  it('getDailyRiskEvolution appelle GET /dashboard/risk-evolution-daily', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: [
+        {
+          date: '2026-09-27',
+          critical: 2,
+          high: 5,
+          score_risque_moyen: 0.42,
+          total_enseignants: 40,
+        },
+      ],
+    });
+    const res = await analyticsApi.getDailyRiskEvolution(30);
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/dashboard/risk-evolution-daily`, {
+      params: { days: 30 },
+    });
+    expect(res[0]).toEqual({
+      date: '2026-09-27',
+      score_risque_moyen: 0.42,
+      nb_critiques: 2,
+      nb_eleves: 5,
+      nb_enseignants: 40,
+    });
+  });
 });
 
 describe('analyticsApi – alertes & impact', () => {
@@ -443,12 +468,26 @@ describe('analyticsApi – alertes & impact', () => {
         size: 100,
         severity: 'CRITICAL',
         status: undefined,
-        target_type: undefined,
+        type_alerte: undefined,
+        severity_bucket: undefined,
+        department_id: undefined,
+        since_days: undefined,
       },
     });
     expect(res.alerts[0].id).toBe(42);
     expect(res.alerts[0].type_alerte).toBe('GAP_CRITIQUE');
     expect(res.alerts[0].statut).toBe('NOUVELLE');
+  });
+
+  it('getAlerts transmet type_alerte et severity_bucket au backend', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { data: [], meta: {}, errors: [] } });
+    await analyticsApi.getAlerts({ type_alerte: 'GAP_CRITIQUE', severity_bucket: 'CRITICAL' });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(`${BASE}/alerts`, {
+      params: expect.objectContaining({
+        type_alerte: 'GAP_CRITIQUE',
+        severity_bucket: 'CRITICAL',
+      }),
+    });
   });
 
   it('updateAlert fait PATCH /alerts/{id}/status avec le statut backend', async () => {

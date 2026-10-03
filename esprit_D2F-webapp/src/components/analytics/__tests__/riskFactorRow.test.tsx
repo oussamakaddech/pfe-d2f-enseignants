@@ -4,7 +4,7 @@ import RiskFactorRow from '@/components/analytics/RiskFactorRow';
 import type { RiskFactor } from '@/models/analyse/analyticsFeature';
 
 const marwaFactor: RiskFactor = {
-  nom: 'Gaps critiques',
+  nom: 'Écarts de couverture critiques',
   code: 'critical_gaps',
   valeur_brute: 12,
   valeur_normalisee: 1,
@@ -58,7 +58,7 @@ describe('RiskFactorRow', () => {
       <RiskFactorRow
         facteur={{
           ...marwaFactor,
-          nom: 'Gaps critiques',
+          nom: 'Écarts de couverture critiques',
           scope: 'DEPARTMENT',
           scope_type: 'DEPARTMENT',
           scope_id: 'DEP_RESEAUX',
@@ -66,15 +66,15 @@ describe('RiskFactorRow', () => {
         }}
       />,
     );
-    // Le label est TOUJOURS « Gaps critiques » — le scope est séparé.
-    expect(screen.getByText('Gaps critiques')).toBeInTheDocument();
+    // Le label est TOUJOURS « Écarts de couverture critiques » — le scope est séparé.
+    expect(screen.getByText('Écarts de couverture critiques')).toBeInTheDocument();
     expect(screen.getByText('Périmètre : Département Réseaux')).toBeInTheDocument();
     // Non-régression : jamais de concaténation label+scope ni de « périmètrepérimètre ».
     expect(
-      screen.queryByText('Gaps critiques — Périmètre : Département Réseaux'),
+      screen.queryByText('Écarts de couverture critiques — Périmètre : Département Réseaux'),
     ).not.toBeInTheDocument();
     expect(screen.queryByText(/périmètrepérimètre/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Gaps critiques du périmètre/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Écarts de couverture critiques du périmètre/)).not.toBeInTheDocument();
   });
 
   it("n'affiche aucun badge de périmètre si le backend n'en fournit pas", () => {
@@ -86,7 +86,7 @@ describe('RiskFactorRow', () => {
     // Les trois facteurs du score portent le meme perimetre : le repeter sur
     // chaque ligne remplissait le panneau sans rien apporter.
     const facteur = {
-      nom: 'Gaps critiques',
+      nom: 'Écarts de couverture critiques',
       code: 'critical_gaps',
       valeur_brute: 2,
       contribution: 0.5,
@@ -100,6 +100,6 @@ describe('RiskFactorRow', () => {
     rerender(<RiskFactorRow facteur={facteur} hideScope />);
     expect(screen.queryByText('Périmètre : Département Réseaux')).toBeNull();
     // Le facteur lui-meme reste affiche.
-    expect(screen.getByText('Gaps critiques')).toBeInTheDocument();
+    expect(screen.getByText('Écarts de couverture critiques')).toBeInTheDocument();
   });
 });

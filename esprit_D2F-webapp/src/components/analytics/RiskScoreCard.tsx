@@ -9,7 +9,7 @@ interface RiskScoreCardProps {
 
 const INDEX_TOOLTIP =
   'Indice de risque pondéré explicable : facteurs normalisés × poids ' +
-  '(gaps critiques, gaps de haute urgence, profondeur moyenne des gaps), ' +
+  '(écarts de couverture critiques, écarts de haute urgence, profondeur moyenne des écarts), ' +
   "caps documentés et profil comportemental. Il s'agit d'un indice d'aide " +
   "au classement, PAS d'une probabilité calibrée.";
 

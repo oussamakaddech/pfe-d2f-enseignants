@@ -78,7 +78,10 @@ const FormationList = () => {
   const [titleFilter, setTitleFilter] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
   const [upFilter, setUpFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  // Par défaut : seules les formations PLANIFIEES sont affichées (les ENREGISTRE
+  // ne sont pas encore prêtes à animer ; EN_COURS/ACHEVE restent accessibles
+  // en effaçant le filtre — l'animateur doit pouvoir finaliser les présences).
+  const [statusFilter, setStatusFilter] = useState('PLANIFIE');
   const [startDate, setStartDate] = useState<Dayjs | null>(null);
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
   const navigate = useNavigate();
@@ -127,7 +130,7 @@ const FormationList = () => {
     setTitleFilter('');
     setDeptFilter('');
     setUpFilter('');
-    setStatusFilter('');
+    setStatusFilter('PLANIFIE');
     setStartDate(null);
     setEndDate(null);
   };

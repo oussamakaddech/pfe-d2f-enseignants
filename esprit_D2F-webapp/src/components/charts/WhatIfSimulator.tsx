@@ -75,11 +75,11 @@ export default function WhatIfSimulator({ enseignantId }: { readonly enseignantI
       key: 'competence_id',
       render: (v: number) => `C${v}`,
     },
-    { title: 'Niveau actuel', dataIndex: 'niveau_actuel', key: 'niveau_actuel' },
-    { title: 'Niveau requis', dataIndex: 'niveau_requis', key: 'niveau_requis' },
+    { title: 'Niveau couvert', dataIndex: 'niveau_actuel', key: 'niveau_actuel' },
+    { title: 'Niveau exigé', dataIndex: 'niveau_requis', key: 'niveau_requis' },
     { title: 'Niveau visé', dataIndex: 'niveau_vise', key: 'niveau_vise' },
     {
-      title: 'Gap avant → après',
+      title: 'Écart avant → après',
       key: 'gap',
       render: (_: unknown, d: WhatIfDetail) =>
         `${d.gap_avant.toFixed(1)} → ${d.gap_apres.toFixed(1)}`,
@@ -109,7 +109,7 @@ export default function WhatIfSimulator({ enseignantId }: { readonly enseignantI
       }
     >
       <Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 12 }}>
-        Projetez le score de risque et les gaps <em>comme si</em> le plan de formations ci-dessous
+        Projetez le score de risque et les écarts de couverture <em>comme si</em> le plan de formations ci-dessous
         avait été suivi. Réutilise la chaîne de scoring de risque du moteur.
       </Paragraph>
 
@@ -225,7 +225,7 @@ export default function WhatIfSimulator({ enseignantId }: { readonly enseignantI
             <Col xs={12} sm={6}>
               <Card size="small">
                 <Statistic
-                  title="Gaps résolus"
+                  title="Écarts résolus"
                   value={result.nb_gaps_resolus}
                   valueStyle={{ color: '#8b5cf6' }}
                 />

@@ -14,13 +14,21 @@ vi.mock('@/hooks/analyse/useReporting', () => ({
   })),
 }));
 
+const authMock = vi.hoisted(() => ({ role: 'ADMIN' }));
+vi.mock('@/hooks/auth/useAuth', () => ({
+  useAuth: () => ({ user: { role: authMock.role } }),
+}));
+
 describe('FormationsParPeriodePage', () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    authMock.role = 'ADMIN';
   });
+
+  const exportButton = () => screen.getByRole('button', { name: /Export PDF/ });
 
   it('renders title and stats', () => {
     render(
@@ -31,5 +39,24 @@ describe('FormationsParPeriodePage', () => {
     expect(screen.getByText('Formations par période')).toBeInTheDocument();
     expect(screen.getByText('Total formations')).toBeInTheDocument();
     expect(screen.getByText('Aucune formation sur la période')).toBeInTheDocument();
+  });
+
+  it("active l'export PDF pour l'administrateur", () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <FormationsParPeriodePage />
+      </QueryClientProvider>,
+    );
+    expect(exportButton()).toBeEnabled();
+  });
+
+  it("désactive l'export PDF institutionnel pour un CUP (réservé à l'ADMIN côté service)", () => {
+    authMock.role = 'CUP';
+    render(
+      <QueryClientProvider client={queryClient}>
+        <FormationsParPeriodePage />
+      </QueryClientProvider>,
+    );
+    expect(exportButton()).toBeDisabled();
   });
 });

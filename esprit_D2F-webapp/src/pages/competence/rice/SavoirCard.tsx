@@ -9,6 +9,7 @@ import {
   MoreOutlined,
 } from '@ant-design/icons';
 import { NIVEAU_OPTIONS, TYPE_LABEL, avatarColor, getInitials } from './constants';
+import type { EnseignantId, RiceEditingNom } from '@/models/competence';
 
 const { Text } = Typography;
 
@@ -17,7 +18,7 @@ interface SavoirNode {
   nom: string;
   type: string;
   niveau?: string;
-  enseignantsSuggeres?: unknown[];
+  enseignantsSuggeres?: EnseignantId[];
   aiSuggestedIds?: unknown[];
   tmpId?: string;
 }
@@ -35,18 +36,13 @@ interface SavoirCardProps {
   ci: number;
   sci: number;
   si: number;
-  editingNom: { path: number[]; value: string } | null;
-  setEditingNom: (
-    v:
-      | { path: number[]; value: string }
-      | null
-      | ((p: { path: number[]; value: string }) => { path: number[]; value: string }),
-  ) => void;
+  editingNom: RiceEditingNom | null;
+  setEditingNom: React.Dispatch<React.SetStateAction<RiceEditingNom | null>>;
   commitRename: () => void;
   startRename: (path: number[], nom: string) => void;
   toggleType: (di: number, ci: number, sci: number, si: number) => void;
   setNiveau: (di: number, ci: number, sci: number, si: number, v: string) => void;
-  setEnseignants: (di: number, ci: number, sci: number, si: number, ids: unknown[]) => void;
+  setEnseignants: (di: number, ci: number, sci: number, si: number, ids: EnseignantId[]) => void;
   deleteSavoir: (di: number, ci: number, sci: number, si: number) => void;
   openMerge: (di: number, ci: number, sci: number, si: number) => void;
   setMergeModal: (v: boolean) => void;
@@ -138,9 +134,12 @@ const SavoirCard = memo(function SavoirCard({
   };
 
   return (
-    /* Draggable savoir card; keyboard users access the dropdown menu (MoreOutlined) for assign / move actions. */
-    <button
-      type="button"
+    /* Draggable savoir card; keyboard users access the dropdown menu (MoreOutlined) for assign / move actions.
+       Un conteneur, pas un <button> : il contient des champs (niveau, renommage)
+       qui ne peuvent pas prendre le focus dans un bouton. */
+    <div
+      role="group"
+      tabIndex={0}
       aria-roledescription="draggable"
       aria-label={`Savoir ${savoir.code} — ${savoir.nom}. Glisser pour assigner ou utiliser le menu Plus pour les actions clavier.`}
       className={`savoir-card${isBeingDragged ? ' is-dragging' : ''}`}
@@ -149,12 +148,10 @@ const SavoirCard = memo(function SavoirCard({
       onDragEnd={onSavoirDragEnd}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onClick={(e) => {
-        const trigger = e.currentTarget.querySelector<HTMLElement>('.savoir-card-menu-trigger');
-        trigger?.focus();
-      }}
+      // Pas de gestion du clic : déplacer le focus vers le menu à chaque clic
+      // refermait aussitôt le sélecteur de niveau (perte de focus).
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
           e.preventDefault();
           const trigger = e.currentTarget.querySelector<HTMLElement>('.savoir-card-menu-trigger');
           trigger?.focus();
@@ -170,7 +167,7 @@ const SavoirCard = memo(function SavoirCard({
           <Input
             size="small"
             value={editingNom.value}
-            onChange={(e) => setEditingNom((p) => ({ ...p, value: e.target.value }))}
+            onChange={(e) => setEditingNom((p) => p && { ...p, value: e.target.value })}
             onPressEnter={commitRename}
             onBlur={commitRename}
             onKeyDown={(e) => e.key === 'Escape' && setEditingNom(null)}
@@ -264,7 +261,7 @@ const SavoirCard = memo(function SavoirCard({
           />
         </Dropdown>
       )}
-    </button>
+    </div>
   );
 });
 

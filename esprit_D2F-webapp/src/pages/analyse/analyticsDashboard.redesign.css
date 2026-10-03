@@ -893,3 +893,22 @@
    Supprimée : les données réelles (KPIs, heatmap, à-risque, formations)
    sont désormais intégrées directement dans le tableau de bord (sections
    uniques, sans doublon). */
+
+/* Enseignants exclus du classement faute de niveau enregistré. */
+.ad-no-levels {
+  margin-top: 12px;
+}
+.ad-no-levels .ad-no-levels__link {
+  color: #c8102e;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Sélecteur de vue du tableau des enseignants (tous / à risque). */
+.ad-risk-view {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}

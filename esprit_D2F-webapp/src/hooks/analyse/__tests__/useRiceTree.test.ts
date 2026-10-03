@@ -6,8 +6,10 @@ import { useRiceTree } from '@/hooks/analyse/useRiceTree';
 import { secureRandomId } from '@/utils/secureRandom';
 
 vi.mock('@/utils/secureRandom', () => ({ secureRandomId: () => 'id', __esModule: true }));
+// Même implémentation que le vrai module (structuredClone) : une copie JSON
+// masquait qu'un brouillon immer (Proxy) ne peut pas être cloné.
 vi.mock('@/pages/competence/rice/constants', () => ({
-  cloneDeep: (x: unknown) => JSON.parse(JSON.stringify(x)),
+  cloneDeep: <T,>(x: T): T => structuredClone(x),
   __esModule: true,
 }));
 
@@ -257,5 +259,59 @@ describe('useRiceTree', () => {
       result.current.setTreeSearch('Sav1');
     });
     expect(result.current.treeFilteredIndices).not.toBeNull();
+  });
+
+  // Panneau de propriétés de l'étape Revue : ces deux actions étaient branchées
+  // sur des fonctions vides, toute modification y était perdue.
+  it('updateNodeField modifie le nœud désigné par son chemin, à chaque niveau', () => {
+    const { result } = renderHook(() => useRiceTree(msgApi), { wrapper });
+    act(() => {
+      result.current.setTree(seedTree());
+    });
+    act(() => {
+      result.current.updateNodeField([0], 'nom', 'Domaine renommé');
+      result.current.updateNodeField([0, 0], 'description', 'desc comp');
+      result.current.updateNodeField([0, 0, 0], 'nom', 'Sc renommée');
+      result.current.updateNodeField([0, 0, -1, 0], 'niveau', 'N3_INTERMEDIAIRE');
+      result.current.updateNodeField([0, 0, 0, 0], 'enseignantsSuggeres', ['E1']);
+    });
+    const d = result.current.tree[0] as any;
+    expect(d.nom).toBe('Domaine renommé');
+    expect(d.competences[0].description).toBe('desc comp');
+    expect(d.competences[0].sousCompetences[0].nom).toBe('Sc renommée');
+    expect(d.competences[0].savoirs[0].niveau).toBe('N3_INTERMEDIAIRE');
+    expect(d.competences[0].sousCompetences[0].savoirs[0].enseignantsSuggeres).toEqual(['E1']);
+  });
+
+  it('moveSavoirToSC déplace un savoir vers une sous-compétence et inversement', () => {
+    const { result } = renderHook(() => useRiceTree(msgApi), { wrapper });
+    act(() => {
+      result.current.setTree(seedTree());
+    });
+    act(() => {
+      result.current.moveSavoirToSC([0, 0, -1, 0], [0, 0, 0]);
+    });
+    let c = (result.current.tree[0] as any).competences[0];
+    expect(c.savoirs).toHaveLength(0);
+    expect(c.sousCompetences[0].savoirs.map((s: { code: string }) => s.code)).toEqual(['S2', 'S1']);
+
+    act(() => {
+      result.current.moveSavoirToSC([0, 0, 0, 0], [0, 0, -1]);
+    });
+    c = (result.current.tree[0] as any).competences[0];
+    expect(c.savoirs.map((s: { code: string }) => s.code)).toEqual(['S2']);
+    expect(c.sousCompetences[0].savoirs.map((s: { code: string }) => s.code)).toEqual(['S1']);
+  });
+
+  it('moveSavoirToSC ne fait rien si la cible est le conteneur actuel', () => {
+    const { result } = renderHook(() => useRiceTree(msgApi), { wrapper });
+    act(() => {
+      result.current.setTree(seedTree());
+    });
+    const before = JSON.stringify(result.current.tree);
+    act(() => {
+      result.current.moveSavoirToSC([0, 0, 0, 0], [0, 0, 0]);
+    });
+    expect(JSON.stringify(result.current.tree)).toBe(before);
   });
 });

@@ -155,11 +155,12 @@ export function useModelPerformance() {
   });
 }
 
-export function useOverview() {
+export function useOverview(enabled = true) {
   return useQuery<OverviewKpis>({
     queryKey: ['analyse', 'overview'],
     queryFn: () => AnalysePredictiveService.getOverview(),
     staleTime: 5 * 60 * 1000,
+    enabled,
   });
 }
 

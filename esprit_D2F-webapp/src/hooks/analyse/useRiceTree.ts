@@ -5,7 +5,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useImmer } from 'use-immer';
 import type { MessageInstance } from 'antd/es/message/interface';
-import { cloneDeep } from '@/pages/competence/rice/constants';
 import { secureRandomId } from '@/utils/secureRandom';
 import type {
   RiceDomaine,
@@ -30,6 +29,24 @@ const getSavoir = (
   const comp = t[di].competences![ci];
   if (sci === -1) return comp.savoirs![si];
   return comp.sousCompetences![sci].savoirs![si];
+};
+
+// Nœud désigné par un chemin de sélection : [di] domaine, [di, ci] compétence,
+// [di, ci, sci] sous-compétence, [di, ci, sci, si] savoir (sci = -1 : savoir
+// rattaché directement à la compétence).
+const getNode = (t: RiceDomaine[], path: RiceTreePath): Record<string, unknown> | undefined => {
+  const [di, ci, sci, si] = path;
+  if (si !== undefined) return getSavoir(t, di, ci, sci, si);
+  if (sci !== undefined) return t[di]?.competences?.[ci]?.sousCompetences?.[sci];
+  if (ci !== undefined) return t[di]?.competences?.[ci];
+  return t[di];
+};
+
+// Liste de savoirs d'un conteneur [di, ci, sci] (sci = -1 : la compétence).
+const savoirListOf = (t: RiceDomaine[], [di, ci, sci]: RiceTreePath): RiceSavoir[] => {
+  const comp = t[di].competences![ci];
+  if (sci === -1) return (comp.savoirs ??= []);
+  return (comp.sousCompetences![sci].savoirs ??= []);
 };
 
 const pushSavoirFlat = (args: {
@@ -74,13 +91,14 @@ export function useRiceTree(msgApi: MessageInstance) {
   const [mergeSrc, setMergeSrc] = useState<RiceMergeRef | null>(null);
   const [mergeDst, setMergeDst] = useState<RiceMergeRef | null>(null);
 
-  // ── generic updater (cloneDeep for immer compatibility) ───────────────────
+  // ── generic updater ───────────────────────────────────────────────────────
+  // useImmer passe un brouillon (Proxy) modifiable directement. Ne pas le
+  // copier : cloneDeep repose sur structuredClone, qui rejette les Proxy
+  // (DataCloneError) — toute édition de l'arbre plantait l'étape Revue.
   const updateTree = useCallback(
     (updater: TreeUpdater) => {
-      setTree((prev) => {
-        const next = cloneDeep(prev) as RiceDomaine[];
-        updater(next);
-        return next;
+      setTree((draft) => {
+        updater(draft as RiceDomaine[]);
       });
     },
     [setTree],
@@ -210,6 +228,29 @@ export function useRiceTree(msgApi: MessageInstance) {
     (di: number, ci: number, sci: number, si: number, niveau: string) =>
       updateTree((t) => {
         getSavoir(t, di, ci, sci, si).niveau = niveau;
+      }),
+    [updateTree],
+  );
+
+  // ── édition depuis le panneau de propriétés ───────────────────────────────
+  const updateNodeField = useCallback(
+    (path: RiceTreePath, field: string, value: unknown) =>
+      updateTree((t) => {
+        const node = getNode(t, path);
+        if (node) node[field] = value;
+      }),
+    [updateTree],
+  );
+
+  // Déplace le savoir `src` [di, ci, sci, si] à la fin du conteneur `target`
+  // [di, ci, sci]. Sans effet si la cible est son conteneur actuel.
+  const moveSavoirToSC = useCallback(
+    (src: RiceTreePath, target: RiceTreePath) =>
+      updateTree((t) => {
+        const [di, ci, sci, si] = src;
+        if (di === target[0] && ci === target[1] && sci === target[2]) return;
+        const [savoir] = savoirListOf(t, [di, ci, sci]).splice(si, 1);
+        if (savoir) savoirListOf(t, target).push(savoir);
       }),
     [updateTree],
   );
@@ -412,6 +453,8 @@ export function useRiceTree(msgApi: MessageInstance) {
     setNiveau,
     toggleEnsAssign,
     setEnseignants,
+    updateNodeField,
+    moveSavoirToSC,
     clearAllAssignments,
     remapInTree,
     // merge

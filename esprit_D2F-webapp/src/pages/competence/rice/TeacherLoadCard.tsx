@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Avatar, Tag, Progress, Popconfirm, Tooltip, Button } from 'antd';
 import { EditOutlined, StopOutlined } from '@ant-design/icons';
 import { avatarColor, getInitials } from './constants';
+import { resolveDept, resolveUp } from './teacherAffiliation';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Enseignant {
@@ -9,11 +10,18 @@ interface Enseignant {
   nom?: string;
   prenom?: string;
   departement?: string;
+  department?: string;
+  departementId?: string;
   // Fiches issues de l'annuaire (service formation) : le rattachement est porté
-  // par deptLibelle/upLibelle plutôt que par un champ `departement`.
+  // par deptLibelle/deptId (département) et upLibelle/upId (unité pédagogique)
+  // plutôt que par un champ `departement`.
   deptLibelle?: string;
+  deptId?: string;
   upLibelle?: string;
+  upId?: string;
+  unitePedagogique?: string;
   grade?: string;
+  [key: string]: unknown;
 }
 interface TeacherLoadCardProps {
   teacher: Enseignant;
@@ -57,9 +65,8 @@ export default function TeacherLoadCard({
     [teacher.nom, teacher.prenom],
   );
   const fullName = `${teacher.prenom ?? ''} ${teacher.nom ?? ''}`.trim();
-  const dept = String(
-    teacher.departement ?? teacher.deptLibelle ?? teacher.upLibelle ?? '',
-  ).toUpperCase();
+  const dept = resolveDept(teacher);
+  const up = resolveUp(teacher);
 
   return (
     <div className="tlc-card">
@@ -72,7 +79,17 @@ export default function TeacherLoadCard({
         <div className="tlc-info">
           <div className="tlc-name">{fullName || '—'}</div>
           <div className="tlc-meta">
-            {dept && <span className="tlc-dept">{dept}</span>}
+            {up && (
+              <span className="tlc-dept tlc-up" title={`UP : ${up}`}>
+                UP · {up}
+              </span>
+            )}
+            {dept && (
+              <span className="tlc-dept" title={`Département : ${dept}`}>
+                {dept}
+              </span>
+            )}
+            {!up && !dept && <span className="tlc-dept tlc-dept--empty">Sans rattachement</span>}
             {teacher.grade && <span className="tlc-grade">{teacher.grade}</span>}
           </div>
         </div>

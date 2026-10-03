@@ -8,6 +8,7 @@ import { message } from 'antd';
 import { analyticsApi } from '@/services/analyse/analyticsApi';
 import type {
   AlertUpdatePayload,
+  DailyTrendPoint,
   DashboardFilters,
   GapsResponse,
   PilotageResponse,
@@ -119,6 +120,14 @@ export function useRiskTrends(months = 6) {
   });
 }
 
+export function useDailyRiskTrends(days = 30) {
+  return useQuery<DailyTrendPoint[]>({
+    queryKey: ['analytics', 'risk-evolution-daily', days],
+    queryFn: () => analyticsApi.getDailyRiskEvolution(days),
+    staleTime: 60_000,
+  });
+}
+
 export function useRiskHistory(enseignantId: string, mois = 12) {
   return useQuery<RiskHistoryResponse>({
     queryKey: ['analytics', 'risk-history', enseignantId, mois],
@@ -193,6 +202,7 @@ export function useDecliningSkills(filters?: DashboardFilters) {
 export function useAlerts(filters?: {
   type_alerte?: string;
   severite?: string;
+  severity_bucket?: string;
   statut?: string;
   enseignant_id?: string;
   departement_id?: string;

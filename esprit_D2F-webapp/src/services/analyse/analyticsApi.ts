@@ -33,6 +33,7 @@ import type {
   AtRiskTeacher,
   RealDashboardImpact,
   TeacherScopeAnalysis,
+  DailyTrendPoint,
   DashboardFilters,
   DashboardResponse,
   DecliningSkill,
@@ -680,6 +681,14 @@ interface BackendRiskEvolutionRow {
   total_enseignants: number;
 }
 
+interface BackendDailyRiskEvolutionRow {
+  date: string;
+  critical: number;
+  high: number;
+  score_risque_moyen: number;
+  total_enseignants: number;
+}
+
 function mapRiskEvolutionRow(raw: BackendRiskEvolutionRow): TrendPoint {
   return {
     month: raw.month,
@@ -1043,12 +1052,35 @@ export const analyticsApi = {
       });
   },
 
+  // Endpoint backend réel : /dashboard/risk-evolution-daily (évolution
+  // QUOTIDIENNE — un point par jour, adapté aux fenêtres 7/30/90/180 j).
+  getDailyRiskEvolution(days = 30): Promise<DailyTrendPoint[]> {
+    return axios
+      .get<BackendDailyRiskEvolutionRow[]>(`${BASE}/dashboard/risk-evolution-daily`, {
+        params: { days },
+      })
+      .then((r) => {
+        const rows = Array.isArray(r.data) ? r.data : [];
+        return rows.map(
+          (raw): DailyTrendPoint => ({
+            date: String(raw.date ?? ''),
+            score_risque_moyen: Number(raw.score_risque_moyen ?? 0),
+            nb_critiques: Number(raw.critical ?? 0),
+            nb_eleves: Number(raw.high ?? 0),
+            nb_enseignants: Number(raw.total_enseignants ?? 0),
+          }),
+        );
+      });
+  },
+
   // ── Alertes (F5/F6) ────────────────────────────────
   // Endpoint backend réel : GET /alerts (nouveau module DDD, enveloppe {data, meta, errors}).
   getAlerts(
     filters: {
       type_alerte?: string;
       severite?: string;
+      /** Bucket de sévérité FR/EN (CRITICAL/WARNING/INFO) : filtré côté backend. */
+      severity_bucket?: string;
       statut?: string;
       enseignant_id?: string;
       departement_id?: string;
@@ -1065,7 +1097,8 @@ export const analyticsApi = {
           size: filters.size ?? 100,
           severity: filters.severite,
           status: filters.statut,
-          target_type: filters.type_alerte,
+          type_alerte: filters.type_alerte,
+          severity_bucket: filters.severity_bucket,
           department_id: filters.departement_id,
           since_days: filters.since_days,
         },
