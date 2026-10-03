@@ -113,7 +113,7 @@ def rule_risk_from_gaps(
 
     ``scope_type`` / ``scope_id`` / ``scope_label`` décrivent le scope
     concret (ex : ``DEPARTMENT`` / ``DEP_RESEAUX`` / ``Département Réseaux``).
-    Le libellé du facteur est TOUJOURS le même (« Gaps critiques ») — le
+    Le libellé du facteur est TOUJOURS le même (« Écarts de couverture critiques ») — le
     scope est exposé séparément via ``scope_label`` (jamais concaténé dans
     le label, ce qui évite « périmètrepérimètre »).
     """
@@ -130,7 +130,7 @@ def rule_risk_from_gaps(
             normalized_value=computed.normalized["critical_gaps"],
             weight=GAP_RISK_WEIGHTS["critical_gaps"],
             contribution=round(computed.contributions["critical_gaps"], 4),
-            label="Gaps critiques",
+            label="Écarts de couverture critiques",
             scope=scope,
             scope_type=scope_type,
             scope_id=scope_id,
@@ -142,7 +142,7 @@ def rule_risk_from_gaps(
             normalized_value=computed.normalized["high_gaps"],
             weight=GAP_RISK_WEIGHTS["high_gaps"],
             contribution=round(computed.contributions["high_gaps"], 4),
-            label="Gaps de haute urgence",
+            label="Écarts de couverture de haute urgence",
             scope=scope,
             scope_type=scope_type,
             scope_id=scope_id,
@@ -154,7 +154,7 @@ def rule_risk_from_gaps(
             normalized_value=computed.normalized["avg_gap_score"],
             weight=GAP_RISK_WEIGHTS["avg_gap_score"],
             contribution=round(computed.contributions["avg_gap_score"], 4),
-            label="Profondeur moyenne des gaps",
+            label="Profondeur moyenne des écarts de couverture",
             scope=scope,
             scope_type=scope_type,
             scope_id=scope_id,
@@ -174,6 +174,15 @@ def rule_risk_from_gaps(
 # Schema de features canonique — version 1.0
 FEATURE_SCHEMA_VERSION = "1.0"
 
+# Ce que prédit le modèle des écarts (docs/KNOWLEDGE_DIFFICULTY_LEVEL_POLICY.md) :
+# le niveau N1-N5 est un attribut DESCRIPTIF du savoir (difficulté), pas une
+# maîtrise de l'enseignant. L'écart prédit est donc un écart de COUVERTURE.
+TARGET_MEANING = (
+    "Écart de couverture à 3 mois : niveau de difficulté exigé par le périmètre "
+    "moins niveau de difficulté des savoirs couverts par l'enseignant. "
+    "Ce n'est pas une mesure de la maîtrise de l'enseignant."
+)
+
 TEMPORAL_FEATURE_COLS = [
     "current_level_t3", "current_level_t2", "current_level_t1", "current_level_t",
     "lag_gap_t3_t2", "lag_gap_t2_t1", "lag_gap_t1_t", "rolling_tendance",
@@ -184,6 +193,21 @@ TEMPORAL_FEATURE_COLS = [
     "nb_besoins_exprimes", "nb_besoins_approuves", "avg_eval_score", "nb_evaluations",
     "months_since_last_training", "engagement_score",
 ]
+
+# Durées mesurées « à aujourd'hui » : elles avancent avec le calendrier, la
+# référence du skew guard est vieillie d'autant (correctif D de skew_guard).
+# Même définition qu'au serving (_teacher_feature_bundle) : jours bruts, mois
+# = jours / 30,44, et 365 jours conventionnels quand aucune formation.
+_DAYS_PER_MONTH = 30.44
+_NO_TRAINING_DAYS = 365.0
+_SKEW_AGING_RATES = {
+    "days_since_last_training": 1.0,
+    "months_since_last_training": 1.0 / _DAYS_PER_MONTH,
+}
+_SKEW_AGING_SENTINELS = {
+    "days_since_last_training": _NO_TRAINING_DAYS,
+    "months_since_last_training": _NO_TRAINING_DAYS / _DAYS_PER_MONTH,
+}
 
 NIVEAU_INT = {
     "N1_DEBUTANT": 1, "N2_ELEMENTAIRE": 2, "N3_INTERMEDIAIRE": 3,
@@ -290,7 +314,6 @@ class ArtifactModelPort:
         candidates = [
             base_dir / "training_corpus_provenanced.csv",
             base_dir / "training_corpus_from_db.csv",
-            base_dir / "training_corpus.csv",
         ]
         for path in candidates:
             if path.exists():
@@ -565,7 +588,7 @@ class ArtifactModelPort:
     def _near_boundary_columns(self, X: np.ndarray, threshold_pct: float = 0.05) -> list[str]:
         """Colonnes dont au moins une valeur est à moins de ``threshold_pct``
         de la largeur de plage de sa borne min/max d'entraînement."""
-        ranges = (self._metadata or {}).get("feature_ranges", {})
+        ranges = self._validation_ranges()
         near: list[str] = []
         for i, col in enumerate(TEMPORAL_FEATURE_COLS):
             bounds = ranges.get(col)
@@ -622,16 +645,20 @@ class ArtifactModelPort:
 
     # --------------------------------------------------- Risk ML calibre (v2)
     def _resolved_gaps(self, teacher_id: str) -> list[SkillGap]:
-        """Gaps prédits, sinon gaps persistés.
+        """Mêmes écarts que ceux affichés : prédits par le ML, complétés par
+        les écarts persistés des compétences que le ML ne couvre pas.
 
-        Une prédiction ML VIDE (aucun savoir évaluable pour l'enseignant)
-        équivaut à une absence de prédiction : on retombe sur le snapshot
-        persisté au lieu de servir un risque 0.0 vide et trompeur.
+        Avant, le risque prenait les écarts ML SEULS dès qu'il en existait un :
+        les compétences sans niveau (complétées par l'heuristique dans
+        ComputeGaps, donc affichées et comptées « critiques ») disparaissaient
+        du calcul — ex. ENS016 : « Gaps critiques : valeur 0 » à côté de
+        « 2 Critiques » ; ANI001 : risque FAIBLE avec 29 gaps critiques.
+        Une prédiction ML vide retombe entièrement sur le persisté.
         """
-        gaps = self._predict_gaps(teacher_id)
-        if not gaps:
-            gaps = self._persisted_gaps(teacher_id)
-        return gaps or []
+        predicted = self._predict_gaps(teacher_id) or []
+        persisted = self._persisted_gaps(teacher_id) or []
+        covered = {g.competence_id for g in predicted}
+        return predicted + [g for g in persisted if g.competence_id not in covered]
 
     def _scoped_gaps(self, teacher_id: str, gaps: list[SkillGap]) -> tuple[list[SkillGap], set[int] | None]:
         """Filtre les gaps au périmètre de l'enseignant, si applicable."""
@@ -783,6 +810,7 @@ class ArtifactModelPort:
             "registry_entry": entry.to_dict() if entry else None,
             "prediction_horizon": "3m",
             "target_validity": target_validity,
+            "target_meaning": TARGET_MEANING,
             "target_validity_label": self._target_validity_label(target_validity),
             "data_origin": data_origin,
             "validation_scope": validation_scope,
@@ -1022,14 +1050,35 @@ class ArtifactModelPort:
                 if candidate.notna().all():
                     groups = candidate.to_numpy()
             rows = self._skew_guard.set_reference_from_matrix(M, groups=groups)
+            reference_date = self._corpus_extraction_date(df, pd)
+            if reference_date is not None:
+                self._skew_guard.set_reference_aging(
+                    reference_date, _SKEW_AGING_RATES, _SKEW_AGING_SENTINELS
+                )
             logger.info(
                 "skew guard : référence d'entraînement capturée (test KS armé)",
                 rows=rows,
                 unit="enseignant" if groups is not None else "ligne",
                 corpus=str(path),
+                reference_date=str(reference_date),
             )
         except Exception as exc:  # pragma: no cover - consultatif
             logger.warning("skew guard : capture de référence impossible", error=str(exc))
+
+    @staticmethod
+    def _corpus_extraction_date(df, pd) -> date | None:
+        """Date à laquelle les durées « à aujourd'hui » du corpus ont été mesurées.
+
+        ``generate_corpus_from_db`` calcule ``days_since_last_training`` par
+        rapport au jour d'extraction et l'estampille dans ``created_at``. Sans
+        cette colonne, pas de vieillissement (comportement historique).
+        """
+        if "created_at" not in df.columns:
+            return None
+        stamps = pd.to_datetime(df["created_at"], errors="coerce", utc=True).dropna()
+        if stamps.empty:
+            return None
+        return stamps.max().date()
 
     def model_health(self) -> dict[str, Any]:
         """Santé du modèle servi : métriques test (r2, mae, rmse) + skew guard KS.
@@ -1067,6 +1116,7 @@ class ArtifactModelPort:
             "accuracy_pm05": self._registry_accuracy(entry, "accuracy_pm05"),
             "accuracy_pm10": self._registry_accuracy(entry, "accuracy_pm10"),
             "target_validity": entry.target_validity if entry else None,
+            "target_meaning": TARGET_MEANING,
             # Integrite REELLE : l'artefact n'est charge qu'apres verification
             # du SHA-256 (artifact_integrity). Modele absent => non verifie.
             "integrity_verified": self._model is not None,
@@ -1128,13 +1178,29 @@ class ArtifactModelPort:
                 "porte des bornes différentes du feature_schema de la même "
                 "version — réentraînement et nouvelle version requis"
             )
+        # Le domaine de validation est versionné au même titre : l'élargir en
+        # silence ferait accepter au serving des vecteurs jamais évalués.
+        validation = meta.get("validation_ranges")
+        reference_validation = self._reference_feature_ranges(meta, key="validation_ranges")
+        if reference_ranges and (validation or reference_validation) and (
+            not validation
+            or not reference_validation
+            or _canon(validation) != _canon(reference_validation)
+        ):
+            return (
+                "domaine de validation différent du feature_schema de la même "
+                "version : validation_ranges doit être versionné avec l'artefact"
+            )
         return None
 
-    def _reference_feature_ranges(self, meta: dict) -> dict | None:
+    def _reference_feature_ranges(self, meta: dict, key: str = "feature_ranges") -> dict | None:
         """Référence canonique : le feature_schema VERSIONNÉ du modèle servi
         (feature_schema_{version}.json) s'il existe — c'est la référence de la
         version ACTIVE ; sinon le feature_schema du dépôt. Sans fichier de
-        référence, on compare au registre."""
+        référence, on compare au registre.
+
+        ``key`` choisit la plage lue : ``feature_ranges`` (normalisation) ou
+        ``validation_ranges`` (domaine accepté au serving)."""
         model_version = str(meta.get("model_version") or "")
         suffix = f"_{model_version.replace('.', '')}" if model_version else ""
         candidate_paths = [
@@ -1146,14 +1212,14 @@ class ArtifactModelPort:
                 continue
             try:
                 reference = json.loads(path.read_text(encoding="utf-8"))
-                if isinstance(reference, dict) and "feature_ranges" in reference:
-                    reference = reference["feature_ranges"]
-                if isinstance(reference, dict) and "ranges" in reference:
-                    reference = reference["ranges"]
-                if reference:
-                    return reference
             except Exception:
                 continue
+            if key != "feature_ranges":
+                # Schéma trouvé : il fait foi, qu'il porte la clé ou non.
+                return reference.get(key) if isinstance(reference, dict) else None
+            ranges = _unwrap_feature_ranges(reference)
+            if ranges:
+                return ranges
         return None
 
     # ------------------------------------------------------- Extraction features
@@ -1253,14 +1319,7 @@ class ArtifactModelPort:
         completed = [f for f in formations if f["etat"] == "APPROVED" and f["date_fin"] and f["date_fin"] < today]
         in_progress = [f for f in formations if f["etat"] in ("APPROVED", "EN_COURS")]
 
-        avg_days_between = 0.0
-        if len(completed) >= 2:
-            deltas = [
-                (completed[i + 1]["date_fin"] - completed[i]["date_fin"]).days
-                for i in range(len(completed) - 1)
-                if completed[i + 1]["date_fin"] and completed[i]["date_fin"]
-            ]
-            avg_days_between = float(np.mean(deltas)) if deltas else 0.0
+        avg_days_between = self._avg_days_between_completions(completed)
 
         return {
             "savoirs": savs,
@@ -1311,6 +1370,22 @@ class ArtifactModelPort:
                 continue
             savs_by_comp.setdefault(int(cid), []).append(s)
         return savs_by_comp
+
+    @staticmethod
+    def _avg_days_between_completions(completed: list[Any]) -> float:
+        """Écart moyen (jours) entre fins de formations achevées, dates TRIÉES.
+
+        Même définition que le pipeline d'entraînement
+        (generate_corpus_from_db : ``sorted(date_fin)``). La requête n'a pas
+        d'ORDER BY : sans tri, un ordre renvoyé à l'envers donnait un écart
+        NÉGATIF, ``max(1, écart/30)`` valait 1 et training_frequency_per_month
+        devenait le simple nombre de formations (ENS004 : 2,0 au lieu de 0,49,
+        hors domaine du modèle → repli heuristique à tort).
+        """
+        dates = sorted(f["date_fin"] for f in completed if f["date_fin"])
+        if len(dates) < 2:
+            return 0.0
+        return float(np.mean([(dates[k + 1] - dates[k]).days for k in range(len(dates) - 1)]))
 
     @staticmethod
     def _global_features(bundle: dict[str, Any]) -> dict[str, float]:
@@ -1379,6 +1454,24 @@ class ArtifactModelPort:
             globals_f["months_since"], globals_f["engagement"],
         ]
 
+    def _validation_ranges(self) -> dict[str, dict[str, float]]:
+        """Domaine de features accepté au serving.
+
+        Deux rôles, deux champs de la metadata :
+        - ``feature_ranges`` : min-max capturé sur le TRAIN, avec lequel le
+          modèle a été ajusté — c'est la NORMALISATION, qui ne peut changer
+          sans réentraînement ;
+        - ``validation_ranges`` : plages du corpus complet (train + test), sur
+          lequel le modèle a été construit ET évalué — c'est le DOMAINE
+          accepté (``pipelines/train_gap_model.py``).
+        Confondre les deux (audit 2026-09-23) faisait soit normaliser le
+        rollback avec d'autres plages que celles de son entraînement, soit
+        rejeter au serving des valeurs du corpus lui-même. Une metadata
+        antérieure sans ``validation_ranges`` valide sur ``feature_ranges``.
+        """
+        meta = self._metadata or {}
+        return meta.get("validation_ranges") or meta.get("feature_ranges") or {}
+
     @staticmethod
     def _normalize(X: np.ndarray, ranges: dict[str, dict[str, float]]) -> np.ndarray:
         xn = X.copy()
@@ -1393,8 +1486,7 @@ class ArtifactModelPort:
     # ------------------------------------------------------------ Predictions
     def _serving_vector_error(self, X: np.ndarray, teacher_id: str) -> str | None:
         """Validation stricte du vecteur de features au serving (None si valide)."""
-        ranges = (self._metadata or {}).get("feature_ranges", {})
-        validation = validate_feature_vector(X, TEMPORAL_FEATURE_COLS, ranges)
+        validation = validate_feature_vector(X, TEMPORAL_FEATURE_COLS, self._validation_ranges())
         if not validation.valid:
             logger.error(
                 "features invalides au serving — fallback",
@@ -1481,6 +1573,8 @@ class ArtifactModelPort:
             self._fallback_reason = synthetic_error
             return None
 
+        # Normalisation = plages du TRAIN (feature_ranges), jamais le domaine
+        # de validation : le modèle a été ajusté sur ce min-max-là.
         ranges = (self._metadata or {}).get("feature_ranges", {})
         xn = self._normalize(X, ranges)
         ml_pred = np.clip(self._model.predict(xn), 0.0, 5.0)
@@ -1781,7 +1875,7 @@ class ArtifactModelPort:
                 normalized_value=1.0,
                 weight=0.3,
                 contribution=0.3,
-                label="Règle métier (≥ 3 gaps critiques)",
+                label="Règle métier (≥ 3 écarts de couverture critiques)",
                 scope=scope,
                 scope_type=scope_type,
                 scope_id=scope_id,
@@ -1861,7 +1955,7 @@ class ArtifactModelPort:
                 normalized_value=round(min(1.0, n_crit / CRITICAL_GAP_CAP), 4),
                 weight=0.50,
                 contribution=round(min(1.0, n_crit / CRITICAL_GAP_CAP) * 0.50, 4),
-                label="Gaps critiques",
+                label="Écarts de couverture critiques",
                 scope=scope,
                 scope_type=scope_type,
                 scope_id=scope_id,
@@ -2041,6 +2135,15 @@ class ArtifactModelPort:
                 d = d.date()
             f_age = float((date.today() - d).days)
         return f_age
+
+
+def _unwrap_feature_ranges(reference):
+    """Plages de normalisation d'un feature_schema, quel que soit son format
+    historique (plages nues, ``{"feature_ranges": ...}`` ou ``{"ranges": ...}``)."""
+    for wrapper in ("feature_ranges", "ranges"):
+        if isinstance(reference, dict) and wrapper in reference:
+            reference = reference[wrapper]
+    return reference
 
 
 def _read_csv_safe(path: Path):

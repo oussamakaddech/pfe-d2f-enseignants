@@ -601,13 +601,22 @@ def test_serving_unchanged_for_35_teachers():
             assert entry.get("override_decision") is True and entry.get("override_actor"), (
                 "une entree ACTIVE non significative doit porter un override declare"
             )
-    gb = [e for e in registry if e.get("model_version") == "v1.2.0-gb"][0]
-    assert gb["status"] == "ACTIVE" and gb["approval_status"] == "APPROVED", (
-        "GB v1.2.0-gb promu ACTIVE/APPROVED sous override declare (decision projet)"
+    # 2026-10-01 : v1.3.1-xgb (reglage gouverne, 0,3702 vs 0,3811, ecart non
+    # significatif) remplace v1.3.0-xgb, elle-meme archivee pour rollback.
+    xgb = [e for e in registry if e.get("model_version") == "v1.3.1-xgb"][0]
+    assert xgb["status"] == "ACTIVE" and xgb["approval_status"] == "APPROVED", (
+        "XGB v1.3.1-xgb promu ACTIVE/APPROVED sous override declare (reglage gouverne)"
     )
-    assert gb["lift_significant_95"] is False and gb["lift_rmse_ci95"] == [-0.1243, 0.1087]
-    assert gb["override_decision"] is True and gb["override_actor"]
-    assert gb["synthetic_share_pct"] == 0.0
+    assert xgb["lift_significant_95"] is False
+    assert xgb["baseline_lift_significant_95"] is False
+    assert xgb["override_decision"] is True and xgb["override_actor"]
+    assert xgb["synthetic_share_pct"] == 0.0
+    gb = [e for e in registry if e.get("model_version") == "v1.3.0-gb"][0]
+    assert gb["status"] == "ARCHIVED", "v1.3.0-gb conservee (ARCHIVED) pour rollback"
+    prev = [e for e in registry if e.get("model_version") == "v1.3.0-xgb"][0]
+    assert prev["status"] == "ARCHIVED", "v1.3.0-xgb conservee (ARCHIVED) pour rollback"
+    old = [e for e in registry if e.get("model_version") == "v1.2.0-gb"][0]
+    assert old["status"] == "ARCHIVED", "v1.2.0-gb conservee (ARCHIVED) pour rollback"
     legacy = [e for e in registry if e.get("model_version") == "v1.0.0" and e.get("status") == "ARCHIVED"]
     assert legacy, "v1.0.0 conservee (ARCHIVED) pour rollback"
     mlp_v110 = [e for e in registry if e.get("model_version") == "v1.1.0" and e.get("status") == "ARCHIVED"]
@@ -616,15 +625,15 @@ def test_serving_unchanged_for_35_teachers():
     # calculable (les controles de donnees n'ont pas ete assouplis).
     from app.infrastructure.ml.dataset_provenance import compute_provenance
 
-    prov = compute_provenance(df, dataset_version=str(gb.get("dataset_version", "")))
+    prov = compute_provenance(df, dataset_version=str(xgb.get("dataset_version", "")))
     assert prov.real_rows == target_n
     assert prov.synthetic_share_pct == 0.0
     settings = _settings()
     port = ArtifactModelPort(settings, MagicMock())
     assert port._provenance_error() is None, "provenance doit rester valide (lignes réelles >= 50)"
 
-    # 11d. Etat reel : une entree ACTIVE/APPROVED existe (GB v1.2.0-gb, override
-    # declare du 2026-09-22) -> le mode effectif est PRODUCTION_ML et le registre
+    # 11d. Etat reel : une entree ACTIVE/APPROVED existe (XGB v1.3.0-xgb, override
+    # declare du 2026-09-27) -> le mode effectif est PRODUCTION_ML et le registre
     # ne porte aucune raison de rejet.
     assert port._registry_rejection_reason({}) is None
     assert port._effective_mode() == PRODUCTION_ML

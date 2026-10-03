@@ -1,3 +1,5 @@
+import json
+
 from sqlalchemy import text
 
 from app.core.logging import get_logger
@@ -6,7 +8,7 @@ logger = get_logger("dashboard_repository")
 
 INSERT_SNAPSHOT = """
     INSERT INTO "analyse".dashboard_snapshots (scope, scope_id, snapshot_date, kpis_json, computed_at)
-    VALUES (:scope, :scope_id, CURRENT_DATE, :kpis_json, now())
+    VALUES (:scope, :scope_id, CURRENT_DATE, CAST(:kpis_json AS jsonb), now())
 """
 
 LATEST_SNAPSHOT = """
@@ -35,7 +37,11 @@ class SqlDashboardRepository:
             with self._database.session() as session:
                 session.execute(
                     text(INSERT_SNAPSHOT),
-                    {"scope": scope, "scope_id": scope_id, "kpis_json": kpis},
+                    {
+                        "scope": scope,
+                        "scope_id": scope_id,
+                        "kpis_json": json.dumps(kpis, ensure_ascii=False, default=str),
+                    },
                 )
         except Exception as exc:
             logger.warning("persistance snapshot dashboard impossible", error=str(exc))

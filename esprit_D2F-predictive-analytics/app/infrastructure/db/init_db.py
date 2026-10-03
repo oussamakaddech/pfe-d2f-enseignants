@@ -62,6 +62,8 @@ ANALYSE_DDL = [
         computed_at   TIMESTAMPTZ NOT NULL DEFAULT now()
     );
     CREATE INDEX IF NOT EXISTS ix_risk_snap_enseignant ON "analyse".teacher_risk_snapshots (enseignant_id, snapshot_date DESC);
+    -- un instantané par enseignant et par jour (migration Flyway V12)
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_risk_snapshot_teacher_day ON "analyse".teacher_risk_snapshots (enseignant_id, snapshot_date);
     """,
     """
     CREATE TABLE IF NOT EXISTS "analyse".prediction_results (

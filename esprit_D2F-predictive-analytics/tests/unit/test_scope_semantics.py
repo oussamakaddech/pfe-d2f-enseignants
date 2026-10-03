@@ -168,3 +168,62 @@ def test_niveaux_sur_scope_zero_without_levels():
                        up_id="UP_TECH_WEB")
     analysis = _analyzer(source).execute(teacher)
     assert analysis.niveaux_sur_scope == 0
+
+
+def test_count_levels_on_scope_matches_page_rule():
+    """Le tableau de bord juge la significativité d'un score comme la page
+    enseignant : même compte que ``execute`` (niveaux hors périmètre exclus,
+    élargissement au référentiel global si le périmètre déclaré est vide)."""
+    source = WebOnlyCompetencySource()
+    source._levels["ENS036"] = {2: 3, 1: 2}
+    source._levels["ENS050"] = {1: 2}  # GC seulement, département inconnu -> repli global
+    analyzer = _analyzer(source)
+    cache: dict = {}
+    assert analyzer.count_levels_on_scope("ENS036", "UP_TECH_WEB", "DEPT_TECH_WEB", None, cache) == 1
+    assert analyzer.count_levels_on_scope("ENS037", "UP_TECH_WEB", "DEPT_TECH_WEB", None, cache) == 0
+    assert analyzer.count_levels_on_scope("ENS050", None, "DEPT_INCONNU", None, cache) == 1
+    for tid, dept in (("ENS036", "DEPT_TECH_WEB"), ("ENS050", "DEPT_INCONNU")):
+        teacher = _teacher(tid, "X", "Y", dept_id=dept)
+        assert analyzer.execute(teacher).niveaux_sur_scope == analyzer.count_levels_on_scope(
+            tid, None, dept, None
+        )
+
+
+def test_dashboard_flags_scores_without_levels_as_not_significant():
+    """/dashboard/real/impact : un enseignant sans aucun niveau sur son
+    périmètre porte score_significatif=False (son CRITIQUE mesure l'absence de
+    données) ; un enseignant avec des niveaux reste significatif."""
+    from types import SimpleNamespace
+
+    from app.api.v1.dashboard_real import _with_significance
+
+    source = WebOnlyCompetencySource()
+    source._levels["ENS036"] = {2: 3}
+    container = SimpleNamespace(analyze_teacher_scope=_analyzer(source))
+    rows = [
+        {"enseignant_id": "ENS037", "up_id": "UP_TECH_WEB", "dept_id": "DEPT_TECH_WEB",
+         "specialite": None, "score_risque": 0.9},
+        {"enseignant_id": "ENS036", "up_id": "UP_TECH_WEB", "dept_id": "DEPT_TECH_WEB",
+         "specialite": None, "score_risque": 0.6},
+    ]
+    out = _with_significance(container, rows)
+    assert [(r["enseignant_id"], r["niveaux_sur_scope"], r["score_significatif"]) for r in out] == [
+        ("ENS037", 0, False),
+        ("ENS036", 1, True),
+    ]
+
+
+def test_no_affiliation_and_unmatched_specialty_uses_global_referential():
+    """Sans département ni UP, une spécialité qui ne correspond à aucun domaine
+    (ex. ANI001 « DevOps, conteneurisation ») ne vide pas l'analyse : le
+    périmètre reste GLOBAL et les niveaux saisis comptent (bug 2026-09-24 :
+    0 compétence analysée, niveaux ignorés, affiché « Périmètre global »)."""
+    source = WebOnlyCompetencySource()
+    source._levels["ANI001"] = {1: 4}
+    teacher = _teacher("ANI001", "CHEBBI", "Nadia", specialite="DevOps, conteneurisation")
+    analyzer = _analyzer(source)
+    analysis = analyzer.execute(teacher)
+    assert analysis.scope.type == "GLOBAL"
+    assert analysis.scoped_competencies_count == 2
+    assert analysis.niveaux_sur_scope == 1
+    assert analyzer.count_levels_on_scope("ANI001", None, None, "DevOps, conteneurisation") == 1

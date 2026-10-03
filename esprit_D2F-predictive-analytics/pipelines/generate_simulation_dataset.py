@@ -236,6 +236,7 @@ def generate_simulation_dataset(
     seed: int = SEED,
     output_path: Path | None = None,
     manifest_path: Path | None = None,
+    n_teachers: int = N_TEACHERS,
 ) -> dict:
     """Genere le corpus simule et l'ecrit. Retourne le manifest."""
     if seed != 42:
@@ -261,9 +262,9 @@ def generate_simulation_dataset(
     dept_labels = [d["label"] for d in DEPARTMENTS]
     # Distribution : informatique un peu plus gros
     dept_weights = [0.30, 0.20, 0.20, 0.15, 0.15]
-    teacher_depts_idx = rng.choice(len(DEPARTMENTS), size=N_TEACHERS, p=dept_weights)
+    teacher_depts_idx = rng.choice(len(DEPARTMENTS), size=n_teachers, p=dept_weights)
     teachers = []
-    for i in range(N_TEACHERS):
+    for i in range(n_teachers):
         di = int(teacher_depts_idx[i])
         d = DEPARTMENTS[di]
         # ID type ENS_SIM_001
@@ -466,8 +467,10 @@ def generate_simulation_dataset(
                 months_since = round(min(13.0, days_since / 30.44), 3)
                 training_freq = round(training_count / max(1.0, mi + 4.0), 3)
 
-                # In-progress formations (scheduled due in next 3 months)
-                in_progress = len([due for ask, due in scheduled if mi < due <= mi + 3])
+                # Formations en cours a t : DEJA planifiees a t (ask <= t) et dues dans
+                # les 3 mois. Sans la condition sur ask, une formation decidee apres t
+                # (t+1, t+2) etait comptee : fuite d'information future (audit 2026-10-01).
+                in_progress = len([due for ask, due in scheduled if ask <= mi < due <= mi + 3])
 
                 need_count = len([j for j in need_events if j <= mi])
                 # Approved needs correlated with training : 55% approbation
@@ -714,12 +717,15 @@ def main() -> int:
     parser.add_argument("--seed", type=int, default=SEED)
     parser.add_argument("--output", type=str, default=None)
     parser.add_argument("--manifest", type=str, default=None)
+    parser.add_argument("--n-teachers", type=int, default=N_TEACHERS,
+                        help="nombre d'enseignants simules (defaut 45 : corpus de reference)")
     args = parser.parse_args()
 
     manifest = generate_simulation_dataset(
         seed=args.seed,
         output_path=Path(args.output) if args.output else None,
         manifest_path=Path(args.manifest) if args.manifest else None,
+        n_teachers=args.n_teachers,
     )
     print(f"[OK] Dataset simule : {manifest['output_path']} ({manifest['n_rows']} lignes)")
     print(f"[OK] Hash canonique : {manifest['dataset_hash'][:16]}... (LF stable)")

@@ -50,9 +50,10 @@ def test_data_origin_simulated_tagged_on_every_line():
     assert len(df) >= 500, f"corpus simule trop petit : {len(df)}"
     assert (df["data_origin"] == "SIMULATED").all(), "toutes lignes doivent porter data_origin=SIMULATED"
     assert df["is_synthetic"].astype(bool).all(), "toutes lignes is_synthetic=true"
-    # generator_version et seed présents
+    # generator_version et seed présents ; la graine est celle déclarée au manifeste
     assert "generator_version" in df.columns and df["generator_version"].notna().all()
-    assert "generation_seed" in df.columns and (df["generation_seed"] == 42).all()
+    manifest_seed = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))["seed"]
+    assert "generation_seed" in df.columns and (df["generation_seed"] == manifest_seed).all()
     # is_extrapolated false partout
     assert not df["is_extrapolated"].astype(bool).any(), "is_extrapolated doit etre false (cible observee)"
     # target_observation_date rempli
@@ -357,12 +358,18 @@ def test_serving_unchanged_for_demo_environment():
             assert entry.get("override_decision") is True, (
                 "une entree ACTIVE non significative doit porter un override declare"
             )
-    gb = [e for e in reg_data if e.get("model_version") == "v1.2.0-gb"][0]
-    assert gb["status"] == "ACTIVE", "GB v1.2.0-gb ACTIVE sous override declare"
-    assert gb["approval_status"] == "APPROVED"
-    assert gb["lift_significant_95"] is False
-    assert gb["override_decision"] is True and gb["override_actor"]
-    assert gb["synthetic_share_pct"] == 0.0
+    # 2026-10-01 : v1.3.1-xgb (reglage gouverne, ecart au precedent non
+    # significatif) ACTIVE sous override declare ; v1.3.0-xgb et v1.3.0-gb
+    # archivees (rollback). Aucun ne bat la regle simple (mesure au registre).
+    xgb = [e for e in reg_data if e.get("model_version") == "v1.3.1-xgb"][0]
+    assert xgb["status"] == "ACTIVE", "XGB v1.3.1-xgb ACTIVE sous override declare"
+    assert xgb["approval_status"] == "APPROVED"
+    assert xgb["lift_significant_95"] is False
+    assert xgb["baseline_lift_significant_95"] is False
+    assert xgb["override_decision"] is True and xgb["override_actor"]
+    assert xgb["synthetic_share_pct"] == 0.0
+    gb = [e for e in reg_data if e.get("model_version") == "v1.3.0-gb"][0]
+    assert gb["status"] == "ARCHIVED", "v1.3.0-gb conservee (ARCHIVED) pour rollback"
     legacy_v1 = [e for e in reg_data if e.get("model_version") == "v1.0.0"]
     assert legacy_v1 and legacy_v1[0]["status"] == "ARCHIVED", "v1.0.0 conservee (ARCHIVED)"
     sim_entries = [e for e in reg_data if e.get("model_version") == "simulation-v1.0.0"]

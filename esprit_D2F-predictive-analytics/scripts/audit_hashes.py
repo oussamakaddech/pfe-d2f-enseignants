@@ -1,3 +1,4 @@
+import glob
 import hashlib
 import json
 import os
@@ -11,38 +12,29 @@ def sha256_file(path):
             h.update(chunk)
     return h.hexdigest()
 
-artefacts = [
-    'data/models/gap_predictor_temporal.joblib',
-    'data/models/gap_predictor_temporal_v110.joblib',
-    'data/models/gap_predictor.joblib',
-]
+# Tous les artefacts presents (plus de liste en dur : elle citait un artefact
+# orphelin supprime le 2026-10-01). Chaque sidecar est compare a l'artefact.
+artefacts = sorted(
+    os.path.relpath(p, BASE).replace(os.sep, '/')
+    for p in glob.glob(os.path.join(BASE, 'data', 'models', '**', '*.joblib'), recursive=True)
+)
 
-print("=== ARTEFACTS SHA-256 ===")
+print("=== ARTEFACTS SHA-256 / SIDECARS ===")
 for rel in artefacts:
-    p = os.path.join(BASE, rel)
-    if os.path.exists(p):
-        print(f"{rel}: {sha256_file(p)}")
+    digest = sha256_file(os.path.join(BASE, rel))
+    sidecar = os.path.join(BASE, rel + '.sha256')
+    if os.path.exists(sidecar):
+        etat = 'OK' if open(sidecar).read().strip()[:64] == digest else 'SIDECAR DIFFERENT'
     else:
-        print(f"{rel}: MISSING")
-
-print("\n=== SIDECARS ===")
-for rel in ['data/models/gap_predictor_temporal.joblib.sha256',
-            'data/models/gap_predictor_temporal_v110.joblib.sha256',
-            'data/models/gap_predictor.joblib.sha256']:
-    p = os.path.join(BASE, rel)
-    if os.path.exists(p):
-        print(f"{rel}: {open(p).read().strip()}")
-    else:
-        print(f"{rel}: MISSING")
+        etat = 'SIDECAR MISSING'
+    print(f"{rel}: {digest} [{etat}]")
 
 print("\n=== DATASETS ===")
 datasets = [
-    'data/clean/training_corpus.csv',
-    'data/clean/training_corpus_clean.csv',
     'data/clean/training_corpus_provenanced.csv',
-    'data/clean/training_corpus_provenanced_v110.csv',
     'data/clean/training_corpus_from_db.csv',
-    'data/clean/training_corpus_from_db_v110.csv',
+    'data/clean/simulation_dataset.csv',
+    'data/simulation/simulation_dataset_risk_n400_seed2026.csv',
 ]
 for rel in datasets:
     p = os.path.join(BASE, rel)

@@ -67,9 +67,12 @@ def main() -> int:
     assert (df["data_origin"] == "SIMULATED").all()
     assert df["is_synthetic"].astype(str).str.lower().isin(["true","1"]).all()
     assert (df["is_extrapolated"].astype(str).str.lower() == "false").all()
+    # Graine de GENERATION des donnees (distincte du random_state des modeles).
+    assert df["generation_seed"].nunique() == 1, "corpus issu de plusieurs graines"
+    data_seed = int(df["generation_seed"].iloc[0])
 
     # Split temporel 80/20
-    df_sorted = df.sort_values("date_t").reset_index(drop=True)
+    df_sorted = df.sort_values("date_t", kind="stable").reset_index(drop=True)
     n = len(df_sorted)
     n_test = max(20, int(n*0.2))
     n_train = n - n_test
@@ -132,7 +135,7 @@ def main() -> int:
         "metrics": {"test_rmse": round(rmse,4), "test_mae": round(mae,4), "test_r2": round(r2,4)},
         "feature_ranges": ranges,
         "decision": "accept",
-        "notes": "Modele SIMULATION_VALIDATED entraine sur corpus simule documente (seed 42, 10920 lignes, re-mesures M+3 observees). Utilisable en demonstration, jamais presente comme REAL_VALIDATED.",
+        "notes": f"Modele SIMULATION_VALIDATED entraine sur corpus simule documente (seed {data_seed}, {len(df)} lignes, re-mesures M+3 observees). Utilisable en demonstration, jamais presente comme REAL_VALIDATED.",
     }
     sim_metadata.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"[4] Metadata : {sim_metadata}")
@@ -147,7 +150,8 @@ def main() -> int:
     entry = RegistryEntry(
         model_name="gap_predictor_temporal",
         model_version="simulation-v1.0.0",
-        status="CANDIDATE",
+        # Une entree existante garde son statut (ex. ARCHIVED) : re-entrainer ne re-promeut pas.
+        status=existing.status if existing else "CANDIDATE",
         created_at=pd.Timestamp.now().isoformat(),
         dataset_version="simulation-v1.0.0",
         dataset_hash=dataset_hash,
@@ -159,14 +163,14 @@ def main() -> int:
         approval_status="APPROVED",
         approval_date=pd.Timestamp.now().isoformat(),
         approval_actor="simulation-pipeline",
-        notes="SIMULATION_VALIDATED : pipeline, gouvernance, calibration et backtest valides sur donnees simulees (seed 42, backtest M+3, IC bootstrap). Deploiement reel conditionne a DSI.",
+        notes=f"SIMULATION_VALIDATED : pipeline, gouvernance, calibration et backtest valides sur donnees simulees (seed {data_seed}, {len(df)} lignes, backtest M+3, IC bootstrap). Deploiement reel conditionne a DSI.",
         target_validity=TARGET_VALIDITY_OBSERVED_SIMULATION,
         real_future_observation_count=len(df),  # toutes observees en simulation
         distinct_observation_months=int(df["ref_month"].nunique()),
         data_origin=DATA_ORIGIN_SIMULATED,
         validation_scope=VALIDATION_SCOPE_SIMULATION,
         generator_version="simulation-v1.0.0",
-        seed=42,
+        seed=data_seed,
     )
     registry.register(entry)
     # Approuve sans devenir ACTIVE (pour non-regression) -> on le laisse CANDIDATE/APPROVED
@@ -177,7 +181,11 @@ def main() -> int:
     print(f"[5] Entree registre : simulation-v1.0.0 ({entry.validation_scope}, {entry.target_validity}, {entry.data_origin}) -> {registry_path} (CANDIDATE) + {sim_registry_path}")
 
     # Garder serving reel intact : ne pas archiver v1.0.0
-    print("[OK] Serving reel PRODUCTION_ML conserve (v1.0.0 ACTIVE) ; simulation disponible en demonstration (simulation-v1.0.0 CANDIDATE/APPROVED)")
+    # Version servie lue au registre (le message citait en dur une v1.0.0 archivee depuis).
+    actives = [e["model_version"] for e in json.loads((MODELS_DIR / "model_registry.json").read_text(encoding="utf-8"))
+               if e.get("status") == "ACTIVE" and not str(e.get("model_version", "")).startswith(("simulation", "risk"))]
+    print(f"[OK] Serving reel conserve ({', '.join(actives) or 'aucune entree ACTIVE'}) ; "
+          "simulation disponible en demonstration (simulation-v1.0.0, statut existant conserve)")
     return 0
 
 if __name__ == "__main__":

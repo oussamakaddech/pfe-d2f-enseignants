@@ -25,6 +25,8 @@ reelle, is_extrapolated=true et target_observation_date est vide.
 """
 from __future__ import annotations
 
+import argparse
+
 import os
 from pathlib import Path
 
@@ -72,7 +74,15 @@ def level_int(v) -> int:
     return NIVEAU_INT.get(str(v).upper(), 0)
 
 
-def main() -> pd.DataFrame:
+def main(grain: str = "competence", exclude_seeds: bool = False,
+         output_path: Path = OUTPUT_PATH, dataset_version: str = "v1.1.0") -> pd.DataFrame:
+    """Extrait le corpus reel.
+
+    ``grain`` : ``competence`` (defaut, corpus servi : une ligne par enseignant x
+    competence) ou ``savoir`` (une ligne par enseignant x savoir, experimental).
+    ``exclude_seeds`` : ecarte les niveaux de demonstration (``created_by`` en
+    ``seed%``), qui ne sont pas des evaluations reelles.
+    """
     db_url = os.environ.get(
         "DATABASE_URL",
         "postgresql://d2f:d2fpasswd@localhost:7432/d2f",
@@ -81,7 +91,7 @@ def main() -> pd.DataFrame:
 
     with engine.connect() as conn:
         savs = conn.execute(text("""
-            SELECT ec.enseignant_id, ec.savoir_id, ec.niveau, ec.date_acquisition,
+            SELECT ec.enseignant_id, ec.savoir_id, ec.niveau, ec.date_acquisition, ec.created_by,
                    COALESCE(sc.competence_id, s.competence_id) AS competence_id,
                    (SELECT MAX(CASE nsr.niveau
                         WHEN 'N1_DEBUTANT' THEN 1 WHEN 'N2_ELEMENTAIRE' THEN 2
@@ -96,6 +106,8 @@ def main() -> pd.DataFrame:
               AND ec.date_acquisition IS NOT NULL
             ORDER BY ec.enseignant_id, competence_id, ec.date_acquisition
         """)).mappings().all()
+        if exclude_seeds:
+            savs = [r for r in savs if not str(r["created_by"] or "").startswith("seed")]
 
         insc = conn.execute(text("""
             SELECT i.enseignant_id, i.formation_id, i.etat, i.date_demande, f.date_fin
@@ -169,20 +181,26 @@ def main() -> pd.DataFrame:
             ad = float(np.mean(deltas)) if deltas else 0.0
         avg_delta_by[tid2] = ad
 
-    # Groupe par (enseignant, competence)
+    # Groupe par (enseignant, competence) : sert aussi aux features globales
+    # de l'enseignant (nb_competences, taux de couverture), quel que soit le grain.
     by_tc: dict[tuple[str, int], list[dict]] = {}
+    by_ts: dict[tuple[str, int], list[dict]] = {}
     for r in savs:
-        key = (r["enseignant_id"], int(r["competence_id"]))
-        by_tc.setdefault(key, []).append({
+        entry = {
             "niveau": level_int(r["niveau"]),
             "date": pd.Timestamp(r["date_acquisition"]),
             "required": int(r["required_level"] or 3),
-        })
+            "competence_id": int(r["competence_id"]),
+        }
+        by_tc.setdefault((r["enseignant_id"], int(r["competence_id"])), []).append(entry)
+        by_ts.setdefault((r["enseignant_id"], int(r["savoir_id"])), []).append(entry)
+    groups = by_tc if grain == "competence" else by_ts
 
     rows = []
-    for (tid, cid), entries in sorted(by_tc.items()):
+    for (tid, _key), entries in sorted(groups.items()):
         if not entries:
             continue
+        cid = entries[0]["competence_id"]
 
         entries.sort(key=lambda e: e["date"])
         levels = [e["niveau"] for e in entries]
@@ -244,6 +262,7 @@ def main() -> pd.DataFrame:
             "teacher_id": tid,
             "competence_id": cid,
             "competence_code": f"C{cid}",
+            **({"savoir_id": _key} if grain == "savoir" else {}),
             "date_t": date_t.strftime("%Y-%m-%d"),
             "target_observation_date": target_observation_date,
             "is_extrapolated": is_extrapolated,
@@ -292,12 +311,12 @@ def main() -> pd.DataFrame:
     df["source_id"] = df["teacher_id"].astype(str) + "_" + df["competence_id"].astype(str)
     df["is_synthetic"] = False
     df["created_at"] = pd.Timestamp.utcnow().isoformat()
-    df["dataset_version"] = "v1.1.0"
+    df["dataset_version"] = dataset_version
 
-    df.to_csv(OUTPUT_PATH, index=False)
+    df.to_csv(output_path, index=False)
     extrapolated_count = int(df["is_extrapolated"].astype(bool).sum())
     real_count = int(len(df) - extrapolated_count)
-    print(f"[OK] {len(df)} lignes -> {OUTPUT_PATH}")
+    print(f"[OK] {len(df)} lignes (grain={grain}, seeds exclus={exclude_seeds}) -> {output_path}")
     print(f"    couverture par enseignant : {df['teacher_id'].nunique()} enseignants")
     print(f"    features : {len(FEATURE_COLS)}")
     print(f"    cibles extrapolees : {extrapolated_count} (is_extrapolated=true)")
@@ -306,4 +325,12 @@ def main() -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    main()
+    ap = argparse.ArgumentParser(description="Extrait le corpus reel depuis PostgreSQL")
+    ap.add_argument("--grain", choices=("competence", "savoir"), default="competence")
+    ap.add_argument("--exclude-seeds", action="store_true",
+                    help="ecarte les niveaux de demonstration (created_by seed%%)")
+    ap.add_argument("--output", type=Path, default=OUTPUT_PATH)
+    ap.add_argument("--dataset-version", default="v1.1.0")
+    a = ap.parse_args()
+    main(grain=a.grain, exclude_seeds=a.exclude_seeds, output_path=a.output,
+         dataset_version=a.dataset_version)

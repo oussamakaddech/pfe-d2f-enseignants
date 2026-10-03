@@ -1,7 +1,7 @@
 from math import ceil
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.api.deps import ContainerDependency, resolve_user_teacher
 from app.api.v1.model_meta import build_model_meta
@@ -15,25 +15,25 @@ router = APIRouter(prefix="/alerts", tags=["alerts"])
 DECISION_ROLES = ("ADMIN", "CUP", "CHEF_DEPARTEMENT", "ENSEIGNANT")
 
 
-def _scope_alerts(container, user, page, size, severity, status, target_type, department_id=None, since_days=None):
+def _scope_alerts(container, user, page, size, severity, status, target_type, department_id=None, since_days=None, alert_type=None, severity_bucket=None):
     repo = container.alert_repository
     severity_open = None
     if user.is_admin or user.is_cup:
-        alerts, total = repo.list_alerts(page, size, severity, status, target_type, department_id, since_days=since_days)
+        alerts, total = repo.list_alerts(page, size, severity, status, target_type, department_id, since_days=since_days, alert_type=alert_type, severity_bucket=severity_bucket)
         severity_open = repo.count_open_by_severity(severity, status, target_type, department_id=department_id, since_days=since_days)
         return alerts, total, severity_open
     if user.is_chef_departement:
         user_teacher = resolve_user_teacher(container, user)
         dept_id = user_teacher.dept_id if user_teacher else None
         if dept_id:
-            alerts, total = repo.list_for_department(dept_id, page, size, severity, status, since_days=since_days)
+            alerts, total = repo.list_for_department(dept_id, page, size, severity, status, since_days=since_days, alert_type=alert_type, severity_bucket=severity_bucket)
             severity_open = repo.count_open_by_severity(severity, status, department_id=dept_id, since_days=since_days)
             return alerts, total, severity_open
         return [], 0, severity_open
     if user.is_enseignant:
         user_teacher = resolve_user_teacher(container, user)
         if user_teacher:
-            alerts, total = repo.list_for_teacher(user_teacher.id, page, size, severity, status, since_days=since_days)
+            alerts, total = repo.list_for_teacher(user_teacher.id, page, size, severity, status, since_days=since_days, alert_type=alert_type, severity_bucket=severity_bucket)
             severity_open = repo.count_open_by_severity(severity, status, teacher_id=user_teacher.id, since_days=since_days)
             return alerts, total, severity_open
         return [], 0, severity_open
@@ -51,8 +51,12 @@ def list_alerts(
     target_type: Annotated[str | None, Query()] = None,
     departement_id: Annotated[str | None, Query(alias="department_id")] = None,
     since_days: Annotated[int | None, Query(ge=1, le=730)] = None,
+    alert_type: Annotated[str | None, Query(alias="type_alerte")] = None,
+    severity_bucket: Annotated[str | None, Query()] = None,
 ):
-    alerts, total, severity_open = _scope_alerts(container, user, page, size, severity, status, target_type, departement_id, since_days)
+    if severity_bucket is not None and severity_bucket.upper() not in ("CRITICAL", "WARNING", "INFO"):
+        raise HTTPException(status_code=400, detail="severity_bucket invalide (CRITICAL/WARNING/INFO)")
+    alerts, total, severity_open = _scope_alerts(container, user, page, size, severity, status, target_type, departement_id, since_days, alert_type, severity_bucket)
     # Le repository applique déjà LIMIT/OFFSET : on ne re-page pas ici,
     # sinon la page 2+ serait vide (double pagination).
     page_result = PageMeta(

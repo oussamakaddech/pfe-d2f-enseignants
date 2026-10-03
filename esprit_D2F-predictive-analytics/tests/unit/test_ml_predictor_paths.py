@@ -485,11 +485,11 @@ def test_predict_risk_scoped_to_department_drops_out_of_scope_gaps():
     by_code = {f.feature: f for f in profile.factors}
     assert by_code["critical_gaps"].value == 3.0  # JAMAIS 5 (gaps hors périmètre)
     assert by_code["critical_gaps"].scope == "DEPARTMENT"
-    assert by_code["critical_gaps"].label == "Gaps critiques"
+    assert by_code["critical_gaps"].label == "Écarts de couverture critiques"
     assert by_code["critical_gaps"].scope_type == "DEPARTMENT"
     assert by_code["critical_gaps"].scope_id == "DEPT_GC"
     assert by_code["critical_gaps"].scope_label == "Département Génie Civil"
-    assert by_code["high_gaps"].label == "Gaps de haute urgence"
+    assert by_code["high_gaps"].label == "Écarts de couverture de haute urgence"
     assert profile.risk_score == 90.0  # 3/2->1.0*0.50 + 0 + 1.0*0.40
     assert profile.risk_level is RiskLevel.CRITICAL
 
@@ -526,7 +526,7 @@ def test_predict_risk_teacher_scope_when_no_affiliation():
     by_code = {f.feature: f for f in profile.factors}
     assert by_code["critical_gaps"].value == 4.0
     assert by_code["critical_gaps"].scope == "TEACHER"
-    assert by_code["critical_gaps"].label == "Gaps critiques"
+    assert by_code["critical_gaps"].label == "Écarts de couverture critiques"
     assert by_code["critical_gaps"].scope_type == "TEACHER"
     assert by_code["critical_gaps"].scope_id == "T099"
     assert by_code["critical_gaps"].scope_label == "Karim Bougherara"

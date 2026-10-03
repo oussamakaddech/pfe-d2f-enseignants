@@ -33,9 +33,10 @@ def _dataset_hash(df: pd.DataFrame) -> str:
 
 @pytest.fixture(scope="module")
 def clean_df() -> pd.DataFrame:
-    path = CLEAN_DIR / "training_corpus_clean.csv"
+    # Corpus servi : il sort inchangé de pipelines/clean_dataset.py (0 ligne retirée).
+    path = CLEAN_DIR / "training_corpus_provenanced.csv"
     if not path.exists():
-        pytest.skip("Dataset nettoyé absent")
+        pytest.skip("Corpus servi absent")
     return pd.read_csv(path)
 
 

@@ -49,6 +49,21 @@ configuré est désormais interprété comme un risque de famille (``alpha``) et
 appliqué via la procédure descendante de Holm — uniformément plus puissante
 que Bonferroni, et valide sans hypothèse d'indépendance entre features.
 
+**D. Vieillissement calendaire de la référence.** Certaines features sont des
+durées mesurées « à aujourd'hui » (``days_since_last_training``,
+``months_since_last_training``) : dans le corpus, elles sont figées à la date
+d'extraction ; au serving, elles avancent d'un jour chaque jour. Comparées
+brutes, la population servie paraît translatée de Δ jours sans que rien n'ait
+changé — mesuré le 2026-09-24 : décalage de 11 jours (corpus du 13/09),
+p = 3e-05, et TOUS les enseignants basculaient en heuristique dès la fenêtre
+remplie. ``set_reference_aging`` déclare la date de mesure de la référence et
+le taux d'avance de chaque feature concernée : avant le test, la référence
+est avancée de Δ = aujourd'hui − date de référence (les valeurs sentinelles,
+ex. 365 = « aucune formation », restent constantes des deux côtés et ne sont
+pas vieillies). Le test compare alors la population servie à la population de
+référence telle qu'elle serait AUJOURD'HUI sans aucun changement : une vraie
+dérive (formations reprises, abandonnées…) reste détectée.
+
 Politique : dérive retenue (après correction de Holm) sur au moins une
 feature => le serving bascule en heuristique explicite (fail-closed) avec une
 raison tracée dans ``ml_observability``. Si scipy est indisponible ou si la
@@ -58,7 +73,9 @@ serving mais son statut honnête est exposé (jamais de dérive inventée).
 from __future__ import annotations
 
 from collections import OrderedDict, deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import date
 
 import numpy as np
 
@@ -147,6 +164,12 @@ class SkewGuard:
         # ``record_serving`` reçoit une clé.
         self._keyed_window: OrderedDict[str, np.ndarray] = OrderedDict()
         self._last_verdict = SkewVerdict()
+        # Vieillissement calendaire (correctif D) : inactif tant que
+        # ``set_reference_aging`` n'a pas été appelé.
+        self._reference_date: date | None = None
+        self._aging_rates: dict[str, float] = {}
+        self._aging_sentinels: dict[str, float] = {}
+        self._clock: Callable[[], date] = date.today
 
     # ------------------------------------------------------- Référence
     def set_reference_from_matrix(
@@ -189,6 +212,52 @@ class SkewGuard:
         self._reference_rows = raw_rows if unit == UNIT_BLOCK else int(M.shape[0])
         self._last_verdict = SkewVerdict()  # invalide le verdict précédent
         return self._reference_units
+
+    def set_reference_aging(
+        self,
+        reference_date: date,
+        rates: dict[str, float],
+        sentinels: dict[str, float] | None = None,
+        clock: Callable[[], date] | None = None,
+    ) -> None:
+        """Déclare les features « durée à aujourd'hui » et la date de mesure de la référence.
+
+        ``rates``     : feature -> unités ajoutées par jour écoulé (1 pour des
+                        jours, 1/30,44 pour des mois).
+        ``sentinels`` : feature -> valeur conventionnelle (ex. 365 jours quand
+                        aucune formation), constante au serving, jamais vieillie.
+        ``clock``     : horloge injectable (tests) ; ``date.today`` par défaut,
+                        la même que le calcul des features au serving.
+        """
+        self._reference_date = reference_date
+        self._aging_rates = {
+            k: float(v) for k, v in rates.items() if k in self._feature_names
+        }
+        self._aging_sentinels = {
+            k: float(v) for k, v in (sentinels or {}).items() if k in self._aging_rates
+        }
+        if clock is not None:
+            self._clock = clock
+        self._last_verdict = SkewVerdict()  # invalide le verdict précédent
+
+    def reference_age_days(self) -> int:
+        """Jours écoulés depuis la mesure de la référence (0 sans vieillissement)."""
+        if self._reference_date is None:
+            return 0
+        return max(0, (self._clock() - self._reference_date).days)
+
+    def _aged_reference(self, col: str) -> np.ndarray | None:
+        """Référence de ``col`` avancée à aujourd'hui (correctif D)."""
+        ref = self._reference.get(col)
+        rate = self._aging_rates.get(col)
+        age = self.reference_age_days()
+        if ref is None or rate is None or age == 0:
+            return ref
+        shift = age * rate
+        sentinel = self._aging_sentinels.get(col)
+        if sentinel is None:
+            return ref + shift
+        return np.where(np.isclose(ref, sentinel), ref, ref + shift)
 
     def _blocks(self) -> list[np.ndarray]:
         """Blocs de la fenêtre : indexés par enseignant s'il y en a, sinon par appel."""
@@ -294,7 +363,7 @@ class SkewGuard:
         """
         p_values: dict[str, float] = {}
         for i, col in enumerate(self._feature_names):
-            ref = self._reference.get(col)
+            ref = self._aged_reference(col)
             if ref is None or ref.size < 2:
                 continue
             p_values[col] = float(ks_2samp(window[:, i], ref).pvalue)
@@ -337,6 +406,11 @@ class SkewGuard:
             "reference_rows": self._reference_rows,
             "reference_units": self._reference_units,
             "reference_captured": bool(self._reference),
+            "reference_date": (
+                self._reference_date.isoformat() if self._reference_date else None
+            ),
+            "reference_age_days": self.reference_age_days(),
+            "aged_features": sorted(self._aging_rates),
             "window_rows": self._served_rows(),
             "window_units": len(self._blocks()),
             "window_keyed_by_unit": bool(self._keyed_window),

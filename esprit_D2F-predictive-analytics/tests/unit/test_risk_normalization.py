@@ -169,7 +169,7 @@ def test_to_dict_dto_shape():
 
 def test_factor_scope_and_labels_per_scope():
     """Le DTO expose le périmètre du facteur ; le libellé du facteur critique
-    est TOUJOURS « Gaps critiques » — le scope est exposé séparément via
+    est TOUJOURS « Écarts de couverture critiques » — le scope est exposé séparément via
     scope_type / scope_id / scope_label (jamais concaténé dans le label)."""
     gaps = [_gap("T", 0.9, Severity.CRITICAL) for _ in range(3)] + [_gap("T", 0.8, Severity.HIGH)]
     teacher = _rule_risk(gaps, "T", scope="TEACHER", scope_type="TEACHER", scope_id="T", scope_label="Alice Dupont")
@@ -182,8 +182,8 @@ def test_factor_scope_and_labels_per_scope():
     assert t_by_code["critical_gaps"].scope == "TEACHER"
     assert d_by_code["critical_gaps"].scope == "DEPARTMENT"
     # Le label est TOUJOURS le même — le scope est dans scope_label.
-    assert t_by_code["critical_gaps"].label == "Gaps critiques"
-    assert d_by_code["critical_gaps"].label == "Gaps critiques"
+    assert t_by_code["critical_gaps"].label == "Écarts de couverture critiques"
+    assert d_by_code["critical_gaps"].label == "Écarts de couverture critiques"
     assert t_by_code["critical_gaps"].scope_type == "TEACHER"
     assert t_by_code["critical_gaps"].scope_id == "T"
     assert t_by_code["critical_gaps"].scope_label == "Alice Dupont"
@@ -191,9 +191,9 @@ def test_factor_scope_and_labels_per_scope():
     assert d_by_code["critical_gaps"].scope_id == "D1"
     assert d_by_code["critical_gaps"].scope_label == "Département Réseaux"
     # Libellé cohérent avec l'enum backend (Severity.HIGH = "HAUTE")
-    assert t_by_code["high_gaps"].label == "Gaps de haute urgence"
+    assert t_by_code["high_gaps"].label == "Écarts de couverture de haute urgence"
     assert t_by_code["high_gaps"].scope == "TEACHER"
-    assert d_by_code["high_gaps"].label == "Gaps de haute urgence"
+    assert d_by_code["high_gaps"].label == "Écarts de couverture de haute urgence"
     assert d_by_code["high_gaps"].scope == "DEPARTMENT"
     # Scores identiques (même jeu de gaps) : somme des contributions = score.
     assert teacher.risk_score == department.risk_score
@@ -210,7 +210,7 @@ def test_five_critical_gaps_department_scope_raw_five():
     assert by_code["critical_gaps"].value == 5.0
     assert by_code["critical_gaps"].normalized_value == 1.0  # 5/2 -> cap 1.0
     assert by_code["critical_gaps"].contribution == 0.5  # jamais 250%
-    assert by_code["critical_gaps"].label == "Gaps critiques"
+    assert by_code["critical_gaps"].label == "Écarts de couverture critiques"
     assert by_code["critical_gaps"].scope_type == "DEPARTMENT"
     assert by_code["critical_gaps"].scope_id == "D1"
     assert by_code["critical_gaps"].scope_label == "Département Réseaux"

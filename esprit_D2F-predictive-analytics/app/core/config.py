@@ -146,6 +146,9 @@ class Settings(BaseSettings):
     scheduler_batch_interval_minutes: int = 60
     scheduler_alerts_interval_minutes: int = 15
     scheduler_needs_interval_minutes: int = 30
+    # Rétention de la trace des prédictions servies (analyse.ml_observability) :
+    # sans purge, la table grossissait d'environ 1 000 lignes par jour.
+    ml_observability_retention_days: int = 90
 
     message_broker_type: str = "none"
     rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"

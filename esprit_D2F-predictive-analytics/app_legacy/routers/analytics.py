@@ -1157,6 +1157,16 @@ async def dashboard_risk_evolution(
     return DashboardEngine(db).monthly_risk_evolution(months=months)
 
 
+# ── GET /api/v1/analytics/dashboard/risk-evolution-daily ───────────
+@router.get("/dashboard/risk-evolution-daily", summary="Évolution quotidienne du risque")
+async def dashboard_risk_evolution_daily(
+    auth: ReadAuth,
+    db: DbSession,
+    days: Annotated[int, Query(ge=1, le=730)] = 30,
+) -> list[dict]:
+    return DashboardEngine(db).daily_risk_evolution(days=days)
+
+
 # ── GET /api/v1/analytics/dashboard/model-performance ────────
 @router.get("/dashboard/model-performance", summary="Performance du modèle ML")
 async def dashboard_model_performance(auth: ReadAuth, db: DbSession) -> dict[str, Any]:

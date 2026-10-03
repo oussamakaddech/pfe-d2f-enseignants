@@ -280,6 +280,7 @@ def main() -> int:
     print("RE-VALIDATION SIMULATION (ETAPE 3)")
     print("="*70)
     df = _load_simulation()
+    data_seed = int(df["generation_seed"].iloc[0])
     print(f"[1] Corpus simule : {len(df)} lignes, {df['teacher_id'].nunique()} enseignants, {df['competence_id'].nunique()} competences, {df['ref_month'].nunique()} mois distincts")
     print(f"    data_origin={df['data_origin'].iloc[0]}, is_synthetic={bool(df['is_synthetic'].iloc[0])}, is_extrapolated={bool(df['is_extrapolated'].iloc[0])}, target_observation_date rempli={df['target_observation_date'].iloc[0] != ''}")
     # Hash
@@ -420,10 +421,10 @@ def main() -> int:
         "decision": {
             "best_model": best_name,
             "criterion": "lowest RMSE on shared holdout with IC95 non-overlapping vs baseline",
-            "note": "Validation SIMULATION_VALIDATED : pipeline, gouvernance, calibration, backtest valides de bout en bout sur donnees simulees realistes (seed 42, re-mesures M+3, IC bootstrap, calibration). Performance reelle a confirmer sur donnees institutionnelles DSI (REAL_VALIDATED requiert attestation + 30 obs reelles)."
+            "note": f"Validation SIMULATION_VALIDATED : pipeline, gouvernance, calibration, backtest valides de bout en bout sur donnees simulees realistes (seed {data_seed}, re-mesures M+3, IC bootstrap, calibration). Performance reelle a confirmer sur donnees institutionnelles DSI (REAL_VALIDATED requiert attestation + 30 obs reelles)."
         },
         "gouvernance": {
-            "pipeline_reproductible": "seed 42, hash LF, splits temporels stricts",
+            "pipeline_reproductible": f"seed {data_seed}, hash LF, splits temporels stricts",
             "fail_closed": "aucun modele simule ne sera presente comme valide sur donnees reelles",
             "etiquetage": "chaque metrique porte data_origin=SIMULATED, validation_scope=SIMULATION_VALIDATED",
         }

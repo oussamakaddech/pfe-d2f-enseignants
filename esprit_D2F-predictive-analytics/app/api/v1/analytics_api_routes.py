@@ -1,13 +1,16 @@
-"""Routes v1 analytics — reporting descriptif réel (feature 2).
+"""Routes v1 analytics — reporting descriptif réel (features 1, 2 et 7).
 
-`formations-par-periode` est branché sur la base (schéma `formation`), plus
-un stub vide. `formations-par-up` / `formations-par-departement` restent
-inertes : non consommées par le dashboard CUP actuel (queries désactivées).
+`formations-par-periode` est branché sur la base (schéma `formation`).
+`formations-par-up`, `formations-par-departement`, `enseignants-sans-formation`
+et `export/{excel,pdf}` réutilisent le moteur de reporting historique
+(`app_legacy`), qui n'était plus monté depuis la bascule vers `app.main` : le
+tableau de bord d'accueil recevait un stub vide (participation par UP /
+département) ou un 404 (inactifs, exports).
 """
 from datetime import date, timedelta
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import text
 
 from app.api.deps import ContainerDependency, resolve_user_teacher
@@ -255,15 +258,144 @@ def _summarize_periodes(granul_key: str, periodes: list[dict[str, Any]]) -> dict
     }
 
 
-def _box(items: list[dict[str, Any]], total_key: str) -> dict[str, Any]:
-    return {"data": items, "meta": {total_key: len(items)}, "errors": []}
 
 
-@router.get("/formations-par-up")
-def formations_par_up() -> dict[str, Any]:
-    return _box([], "total_formations")
+# ── Features 1 et 7 : enseignants sans formation + exports ───────────────────
+# Liste nominative (nom, e-mail, score de décrochage) : réservée aux rôles de
+# pilotage, jamais à un enseignant ; périmètre CUP/chef imposé côté serveur.
+REPORTING_ROLES = ("ADMIN", "CUP", "CHEF_DEPARTEMENT")
+DEFAULT_SEUIL_INACTIVITE_MOIS = 6
+EXPORT_EXCEL_TYPES = {"INACTIFS", "PAR_UP", "PAR_DEPT"}
+EXPORT_PDF_TYPES = {"RAPPORT_MENSUEL", "RAPPORT_ANNUEL"}
+FORBIDDEN_RESPONSES = {403: {"description": "Rôle non autorisé ou périmètre indéterminé"}}
+# Littéral (pas de fusion ``{**a, **b}``) : l'analyse statique ne suit pas les
+# fusions et signalerait les 400/403 levés comme non documentés.
+EXPORT_RESPONSES = {
+    400: {"description": "Type d'export ou de rapport invalide"},
+    403: {"description": "Rôle non autorisé ou périmètre indéterminé"},
+}
 
 
-@router.get("/formations-par-departement")
-def formations_par_departement() -> dict[str, Any]:
-    return _box([], "total_formations")
+def _require_reporting_role(user, *, admin_only: bool = False) -> None:
+    if user is None:  # JWT désactivé (dev) : même règle que formations-par-periode
+        return
+    if admin_only and not user.is_admin:
+        raise HTTPException(status_code=403, detail="Vue inter-périmètres réservée à l'ADMIN.")
+    if not user.has_any_role(*REPORTING_ROLES):
+        raise HTTPException(status_code=403, detail="Rôle non autorisé.")
+
+
+def _legacy_reporting():
+    """Moteur de reporting et d'export historiques (chargés à la demande)."""
+    from app.legacy_compat_runtime import ensure_legacy_aliases
+
+    ensure_legacy_aliases()
+    from app_legacy.engines.reporting_engine import ReportingEngine
+    from app_legacy.services import export_service
+
+    return ReportingEngine, export_service
+
+
+@router.get("/enseignants-sans-formation", responses=FORBIDDEN_RESPONSES)
+def enseignants_sans_formation(
+    container: ContainerDependency,
+    user: Annotated[CurrentUser | None, Depends(get_optional_current_user)],
+    mois: Annotated[int, Query(ge=1, le=120)] = DEFAULT_SEUIL_INACTIVITE_MOIS,
+    departement: Annotated[str | None, Query()] = None,
+    up: Annotated[str | None, Query()] = None,
+    page: Annotated[int, Query(ge=0)] = 0,
+    size: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> dict[str, Any]:
+    _require_reporting_role(user)
+    up, departement = _resolve_scope(container, user, up, departement)
+    reporting_engine, _ = _legacy_reporting()
+    with container.database.session() as db:
+        return reporting_engine(db).enseignants_sans_formation(mois, departement, up, page, size)
+
+
+@router.get("/export/excel", responses=EXPORT_RESPONSES)
+def export_excel(
+    container: ContainerDependency,
+    user: Annotated[CurrentUser | None, Depends(get_optional_current_user)],
+    type: Annotated[str, Query()] = "INACTIFS",
+    mois: Annotated[int, Query(ge=1, le=120)] = DEFAULT_SEUIL_INACTIVITE_MOIS,
+    annee: Annotated[int | None, Query(ge=2000, le=2100)] = None,
+    departement: Annotated[str | None, Query()] = None,
+    up: Annotated[str | None, Query()] = None,
+) -> Response:
+    type_export = type.upper()
+    if type_export not in EXPORT_EXCEL_TYPES:
+        raise HTTPException(status_code=400, detail=f"Type d'export invalide : {type}")
+    _require_reporting_role(user, admin_only=type_export == "PAR_DEPT")
+    up, departement = _resolve_scope(container, user, up, departement)
+    _, export_service = _legacy_reporting()
+    with container.database.session() as db:
+        content, filename = export_service.build_excel(
+            db, type_export, mois=mois, annee=annee, departement=departement, up=up
+        )
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/export/pdf", responses=EXPORT_RESPONSES)
+def export_pdf(
+    container: ContainerDependency,
+    user: Annotated[CurrentUser | None, Depends(get_optional_current_user)],
+    type: Annotated[str, Query()] = "RAPPORT_MENSUEL",
+    annee: Annotated[int | None, Query(ge=2000, le=2100)] = None,
+) -> Response:
+    type_rapport = type.upper()
+    if type_rapport not in EXPORT_PDF_TYPES:
+        raise HTTPException(status_code=400, detail=f"Type de rapport invalide : {type}")
+    # Le rapport PDF agrège toute l'institution (aucun filtre de périmètre).
+    _require_reporting_role(user, admin_only=True)
+    _, export_service = _legacy_reporting()
+    with container.database.session() as db:
+        content, filename = export_service.build_pdf(db, type_rapport, annee=annee)
+    return Response(
+        content=content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# Agrégats non nominatifs du tableau de bord exécutif : le responsable dossier
+# les voit aussi (parité gateway EXECUTIVE_DASHBOARD_ROLES).
+AGGREGATE_ROLES = (*REPORTING_ROLES, "RESPONSABLE_DOSSIER")
+
+
+@router.get("/formations-par-up", responses=FORBIDDEN_RESPONSES)
+def formations_par_up(
+    container: ContainerDependency,
+    user: Annotated[CurrentUser | None, Depends(get_optional_current_user)],
+    annee: Annotated[int | None, Query(ge=2000, le=2100)] = None,
+    departement: Annotated[str | None, Query()] = None,
+) -> dict[str, Any]:
+    if user is not None and not user.has_any_role(*AGGREGATE_ROLES):
+        raise HTTPException(status_code=403, detail="Rôle non autorisé.")
+    up, departement = _resolve_scope(container, user, None, departement)
+    reporting_engine, _ = _legacy_reporting()
+    with container.database.session() as db:
+        items = reporting_engine(db).formations_par_up(annee, departement)
+    # Le moteur ne filtre que par département : le périmètre CUP (sa propre UP)
+    # est appliqué sur le résultat.
+    if up is not None:
+        items = [item for item in items if item.get("upId") == up]
+    return {"items": items}
+
+
+@router.get("/formations-par-departement", responses=FORBIDDEN_RESPONSES)
+def formations_par_departement(
+    container: ContainerDependency,
+    user: Annotated[CurrentUser | None, Depends(get_optional_current_user)],
+    annee: Annotated[int | None, Query(ge=2000, le=2100)] = None,
+) -> dict[str, Any]:
+    # Vue inter-départements : ADMIN uniquement (le front ne l'appelle que pour lui).
+    _require_reporting_role(user, admin_only=True)
+    reporting_engine, _ = _legacy_reporting()
+    with container.database.session() as db:
+        return reporting_engine(db).formations_par_departement(annee)
+

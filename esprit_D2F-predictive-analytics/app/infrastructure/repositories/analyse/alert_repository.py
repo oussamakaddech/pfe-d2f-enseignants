@@ -43,6 +43,16 @@ SELECT_ALERT = f"""
 # dans les N derniers jours. Paramètre :since_days (entier >= 1).
 SINCE_FILTER = "created_at >= now() - make_interval(days => :since_days)"
 
+# Type d'alerte exact (colonne type_alerte). Paramètre :type_alerte.
+TYPE_ALERTE_FILTER = "type_alerte = :type_alerte"
+
+# Buckets de sévérité FR/EN (mêmes regroupements que SEVERITY_BREAKDOWN_SQL).
+SEVERITY_BUCKETS = {
+    "CRITICAL": ("CRITIQUE", "CRITICAL"),
+    "WARNING": ("WARNING", "HAUTE", "MOYENNE"),
+    "INFO": ("INFO",),
+}
+
 UPDATE_STATUS = f"""
     UPDATE {ALERT_EVENTS_TABLE}
     SET {STATUS_FILTER},
@@ -133,7 +143,23 @@ class SqlAlertRepository:
             filters.append(SINCE_FILTER)
             params["since_days"] = since_days
 
-    def list_alerts(self, page: int, size: int, severity: str | None = None, status: str | None = None, target_type: str | None = None, department_id: str | None = None, since_days: int | None = None) -> tuple[list[Alert], int]:
+    @staticmethod
+    def _apply_type_and_bucket(
+        filters: list[str],
+        params: dict,
+        alert_type: str | None,
+        severity_bucket: str | None,
+    ) -> None:
+        if alert_type:
+            filters.append(TYPE_ALERTE_FILTER)
+            params["type_alerte"] = alert_type.upper()
+        if severity_bucket:
+            bucket = SEVERITY_BUCKETS.get(severity_bucket.upper())
+            if bucket is not None:
+                placeholders = ", ".join(f"'{v}'" for v in bucket)
+                filters.append(f"UPPER(severite) IN ({placeholders})")
+
+    def list_alerts(self, page: int, size: int, severity: str | None = None, status: str | None = None, target_type: str | None = None, department_id: str | None = None, since_days: int | None = None, alert_type: str | None = None, severity_bucket: str | None = None) -> tuple[list[Alert], int]:
         filters, params = [], {}
         if severity:
             filters.append(SEVERITY_FILTER)
@@ -148,10 +174,11 @@ class SqlAlertRepository:
             filters.append(DEPARTMENT_FILTER)
             params["departement_id"] = department_id
         self._apply_since(filters, params, since_days)
+        self._apply_type_and_bucket(filters, params, alert_type, severity_bucket)
         with self._database.read_connection() as connection:
             return self._run(connection, self._build_query(filters), params, page, size)
 
-    def list_for_teacher(self, teacher_id: str, page: int, size: int, severity: str | None = None, status: str | None = None, since_days: int | None = None) -> tuple[list[Alert], int]:
+    def list_for_teacher(self, teacher_id: str, page: int, size: int, severity: str | None = None, status: str | None = None, since_days: int | None = None, alert_type: str | None = None, severity_bucket: str | None = None) -> tuple[list[Alert], int]:
         filters, params = ["enseignant_id = :enseignant_id"], {"enseignant_id": teacher_id}
         if severity:
             filters.append(SEVERITY_FILTER)
@@ -160,10 +187,11 @@ class SqlAlertRepository:
             filters.append(STATUS_FILTER)
             params["statut"] = status.upper()
         self._apply_since(filters, params, since_days)
+        self._apply_type_and_bucket(filters, params, alert_type, severity_bucket)
         with self._database.read_connection() as connection:
             return self._run(connection, self._build_query(filters), params, page, size)
 
-    def list_for_department(self, department_id: str, page: int, size: int, severity: str | None = None, status: str | None = None, since_days: int | None = None) -> tuple[list[Alert], int]:
+    def list_for_department(self, department_id: str, page: int, size: int, severity: str | None = None, status: str | None = None, since_days: int | None = None, alert_type: str | None = None, severity_bucket: str | None = None) -> tuple[list[Alert], int]:
         filters, params = [DEPARTMENT_FILTER], {"departement_id": department_id}
         if severity:
             filters.append(SEVERITY_FILTER)
@@ -172,6 +200,7 @@ class SqlAlertRepository:
             filters.append(STATUS_FILTER)
             params["statut"] = status.upper()
         self._apply_since(filters, params, since_days)
+        self._apply_type_and_bucket(filters, params, alert_type, severity_bucket)
         with self._database.read_connection() as connection:
             return self._run(connection, self._build_query(filters), params, page, size)
 

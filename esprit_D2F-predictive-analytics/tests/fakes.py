@@ -239,18 +239,30 @@ class FakeAlertRepository:
             now = datetime.now(timezone.utc)
         return (now - created).days < since_days
 
-    def list_alerts(self, page: int, size: int, severity: str | None = None, status: str | None = None, target_type: str | None = None, department_id: str | None = None, since_days: int | None = None) -> tuple[list[Alert], int]:
-        matching = [a for a in self.alerts if self._matches(a, severity, status, target_type) and (not department_id or a.department_id == department_id) and self._matches_since(a, since_days)]
+    @staticmethod
+    def _matches_type_and_bucket(alert: Alert, alert_type: str | None, severity_bucket: str | None) -> bool:
+        from app.infrastructure.repositories.analyse.alert_repository import SEVERITY_BUCKETS
+
+        if alert_type and (alert.alert_type or "").upper() != alert_type.upper():
+            return False
+        if severity_bucket:
+            bucket = SEVERITY_BUCKETS.get(severity_bucket.upper(), ())
+            if (alert.severity or "").upper() not in bucket:
+                return False
+        return True
+
+    def list_alerts(self, page: int, size: int, severity: str | None = None, status: str | None = None, target_type: str | None = None, department_id: str | None = None, since_days: int | None = None, alert_type: str | None = None, severity_bucket: str | None = None) -> tuple[list[Alert], int]:
+        matching = [a for a in self.alerts if self._matches(a, severity, status, target_type) and (not department_id or a.department_id == department_id) and self._matches_since(a, since_days) and self._matches_type_and_bucket(a, alert_type, severity_bucket)]
         start = (page - 1) * size
         return matching[start : start + size], len(matching)
 
-    def list_for_teacher(self, teacher_id: str, page: int, size: int, severity: str | None = None, status: str | None = None, since_days: int | None = None) -> tuple[list[Alert], int]:
-        matching = [a for a in self.alerts if a.teacher_id == teacher_id and self._matches(a, severity, status, None) and self._matches_since(a, since_days)]
+    def list_for_teacher(self, teacher_id: str, page: int, size: int, severity: str | None = None, status: str | None = None, since_days: int | None = None, alert_type: str | None = None, severity_bucket: str | None = None) -> tuple[list[Alert], int]:
+        matching = [a for a in self.alerts if a.teacher_id == teacher_id and self._matches(a, severity, status, None) and self._matches_since(a, since_days) and self._matches_type_and_bucket(a, alert_type, severity_bucket)]
         start = (page - 1) * size
         return matching[start : start + size], len(matching)
 
-    def list_for_department(self, department_id: str, page: int, size: int, severity: str | None = None, status: str | None = None, since_days: int | None = None) -> tuple[list[Alert], int]:
-        matching = [a for a in self.alerts if a.department_id == department_id and self._matches(a, severity, status, None) and self._matches_since(a, since_days)]
+    def list_for_department(self, department_id: str, page: int, size: int, severity: str | None = None, status: str | None = None, since_days: int | None = None, alert_type: str | None = None, severity_bucket: str | None = None) -> tuple[list[Alert], int]:
+        matching = [a for a in self.alerts if a.department_id == department_id and self._matches(a, severity, status, None) and self._matches_since(a, since_days) and self._matches_type_and_bucket(a, alert_type, severity_bucket)]
         start = (page - 1) * size
         return matching[start : start + size], len(matching)
 

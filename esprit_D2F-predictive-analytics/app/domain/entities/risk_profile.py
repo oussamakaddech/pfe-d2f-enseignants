@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from app.domain.value_objects.time_format import iso_utc
+
 from app.domain.value_objects.enums import RiskLevel
 
 RISK_LEVEL_LABELS = {
@@ -95,7 +97,7 @@ class RiskProfile:
             "is_capped": self.is_capped,
             "uncapped_score": self.uncapped,
             "factors": [f.to_dict() for f in self.factors],
-            "computed_at": self.computed_at.isoformat() + "Z",
+            "computed_at": iso_utc(self.computed_at),
             # Champs de compatibilité (0..100) conservés pour les consommateurs existants.
             "risk_score": round(self.risk_score, 2),
             "risk_level": self.risk_level.value,

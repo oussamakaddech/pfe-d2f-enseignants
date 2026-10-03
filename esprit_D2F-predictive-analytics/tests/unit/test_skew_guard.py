@@ -438,3 +438,109 @@ def test_window_sans_cle_conserve_le_comportement_historique():
         guard.record_serving(np.zeros((1, len(TEMPORAL_FEATURE_COLS))))
     assert guard.status()["window_keyed_by_unit"] is False
     assert guard.status()["window_units"] == 3
+
+
+# ---------------------------------------------------------------------------
+# 5. Correctif D : vieillissement calendaire de la référence
+# ---------------------------------------------------------------------------
+from datetime import date, timedelta  # noqa: E402
+
+import pandas as pd  # noqa: E402
+
+from app.infrastructure.ml.predictor import (  # noqa: E402
+    _SKEW_AGING_RATES,
+    _SKEW_AGING_SENTINELS,
+)
+
+_DAYS = TEMPORAL_FEATURE_COLS.index("days_since_last_training")
+_MONTHS = TEMPORAL_FEATURE_COLS.index("months_since_last_training")
+_EXTRACTION = date(2026, 9, 13)
+
+
+def _teacher_rows(days: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+    """Une ligne par enseignant ; durées cohérentes (mois = jours / 30,44)."""
+    rows = rng.uniform(1.0, 5.0, size=(days.size, len(TEMPORAL_FEATURE_COLS)))
+    rows[:, _DAYS] = days
+    rows[:, _MONTHS] = days / 30.44
+    return rows
+
+
+def _population_du_corpus_servi() -> np.ndarray:
+    """Forme réelle du corpus du 13/09 : un pic (dernière formation commune),
+    une traîne longue et des enseignants sans formation (sentinelle 365)."""
+    return np.concatenate([np.full(22, 53.0), [2.0, 30.0, 180.0, 469.0, 469.0,
+                          900.0, 1500.0, 2661.0], np.full(11, 365.0)])
+
+
+def _guard_vieilli(age_jours: int) -> SkewGuard:
+    guard = SkewGuard(TEMPORAL_FEATURE_COLS, min_window=10, p_threshold=0.01)
+    reference = _teacher_rows(_population_du_corpus_servi(), np.random.default_rng(0))
+    guard.set_reference_from_matrix(reference, groups=np.arange(reference.shape[0]))
+    guard.set_reference_aging(
+        _EXTRACTION, _SKEW_AGING_RATES, _SKEW_AGING_SENTINELS,
+        clock=lambda: _EXTRACTION + timedelta(days=age_jours),
+    )
+    return guard
+
+
+def _servir(guard: SkewGuard, days: np.ndarray, seed: int = 1) -> None:
+    for i, row in enumerate(_teacher_rows(days, np.random.default_rng(seed))):
+        guard.record_serving(row[None, :], key=f"ENS{i:03d}")
+
+
+def _population_vieillie(age_jours: int) -> np.ndarray:
+    days = _population_du_corpus_servi()
+    return np.where(days == 365.0, days, days + age_jours)
+
+
+def test_simple_ecoulement_du_temps_ne_declenche_plus():
+    """Régression 2026-09-24 : 11 jours après l'extraction, la même population
+    (durées avancées de 11 jours) faisait basculer TOUS les enseignants en
+    heuristique (p = 3e-05). Référence vieillie => aucune dérive."""
+    guard = _guard_vieilli(11)
+    _servir(guard, _population_vieillie(11))
+    verdict = guard.evaluate()
+    assert verdict.checked is True
+    assert verdict.skew_detected is False, verdict.features
+    assert guard.status()["reference_age_days"] == 11
+    assert guard.status()["reference_date"] == "2026-09-13"
+
+
+def test_temoin_sans_vieillissement_la_fausse_derive_est_reproduite():
+    """Témoin de la cause racine : mêmes données, référence non vieillie."""
+    guard = SkewGuard(TEMPORAL_FEATURE_COLS, min_window=10, p_threshold=0.01)
+    reference = _teacher_rows(_population_du_corpus_servi(), np.random.default_rng(0))
+    guard.set_reference_from_matrix(reference, groups=np.arange(reference.shape[0]))
+    _servir(guard, _population_vieillie(11))
+    verdict = guard.evaluate()
+    assert verdict.skew_detected is True
+    assert "days_since_last_training" in verdict.features
+
+
+def test_vieillissement_conserve_la_detection_d_une_vraie_derive():
+    """Des enseignants qui cessent réellement de se former restent détectés."""
+    guard = _guard_vieilli(11)
+    _servir(guard, _population_vieillie(11) + 400.0)
+    verdict = guard.evaluate()
+    assert verdict.skew_detected is True
+    assert "days_since_last_training" in verdict.features
+
+
+def test_la_sentinelle_sans_formation_n_est_pas_vieillie():
+    """365 jours = « aucune formation » au serving comme au corpus : constante."""
+    guard = _guard_vieilli(100)
+    vieillie = guard._aged_reference("days_since_last_training")
+    assert np.count_nonzero(vieillie == 365.0) == 11
+    assert np.count_nonzero(vieillie == 153.0) == 22  # pic 53 + 100 jours
+    mois = guard._aged_reference("months_since_last_training")
+    assert np.count_nonzero(np.isclose(mois, 365.0 / 30.44)) == 11
+    # Les autres features ne bougent jamais.
+    assert np.array_equal(
+        guard._aged_reference("avg_level"), guard._reference["avg_level"]
+    )
+
+
+def test_date_d_extraction_lue_dans_created_at():
+    df = pd.DataFrame({"created_at": ["2026-09-13T17:24:40+00:00", "2026-09-12T08:00:00+00:00"]})
+    assert ArtifactModelPort._corpus_extraction_date(df, pd) == date(2026, 9, 13)
+    assert ArtifactModelPort._corpus_extraction_date(pd.DataFrame({"x": [1]}), pd) is None

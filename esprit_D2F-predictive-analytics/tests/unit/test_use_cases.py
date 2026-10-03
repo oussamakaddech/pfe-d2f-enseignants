@@ -153,3 +153,36 @@ def test_risk_teacher_with_repeated_needs_higher(repositories):
     low_profile, _, _, _ = use_case.execute("T001")
     high_profile, _, _, _ = use_case.execute("T002")
     assert high_profile.risk_score > low_profile.risk_score
+
+
+def test_compute_gaps_completes_scope_not_covered_by_ml(repositories):
+    """Le ML ne prédit que les compétences où l'enseignant a des niveaux :
+    les autres compétences du périmètre doivent rester analysées (heuristique),
+    jamais retirées en silence (constat 2026-09-23, ENS019 : 2 sur 6)."""
+    from dataclasses import replace
+
+    competencies = repositories["competency"].list_competencies()
+    assert len(competencies) >= 2
+    first = competencies[0]
+
+    class PartialMlPort(FakeModelPort):
+        def status(self) -> dict:
+            return {**super().status(), "available": True,
+                    "model_mode": "PRODUCTION_ML", "model_version": "v-test"}
+
+        def predict_gaps(self, teacher_id: str):
+            heuristic = ComputeGaps(repositories["competency"], FakeAnalysisRepository(),
+                                    FakeModelPort(), build_settings())._heuristic_on([first], teacher_id)
+            return [replace(g, trend=Trend.DECLARED_ML) for g in heuristic]
+
+    use_case = ComputeGaps(repositories["competency"], repositories["analyse"], PartialMlPort(),
+                           build_settings(), teacher_source=repositories["teacher"])
+    use_case._scoped_competencies = lambda teacher_id: competencies  # périmètre à plusieurs compétences
+    gaps, mode, version = use_case.execute("T001")
+
+    assert mode == "PRODUCTION_ML" and version == "v-test"
+    assert {g.competence_id for g in gaps} == {c.id for c in competencies}
+    ml_rows = [g for g in gaps if g.trend is Trend.DECLARED_ML]
+    assert [g.competence_id for g in ml_rows] == [first.id]
+    assert all(g.trend is not Trend.DECLARED_ML for g in gaps if g.competence_id != first.id)
+    assert repositories["analyse"].gaps == gaps

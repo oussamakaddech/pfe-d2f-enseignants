@@ -6,7 +6,7 @@ import jwt
 from fastapi import Depends, Request
 
 from app.core.config import Settings, get_settings
-from app.core.exceptions import UnauthorizedError
+from app.core.exceptions import ForbiddenError, UnauthorizedError
 
 ROLE_PREFIX = "ROLE_"
 SCOPE_CLAIM = "scope"
@@ -83,7 +83,9 @@ def get_current_user(request: Request, settings: Settings = Depends(get_settings
 def require_roles(*roles: str):
     def dependency(user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
         if not user.has_any_role(*roles):
-            raise UnauthorizedError(f"Rôle requis: {', '.join(roles)}")
+            # Authentifié mais rôle insuffisant : 403. Un 401 déconnectait
+            # l'utilisateur côté webapp (intercepteur axios sur 401).
+            raise ForbiddenError(f"Rôle requis: {', '.join(roles)}")
         return user
 
     return dependency

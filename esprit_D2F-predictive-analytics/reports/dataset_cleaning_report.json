@@ -1,9 +1,9 @@
 {
-  "dataset_path": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-predictive-analytics\\data\\clean\\training_corpus_provenanced.csv",
-  "dataset_version": "v1.1.0",
-  "dataset_hash_after": "8198b55c4283f2ddc5ea75170e54c8f8f98508b6af1cc021427431292f917e0a",
-  "initial_rows": 217,
-  "final_rows": 217,
+  "dataset_path": "data\\clean\\training_corpus_provenanced.csv",
+  "dataset_version": "v1.3.0",
+  "dataset_hash_after": "4c9b9ab56e7fcacc18b65740c09808be7a01daae957204de7e5914928e5b8d5e",
+  "initial_rows": 200,
+  "final_rows": 200,
   "rows_removed": 0,
   "rows_corrected": 0,
   "rows_quarantined": 0,
@@ -11,7 +11,7 @@
   "duplicate_actions": [],
   "duplicate_conflicts": 0,
   "missing_values": {
-    "target_observation_date": 217
+    "target_observation_date": 200
   },
   "imputation_actions": [],
   "out_of_range": {},
@@ -26,8 +26,8 @@
     "violations": []
   },
   "provenance": {
-    "total_rows": 217,
-    "real_rows": 217,
+    "total_rows": 200,
+    "real_rows": 200,
     "synthetic_rows": 0
   }
 }

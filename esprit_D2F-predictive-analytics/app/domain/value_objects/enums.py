@@ -49,6 +49,20 @@ LEVEL_INT_MAP = {
 DEFAULT_TARGET_LEVEL = 3
 
 
+def sql_level_case(column: str) -> str:
+    """Expression SQL qui convertit ``column`` en niveau 1..5 (0 si inconnu).
+
+    Générée depuis LEVEL_INT_MAP : une requête SQL ne peut plus reconnaître
+    moins de libellés que le code Python (le moteur legacy ne connaissait que
+    N1..N5 et lisait les 72 % de niveaux saisis en DEBUTANT/INITIE/CONFIRME/
+    AVANCE comme 0, ramenés ensuite à 1).
+    """
+    branches = " ".join(
+        f"WHEN '{label}' THEN {value}" for label, value in LEVEL_INT_MAP.items()
+    )
+    return f"(CASE UPPER(TRIM(CAST({column} AS TEXT))) {branches} ELSE 0 END)"
+
+
 def level_to_int(value: str | None) -> int:
     if not value:
         return 0

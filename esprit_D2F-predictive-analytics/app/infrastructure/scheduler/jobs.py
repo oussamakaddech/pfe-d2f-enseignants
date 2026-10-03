@@ -87,3 +87,27 @@ def construire_dashboards(container: Any) -> dict:
         container.build_dashboards.execute(scope="DEPARTEMENT", scope_id=dept_id)
     logger.info("dashboards construits", global_snapshot=str(kpis.get("snapshot_date")))
     return {"status": "ok", "departements": len(depts)}
+
+
+def purger_observabilite(container: Any) -> dict:
+    """Supprime la trace des prédictions servies au-delà de la rétention.
+
+    La trace sert au diagnostic récent (dernière raison de repli d'un
+    enseignant, taux de repli par jour) : au-delà de la fenêtre elle n'est
+    plus lue. 0 ou moins désactive la purge.
+    """
+    days = int(container.settings.ml_observability_retention_days)
+    if days <= 0:
+        return {"status": "disabled"}
+    purge_sql = text(
+        'DELETE FROM "analyse".ml_observability '
+        "WHERE call_date < CURRENT_DATE - CAST(:days AS INTEGER)"
+    )
+    try:
+        with container.database.session() as session:
+            deleted = int(session.execute(purge_sql, {"days": days}).rowcount or 0)
+    except Exception as exc:
+        logger.warning("purge observabilite ML impossible", error=str(exc))
+        return {"status": "skipped", "reason": str(exc)}
+    logger.info("purge observabilite ML", supprimees=deleted, retention_jours=days)
+    return {"status": "ok", "deleted": deleted}

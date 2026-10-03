@@ -186,6 +186,30 @@ def test_count_open_by_severity_with_since_days():
     assert repo.count_open_by_severity(since_days=30) == {"CRITICAL": 2, "WARNING": 0, "INFO": 0}
 
 
+def test_list_alerts_with_type_and_bucket_filters():
+    db = _ScriptedDb([
+        _Result(rows=[{"total": 1}]),
+        _Result(rows=[ROW]),
+    ])
+    repo = SqlAlertRepository(db)
+    alerts, total = repo.list_alerts(page=1, size=10, alert_type="gap_critique", severity_bucket="critical")
+    assert total == 1
+    assert len(alerts) == 1
+    assert "type_alerte = :type_alerte" in db.executed[-1]
+    assert "UPPER(severite) IN ('CRITIQUE', 'CRITICAL')" in db.executed[-1]
+
+
+def test_list_alerts_with_unknown_bucket_ignores_bucket():
+    db = _ScriptedDb([
+        _Result(rows=[{"total": 0}]),
+        _Result(rows=[]),
+    ])
+    repo = SqlAlertRepository(db)
+    alerts, total = repo.list_alerts(page=1, size=5, severity_bucket="UNKNOWN")
+    assert total == 0
+    assert all("UPPER(severite)" not in stmt for stmt in db.executed)
+
+
 def test_list_open_since_returns_alerts():
     repo = _repo([_Result(rows=[ROW])])
     alerts = repo.list_open_since(cutoff_days=30)

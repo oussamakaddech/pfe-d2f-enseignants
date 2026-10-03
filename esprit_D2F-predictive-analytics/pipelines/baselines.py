@@ -164,3 +164,44 @@ def bootstrap_lift_ci95(
     lo, hi = (float(np.percentile(lifts, 2.5)), float(np.percentile(lifts, 97.5)))
     lift = _rmse(y_test, baseline_predictions) - _rmse(y_test, model_predictions)
     return round(lift, 4), (round(lo, 4), round(hi, 4)), bool(lo > 0)
+
+
+DECISION_RULE = "accept si lift_rmse > 0 ET lift_significant_95 ET n_test >= 20, sinon reject"
+MIN_TEST_ROWS = 20
+
+
+def decision_from_lift(lift_rmse: float | None, lift_significant: bool | None, n_test: int) -> str:
+    """Décision d'entraînement déduite du lift baseline (règle unique).
+
+    Partagée par l'entraînement, le recalcul des baselines et la mise en
+    cohérence de la metadata : une metadata dont ``decision`` contredit son
+    propre bloc ``metrics`` (audit 2026-09-23 : ``accept`` à côté d'un lift
+    non significatif) ne peut plus être produite par un seul de ces chemins.
+    """
+    ok = lift_rmse is not None and lift_rmse > 0 and bool(lift_significant) and n_test >= MIN_TEST_ROWS
+    return "accept" if ok else "reject"
+
+
+def served_under_override(decision: str, registry_entry: object | None) -> dict | None:
+    """Trace, dans la metadata, qu'un modèle ``reject`` est servi par override.
+
+    La décision mesurée reste écrite telle quelle ; l'exception de service est
+    celle déclarée au registre (acteur, date, justification) — recopiée ici
+    pour qu'un lecteur de la metadata seule ne conclue ni à un modèle accepté
+    ni à un modèle non servi.
+    """
+    if decision == "accept" or registry_entry is None:
+        return None
+    if not getattr(registry_entry, "override_decision", False):
+        return None
+    return {
+        "registry_version": getattr(registry_entry, "model_version", None),
+        "status": getattr(registry_entry, "status", None),
+        "override_actor": getattr(registry_entry, "override_actor", None),
+        "override_date": getattr(registry_entry, "override_date", None),
+        "override_justification": getattr(registry_entry, "override_justification", None),
+        "note": (
+            "decision mesuree = reject (lift non significatif) ; le modele est "
+            "servi sous l'override declare au registre, reversible"
+        ),
+    }

@@ -188,17 +188,17 @@ class InsightsEngine:
                     WHERE e.deleted_at IS NULL
                       AND (:up_id IS NULL OR e.up_id = :up_id)
                       AND (:dept_id IS NULL OR e.dept_id = :dept_id)
-                    """,
-                    {
-                        "up_id": scope.scope_id if scope and scope.scope_type == "UP" else None,
-                        "dept_id": scope.scope_id if scope and scope.scope_type == "DEPARTEMENT" else None,
-                    },
-                )
+                    """
+                ),
+                # Les paramètres vont à execute() : text(sql, params) levait une
+                # TypeError avalée par _safe → KPI toujours affiché à 0 %.
+                {
+                    "up_id": scope.scope_id if scope and scope.scope_type == "UP" else None,
+                    "dept_id": scope.scope_id if scope and scope.scope_type == "DEPARTEMENT" else None,
+                },
             ).mappings().first()
         except SQLAlchemyError as exc:  # pragma: no cover - log + repli 0
-            logging.getLogger(__name__).error(
-                "calcul couverture globale impossible", error=str(exc)
-            )
+            logging.getLogger(__name__).error("calcul couverture globale impossible : %s", exc)
             return 0.0
         nb = int(row["nb_enseignants"] or 0)
         avec_comp = int(row["avec_competences"] or 0)

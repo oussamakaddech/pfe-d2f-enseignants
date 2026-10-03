@@ -54,7 +54,11 @@ FEATURE_COLS = [
 ]
 TARGET_COL = "gap_next_3m"
 SEED = 42
-DOC_GB = {"rmse": 0.5115, "mae": 0.3596, "r2": 0.7113}
+def _documented_gb() -> dict[str, float]:
+    """Metriques du GB de simulation lues au registre (jamais en dur)."""
+    registry = json.loads((MODELS_DIR / "model_registry.json").read_text(encoding="utf-8"))
+    entry = next(e for e in registry if e.get("model_version") == "simulation-v1.0.0")
+    return {k: entry["metrics"][k] for k in ("rmse", "mae", "r2")}
 
 
 def _sha256_file(path: Path) -> str:
@@ -68,13 +72,17 @@ def _sha256_file(path: Path) -> str:
 def main() -> int:
     from app.infrastructure.ml.artifact_integrity import save_with_integrity
 
+    doc_gb = _documented_gb()
     df = pd.read_csv(SIM_CSV)
     assert (df["data_origin"] == "SIMULATED").all(), "corpus non SIMULATED"
     assert df["is_synthetic"].astype(str).str.lower().isin(["true", "1"]).all(), "corpus non synthétique"
     assert (df["is_extrapolated"].astype(str).str.lower() == "false").all(), "cible non observée"
+    # Graine de GENERATION des donnees (distincte du random_state des modeles).
+    assert df["generation_seed"].nunique() == 1, "corpus issu de plusieurs graines"
+    data_seed = int(df["generation_seed"].iloc[0])
 
     # Split temporel strict (identique au pipeline documenté) : tri date_t, 80/20, sans shuffle.
-    df_sorted = df.sort_values("date_t").reset_index(drop=True)
+    df_sorted = df.sort_values("date_t", kind="stable").reset_index(drop=True)
     n_test = max(20, int(len(df_sorted) * 0.2))
     n_train = len(df_sorted) - n_test
     train, test = df_sorted.iloc[:n_train], df_sorted.iloc[n_train:]
@@ -102,7 +110,7 @@ def main() -> int:
     rmse = round(float(np.sqrt(mean_squared_error(y_test, preds))), 4)
     mae = round(float(mean_absolute_error(y_test, preds)), 4)
     r2 = round(float(r2_score(y_test, preds)), 4)
-    print(f"Challenger XGBoost sur simulation : RMSE={rmse} MAE={mae} R2={r2} (GB documenté : {DOC_GB})")
+    print(f"Challenger XGBoost sur simulation : RMSE={rmse} MAE={mae} R2={r2} (GB documenté : {doc_gb})")
 
     save_with_integrity(model, ARTIFACT_PATH)
     sha = _sha256_file(ARTIFACT_PATH)
@@ -132,9 +140,9 @@ def main() -> int:
         "decision": "challenger-non-promu-candidate",
         "notes": (
             "Challenger XGBoost (e150/d2/lr0.05) entraîné sur le corpus de simulation documenté "
-            "(10 920 lignes, seed 42, re-mesures M+3 observées). Overlay de démonstration "
+            f"({len(df)} lignes, seed {data_seed}, re-mesures M+3 observées). Overlay de démonstration "
             "uniquement — JAMAIS présenté comme production sur données réelles. Le serving "
-            "réel reste gap_predictor_temporal.joblib (v1.1.0 ACTIVE, 217 lignes réelles)."
+            "réel reste gap_predictor_temporal.joblib (v1.2.0-gb ACTIVE, 217 lignes réelles)."
         ),
     }
     (MODELS_DIR / "simulation_training_metadata_v110.json").write_text(
@@ -165,10 +173,10 @@ def main() -> int:
         data_origin=DATA_ORIGIN_SIMULATED,
         validation_scope=VALIDATION_SCOPE_SIMULATION,
         generator_version="simulation-v1.0.0",
-        seed=SEED,
+        seed=data_seed,
         notes=(
-            "Challenger XGBoost entraîné sur le corpus de simulation (10 920 lignes, seed 42). "
-            "CANDIDATE — overlay de démonstration uniquement ; le serving réel v1.1.0 (217 "
+            f"Challenger XGBoost entraîné sur le corpus de simulation ({len(df)} lignes, seed {data_seed}). "
+            "CANDIDATE — overlay de démonstration uniquement ; le serving réel v1.2.0-gb (217 "
             "lignes réelles) reste ACTIVE et intact. JAMAIS REAL, jamais présenté comme production."
         ),
     )
@@ -177,13 +185,13 @@ def main() -> int:
 
     report = {
         "corpus": {"path": str(SIM_CSV.relative_to(BASE)), "rows": len(df),
-                   "n_train": n_train, "n_test": n_test, "data_origin": "SIMULATED", "seed": SEED},
+                   "n_train": n_train, "n_test": n_test, "data_origin": "SIMULATED", "seed": data_seed},
         "split": "temporel strict (tri date_t, 80/20, sans shuffle)",
         "candidate": {"algorithm": "xgboost", "rmse": rmse, "mae": mae, "r2": r2},
-        "documented_gb_baseline": DOC_GB,
+        "documented_gb_baseline": doc_gb,
         "improvement_vs_gb": {
-            "rmse_pct": round(100.0 * (rmse - DOC_GB["rmse"]) / DOC_GB["rmse"], 2),
-            "mae_pct": round(100.0 * (mae - DOC_GB["mae"]) / DOC_GB["mae"], 2),
+            "rmse_pct": round(100.0 * (rmse - doc_gb["rmse"]) / doc_gb["rmse"], 2),
+            "mae_pct": round(100.0 * (mae - doc_gb["mae"]) / doc_gb["mae"], 2),
         },
         "governance": {
             "data_origin": "SIMULATED", "validation_scope": "SIMULATION_VALIDATED",

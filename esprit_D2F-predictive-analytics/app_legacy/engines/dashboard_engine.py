@@ -647,6 +647,48 @@ class DashboardEngine:
             for r in rows
         ]
 
+    # ── KPI 9b : Évolution quotidienne du risque ────────────────
+    def daily_risk_evolution(self, days: int = 30) -> list[dict]:
+        """Évolution quotidienne du score de risque moyen a partir de teacher_risk_snapshots.
+
+        Source: teacher_risk_snapshots (un instantané par enseignant et par jour).
+        Pour chaque jour, agrege: score moyen + enseignants par niveau + effectif.
+        Remplace l'agrégation mensuelle pour le widget « Tendances » : sur 30 j
+        la version mensuelle ne retournait qu'un seul point.
+        """
+        from app.models.db_models import TeacherRiskSnapshot
+
+        cutoff = date.today() - timedelta(days=days)
+        # Les snapshots mélangent les variantes FR/EN (CRITIQUE/CRITICAL,
+        # ELEVE/HIGH — voir toNiveauRisque côté front) : on compte les deux.
+        rows = (
+            self.db.query(
+                TeacherRiskSnapshot.snapshot_date.label("jour"),
+                func.avg(TeacherRiskSnapshot.score_risque).label("score_moyen"),
+                func.sum(func.cast(
+                    TeacherRiskSnapshot.niveau_risque.in_(["CRITIQUE", "CRITICAL"]), Integer)
+                ).label("critical"),
+                func.sum(func.cast(
+                    TeacherRiskSnapshot.niveau_risque.in_(["ELEVE", "HIGH"]), Integer)
+                ).label("high"),
+                func.count(TeacherRiskSnapshot.id).label("total"),
+            )
+            .filter(TeacherRiskSnapshot.snapshot_date >= cutoff)
+            .group_by(TeacherRiskSnapshot.snapshot_date)
+            .order_by(TeacherRiskSnapshot.snapshot_date)
+            .all()
+        )
+        return [
+            {
+                "date":               r.jour.isoformat() if hasattr(r.jour, "isoformat") else str(r.jour),
+                "critical":           int(r.critical or 0),
+                "high":               int(r.high or 0),
+                "score_risque_moyen": round(float(r.score_moyen or 0), 4),
+                "total_enseignants":  int(r.total or 0),
+            }
+            for r in rows
+        ]
+
     # ── KPI 10 : Performance du modèle ───────────────────────
     def model_performance(self) -> dict[str, Any]:
         """Accuracy du modèle de gap + dernier ré-entraînement (spec §4)."""
@@ -781,9 +823,7 @@ class DashboardEngine:
                 )
             ).mappings().first()
         except SQLAlchemyError as exc:  # pragma: no cover - log + repli 0
-            logging.getLogger(__name__).error(
-                "calcul couverture globale impossible", error=str(exc)
-            )
+            logging.getLogger(__name__).error("calcul couverture globale impossible : %s", exc)
             return 0.0
         nb = int(row["nb_enseignants"] or 0)
         avec_comp = int(row["avec_competences"] or 0)

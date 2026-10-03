@@ -128,15 +128,31 @@ class RiskMLPredictor:
                 metadata = {}
         decision = str(artifact.get("decision") or metadata.get("decision") or "reject")
         if decision != "accept":
-            self._load_error = (
-                f"modele de risque non deploye : decision={decision} "
-                f"(seuils d'acceptation non atteints — repli heuristique)"
-            )
+            self._metadata = metadata
+            self._load_error = self._reject_reason(decision, metadata)
             logger.info("risk ML refuse : decision != accept", decision=decision)
             return
         self._artifact = artifact
         self._metadata = metadata
         self._load_error = None
+
+    @staticmethod
+    def _reject_reason(decision: str, metadata: dict) -> str:
+        """Raison du repli. Quand la formule pondérée a été mesurée meilleure que
+        le ML (bloc ``formula_validation`` de la metadata), on le dit : ce n'est
+        pas un mode dégradé mais le moteur retenu sur mesure."""
+        formula = metadata.get("formula_validation") or {}
+        ml_f1 = (metadata.get("metrics") or {}).get("macro_f1")
+        if formula.get("validated") and not formula.get("best_ml_beats_formula"):
+            return (
+                f"formule ponderee retenue : validee en simulation (macro-F1 {formula.get('macro_f1')} "
+                f">= {formula.get('macro_f1_min')}) et meilleure que le modele ML de risque "
+                f"(macro-F1 {ml_f1}) — decision={decision}"
+            )
+        return (
+            f"modele de risque non deploye : decision={decision} "
+            f"(seuils d'acceptation non atteints — repli heuristique)"
+        )
 
     # État de serving du modèle de risque pour /health : actif ou non,
     # version, décision, métriques (Brier, macro-F1) et compteurs fallback.
@@ -159,6 +175,8 @@ class RiskMLPredictor:
             "risk_ml_serving_count": self.ml_serving_count,
             "risk_heuristic_fallback_count": self.heuristic_fallback_count,
             "risk_fallback_reason": self._load_error,
+            "risk_formula_macro_f1": (meta.get("formula_validation") or {}).get("macro_f1"),
+            "risk_formula_validated": (meta.get("formula_validation") or {}).get("validated"),
         }
 
     # --------------------------------------------------------------- predict

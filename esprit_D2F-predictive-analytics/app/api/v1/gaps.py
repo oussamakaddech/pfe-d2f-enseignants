@@ -15,7 +15,15 @@ router = APIRouter(prefix="/teachers/{teacher_id}/gaps", tags=["gaps"])
 DECISION_ROLES = ("ADMIN", "CUP", "CHEF_DEPARTEMENT", "ENSEIGNANT")
 
 
-@router.get("")
+@router.get(
+    "",
+    summary="Écarts de couverture de l'enseignant",
+    description=(
+        "Écarts de couverture par compétence du périmètre : niveau de difficulté exigé "
+        "moins niveau de difficulté des savoirs couverts. Le niveau N1-N5 décrit le "
+        "savoir ; ce n'est pas une mesure de la maîtrise de l'enseignant."
+    ),
+)
 def list_gaps(
     teacher_id: str,
     container: ContainerDependency,
@@ -49,8 +57,11 @@ def list_gaps(
         rows_from_ml = bool(trends & {"DECLARED_ML", "WORSENING"})
         if not rows_from_ml:
             model_mode = "HEURISTIC_FALLBACK"
+            # Raison propre à CET enseignant (journal de serving). La raison
+            # globale du port est celle du dernier enseignant calculé, quel
+            # qu'il soit : l'afficher ici expliquerait le repli d'un autre.
             fallback_reason = (
-                fallback_reason
+                container.analysis_repository.last_serving_fallback_reason(teacher_id)
                 or "dernier calcul hors modèle ML : moteur heuristique explicable appliqué"
             )
             # Audit d'autorite 2026-09-22 (§3.4, point 2) : les lignes servies ne

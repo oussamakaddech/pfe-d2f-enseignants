@@ -1,10 +1,10 @@
 # Rapport de nettoyage du dataset
 
-- **Dataset** : `C:\Users\oussama\Desktop\pfe-d2f-enseignants\esprit_D2F-predictive-analytics\data\clean\training_corpus_provenanced.csv`
-- **Version** : `v1.1.0`
-- **Hash après nettoyage** : `8198b55c4283f2ddc5ea75170e54c8f8f98508b6af1cc021427431292f917e0a`
-- **Lignes initiales** : 217
-- **Lignes conservées** : 217
+- **Dataset** : `data\clean\training_corpus_provenanced.csv`
+- **Version** : `v1.3.0`
+- **Hash après nettoyage** : `4c9b9ab56e7fcacc18b65740c09808be7a01daae957204de7e5914928e5b8d5e`
+- **Lignes initiales** : 200
+- **Lignes conservées** : 200
 - **Lignes supprimées** : 0
 - **Lignes corrigées** : 0
 - **Lignes mises en quarantaine** : 0
@@ -20,7 +20,7 @@
 
 ## Valeurs manquantes
 
-- `target_observation_date` : 217
+- `target_observation_date` : 200
 
 ## Imputations
 

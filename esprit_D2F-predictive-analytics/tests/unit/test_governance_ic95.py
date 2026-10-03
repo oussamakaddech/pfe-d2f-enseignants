@@ -233,7 +233,7 @@ def test_dataset_hash_match_keeps_provenance_valid(tmp_path):
 # 4. État réel du registre après la décision de gouvernance (2026-09-22)
 # ---------------------------------------------------------------------------
 def test_registry_state_after_governance_decision():
-    """Etat du registre : ACTIVE sous override declare (decision projet 2026-09-22)."""
+    """Etat du registre : v1.3.1-xgb ACTIVE (reglage gouverne, 2026-10-01), v1.3.0-xgb et v1.3.0-gb archivees."""
     registry = json.loads((MODELS_DIR / "model_registry.json").read_text(encoding="utf-8"))
     active = [e for e in registry if e.get("status") == STATUS_ACTIVE]
     for entry in active:
@@ -241,13 +241,27 @@ def test_registry_state_after_governance_decision():
             assert entry.get("override_decision") is True, (
                 "une entree ACTIVE non significative doit porter un override declare"
             )
-    gb = [e for e in registry if e.get("model_version") == "v1.2.0-gb"][0]
-    assert gb["status"] == STATUS_ACTIVE and gb["approval_status"] == APPROVAL_APPROVED
-    assert gb["lift_significant_95"] is False
-    assert gb["lift_rmse_ci95"] == [-0.1243, 0.1087]
-    assert gb["override_decision"] is True
-    assert gb["override_actor"] and gb["override_date"] and gb["override_justification"]
-    assert "OVERRIDE DECLARE" in gb["notes"]
+    # v1.3.1-xgb : hyperparametres choisis par validation croisee temporelle sur
+    # le train ; ecart a v1.3.0-xgb NON significatif (IC95 [-0,0225 ; +0,0519])
+    # et regle simple non battue -> servi sous exception declaree.
+    xgb = [e for e in registry if e.get("model_version") == "v1.3.1-xgb"][0]
+    assert xgb["status"] == STATUS_ACTIVE and xgb["approval_status"] == APPROVAL_APPROVED
+    assert xgb["lift_significant_95"] is False and xgb["lift_rmse_ci95"] == [-0.0225, 0.0519]
+    assert xgb["baseline_lift_significant_95"] is False
+    assert xgb["override_decision"] is True
+    assert xgb["override_actor"] and xgb["override_date"] and xgb["override_justification"]
+    assert "OVERRIDE DECLARE" in xgb["notes"]
+    # v1.3.0-xgb : archivee (rollback direct), mesure de sa promotion conservee.
+    prev = [e for e in registry if e.get("model_version") == "v1.3.0-xgb"][0]
+    assert prev["status"] == "ARCHIVED" and prev["approval_status"] == APPROVAL_APPROVED
+    assert prev["lift_rmse_ci95"] == [-0.0415, 0.077]
+    # v1.3.0-gb : archivee, conservee comme cible de rollback.
+    gb = [e for e in registry if e.get("model_version") == "v1.3.0-gb"][0]
+    assert gb["status"] == "ARCHIVED" and gb["approval_status"] == APPROVAL_APPROVED
+    # v1.2.0-gb : archive, mesure honnete conservee, cible de rollback.
+    old = [e for e in registry if e.get("model_version") == "v1.2.0-gb"][0]
+    assert old["status"] == "ARCHIVED" and old["approval_status"] == APPROVAL_APPROVED
+    assert old["lift_significant_95"] is False and old["lift_rmse_ci95"] == [-0.1243, 0.1087]
     risk = [e for e in registry if e.get("model_version") == "risk-simulation-v1.0.0"][0]
     assert risk["approval_status"] == APPROVAL_REJECTED, (
         "une entree dont les notes declarent decision=reject ne peut pas rester APPROVED"

@@ -1,8 +1,8 @@
 """Entraine le modele de risque ML sur le corpus de SIMULATION (cibles M+3 OBSERVEES).
 
 Protocole (chapitre moteur de risque — etape 2) :
-- Donnees : ``data/clean/simulation_dataset.csv`` (10 920 lignes, 45 enseignants,
-  30 mois, re-mesures M+3 observees, seed 42).
+- Donnees : ``data/clean/simulation_dataset.csv`` (corpus de simulation courant, 45 enseignants,
+  30 mois, re-mesures M+3 observees ; graine lue dans ``generation_seed``).
 - Cible SUPERVISEE sans fuite : categorie de risque a t+3 calculee depuis les
   niveaux OBSERVES a M+3, avec la MEME definition que le moteur heuristique
   (0.50/0.12/0.40, seuils 0.75/0.50/0.30) — voir ``risk_features.py``.
@@ -15,7 +15,16 @@ Protocole (chapitre moteur de risque — etape 2) :
     b) GradientBoostingClassifier ;
     c) XGBoost AVEC monotone_constraints (plus de gaps critiques/hautes ou plus
        de profondeur => probabilite de risque JAMAIS plus basse ; verifiee).
-- Seuil d'acceptation : Brier (CRITICAL calibre) <= 0.05 ET macro-F1 >= 0.70.
+- Seuil d'acceptation : Brier (CRITICAL calibre) <= 0.05 ET macro-F1 >= 0.70 ET
+  gain de macro-F1 SIGNIFICATIF sur la formule ponderee (IC95 bootstrap apparie
+  > 0). La formule appliquee aux ecarts a t EST la persistance (classe a t+3 =
+  classe a t) : un modele qui ne la bat pas n'apporte rien et n'est pas servi ;
+  la formule est alors conservee comme VALIDEE (bloc ``formula_validation``).
+- Donnees (2026-10-01) : corpus DEDIE genere par le simulateur (400 enseignants,
+  graine 2026, generateur corrige de la fuite ``nb_formations_in_progress``),
+  regenere a l'identique s'il est absent. Le corpus de reference a 45 enseignants
+  ne donne que 1 080 lignes d'entrainement (enseignant x mois) : trop peu pour
+  mesurer la classe CRITICAL (21 cas).
 - Explicabilite : contributions par arbre (pred_contribs XGBoost / SHAP TreeExplainer),
   top-3 exportes au serving ; alignement directionnel avec l'heuristique verifie.
 - Artefact : ``data/models/risk_predictor_simulation.joblib`` (+ sidecar sha256) et
@@ -26,12 +35,13 @@ Protocole (chapitre moteur de risque — etape 2) :
 
 Usage:
     python -m pipelines.train_risk_model
+    python -m pipelines.train_risk_model --dataset data/clean/simulation_dataset.csv  # corpus 45 enseignants
 """
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
-import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -58,11 +68,13 @@ DATA_CLEAN = BASE_DIR / "data" / "clean"
 MODELS_DIR = BASE_DIR / "data" / "models"
 REPORTS_DIR = BASE_DIR / "reports"
 
-SIMULATION_CSV = DATA_CLEAN / "simulation_dataset.csv"
+# Corpus dedie au modele de risque (voir docstring) — regenere s'il est absent.
+RISK_DATA_SEED = 2026
+RISK_N_TEACHERS = 400
+SIMULATION_CSV = BASE_DIR / "data" / "simulation" / f"simulation_dataset_risk_n{RISK_N_TEACHERS}_seed{RISK_DATA_SEED}.csv"
 ARTIFACT_PATH = MODELS_DIR / "risk_predictor_simulation.joblib"
 ARTIFACT_SHA_PATH = MODELS_DIR / "risk_predictor_simulation.joblib.sha256"
 METADATA_PATH = MODELS_DIR / "risk_training_metadata.json"
-LEGACY_METADATA_PATH = MODELS_DIR / "risk_training_metadata_rf_legacy.json"
 CALIBRATION_REPORT_PATH = REPORTS_DIR / "risk_calibration_report.json"
 
 SEED = 42
@@ -71,7 +83,7 @@ TEST_MONTH_FRACTION = 0.20
 CALIB_MONTH_FRACTION = 0.25
 BRIER_MAX = 0.05
 MACRO_F1_MIN = 0.70
-MODEL_VERSION = "risk-simulation-v1.0.0"
+MODEL_VERSION = "risk-simulation-v1.1.0"
 
 
 def _hash_file(path: Path) -> str:
@@ -104,6 +116,44 @@ def _bootstrap_ci(y_true: np.ndarray, y_pred: np.ndarray, y_proba_crit: np.ndarr
         "macro_f1_ci95": _ci(f1s),
         "brier_ci95": _ci(briers),
     }
+
+
+def _paired_macro_f1_gain(y_true: np.ndarray, y_model: np.ndarray, y_formula: np.ndarray) -> dict:
+    """Gain de macro-F1 du modele sur la formule (persistance), IC95 bootstrap APPARIE."""
+    rng = np.random.default_rng(SEED)
+    n = len(y_true)
+    gains = []
+    for _ in range(BOOTSTRAP_ITERATIONS):
+        idx = rng.integers(0, n, n)
+        gains.append(
+            f1_score(y_true[idx], y_model[idx], average="macro", zero_division=0)
+            - f1_score(y_true[idx], y_formula[idx], average="macro", zero_division=0)
+        )
+    arr = np.sort(np.asarray(gains))
+    lo, hi = float(arr[int(0.025 * len(arr))]), float(arr[int(0.975 * len(arr)) - 1])
+    point = float(f1_score(y_true, y_model, average="macro", zero_division=0)
+                  - f1_score(y_true, y_formula, average="macro", zero_division=0))
+    return {"gain": round(point, 4), "ci95": [round(lo, 4), round(hi, 4)], "significant": lo > 0}
+
+
+def _ensure_dataset(path: Path) -> None:
+    """Genere le corpus dedie s'il est absent (meme graine => meme hash canonique).
+    Le generateur reecrit reports/simulation_generation_report.json : il est
+    sauvegarde puis restaure (ce rapport decrit le corpus de reference)."""
+    if path.exists():
+        return
+    from pipelines.generate_simulation_dataset import generate_simulation_dataset
+    report = REPORTS_DIR / "simulation_generation_report.json"
+    backup = report.read_bytes() if report.exists() else None
+    try:
+        generate_simulation_dataset(
+            seed=RISK_DATA_SEED, output_path=path,
+            manifest_path=path.with_name(path.stem + "_manifest.json"),
+            n_teachers=RISK_N_TEACHERS,
+        )
+    finally:
+        if backup is not None:
+            report.write_bytes(backup)
 
 
 def _make_candidates() -> dict[str, object]:
@@ -276,7 +326,15 @@ def _shap_top_features(model, X: np.ndarray) -> tuple[dict[str, float], str]:
 
 
 def main() -> int:
+    global SIMULATION_CSV
+    parser = argparse.ArgumentParser(description="Entraine le modele de risque (simulation)")
+    parser.add_argument("--dataset", type=str, default=None,
+                        help="corpus de simulation (defaut : corpus dedie 400 enseignants, genere si absent)")
+    args = parser.parse_args()
+    if args.dataset:
+        SIMULATION_CSV = Path(args.dataset) if Path(args.dataset).is_absolute() else BASE_DIR / args.dataset
     print("[1] Chargement du corpus de simulation...")
+    _ensure_dataset(SIMULATION_CSV)
     df = pd.read_csv(SIMULATION_CSV)
     assert (df["data_origin"] == "SIMULATED").all()
     dataset_hash = hashlib.sha256(SIMULATION_CSV.read_bytes()).hexdigest()
@@ -308,8 +366,10 @@ def main() -> int:
 
 
     print("[3] Comparaison des candidats (meme holdout temporel, calibration isotonique)...")
-    baseline_f1 = float(f1_score(y_test, test_frame["risk_class_t"], average="macro", zero_division=0))
-    print(f"    baseline persistance (classe a t = classe t+3) : macro-F1={baseline_f1:.4f}")
+    y_formula = test_frame["risk_class_t"].to_numpy()
+    baseline_f1 = float(f1_score(y_test, y_formula, average="macro", zero_division=0))
+    formula_ci = _bootstrap_ci(y_test, y_formula, (y_formula == "CRITICAL").astype(float))["macro_f1_ci95"]
+    print(f"    formule ponderee a t (= persistance) : macro-F1={baseline_f1:.4f} IC95={formula_ci}")
     candidates_report, trained = [], {}
 
     for name, model in _make_candidates().items():
@@ -321,6 +381,7 @@ def main() -> int:
         p_crit = proba[:, list(classes).index("CRITICAL")]
         brier = float(brier_score_loss((y_test == "CRITICAL").astype(int), p_crit))
         ci = _bootstrap_ci(y_test, y_pred, p_crit)
+        vs_formula = _paired_macro_f1_gain(y_test, y_pred, y_formula)
         candidates_report.append({
             "candidate": name,
             "macro_f1": round(macro_f1, 4),
@@ -328,10 +389,12 @@ def main() -> int:
             "macro_f1_ci95": ci["macro_f1_ci95"],
             "brier_ci95": ci["brier_ci95"],
             "bootstrap_iterations": ci["iterations"],
-            "accept": bool(brier <= BRIER_MAX and macro_f1 >= MACRO_F1_MIN),
+            "gain_vs_formula": vs_formula,
+            "accept": bool(brier <= BRIER_MAX and macro_f1 >= MACRO_F1_MIN and vs_formula["significant"]),
         })
         trained[name] = (model, iso)
-        print(f"    {name}: macro-F1={macro_f1:.4f} IC95={ci['macro_f1_ci95']} Brier={brier:.4f} IC95={ci['brier_ci95']}")
+        print(f"    {name}: macro-F1={macro_f1:.4f} IC95={ci['macro_f1_ci95']} Brier={brier:.4f} "
+              f"gain vs formule={vs_formula['gain']:+.4f} IC95={vs_formula['ci95']}")
 
     print("[4] Selection du candidat...")
     accepted = [c for c in candidates_report if c["accept"]]
@@ -397,10 +460,6 @@ def main() -> int:
     print(f"    artefact : {ARTIFACT_PATH} (+ sha256)")
 
     print("[9] Metadonnees + rapport de calibration...")
-    # Archiver l'ancien RF rejeté (macro-F1 0.2847) — trace d'audit conservée.
-    if METADATA_PATH.exists() and not LEGACY_METADATA_PATH.exists():
-        shutil.copy2(METADATA_PATH, LEGACY_METADATA_PATH)
-
     metrics = {c["candidate"]: c for c in candidates_report}
     metadata = _build_metadata(
         df=df, dataset_hash=dataset_hash, label_counts=label_counts, test_months=test_months,
@@ -408,7 +467,8 @@ def main() -> int:
         candidates_report=candidates_report, best_name=best_name, decision=decision, mono=mono,
         expl_method=expl_method, importances=importances, aligned=aligned, curve=curve,
         brier_final=brier_final, serving_ranges=serving_ranges, artifact=artifact,
-        baseline_f1=baseline_f1,
+        baseline_f1=baseline_f1, formula_ci=formula_ci,
+        frame=frame,
     )
 
     METADATA_PATH.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -439,16 +499,18 @@ def _build_metadata(**kw) -> dict:
         "artifact_sha256": _hash_file(ARTIFACT_PATH),
         "trained_at": kw["artifact"]["trained_at"],
         "dataset": {
-            "path": str(SIMULATION_CSV.relative_to(BASE_DIR)),
+            "path": SIMULATION_CSV.relative_to(BASE_DIR).as_posix(),
+            "n_teachers_generated": int(kw["df"]["teacher_id"].nunique()),
             "rows": int(len(kw["df"])),
             "teachers": int(kw["df"]["teacher_id"].nunique()),
             "months": int(kw["df"]["ref_month"].nunique()),
             "dataset_hash": kw["dataset_hash"],
             "data_origin": "SIMULATED",
+            "generation_seed": int(kw["df"]["generation_seed"].iloc[0]),
         },
-        "seed": SEED,
+        "seed": SEED,  # random_state des modeles (graine des donnees : dataset.generation_seed)
         "target": {
-            "definition": "categorie de risque a t+3 depuis les niveaux OBSERVES a M+3 (re-mesure simulee)",
+            "definition": "categorie de risque a t+3 depuis les niveaux ENTIERS observes a M+3 (re-mesure simulee, ecart arrondi a l'entier)",
             "thresholds": "score>=0.75 CRITICAL, >=0.50 HIGH, >=0.30 MEDIUM, sinon LOW",
             "weights": {"critical_gaps": 0.50, "high_gaps": 0.12, "avg_gap_score": 0.40},
             "target_validity": "OBSERVED_IN_SIMULATION",
@@ -466,8 +528,25 @@ def _build_metadata(**kw) -> dict:
             "n_test": int(len(kw["test_frame"])),
         },
         "label_distribution": {k: int(v) for k, v in kw["label_counts"].items()},
+        # Part des observations dont la classe a t+3 = classe a t (explique le
+        # niveau de la formule, qui revient a predire « pas de changement »).
+        "class_stability_t_to_t3": {
+            "all": round(float((kw["frame"]["risk_class"] == kw["frame"]["risk_class_t"]).mean()), 4),
+            "test": round(float((kw["test_frame"]["risk_class"] == kw["test_frame"]["risk_class_t"]).mean()), 4),
+            "n_all": int(len(kw["frame"])), "n_test": int(len(kw["test_frame"])),
+        },
         "candidates": kw["candidates_report"],
         "baseline_persistence_macro_f1": kw.get("baseline_f1"),
+        # La formule ponderee appliquee aux ecarts a t = persistance : c'est le
+        # moteur servi en repli. Validee si elle atteint le meme seuil de macro-F1.
+        "formula_validation": {
+            "rule": "formule 0.50/0.12/0.40 sur les ecarts a t (classe a t+3 = classe a t)",
+            "macro_f1": round(float(kw.get("baseline_f1") or 0.0), 4),
+            "macro_f1_ci95": kw.get("formula_ci"),
+            "macro_f1_min": MACRO_F1_MIN,
+            "validated": bool((kw.get("baseline_f1") or 0.0) >= MACRO_F1_MIN),
+            "best_ml_beats_formula": bool(metrics[kw["best_name"]]["gain_vs_formula"]["significant"]),
+        },
         "selected_candidate": kw["best_name"],
 
         "decision": kw["decision"],
@@ -487,7 +566,9 @@ def _build_metadata(**kw) -> dict:
         "feature_ranges": kw["serving_ranges"],
         "data_origin": "SIMULATED",
         "validation_scope": "SIMULATION_VALIDATED",
-        "notes": "Modele de risque SIMULATION_VALIDATED (cibles M+3 observees). Repli heuristique 0.50/0.12/0.40 conserve (fail-closed). Aucun badge ML sans modele servi.",
+        "notes": ("Modele de risque SIMULATION_VALIDATED (cibles M+3 observees). Servi seulement s'il bat "
+                  "significativement la formule ponderee ; sinon la formule 0.50/0.12/0.40 est conservee "
+                  "(voir formula_validation). Aucun badge ML sans modele servi."),
     }
 
 

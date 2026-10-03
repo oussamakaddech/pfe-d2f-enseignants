@@ -26,7 +26,12 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import KFold, cross_val_score
 
-from pipelines.baselines import bootstrap_lift_ci95, compute_baselines
+from pipelines.baselines import (
+    DECISION_RULE,
+    bootstrap_lift_ci95,
+    compute_baselines,
+    decision_from_lift,
+)
 
 BASE_DIR = Path(__file__).parent.parent
 MODELS_DIR = BASE_DIR / "data" / "models"
@@ -91,7 +96,42 @@ def compute_provenance_stats(df: pd.DataFrame) -> dict[str, Any]:
     }
 
 
-def build_candidates() -> list[tuple[str, Any]]:
+def count_real_future_observations(df: pd.DataFrame) -> tuple[int, int]:
+    """Cibles réellement re-mesurées à l'horizon, et nombre de mois distincts.
+
+    Une ligne ``real`` (non synthétique) n'est PAS une observation future : sa
+    cible peut être extrapolée. Seule compte une ``target_observation_date``
+    renseignée sur une ligne non extrapolée. Ce compteur garde la promotion
+    REAL_VALIDATED_TARGET (``model_registry.target_promotion_error``) : le
+    confondre avec le nombre de lignes réelles (217 écrit au registre, audit
+    2026-09-23) vidait la garde de son sens.
+    """
+    if "target_observation_date" not in df.columns:
+        return 0, 0
+    dates = pd.to_datetime(df["target_observation_date"], errors="coerce", utc=True)
+    observees = dates.notna()
+    if "is_extrapolated" in df.columns:
+        extrapolee = df["is_extrapolated"].astype(str).str.strip().str.lower().isin({"true", "1"})
+        observees &= ~extrapolee
+    mois = dates[observees].dt.strftime("%Y-%m").nunique()
+    return int(observees.sum()), int(mois)
+
+
+def feature_ranges_of(frame: pd.DataFrame) -> dict[str, dict[str, float]]:
+    """Min-max par feature, au format de la metadata."""
+    return {col: {"min": float(frame[col].min()), "max": float(frame[col].max())} for col in FEATURE_COLS}
+
+
+# Hyperparamètres XGBoost par défaut (ceux de v1.3.0-xgb) ; ``--xgb-params``
+# les remplace, par ex. par la configuration choisie en validation croisée
+# temporelle sur le train par ``pipelines.improve_gap_models`` (jamais sur le test).
+DEFAULT_XGB_PARAMS: dict[str, Any] = {
+    "n_estimators": 120, "max_depth": 3, "learning_rate": 0.08, "subsample": 0.85,
+    "reg_alpha": 0.1, "reg_lambda": 1.0, "min_child_weight": 5,
+}
+
+
+def build_candidates(xgb_params: dict[str, Any] | None = None) -> list[tuple[str, Any]]:
     """Construit les modèles candidats (seed 42 partout)."""
     from sklearn.neural_network import MLPRegressor
 
@@ -123,9 +163,8 @@ def build_candidates() -> list[tuple[str, Any]]:
             candidates.append((
                 "xgboost",
                 XGBRegressor(
-                    n_estimators=120, max_depth=3, learning_rate=0.08,
-                    subsample=0.85, random_state=RANDOM_STATE, verbosity=0, n_jobs=-1,
-                    reg_alpha=0.1, reg_lambda=1.0, min_child_weight=5,
+                    random_state=RANDOM_STATE, verbosity=0, n_jobs=-1,
+                    **(xgb_params if xgb_params is not None else DEFAULT_XGB_PARAMS),
                 ),
             ))
         else:
@@ -218,6 +257,8 @@ def train_gap_model(
     dataset_path: Path | None = None,
     artifact_path: Path | None = None,
     metadata_path: Path | None = None,
+    select_algorithm: str | None = None,
+    xgb_params: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Entraîne, évalue et exporte le modèle gap temporal."""
     out_model = artifact_path or MODEL_PATH
@@ -226,6 +267,9 @@ def train_gap_model(
     df = load_provenanced_corpus(dataset_path)
     prov = compute_provenance_stats(df)
     print(f"    Provenance : {prov}")
+    real_future_observations, distinct_observation_months = count_real_future_observations(df)
+    print(f"    Cibles re-mesurees : {real_future_observations} "
+          f"({distinct_observation_months} mois distincts)")
 
     if prov["real_rows"] < 50:
         raise SystemExit(
@@ -242,12 +286,12 @@ def train_gap_model(
     # Plages de VALIDATION au serving : corpus complet (train+test), pas le
     # seul train — sinon une valeur légitime vue uniquement dans le test
     # (ex : nb_savoirs=7) serait rejetée au serving alors que le modèle
-    # l'a vue à l'entraînement. La normalisation reste capturée sur train.
-    serving_ranges: dict[str, dict[str, float]] = {}
-    full = pd.concat([split["X_train"], split["X_test"]], ignore_index=True)
-    for col in FEATURE_COLS:
-        mn, mx = float(full[col].min()), float(full[col].max())
-        serving_ranges[col] = {"min": mn, "max": mx}
+    # l'a vue à l'entraînement. La normalisation reste capturée sur train :
+    # les deux plages sont exportées sous deux clés distinctes
+    # (feature_ranges = normalisation, validation_ranges = domaine).
+    serving_ranges = feature_ranges_of(
+        pd.concat([split["X_train"], split["X_test"]], ignore_index=True)
+    )
     X_train_arr = X_train.values
     X_test_arr = X_test.values
     y_train = split["y_train"]
@@ -269,7 +313,7 @@ def train_gap_model(
           f"(RMSE={baseline['baseline_rmse']:.4f})")
 
     print("[5] Comparaison candidats (CV-RMSE)...")
-    candidates = build_candidates()
+    candidates = build_candidates(xgb_params)
     cv_results: dict[str, float] = {}
     fitted: dict[str, Any] = {}
     kf = KFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
@@ -281,8 +325,16 @@ def train_gap_model(
         print(f"    {name}: CV-RMSE={cv_results[name]:.4f}")
 
     best_name = min(cv_results, key=cv_results.get)
+    selection = "meilleur CV-RMSE"
+    if select_algorithm:
+        # Choix impose (decision projet tracee) : les autres candidats restent
+        # entraines et leurs scores enregistres dans candidate_cv_scores.
+        if select_algorithm not in fitted:
+            raise SystemExit(f"[ERROR] algorithme inconnu : {select_algorithm} ({sorted(fitted)})")
+        selection = f"impose ({select_algorithm}) ; meilleur CV-RMSE = {best_name}"
+        best_name = select_algorithm
     best = fitted[best_name]
-    print(f"[6] Meilleur modèle : {best_name}")
+    print(f"[6] Modèle retenu : {best_name} ({selection})")
 
     print("[7] Évaluation sur test...")
     preds = np.clip(best.predict(X_test_arr), 0, 5)
@@ -305,11 +357,7 @@ def train_gap_model(
     # n'est pas significatif à 95 % ne vaut pas acceptation. Un lift positif
     # mais dont l'IC95 contient 0 est désormais refusé ici aussi, au lieu
     # d'être accepté puis rétrogradé plus loin dans la chaîne.
-    decision = (
-        "accept"
-        if (lift_rmse > 0 and lift_significant and len(y_test) >= 20)
-        else "reject"
-    )
+    decision = decision_from_lift(lift_rmse, lift_significant, len(y_test))
     print(f"[8] Décision : {decision}")
 
     feature_importances = {}
@@ -341,6 +389,7 @@ def train_gap_model(
         "cv_folds": 5,
         "split": {"type": split["split_kind"]},
         "candidate_cv_scores": {k: round(v, 4) for k, v in cv_results.items()},
+        "algorithm_selection": selection,
         "metrics": {
             "test_r2": round(test_r2, 4),
             "test_rmse": round(test_rmse, 4),
@@ -356,10 +405,16 @@ def train_gap_model(
             "lift_significant_95": lift_significant,
         },
         "feature_importances": {k: round(v, 6) for k, v in feature_importances.items()},
-        # Plages de validation au serving : corpus complet (voir serving_ranges
-        # ci-dessus), pas les ranges de normalisation capturées sur train.
-        "feature_ranges": serving_ranges,
+        # NORMALISATION : min-max du train, celui avec lequel le modèle a été
+        # ajusté. Y écrire les plages du corpus (comme avant l'audit
+        # 2026-09-23) faisait servir le modèle avec une autre normalisation
+        # que la sienne — le rollback v1.1.0 aurait donné RMSE 1,1890 au lieu
+        # des 1,2319 enregistrés.
+        "feature_ranges": ranges,
+        # DOMAINE accepté au serving : corpus complet (voir serving_ranges).
+        "validation_ranges": serving_ranges,
         "decision": decision,
+        "decision_rule": DECISION_RULE,
         # Gouvernance : validité de la cible. Sans re-mesures réelles après
         # l'horizon (real_future_observation_count == 0), la cible reste
         # EXTRAPOLATED_TARGET — le serving l'expose honnêtement.
@@ -368,8 +423,8 @@ def train_gap_model(
             "Cibles extrapolées de la tendance (aucune re-mesure réelle après "
             "l'horizon de 3 mois au moment de l'entraînement)."
         ),
-        "real_future_observation_count": int(prov.get("real_rows", 0)),
-        "distinct_observation_months": None,
+        "real_future_observation_count": real_future_observations,
+        "distinct_observation_months": distinct_observation_months,
         "notes": (
             "Pipeline reproductible : dataset provenancé, split temporel strict, "
             "seed 42, anti-fuite (knowledge_difficulty_level/gap_next_3m exclus), "
@@ -382,13 +437,15 @@ def train_gap_model(
     save_with_integrity(best, out_model)
     out_metadata.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    # Export du schéma de features (plages corpus complet — voir ci-dessus)
+    # Export du schéma de features : il porte les DEUX plages, que le serving
+    # compare à la metadata (predictor._widened_ranges_error).
     feature_schema = {
         "feature_schema_version": FEATURE_SCHEMA_VERSION,
         "feature_names": FEATURE_COLS,
         "target": TARGET_COL,
         "forbidden_in_X": sorted(FORBIDDEN_IN_X),
-        "feature_ranges": serving_ranges,
+        "feature_ranges": ranges,
+        "validation_ranges": serving_ranges,
     }
     # Le schéma partagé (feature_schema.json) accompagne l'artefact servi :
     # il n'est mis à jour que pour la version officielle. Les expériences
@@ -412,6 +469,10 @@ def main() -> int:
     parser.add_argument("--dataset-path", default=None, help="Chemin du dataset provenancé")
     parser.add_argument("--artifact-path", default=None, help="Chemin de sortie de l'artefact joblib")
     parser.add_argument("--metadata-path", default=None, help="Chemin de sortie de la metadata JSON")
+    parser.add_argument("--select", default=None,
+                        help="Impose l'algorithme retenu (ex. gradient_boosting) au lieu du meilleur CV")
+    parser.add_argument("--xgb-params", default=None,
+                        help="Hyperparametres XGBoost en JSON (remplacent DEFAULT_XGB_PARAMS)")
     args = parser.parse_args()
     try:
         metrics = train_gap_model(
@@ -420,6 +481,8 @@ def main() -> int:
             Path(args.dataset_path) if args.dataset_path else None,
             Path(args.artifact_path) if args.artifact_path else None,
             Path(args.metadata_path) if args.metadata_path else None,
+            args.select,
+            json.loads(args.xgb_params) if args.xgb_params else None,
         )
     except SystemExit as exc:
         return int(exc.code or 1)

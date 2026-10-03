@@ -144,6 +144,13 @@ class AnalyzeTeacherScope:
                 fallback=True,
                 fallback_reason=self.FALLBACK_REASON,
             )
+        elif not scoped_competencies:
+            # Ni département ni UP : le périmètre est GLOBAL par règle (voir
+            # _scope_info). La spécialité ne sert qu'à le resserrer quand elle
+            # correspond à un domaine ; sans correspondance (ex. « DevOps,
+            # conteneurisation »), l'analyse restait VIDE tout en affichant
+            # « Périmètre global » — niveaux saisis ignorés.
+            scoped_competencies = all_competencies
         scoped_ids = {c.id for c in scoped_competencies}
 
         computed_gaps, _, _ = self._compute_gaps.execute(teacher.id)
@@ -155,7 +162,9 @@ class AnalyzeTeacherScope:
         recommendations = self._recommendations_for_top_gaps(
             teacher.id, gaps, dept_id=teacher.dept_id, up_id=teacher.up_id,
         )
-        niveaux_sur_scope = self._count_levels_on_scope(teacher.id, scoped_ids)
+        niveaux_sur_scope = self._count_levels_on_competencies(
+            teacher.id, [c for c in scoped_competencies if c.id in scoped_ids]
+        )
 
         return TeacherScopeAnalysis(
             teacher=teacher,
@@ -171,16 +180,43 @@ class AnalyzeTeacherScope:
     # Nombre de niveaux réellement enregistrés par l'enseignant sur les savoirs
     # du périmètre (0 => gaps calculés depuis le référentiel seul — alerte à la
     # donnée manquante, exposée à l'UI pour un affichage honnête).
-    def _count_levels_on_scope(self, teacher_id: str, scoped_ids: set[int]) -> int:
-        levels = self._competency_source.get_teacher_savoir_levels(teacher_id)
-        if not levels or not scoped_ids:
+    def _count_levels_on_competencies(self, teacher_id: str, competencies) -> int:
+        if not competencies:
             return 0
-        scoped_competencies = self._competency_source.list_competencies()
+        levels = self._competency_source.get_teacher_savoir_levels(teacher_id)
+        if not levels:
+            return 0
         scope_savoir_ids: set[int] = set()
-        for c in scoped_competencies:
-            if c.id in scoped_ids:
-                scope_savoir_ids.update(c.savoir_ids())
+        for c in competencies:
+            scope_savoir_ids.update(c.savoir_ids())
         return sum(1 for sid in levels if sid in scope_savoir_ids)
+
+    def count_levels_on_scope(
+        self,
+        teacher_id: str,
+        up_id: str | None,
+        dept_id: str | None,
+        specialite: str | None,
+        scope_cache: dict | None = None,
+    ) -> int:
+        """``niveaux_sur_scope`` sans recalculer gaps ni recommandations.
+
+        Même règle de périmètre que :meth:`execute` (y compris l'élargissement
+        explicite au référentiel global quand le périmètre déclaré est vide) :
+        un tableau de bord qui liste des scores juge leur significativité
+        exactement comme la page enseignant. ``scope_cache`` évite de relire
+        le référentiel pour chaque enseignant d'un même périmètre.
+        """
+        key = (up_id, dept_id, specialite)
+        cache = scope_cache if scope_cache is not None else {}
+        if key not in cache:
+            scoped = self._competency_source.list_competencies_for_scope(up_id, dept_id, specialite)
+            if not scoped:
+                # même règle que execute() : élargissement explicite si le
+                # périmètre déclaré est vide, référentiel global sans rattachement
+                scoped = self._competency_source.list_competencies()
+            cache[key] = scoped
+        return self._count_levels_on_competencies(teacher_id, cache[key])
 
     # Génère des recommandations pour les N gaps les plus critiques
     # (max_gaps_for_recommendations), en dédupliquant par formation

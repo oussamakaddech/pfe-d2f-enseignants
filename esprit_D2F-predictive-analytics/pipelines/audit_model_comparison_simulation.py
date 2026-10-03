@@ -20,6 +20,8 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.neural_network import MLPRegressor
 from xgboost import XGBRegressor
 
+from pipelines.baselines import compute_baselines
+
 BASE = Path(__file__).parent.parent
 SIM_CSV = BASE / "data" / "clean" / "simulation_dataset.csv"
 OUT_JSON = BASE / "reports" / "audit_model_comparison_simulation.json"
@@ -39,17 +41,37 @@ FEATURE_COLS = [
 TARGET_COL = "gap_next_3m"
 FORBIDDEN_IN_X = {"knowledge_difficulty_level", "required_level", "required_level_t", TARGET_COL}
 
-DOC_GBMETRICS = {"test_rmse": 0.5115, "test_mae": 0.3596, "test_r2": 0.7113}
+MODELS_DIR = BASE / "data" / "models"
+
+
+def _documented_gb_metrics() -> dict[str, float]:
+    """Metriques enregistrees au registre pour le GB de simulation (jamais en dur)."""
+    registry = json.loads((MODELS_DIR / "model_registry.json").read_text(encoding="utf-8"))
+    entry = next(e for e in registry if e.get("model_version") == "simulation-v1.0.0")
+    m = entry["metrics"]
+    return {"test_rmse": m["rmse"], "test_mae": m["mae"], "test_r2": m["r2"]}
+
+
+def _risk_verdict() -> str:
+    path = MODELS_DIR / "risk_training_metadata.json"
+    if not path.exists():
+        return "metadonnees du modele de risque absentes"
+    meta = json.loads(path.read_text(encoding="utf-8"))
+    f1 = meta.get("metrics", {}).get("macro_f1", meta.get("macro_f1"))
+    return f"decision={meta.get('decision')}, macro-F1 {f1} (seuil 0.70)"
 
 
 def main() -> int:
     df = pd.read_csv(SIM_CSV)
     assert (df["data_origin"] == "SIMULATED").all()
+    assert df["generation_seed"].nunique() == 1, "corpus issu de plusieurs graines"
+    data_seed = int(df["generation_seed"].iloc[0])
+    doc_gb = _documented_gb_metrics()
     leaks = [c for c in FEATURE_COLS if c in FORBIDDEN_IN_X]
     assert not leaks, f"fuite dans X : {leaks}"
 
     # Split temporel strict (identique au pipeline documente) : tri date_t, 80/20, sans shuffle.
-    df_sorted = df.sort_values("date_t").reset_index(drop=True)
+    df_sorted = df.sort_values("date_t", kind="stable").reset_index(drop=True)
     n = len(df_sorted)
     n_test = max(20, int(n * 0.2))
     n_train = n - n_test
@@ -73,14 +95,13 @@ def main() -> int:
     y_test = test[TARGET_COL].clip(0, 5).values
     y_train = train[TARGET_COL].clip(0, 5).values
 
-    # Baseline persistance : gap_t proxy (definition train_gap_model.compute_baseline).
-    gap_t_proxy = np.clip(
-        test[FEATURE_COLS].astype(float)["current_level_t"].values
-        - test[FEATURE_COLS].astype(float)["avg_level"].values,
-        0, 5,
-    )
-    baseline_rmse = float(np.sqrt(mean_squared_error(y_test, gap_t_proxy)))
-    baseline_mae = float(mean_absolute_error(y_test, gap_t_proxy))
+    # Baseline de reference = contrat partage (pipelines/baselines.py) ; l'ancien
+    # proxy de persistance (current_level_t - avg_level) etait degenere.
+    baseline = compute_baselines(train, y_train, test, y_test)
+    gap_t_proxy = np.asarray(baseline["baseline_predictions"], dtype=float)
+    baseline_name = baseline["baseline_name"]
+    baseline_rmse = float(baseline["baseline_rmse"])
+    baseline_mae = float(baseline["baseline_mae"])
     baseline_r2 = float(r2_score(y_test, gap_t_proxy))
 
     candidates = {
@@ -143,10 +164,13 @@ def main() -> int:
 
     gb = next(r for r in rows if r["candidate"] == "gradient_boosting")
     gb_match = (
-        abs(gb["rmse"] - DOC_GBMETRICS["test_rmse"]) <= 0.01
-        and abs(gb["mae"] - DOC_GBMETRICS["test_mae"]) <= 0.01
-        and abs(gb["r2"] - DOC_GBMETRICS["test_r2"]) <= 0.01
+        abs(gb["rmse"] - doc_gb["test_rmse"]) <= 0.01
+        and abs(gb["mae"] - doc_gb["test_mae"]) <= 0.01
+        and abs(gb["r2"] - doc_gb["test_r2"]) <= 0.01
     )
+    xgb = next(r for r in rows if r["candidate"] == "xgboost")
+    gap_abs = round(gb["rmse"] - xgb["rmse"], 4)
+    gap_rel = round(100.0 * gap_abs / gb["rmse"], 2)
 
     report = {
         "corpus": {
@@ -157,29 +181,30 @@ def main() -> int:
             "split": f"temporal_strict_cutoff_{cutoff}",
             "shuffle": False,
             "data_origin": "SIMULATED",
-            "seed": SEED,
+            "seed": data_seed,
+            "model_random_state": SEED,
         },
-        "baseline": {"rmse": round(baseline_rmse, 4), "mae": round(baseline_mae, 4), "r2": round(baseline_r2, 4)},
+        "baseline": {"name": baseline_name, "rmse": round(baseline_rmse, 4), "mae": round(baseline_mae, 4), "r2": round(baseline_r2, 4)},
         "candidates": rows,
         "best": best,
-        "documented_gb_metrics": DOC_GBMETRICS,
+        "documented_gb_metrics": doc_gb,
         "gb_metrics_match_documented": gb_match,
         "notes": {
-            "protocole": "identique au pipeline documente register_simulation_model.py (split temporel par date_t, sans shuffle, min-max sur train, seed 42)",
-            "decision": "RETENU = meilleur RMSE avec lift IC95 > 0 vs baseline persistance",
+            "protocole": "identique au pipeline documente register_simulation_model.py (split temporel par date_t, tri stable, sans shuffle, min-max sur train, random_state 42)",
+            "decision": f"RETENU = meilleur RMSE avec lift IC95 > 0 vs baseline {baseline_name}",
         },
     }
     OUT_JSON.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
 
     lines = [
-        "# Audit — comparaison des modeles sur le corpus de SIMULATION (10920 lignes, seed 42)",
+        f"# Audit — comparaison des modeles sur le corpus de SIMULATION ({len(df)} lignes, graine {data_seed})",
         "",
-        "Protocole : split temporel strict (tri date_t, 80/20, sans shuffle), normalisation min-max",
-        "capturee sur le train, seed 42, anti-fuite (required_level / gap_next_3m exclus).",
+        "Protocole : split temporel strict (tri date_t stable, 80/20, sans shuffle), normalisation min-max",
+        "capturee sur le train, random_state 42, anti-fuite (required_level / gap_next_3m exclus).",
         "",
         "| Candidat | RMSE | MAE | R2 | lift RMSE vs baseline (IC95) | Decision |",
         "|---|---|---|---|---|---|",
-        f"| Baseline (persistance gap_t) | {baseline_rmse:.4f} | {baseline_mae:.4f} | {baseline_r2:.4f} | - | reference |",
+        f"| Baseline ({baseline_name}) | {baseline_rmse:.4f} | {baseline_mae:.4f} | {baseline_r2:.4f} | - | reference |",
     ]
     for r in rows_sorted:
         lines.append(
@@ -188,54 +213,33 @@ def main() -> int:
         )
     lines += [
         "",
-        f"Metriques GB re-entraine vs documentees (0.5115 / 0.3596 / 0.7113) : **{'MATCH' if gb_match else 'ECART'}**",
+        f"Metriques GB re-entraine vs registre simulation-v1.0.0 ({doc_gb['test_rmse']} / {doc_gb['test_mae']} / "
+        f"{doc_gb['test_r2']}) : **{'MATCH' if gb_match else 'ECART'}**",
         "",
         f"Meilleur candidat : **{best['candidate']}** (decision={best['decision']}).",
         "",
-        "## XGBoost challenger meilleur que le modele servi — pourquoi il n'est PAS promu",
+        "## XGBoost face au GradientBoosting de reference",
         "",
-        "XGBoost obtient un RMSE legerement meilleur que le GradientBoosting servi",
-        f"({next(r for r in rows if r['candidate'] == 'xgboost')['rmse']:.4f} vs {gb['rmse']:.4f},",
-        "ecart IC95 significatif mais MARGINAL) :",
+        f"Ecart de RMSE GB - XGBoost : {gap_abs:+.4f} ({gap_rel:+.2f} % relatif) sur une cible [0, 5].",
+        "Un ecart de cet ordre reste sous la granularite metier (seuils de severite par pas de 0.25) ;",
+        "une promotion imposerait une nouvelle version et une revalidation complete. Le modele de",
+        "simulation valide la METHODE ; le modele de production est entraine sur le corpus reel.",
         "",
-        "1. **Gain negligible a l'echelle metier** : 0.0048 en absolu (0.93 % relatif)",
-        "   sur une cible [0, 5] — sous la granularite actionnable (les seuils de",
-        "   severite des gaps sont pas de 0.25) ; aucune decision ne change.",
-        "2. **Cout de promotion disproportionne** : la politique « elargir =",
-        "   reentrainer = nouvelle version » impose un nouvel artefact",
-        "   (simulation-v1.1.0) avec revalidation complete (plages de serving,",
-        "   drift checks, non-regression du serving demo 40/40).",
-        "3. **Role du modele simulation** : artefact SIMULATION_VALIDATED (demo),",
-        "   sa fonction est la validation METHODOLOGIQUE (pipeline, gouvernance,",
-        "   calibration), pas un leaderboard ; le modele PRODUCTION actif (v1.1.0)",
-        "   est entraine sur le corpus reel — la comparaison simulation ne le",
-        "   concerne pas directement.",
-        "4. **Stabilite** : GB deterministe (seed 42), interpretabilite egale",
-        "   (feature_importances_), coherence API identique (model_version,",
-        "   fallback_reason, target_validity inchanges) — le swap n'apporte rien",
-        "   a l'utilisateur final.",
-        "",
-        "## Verification fail-closed (audit 2.2)",
+        "## Verification fail-closed",
         "",
         "- Promotion registre : SHA-256 hex64 + metriques finies/non negatives +",
         "  schema features compatible exigees sinon REJECTED (promotion_validation_error).",
         "- Chargement serving : integrite sidecar (SHA-256/HMAC), spec de features,",
         "  provenance, registre approuve, seuils de metriques — fail-closed verifie.",
-        "- Risk classifier (macro-F1 0.525 < 0.70) : decision=reject, artefact absent",
-        "  du chemin de production, entree registre CANDIDATE uniquement.",
+        f"- Modele de risque : {_risk_verdict()}.",
     ]
-    report["xgboost_challenger_not_promoted"] = {
-        "rmse_xgboost": next(r for r in rows if r["candidate"] == "xgboost")["rmse"],
-        "rmse_served_gb": gb["rmse"],
-        "absolute_gap": round(gb["rmse"] - next(r for r in rows if r["candidate"] == "xgboost")["rmse"], 4),
-        "relative_improvement_pct": round(100.0 * (gb["rmse"] - next(r for r in rows if r["candidate"] == "xgboost")["rmse"]) / gb["rmse"], 2),
-        "justification": [
-            "gain marginal (0.0048 absolu, 0.93% relatif) sous la granularite metier (seuils de severite par pas de 0.25) — aucune decision ne change",
-            "cout de promotion disproportionne : nouvelle version (simulation-v1.1.0) + revalidation complete (plages de serving, drift, non-regression demo 40/40)",
-            "role du modele simulation = validation methodologique (SIMULATION_VALIDATED), pas un leaderboard ; le modele PRODUCTION actif (v1.1.0) est entraine sur le corpus reel",
-            "stabilite/interpretabilite/coherence API egales — le swap n'apporte rien a l'utilisateur final",
-        ],
+    report["xgboost_vs_gb"] = {
+        "rmse_xgboost": xgb["rmse"],
+        "rmse_gb": gb["rmse"],
+        "absolute_gap": gap_abs,
+        "relative_improvement_pct": gap_rel,
     }
+    OUT_JSON.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
     OUT_MD.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"\n[OK] {OUT_JSON.name} + {OUT_MD.name}")
     print(f"GB match documente: {gb_match} | best: {best['candidate']} ({best['decision']})")

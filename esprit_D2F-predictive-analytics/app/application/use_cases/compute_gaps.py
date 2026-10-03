@@ -38,8 +38,20 @@ class ComputeGaps:
         if ml_gaps is not None:
             filtered = self._filter_to_scope_ids(scoped, ml_gaps)
             if filtered:
-                self._analysis_repository.save_skill_gaps(filtered, teacher_id=teacher_id)
-                return filtered, model_mode, model_version
+                # Le ML ne prédit que les compétences où l'enseignant a des
+                # niveaux. Les autres compétences du périmètre — souvent les
+                # plus gros écarts (aucun niveau) — étaient silencieusement
+                # retirées de l'analyse et du risque (constat 2026-09-23 :
+                # ENS019, 2 compétences WEB affichées sur 6). Elles sont
+                # complétées par le moteur heuristique, dont les tendances
+                # (STABLE/DECLINING) ne portent aucun marqueur ML.
+                covered = {gap.competence_id for gap in filtered}
+                missing = [c for c in scoped if c.id not in covered]
+                gaps = filtered + (
+                    self._heuristic_on(competencies=missing, teacher_id=teacher_id) if missing else []
+                )
+                self._analysis_repository.save_skill_gaps(gaps, teacher_id=teacher_id)
+                return gaps, model_mode, model_version
             # Le ML ne couvre pas le périmètre : fallback heuristique ciblé.
             gaps = self._heuristic_on(competencies=scoped, teacher_id=teacher_id)
             self._analysis_repository.save_skill_gaps(gaps, teacher_id=teacher_id)

@@ -442,22 +442,26 @@ class GapPredictor:
         teacher_profiles: list[dict[str, Any]],
         competency_levels: list[dict[str, Any]],
     ) -> dict[str, Any]:
-        """Check for data drift comparing current data to training metadata."""
-        if self.model is None or not self.feature_ranges:
-            return {"drift_detected": False, "message": "No model loaded — drift check skipped"}
+        """Rapport de dérive de l'ancien GapPredictor : AUCUNE mesure n'est faite.
 
-        df = build_teacher_features(teacher_profiles, competency_levels)
-        if df.empty:
-            return {"drift_detected": False, "message": "No data available for drift check"}
-
-        drift_report = {
-            "drift_detected": False,
-            "feature_skew_ok": True,
+        Le calcul historique reconstruisait des features devenues incompatibles
+        avec le schéma (``observed_result`` absent → KeyError → 500) puis
+        renvoyait de toute façon ``drift_detected: False`` sans test. Une
+        absence de mesure n'est pas une absence de dérive : on renvoie
+        ``None`` et on pointe vers le contrôle réel (test KS du skew guard,
+        exposé par ``/api/v1/analytics/model-health``).
+        """
+        return {
+            "drift_detected": None,
+            "feature_skew_ok": None,
             "feature_skew_reason": None,
-            "drift_status": "UNKNOWN",
-            "drift_message": "GapPredictor is deprecated — drift check is for reference only",
+            "drift_status": "NOT_CHECKED",
+            "drift_message": (
+                "GapPredictor historique : dérive non contrôlée ici. Le contrôle réel "
+                "du modèle servi est exposé par /api/v1/analytics/model-health (skew_guard)."
+            ),
+            "model_loaded": self.model is not None,
         }
-        return drift_report
 
     # ── Backward-compat shims (legacy /api/v1/d2f/*) ─────────
     # L'API legacy (routeur d2f_master + tests_legacy) appelle encore

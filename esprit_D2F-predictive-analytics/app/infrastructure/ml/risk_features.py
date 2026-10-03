@@ -137,7 +137,16 @@ def build_training_frame(df: pd.DataFrame) -> pd.DataFrame:
 
     - gap a t : max(0, required_level - current_level_t) -> gap_score = min(1, gap/4) ;
     - gap a t+3 (cible, OBSERVEE) : max(0, required_level - niveau observe a M+3)
-      = max(0, gap_next_3m) (colonne de re-mesure, jamais dans les features) ;
+      = max(0, round(gap_next_3m)) (colonne de re-mesure, jamais dans les features).
+      Les niveaux re-mesures sont ENTIERS (N1..N5) : le generateur ajoute un bruit
+      gaussien (sigma 0.10) a ``gap_next_3m``, or les seuils de severite tombent
+      exactement sur les entiers (ecart 1/2/3 <-> score 0.25/0.50/0.75). Sans
+      arrondi, ~24 % des competences perdaient un cran de severite au hasard (cible
+      incoherente avec les features a t, calculees sur niveaux entiers ; audit
+      2026-10-01). L'arrondi retrouve l'entier observe (|bruit| max 0.39 < 0.5) ;
+    - agregats par competence en MOYENNE : meme convention que le serving
+      (``ArtifactModelPort._serving_aggregates``) ; la mediane creait un ecart
+      train/serving sur les 11 features de ``AGG_FEATURE_SOURCES`` ;
     - trend_gap_direction : signe moyen de l'evolution du gap entre t-1 et t.
     """
     required = pd.to_numeric(df["required_level"], errors="coerce")
@@ -148,7 +157,7 @@ def build_training_frame(df: pd.DataFrame) -> pd.DataFrame:
     score_t = (gap_t / 4.0).clip(upper=1.0)
     score_t1 = (gap_t1 / 4.0).clip(upper=1.0)
     # gap futur OBSERVE (re-mesure M+3) — CIBLE uniquement, interdit en feature.
-    gap_fut = pd.to_numeric(df["gap_next_3m"], errors="coerce").clip(lower=0.0)
+    gap_fut = pd.to_numeric(df["gap_next_3m"], errors="coerce").round().clip(lower=0.0)
     score_fut = (gap_fut / 4.0).clip(upper=1.0)
 
     df = df.assign(
@@ -171,9 +180,11 @@ def build_training_frame(df: pd.DataFrame) -> pd.DataFrame:
         n_med = int(((scores >= SEUIL_GAP_MOYENNE) & (scores < SEUIL_GAP_HAUTE)).sum())
         trend = float(np.mean(np.sign(scores.values - prev_scores.values))) if n_tot else 0.0
 
-        # Médiane numérique d'une colonne du groupe (0.0 si vide/non numérique).
+        # Moyenne numérique d'une colonne du groupe (0.0 si vide/non numérique) :
+        # même agrégation que le serving (les colonnes propres à l'enseignant,
+        # constantes dans le groupe, sont inchangées par rapport à la médiane).
         def _med(col: str) -> float:
-            v = pd.to_numeric(g[col], errors="coerce").median()
+            v = pd.to_numeric(g[col], errors="coerce").mean()
             return float(v) if pd.notna(v) else 0.0
 
         features = {

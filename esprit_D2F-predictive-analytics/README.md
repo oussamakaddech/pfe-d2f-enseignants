@@ -1,6 +1,8 @@
 # D2F Predictive Analytics Microservice
 
-Microservice Python (FastAPI) pour l'analyse prédictive des compétences, des gaps et des risques de formation des enseignants (ESPRIT).
+Microservice Python (FastAPI) pour l'analyse prédictive des compétences, des écarts de couverture et des risques de formation des enseignants (ESPRIT).
+
+> **Ce que mesure l'écart.** Le niveau N1–N5 est un attribut **descriptif du savoir** (sa difficulté), pas une maîtrise de l'enseignant ([politique](docs/KNOWLEDGE_DIFFICULTY_LEVEL_POLICY.md)). L'écart prédit est donc un **écart de couverture** : niveau de difficulté exigé par le périmètre moins niveau de difficulté des savoirs couverts. La maîtrise réelle se mesurera par des résultats observés (tests avant/après formation). La réponse de `/model-health` porte cette définition dans `target_meaning`.
 
 ## Modes d'exécution ML
 
@@ -48,7 +50,7 @@ Le modèle n'est **jamais** régénéré silencieusement au démarrage du conten
 
 | Méthode | Endpoint | Description |
 |---|---|---|
-| GET | `/api/v1/analytics/teachers/{teacher_id}/gaps` | Gaps de compétences + `model_mode`, `model_version`, `fallback_reason`, `dataset_version` |
+| GET | `/api/v1/analytics/teachers/{teacher_id}/gaps` | Écarts de couverture + `model_mode`, `model_version`, `fallback_reason`, `dataset_version` |
 | GET | `/api/v1/analytics/teachers/{teacher_id}/risk` | Score de risque (règles métier prioritaires sur le ML) |
 | GET | `/api/v1/analytics/dashboard` | Dashboard agrégé |
 | GET | `/api/v1/analytics/dashboard/latest` | Dernier snapshot |
@@ -93,22 +95,33 @@ python -m pytest tests/ -v
 
 ## Réponse API réelle
 
-Le mode final est **`PRODUCTION_ML`** car toutes les conditions sont satisfaites :
-- Artefact `gap_predictor_temporal.joblib` intègre (SHA-256 vérifié) ;
-- Provenance : 107 lignes réelles, 0% synthétique ;
-- Registre : version `v1.0.0` ACTIVE et APPROVED ;
-- Features compatibles (29 features, schéma 1.0) ;
-- Métriques : RMSE=0.9883, MAE=0.6388, R²=0.1897 (seuils respectés).
+État vérifié en direct le 2026-10-01 (`GET /api/v1/analytics/health`, conteneur
+`d2f-predictive-analytics`) : mode **`PRODUCTION_ML`**, modèle **`v1.3.0-xgb`**
+(XGBoost, entrée ACTIVE du registre, sous override déclaré
+`decision-projet:2026-09-27`).
+
+- Artefact `gap_predictor_temporal.joblib` intègre (SHA-256 `8068bfb0…` = registre) ;
+- Corpus : 200 lignes réelles (38 enseignants, seeds de démo exclus), 0 % synthétique ;
+- Features : 29 (schéma 1.0) ; split temporel 160 / 40 ;
+- Holdout : RMSE 0,3811 · MAE 0,2835 · R² 0,7867 ;
+- **Limite assumée** : la règle d'extrapolation à un paramètre fait 0,3418 ;
+  écart −0,0393, IC95 [−0,1395 ; +0,0524], non significatif → `decision: reject`
+  conservée en metadata. La cible est extrapolée (`EXTRAPOLATED_TARGET`) tant
+  qu'aucune re-mesure réelle à M+3 n'existe.
+- Moteur de risque : formule pondérée 0,50/0,12/0,40, **validée en simulation**
+  (`risk_training_metadata.json` → `formula_validation` : macro-F1 0,7222 à M+3 sur
+  400 enseignants simulés, seuil 0,70). Le meilleur modèle ML testé (0,6629) fait
+  significativement moins bien : il n'est pas servi (`risk-simulation-v1.1.0`, REJECTED).
 
 ```json
 {
-  "model_mode": "PRODUCTION_ML",
-  "model_version": "v1.0.0",
-  "prediction_horizon": "3m",
-  "provenance": {
-    "synthetic_share_pct": 0.0,
-    "dataset_version": "v1.0.0"
-  }
+  "status": "ok",
+  "model": "PRODUCTION_ML",
+  "model_version": "v1.3.0-xgb",
+  "target_validity": "EXTRAPOLATED_TARGET",
+  "data_origin": "DEMO_SEED",
+  "validation_scope": "DEMO_VALIDATED",
+  "risk_mode": "HEURISTIC"
 }
 ```
 

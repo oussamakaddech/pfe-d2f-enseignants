@@ -20,11 +20,17 @@ INSERT_GAPS = """
          :niveau_urgence, :mois_stagnation, :en_regression, :nb_besoins_exprimes, :tendance, now())
 """
 
+# Un instantané par enseignant et par jour (contrainte V12) : un nouveau calcul
+# le même jour remplace le précédent au lieu d'ajouter une ligne.
 INSERT_RISK = """
     INSERT INTO "analyse".teacher_risk_snapshots
         (enseignant_id, snapshot_date, score_risque, niveau_risque, tendance, computed_at)
     VALUES
         (:enseignant_id, CURRENT_DATE, :score_risque, :niveau_risque, 'STABLE', now())
+    ON CONFLICT (enseignant_id, snapshot_date) DO UPDATE
+       SET score_risque = EXCLUDED.score_risque,
+           niveau_risque = EXCLUDED.niveau_risque,
+           computed_at = EXCLUDED.computed_at
 """
 
 INSERT_RECOMMENDATION = """
@@ -47,6 +53,16 @@ SELECT_GAPS_BY_TEACHER = """
     WHERE enseignant_id = :id
     ORDER BY gap_score DESC, competence_id
 """
+
+SELECT_LAST_SERVING_CALL = """
+    SELECT mode, fallback_reason
+    FROM "analyse".ml_observability
+    WHERE teacher_id = :id
+    ORDER BY created_at DESC, id DESC
+    LIMIT 1
+"""
+
+ML_SERVING_MODES = frozenset({"PRODUCTION_ML", "DEMO_ML"})
 
 
 class SqlAnalysisRepository:
@@ -95,6 +111,27 @@ class SqlAnalysisRepository:
                     )
         except Exception as exc:
             logger.error("persistance gaps impossible", error=str(exc))
+
+    def last_serving_fallback_reason(self, teacher_id: str) -> str | None:
+        """Raison du repli journalisée lors du DERNIER calcul de cet enseignant.
+
+        Lue dans ``analyse.ml_observability`` (une ligne par appel de serving) :
+        c'est la raison propre à CET enseignant, alors que la raison globale du
+        port est celle du dernier enseignant calculé, quel qu'il soit. None si
+        le dernier calcul est passé par le ML ou si rien n'est journalisé.
+        """
+        try:
+            from sqlalchemy import text as _text
+            with self._database.read_connection() as session:
+                row = session.execute(
+                    _text(SELECT_LAST_SERVING_CALL), {"id": teacher_id}
+                ).mappings().first()
+        except Exception as exc:
+            logger.warning("lecture ml_observability impossible", error=str(exc))
+            return None
+        if row is None or row["mode"] in ML_SERVING_MODES:
+            return None
+        return row["fallback_reason"]
 
     def list_gaps_by_teacher(self, teacher_id: str) -> list[SkillGap]:
         from app.domain.value_objects.enums import Severity

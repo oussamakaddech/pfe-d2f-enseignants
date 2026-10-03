@@ -98,9 +98,18 @@ def test_formations_par_periode_debut_apres_fin(client, container):
     assert response.status_code == 400
 
 
-def test_formations_par_periode_without_auth_ok(client, container):
+def test_formations_par_periode_without_auth_rejected(client, container):
+    # Défense en profondeur (audit C3, 2026-09-24) : le service ne s'en remet
+    # plus à la gateway seule, un appel sans jeton est refusé.
     container.database = _ScriptedDb([_Result(rows=[])])
     response = client.get("/api/v1/analytics/formations-par-periode")
+    assert response.status_code == 401
+
+
+def test_formations_par_periode_with_auth_ok(client, container):
+    container.database = _ScriptedDb([_Result(rows=[])])
+    response = client.get("/api/v1/analytics/formations-par-periode",
+                          headers=auth_headers("admin", ["ADMIN"]))
     assert response.status_code == 200
     assert response.json()["periodes"] == []
 
@@ -266,10 +275,11 @@ def test_formations_par_periode_admin_keeps_client_filters(client, container):
     assert captured["departement"] == "D2"
 
 
-def test_formations_par_periode_anonymous_unscoped(client, container):
+def test_formations_par_periode_admin_unscoped(client, container):
     captured: dict = {}
     container.database = _RecordingDb(captured)
-    response = client.get("/api/v1/analytics/formations-par-periode?granularite=MOIS")
+    response = client.get("/api/v1/analytics/formations-par-periode?granularite=MOIS",
+                          headers=auth_headers("admin", ["ADMIN"]))
     assert response.status_code == 200
     assert captured["up"] is None
     assert captured["departement"] is None
@@ -277,3 +287,129 @@ def test_formations_par_periode_anonymous_unscoped(client, container):
 
 def test_alert_repository_table_constant_used():
     assert '"analyse".alert_events' in ALERT_EVENTS_TABLE
+
+
+# ── enseignants-sans-formation + exports (routes remontées dans app.main) ────
+class _FakeReportingEngine:
+    calls: list = []
+
+    def __init__(self, db):
+        self.db = db
+
+    def formations_par_up(self, annee, departement):
+        _FakeReportingEngine.calls.append(("up", annee, departement))
+        return [{"upId": "UP1", "nombreParticipations": 3}, {"upId": "UP2", "nombreParticipations": 5}]
+
+    def formations_par_departement(self, annee):
+        return {"departements": [{"departementId": "D1"}], "comparaisonRadar": []}
+
+    def enseignants_sans_formation(self, mois, departement, up, page, size):
+        _FakeReportingEngine.calls.append((mois, departement, up, page, size))
+        return {"total": 0, "page": page, "size": size, "items": []}
+
+
+class _FakeExportService:
+    calls: list = []
+
+    @staticmethod
+    def build_excel(db, type_export, *, mois, annee, departement, up):
+        _FakeExportService.calls.append(("xlsx", type_export, departement, up))
+        return b"xlsx", "rapport.xlsx"
+
+    @staticmethod
+    def build_pdf(db, type_rapport, *, annee):
+        _FakeExportService.calls.append(("pdf", type_rapport))
+        return b"%PDF", "rapport.pdf"
+
+
+def _fake_reporting(monkeypatch, container):
+    from app.api.v1 import analytics_api_routes
+
+    _FakeReportingEngine.calls = []
+    _FakeExportService.calls = []
+    container.database = _ScriptedDb([])
+    monkeypatch.setattr(
+        analytics_api_routes, "_legacy_reporting",
+        lambda: (_FakeReportingEngine, _FakeExportService),
+    )
+
+
+def test_enseignants_sans_formation_route_is_mounted(client, container, monkeypatch):
+    _fake_reporting(monkeypatch, container)
+    response = client.get(
+        "/api/v1/analytics/enseignants-sans-formation?mois=6&page=0&size=5",
+        headers=auth_headers("admin", ["ADMIN"]),
+    )
+    assert response.status_code == 200
+    assert response.json() == {"total": 0, "page": 0, "size": 5, "items": []}
+    assert _FakeReportingEngine.calls == [(6, None, None, 0, 5)]
+
+
+def test_enseignants_sans_formation_chef_scoped_to_own_departement(client, container, monkeypatch):
+    _fake_reporting(monkeypatch, container)
+    response = client.get(
+        "/api/v1/analytics/enseignants-sans-formation?departement=D9&up=UP9",
+        headers=auth_headers("chef", ["CHEF_DEPARTEMENT"]),
+    )
+    assert response.status_code == 200
+    assert _FakeReportingEngine.calls[0][1:3] == ("D1", None)
+
+
+def test_enseignants_sans_formation_forbidden_for_teacher(client, container, monkeypatch):
+    _fake_reporting(monkeypatch, container)
+    response = client.get(
+        "/api/v1/analytics/enseignants-sans-formation",
+        headers=auth_headers("ens", ["ENSEIGNANT"]),
+    )
+    assert response.status_code == 403
+    assert _FakeReportingEngine.calls == []
+
+
+def test_export_excel_cup_scoped_and_pdf_admin_only(client, container, monkeypatch):
+    _fake_reporting(monkeypatch, container)
+    xlsx = client.get(
+        "/api/v1/analytics/export/excel?type=INACTIFS&up=UP9",
+        headers=auth_headers("cup", ["CUP"]),
+    )
+    assert xlsx.status_code == 200
+    assert _FakeExportService.calls == [("xlsx", "INACTIFS", None, "UP1")]
+    assert client.get(
+        "/api/v1/analytics/export/pdf", headers=auth_headers("cup", ["CUP"]),
+    ).status_code == 403
+    pdf = client.get("/api/v1/analytics/export/pdf", headers=auth_headers("admin", ["ADMIN"]))
+    assert pdf.status_code == 200
+    assert pdf.headers["content-type"] == "application/pdf"
+
+
+def test_export_rejects_unknown_type(client, container, monkeypatch):
+    _fake_reporting(monkeypatch, container)
+    response = client.get(
+        "/api/v1/analytics/export/excel?type=TOUT", headers=auth_headers("admin", ["ADMIN"]),
+    )
+    assert response.status_code == 400
+
+
+def test_formations_par_up_cup_sees_only_own_up(client, container, monkeypatch):
+    _fake_reporting(monkeypatch, container)
+    response = client.get("/api/v1/analytics/formations-par-up", headers=auth_headers("cup", ["CUP"]))
+    assert response.status_code == 200
+    assert response.json() == {"items": [{"upId": "UP1", "nombreParticipations": 3}]}
+
+
+def test_formations_par_up_admin_sees_all_ups(client, container, monkeypatch):
+    _fake_reporting(monkeypatch, container)
+    response = client.get("/api/v1/analytics/formations-par-up", headers=auth_headers("admin", ["ADMIN"]))
+    assert [i["upId"] for i in response.json()["items"]] == ["UP1", "UP2"]
+
+
+def test_formations_par_departement_admin_only(client, container, monkeypatch):
+    _fake_reporting(monkeypatch, container)
+    admin = client.get(
+        "/api/v1/analytics/formations-par-departement", headers=auth_headers("admin", ["ADMIN"]),
+    )
+    assert admin.status_code == 200
+    assert admin.json()["departements"] == [{"departementId": "D1"}]
+    assert client.get(
+        "/api/v1/analytics/formations-par-departement", headers=auth_headers("cup", ["CUP"]),
+    ).status_code == 403
+
