@@ -352,4 +352,14 @@
         <notes><![CDATA[DOMPurify CVE-2026-75838 - utilise par swagger-ui 5.32.2 - risque accepte.]]></notes>
         <cve>CVE-2026-75838</cve>
     </suppress>
+    <!-- Spring Security CVE-2026-41707 (CVSS 7,4) : rejeu de preuves DPoP via
+         DPoPProofJwtDecoderFactory (spring-security-oauth2-jose). Non applicable :
+         aucun service n'utilise DPoP (JWT HS512 partage, git grep "dpop" = 0 usage).
+         Corrige seulement en 7.0.7 / 7.1.1 (Spring Boot 4) ; 6.5.11 = derniere 6.5.x
+         publiee (Boot 3.5.16). A retirer des qu'une 6.5.x corrigee sort. -->
+    <suppress>
+        <notes><![CDATA[Spring Security CVE-2026-41707 - DPoP non utilise ; pas de correctif 6.5.x publie (fix 7.0.7/7.1.1) - risque non applicable, accepte le 2026-10-03.]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring\-security\-.*@6\.5\..*$</packageUrl>
+        <cve>CVE-2026-41707</cve>
+    </suppress>
 </suppressions>
