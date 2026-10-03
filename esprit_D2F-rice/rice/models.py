@@ -7,6 +7,7 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 
+# Enseignant minimal transmis par le frontend lors de l'analyse (id, nom, prénom, modules).
 class EnseignantInfo(BaseModel):
     id: str
     nom: str
@@ -14,6 +15,8 @@ class EnseignantInfo(BaseModel):
     modules: List[str] = []   # list of module names the teacher handles
 
 
+# Proposition d'un savoir (connaissance) extrait d'une fiche : type théorique/
+# pratique, niveau Bloom→N1..N5, enseignants suggérés, codes du référentiel matchés.
 class SavoirProposition(BaseModel):
     tmpId: str = ""
     code: str
@@ -28,6 +31,7 @@ class SavoirProposition(BaseModel):
     directToCompetence: bool = Field(default=False, repr=False)  # internal routing flag
 
 
+# Proposition d'une sous-compétence : regroupe plusieurs savoirs.
 class SousCompetenceProposition(BaseModel):
     tmpId: str = ""
     code: str
@@ -37,6 +41,7 @@ class SousCompetenceProposition(BaseModel):
     savoirs: List[SavoirProposition] = []
 
 
+# Proposition d'une compétence : contient ses savoirs directs et/ou ses sous-compétences.
 class CompetenceProposition(BaseModel):
     tmpId: str = ""
     code: str
@@ -49,6 +54,8 @@ class CompetenceProposition(BaseModel):
     sousCompetences: List[SousCompetenceProposition] = []
 
 
+# Proposition d'un domaine (ex : "Génie Civil – Technique") : plus haut niveau
+# de l'arbre, contient les compétences extraites d'une fiche.
 class DomaineProposition(BaseModel):
     tmpId: str = ""
     code: str
@@ -68,6 +75,8 @@ class FicheEnseignantExtrait(BaseModel):
     matched_nom: Optional[str] = None         # matched full name for display
 
 
+# Résultat complet de l'analyse : arbre de propositions + statistiques
+# (couverture, total savoirs…) + enseignants extraits des fiches + ceux trouvés en base.
 class RiceAnalysisResult(BaseModel):
     propositions: List[DomaineProposition]
     stats: Dict[str, Any] = Field(default_factory=dict)
@@ -82,6 +91,7 @@ class ValidateRequest(BaseModel):
     overwrite: bool = False
 
 
+# Résumé de la persistance /validate : compteurs upsert/insert + erreurs éventuelles.
 class ValidateSummary(BaseModel):
     status: str
     upserted_domaines: int = 0

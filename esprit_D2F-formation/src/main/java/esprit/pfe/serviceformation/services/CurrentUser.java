@@ -40,6 +40,11 @@ public record CurrentUser(String username, String userId, String email, Set<Stri
         return roles.contains(role);
     }
 
+    /** Email si présent, sinon le subject (identité fonctionnelle de la fiche enseignant). */
+    public String emailOrUsername() {
+        return (email == null || email.isBlank()) ? username : email;
+    }
+
     public boolean isAdmin() {
         return roles.contains("ADMIN");
     }

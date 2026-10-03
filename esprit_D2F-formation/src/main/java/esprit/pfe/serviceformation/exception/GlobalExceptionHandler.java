@@ -1,5 +1,7 @@
 package esprit.pfe.serviceformation.exception;
 
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
@@ -84,6 +86,20 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), ex.getErrorCode(), request);
     }
 
+    // ==================== ANIMATOR PROPOSAL WORKFLOW ====================
+
+    @ExceptionHandler(ProposalConflictException.class)
+    public ResponseEntity<ErrorResponse> handleProposalConflict(ProposalConflictException ex, HttpServletRequest request) {
+        log.warn("Animator proposal conflict: {}", ex.getMessage());
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), MODULE_PREFIX + "-PROPOSAL-409", request);
+    }
+
+    @ExceptionHandler(ProposalIncompatibilityException.class)
+    public ResponseEntity<ErrorResponse> handleProposalIncompatibility(ProposalIncompatibilityException ex, HttpServletRequest request) {
+        log.warn("Animator proposal incompatibility: {}", ex.getMessage());
+        return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), MODULE_PREFIX + "-PROPOSAL-422", request);
+    }
+
     // ==================== INSCRIPTION ERRORS ====================
     
     @ExceptionHandler(InscriptionException.class)
@@ -106,6 +122,19 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
         log.error("Access denied: {}", ex.getMessage());
         return buildResponse(HttpStatus.FORBIDDEN, "Accès refusé : vous n'avez pas les permissions nécessaires.", MODULE_PREFIX + "-403", request);
+    }
+
+    /**
+     * Exception métier d'accès (périmètre UP/département CUP/chef) : renvoie 403
+     * avec le message métier explicite (ex. « Périmètre interdit : cette formation
+     * n'appartient pas à votre département (DEPT_WEB) ») au lieu de tomber dans le
+     * handler générique {@link Exception} qui produisait un 500.
+     */
+    @ExceptionHandler(esprit.pfe.serviceformation.exception.AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessAccessDenied(
+            esprit.pfe.serviceformation.exception.AccessDeniedException ex, HttpServletRequest request) {
+        log.warn("Access denied (business scope): {}", ex.getMessage());
+        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), MODULE_PREFIX + "-403", request);
     }
 
     @ExceptionHandler({AuthenticationException.class, BadCredentialsException.class})
@@ -230,6 +259,12 @@ public class GlobalExceptionHandler {
 
     // ==================== GENERIC FALLBACK ====================
 
+    // Paramètre absent ou mal typé : erreur du client (400), pas une panne serveur.
+    @ExceptionHandler({MissingServletRequestParameterException.class, MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<ErrorResponse> handleBadRequestParameter(Exception ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, badParameterMessage(ex), MODULE_PREFIX + "-400", request);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneral(Exception ex, HttpServletRequest request) {
         // Une FeignException peut être enveloppée (circuit breaker /
@@ -262,5 +297,16 @@ public class GlobalExceptionHandler {
                 .traceId(traceId)
                 .build();
         return new ResponseEntity<>(response, status);
+    }
+
+    /** Message client pour un paramètre de requête absent ou mal typé (sans nom de classe Java). */
+    private static String badParameterMessage(Exception ex) {
+        if (ex instanceof MissingServletRequestParameterException missing) {
+            return "Paramètre obligatoire manquant : " + missing.getParameterName();
+        }
+        if (ex instanceof MethodArgumentTypeMismatchException mismatch) {
+            return "Valeur invalide pour le paramètre '" + mismatch.getName() + "'";
+        }
+        return "Paramètre de requête invalide.";
     }
 }

@@ -8,7 +8,8 @@ def test_risk_admin_ok(client):
     assert body["errors"] == []
     assert 0 <= body["data"]["risk_score"] <= 100
     assert body["data"]["risk_level"] in {"LOW", "MEDIUM", "HIGH", "CRITICAL"}
-    assert body["meta"]["model_mode"] == "HEURISTIC_FALLBACK"
+    # Mode de repli renommé HEURISTIC (commit 8ea300d0 — badge frontend aligné).
+    assert body["meta"]["model_mode"] == "HEURISTIC"
 
 
 def test_risk_factors_are_explainable(client):
@@ -95,4 +96,5 @@ def test_get_analysis_full_payload(client):
     # Gaps scoped au périmètre de T001 (D1 Pédagogie) = 1 compétence
     assert len(body["data"]["gaps"]) == 1
     assert body["data"]["risk"]["risk_level"]
+    # Ici le mode reflète le moteur des GAPS (analyse complète) : HEURISTIC_FALLBACK.
     assert body["meta"]["model_mode"] == "HEURISTIC_FALLBACK"

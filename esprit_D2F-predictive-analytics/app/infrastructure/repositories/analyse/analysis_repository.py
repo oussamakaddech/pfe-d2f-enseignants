@@ -13,18 +13,24 @@ INSERT_GAPS = """
     INSERT INTO "analyse".skill_gaps
         (enseignant_id, competence_id, competence_code, competence_nom, niveau_actuel,
          niveau_requis, niveau_vise, gap_score, impact_score, urgence_score, priorite_score,
-         niveau_urgence, mois_stagnation, en_regression, nb_besoins_exprimes, computed_at)
+         niveau_urgence, mois_stagnation, en_regression, nb_besoins_exprimes, tendance, computed_at)
     VALUES
         (:enseignant_id, :competence_id, :competence_code, :competence_nom, :niveau_actuel,
          :niveau_requis, :niveau_vise, :gap_score, :impact_score, :urgence_score, :priorite_score,
-         :niveau_urgence, :mois_stagnation, :en_regression, :nb_besoins_exprimes, now())
+         :niveau_urgence, :mois_stagnation, :en_regression, :nb_besoins_exprimes, :tendance, now())
 """
 
+# Un instantané par enseignant et par jour (contrainte V12) : un nouveau calcul
+# le même jour remplace le précédent au lieu d'ajouter une ligne.
 INSERT_RISK = """
     INSERT INTO "analyse".teacher_risk_snapshots
         (enseignant_id, snapshot_date, score_risque, niveau_risque, tendance, computed_at)
     VALUES
         (:enseignant_id, CURRENT_DATE, :score_risque, :niveau_risque, 'STABLE', now())
+    ON CONFLICT (enseignant_id, snapshot_date) DO UPDATE
+       SET score_risque = EXCLUDED.score_risque,
+           niveau_risque = EXCLUDED.niveau_risque,
+           computed_at = EXCLUDED.computed_at
 """
 
 INSERT_RECOMMENDATION = """
@@ -40,11 +46,23 @@ INSERT_RECOMMENDATION = """
 
 SELECT_GAPS_BY_TEACHER = """
     SELECT competence_id, competence_code, competence_nom, niveau_actuel,
-           niveau_requis, gap_score, niveau_urgence, computed_at::date AS computed_at
+           niveau_requis, gap_score, niveau_urgence,
+           COALESCE(tendance, 'STABLE') AS tendance,
+           computed_at::date AS computed_at
     FROM "analyse".skill_gaps
     WHERE enseignant_id = :id
     ORDER BY gap_score DESC, competence_id
 """
+
+SELECT_LAST_SERVING_CALL = """
+    SELECT mode, fallback_reason
+    FROM "analyse".ml_observability
+    WHERE teacher_id = :id
+    ORDER BY created_at DESC, id DESC
+    LIMIT 1
+"""
+
+ML_SERVING_MODES = frozenset({"PRODUCTION_ML", "DEMO_ML"})
 
 
 class SqlAnalysisRepository:
@@ -71,9 +89,11 @@ class SqlAnalysisRepository:
                             "competence_id": gap.competence_id,
                             "competence_code": gap.competence_code,
                             "competence_nom": gap.competence_nom,
-                            "niveau_actuel": int(gap.current_level),
-                            "niveau_requis": int(gap.target_level),
-                            "niveau_vise": int(gap.target_level),
+                            # Colonnes SMALLINT : la moyenne (ex 2.5) est ARRONDIe,
+                            # jamais tronquée (int() affichait 2 au lieu de 2.5->3).
+                            "niveau_actuel": round(gap.observed_result),
+                            "niveau_requis": round(gap.knowledge_difficulty_level),
+                            "niveau_vise": round(gap.knowledge_difficulty_level),
                             "gap_score": gap.gap_score,
                             # Les colonnes suivantes sont NOT NULL sans default en base.
                             # On fournit des valeurs derivees coherentes (impact=urgence=priorite=gap).
@@ -84,10 +104,34 @@ class SqlAnalysisRepository:
                             "mois_stagnation": 0,
                             "en_regression": False,
                             "nb_besoins_exprimes": 0,
+                            # Trace l'origine du calcul (ML vs heuristique) :
+                            # DECLARED_ML/WORSENING => ML, sinon heuristique.
+                            "tendance": gap.trend.value,
                         },
                     )
         except Exception as exc:
             logger.error("persistance gaps impossible", error=str(exc))
+
+    def last_serving_fallback_reason(self, teacher_id: str) -> str | None:
+        """Raison du repli journalisée lors du DERNIER calcul de cet enseignant.
+
+        Lue dans ``analyse.ml_observability`` (une ligne par appel de serving) :
+        c'est la raison propre à CET enseignant, alors que la raison globale du
+        port est celle du dernier enseignant calculé, quel qu'il soit. None si
+        le dernier calcul est passé par le ML ou si rien n'est journalisé.
+        """
+        try:
+            from sqlalchemy import text as _text
+            with self._database.read_connection() as session:
+                row = session.execute(
+                    _text(SELECT_LAST_SERVING_CALL), {"id": teacher_id}
+                ).mappings().first()
+        except Exception as exc:
+            logger.warning("lecture ml_observability impossible", error=str(exc))
+            return None
+        if row is None or row["mode"] in ML_SERVING_MODES:
+            return None
+        return row["fallback_reason"]
 
     def list_gaps_by_teacher(self, teacher_id: str) -> list[SkillGap]:
         from app.domain.value_objects.enums import Severity
@@ -106,11 +150,11 @@ class SqlAnalysisRepository:
                 competence_id=row["competence_id"],
                 competence_code=row["competence_code"],
                 competence_nom=row["competence_nom"],
-                current_level=row["niveau_actuel"],
-                target_level=row["niveau_requis"],
+                observed_result=row["niveau_actuel"],
+                knowledge_difficulty_level=row["niveau_requis"],
                 gap_score=float(row["gap_score"]),
                 severity=Severity(row["niveau_urgence"].upper()),
-                trend=Trend.STABLE,
+                trend=Trend(str(row["tendance"]).upper()),
                 as_of=row["computed_at"],
             )
             for row in rows

@@ -1,10 +1,18 @@
 // NodePropsPanel — right-side properties panel for selected tree node in ReviewStep.
 // Extracted from ReviewStep.tsx for DSI 200-line compliance.
 
-import { Badge, Button, Form, Input, Popconfirm, Select, Segmented, Tag, Typography } from 'antd';
+import { Button, Form, Input, Popconfirm, Select, Segmented, Tag, Typography } from 'antd';
 import { DeleteOutlined, UserOutlined, ApartmentOutlined } from '@ant-design/icons';
 import type { FormInstance } from 'antd';
 import type { EnseignantRef, SelectedNode } from './TreeBrowser';
+import { TYPE_LABEL } from '../constants';
+
+const NODE_TYPE_LABEL: Record<NonNullable<SelectedNode>['type'], string> = {
+  domaine: 'Domaine',
+  competence: 'Compétence',
+  sousComp: 'Sous-compétence',
+  savoir: 'Savoir',
+};
 
 const { Text } = Typography;
 
@@ -50,33 +58,20 @@ export default function NodePropsPanel({
     );
   }
 
+  const typeLabel = NODE_TYPE_LABEL[selectedNode.type];
+  const title = [selectedNode.data?.code, selectedNode.data?.nom]
+    .filter((v) => typeof v === 'string' && v.trim())
+    .join(' · ');
+
   return (
     <div className="props-panel-inner">
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 12,
-        }}
-      >
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 0 }}>
-          <Badge count={0} style={{ background: 'transparent' }} />
-          <div style={{ minWidth: 0 }}>
-            <Text
-              strong
-              style={{
-                display: 'block',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {`${selectedNode.data?.code ?? ''} · ${selectedNode.data?.nom ?? ''}`}
-            </Text>
-            <Text type="secondary">{selectedNode.type}</Text>
-          </div>
-        </div>
+      <div className="props-panel-head">
+        <Text type="secondary" className="props-panel-kind">
+          {typeLabel}
+        </Text>
+        <Text strong className="props-panel-title" title={title}>
+          {title || 'Sans nom'}
+        </Text>
       </div>
 
       <Form form={propsForm} layout="vertical">
@@ -127,10 +122,10 @@ export default function NodePropsPanel({
             </Button>
             <Form.Item label="Type">
               <Segmented
-                options={[
-                  { label: 'THEORIQUE', value: 'THEORIQUE' },
-                  { label: 'PRATIQUE', value: 'PRATIQUE' },
-                ]}
+                options={['THEORIQUE', 'PRATIQUE'].map((value) => ({
+                  label: TYPE_LABEL[value],
+                  value,
+                }))}
                 value={(selectedNode.data?.type as string) ?? 'THEORIQUE'}
                 onChange={(v) => handleUpdateField('type', v)}
               />
@@ -195,7 +190,7 @@ export default function NodePropsPanel({
         )}
       </Form>
 
-      <div style={{ marginTop: 12, position: 'sticky', bottom: 8 }}>
+      <div className="props-panel-actions">
         <Popconfirm
           title="Supprimer ce nœud ?"
           description="Cette action supprimera aussi tous ses enfants."
@@ -208,7 +203,7 @@ export default function NodePropsPanel({
           }}
         >
           <Button danger block icon={<DeleteOutlined />}>
-            Supprimer {selectedNode.type}
+            Supprimer {typeLabel.toLowerCase()}
           </Button>
         </Popconfirm>
       </div>

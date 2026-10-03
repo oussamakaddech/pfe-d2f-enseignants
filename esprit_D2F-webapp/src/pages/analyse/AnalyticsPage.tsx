@@ -1190,7 +1190,7 @@ export default function AnalyticsPage() {
     },
     {
       icon: <LineChartOutlined />,
-      label: 'Score de risque moyen',
+      label: 'Indice de risque moyen',
       value: ov?.score_risque_moyen ?? null,
       delta: ov?.deltas.score_risque_moyen,
       spark: [40, 44, 42, 46, 43, 45, ov?.score_risque_moyen ?? 0],

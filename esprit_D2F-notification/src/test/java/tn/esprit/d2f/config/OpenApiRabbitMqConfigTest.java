@@ -73,7 +73,7 @@ class OpenApiRabbitMqConfigTest {
     void rabbitMqConfig_shouldProvideJsonConverter() {
         RabbitMqConfig config = new RabbitMqConfig();
         org.springframework.amqp.support.converter.Jackson2JsonMessageConverter converter =
-                config.jacksonJmsMessageConverter(new com.fasterxml.jackson.databind.ObjectMapper());
+                config.rabbitMessageConverter(new com.fasterxml.jackson.databind.ObjectMapper());
         assertThat(converter).isNotNull();
     }
 

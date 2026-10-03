@@ -87,7 +87,7 @@ describe('CupDashboardPage', () => {
 
   it('renders title and KPIs', () => {
     renderWith(queryClient);
-    expect(screen.getByText('Tableau de bord CUP')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Tableau de bord' })).toBeInTheDocument();
     expect(screen.getByText('Formations actives')).toBeInTheDocument();
     expect(screen.getByText('Répartition par type')).toBeInTheDocument();
   });
@@ -164,7 +164,7 @@ describe('CupDashboardPage', () => {
       } as any),
     );
     renderWith(queryClient);
-    expect(screen.getByText('Tableau de bord CUP')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Tableau de bord' })).toBeInTheDocument();
     expect(document.querySelectorAll('.ant-spin').length).toBeGreaterThan(0);
   });
 

@@ -45,7 +45,7 @@ export default function Heatmap({
   }, [cells]);
 
   if (loading && cells.length === 0) return <ChartSkeleton height={260} />;
-  if (cells.length === 0) return <div className="rd-empty">Aucun écart de compétence calculé</div>;
+  if (cells.length === 0) return <div className="rd-empty">Aucun écart de couverture calculé</div>;
 
   const maxGap = Math.max(0.5, ...cells.map((c) => c.avg_gap));
 

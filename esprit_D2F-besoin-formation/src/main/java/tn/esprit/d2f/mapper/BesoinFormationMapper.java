@@ -26,6 +26,8 @@ public class BesoinFormationMapper {
         if (request == null) return null;
 
         BesoinFormation entity = new BesoinFormation();
+        // L'identité du créateur (username) est TOUJOURS écrasée côté serveur
+        // depuis le JWT (service) — la valeur du body n'est qu'un repli.
         entity.setUsername(request.getUsername());
         entity.setTypeBesoin(request.getTypeBesoin());
         entity.setTitre(request.getTitre());
@@ -93,6 +95,16 @@ public class BesoinFormationMapper {
                 .approuveCUP(entity.getApprouveCUP())
                 .approuveChefDep(entity.getApprouveChefDep())
                 .approuveAdmin(entity.getApprouveAdmin())
+                .createdByUserId(entity.getCreatedByUserId())
+                .createdByRole(entity.getCreatedByRole())
+                .currentApprovalStep(entity.getCurrentApprovalStep())
+                .status(entity.getStatus())
+                .rejectionReason(entity.getRejectionReason())
+                .rejectedBy(entity.getRejectedBy())
+                .rejectedAt(entity.getRejectedAt() != null ? entity.getRejectedAt().toString() : null)
+                .approvedByCup(entity.getApprovedByCup())
+                .approvedByChefDepartement(entity.getApprovedByChefDepartement())
+                .approvedByAdmin(entity.getApprovedByAdmin())
                 .notificationMessage(entity.getNotificationMessage())
                 .priorite(entity.getPriorite())
                 .impactStrategique(entity.getImpactStrategique())

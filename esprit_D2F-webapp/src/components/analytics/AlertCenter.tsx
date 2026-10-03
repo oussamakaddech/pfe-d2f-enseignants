@@ -1,5 +1,5 @@
 import { useState, useMemo, type ReactNode } from 'react';
-import { List, Tag, Typography, Empty, Button, Tooltip, Select, Space } from 'antd';
+import { List, Tag, Typography, Empty, Button, Tooltip, Select, Space, Input } from 'antd';
 import {
   CheckOutlined,
   StopOutlined,
@@ -13,6 +13,7 @@ import {
   FilterOutlined,
   ReloadOutlined,
   DownOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import {
   SEVERITE_COLORS,
@@ -35,7 +36,7 @@ const STATUT_OPTIONS = (Object.keys(STATUT_ALERTE_LABELS) as StatutAlerte[]).map
 
 const TYPE_OPTIONS = [
   { value: '__ALL__', label: 'Tous les types' },
-  { value: 'GAP_CRITIQUE', label: 'Gap critique' },
+  { value: 'GAP_CRITIQUE', label: 'Écart de couverture critique' },
   { value: 'BESOIN_NON_COUVERT', label: 'Besoin non couvert' },
   { value: 'COMPLETION_FAIBLE', label: 'Complétion faible' },
   { value: 'STAGNATION', label: 'Stagnation' },
@@ -43,14 +44,13 @@ const TYPE_OPTIONS = [
   { value: 'TENDANCE_DEPARTEMENT', label: 'Tendance département' },
 ];
 
+/* Buckets de sévérité (mêmes regroupements FR/EN que les pastilles et le
+ * backend) : fini les doublons Critique/Critical, Haute/Warning… */
 const SEVERITE_OPTIONS = [
   { value: '__ALL__', label: 'Toutes sévérités' },
-  { value: 'CRITIQUE', label: 'Critique' },
-  { value: 'HAUTE', label: 'Haute' },
-  { value: 'MOYENNE', label: 'Moyenne' },
-  { value: 'WARNING', label: 'Warning' },
-  { value: 'CRITICAL', label: 'Critical' },
-  { value: 'INFO', label: 'Info' },
+  { value: '__CRIT__', label: 'Critiques' },
+  { value: '__WARN__', label: 'Avertissements' },
+  { value: '__INFO__', label: 'Infos' },
 ];
 
 const STATUT_FILTER_OPTIONS = [
@@ -60,6 +60,12 @@ const STATUT_FILTER_OPTIONS = [
 ];
 
 const INITIAL_VISIBLE = 10;
+
+/** Filtres poussés au backend (pagination réelle sur tout le volume). */
+export interface AlertServerFilters {
+  readonly type_alerte?: string;
+  readonly severity_bucket?: 'CRITICAL' | 'WARNING' | 'INFO';
+}
 
 /* ── types ──────────────────────────────────────────────── */
 interface AlertCenterProps {
@@ -75,6 +81,8 @@ interface AlertCenterProps {
   readonly onLoadMore?: () => void;
   readonly onUpdate?: (id: number, payload: AlertUpdatePayload) => void;
   readonly onSelectEnseignant?: (enseignantId: string) => void;
+  /** Remonte type + bucket de sévérité pour filtrage côté backend. */
+  readonly onServerFilterChange?: (filters: AlertServerFilters) => void;
 }
 
 const ALERT_META: Record<
@@ -82,7 +90,7 @@ const ALERT_META: Record<
   { label: string; priorite: string; action: string; icon: ReactNode }
 > = {
   GAP_CRITIQUE: {
-    label: 'Gap critique',
+    label: 'Écart de couverture critique',
     priorite: 'Haute',
     action: 'Planifier une formation ciblée',
     icon: <BugOutlined />,
@@ -128,8 +136,13 @@ const PRIORITE_COLOR: Record<string, string> = {
 const SEVERITE_CRIT = new Set(['CRITICAL', 'CRITIQUE']);
 const SEVERITE_WARN = new Set(['WARNING', 'HAUTE', 'MOYENNE']);
 
-/* Chips de filtrage rapide — valeurs internes (le Select ne les connaît pas). */
-const CHIP_FILTERS = new Set(['__CRIT__', '__WARN__', '__INFO__']);
+/** Rang de sévérité pour le tri (critiques d'abord). */
+function severiteRank(severite: string): number {
+  if (SEVERITE_CRIT.has(severite)) return 0;
+  if (SEVERITE_WARN.has(severite)) return 1;
+  if (severite === 'INFO') return 2;
+  return 3;
+}
 
 /** Date relative lisible (« Aujourd'hui 14:32 », « Hier 09:10 », « il y a 3 j »). */
 function relativeDate(iso: string): string {
@@ -157,48 +170,82 @@ export default function AlertCenter({
   onLoadMore,
   onUpdate,
   onSelectEnseignant,
+  onServerFilterChange,
 }: AlertCenterProps) {
   /* ── filters state ── */
   const [typeFilter, setTypeFilter] = useState<string>('__ALL__');
   const [severiteFilter, setSeveriteFilter] = useState<string>('__ALL__');
   const [statutFilter, setStatutFilter] = useState<string>('__ALL__');
+  const [searchText, setSearchText] = useState<string>('');
   const [expandedGroups, setExpandedGroups] = useState<Set<TypeAlerte>>(new Set());
+
+  /* Remonte type + bucket au backend (le statut et la recherche restent
+   * client : pas de paramètre serveur équivalent). */
+  const notifyServerFilters = (
+    type: string,
+    severite: string,
+    notify?: (filters: AlertServerFilters) => void,
+  ) => {
+    if (!notify) return;
+    const next: { type_alerte?: string; severity_bucket?: 'CRITICAL' | 'WARNING' | 'INFO' } = {};
+    if (type !== '__ALL__') next.type_alerte = type;
+    if (severite === '__CRIT__') next.severity_bucket = 'CRITICAL';
+    else if (severite === '__WARN__') next.severity_bucket = 'WARNING';
+    else if (severite === '__INFO__') next.severity_bucket = 'INFO';
+    notify(next);
+  };
+
+  const applyTypeFilter = (v: string) => {
+    setTypeFilter(v);
+    notifyServerFilters(v, severiteFilter, onServerFilterChange);
+  };
+  const applySeveriteFilter = (v: string) => {
+    setSeveriteFilter(v);
+    notifyServerFilters(typeFilter, v, onServerFilterChange);
+  };
 
   const resetFilters = () => {
     setTypeFilter('__ALL__');
     setSeveriteFilter('__ALL__');
     setStatutFilter('__ALL__');
+    setSearchText('');
+    notifyServerFilters('__ALL__', '__ALL__', onServerFilterChange);
   };
 
   const hasActiveFilters =
-    typeFilter !== '__ALL__' || severiteFilter !== '__ALL__' || statutFilter !== '__ALL__';
+    typeFilter !== '__ALL__' ||
+    severiteFilter !== '__ALL__' ||
+    statutFilter !== '__ALL__' ||
+    searchText.trim() !== '';
 
-  /* ── filtered alerts ── */
+  /* ── filtered + sorted alerts ── */
   const filteredAlerts = useMemo(() => {
-    let result = alerts;
-    if (typeFilter !== '__ALL__') {
-      result = result.filter((a) => a.type_alerte === typeFilter);
-    }
-    if (severiteFilter !== '__ALL__') {
-      if (severiteFilter === '__OUVERT__') {
-        result = result.filter((a) => ALERT_STATUTS_OUVERTS.includes(a.statut));
-      } else if (severiteFilter === '__CRIT__') {
-        result = result.filter((a) => SEVERITE_CRIT.has(a.severite));
-      } else if (severiteFilter === '__WARN__') {
-        result = result.filter((a) => SEVERITE_WARN.has(a.severite));
-      } else if (severiteFilter === '__INFO__') {
-        result = result.filter((a) => a.severite === 'INFO');
-      } else {
-        result = result.filter((a) => a.severite === severiteFilter);
+    const term = searchText.trim().toLowerCase();
+    const result = alerts.filter((a) => {
+      if (typeFilter !== '__ALL__' && a.type_alerte !== typeFilter) return false;
+      if (severiteFilter === '__CRIT__' && !SEVERITE_CRIT.has(a.severite)) return false;
+      if (severiteFilter === '__WARN__' && !SEVERITE_WARN.has(a.severite)) return false;
+      if (severiteFilter === '__INFO__' && a.severite !== 'INFO') return false;
+      if (statutFilter === '__OUVERT__' && !ALERT_STATUTS_OUVERTS.includes(a.statut)) return false;
+      if (statutFilter !== '__ALL__' && statutFilter !== '__OUVERT__' && a.statut !== statutFilter)
+        return false;
+      if (term) {
+        const haystack =
+          `${a.titre ?? ''} ${a.message ?? ''} ${a.enseignant_id ?? ''} ${a.departement_id ?? ''}`.toLowerCase();
+        if (!haystack.includes(term)) return false;
       }
-    }
-    if (statutFilter === '__OUVERT__') {
-      result = result.filter((a) => ALERT_STATUTS_OUVERTS.includes(a.statut));
-    } else if (statutFilter !== '__ALL__') {
-      result = result.filter((a) => a.statut === statutFilter);
-    }
-    return result;
-  }, [alerts, typeFilter, severiteFilter, statutFilter]);
+      return true;
+    });
+    // Ouvertes d'abord, critiques d'abord, plus récentes d'abord.
+    return [...result].sort((a, b) => {
+      const openA = ALERT_STATUTS_OUVERTS.includes(a.statut) ? 0 : 1;
+      const openB = ALERT_STATUTS_OUVERTS.includes(b.statut) ? 0 : 1;
+      if (openA !== openB) return openA - openB;
+      const rank = severiteRank(a.severite) - severiteRank(b.severite);
+      if (rank !== 0) return rank;
+      return (b.created_at ?? '').localeCompare(a.created_at ?? '');
+    });
+  }, [alerts, typeFilter, severiteFilter, statutFilter, searchText]);
 
   /* ── summary (always from ALL data) ── */
   const openCount = alerts.filter((a) => ALERT_STATUTS_OUVERTS.includes(a.statut)).length;
@@ -274,7 +321,7 @@ export default function AlertCenter({
           <Button
             size="small"
             type={severiteFilter === '__ALL__' ? 'primary' : 'text'}
-            onClick={() => setSeveriteFilter('__ALL__')}
+            onClick={() => applySeveriteFilter('__ALL__')}
           >
             Toutes
           </Button>
@@ -282,7 +329,7 @@ export default function AlertCenter({
             size="small"
             danger
             type={severiteFilter === '__CRIT__' ? 'primary' : 'text'}
-            onClick={() => setSeveriteFilter('__CRIT__')}
+            onClick={() => applySeveriteFilter('__CRIT__')}
           >
             {severityCounts.CRITICAL} critiques
           </Button>
@@ -294,14 +341,14 @@ export default function AlertCenter({
                 ? { background: '#f59e0b', borderColor: '#f59e0b', color: '#fff' }
                 : { color: '#d97706' }
             }
-            onClick={() => setSeveriteFilter('__WARN__')}
+            onClick={() => applySeveriteFilter('__WARN__')}
           >
             {severityCounts.WARNING} warnings
           </Button>
           <Button
             size="small"
             type={severiteFilter === '__INFO__' ? 'primary' : 'text'}
-            onClick={() => setSeveriteFilter('__INFO__')}
+            onClick={() => applySeveriteFilter('__INFO__')}
           >
             {severityCounts.INFO} infos
           </Button>
@@ -369,19 +416,27 @@ export default function AlertCenter({
       <div className="ac-filters">
         <FilterOutlined className="ac-filters__icon" />
         <Space size={8} wrap>
+          <Input
+            allowClear
+            size="small"
+            prefix={<SearchOutlined style={{ color: '#94a3b8' }} />}
+            placeholder="Rechercher (titre, message, enseignant…)"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 230 }}
+          />
           <Select
             size="small"
             value={typeFilter}
-            onChange={setTypeFilter}
+            onChange={applyTypeFilter}
             options={TYPE_OPTIONS}
             style={{ width: 180 }}
           />
           <Select
             size="small"
-            value={CHIP_FILTERS.has(severiteFilter) ? undefined : severiteFilter}
-            onChange={setSeveriteFilter}
+            value={severiteFilter}
+            onChange={applySeveriteFilter}
             options={SEVERITE_OPTIONS}
-            placeholder="Sévérité"
             style={{ width: 160 }}
           />
           <Select

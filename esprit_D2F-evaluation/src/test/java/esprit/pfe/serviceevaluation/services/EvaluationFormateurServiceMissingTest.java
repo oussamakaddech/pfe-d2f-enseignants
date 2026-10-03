@@ -16,6 +16,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.*;
 
@@ -60,7 +63,7 @@ class EvaluationFormateurServiceMissingTest {
         dto.setSatisfaisant(true);
         dto.setCommentaire("Bon formateur");
 
-        lenient().when(authClient.enseignantExists(anyString())).thenReturn(true);
+        lenient().when(formationClient.getEnseignantById(anyString())).thenReturn(new Object());
     }
 
     @Test
@@ -116,7 +119,7 @@ class EvaluationFormateurServiceMissingTest {
         when(evaluationRepository.findByFormationId(10L)).thenReturn(evaluations);
 
         // When
-        evaluationService.updateEvaluationsBulkByFormation(10L, dtos);
+        evaluationService.updateEvaluationsBulkByFormation(10L, dtos, "admin@test.com", "ROLE_ADMIN");
 
         // Then
         verify(evaluationRepository, times(1)).findByFormationId(10L);
@@ -161,7 +164,7 @@ class EvaluationFormateurServiceMissingTest {
         when(evaluationRepository.findById(999L)).thenReturn(Optional.empty());
 
         // When/Then
-        assertThatThrownBy(() -> evaluationService.modifierEvalParticipant(999L, dto))
+        assertThatThrownBy(() -> evaluationService.modifierEvalParticipant(999L, dto, "admin@test.com", "ROLE_ADMIN"))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("non trouvée");
     }
@@ -189,7 +192,7 @@ class EvaluationFormateurServiceMissingTest {
         updateDto.setFormationId(10L);
 
         // When
-        EvaluationFormateurDTO result = evaluationService.modifierEvalParticipant(1L, updateDto);
+        EvaluationFormateurDTO result = evaluationService.modifierEvalParticipant(1L, updateDto, "admin@test.com", "ROLE_ADMIN");
 
         // Then
         assertThat(result)
@@ -206,7 +209,7 @@ class EvaluationFormateurServiceMissingTest {
         List<EvaluationFormateurDTO> dtos = Arrays.asList(dto);
 
         // When
-        evaluationService.createEvaluationsBulk(dtos);
+        evaluationService.createEvaluationsBulk(dtos, "admin@test.com", "ROLE_ADMIN");
 
         // Then
         verify(evaluationRepository).saveAll(anyList());
@@ -217,10 +220,18 @@ class EvaluationFormateurServiceMissingTest {
     void shouldReturnPagedEvaluations() {
         // Given
         Pageable pageable = PageRequest.of(0, 10);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", null,
+                        java.util.List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
         when(evaluationRepository.findAll(pageable)).thenReturn(new PageImpl<>(Arrays.asList(entity)));
 
         // When
-        Page<EvaluationFormateurDTO> result = evaluationService.listAllEvaluationsDto(pageable);
+        Page<EvaluationFormateurDTO> result;
+        try {
+            result = evaluationService.listAllEvaluationsDto(pageable);
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
 
         // Then
         assertThat(result).hasSize(1);

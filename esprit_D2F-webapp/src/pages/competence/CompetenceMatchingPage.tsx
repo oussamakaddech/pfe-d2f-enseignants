@@ -41,14 +41,34 @@ import '@/styles/pages/competence-matching-page.css';
 import {
   type RiceSavoirEntry,
   type RiceEnseignantEntry,
+  type SavoirHierarchy,
   initialState,
+  dataSignature,
   getAvatarColor,
   normalizePending,
   normalizeNiveauForAssignment,
   reducer,
+  resolveSavoirHierarchy,
+  shouldHydrateData,
 } from './components/matchingTypes';
+import { useMatchingReferential } from './hooks/useMatchingReferential';
+import { resolveDept, resolveDeptId, resolveUp } from './rice/teacherAffiliation';
+import { useDepartements } from '@/hooks/formation/useFormations';
 
 const { Text } = Typography;
+
+/**
+ * Clés de domaine d'un savoir pour le filtre : identifiant du référentiel,
+ * ou repli legacy (code / nom du champ `domaine`).
+ */
+function domaineFilterKeys(domaine: unknown, domaineId: unknown): string[] {
+  let legacy: unknown = domaine ?? '';
+  if (typeof domaine === 'object' && domaine !== null) {
+    const d = domaine as { code?: unknown; nom?: unknown };
+    legacy = d.code ?? d.nom ?? '';
+  }
+  return [String(domaineId), String(legacy ?? '')];
+}
 
 export default function CompetenceMatchingPage() {
   const saveAssignments = useRiceSaveAssignments();
@@ -67,6 +87,8 @@ export default function CompetenceMatchingPage() {
   const [form] = Form.useForm<RiceEnseignantEntry>();
   const stateRef = useRef(state);
   stateRef.current = state;
+  /** Signature du dernier contenu hydraté (garde anti-boucle de l'effet LOAD). */
+  const hydratedSigRef = useRef<string>('');
 
   const teacherById = useMemo(() => {
     const map = new Map<string, RiceEnseignantEntry>();
@@ -74,50 +96,180 @@ export default function CompetenceMatchingPage() {
     return map;
   }, [state.enseignants]);
 
+  const { domaines, competences, sousCompetences } = useMatchingReferential();
+  const { data: deptsData = [] } = useDepartements();
+  // Le service formation attend `deptId` : le champ texte `departement` était
+  // ignoré, la modification du département n'avait aucun effet.
+  const deptOptions = useMemo(
+    () =>
+      (deptsData as { id?: string; libelle?: string; nom?: string }[])
+        .filter((d) => d.id)
+        .map((d) => ({ value: String(d.id), label: d.libelle || d.nom || String(d.id) })),
+    [deptsData],
+  );
+
+  /** Hiérarchie résolue de chaque savoir (id → domaine › compétence › sous-compétence). */
+  const hierarchies = useMemo(() => {
+    const map = new Map<string, SavoirHierarchy>();
+    (state.savoirs || []).forEach((s) => {
+      map.set(String(s.id), resolveSavoirHierarchy(s, { domaines, competences, sousCompetences }));
+    });
+    return map;
+  }, [state.savoirs, domaines, competences, sousCompetences]);
+
+  const emptyHierarchy: SavoirHierarchy = useMemo(
+    () => ({
+      domaineId: '',
+      domaineNom: '',
+      competenceId: '',
+      competenceNom: '',
+      sousCompetenceId: '',
+      sousCompetenceNom: '',
+    }),
+    [],
+  );
+
+  const hierarchyOf = useCallback(
+    (s: RiceSavoirEntry): SavoirHierarchy => hierarchies.get(String(s.id)) ?? emptyHierarchy,
+    [hierarchies, emptyHierarchy],
+  );
+
+  const selectedDept = state.filters.departement;
+  /** Département de rattachement de chaque domaine du référentiel (id domaine → deptId). */
+  const deptByDomaine = useMemo(() => {
+    const map = new Map<string, string>();
+    domaines.forEach((d) => {
+      if (d.id !== undefined && d.id !== null && d.departementId)
+        map.set(String(d.id), String(d.departementId));
+    });
+    return map;
+  }, [domaines]);
+
   const domainOptions = useMemo(() => {
     const map = new Map<string, string>();
+    domaines.forEach((d) => {
+      if (d.id === undefined || d.id === null) return;
+      if (selectedDept !== 'all' && String(d.departementId ?? '') !== selectedDept) return;
+      map.set(String(d.id), String(d.nom ?? d.code ?? String(d.id)));
+    });
+    // Repli : domaines legacy portés par les savoirs (référentiel RICE)
     (state.savoirs || []).forEach((s) => {
-      const domaine = s.domaine;
-      const code =
-        typeof domaine === 'object' && domaine !== null ? (domaine.code ?? domaine.nom) : domaine;
-      if (!code) return;
-      const label =
-        typeof domaine === 'object' && domaine !== null
-          ? (domaine.nom ?? domaine.code ?? String(code))
-          : String(code);
-      map.set(String(code), String(label));
+      const h = hierarchies.get(String(s.id));
+      if (selectedDept !== 'all' && deptByDomaine.get(h?.domaineId ?? '') !== selectedDept) return;
+      if (h?.domaineId && !map.has(h.domaineId)) {
+        map.set(h.domaineId, h.domaineNom || h.domaineId);
+      }
     });
     return [
       { value: 'all', label: 'Tous les domaines' },
       ...Array.from(map.entries()).map(([value, label]) => ({ value, label })),
     ];
-  }, [state.savoirs]);
+  }, [domaines, state.savoirs, hierarchies, selectedDept, deptByDomaine]);
 
-  const dept = state.filters.departement;
-  const normalizedDept = dept === 'all' ? null : dept;
-  const { data: savoirsData = [], refetch: refetchSavoirs } = useRiceSavoirs(normalizedDept);
-  const { data: enseignantsData = [], refetch: refetchEnseignants } =
-    useRiceEnseignants(normalizedDept);
+  const competenceOptions = useMemo(() => {
+    const selectedDomaine = state.filters.domaine;
+    const list = (competences || []).filter((c) => {
+      if (selectedDomaine !== 'all') return String(c.domaineId ?? '') === String(selectedDomaine);
+      return (
+        selectedDept === 'all' || deptByDomaine.get(String(c.domaineId ?? '')) === selectedDept
+      );
+    });
+    return [
+      { value: 'all', label: 'Toutes les compétences' },
+      ...list.map((c) => ({
+        value: String(c.id),
+        label: String(c.nom ?? c.code ?? String(c.id)),
+      })),
+    ];
+  }, [competences, state.filters.domaine, selectedDept, deptByDomaine]);
+
+  const sousCompetenceOptions = useMemo(() => {
+    const selectedCompetence = state.filters.competence;
+    const selectedDomaine = state.filters.domaine;
+    const list = (sousCompetences || []).filter((sc) => {
+      if (selectedCompetence !== 'all') {
+        return String(sc.competenceId ?? '') === String(selectedCompetence);
+      }
+      const comp = (competences || []).find((c) => String(c.id) === String(sc.competenceId));
+      if (selectedDomaine !== 'all')
+        return String(comp?.domaineId ?? '') === String(selectedDomaine);
+      return (
+        selectedDept === 'all' || deptByDomaine.get(String(comp?.domaineId ?? '')) === selectedDept
+      );
+    });
+    return [
+      { value: 'all', label: 'Toutes les sous-compétences' },
+      ...list.map((sc) => ({
+        value: String(sc.id),
+        label: String(sc.nom ?? sc.code ?? String(sc.id)),
+      })),
+    ];
+  }, [
+    sousCompetences,
+    competences,
+    state.filters.competence,
+    state.filters.domaine,
+    selectedDept,
+    deptByDomaine,
+  ]);
+
+  const handleDomaineChange = useCallback((v: string) => {
+    dispatch({ type: 'SET_FILTER', payload: { key: 'domaine', value: v } });
+    dispatch({ type: 'SET_FILTER', payload: { key: 'competence', value: 'all' } });
+    dispatch({ type: 'SET_FILTER', payload: { key: 'sousCompetence', value: 'all' } });
+  }, []);
+
+  const handleDepartementChange = useCallback((v: string) => {
+    dispatch({ type: 'SET_FILTER', payload: { key: 'departement', value: v } });
+    dispatch({ type: 'SET_FILTER', payload: { key: 'domaine', value: 'all' } });
+    dispatch({ type: 'SET_FILTER', payload: { key: 'competence', value: 'all' } });
+    dispatch({ type: 'SET_FILTER', payload: { key: 'sousCompetence', value: 'all' } });
+  }, []);
+
+  const handleCompetenceChange = useCallback((v: string) => {
+    dispatch({ type: 'SET_FILTER', payload: { key: 'competence', value: v } });
+    dispatch({ type: 'SET_FILTER', payload: { key: 'sousCompetence', value: 'all' } });
+  }, []);
+
+  const handleResetHierarchyFilters = useCallback(() => {
+    dispatch({ type: 'SET_FILTER', payload: { key: 'domaine', value: 'all' } });
+    dispatch({ type: 'SET_FILTER', payload: { key: 'competence', value: 'all' } });
+    dispatch({ type: 'SET_FILTER', payload: { key: 'sousCompetence', value: 'all' } });
+  }, []);
+
+  const hasActiveHierarchyFilter =
+    state.filters.domaine !== 'all' ||
+    state.filters.competence !== 'all' ||
+    state.filters.sousCompetence !== 'all';
+
+  // Tout est chargé puis filtré ici : le service compétence ignore le paramètre
+  // `departement` (les savoirs n'étaient jamais filtrés) et la liste du filtre ne
+  // proposait aucun département.
+  const { data: savoirsData = [], refetch: refetchSavoirs } = useRiceSavoirs(null);
+  const { data: enseignantsData = [], refetch: refetchEnseignants } = useRiceEnseignants(null);
 
   const reloadData = useCallback(async () => {
     await Promise.all([refetchSavoirs(), refetchEnseignants()]);
   }, [refetchSavoirs, refetchEnseignants]);
 
   useEffect(() => {
-    if (savoirsData.length > 0 || enseignantsData.length > 0) {
-      const assignments: Record<string, string[]> = {};
-      ((savoirsData as RiceSavoirEntry[]) || []).forEach((s) => {
-        assignments[String(s.id)] = (s.enseignants ?? s.enseignantIds ?? []).map(String);
-      });
-      dispatch({
-        type: 'LOAD_SUCCESS',
-        payload: {
-          savoirs: (savoirsData as RiceSavoirEntry[]) || [],
-          enseignants: (enseignantsData as RiceEnseignantEntry[]) || [],
-          assignments,
-        },
-      });
-    }
+    // Hydratation idempotente (anti-boucle #185) : ne re-dispatch que si le
+    // CONTENU a changé (signature par ids). Insensible aux recréations de
+    // tableaux, sensible aux vrais refetch via reloadData.
+    if (!shouldHydrateData(hydratedSigRef.current, savoirsData, enseignantsData)) return;
+    hydratedSigRef.current = `${dataSignature(savoirsData)}|${dataSignature(enseignantsData)}`;
+    const assignments: Record<string, string[]> = {};
+    ((savoirsData as RiceSavoirEntry[]) || []).forEach((s) => {
+      assignments[String(s.id)] = (s.enseignants ?? s.enseignantIds ?? []).map(String);
+    });
+    dispatch({
+      type: 'LOAD_SUCCESS',
+      payload: {
+        savoirs: (savoirsData as RiceSavoirEntry[]) || [],
+        enseignants: (enseignantsData as RiceEnseignantEntry[]) || [],
+        assignments,
+      },
+    });
   }, [savoirsData, enseignantsData]);
 
   const handleDragEnd = useCallback(() => {
@@ -222,7 +374,7 @@ export default function CompetenceMatchingPage() {
       form.setFieldsValue({
         prenom: ens.prenom,
         nom: ens.nom,
-        departement: ens.departement,
+        deptId: resolveDeptId(ens) || undefined,
         grade: ens.grade,
       });
       setShowCreateModal(true);
@@ -274,19 +426,29 @@ export default function CompetenceMatchingPage() {
     const q = (state.filters.search ?? '').toLowerCase();
     return (state.savoirs || []).filter((s) => {
       if (q && !`${s.nom} ${s.code}`.toLowerCase().includes(q)) return false;
-      if (state.filters.domaine !== 'all') {
-        const domaine = s.domaine;
-        const sd =
-          typeof domaine === 'object' && domaine !== null
-            ? (domaine.code ?? domaine.nom ?? '')
-            : (domaine ?? '');
-        if (String(sd) !== String(state.filters.domaine)) return false;
-      }
+      const h = hierarchies.get(String(s.id));
+      if (selectedDept !== 'all' && deptByDomaine.get(h?.domaineId ?? '') !== selectedDept)
+        return false;
+      if (
+        state.filters.domaine !== 'all' &&
+        !domaineFilterKeys(s.domaine, h?.domaineId).includes(String(state.filters.domaine))
+      )
+        return false;
+      if (
+        state.filters.competence !== 'all' &&
+        String(h?.competenceId ?? '') !== String(state.filters.competence)
+      )
+        return false;
+      if (
+        state.filters.sousCompetence !== 'all' &&
+        String(h?.sousCompetenceId ?? '') !== String(state.filters.sousCompetence)
+      )
+        return false;
       if (state.filters.showUnassignedOnly && (state.assignments[String(s.id)] ?? []).length > 0)
         return false;
       return true;
     });
-  }, [state.savoirs, state.filters, state.assignments]);
+  }, [state.savoirs, state.filters, state.assignments, hierarchies, selectedDept, deptByDomaine]);
 
   const pendingTotal = useMemo(
     () => state.pendingChanges.add.length + state.pendingChanges.remove.length,
@@ -326,9 +488,10 @@ export default function CompetenceMatchingPage() {
 
   const sortedEnseignants = useMemo(() => {
     let list = [...state.enseignants];
+    if (selectedDept !== 'all') list = list.filter((e) => resolveDeptId(e) === selectedDept);
     if (ensSearch.trim()) {
       const q = ensSearch.toLowerCase();
-      list = list.filter((e) => `${e.prenom} ${e.nom}`.toLowerCase().includes(q));
+      list = list.filter((e) => `${e.prenom} ${e.nom} ${resolveDept(e)}`.toLowerCase().includes(q));
     }
     if (ensSort === 'name')
       list.sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`));
@@ -343,7 +506,7 @@ export default function CompetenceMatchingPage() {
           (assignmentCountByEns[String(a.id)] || 0) - (assignmentCountByEns[String(b.id)] || 0),
       );
     return list;
-  }, [state.enseignants, ensSearch, ensSort, assignmentCountByEns]);
+  }, [state.enseignants, ensSearch, ensSort, assignmentCountByEns, selectedDept]);
 
   let savoirsContent;
   if (state.loading.data) {
@@ -381,6 +544,23 @@ export default function CompetenceMatchingPage() {
             <span className="savoir-code-label">{s.code as string}</span>
             <span className="savoir-name-inline">{s.nom as string}</span>
           </div>
+          {(() => {
+            const h = hierarchyOf(s);
+            const crumbs = [
+              h.domaineNom ? { label: h.domaineNom, color: 'purple' } : null,
+              h.competenceNom ? { label: h.competenceNom, color: 'blue' } : null,
+              h.sousCompetenceNom ? { label: h.sousCompetenceNom, color: 'cyan' } : null,
+            ].filter(Boolean) as { label: string; color: string }[];
+            return crumbs.length > 0 ? (
+              <div className="savoir-hierarchy-tags">
+                {crumbs.map((c) => (
+                  <Tag key={c.label} color={c.color} style={{ marginBottom: 2 }}>
+                    {c.label}
+                  </Tag>
+                ))}
+              </div>
+            ) : null;
+          })()}
           {assigned.length > 0 && (
             <div className="savoir-assigned-teachers">
               {assigned.map((ens) => (
@@ -451,8 +631,8 @@ export default function CompetenceMatchingPage() {
               <span className="enseignant-full-name">
                 {ens.prenom as string} {ens.nom as string}
               </span>
-              <span className="enseignant-details-text">
-                {(ens.departement as string) || 'Département N/A'}
+              <span className="enseignant-details-text" title={resolveUp(ens) || undefined}>
+                {resolveDept(ens) || 'Département non renseigné'}
               </span>
             </div>
             <div className="enseignant-action-buttons">
@@ -519,19 +699,17 @@ export default function CompetenceMatchingPage() {
           <Space size="middle">
             <Select
               value={state.filters.departement}
-              onChange={(v) => {
-                dispatch({ type: 'SET_FILTER', payload: { key: 'departement', value: v } });
-                reloadData();
-              }}
-              style={{ width: 180 }}
-              options={[{ value: 'all', label: 'Tous les départements' }]}
+              onChange={handleDepartementChange}
+              showSearch
+              optionFilterProp="label"
+              popupMatchSelectWidth={false}
+              style={{ width: 180, maxWidth: '100%' }}
+              options={[{ value: 'all', label: 'Tous les départements' }, ...deptOptions]}
             />
             <Select
               value={state.filters.domaine ?? 'all'}
-              onChange={(v) =>
-                dispatch({ type: 'SET_FILTER', payload: { key: 'domaine', value: v } })
-              }
-              style={{ width: 180 }}
+              onChange={handleDomaineChange}
+              style={{ width: 180, maxWidth: '100%' }}
               options={domainOptions}
             />
             <Input.Search
@@ -540,7 +718,7 @@ export default function CompetenceMatchingPage() {
               onChange={(e) =>
                 dispatch({ type: 'SET_FILTER', payload: { key: 'search', value: e.target.value } })
               }
-              style={{ width: 220 }}
+              style={{ width: 220, maxWidth: '100%' }}
               allowClear
             />
             <Button
@@ -551,6 +729,39 @@ export default function CompetenceMatchingPage() {
           </Space>
         }
       />
+      <div className="matching-hierarchy-filterbar">
+        <Space size="middle" wrap>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            Hiérarchie :
+          </Text>
+          <Select
+            value={state.filters.competence ?? 'all'}
+            onChange={handleCompetenceChange}
+            style={{ width: 220, maxWidth: '100%' }}
+            options={competenceOptions}
+            placeholder="Compétence"
+          />
+          <Select
+            value={state.filters.sousCompetence ?? 'all'}
+            onChange={(v) =>
+              dispatch({ type: 'SET_FILTER', payload: { key: 'sousCompetence', value: v } })
+            }
+            style={{ width: 220, maxWidth: '100%' }}
+            options={sousCompetenceOptions}
+            placeholder="Sous-compétence"
+          />
+          {hasActiveHierarchyFilter && (
+            <Button size="small" type="link" onClick={handleResetHierarchyFilters}>
+              Réinitialiser
+            </Button>
+          )}
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {filteredSavoirs.length} savoir(s) · {domainOptions.length - 1} domaine(s) ·{' '}
+            {competenceOptions.length - 1} compétence(s) · {sousCompetenceOptions.length - 1}{' '}
+            sous-compétence(s)
+          </Text>
+        </Space>
+      </div>
       <div className="matching-main-content">
         <section className="matching-panel savoirs-list-panel">
           <div className="panel-header-section">
@@ -581,7 +792,7 @@ export default function CompetenceMatchingPage() {
                 placeholder="Filtrer..."
                 value={ensSearch}
                 onChange={(e) => setEnsSearch(e.target.value)}
-                style={{ width: 150 }}
+                style={{ width: 150, maxWidth: '100%' }}
                 allowClear
                 size="small"
               />
@@ -647,7 +858,7 @@ export default function CompetenceMatchingPage() {
         footer={null}
       >
         <Form form={form} onFinish={handleModalSubmit} layout="vertical">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="modal-form-grid">
             <Form.Item name="prenom" label="Prénom" rules={[{ required: true, message: 'Requis' }]}>
               <Input />
             </Form.Item>
@@ -655,8 +866,14 @@ export default function CompetenceMatchingPage() {
               <Input />
             </Form.Item>
           </div>
-          <Form.Item name="departement" label="Département">
-            <Input />
+          <Form.Item name="deptId" label="Département">
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="Choisir un département"
+              options={deptOptions}
+            />
           </Form.Item>
           <Form.Item name="grade" label="Grade">
             <Input />

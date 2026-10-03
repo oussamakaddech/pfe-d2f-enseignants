@@ -11,13 +11,14 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Gateway Authorization Filter
  * Validates JWT tokens and checks role-based authorization at the gateway level.
  * Implements the complete authorization matrix for all microservices.
  *
- * Roles : admin, CUP, Enseignant, Formateur, Animateur, ChefDepartement, ResponsableDossier
+ * Roles : admin, CUP, Enseignant, Animateur, ChefDepartement, ResponsableDossier
  */
 @Slf4j
 @Component
@@ -44,14 +45,15 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     private static final String ROLE_CUP = "ROLE_CUP";
     private static final String ROLE_D2F = "ROLE_D2F";
     private static final String ROLE_ENSEIGNANT = "ROLE_ENSEIGNANT";
-    private static final String ROLE_FORMATEUR = "ROLE_FORMATEUR";
     private static final String ROLE_ANIMATEUR = "ROLE_ANIMATEUR";
     private static final String ROLE_CHEF_DEPARTEMENT = "ROLE_CHEF_DEPARTEMENT";
     private static final String ROLE_RESPONSABLE_DOSSIER = "ROLE_RESPONSABLE_DOSSIER";
+    /** Jeton de service du module évaluation (scope transmis tel quel). */
+    private static final String SVC_EVALUATION = "ROLE_SVC_EVALUATION";
 
     /** All authenticated users */
     private static final List<String> ALL_ROLES = List.of(
-        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_FORMATEUR, ROLE_ANIMATEUR,
+        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_ANIMATEUR,
         ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER
     );
 
@@ -69,14 +71,16 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT
     );
 
+    /** Tableau de bord exécutif (/home hors espace personnel) : pilotage + responsable dossier. */
+    private static final List<String> EXECUTIVE_DASHBOARD_ROLES = List.of(
+        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER
+    );
+
     /** Admin + CUP + Enseignant + Chef de département + Animateur + D2F + Responsable dossier */
     private static final List<String> NO_FORMATEUR = List.of(
         ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_ANIMATEUR,
         ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER
     );
-
-    /** Admin + Formateur/Animateur + Enseignant */
-    private static final List<String> ADMIN_FORMATEUR = List.of(ROLE_ADMIN, ROLE_FORMATEUR, ROLE_ANIMATEUR, ROLE_ENSEIGNANT);
 
     public AuthorizationFilter(JwtTokenProvider tokenProvider) {
         super(Config.class);
@@ -154,7 +158,10 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
                 || path.startsWith("/api/auth/reset-password")
                 || path.startsWith("/api/auth/confirm")
                 || path.startsWith("/api/auth/logout")
-                || path.startsWith("/actuator/");
+                || path.startsWith("/actuator/")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/swagger-ui")
+                || path.equals("/swagger-ui.html");
     }
 
     // ────────────────────────────────────────────────────────────────────────────
@@ -173,7 +180,7 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         if (path.startsWith("/api/competence/")) return getCompetenceRoles(path, method);
         if (path.startsWith("/api/evaluation/")) return getEvaluationRoles(method);
         if (path.startsWith("/api/certificat/")) return getCertificatRoles(method);
-        if (path.startsWith("/api/rice/")) return ADMIN_ONLY;
+        if (path.startsWith("/api/rice/")) return getRiceRoles(method);
         if (path.startsWith("/api/analyse/")) return getAnalyseRoles(path);
         // BFF analyse predictive (vues consolidees de pilotage) : ADMIN/CUP/Chef de département.
         if (path.startsWith("/api/v1/analyse-predictive/") || path.startsWith("/api/v2/analytics/"))
@@ -204,22 +211,113 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     }
 
     private List<String> getFormationRoles(String path, HttpMethod method) {
-        if (path.contains("/kpi")) return NO_FORMATEUR;
-        if (method == HttpMethod.DELETE) return ADMIN_ONLY;
+        return formationRolesByPath(path, method)
+                .orElseGet(() -> formationRolesByMethod(path, method));
+    }
+
+    /**
+     * Regles attachees au CHEMIN, prioritaires sur la methode HTTP.
+     * Un resultat vide signifie « aucune regle de chemin » : la decision revient
+     * a {@link #formationRolesByMethod(String, HttpMethod)}.
+     */
+    private Optional<List<String>> formationRolesByPath(String path, HttpMethod method) {
+        if (path.contains("/kpi")) return Optional.of(NO_FORMATEUR);
+        // DSI §: la « gestion des dossiers de formations » (arborescence OneDrive)
+        // est réservée à ADMIN + RESPONSABLE_DOSSIER — CUP/CHEF_DEPARTEMENT exclus.
+        if (path.contains("/onedrive")) return Optional.of(List.of(ROLE_ADMIN, ROLE_RESPONSABLE_DOSSIER));
+        // Calendrier des ateliers réouvert au CUP / CHEF_DEPARTEMENT (demande
+        // métier) : consultation « Calendrier Global » limitée à leurs
+        // formations d'inscription (parité AuthorizationMatrix.CALENDAR_READ).
+        // Les écritures restent de toute façon bloquées côté backend
+        // (REFERENTIEL_IMPORT = ADMIN).
+        if (path.contains("/calendar"))
+            return Optional.of(List.of(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT,
+                    ROLE_ANIMATEUR, ROLE_RESPONSABLE_DOSSIER, ROLE_CHEF_DEPARTEMENT));
+        // ── Documents de formation ────────────────────────────────────────────
+        // DSI § : « gestion des dossiers de formations » réservée à ADMIN +
+        // RESPONSABLE_DOSSIER — CUP/CHEF_DEPARTEMENT exclus (parité
+        // AuthorizationMatrix.DOCUMENT_*). Les GET/DOWNLOAD restent FORMATION_READ.
+        if (path.contains("/documents")) {
+            // Parité AuthorizationMatrix.DOCUMENT_* (ni CUP ni CHEF_DEPARTEMENT).
+            return Optional.of(isWrite(method)
+                    ? List.of(ROLE_ADMIN, ROLE_RESPONSABLE_DOSSIER)
+                    : ALL_ROLES);
+        }
+        // Annulation d'une demande d'inscription par son propriétaire
+        // (DELETE /inscription/inscriptions/{id}, parité
+        // AuthorizationMatrix.INSCRIPTION_CREATE) : l'anti-IDOR est appliqué
+        // côté backend (enseignantId comparé au JWT + propriétaire revérifié,
+        // PENDING uniquement). Les autres DELETE restent ADMIN/CUP/CHEF.
+        if (method == HttpMethod.DELETE && path.matches(".*/inscription/inscriptions/\\d+"))
+            return Optional.of(List.of(ROLE_CUP, ROLE_ENSEIGNANT,
+                    ROLE_ANIMATEUR, ROLE_CHEF_DEPARTEMENT));
+        return Optional.empty();
+    }
+
+    /** Ecriture au sens des documents de formation (POST/PUT/PATCH/DELETE). */
+    private static boolean isWrite(HttpMethod method) {
+        return method == HttpMethod.POST || method == HttpMethod.PUT
+                || method == HttpMethod.PATCH || method == HttpMethod.DELETE;
+    }
+
+    /** Regles attachees a la METHODE HTTP, appliquees apres les regles de chemin. */
+    private List<String> formationRolesByMethod(String path, HttpMethod method) {
+        if (method == HttpMethod.DELETE) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT);
         if (path.contains("/inscription/inscriptions") && method == HttpMethod.POST) return ALL_ROLES;
-        if (method == HttpMethod.POST) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_D2F);
-        // FORMATION_UPDATE = ADMIN, CUP, RESPONSABLE_DOSSIER (cf. AuthorizationMatrix)
+        // Présences d'une séance : marquage autorisé à l'animateur/formateur de la
+        // séance (parité avec AuthorizationMatrix.PRESENCE_MARK). Le contrôle fin
+        // (appartenance à la séance) est fait par le microservice formation.
+        if ((path.contains("/presences") || path.contains("/presence/"))
+                && (method == HttpMethod.PUT || method == HttpMethod.PATCH))
+            return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER,
+                    ROLE_ANIMATEUR, ROLE_ENSEIGNANT);
+        if (method == HttpMethod.POST) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT);
+        // FORMATION_UPDATE = ADMIN, CUP, CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER (cf. AuthorizationMatrix)
         if (method == HttpMethod.PUT || method == HttpMethod.PATCH)
-            return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_RESPONSABLE_DOSSIER);
+            return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER);
+        // Vérifications inter-services évaluation → formation (parité
+        // AuthorizationMatrix.FORMATION_ANIMATEUR_CHECK) : le jeton de service
+        // ROLE_SVC_EVALUATION est autorisé aux côtés des rôles humains de lecture.
+        // Placé après les branches méthode-spécifiques : ne concerne en pratique
+        // que les GET (is-animateur, is-participant, enseignants/:id).
+        if (path.contains("/is-animateur/") || path.contains("/is-participant/")
+                || path.contains("/enseignants/"))
+            return List.of(SVC_EVALUATION, ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT,
+                    ROLE_ANIMATEUR, ROLE_RESPONSABLE_DOSSIER, ROLE_CHEF_DEPARTEMENT);
         return ALL_ROLES;
     }
 
     private List<String> getBesoinRoles(String path, HttpMethod method) {
-        if (path.contains("/approve")) return ADMIN_CUP;
-        if (method == HttpMethod.DELETE) return ADMIN_ONLY;
-        if (path.contains("/modify") && method == HttpMethod.PUT) return ADMIN_ONLY;
-        if (method == HttpMethod.POST) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
+        // Workflow : l'ACTION d'approbation (/approve/{id}) et le refus
+        // (/reject/{id}) sont réservés au D2F (ROLE_ADMIN). Attention : la liste
+        // de consultation des besoins approuvés (/approved) n'est PAS l'action
+        // d'approbation — elle reste ouverte aux rôles de lecture
+        // (BESOIN_FORMATION_READ_ALL), le microservice appliquant le périmètre
+        // UP/département (lecture seule).
+        if (isApproveAction(path) || path.contains("/reject")) return ADMIN_ONLY;
+        // Annulation : tout authentifié peut appeler, le service vérifie
+        // créateur-ou-admin (parité BESOIN_FORMATION_CANCEL).
+        if (path.contains("/cancel")) return ALL_ROLES;
+        // Périmètres validateurs : ADMIN uniquement.
+        if (path.contains("/reviewer-scopes") && !path.contains("/reviewer-scopes/me")) return ADMIN_ONLY;
+        if (method == HttpMethod.DELETE) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
+        if (path.contains("/modify") && method == HttpMethod.PUT) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
+        if (method == HttpMethod.PUT) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
+        // BESOIN_FORMATION_CREATE = ADMIN, CUP, CHEF_DEPARTEMENT, ENSEIGNANT,
+        // ANIMATEUR (parité AuthorizationMatrix) : le chef de département exprime
+        // aussi des besoins pour son périmètre.
+        if (method == HttpMethod.POST)
+            return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_CHEF_DEPARTEMENT, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
         return ALL_ROLES;
+    }
+
+    /**
+     * Vrai si le chemin cible l'action d'approbation {@code /approve} ou
+     * {@code /approve/{id}} — et non la liste {@code /approved} (consultation
+     * des besoins approuvés, ouverte aux rôles de lecture).
+     */
+    private static boolean isApproveAction(String path) {
+        return path.endsWith("/approve") || path.contains("/approve/");
     }
 
     private List<String> getCompetenceRoles(String path, HttpMethod method) {
@@ -230,7 +328,8 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
 
     private List<String> getEvaluationRoles(HttpMethod method) {
         if (method == HttpMethod.DELETE) return ADMIN_ONLY;
-        if (method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH) return ADMIN_FORMATEUR;
+        if (method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH)
+            return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_ANIMATEUR, ROLE_ENSEIGNANT, ROLE_CHEF_DEPARTEMENT);
         return ALL_ROLES;
     }
 
@@ -239,10 +338,25 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         return ALL_ROLES;
     }
 
+    private List<String> getRiceRoles(HttpMethod method) {
+        if (method == HttpMethod.GET) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT);
+        return ADMIN_ONLY;
+    }
+
     private List<String> getAnalyseRoles(String path) {
         if (path.contains("/predict/train")) return ADMIN_ONLY;
         if (path.contains("/dashboard/") || path.contains("/detect/")) return ADMIN_CUP;
-        return NO_FORMATEUR;
+        // Agrégats non nominatifs affichés par le tableau de bord exécutif, que le
+        // responsable dossier voit aussi.
+        if (path.endsWith("/v1/analytics/formations-par-periode")
+                || path.endsWith("/v1/analytics/formations-par-up")) {
+            return EXECUTIVE_DASHBOARD_ROLES;
+        }
+        // Tout le reste est nominatif : écarts, risque, prévisions, recommandations
+        // et alertes d'un enseignant. Réservé au pilotage. Avant, NO_FORMATEUR
+        // laissait un enseignant lire les données d'un autre enseignant, et aucun
+        // écran enseignant ou animateur n'appelle l'API d'analyse.
+        return ADMIN_CUP;
     }
 
     /**

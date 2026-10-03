@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.access_policy import AccessPolicyMiddleware
 from app.api.error_handlers import register_error_handlers
 from app.api.v1.router import router as v1_router
 from app.core.config import get_settings
@@ -73,6 +74,10 @@ def create_app() -> FastAPI:
     jwt_auth_middleware = get_legacy_jwt_auth_middleware()
     if jwt_auth_middleware is not None:
         app.add_middleware(jwt_auth_middleware)
+
+    # Politique d'accès du service (même règle que la gateway) sur TOUTES les
+    # routes, legacy comprises : le service ne dépend plus de la gateway seule.
+    app.add_middleware(AccessPolicyMiddleware)
 
     # CORS en dernier => middleware le plus externe : les preflight OPTIONS
     # sont servis avant toute vérification d'authentification.

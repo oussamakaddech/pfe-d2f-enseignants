@@ -122,7 +122,7 @@ export function buildSummarySections(
   ups: LookupItem[],
   departements: LookupItem[],
   selectedCompLinks: BesoinCompetenceLink[],
-  canManageParticipants: boolean,
+  _canManageParticipants: boolean,
   formatParticipantsSummary: (v: unknown) => string,
 ): SummarySection[] {
   const upObj = ups.find((u) => String(u.id) === String(values.up));
@@ -154,11 +154,7 @@ export function buildSummarySections(
         { label: 'Unité Pédagogique', value: upObj?.name || upObj?.libelle || '—' },
         { label: 'Département', value: depObj?.name || depObj?.libelle || '—' },
         { label: 'Type de besoin', value: typeLabel || '—' },
-        ...(canManageParticipants ||
-        values.typeBesoin === 'INDIVIDUEL' ||
-        values.typeBesoin === 'COLLECTIF'
-          ? [{ label: 'Participants', value: formatParticipantsSummary(values.publicCible) }]
-          : []),
+        { label: 'Participants', value: formatParticipantsSummary(values.publicCible) },
       ],
     },
     {
@@ -213,7 +209,14 @@ export function buildSummarySections(
               .filter((l) => l.competenceId)
               .map((l, i) => ({
                 label: `Compétence ${i + 1}`,
-                value: [l.competenceNom, l.savoirNom].filter(Boolean).join(' → ') || '—',
+                value:
+                  [
+                    l.competenceNom,
+                    ...(l.sousCompetenceNoms ?? (l.sousCompetenceNom ? [l.sousCompetenceNom] : [])),
+                    ...(l.savoirNoms ?? (l.savoirNom ? [l.savoirNom] : [])),
+                  ]
+                    .filter(Boolean)
+                    .join(' → ') || '—',
               })),
     },
     {

@@ -1,8 +1,11 @@
 package esprit.pfe.servicecertificat.controllers;
 
 import esprit.d2f.common.security.AuthorizationMatrix;
+import esprit.pfe.servicecertificat.dto.CertificateIndicatorDTO;
 import esprit.pfe.servicecertificat.dto.CertificateRequest;
 import esprit.pfe.servicecertificat.dto.CertificateResponse;
+import esprit.pfe.servicecertificat.dto.CertificateRevocationRequest;
+import esprit.pfe.servicecertificat.dto.CertificateVerificationResponse;
 import esprit.pfe.servicecertificat.services.CertificateService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +57,28 @@ public class CertificateController {
         return ResponseEntity.ok(certificateService.deliver(id));
     }
 
+    @PutMapping("/{id}/revoke")
+    @PreAuthorize(AuthorizationMatrix.CERTIFICAT_UPDATE)
+    public ResponseEntity<CertificateResponse> revoke(
+            @PathVariable Long id,
+            @Valid @RequestBody CertificateRevocationRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String revokedBy = jwt != null ? jwt.getClaimAsString("preferred_username") : null;
+        return ResponseEntity.ok(certificateService.revoke(id, request.getReason(), revokedBy));
+    }
+
+    @GetMapping("/indicators")
+    @PreAuthorize(AuthorizationMatrix.CERTIFICAT_READ)
+    public ResponseEntity<CertificateIndicatorDTO> getIndicators() {
+        return ResponseEntity.ok(certificateService.getIndicators());
+    }
+
+    @GetMapping("/indicators/formation/{formationId}")
+    @PreAuthorize(AuthorizationMatrix.CERTIFICAT_READ)
+    public ResponseEntity<CertificateIndicatorDTO> getIndicatorsByFormation(@PathVariable Long formationId) {
+        return ResponseEntity.ok(certificateService.getIndicatorsByFormation(formationId));
+    }
+
     @GetMapping("/email")
     @PreAuthorize(AuthorizationMatrix.CERTIFICAT_READ)
     public Page<CertificateResponse> getByEmail(
@@ -76,5 +101,11 @@ public class CertificateController {
     public ResponseEntity<CertificateResponse> updateCertificate(@PathVariable Long id,
             @Valid @RequestBody CertificateRequest request) {
         return ResponseEntity.ok(certificateService.update(id, request));
+    }
+
+    @GetMapping("/verify/{certificateNumber}")
+    @PreAuthorize(AuthorizationMatrix.CERTIFICAT_READ)
+    public ResponseEntity<CertificateVerificationResponse> verify(@PathVariable String certificateNumber) {
+        return ResponseEntity.ok(certificateService.verify(certificateNumber));
     }
 }

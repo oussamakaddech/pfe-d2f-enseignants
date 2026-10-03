@@ -10,8 +10,8 @@ class SkillGap:
     competence_id: int
     competence_code: str
     competence_nom: str
-    current_level: float
-    target_level: float
+    observed_result: float
+    knowledge_difficulty_level: float
     gap_score: float
     severity: Severity
     trend: Trend
@@ -22,8 +22,8 @@ class SkillGap:
             "competence_id": self.competence_id,
             "competence_code": self.competence_code,
             "competence_nom": self.competence_nom,
-            "current_level": self.current_level,
-            "target_level": self.target_level,
+            "observed_result": self.observed_result,
+            "knowledge_difficulty_level": self.knowledge_difficulty_level,
             "gap_score": self.gap_score,
             "severity": self.severity.api_value(),
             "trend": self.trend.value,

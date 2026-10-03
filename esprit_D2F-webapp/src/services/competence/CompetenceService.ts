@@ -232,10 +232,12 @@ const EnseignantCompetenceAPI = {
   },
 
   countByEnseignant: async (enseignantId: Id): Promise<number> => {
-    const res = await axios.get<number>(
+    const res = await axios.get<number | { count?: number }>(
       `${BASE}/enseignant-competences/enseignant/${enseignantId}/count`,
     );
-    return res.data;
+    // Le back renvoie une enveloppe {enseignantId, count} : extraire le nombre.
+    if (typeof res.data === 'number') return res.data;
+    return Number(res.data?.count ?? 0);
   },
 
   assign: async (request: AssignRequest): Promise<EnseignantCompetence> => {

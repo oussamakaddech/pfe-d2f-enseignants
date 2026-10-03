@@ -44,7 +44,10 @@ public class SecurityConfig {
             "/api/auth/confirm",
             "/api/auth/logout",
             "/actuator/**",
-            "/fallback/**"
+            "/fallback/**",
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html"
     };
 
     private static final String AUTH_COOKIE = "d2f_auth_token";
@@ -94,18 +97,31 @@ public class SecurityConfig {
                 // Jeton présent mais invalide/expiré → AuthenticationException → 401 via failure handler.
                 return Mono.error(new BadCredentialsException("Invalid or expired token"));
             }
-            List<GrantedAuthority> authorities = new ArrayList<>();
-            String scope = tokenProvider.getUserRole(token);
-            if (scope != null) {
-                for (String role : scope.split("\\s+")) {
-                    if (!role.isBlank()) {
-                        authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
-                    }
-                }
-            }
             String userId = tokenProvider.getUserId(token);
-            return Mono.just(new UsernamePasswordAuthenticationToken(userId, token, authorities));
+            return Mono.just(new UsernamePasswordAuthenticationToken(
+                    userId, token, buildAuthorities(tokenProvider.getUserRole(token))));
         };
+    }
+
+    /**
+     * Autorités issues du claim {@code scope} (rôles séparés par des espaces).
+     * Extrait de {@link #jwtAuthenticationManager()} pour en réduire la
+     * complexité cognitive — comportement inchangé.
+     */
+    private static List<GrantedAuthority> buildAuthorities(String scope) {
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        if (scope == null) {
+            return authorities;
+        }
+        for (String role : scope.split("\\s+")) {
+            if (role.isBlank()) {
+                continue;
+            }
+            // Le claim scope contient déjà le préfixe ROLE_* (émis par
+            // auth-service) : ne pas re-préfixer (ROLE_ROLE_*).
+            authorities.add(new SimpleGrantedAuthority(role.startsWith("ROLE_") ? role : "ROLE_" + role));
+        }
+        return authorities;
     }
 
     /** Extrait le jeton (header Authorization puis cookie HttpOnly) en un token d'authentification non vérifié. */

@@ -27,14 +27,6 @@ export function riskLabel(level: NiveauRisque): string {
   return RISK_LEVEL_LABELS[level] ?? level;
 }
 
-/** Mappe un score 0..1 vers un niveau de risque (aligné sur les seuils backend). */
-export function scoreToRiskLevel(score: number): NiveauRisque {
-  if (score >= 0.75) return 'CRITIQUE';
-  if (score >= 0.5) return 'ELEVE';
-  if (score >= 0.25) return 'MODERE';
-  return 'FAIBLE';
-}
-
 /* ── Statut décisionnel unifié (Stable / Stagnation / Régression / Critique) ──
  * Reconciliation de la tendance et du niveau de risque en un seul état lisible,
  * réutilisé partout (table, heatmap, alertes, actions). */
@@ -54,8 +46,9 @@ export function teacherStatus(
   const t = (tendance ?? '').toUpperCase();
   const n = (niveauRisque ?? '').toUpperCase();
   if (n === 'CRITIQUE') return 'Critique';
-  if (t === 'DEGRADATION') return 'Regression';
-  if (t === 'STABLE' && (n === 'MODERE' || n === 'ELEVE')) return 'Stagnation';
+  if (t === 'DEGRADATION' || t === 'REGRESSION') return 'Regression';
+  if (t === 'STAGNATION' || (t === 'STABLE' && (n === 'MODERE' || n === 'ELEVE')))
+    return 'Stagnation';
   return 'Stable';
 }
 
@@ -73,15 +66,20 @@ export function gapSeverityColor(gapScore: number): string {
  * libellé « Non affecté »).
  */
 const DEPARTEMENT_LIBELLES: Record<string, string> = {
+  // Codes réellement présents en base (formation.departements).
   DEPT_INFO: 'Informatique',
+  DEPT_INF2: 'Informatique & Infrastructures',
   DEPT_RT: 'Réseaux & Télécommunications',
-  DEPT_GI: 'Génie Industriel',
   DEPT_GC: 'Génie Civil',
+  DEPT_GL: 'Génie Logiciel',
+  DEPT_IA: 'Intelligence Artificielle & Data',
+  DEPT_WEB: 'Développement Web',
+  // Codes historiques conservés pour compatibilité d'affichage.
+  DEPT_GI: 'Génie Industriel',
   DEPT_BI: 'Business Intelligence & Data',
   DEPT_SE: 'Systèmes Embarqués',
   DEPT_GSI: "Génie des Systèmes d'Information",
   DEPT_TC: 'Télécommunications & Réseaux',
-  DEPT_IA: 'Intelligence Artificielle',
   DEPT_GLK: 'Génie Logiciel',
 };
 

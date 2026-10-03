@@ -51,9 +51,14 @@ class FormationWorkflowServiceExtraTest {
     @InjectMocks
     private FormationWorkflowService service;
 
+    /** Utilisateur à portée globale : contourne le contrôle row-level présences. */
+    private static final CurrentUser ADMIN_USER =
+            new CurrentUser("admin", "1", "admin@esprit.tn", Set.of("ADMIN"));
+
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(service, "organizerEmail", "org@esprit.tn");
+        ReflectionTestUtils.setField(service, "d2fNotificationEmail", "d2f@esprit.tn");
         ReflectionTestUtils.setField(service, "platformUrl", "https://d2f.esprit.tn");
         ReflectionTestUtils.setField(service, "formationsPath", "/formations/");
     }
@@ -377,7 +382,7 @@ class FormationWorkflowServiceExtraTest {
     // ─── buildEmailsSet ───────────────────────────────────────────────────
 
     @Test
-    @DisplayName("buildEmailsSet - collecte tous les emails animateurs participants externe organizer")
+    @DisplayName("buildEmailsSet - collecte emails animateurs participants externe (jamais l'organizer)")
     void shouldCollectAllEmails() throws Exception {
         SeanceFormation sf = new SeanceFormation();
         Enseignant anim = new Enseignant();
@@ -396,11 +401,12 @@ class FormationWorkflowServiceExtraTest {
         @SuppressWarnings("unchecked")
         Set<String> emails = (Set<String>) m.invoke(service, sf, f);
 
-        assertThat(emails).contains("anim@esprit.tn", "part@esprit.tn", "ext@test.com", "org@esprit.tn");
+        assertThat(emails).contains("anim@esprit.tn", "part@esprit.tn", "ext@test.com");
+        assertThat(emails).doesNotContain("org@esprit.tn");
     }
 
     @Test
-    @DisplayName("buildEmailsSet - animateurs et participants null")
+    @DisplayName("buildEmailsSet - animateurs et participants null (organizer exclu)")
     void shouldHandleNullAnimateursAndParticipants() throws Exception {
         SeanceFormation sf = new SeanceFormation();
         sf.setAnimateurs(null);
@@ -415,7 +421,7 @@ class FormationWorkflowServiceExtraTest {
         @SuppressWarnings("unchecked")
         Set<String> emails = (Set<String>) m.invoke(service, sf, f);
 
-        assertThat(emails).containsExactly("org@esprit.tn");
+        assertThat(emails).isEmpty();
     }
 
     // ─── removeFormationCalendarEvents ────────────────────────────────────
@@ -536,7 +542,7 @@ class FormationWorkflowServiceExtraTest {
         sf.setPresences(List.of(p));
         when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(sf));
 
-        List<PresenceDTO> result = service.batchUpdatePresences(1L, null);
+        List<PresenceDTO> result = service.batchUpdatePresences(1L, null, ADMIN_USER);
 
         assertThat(result).hasSize(1);
         verify(presenceRepository, never()).saveAll(anyList());
@@ -553,7 +559,7 @@ class FormationWorkflowServiceExtraTest {
         BatchPresenceUpdateRequest req = new BatchPresenceUpdateRequest();
         req.setUpdates(new ArrayList<>());
 
-        List<PresenceDTO> result = service.batchUpdatePresences(1L, req);
+        List<PresenceDTO> result = service.batchUpdatePresences(1L, req, ADMIN_USER);
 
         assertThat(result).isEmpty();
         verify(presenceRepository, never()).saveAll(anyList());
@@ -572,6 +578,7 @@ class FormationWorkflowServiceExtraTest {
         p2.setPresent(true);
 
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(List.of(p1, p2));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
 
         BatchPresenceUpdateRequest req = new BatchPresenceUpdateRequest();
         BatchPresenceUpdateRequest.Item item = new BatchPresenceUpdateRequest.Item();
@@ -580,7 +587,7 @@ class FormationWorkflowServiceExtraTest {
         item.setCommentaire("Corrigé");
         req.setUpdates(List.of(item));
 
-        service.batchUpdatePresences(1L, req);
+        service.batchUpdatePresences(1L, req, ADMIN_USER);
 
         assertThat(p1.isPresent()).isTrue();
         assertThat(p1.getCommentaire()).isEqualTo("Corrigé");
@@ -595,6 +602,7 @@ class FormationWorkflowServiceExtraTest {
         p1.setIdParticipation(10L);
         p1.setPresent(false);
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(List.of(p1));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
 
         BatchPresenceUpdateRequest req = new BatchPresenceUpdateRequest();
         BatchPresenceUpdateRequest.Item nullIdItem = new BatchPresenceUpdateRequest.Item();
@@ -605,7 +613,7 @@ class FormationWorkflowServiceExtraTest {
         items.add(null);
         req.setUpdates(items);
 
-        service.batchUpdatePresences(1L, req);
+        service.batchUpdatePresences(1L, req, ADMIN_USER);
 
         assertThat(p1.isPresent()).isFalse();
         verify(presenceRepository).saveAll(anyList());
@@ -627,8 +635,9 @@ class FormationWorkflowServiceExtraTest {
         p2.setCommentaire(null);
 
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(List.of(p1, p2));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
 
-        service.markAllPresences(1L, true);
+        service.markAllPresences(1L, true, ADMIN_USER);
 
         assertThat(p1.isPresent()).isTrue();
         assertThat(p1.getCommentaire()).isEqualTo("Presence confirmee");
@@ -646,8 +655,9 @@ class FormationWorkflowServiceExtraTest {
         p1.setCommentaire("OK");
 
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(List.of(p1));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
 
-        service.markAllPresences(1L, false);
+        service.markAllPresences(1L, false, ADMIN_USER);
 
         assertThat(p1.isPresent()).isFalse();
         assertThat(p1.getCommentaire()).isEqualTo("OK");
@@ -663,8 +673,9 @@ class FormationWorkflowServiceExtraTest {
         p1.setCommentaire("Déjà commenté");
 
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(List.of(p1));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
 
-        service.markAllPresences(1L, true);
+        service.markAllPresences(1L, true, ADMIN_USER);
 
         assertThat(p1.isPresent()).isTrue();
         assertThat(p1.getCommentaire()).isEqualTo("Déjà commenté");
@@ -673,9 +684,10 @@ class FormationWorkflowServiceExtraTest {
     @Test
     @DisplayName("markAllPresences - liste vide")
     void shouldHandleEmptyList() {
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>());
 
-        List<PresenceDTO> result = service.markAllPresences(1L, true);
+        List<PresenceDTO> result = service.markAllPresences(1L, true, ADMIN_USER);
 
         assertThat(result).isEmpty();
     }

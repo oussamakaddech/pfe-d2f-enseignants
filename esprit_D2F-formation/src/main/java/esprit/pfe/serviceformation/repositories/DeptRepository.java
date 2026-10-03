@@ -6,4 +6,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface DeptRepository extends JpaRepository<Dept, String> {
+
+    /** Compat : le front envoie parfois le libellé plutôt que l'id. */
+    java.util.Optional<Dept> findByLibelleIgnoreCase(String libelle);
 }

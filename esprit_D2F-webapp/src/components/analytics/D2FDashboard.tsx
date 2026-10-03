@@ -64,11 +64,11 @@ const KPI_TOOLTIPS: Record<string, string> = {
   total_teachers:
     "Nombre total d'enseignants uniques dans le dataset maître (un seul identifiant, un seul département, une seule UP).",
   enseignants_a_risque:
-    "Enseignants avec score de risque supérieur ou égal à 0,50 (sur l'échelle [0,1]). Indique un besoin de formation proactive.",
+    "Enseignants avec Indice de risque supérieur ou égal à 0,50 (sur l'échelle [0,1]). Indique un besoin de formation proactive.",
   enseignants_critiques:
-    'Enseignants avec score de risque supérieur ou égal à 0,75. Situation urgente nécessitant une action immédiate (entretien, parcours prioritaire).',
+    'Enseignants avec Indice de risque supérieur ou égal à 0,75. Situation urgente nécessitant une action immédiate (entretien, parcours prioritaire).',
   score_risque_moyen:
-    'Moyenne des scores de risque sur tous les enseignants. Calculée via la formule officielle: 40% gaps critiques + 25% couverture + 20% stagnation + 15% régression.',
+    'Moyenne des indices de risque sur tous les enseignants. Indice pondéré explicable (gaps critiques, couverture, stagnation, régression) — non calibré, pas une probabilité.',
   taux_couverture_global:
     'Pourcentage des couples (enseignant × compétence) où le niveau actuel atteint ou dépasse le niveau requis. Indique la maturité globale des compétences.',
   nb_gaps_critiques:
@@ -340,7 +340,7 @@ export function D2FDashboard({ defaultTeacherId }: Readonly<D2FDashboardProps>) 
       },
       { title: 'Département', dataIndex: 'department', key: 'dept' },
       {
-        title: 'Score de risque',
+        title: 'Indice de risque',
         dataIndex: 'risk_score',
         key: 'risk',
         sorter: (a, b) => a.risk_score - b.risk_score,

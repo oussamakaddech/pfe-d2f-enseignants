@@ -15,9 +15,13 @@ const teacher: AtRiskTeacher = {
 };
 
 describe('AtRiskTeachersTable', () => {
-  it('affiche un message vide sans enseignants', () => {
+  it('etat vide : dit que personne ne depasse le seuil, pas que personne n est a risque', () => {
+    // « Aucun enseignant a risque » etait une fausse reassurance : une liste
+    // vide signifie que le seuil n est atteint par personne, pas qu aucun
+    // enseignant n est en difficulte.
     render(<AtRiskTeachersTable teachers={[]} />);
-    expect(screen.getByText(/Aucun enseignant à risque/i)).toBeInTheDocument();
+    expect(screen.getByText(/au-dessus du seuil de risque retenu/i)).toBeInTheDocument();
+    expect(screen.queryByText(/^Aucun enseignant à risque$/i)).toBeNull();
   });
 
   it('affiche le nom et le département formaté', () => {

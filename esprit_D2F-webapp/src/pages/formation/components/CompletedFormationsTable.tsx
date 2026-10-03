@@ -18,8 +18,8 @@ const { Text } = Typography;
 interface CompletedFormationsTableProps {
   formations: FormationRecord[];
   loadingTable: boolean;
-  typeCertif: string;
-  onTypeCertifChange: (value: string) => void;
+  typeCertif: 'CERTIF' | 'ATTESTATION' | 'BADGE';
+  onTypeCertifChange: (value: 'CERTIF' | 'ATTESTATION' | 'BADGE') => void;
   loadingButtons: Record<string, boolean>;
   onGenerateCertificate: (record: FormationRecord) => void;
   onOpenPdfDrawer: () => void;

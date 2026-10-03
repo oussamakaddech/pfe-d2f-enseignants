@@ -19,10 +19,11 @@ const KEYS = {
   depts: ['departements'] as const,
 };
 
-export function useAllFormations() {
+export function useAllFormations(enabled = true) {
   return useQuery<Formation[]>({
     queryKey: KEYS.all,
     queryFn: () => FormationWorkflowService.getAllFormationWorkflows(),
+    enabled,
   });
 }
 
@@ -38,6 +39,15 @@ export function useFormationsVisibles() {
   return useQuery<Formation[]>({
     queryKey: KEYS.visibles,
     queryFn: () => FormationWorkflowService.getFormationsVisibles(),
+  });
+}
+
+/** Catalogue scopé serveur : CUP → son UP, chef → son département. */
+export function useMesFormationsPilote(enabled = true) {
+  return useQuery<Formation[]>({
+    queryKey: ['formations', 'mes-pilote'],
+    queryFn: () => FormationWorkflowService.getMesFormationsPilote(),
+    enabled,
   });
 }
 

@@ -23,6 +23,7 @@ import {
   EditOutlined,
   DeleteOutlined,
   UserOutlined,
+  UserAddOutlined,
   MailOutlined,
   PhoneOutlined,
   TeamOutlined,
@@ -37,6 +38,8 @@ import {
   BankOutlined,
 } from '@ant-design/icons';
 import { useAllAccounts } from '@/hooks/formation/useFormations';
+import { useAllUps } from '@/hooks/formation/useUpCrud';
+import { useAllDepts } from '@/hooks/formation/useDeptCrud';
 import {
   useBanAccount,
   useEnableAccount,
@@ -46,10 +49,12 @@ import {
 } from '@/hooks/auth/useAuthService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import EnseignantService from '@/services/formation/EnseignantService';
+import { createAccount as createAccountApi } from '@/services/auth/AccountService';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 import CreateAccountDrawer, { ACCOUNT_ROLES } from '@/pages/admin/gererComptes/CreateAccountDrawer';
 import TeacherEditModal from '@/components/enseignant/TeacherEditModal';
 import { StatCard, RoleBadge } from '@/components/common';
+import { normalizeRole, extractRoles } from '@/utils/constants/roles';
 import { brand, neutral } from '@/styles/themes/tokens';
 import '@/styles/pages/list-accounts.css';
 import '@/styles/pages/teachers-data-grid.css';
@@ -60,7 +65,7 @@ const { Option } = Select;
 
 type AccountStatus = 'ACTIF' | 'BLOQUÉ' | 'INCONNU';
 
-interface UnifiedRow {
+export interface UnifiedRow {
   // 'merged' = compte + fiche enseignant liés (même userId) affichés sur une
   // seule ligne. Porte alors À LA FOIS les champs compte et les champs fiche :
   // userId = id du compte auth (actions compte), id = id de la fiche E00xxx (actions fiche).
@@ -120,6 +125,64 @@ const SORT_OPTIONS: { value: UnifiedSort; label: string }[] = [
 
 const TYPE_LABELS: Record<string, string> = { P: 'Permanent', V: 'Vacataire', C: 'Contractuel' };
 const isTruthyFlag = (v: unknown) => v === 'O' || v === 'Y' || v === '1';
+
+/** Infobulle du bouton bloquer / débloquer d'une ligne. */
+function blockTooltip(hasAccount: boolean, isActive: boolean): string {
+  if (!hasAccount) return 'Pas de compte : utilisez le bouton « Créer un compte »';
+  return isActive ? 'Bloquer le compte' : 'Débloquer le compte';
+}
+
+/** Infobulle du bouton supprimer selon ce que porte la ligne. */
+function deleteTooltip(isMerged: boolean, hasAccount: boolean): string {
+  if (isMerged) return 'Supprimer (compte + fiche)';
+  return hasAccount ? 'Supprimer le compte' : 'Supprimer la fiche';
+}
+
+/** Options du filtre par rôle : les 5 rôles créables + ADMIN (non créable
+ *  depuis le drawer mais présent en base — les stats le comptent). La
+ *  comparaison se fait sur rôles normalisés (voir rowAccountRoles). */
+const ROLE_FILTER_OPTIONS: { value: string; label: string }[] = [
+  { value: 'ADMIN', label: 'Administrateur' },
+  ...ACCOUNT_ROLES.map((r) => ({ value: r.value, label: r.label })),
+];
+
+/** Rôles normalisés d'une ligne pour le filtre par rôle.
+ *  - compte / fusionné : rôles du compte (préfixe `ROLE_`, casse et
+ *    séparateurs ignorés ; scope composé supporté) ;
+ *  - fiche sans compte : aucun rôle d'accès — rattachée implicitement à
+ *    « enseignant » (c'est une fiche enseignant, pas un compte). */
+function rowAccountRoles(row: UnifiedRow): string[] {
+  if (row._type === 'teacher') return ['enseignant'];
+  return extractRoles(row.role);
+}
+
+export interface UnifiedRowFilters {
+  searchText: string;
+  roleFilter: string[];
+  typeFilter: string;
+  statusFilter: 'ALL' | AccountStatus;
+}
+
+/** Filtrage pur (testable) des lignes unifiées : rôle normalisé des deux
+ *  côtés, donc `ROLE_ADMIN`, `admin` et `ADMIN` se valent. */
+export function filterUnifiedRows(rows: UnifiedRow[], filters: UnifiedRowFilters): UnifiedRow[] {
+  const term = filters.searchText.trim().toLowerCase();
+  const roleSet = filters.roleFilter.map(normalizeRole).filter(Boolean);
+
+  return rows.filter((row) => {
+    const hasAccount = row._type === 'account' || row._type === 'merged';
+    const hasTeacher = row._type === 'teacher' || row._type === 'merged';
+    if (hasAccount && filters.statusFilter !== 'ALL' && row.status !== filters.statusFilter)
+      return false;
+    if (roleSet.length > 0) {
+      const rowRoles = rowAccountRoles(row);
+      if (!roleSet.some((r) => rowRoles.includes(r))) return false;
+    }
+    if (hasTeacher && filters.typeFilter !== 'ALL' && row.type !== filters.typeFilter) return false;
+    if (!term) return true;
+    return matchesSearchTerm(row, term);
+  });
+}
 
 function accountFullName(a: UnifiedRow): string {
   return `${a.firstName || ''} ${a.lastName || ''}`.trim().toLowerCase();
@@ -184,7 +247,6 @@ export default function UnifiedAdministrationPage() {
 
   /* ── Unified state ── */
   const [searchText, setSearchText] = useState('');
-  const [sourceFilter, setSourceFilter] = useState<'ALL' | 'account' | 'teacher'>('ALL');
   const [roleFilter, setRoleFilter] = useState<string[]>([]);
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [statusFilter] = useState<'ALL' | AccountStatus>('ALL');
@@ -203,21 +265,30 @@ export default function UnifiedAdministrationPage() {
   const [editTeacherLoading, setEditTeacherLoading] = useState(false);
   const [editTeacherForm] = Form.useForm();
 
-  const ups = useMemo(() => {
-    const set = new Set<string>();
-    teachers.forEach((t) => {
-      if (t.upLibelle) set.add(t.upLibelle);
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [teachers]);
+  /* Référentiels UP / départements (ids réels) pour le modal d'édition :
+   * les options doivent porter les ids, pas les libellés, sinon le back
+   * répond 400 (resolveUp/resolveDept). */
+  const { data: referentialUps = [] } = useAllUps();
+  const { data: referentialDepts = [] } = useAllDepts();
+  const ups = useMemo(
+    () =>
+      (referentialUps as { id?: string | number; libelle?: string; name?: string }[]).map((u) => ({
+        id: String(u.id ?? ''),
+        libelle: String(u.libelle ?? u.name ?? u.id ?? ''),
+      })),
+    [referentialUps],
+  );
 
-  const depts = useMemo(() => {
-    const set = new Set<string>();
-    teachers.forEach((t) => {
-      if (t.deptLibelle) set.add(t.deptLibelle);
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [teachers]);
+  const depts = useMemo(
+    () =>
+      (referentialDepts as { id?: string | number; libelle?: string; name?: string }[]).map(
+        (d) => ({
+          id: String(d.id ?? ''),
+          libelle: String(d.libelle ?? d.name ?? d.id ?? ''),
+        }),
+      ),
+    [referentialDepts],
+  );
 
   /* ── Normalize accounts ── */
   useEffect(() => {
@@ -303,11 +374,11 @@ export default function UnifiedAdministrationPage() {
       totalTeachers: teachers.length,
       activeAccounts: accounts.filter((a) => a.status === 'ACTIF').length,
       blockedAccounts: accounts.filter((a) => a.status === 'BLOQUÉ').length,
-      admins: accounts.filter((a) => (a.role ?? '').toUpperCase() === 'ADMIN').length,
-      enseignants: accounts.filter((a) => (a.role ?? '').toUpperCase() === 'ENSEIGNANT').length,
-      chefsDept: accounts.filter((a) => (a.role ?? '').toUpperCase() === 'CHEF_DEPARTEMENT').length,
-      animateurs: accounts.filter((a) => (a.role ?? '').toUpperCase() === 'ANIMATEUR').length,
-      cup: accounts.filter((a) => (a.role ?? '').toUpperCase() === 'CUP').length,
+      admins: accounts.filter((a) => normalizeRole(a.role) === 'admin').length,
+      enseignants: accounts.filter((a) => normalizeRole(a.role) === 'enseignant').length,
+      chefsDept: accounts.filter((a) => normalizeRole(a.role) === 'chefdepartement').length,
+      animateurs: accounts.filter((a) => normalizeRole(a.role) === 'animateur').length,
+      cup: accounts.filter((a) => normalizeRole(a.role) === 'cup').length,
       permTeachers: teachers.filter((t) => t.type === 'P').length,
       vacTeachers: teachers.filter((t) => t.type === 'V').length,
       contractTeachers: teachers.filter((t) => t.type === 'C').length,
@@ -317,22 +388,11 @@ export default function UnifiedAdministrationPage() {
 
   /* ── Filtered & sorted data ── */
   const displayedData = useMemo(() => {
-    const term = searchText.trim().toLowerCase();
-    const roleSet = roleFilter.map((r) => r.toUpperCase());
-
-    const filtered = unifiedData.filter((row) => {
-      // Une ligne fusionnée a les deux natures : elle passe le filtre Source
-      // qu'on demande "account" ou "teacher".
-      const hasAccount = row._type === 'account' || row._type === 'merged';
-      const hasTeacher = row._type === 'teacher' || row._type === 'merged';
-      if (sourceFilter === 'account' && !hasAccount) return false;
-      if (sourceFilter === 'teacher' && !hasTeacher) return false;
-      if (hasAccount && statusFilter !== 'ALL' && row.status !== statusFilter) return false;
-      if (hasAccount && roleSet.length > 0 && !roleSet.includes((row.role ?? '').toUpperCase()))
-        return false;
-      if (hasTeacher && typeFilter !== 'ALL' && row.type !== typeFilter) return false;
-      if (!term) return true;
-      return matchesSearchTerm(row, term);
+    const filtered = filterUnifiedRows(unifiedData, {
+      searchText,
+      roleFilter,
+      typeFilter,
+      statusFilter,
     });
 
     const sorted = [...filtered];
@@ -361,14 +421,10 @@ export default function UnifiedAdministrationPage() {
         break;
     }
     return sorted;
-  }, [unifiedData, searchText, sourceFilter, roleFilter, typeFilter, statusFilter, sortBy]);
+  }, [unifiedData, searchText, roleFilter, typeFilter, statusFilter, sortBy]);
 
   const hasActiveFilters =
-    !!searchText ||
-    sourceFilter !== 'ALL' ||
-    roleFilter.length > 0 ||
-    typeFilter !== 'ALL' ||
-    statusFilter !== 'ALL';
+    !!searchText || roleFilter.length > 0 || typeFilter !== 'ALL' || statusFilter !== 'ALL';
 
   const fetchAll = () => {
     void refetchAccounts();
@@ -494,10 +550,21 @@ export default function UnifiedAdministrationPage() {
   /* ── Teacher actions ── */
   const openEditTeacher = (record: UnifiedRow) => {
     setEditingTeacher(record);
+    // Normalise upId/deptId vers les ids du référentiel : une valeur
+    // résiduelle (libellé) est convertie si possible, sinon laissée vide
+    // plutôt qu'envoyée telle quelle (400 côté back).
+    const toRefId = (options: { id: string; libelle: string }[], raw: unknown) => {
+      if (raw == null || raw === '') return undefined;
+      const s = String(raw);
+      if (options.some((o) => o.id === s)) return s;
+      return options.find((o) => o.libelle === s)?.id;
+    };
+    const rawUpId = record.upId ?? (record.up as { id: Id })?.id;
+    const rawDeptId = record.deptId ?? (record.dept as { id: Id })?.id;
     editTeacherForm.setFieldsValue({
       ...record,
-      upId: record.upId ?? (record.up as { id: Id })?.id,
-      deptId: record.deptId ?? (record.dept as { id: Id })?.id,
+      upId: toRefId(ups, rawUpId),
+      deptId: toRefId(depts, rawDeptId),
     });
     setEditTeacherModalOpen(true);
   };
@@ -527,8 +594,97 @@ export default function UnifiedAdministrationPage() {
       await queryClient.invalidateQueries({ queryKey: ['enseignants'] });
       setEditTeacherModalOpen(false);
       setEditingTeacher(null);
+      msgApi.success('Fiche enseignant mise à jour');
+    } catch (err: unknown) {
+      // Ex : 404 si la fiche a été supprimée entre-temps (ligne périmée du
+      // cache) — on affiche le message serveur au lieu d'une rejection non
+      // capturée, et on rafraîchit la liste pour évacuer la ligne fantôme.
+      const e = err as { response?: { data?: { message?: string } } };
+      msgApi.error(e?.response?.data?.message || 'Erreur de modification');
+      await queryClient.invalidateQueries({ queryKey: ['enseignants'] });
     } finally {
       setEditTeacherLoading(false);
+    }
+  };
+
+  /* ── Créer un compte pour une fiche enseignant existante (sans compte) ── */
+  const [linkFiche, setLinkFiche] = useState<UnifiedRow | null>(null);
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [linkForm] = Form.useForm();
+
+  const openLinkAccount = (record: UnifiedRow) => {
+    const mail = String(record.mail ?? '');
+    linkForm.resetFields();
+    linkForm.setFieldsValue({
+      username: mail
+        .split('@')[0]
+        .toLowerCase()
+        .replaceAll(/[^a-z0-9._-]/g, ''),
+      role: 'ENSEIGNANT',
+    });
+    setLinkFiche(record);
+  };
+
+  const handleLinkAccountSave = async () => {
+    if (!linkFiche?.id) return;
+    setLinkLoading(true);
+    try {
+      const v = await linkForm.validateFields();
+      const fiche = linkFiche;
+      // 1) compte auth (rôle choisi) avec l'e-mail de la fiche
+      const created = await createAccountApi(
+        {
+          username: v.username,
+          password: v.password,
+          firstName: String(fiche.prenom ?? ''),
+          lastName: String(fiche.nom ?? ''),
+          email: String(fiche.mail ?? ''),
+          phoneNumber: String(fiche.telephone ?? ''),
+        },
+        v.role,
+      );
+      const createdAny = created as { userId?: string; id?: string };
+      const newUserId = String(createdAny.userId ?? createdAny.id ?? '');
+      // 2) rattacher la fiche EXISTANTE au compte (aucune nouvelle fiche créée)
+      const isStructure = v.role === 'CUP' || v.role === 'CHEF_DEPARTEMENT';
+      // Indicateurs O/N de la fiche, dérivés du rôle de structure choisi.
+      const structureFlag = (role: string) => (v.role === role ? 'O' : 'N');
+      const upId = fiche.upId ?? (fiche.up as { id: Id } | undefined)?.id;
+      const deptId = fiche.deptId ?? (fiche.dept as { id: Id } | undefined)?.id;
+      try {
+        await EnseignantService.updateEnseignant(String(fiche.id), {
+          id: fiche.id,
+          nom: fiche.nom,
+          prenom: fiche.prenom,
+          mail: fiche.mail,
+          type: fiche.type,
+          etat: fiche.etat,
+          cup: isStructure ? structureFlag('CUP') : fiche.cup,
+          chefDepartement: isStructure ? structureFlag('CHEF_DEPARTEMENT') : fiche.chefDepartement,
+          grade: fiche.grade,
+          telephone: fiche.telephone,
+          photoUrl: fiche.photoUrl,
+          upId,
+          deptId,
+          up: upId ? { id: upId } : null,
+          dept: deptId ? { id: deptId } : null,
+          userId: newUserId,
+        });
+        msgApi.success(`Compte "${v.username}" créé et lié à la fiche`);
+      } catch {
+        msgApi.warning(
+          `Compte "${v.username}" créé, mais la fiche n'a pas pu être rattachée. Réessayez via « Modifier la fiche ».`,
+        );
+      }
+      setLinkFiche(null);
+      fetchAll();
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } }; errorFields?: unknown };
+      if (!e?.errorFields) {
+        msgApi.error(e?.response?.data?.message || 'Erreur de création du compte');
+      }
+    } finally {
+      setLinkLoading(false);
     }
   };
 
@@ -794,7 +950,7 @@ export default function UnifiedAdministrationPage() {
       title: 'Actions',
       key: 'actions',
       fixed: 'right',
-      width: 210,
+      width: 170,
       render: (_, record) => {
         // Compte archivé (soft-deleted) : uniquement suppression définitive.
         if (record.deleted) {
@@ -812,121 +968,87 @@ export default function UnifiedAdministrationPage() {
             </Space>
           );
         }
-        if (record._type === 'merged') {
-          return (
-            <Space size={2}>
+        // Colonne uniforme : mêmes 4 emplacements pour toute ligne (compte, fiche
+        // ou les deux). Une action non applicable est grisée avec son motif.
+        const hasAccount = record._type === 'merged' || record._type === 'account';
+        const hasFiche = record._type === 'merged' || record._type === 'teacher';
+        const noFiche = 'Aucune fiche enseignant liée à ce compte';
+        const isActive = record.status === 'ACTIF';
+        const fullName =
+          `${record.firstName || record.prenom || ''} ${record.lastName || record.nom || ''}`.trim() ||
+          record.userName ||
+          'cet utilisateur';
+        const onDelete = () => {
+          if (record._type === 'merged') handleDeleteMerged(record);
+          else if (record._type === 'account') handleDeleteAccount(record);
+          else handleDeleteTeacher(record);
+        };
+        return (
+          <Space size={4}>
+            {hasAccount ? (
               <Tooltip title="Modifier le compte (rôle, identité)">
                 <Button
                   shape="circle"
                   icon={<EditOutlined />}
                   onClick={() => handleEditAccount(record)}
+                  aria-label="Modifier le compte"
                   className="accounts-action-btn"
                 />
               </Tooltip>
-              <Tooltip title="Modifier la fiche (type, UP, dépt)">
+            ) : (
+              <Tooltip title="Créer un compte pour cette fiche">
                 <Button
                   shape="circle"
-                  icon={<SolutionOutlined />}
-                  onClick={() => openEditTeacher(record)}
+                  type="primary"
+                  ghost
+                  icon={<UserAddOutlined />}
+                  onClick={() => openLinkAccount(record)}
+                  aria-label="Créer un compte"
                   className="accounts-action-btn"
                 />
               </Tooltip>
-              <Tooltip
-                title={record.status === 'ACTIF' ? 'Bloquer le compte' : 'Débloquer le compte'}
-              >
-                <Button
-                  shape="circle"
-                  icon={record.status === 'ACTIF' ? <LockOutlined /> : <UnlockOutlined />}
-                  onClick={() => handleToggleStatus(record)}
-                  className={
-                    record.status === 'ACTIF'
-                      ? 'accounts-action-btn accounts-action-btn--block'
-                      : 'accounts-action-btn accounts-action-btn--activate'
-                  }
-                />
-              </Tooltip>
-              <Tooltip title="Supprimer (compte + fiche)">
-                <Button
-                  shape="circle"
-                  danger
-                  icon={<DeleteOutlined />}
-                  className="accounts-action-btn accounts-action-btn--delete"
-                  onClick={() => handleDeleteMerged(record)}
-                />
-              </Tooltip>
-            </Space>
-          );
-        }
-        if (record._type === 'account') {
-          const fullName =
-            `${record.firstName || ''} ${record.lastName || ''}`.trim() ||
-            record.userName ||
-            'cet utilisateur';
-          return (
-            <Space size={4}>
-              <Tooltip title="Modifier">
-                <Button
-                  shape="circle"
-                  icon={<EditOutlined />}
-                  onClick={() => handleEditAccount(record)}
-                  className="accounts-action-btn"
-                />
-              </Tooltip>
-              <Tooltip title={record.status === 'ACTIF' ? 'Bloquer' : 'Débloquer'}>
-                <Button
-                  shape="circle"
-                  icon={record.status === 'ACTIF' ? <LockOutlined /> : <UnlockOutlined />}
-                  onClick={() => handleToggleStatus(record)}
-                  className={
-                    record.status === 'ACTIF'
-                      ? 'accounts-action-btn accounts-action-btn--block'
-                      : 'accounts-action-btn accounts-action-btn--activate'
-                  }
-                />
-              </Tooltip>
-              <Popconfirm
-                title="Supprimer ?"
-                description={`${fullName} sera supprimé.`}
-                onConfirm={() => handleDeleteAccount(record)}
-                okText="Supprimer"
-                cancelText="Annuler"
-                okButtonProps={{ danger: true }}
-              >
-                <Tooltip title="Supprimer">
-                  <Button
-                    shape="circle"
-                    danger
-                    icon={<DeleteOutlined />}
-                    className="accounts-action-btn accounts-action-btn--delete"
-                  />
-                </Tooltip>
-              </Popconfirm>
-            </Space>
-          );
-        }
-        return (
-          <Space size={4}>
-            <Tooltip title="Modifier l'enseignant">
+            )}
+            <Tooltip title={hasFiche ? 'Modifier la fiche (type, UP, dépt)' : noFiche}>
               <Button
                 shape="circle"
-                icon={<EditOutlined />}
-                className="accounts-action-btn"
+                icon={<SolutionOutlined />}
+                disabled={!hasFiche}
                 onClick={() => openEditTeacher(record)}
+                aria-label="Modifier la fiche"
+                className="accounts-action-btn"
               />
             </Tooltip>
+            <Tooltip title={blockTooltip(hasAccount, isActive)}>
+              <Button
+                shape="circle"
+                icon={isActive ? <LockOutlined /> : <UnlockOutlined />}
+                disabled={!hasAccount}
+                onClick={() => handleToggleStatus(record)}
+                aria-label={isActive ? 'Bloquer' : 'Débloquer'}
+                className={
+                  isActive
+                    ? 'accounts-action-btn accounts-action-btn--block'
+                    : 'accounts-action-btn accounts-action-btn--activate'
+                }
+              />
+            </Tooltip>
+            {/* Ligne fusionnée : handleDeleteMerged ouvre déjà sa propre confirmation. */}
             <Popconfirm
               title="Supprimer ?"
-              description={`${record.nom || ''} ${record.prenom || ''} sera supprimé.`}
-              onConfirm={() => handleDeleteTeacher(record)}
+              description={`${fullName} sera supprimé.`}
+              disabled={record._type === 'merged'}
+              onConfirm={onDelete}
               okText="Supprimer"
               cancelText="Annuler"
               okButtonProps={{ danger: true }}
             >
-              <Tooltip title="Supprimer">
+              <Tooltip title={deleteTooltip(record._type === 'merged', hasAccount)}>
                 <Button
                   shape="circle"
                   danger
                   icon={<DeleteOutlined />}
+                  aria-label="Supprimer"
+                  onClick={record._type === 'merged' ? onDelete : undefined}
                   className="accounts-action-btn accounts-action-btn--delete"
                 />
               </Tooltip>
@@ -1068,16 +1190,6 @@ export default function UnifiedAdministrationPage() {
           style={{ maxWidth: 300 }}
         />
         <Select
-          value={sourceFilter}
-          onChange={setSourceFilter}
-          style={{ minWidth: 150 }}
-          options={[
-            { value: 'ALL', label: 'Tous' },
-            { value: 'account', label: 'Comptes uniquement' },
-            { value: 'teacher', label: 'Enseignants uniquement' },
-          ]}
-        />
-        <Select
           mode="multiple"
           allowClear
           maxTagCount="responsive"
@@ -1085,7 +1197,7 @@ export default function UnifiedAdministrationPage() {
           onChange={setRoleFilter}
           placeholder="Rôle"
           style={{ minWidth: 160 }}
-          options={ACCOUNT_ROLES.map((r) => ({ value: r.value, label: r.label }))}
+          options={ROLE_FILTER_OPTIONS}
         />
         <Select
           value={typeFilter}
@@ -1144,6 +1256,68 @@ export default function UnifiedAdministrationPage() {
           }}
         />
       </Card>
+
+      {/* ── Créer un compte pour une fiche existante ── */}
+      <Modal
+        title={`Créer un compte pour ${linkFiche?.prenom ?? ''} ${linkFiche?.nom ?? ''}`.trim()}
+        open={!!linkFiche}
+        onCancel={() => setLinkFiche(null)}
+        onOk={handleLinkAccountSave}
+        confirmLoading={linkLoading}
+        okText="Créer le compte"
+        cancelText="Annuler"
+        destroyOnHidden
+      >
+        <Text type="secondary">
+          Le compte utilisera l&apos;e-mail de la fiche ({String(linkFiche?.mail ?? '')}) et sera
+          rattaché à la fiche existante.
+        </Text>
+        <Form form={linkForm} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item
+            name="username"
+            label="Nom d'utilisateur"
+            rules={[{ required: true, message: "Le nom d'utilisateur est requis" }]}
+          >
+            <Input prefix={<UserOutlined />} />
+          </Form.Item>
+          <Form.Item
+            name="password"
+            label="Mot de passe"
+            rules={[
+              { required: true, message: 'Le mot de passe est requis' },
+              {
+                pattern: /^(?=.*[A-Za-z])(?=.*\d).{8,72}$/,
+                message: '8 à 72 caractères, avec au moins une lettre et un chiffre',
+              },
+            ]}
+          >
+            <Input.Password />
+          </Form.Item>
+          <Form.Item
+            name="confirm"
+            label="Confirmer le mot de passe"
+            dependencies={['password']}
+            rules={[
+              { required: true, message: 'Confirmez le mot de passe' },
+              ({ getFieldValue }) => ({
+                validator: (_, val) =>
+                  !val || getFieldValue('password') === val
+                    ? Promise.resolve()
+                    : Promise.reject(new Error('Les mots de passe ne correspondent pas')),
+              }),
+            ]}
+          >
+            <Input.Password />
+          </Form.Item>
+          <Form.Item name="role" label="Rôle" rules={[{ required: true }]}>
+            <Select
+              options={ACCOUNT_ROLES.filter((r) =>
+                ['ENSEIGNANT', 'ANIMATEUR', 'CUP', 'CHEF_DEPARTEMENT'].includes(r.value),
+              ).map((r) => ({ value: r.value, label: r.label }))}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
 
       {/* ── Create Account Drawer ── */}
       <CreateAccountDrawer
@@ -1243,8 +1417,8 @@ export default function UnifiedAdministrationPage() {
         record={editingTeacher as unknown as Record<string, unknown>}
         confirmLoading={editTeacherLoading}
         form={editTeacherForm}
-        ups={ups.map((u) => ({ id: u, libelle: u }))}
-        depts={depts.map((d) => ({ id: d, libelle: d }))}
+        ups={ups}
+        depts={depts}
         onOk={handleEditTeacherSave}
         onCancel={() => {
           setEditTeacherModalOpen(false);
@@ -1280,24 +1454,47 @@ function AccountStatusBadgeComponent({ status }: Readonly<{ status: AccountStatu
   );
 }
 
+function normalizeTeacherTypeCode(type: unknown): 'P' | 'V' | 'C' | null {
+  const v = String(type ?? '')
+    .trim()
+    .toUpperCase();
+  if (v === 'P' || v === 'PERMANENT' || v === 'PERMANENTE') return 'P';
+  if (v === 'V' || v === 'VACATAIRE') return 'V';
+  if (v === 'C' || v === 'CONTRACTUEL' || v === 'CONTRACTUELLE' || v === 'CONTRACTOR') return 'C';
+  return null;
+}
+
 function getTypeTagComponent(type?: string) {
-  if (type === 'P')
+  const norm = normalizeTeacherTypeCode(type);
+  if (norm === 'P')
     return (
       <span className="teachers-type-tag teachers-type-tag--perm">
         <span className="teachers-type-dot teachers-type-dot--perm" /> Permanent
       </span>
     );
-  if (type === 'V')
+  if (norm === 'V')
     return (
       <span className="teachers-type-tag teachers-type-tag--vac">
         <span className="teachers-type-dot teachers-type-dot--vac" /> Vacataire
       </span>
     );
-  if (type === 'C')
+  if (norm === 'C')
     return (
       <span className="teachers-type-tag teachers-type-tag--cont">
         <span className="teachers-type-dot teachers-type-dot--cont" /> Contractuel
       </span>
     );
-  return type || <span style={{ color: neutral[300] }}>—</span>;
+  // Valeur non canonique (ex. 'T', 'A' issus d'un import Excel stocké brut) :
+  // affichée telle quelle dans un tag neutre — pas de libellé inventé.
+  const raw = String(type ?? '').trim();
+  if (!raw) return <span style={{ color: neutral[300] }}>—</span>;
+  return (
+    <span
+      className="teachers-type-tag teachers-type-tag--other"
+      title={`Type non référencé : ${raw}`}
+    >
+      <span className="teachers-type-dot teachers-type-dot--other" />
+      {raw}
+    </span>
+  );
 }

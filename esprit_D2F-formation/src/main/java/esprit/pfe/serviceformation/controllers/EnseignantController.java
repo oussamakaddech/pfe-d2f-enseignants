@@ -44,7 +44,7 @@ public class EnseignantController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_READ)
+    @PreAuthorize(AuthorizationMatrix.FORMATION_ANIMATEUR_CHECK)
     public ResponseEntity<EnseignantDTO> getEnseignantById(@PathVariable String id) {
         return ResponseEntity.ok(enseignantService.toDTO(enseignantService.getEnseignantById(id)));
     }

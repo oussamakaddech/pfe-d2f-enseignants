@@ -226,12 +226,6 @@
 }
 
 /* primary action */
-.rice-primary-action {
-  height: 36px !important;
-  border-radius: var(--rice-r-sm) !important;
-  font-weight: 600 !important;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25) !important;
-}
 
 /* ═══════════════════════════════════════════════════════════════
    STAGE CARD — step progress bar
@@ -242,31 +236,6 @@
   border: 1px solid var(--rice-border);
   border-radius: var(--rice-r-xl);
   box-shadow: var(--rice-shadow-sm);
-}
-
-.rice-stage-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.rice-section-kicker {
-  display: inline-block;
-  margin-bottom: 4px;
-  color: var(--rice-muted) !important;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.rice-stage-summary {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
 /* Steps override — accent color from dept */
@@ -304,7 +273,7 @@
    ═══════════════════════════════════════════════════════════════ */
 .rice-workbench-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--rice-gap);
   align-items: start;
 }
@@ -313,164 +282,7 @@
   min-width: 0;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   SIDE PANEL
-   ═══════════════════════════════════════════════════════════════ */
-.rice-workbench-aside {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  position: sticky;
-  top: 20px;
-}
-
-.rice-side-card {
-  background: var(--rice-card) !important;
-  border-radius: var(--rice-r-lg) !important;
-  border: 1px solid var(--rice-border) !important;
-  box-shadow: var(--rice-shadow-sm) !important;
-  overflow: hidden;
-}
-
-.rice-side-card .ant-card-head {
-  border-bottom: 1px solid var(--rice-border);
-  padding: 12px 16px;
-  min-height: auto;
-  background: #f8fafc;
-}
-
-.rice-side-card .ant-card-head-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--rice-text);
-  padding: 0;
-}
-
-.rice-side-card .ant-card-body {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.rice-side-stat-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.rice-side-stat {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: var(--rice-r-sm);
-  background: #f8fafc;
-  border: 1px solid var(--rice-border);
-  font-size: 12px;
-  color: var(--rice-muted);
-}
-
-.rice-side-stat strong {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--rice-text);
-}
-
-.rice-side-alert {
-  border-radius: var(--rice-r-sm) !important;
-}
-
-.rice-side-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.rice-side-actions .ant-btn {
-  border-radius: var(--rice-r-sm) !important;
-  font-size: 12px !important;
-  height: 32px !important;
-}
-
 /* ─── Journey tracker ────────────────────────────────────────── */
-.rice-journey-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.rice-journey-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: var(--rice-r-sm);
-  background: #f8fafc;
-  border: 1px solid var(--rice-border);
-  transition: all 0.18s ease;
-  font-size: 12px;
-  color: var(--rice-muted);
-}
-
-.rice-journey-item strong {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--rice-text-2);
-  margin-bottom: 1px;
-}
-
-.rice-journey-item div {
-  color: var(--rice-muted-light);
-  font-size: 11px;
-}
-
-.rice-journey-item.active {
-  background: var(--rice-primary-soft);
-  border-color: var(--rice-primary-mid);
-}
-
-.rice-journey-item.active strong {
-  color: var(--rice-primary);
-}
-
-.rice-journey-item.done {
-  background: #f0fdf4;
-  border-color: #bbf7d0;
-}
-
-.rice-journey-item.done strong {
-  color: var(--rice-success);
-}
-
-.rice-journey-index {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 999px;
-  background: var(--rice-border);
-  color: var(--rice-muted);
-  font-size: 11px;
-  font-weight: 700;
-  flex-shrink: 0;
-  transition: all 0.18s;
-}
-
-.rice-journey-item.active .rice-journey-index {
-  background: var(--rice-primary);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
-}
-
-.rice-journey-item.done .rice-journey-index {
-  background: var(--rice-success);
-  color: #fff;
-}
 
 /* ═══════════════════════════════════════════════════════════════
    STEP 0 — UPLOAD
@@ -782,7 +594,7 @@
 
 /* Features panel (right dark column) */
 .rice-features-panel {
-  background: linear-gradient(160deg, #0f172a 0%, #b51200 55%, #1d4ed8 100%);
+  background: linear-gradient(160deg, #0f172a 0%, #1e293b 55%, #7a0000 100%);
   border-radius: var(--rice-r-lg);
   overflow: hidden;
   height: 100%;
@@ -1756,9 +1568,6 @@ mark {
 @media (max-width: 1200px) {
   .rice-workbench-grid {
     grid-template-columns: 1fr;
-  }
-  .rice-workbench-aside {
-    position: static;
   }
   .rice-hero-metrics {
     grid-template-columns: repeat(2, 1fr);

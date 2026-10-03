@@ -42,7 +42,7 @@ public class BesoinFormationRequest {
     private String username;
 
     @NotNull(message = "Le type de besoin est obligatoire")
-    @Schema(description = "Type de besoin de formation", example = "INTERNE")
+    @Schema(description = "Type de besoin de formation", example = "COLLECTIF")
     private TypeBesoin typeBesoin;
 
     @NotBlank(message = "Le titre est obligatoire")

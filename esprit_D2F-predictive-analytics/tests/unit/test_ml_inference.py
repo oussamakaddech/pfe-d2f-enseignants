@@ -15,25 +15,48 @@ MODELS_DIR = Path(__file__).parent.parent.parent / "data" / "models"
     not (MODELS_DIR / "gap_predictor_temporal.joblib").exists(),
     reason="artefact ML absent",
 )
-def test_predictor_temporal_model_disabled_by_audit():
-    """Audit DSI : le gap predictor temporel est DÉSACTIVÉ en production
-    (_gap_model_enabled=False, corpus 98% synthétique). available() doit
-    rester False malgré la présence de l'artefact, et le status doit
-    l'exposer via drift_check + kill_switch."""
+def test_predictor_temporal_model_served_under_declared_override():
+    """L'artefact temporel se charge (integrite SHA-256, provenance 0 %
+    synthetique, features compatibles, metriques minimales) et il EST servi :
+    la decision projet du 2026-09-22 a promu le GB v1.2.0-gb ACTIVE/APPROVED
+    sous OVERRIDE DECLARE (mesure non significative conservee au registre,
+    acteur + date + justification traces). L'etat expose doit rester honnete :
+    mode PRODUCTION_ML, version = entree ACTIVE, aucune raison de repli."""
     settings = MagicMock()
     settings.models_dir = str(MODELS_DIR)
     settings.gap_model_artifact = "gap_predictor_temporal.joblib"
+    settings.ml_artifact_path = "gap_predictor_temporal.joblib"
+    settings.ml_metadata_path = "temporal_training_metadata.json"
+    settings.ml_registry_path = "model_registry.json"
+    settings.ml_synthetic_tolerance_pct = 50.0
+    settings.ml_require_real_data = True
+    settings.ml_min_real_rows = 50
+    settings.ml_min_r2 = 0.0
+    settings.ml_max_rmse = 2.0
+    settings.ml_max_mae = 1.5
+    settings.ml_serving_mode = "PRODUCTION_ML"
+    settings.ml_enabled = True
+    settings.seuil_gap_critique = 0.75
+    settings.seuil_gap_haute = 0.5
+    settings.seuil_gap_moyenne = 0.25
 
     port = ArtifactModelPort(settings, database=MagicMock())
-    assert port.available() is False
-    assert port._gap_model_enabled is False
-
+    active = port._registry.active()
     status = port.status()
-    assert status["mode"] == "HEURISTIC_FALLBACK"
-    assert status["available"] is False
-    assert "drift_check" in status
+    assert active is not None and active.override_decision is True, (
+        "entree ACTIVE sous override declare (decision projet tracee)"
+    )
+    assert status["model_mode"] == "PRODUCTION_ML"
+    assert status["fallback_reason"] is None
+    assert status["model_version"] == active.model_version
+    assert status["drift_check"] is not None and "drift_check" in status
     assert status["kill_switch"] is False
-
+    provenance = status["provenance"]
+    assert provenance["synthetic_share_pct"] == 0.0
+    if active is not None:
+        assert provenance["dataset_version"] == active.dataset_version
+    assert status["prediction_horizon"] == "3m"
+    assert status["available"] is True
 
 def test_kill_switch_disables_all_ml():
     """ML_ENABLED=false (kill-switch global) : aucun artefact chargé."""

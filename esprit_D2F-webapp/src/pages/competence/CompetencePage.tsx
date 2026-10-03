@@ -4,6 +4,7 @@ import { ApartmentOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx-js-style';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 import { AppPageHeader } from '@/components/common';
+import { useHasPermission } from '@/routes/guards';
 import '@/styles/pages/competence-page.css';
 import CompetenceModals from './components/CompetenceModals';
 import ConsultationTab from './components/ConsultationTab';
@@ -33,6 +34,9 @@ const extractLegacyPrerequisiteManual = (description = '') => {
 
 export default function CompetencePage() {
   const { message, modal } = useAppNotification();
+  const canCreate = useHasPermission('COMPETENCE', 'CREATE');
+  const canEdit = useHasPermission('COMPETENCE', 'UPDATE');
+  const canDelete = useHasPermission('COMPETENCE', 'DELETE');
   const [domaineForm] = Form.useForm();
   const [compForm] = Form.useForm();
   const [scForm] = Form.useForm();
@@ -337,6 +341,9 @@ export default function CompetencePage() {
         onAddSavoir={(leafSc: SousCompetence) => crud.openSavoirModal(savoirForm, null, leafSc)}
         onEdit={(row: SousCompetence) => crud.openScModal(scForm, null, row)}
         onDelete={crud.handleScDelete}
+        canCreate={canCreate}
+        canEdit={canEdit}
+        canDelete={canDelete}
       />
     ),
     [crud, scForm, savoirForm],
@@ -360,6 +367,9 @@ export default function CompetencePage() {
           onDelete={crud.handleDomaineDelete}
           addLabel="Ajouter un domaine"
           searchPlaceholder="Rechercher un domaine (nom, code…)"
+          canCreate={canCreate}
+          canEdit={canEdit}
+          canDelete={canDelete}
         />
       ),
     },
@@ -379,6 +389,9 @@ export default function CompetencePage() {
             onDelete: crud.handleCompDelete,
             addLabel: 'Ajouter une compétence',
             searchPlaceholder: 'Rechercher une compétence (nom, code, domaine…)',
+            canCreate,
+            canEdit,
+            canDelete,
             tableProps: {
               expandable: {
                 expandedRowRender: renderExpandedCompRow,
@@ -404,6 +417,9 @@ export default function CompetencePage() {
           onDelete={crud.handleSavoirDelete}
           addLabel="Ajouter un savoir"
           searchPlaceholder="Rechercher un savoir (nom, code, type…)"
+          canCreate={canCreate}
+          canEdit={canEdit}
+          canDelete={canDelete}
         />
       ),
     },

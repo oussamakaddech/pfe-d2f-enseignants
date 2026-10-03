@@ -154,14 +154,9 @@ async def train_gap_model(auth: AdminAuth, db: DBSession) -> dict[str, Any]:
 
 
 @router.get("/predict/drift", tags=["Prediction"])
-async def check_model_drift(db: DBSession) -> dict[str, Any]:
-    """Check for data/model drift by comparing current data against training metadata."""
-    data = DataService(db)
-    teachers = data.get_teacher_profile()
-    comp_levels = data.get_competency_levels()
-
-    drift_report = gap_predictor.check_drift(teachers, comp_levels)
-    return drift_report
+async def check_model_drift() -> dict[str, Any]:
+    """Rapport de dérive de l'ancien GapPredictor (non mesuré, voir check_drift)."""
+    return gap_predictor.check_drift([], [])
 
 
 @router.get("/predict/model-health", tags=["Prediction"])

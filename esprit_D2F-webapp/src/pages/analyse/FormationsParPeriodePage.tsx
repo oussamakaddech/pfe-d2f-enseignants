@@ -19,6 +19,8 @@ import {
   DownloadOutlined,
 } from '@ant-design/icons';
 import { useFormationsParPeriode, useAnalyticsExport } from '@/hooks/analyse/useReporting';
+import { useAuth } from '@/hooks/auth/useAuth';
+import { isAdmin } from '@/utils/constants/roles';
 import type { Granularite, PeriodePoint, Tendance } from '@/models/analyse';
 
 const { Title } = Typography;
@@ -115,8 +117,13 @@ export default function FormationsParPeriodePage() {
   const { data, isLoading } = useFormationsParPeriode({ granularite });
   const { exporting, exportPdf } = useAnalyticsExport();
 
+  const { user } = useAuth();
+  // Le rapport PDF agrège toute l'institution (aucun filtre de périmètre) :
+  // le service le réserve à l'ADMIN, un CUP/chef recevrait 403.
+  const canExportPdf = isAdmin(user?.role);
   const pdfExportSupported = granularite === 'MOIS' || granularite === 'ANNEE';
   const resolveExportTooltip = (): string | undefined => {
+    if (!canExportPdf) return "Le rapport PDF institutionnel est réservé à l'administrateur.";
     if (pdfExportSupported) return undefined;
     if (granularite === 'SEMAINE') return "L'export PDF hebdomadaire n'est pas encore disponible.";
     return "L'export PDF trimestriel n'est pas encore disponible.";
@@ -134,7 +141,7 @@ export default function FormationsParPeriodePage() {
     <Button
       icon={<DownloadOutlined />}
       loading={exporting}
-      disabled={!pdfExportSupported}
+      disabled={!canExportPdf || !pdfExportSupported}
       onClick={handleExportPdf}
     >
       Export PDF

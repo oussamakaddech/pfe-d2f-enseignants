@@ -32,6 +32,8 @@ const PresenceList = ({ seanceId }: PresenceListProps) => {
     setCommentaire,
     handleSave,
     handleMarkAll,
+    handleRefresh,
+    handleCancel,
     exportExcel,
   } = usePresenceList(seanceId);
 
@@ -98,7 +100,12 @@ const PresenceList = ({ seanceId }: PresenceListProps) => {
                 Tous absents
               </Button>
             </Popconfirm>
-            <Button icon={<ReloadOutlined />} disabled={loading || saving} className="presence-btn">
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={handleRefresh}
+              disabled={loading || saving}
+              className="presence-btn"
+            >
               Actualiser
             </Button>
             <Button icon={<DownloadOutlined />} onClick={exportExcel} className="presence-btn">
@@ -124,7 +131,7 @@ const PresenceList = ({ seanceId }: PresenceListProps) => {
             {dirtyIds.length} modification{dirtyIds.length > 1 ? 's' : ''} en attente
           </Tag>
           <Space>
-            <Button disabled={saving} icon={<ReloadOutlined />}>
+            <Button disabled={saving} icon={<ReloadOutlined />} onClick={handleCancel}>
               Annuler
             </Button>
             <Button

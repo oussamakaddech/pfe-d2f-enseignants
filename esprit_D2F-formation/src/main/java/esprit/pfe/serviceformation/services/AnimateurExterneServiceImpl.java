@@ -61,6 +61,10 @@ public class AnimateurExterneServiceImpl implements AnimateurExterneService {
     @Transactional
     public AnimateurExterne create(Long bureauId, AnimateurExterneRequest request) {
         Bureau bureau = requireBureau(bureauId);
+        if (request.getEmail() != null && !request.getEmail().isBlank()
+                && animateurRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Un animateur externe avec cet email existe déjà : " + request.getEmail());
+        }
         AnimateurExterne animateur = new AnimateurExterne();
         animateur.setNom(request.getNom());
         animateur.setPrenom(request.getPrenom());
@@ -73,6 +77,11 @@ public class AnimateurExterneServiceImpl implements AnimateurExterneService {
     @Transactional
     public AnimateurExterne update(Long bureauId, Long id, AnimateurExterneRequest request) {
         AnimateurExterne animateur = requireAnimateur(bureauId, id);
+        if (request.getEmail() != null && !request.getEmail().isBlank()
+                && !request.getEmail().equals(animateur.getEmail())
+                && animateurRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Un animateur externe avec cet email existe déjà : " + request.getEmail());
+        }
         animateur.setNom(request.getNom());
         animateur.setPrenom(request.getPrenom());
         animateur.setEmail(request.getEmail());

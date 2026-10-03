@@ -10,6 +10,7 @@ interface BesoinHeaderProps {
   loading?: boolean;
   exportDisabled?: boolean;
   canAdd?: boolean;
+  addLabel?: string;
 }
 
 export default function BesoinHeader({
@@ -21,6 +22,7 @@ export default function BesoinHeader({
   loading = false,
   exportDisabled = false,
   canAdd = true,
+  addLabel = 'Ajouter un besoin',
 }: Readonly<BesoinHeaderProps>) {
   return (
     <header className="bf-header">
@@ -87,7 +89,7 @@ export default function BesoinHeader({
               onClick={onAdd}
               className="bf-btn bf-btn--primary"
             >
-              Ajouter un besoin
+              {addLabel}
             </Button>
           )}
         </div>

@@ -10,6 +10,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,10 +26,25 @@ public class EvaluationGlobaleController {
 
     private final EvaluationGlobaleService evaluationGlobaleService;
 
+    private String extractUserEmail(Jwt jwt) {
+        if (jwt == null) return null;
+        String email = jwt.getClaimAsString("email");
+        if (email != null && !email.isBlank()) return email;
+        return jwt.getSubject();
+    }
+
+    private String extractUserRole(Jwt jwt) {
+        if (jwt == null) return null;
+        return jwt.getClaimAsString("scope");
+    }
+
     @PostMapping
     @PreAuthorize(AuthorizationMatrix.EVALUATION_CREATE)
-    public ResponseEntity<EvaluationGlobaleDTO> createEvaluationGlobale(@Valid @RequestBody EvaluationGlobaleDTO evaluation) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(evaluationGlobaleService.createEvaluationGlobale(evaluation));
+    public ResponseEntity<EvaluationGlobaleDTO> createEvaluationGlobale(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody EvaluationGlobaleDTO evaluation) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                evaluationGlobaleService.createEvaluationGlobale(evaluation, extractUserEmail(jwt), extractUserRole(jwt)));
     }
 
     @GetMapping
@@ -43,15 +60,19 @@ public class EvaluationGlobaleController {
     }
 
     @GetMapping("/formation/{formationId}")
-    @PreAuthorize(AuthorizationMatrix.EVALUATION_READ_ALL)
+    @PreAuthorize(AuthorizationMatrix.EVALUATION_READ_FORMATION)
     public ResponseEntity<EvaluationGlobaleDTO> getEvaluationGlobaleByFormationId(@PathVariable Long formationId) {
         return ResponseEntity.ok(evaluationGlobaleService.getEvaluationGlobaleByFormationId(formationId));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.EVALUATION_UPDATE)
-    public ResponseEntity<EvaluationGlobaleDTO> updateEvaluationGlobale(@PathVariable Long id, @Valid @RequestBody EvaluationGlobaleDTO evaluation) {
-        return ResponseEntity.ok(evaluationGlobaleService.updateEvaluationGlobale(id, evaluation));
+    public ResponseEntity<EvaluationGlobaleDTO> updateEvaluationGlobale(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long id,
+            @Valid @RequestBody EvaluationGlobaleDTO evaluation) {
+        return ResponseEntity.ok(
+                evaluationGlobaleService.updateEvaluationGlobale(id, evaluation, extractUserEmail(jwt), extractUserRole(jwt)));
     }
 
     @DeleteMapping("/{id}")

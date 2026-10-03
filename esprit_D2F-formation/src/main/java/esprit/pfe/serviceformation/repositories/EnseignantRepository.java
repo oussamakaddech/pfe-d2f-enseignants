@@ -77,6 +77,34 @@ public interface EnseignantRepository extends JpaRepository<Enseignant, String>,
             @Param("start") LocalDate start,
             @Param("end")   LocalDate end
     );
+
+    /** Variante scopée (CUP → UP, chef → département) ; upId/deptId null = global. */
+    @Query("""
+      SELECT e
+      FROM Enseignant e
+      WHERE (:upId IS NULL OR e.up.id = :upId)
+        AND (:deptId IS NULL OR e.dept.id = :deptId)
+        AND NOT EXISTS (
+          SELECT 1
+          FROM SeanceFormation s
+          JOIN s.animateurs a
+          WHERE a.id = e.id
+            AND s.dateSeance BETWEEN :start AND :end
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM SeanceFormation s2
+          JOIN s2.participants p
+          WHERE p.id = e.id
+            AND s2.dateSeance BETWEEN :start AND :end
+        )
+      """)
+    List<Enseignant> findEnseignantsNonAffectesSurPeriodeScoped(
+            @Param("start") LocalDate start,
+            @Param("end")   LocalDate end,
+            @Param("upId")  String upId,
+            @Param("deptId") String deptId
+    );
     List<Enseignant> findByUpAndCup(esprit.pfe.serviceformation.entities.Up up, String cup);
     List<Enseignant> findByCup(String cup);
 

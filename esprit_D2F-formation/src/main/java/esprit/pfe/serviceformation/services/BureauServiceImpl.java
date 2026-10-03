@@ -35,6 +35,10 @@ public class BureauServiceImpl implements BureauService {
     @Override
     @Transactional
     public Bureau createBureau(Bureau bureau) {
+        if (bureau.getEmail() != null && !bureau.getEmail().isBlank()
+                && bureauRepository.existsByEmail(bureau.getEmail())) {
+            throw new IllegalArgumentException("Un bureau avec cet email existe déjà : " + bureau.getEmail());
+        }
         return bureauRepository.save(bureau);
     }
 
@@ -42,6 +46,11 @@ public class BureauServiceImpl implements BureauService {
     @Transactional
     public Bureau updateBureau(Long id, Bureau bureau) {
         Bureau existing = getBureauById(id);
+        if (bureau.getEmail() != null && !bureau.getEmail().isBlank()
+                && !bureau.getEmail().equals(existing.getEmail())
+                && bureauRepository.existsByEmail(bureau.getEmail())) {
+            throw new IllegalArgumentException("Un bureau avec cet email existe déjà : " + bureau.getEmail());
+        }
         existing.setNom(bureau.getNom());
         existing.setEmail(bureau.getEmail());
         existing.setNumeroTelephone(bureau.getNumeroTelephone());

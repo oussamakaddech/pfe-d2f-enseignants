@@ -8,6 +8,6 @@ from app.domain.entities.competency import Competency
 class TeacherCompetencyState:
     teacher_id: str
     competency: Competency
-    current_level: float
-    previous_level: float | None
+    observed_result: float
+    previous_observed_result: float | None
     savoir_levels: dict[int, int]

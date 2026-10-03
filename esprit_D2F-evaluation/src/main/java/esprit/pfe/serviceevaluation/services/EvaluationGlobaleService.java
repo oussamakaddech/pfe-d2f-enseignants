@@ -14,17 +14,48 @@ import org.springframework.stereotype.Service;
 public class EvaluationGlobaleService {
 
     private static final String MSG_NOT_FOUND = "Évaluation globale non trouvée avec l'id : ";
+    private static final String ROLE_RESPONSABLE_DOSSIER = "ROLE_RESPONSABLE_DOSSIER";
+    private static final String ROLE_CUP = "ROLE_CUP";
+    private static final String ROLE_CHEF_DEPARTEMENT = "ROLE_CHEF_DEPARTEMENT";
 
     private final EvaluationGlobaleRepository evaluationGlobaleRepository;
+    private final esprit.pfe.serviceevaluation.client.FormationClient formationClient;
+
+    /**
+     * Vérifie que l'utilisateur connecté a le droit de créer/modifier une évaluation globale.
+     * Règle : ADMIN, CUP et CHEF_DEPARTEMENT évaluent toute formation (pilotage) ;
+     * les autres rôles (sauf RESPONSABLE_DOSSIER, exclu) doivent participer à la
+     * formation (inscrit approuvé, animateur ou formateur).
+     */
+    private void verifierAutorisationEvaluationGlobale(String evaluatorIdentity, String userRole, Long formationId) {
+        if (userRole != null && userRole.contains(ROLE_RESPONSABLE_DOSSIER)) {
+            throw new SecurityException("Le responsable dossier ne peut pas évaluer les formations.");
+        }
+        if (userRole != null && (userRole.contains("ROLE_ADMIN")
+                || userRole.contains(ROLE_CUP)
+                || userRole.contains(ROLE_CHEF_DEPARTEMENT))) {
+            return;
+        }
+        Boolean isParticipant = formationClient.isParticipantOfFormation(formationId, evaluatorIdentity);
+        if (!Boolean.TRUE.equals(isParticipant)) {
+            throw new SecurityException("Vous devez participer à cette formation pour l'évaluer (inscrit, animateur ou formateur).");
+        }
+    }
 
     private EvaluationGlobaleDTO mapToDto(EvaluationGlobale entity) {
         EvaluationGlobaleDTO dto = new EvaluationGlobaleDTO();
         dto.setIdEvalGlobale(entity.getIdEvalGlobale());
         dto.setFormationId(entity.getFormationId());
+        dto.setEnseignantId(entity.getEnseignantId());
         dto.setCommentaireGeneral(entity.getCommentaireGeneral());
         dto.setDateEvaluation(entity.getDateEvaluation());
         dto.setNoteGlobale(entity.getNoteGlobale());
         dto.setRecommandation(entity.getRecommandation());
+        dto.setPertinenceContenu(entity.getPertinenceContenu());
+        dto.setOrganisation(entity.getOrganisation());
+        dto.setQualiteSupports(entity.getQualiteSupports());
+        dto.setDureeAdaptee(entity.getDureeAdaptee());
+        dto.setSatisfactionGlobale(entity.getSatisfactionGlobale());
         return dto;
     }
 
@@ -32,14 +63,26 @@ public class EvaluationGlobaleService {
         EvaluationGlobale entity = new EvaluationGlobale();
         entity.setIdEvalGlobale(dto.getIdEvalGlobale());
         entity.setFormationId(dto.getFormationId());
+        entity.setEnseignantId(dto.getEnseignantId());
         entity.setCommentaireGeneral(dto.getCommentaireGeneral());
         entity.setDateEvaluation(dto.getDateEvaluation());
         entity.setNoteGlobale(dto.getNoteGlobale());
         entity.setRecommandation(dto.getRecommandation());
+        applyCriteria(entity, dto);
         return entity;
     }
 
-    public EvaluationGlobaleDTO createEvaluationGlobale(EvaluationGlobaleDTO dto) {
+    /** Applique les critères structurés de l'évaluation de la formation. */
+    private void applyCriteria(EvaluationGlobale entity, EvaluationGlobaleDTO dto) {
+        entity.setPertinenceContenu(dto.getPertinenceContenu());
+        entity.setOrganisation(dto.getOrganisation());
+        entity.setQualiteSupports(dto.getQualiteSupports());
+        entity.setDureeAdaptee(dto.getDureeAdaptee());
+        entity.setSatisfactionGlobale(dto.getSatisfactionGlobale());
+    }
+
+    public EvaluationGlobaleDTO createEvaluationGlobale(EvaluationGlobaleDTO dto, String evaluatorIdentity, String userRole) {
+        verifierAutorisationEvaluationGlobale(evaluatorIdentity, userRole, dto.getFormationId());
         if (evaluationGlobaleRepository.existsByFormationId(dto.getFormationId())) {
             throw new IllegalStateException("Une évaluation globale existe déjà pour la formation " + dto.getFormationId());
         }
@@ -47,13 +90,16 @@ public class EvaluationGlobaleService {
         return mapToDto(evaluationGlobaleRepository.save(entity));
     }
 
-    public EvaluationGlobaleDTO updateEvaluationGlobale(Long id, EvaluationGlobaleDTO dto) {
+    public EvaluationGlobaleDTO updateEvaluationGlobale(Long id, EvaluationGlobaleDTO dto, String evaluatorIdentity, String userRole) {
+        verifierAutorisationEvaluationGlobale(evaluatorIdentity, userRole, dto.getFormationId());
         EvaluationGlobale existing = evaluationGlobaleRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(MSG_NOT_FOUND + id));
         existing.setCommentaireGeneral(dto.getCommentaireGeneral());
+        existing.setEnseignantId(dto.getEnseignantId());
         existing.setDateEvaluation(dto.getDateEvaluation());
         existing.setNoteGlobale(dto.getNoteGlobale());
         existing.setRecommandation(dto.getRecommandation());
+        applyCriteria(existing, dto);
         return mapToDto(evaluationGlobaleRepository.save(existing));
     }
 
@@ -76,7 +122,16 @@ public class EvaluationGlobaleService {
     }
 
     public Page<EvaluationGlobaleDTO> getAllEvaluationGlobales(Pageable pageable) {
-        return evaluationGlobaleRepository.findAll(pageable)
+        EvaluationListScope.ListScope scope = EvaluationListScope.resolve(formationClient);
+        if (scope.global()) {
+            return evaluationGlobaleRepository.findAll(pageable)
+                    .map(this::mapToDto);
+        }
+        if (scope.ficheId() == null) {
+            return Page.empty(pageable);
+        }
+        return evaluationGlobaleRepository.findByEnseignantId(scope.ficheId(), pageable)
                 .map(this::mapToDto);
     }
+
 }

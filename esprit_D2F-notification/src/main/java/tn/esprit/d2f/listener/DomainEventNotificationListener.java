@@ -26,6 +26,11 @@ public class DomainEventNotificationListener {
             return;
         }
         log.info("[amqp] notification reçue pour {} ({})", event.recipient(), event.type());
-        notificationService.create(event);
+        try {
+            notificationService.create(event);
+        } catch (Exception e) {
+            log.error("[amqp] traitement impossible de l'événement pour {} : {}",
+                    event.recipient(), e.getMessage());
+        }
     }
 }

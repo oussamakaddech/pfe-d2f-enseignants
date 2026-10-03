@@ -115,15 +115,29 @@ class AuthorizationMatrixTest {
     }
 
     @Test
-    void formation_read_does_not_include_basic_users_only() {
-        // Snapshot regression : formation read must include at least
-        // ROLE_ADMIN, ROLE_CUP, ROLE_FORMATEUR, ROLE_ENSEIGNANT.
+    void formation_read_does_not_include_basic_users_only() {        // Snapshot regression : formation read must include at least
+        // ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_ANIMATEUR.
         String fr = AuthorizationMatrix.FORMATION_READ;
         for (String required : List.of(
-                "ROLE_ADMIN", "ROLE_CUP", "ROLE_ENSEIGNANT", "ROLE_FORMATEUR")) {
+                "ROLE_ADMIN", "ROLE_CUP", "ROLE_ENSEIGNANT", "ROLE_ANIMATEUR")) {
             assertTrue(fr.contains(required),
                     "FORMATION_READ must include " + required + " but was " + fr);
         }
+        assertFalse(fr.contains("ROLE_FORMATEUR"),
+                "FORMATION_READ must NOT include deprecated ROLE_FORMATEUR");
+    }
+
+    @Test
+    void formation_animateur_check_allows_service_token_and_humans() {
+        String expr = AuthorizationMatrix.FORMATION_ANIMATEUR_CHECK;
+        for (String required : List.of(
+                "ROLE_SVC_EVALUATION", "ROLE_ADMIN", "ROLE_CUP", "ROLE_ENSEIGNANT",
+                "ROLE_ANIMATEUR", "ROLE_RESPONSABLE_DOSSIER", "ROLE_CHEF_DEPARTEMENT")) {
+            assertTrue(expr.contains(required),
+                    "FORMATION_ANIMATEUR_CHECK must include " + required + " but was " + expr);
+        }
+        assertFalse(expr.contains("ROLE_FORMATEUR"),
+                "FORMATION_ANIMATEUR_CHECK must NOT include deprecated ROLE_FORMATEUR");
     }
 
     @Test

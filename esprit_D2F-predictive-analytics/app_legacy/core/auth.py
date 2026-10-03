@@ -31,13 +31,14 @@ def require_roles(*allowed_roles: str) -> Callable[[Request], dict]:
 
         user_id = getattr(request.state, "user_id", None)
         role = getattr(request.state, "user_role", "") or ""
+        email = getattr(request.state, "user_email", "") or ""
 
         # Auth désactivée (tests / dev local) : on laisse passer pour ne pas
         # casser les exécutions sans secret, mais on renvoie quand même
         # l'identité connue (le cas échéant) pour que les gardes d'accès
         # objet (BOLA) puissent être testées explicitement.
         if not JWT_AUTH_ENABLED:
-            return {"user_id": user_id, "role": role}
+            return {"user_id": user_id, "role": role, "email": email}
 
         role_upper = role.upper()
         if not any(r in role_upper for r in allowed_upper):
@@ -45,7 +46,7 @@ def require_roles(*allowed_roles: str) -> Callable[[Request], dict]:
                 status_code=403,
                 detail=f"Forbidden: rôle requis parmi {sorted(allowed_upper)}",
             )
-        return {"user_id": user_id, "role": role}
+        return {"user_id": user_id, "role": role, "email": email}
 
     return _dependency
 

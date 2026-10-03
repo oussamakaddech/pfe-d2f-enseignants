@@ -18,7 +18,9 @@ describe('UnifiedProfileService', () => {
     vi.clearAllMocks();
   });
 
-  const base = `${config.FORMATION_URL}/api/v1/unified-profiles`;
+  // URL réelle du service : le gateway réécrit /api/formation/** → /api/v1/**
+  // (routes.yml : RewritePath=/api/formation/(?<segment>.*), /api/v1/${segment}).
+  const base = `${config.FORMATION_URL}/formation/unified-profiles`;
 
   it('searches with default page/size', async () => {
     const data = [

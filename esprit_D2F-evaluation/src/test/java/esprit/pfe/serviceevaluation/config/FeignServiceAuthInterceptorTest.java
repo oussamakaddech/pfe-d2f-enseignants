@@ -30,5 +30,14 @@ class FeignServiceAuthInterceptorTest {
         String token = authHeader.substring(7);
         String[] parts = token.split("\\.");
         assertThat(parts).hasSize(3); // Standard header.payload.signature format
+
+        // Le scope du jeton de service suit la convention SVC_* et ne doit
+        // plus émettre le rôle supprimé ROLE_FORMATEUR.
+        String payloadJson = new String(
+                java.util.Base64.getUrlDecoder().decode(parts[1]),
+                java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(payloadJson)
+                .contains("\"scope\":\"ROLE_SVC_EVALUATION\"")
+                .doesNotContain("FORMATEUR");
     }
 }

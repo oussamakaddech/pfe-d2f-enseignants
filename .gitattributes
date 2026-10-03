@@ -1,0 +1,7 @@
+# Les scripts shell doivent rester en LF, meme clones sous Windows ou
+# core.autocrlf=true est la norme. Sans cette regle, infra/postgres/init/
+# 00_init_roles.sh est sorti en CRLF, monte tel quel dans le conteneur Postgres
+# par docker-compose, et bash echoue sur le retour chariot du shebang
+# (« bash: \r: command not found ») — le provisionnement des roles ne tourne
+# alors jamais sur une base neuve.
+*.sh text eol=lf

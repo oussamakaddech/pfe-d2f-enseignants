@@ -35,7 +35,7 @@ class EvaluationConsumerTest {
 
         consumer.onCreateBatch(msg);
 
-        verify(evalService).createEvaluationsBulk(anyList());
+        verify(evalService).createEvaluationsBulk(anyList(), anyString(), anyString());
     }
 
     @Test
@@ -53,7 +53,7 @@ class EvaluationConsumerTest {
 
         consumer.onUpdateBatch(msg);
 
-        verify(evalService).updateEvaluationsBulkByFormation(eq(10L), anyList());
+        verify(evalService).updateEvaluationsBulkByFormation(eq(10L), anyList(), anyString(), anyString());
     }
 
     @Test
@@ -71,7 +71,7 @@ class EvaluationConsumerTest {
 
         consumer.onCreateBatch(msg);
 
-        verify(evalService).createEvaluationsBulk(argThat(list -> list.size() == 2));
+        verify(evalService).createEvaluationsBulk(argThat(list -> list.size() == 2), anyString(), anyString());
     }
 
     @Test

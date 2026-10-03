@@ -14,7 +14,7 @@ import RiskHistoryChart from '@/components/analytics/RiskHistoryChart';
 import type {
   DecliningSkill,
   RiskDistributionBucket,
-  TrendPoint,
+  DailyTrendPoint,
   RiskHistoryPoint,
 } from '@/models/analyse/analyticsFeature';
 
@@ -59,9 +59,22 @@ describe('TrendChart', () => {
     render(<TrendChart trends={[]} loading />);
     expect(screen.getByText(/Chargement/i)).toBeInTheDocument();
   });
-  it('rend sans erreur avec des données', () => {
-    const trends: TrendPoint[] = [
-      { month: '2024-01', nb_gaps_critiques: 1, score_risque_moyen: 0.3, nb_alertes: 2 },
+  it('rend sans erreur avec des données quotidiennes', () => {
+    const trends: DailyTrendPoint[] = [
+      {
+        date: '2026-09-26',
+        score_risque_moyen: 0.42,
+        nb_critiques: 2,
+        nb_eleves: 5,
+        nb_enseignants: 40,
+      },
+      {
+        date: '2026-09-27',
+        score_risque_moyen: 0.38,
+        nb_critiques: 1,
+        nb_eleves: 4,
+        nb_enseignants: 41,
+      },
     ];
     const { container } = render(<TrendChart trends={trends} />);
     expect(container).toBeTruthy();

@@ -138,29 +138,54 @@ public class EnseignantServiceImpl implements EnseignantService {
     }
 
     /**
-     * Recharge un {@link Up} managé depuis son id. Renvoie {@code null} si aucune
-     * UP n'est demandée, lève {@link IllegalArgumentException} (→ 400) si l'id est
-     * inconnu. Évite les références transients lors du save.
+     * Recharge un {@link Up} manage depuis son id, ou son libelle en repli
+     * (le front envoie parfois le libelle "Genie Civil" au lieu de l'id UP_GC).
+     * Leve {@link IllegalArgumentException} (-> 400) si aucune correspondance.
      */
     private Up resolveUp(Up up) {
-        if (up == null || up.getId() == null || up.getId().isBlank()) {
+        if (up == null) {
             return null;
         }
-        return upRepository.findById(up.getId())
+        String byId = up.getId();
+        if (byId != null && !byId.isBlank()) {
+            // Id, ou libellé placé dans le champ id par le front (compat).
+            return upRepository.findById(byId)
+                    .or(() -> upRepository.findByLibelleIgnoreCase(byId))
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Unite pedagogique introuvable : " + byId));
+        }
+        String libelle = up.getLibelle();
+        if (libelle == null || libelle.isBlank()) {
+            return null;
+        }
+        return upRepository.findByLibelleIgnoreCase(libelle)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Unité pédagogique introuvable : " + up.getId()));
+                        "Unite pedagogique introuvable : " + libelle));
     }
 
     /**
-     * Recharge un {@link Dept} managé depuis son id. Mêmes règles que {@link #resolveUp}.
+     * Recharge un {@link Dept} manage depuis son id ou son libelle.
+     * Memes regles que {@link #resolveUp}.
      */
     private Dept resolveDept(Dept dept) {
-        if (dept == null || dept.getId() == null || dept.getId().isBlank()) {
+        if (dept == null) {
             return null;
         }
-        return deptRepository.findById(dept.getId())
+        String byId = dept.getId();
+        if (byId != null && !byId.isBlank()) {
+            // Id, ou libellé placé dans le champ id par le front (compat).
+            return deptRepository.findById(byId)
+                    .or(() -> deptRepository.findByLibelleIgnoreCase(byId))
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Departement introuvable : " + byId));
+        }
+        String libelle = dept.getLibelle();
+        if (libelle == null || libelle.isBlank()) {
+            return null;
+        }
+        return deptRepository.findByLibelleIgnoreCase(libelle)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Département introuvable : " + dept.getId()));
+                        "Departement introuvable : " + libelle));
     }
 
     @Override
@@ -175,7 +200,13 @@ public class EnseignantServiceImpl implements EnseignantService {
             // up/dept quand le formulaire ne les renvoyait pas → 500 / perte de données.
             if (enseignant.getNom() != null)             e.setNom(enseignant.getNom());
             if (enseignant.getPrenom() != null)          e.setPrenom(enseignant.getPrenom());
-            if (enseignant.getMail() != null)            e.setMail(enseignant.getMail());
+            if (enseignant.getMail() != null && !enseignant.getMail().equals(e.getMail())) {
+                if (enseignantRepository.existsByMail(enseignant.getMail())) {
+                    throw new DuplicateEnseignantException(
+                            "Un enseignant avec cet email existe déjà : " + enseignant.getMail());
+                }
+                e.setMail(enseignant.getMail());
+            }
             if (enseignant.getType() != null)            e.setType(enseignant.getType());
             if (enseignant.getEtat() != null)            e.setEtat(enseignant.getEtat());
             if (enseignant.getCup() != null)             e.setCup(enseignant.getCup());
@@ -190,7 +221,12 @@ public class EnseignantServiceImpl implements EnseignantService {
             if (enseignant.getUserId() != null)          e.setUserId(enseignant.getUserId());
             return enseignantRepository.save(e);
         } else {
-            throw new IllegalStateException("Enseignant introuvable avec l'id : " + id);
+            // Fiche inexistante OU soft-deleted (exclue par @SQLRestriction) → 404
+            // via GlobalExceptionHandler (EntityNotFoundException), pas 400 : une
+            // édition sur une fiche supprimée/remplacée n'est pas une requête
+            // malformée, c'est une ressource disparue (le front doit rafraîchir).
+            throw new jakarta.persistence.EntityNotFoundException(
+                    "Enseignant introuvable avec l'id : " + id);
         }
     }
 

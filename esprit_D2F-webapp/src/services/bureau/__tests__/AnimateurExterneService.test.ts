@@ -28,10 +28,20 @@ describe('AnimateurExterneService', () => {
     await expect(AnimateurExterneService.getByBureau(5)).resolves.toEqual([{ id: 1 }]);
     expect(httpMocks.mockGet).toHaveBeenCalledWith(
       expect.stringContaining('/bureaux/5/animateurs'),
+      expect.objectContaining({ params: expect.objectContaining({ size: expect.any(Number) }) }),
     );
 
     httpMocks.mockGet.mockResolvedValueOnce({ data: null });
     await expect(AnimateurExterneService.getByBureau(5)).resolves.toEqual([]);
+  });
+
+  it('reads the Spring Page payload ({ content }) returned by the backend', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: { content: [{ id: 1, nom: 'Externe' }], totalElements: 1 },
+    });
+    await expect(AnimateurExterneService.getByBureau(2)).resolves.toEqual([
+      { id: 1, nom: 'Externe' },
+    ]);
   });
 
   it('creates, updates and deletes an animateur', async () => {

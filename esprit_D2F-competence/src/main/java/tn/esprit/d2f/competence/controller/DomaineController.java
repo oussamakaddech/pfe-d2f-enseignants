@@ -81,7 +81,7 @@ public class DomaineController {
     @ApiResponse(responseCode = "201", description = "Domaine créé")
     @ApiResponse(responseCode = "400", description = "Données invalides ou code déjà existant")
     @PostMapping
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_CONTENU_WRITE)
     public ResponseEntity<DomaineDTO> createDomaine(@Valid @RequestBody DomaineRequest request) {
         return new ResponseEntity<>(domaineService.createDomaine(request), HttpStatus.CREATED);
     }
@@ -91,7 +91,7 @@ public class DomaineController {
     @ApiResponse(responseCode = "404", description = "Introuvable")
     @ApiResponse(responseCode = "400", description = "Données invalides")
     @PutMapping("/{id}")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_CONTENU_WRITE)
     public ResponseEntity<DomaineDTO> updateDomaine(
             @PathVariable Long id,
             @Valid @RequestBody DomaineRequest request) {
@@ -100,7 +100,7 @@ public class DomaineController {
 
     @Operation(summary = "Supprimer un domaine")
     @DeleteMapping("/{id}")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_CONTENU_WRITE)
     public ResponseEntity<Void> deleteDomaine(@PathVariable Long id) {
         domaineService.deleteDomaine(id);
         return ResponseEntity.noContent().build();
@@ -108,7 +108,7 @@ public class DomaineController {
 
     @Operation(summary = "Activer / désactiver un domaine")
     @PatchMapping("/{id}/toggle-actif")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_CONTENU_WRITE)
     public ResponseEntity<DomaineDTO> toggleActif(@PathVariable Long id) {
         return ResponseEntity.ok(domaineService.toggleActif(id));
     }

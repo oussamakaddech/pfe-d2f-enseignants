@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import type { ComponentProps } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Steps, Typography } from 'antd';
+import { Steps } from 'antd';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import {
@@ -26,9 +26,9 @@ import { secureRandomUnit } from '@/utils/secureRandom';
 import UploadStep from './rice/UploadStep';
 import AnalyzingStep from './rice/AnalyzingStep';
 import ReviewStep from './rice/ReviewStep';
+import AnalysisEngineNotice from './rice/review/AnalysisEngineNotice';
 import ReportStep from './rice/ReportStep';
 import RiceHeroSection from './rice/RiceHeroSection';
-import RiceSidePanel from './rice/RiceSidePanel';
 import CreateEnseignantModal from './rice/CreateEnseignantModal';
 import MergeSavoirModal from './rice/MergeSavoirModal';
 
@@ -36,8 +36,6 @@ import { STORAGE_KEY } from './rice/constants';
 import type { RiceDomaine } from '@/models/competence';
 import '@/styles/pages/rice-page.css';
 import useAppNotification from '@/hooks/ui/useAppNotification';
-
-const { Text, Title } = Typography;
 
 const DEPT_ACCENT = {
   gc: '#52c41a',
@@ -100,7 +98,10 @@ export default function RicePage() {
     setNiveau,
     toggleEnsAssign,
     setEnseignants,
+    updateNodeField,
+    moveSavoirToSC,
     remapInTree,
+    openMerge,
     confirmMerge,
     allSavoirsFlat,
     liveStats,
@@ -290,8 +291,6 @@ export default function RicePage() {
     [files.length, analyzing, currentStep, liveStats.totalSavoirs],
   );
 
-  const currentStageTitle = steps[currentStep]?.title ?? 'Upload';
-
   // ── JSX ─────────────────────────────────────────────────────────────────────
   return (
     <div
@@ -306,33 +305,15 @@ export default function RicePage() {
         <RiceHeroSection
           currentDeptLabel={currentDeptLabel}
           filesCount={files.length}
-          currentStep={currentStep}
-          stepsCount={steps.length}
-          currentStageTitle={currentStageTitle}
           liveStats={liveStats}
           allEnseignants={allEnseignants}
           ignoreEnseignants={ignoreEnseignants}
           effectiveEnseignants={effectiveEnseignants}
-          analyzing={analyzing}
-          onAnalyze={() => void handleAnalyze()}
           onNavigateMatchmaking={() => navigate('/home/rice/matchmaking')}
           onReset={resetAll}
         />
 
         <section className="rice-stage-card">
-          <div className="rice-stage-head">
-            <div>
-              <Text className="rice-section-kicker">Pipeline backend</Text>
-              <Title level={4} style={{ margin: 0 }}>
-                {currentStageTitle} · {files.length} fichier(s) · {liveStats.totalSavoirs} savoirs
-              </Title>
-            </div>
-            <div className="rice-stage-summary">
-              <span className="rice-chip">{liveStats.totalDomaines} domaines</span>
-              <span className="rice-chip">{liveStats.totalComp} compétences</span>
-              <span className="rice-chip">{liveStats.enseignantsAssigned} enseignants liés</span>
-            </div>
-          </div>
           <Steps
             current={currentStep}
             items={steps}
@@ -406,30 +387,25 @@ export default function RicePage() {
                   animate="animate"
                   exit="exit"
                 >
+                  <AnalysisEngineNotice stats={analysisResult?.stats} />
                   <ReviewStep
                     tree={tree as ComponentProps<typeof ReviewStep>['tree']}
                     setTree={setTree as ComponentProps<typeof ReviewStep>['setTree']}
                     treeSearch={treeSearch}
                     setTreeSearch={setTreeSearch}
-                    editingNom={
-                      editingNom as unknown as ComponentProps<typeof ReviewStep>['editingNom']
-                    }
-                    setEditingNom={
-                      setEditingNom as unknown as ComponentProps<typeof ReviewStep>['setEditingNom']
-                    }
-                    startRename={
-                      startRename as unknown as ComponentProps<typeof ReviewStep>['startRename']
-                    }
+                    editingNom={editingNom}
+                    setEditingNom={setEditingNom}
+                    startRename={startRename}
                     commitRename={commitRename}
                     deleteSavoir={deleteSavoir}
                     deleteSC={deleteSC}
                     deleteComp={deleteComp}
                     deleteDomaine={deleteDomaine}
-                    toggleType={(di, ci, sci) => toggleType(di, ci, sci, 0)}
-                    setNiveau={(di, ci, sci, niveau) => setNiveau(di, ci, sci, 0, niveau)}
-                    setEnseignants={(di, ci, sci, ids) => setEnseignants(di, ci, sci, 0, ids)}
-                    openMerge={() => undefined}
-                    setMergeModal={() => undefined}
+                    toggleType={toggleType}
+                    setNiveau={setNiveau}
+                    setEnseignants={setEnseignants}
+                    openMerge={openMerge}
+                    setMergeModal={setMergeModal}
                     liveStats={liveStats}
                     treeFilteredIndices={
                       treeFilteredIndices as unknown as ComponentProps<
@@ -443,15 +419,11 @@ export default function RicePage() {
                     allSavoirsFlat={
                       allSavoirsFlat as ComponentProps<typeof ReviewStep>['allSavoirsFlat']
                     }
-                    onSavoirDragStart={
-                      dndHook.onSavoirDragStart as unknown as ComponentProps<
-                        typeof ReviewStep
-                      >['onSavoirDragStart']
-                    }
+                    onSavoirDragStart={dndHook.onSavoirDragStart}
                     onSavoirDragEnd={dndHook.onSavoirDragEnd}
                     setCurrentStep={setCurrentStep}
-                    updateNodeField={() => undefined}
-                    moveSavoirToSC={() => undefined}
+                    updateNodeField={updateNodeField}
+                    moveSavoirToSC={moveSavoirToSC}
                     setCreateEnsTarget={
                       setCreateEnsTarget as ComponentProps<typeof ReviewStep>['setCreateEnsTarget']
                     }
@@ -502,18 +474,6 @@ export default function RicePage() {
               )}
             </AnimatePresence>
           </main>
-
-          <RiceSidePanel
-            ignoreEnseignants={ignoreEnseignants}
-            enseignantsCount={allEnseignants.length}
-            currentDeptLabel={currentDeptLabel}
-            enseignantsLoading={enseignantsLoading}
-            enseignantsError={enseignantsError}
-            steps={steps}
-            currentStep={currentStep}
-            onReload={loadEnseignants}
-            onContinueWithout={continueWithoutEnseignants}
-          />
         </div>
 
         <CreateEnseignantModal

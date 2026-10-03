@@ -15,4 +15,5 @@ public class BesoinCompetenceDTO {
     private Long savoirId;
     private String savoirNom;
     private Long sousCompetenceId;
+    private String sousCompetenceNom;
 }

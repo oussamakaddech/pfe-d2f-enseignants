@@ -84,7 +84,7 @@ public class SavoirController {
     @ApiResponse(responseCode = "400", description = "Données invalides")
     @ApiResponse(responseCode = "404", description = "Sous-compétence introuvable")
     @PostMapping("/sous-competence/{sousCompetenceId}")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_CONTENU_WRITE)
     public ResponseEntity<SavoirDTO> createSavoir(
             @PathVariable Long sousCompetenceId,
             @Valid @RequestBody SavoirRequest request) {
@@ -93,7 +93,7 @@ public class SavoirController {
 
     @Operation(summary = "Créer un savoir direct pour une compétence")
     @PostMapping("/competence/{competenceId}")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_CONTENU_WRITE)
     public ResponseEntity<SavoirDTO> createSavoirForCompetence(
             @PathVariable Long competenceId,
             @Valid @RequestBody SavoirRequest request) {
@@ -102,7 +102,7 @@ public class SavoirController {
 
     @Operation(summary = "Mettre à jour un savoir")
     @PutMapping("/{id}")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_CONTENU_WRITE)
     public ResponseEntity<SavoirDTO> updateSavoir(
             @PathVariable Long id,
             @Valid @RequestBody SavoirRequest request) {
@@ -111,7 +111,7 @@ public class SavoirController {
 
     @Operation(summary = "Supprimer un savoir")
     @DeleteMapping("/{id}")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_CONTENU_WRITE)
     public ResponseEntity<Void> deleteSavoir(@PathVariable Long id) {
         savoirService.deleteSavoir(id);
         return ResponseEntity.noContent().build();

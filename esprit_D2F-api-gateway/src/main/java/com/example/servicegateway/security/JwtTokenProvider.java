@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -24,6 +25,25 @@ public class JwtTokenProvider {
 
     @Value("${jwt.expiration:7200000}")
     private long jwtExpirationMs;
+
+    private static final int MIN_JWT_SECRET_LENGTH = 64;
+
+    @PostConstruct
+    void validateJwtSecret() {
+        if (jwtSecret == null || jwtSecret.isBlank()) {
+            throw new IllegalStateException(
+                "JWT_SECRET est obligatoire et doit etre injecte via variable d'environnement.");
+        }
+        if (jwtSecret.length() < MIN_JWT_SECRET_LENGTH) {
+            throw new IllegalStateException(
+                "JWT_SECRET trop court (" + jwtSecret.length() + " chars). Minimum requis : "
+                    + MIN_JWT_SECRET_LENGTH + " caracteres pour HS512.");
+        }
+        if (jwtSecret.contains("CHANGE_ME") || jwtSecret.contains("change-me")) {
+            throw new IllegalStateException(
+                "JWT_SECRET contient un placeholder (CHANGE_ME). Configurer une valeur reelle en environnement.");
+        }
+    }
 
     /**
      * Validate JWT token

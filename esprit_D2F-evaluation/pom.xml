@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
@@ -19,7 +19,7 @@
 		<log4j2.version>2.25.5</log4j2.version>
 		<jackson-bom.version>2.21.5</jackson-bom.version>
 		<postgresql.version>42.7.13</postgresql.version>
-		<tomcat.version>10.1.57</tomcat.version>
+		<tomcat.version>10.1.59</tomcat.version>
 		<spring-cloud.version>2025.0.3</spring-cloud.version> <!-- Ajout de la version Spring Cloud -->
 		<sonar.projectKey>d2f_evaluation</sonar.projectKey>
 		<sonar.projectName>service-evaluation</sonar.projectName>
@@ -99,12 +99,6 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-amqp</artifactId>
-		</dependency>
-		<!-- ActiveMQ Artemis (profil alternatif — activer avec spring.profiles.active=activemq) -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-artemis</artifactId>
-			<scope>provided</scope>
 		</dependency>
 
 		<!-- Database Drivers -->

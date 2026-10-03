@@ -72,7 +72,7 @@ public class CalendarController {
 
     @Operation(summary = "Lister les formations planifiées (paginé, filtres titre/état)")
     @GetMapping("/formations")
-    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    @PreAuthorize(AuthorizationMatrix.CALENDAR_READ)
     public ResponseEntity<PageResponse<CalendarFormationDTO>> listFormations(
             @RequestParam(required = false) String titre,
             @RequestParam(required = false) String etat,
@@ -82,14 +82,14 @@ public class CalendarController {
 
     @Operation(summary = "Détail calendrier d'une formation")
     @GetMapping("/formations/{id}")
-    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    @PreAuthorize(AuthorizationMatrix.CALENDAR_READ)
     public ResponseEntity<CalendarFormationDTO> getFormation(@PathVariable Long id) {
         return ResponseEntity.ok(queryService.getFormation(id));
     }
 
     @Operation(summary = "Participants d'une formation (paginé)")
     @GetMapping("/formations/{id}/participants")
-    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    @PreAuthorize(AuthorizationMatrix.CALENDAR_READ)
     public ResponseEntity<PageResponse<CalendarParticipantDTO>> getParticipants(
             @PathVariable Long id,
             @PageableDefault(size = 50) Pageable pageable) {
@@ -98,7 +98,7 @@ public class CalendarController {
 
     @Operation(summary = "Rapport de détection des conflits sur l'ensemble du calendrier")
     @GetMapping("/conflicts")
-    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    @PreAuthorize(AuthorizationMatrix.CALENDAR_READ)
     public ResponseEntity<ConflictReportDTO> detectConflicts() {
         return ResponseEntity.ok(conflictService.detectAllConflicts());
     }
@@ -107,21 +107,21 @@ public class CalendarController {
 
     @Operation(summary = "Exporter tout le calendrier au format .ics")
     @GetMapping(value = "/export/ics/all", produces = CALENDAR_MEDIA_TYPE)
-    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    @PreAuthorize(AuthorizationMatrix.CALENDAR_READ)
     public ResponseEntity<byte[]> exportAll() {
         return icsResponse(exportService.generateIcsForAll(), "calendrier-complet.ics");
     }
 
     @Operation(summary = "Exporter une formation au format .ics")
     @GetMapping(value = "/export/ics/formation/{id}", produces = CALENDAR_MEDIA_TYPE)
-    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    @PreAuthorize(AuthorizationMatrix.CALENDAR_READ)
     public ResponseEntity<byte[]> exportFormation(@PathVariable Long id) {
         return icsResponse(exportService.generateIcsForFormation(id), "formation-" + id + ".ics");
     }
 
     @Operation(summary = "Exporter le calendrier personnel d'un participant (par e-mail) au format .ics")
     @GetMapping(value = "/export/ics/participant/{email:.+}", produces = CALENDAR_MEDIA_TYPE)
-    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    @PreAuthorize(AuthorizationMatrix.CALENDAR_READ)
     public ResponseEntity<byte[]> exportParticipant(@PathVariable String email) {
         return icsResponse(exportService.generateIcsForParticipantEmail(email), "mon-calendrier.ics");
     }

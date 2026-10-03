@@ -43,15 +43,46 @@ import type { Formation } from '@/models/formation';
 import type { Id } from '@/models/common';
 import '@/styles/pages/fiche-formation.css';
 
+/* Aligné sur l'enum backend PeriodCode (+ formulaires) : P3/P4 n'existent pas,
+ * SPRINT/WORKSHOP si (ex. « SPRINT » affichait « — »). */
 const PERIOD_OPTIONS = [
   { value: 'P1', label: 'Période 1' },
   { value: 'P2', label: 'Période 2' },
-  { value: 'P3', label: 'Période 3' },
-  { value: 'P4', label: 'Période 4' },
-  { value: 'SUMMER', label: "Session d'Été" },
   { value: 'WINTER', label: "Session d'Hiver" },
+  { value: 'SUMMER', label: "Session d'Été" },
+  { value: 'SPRINT', label: 'Sprint' },
+  { value: 'WORKSHOP', label: 'Atelier' },
   { value: 'OTHER', label: 'Autre' },
 ];
+
+/** Libellé de période : code connu, libellé personnalisé, ou ancien champ. */
+export function resolvePeriodLabel(
+  periodCode?: string,
+  customPeriodLabel?: string,
+  periodeFormation?: string,
+): string {
+  if (periodCode === 'OTHER') return customPeriodLabel || 'Autre';
+  return (
+    PERIOD_OPTIONS.find((o) => o.value === periodCode)?.label ||
+    customPeriodLabel ||
+    periodeFormation ||
+    '—'
+  );
+}
+
+/** Libellé de structure : le détail renvoie `up`/`departement`, les listes
+ *  `up1`/`departement1` (même forme id/libelle). */
+export function resolveStructureLabel(
+  primary?: { libelle?: string; nom?: string } | null,
+  fallback?: { libelle?: string; nom?: string } | null,
+): string {
+  return primary?.libelle || primary?.nom || fallback?.libelle || fallback?.nom || '—';
+}
+
+/** Pastille colorée, ou simple tiret quand vide (pas de tag vide). */
+function InfoTag({ color, value }: { readonly color: string; readonly value: string }) {
+  return value === '—' ? <>{value}</> : <Tag color={color}>{value}</Tag>;
+}
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -125,6 +156,8 @@ export default function FicheFormation() {
     chargeHoraireGlobal,
     departement1,
     up1,
+    departement,
+    up,
     seances = [],
     inscriptionsOuvertes,
     objectifs,
@@ -237,11 +270,7 @@ export default function FicheFormation() {
                   </Space>
                 }
               >
-                {periodCode === 'OTHER'
-                  ? customPeriodLabel || 'Autre'
-                  : PERIOD_OPTIONS.find((o) => o.value === periodCode)?.label ||
-                    periodeFormation ||
-                    '—'}
+                {resolvePeriodLabel(periodCode, customPeriodLabel, periodeFormation)}
               </Descriptions.Item>
               <Descriptions.Item
                 label={
@@ -259,7 +288,7 @@ export default function FicheFormation() {
                   </Space>
                 }
               >
-                {departement1?.libelle || '—'}
+                <InfoTag color="blue" value={resolveStructureLabel(departement1, departement)} />
               </Descriptions.Item>
               <Descriptions.Item
                 label={
@@ -268,7 +297,7 @@ export default function FicheFormation() {
                   </Space>
                 }
               >
-                {up1?.libelle || '—'}
+                <InfoTag color="cyan" value={resolveStructureLabel(up1, up)} />
               </Descriptions.Item>
               <Descriptions.Item
                 label={
@@ -277,7 +306,7 @@ export default function FicheFormation() {
                   </Space>
                 }
               >
-                {domaine || '—'}
+                <InfoTag color="purple" value={domaine || '—'} />
               </Descriptions.Item>
               <Descriptions.Item
                 label={

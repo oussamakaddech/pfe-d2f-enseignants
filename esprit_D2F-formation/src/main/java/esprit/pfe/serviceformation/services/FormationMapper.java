@@ -269,6 +269,8 @@ public class FormationMapper {
         dto.setDureeTheorique(seance.getDureeTheorique());
         dto.setDureePratique(seance.getDureePratique());
         dto.setOnlineMeetingUrl(seance.getOnlineMeetingUrl());
+        dto.setNumeroSeance(seance.getNumeroSeance());
+        dto.setTotalSeances(seance.getTotalSeances());
         dto.setAnimateurs(toEnseignantDTOList(seance.getAnimateurs()));
         dto.setParticipants(toEnseignantDTOList(seance.getParticipants()));
         return dto;

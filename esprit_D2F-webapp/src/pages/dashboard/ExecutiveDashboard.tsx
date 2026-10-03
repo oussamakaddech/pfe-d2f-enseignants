@@ -170,6 +170,7 @@ export default function ExecutiveDashboard({ role: roleProp }: ExecutiveDashboar
       isCup: roleKey === 'cup',
       isEnseignant: false,
       isAnimateur: false,
+      isPilotage: isAdmin || roleKey === 'cup' || roleKey === 'chefdepartement',
       start,
       end,
       rangeKey,
@@ -243,14 +244,16 @@ export default function ExecutiveDashboard({ role: roleProp }: ExecutiveDashboar
                     loading={refreshing}
                   />
                 </Tooltip>
-                <Tooltip title="Exporter le rapport (Excel)">
-                  <Button
-                    className="dash-hero-btn"
-                    icon={<DownloadOutlined />}
-                    onClick={onExport}
-                    loading={exporting}
-                  />
-                </Tooltip>
+                {scope.isPilotage && (
+                  <Tooltip title="Exporter le rapport (Excel)">
+                    <Button
+                      className="dash-hero-btn"
+                      icon={<DownloadOutlined />}
+                      onClick={onExport}
+                      loading={exporting}
+                    />
+                  </Tooltip>
+                )}
                 <Tooltip title="Formations">
                   <Button
                     className="dash-hero-btn"
@@ -339,15 +342,19 @@ export default function ExecutiveDashboard({ role: roleProp }: ExecutiveDashboar
           <Col xs={24} lg={8}>
             <DashboardPendingNeeds scope={scope} />
           </Col>
-          <Col xs={24} lg={8}>
-            <DashboardTopCompetencies />
-          </Col>
+          {scope.isPilotage && (
+            <Col xs={24} lg={8}>
+              <DashboardTopCompetencies />
+            </Col>
+          )}
         </Row>
       </section>
 
-      <section className="dash-section dash-anim">
-        <DashboardPredictiveInsights scope={scope} />
-      </section>
+      {scope.isPilotage && (
+        <section className="dash-section dash-anim">
+          <DashboardPredictiveInsights scope={scope} />
+        </section>
+      )}
 
       <section className="dash-section dash-anim">
         <SectionHeader icon={<HistoryOutlined />} title="Activité récente" />

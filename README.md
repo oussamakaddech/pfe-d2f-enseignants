@@ -16,6 +16,7 @@ pfe-d2f-enseignants/
 ├── esprit_D2F-evaluation/            # Évaluations — :8087
 ├── esprit_D2F-certificat/            # Certificats PDF — :8086
 ├── esprit_D2F-analyse/               # Analyse transverse — :8089
+├── esprit_D2F-notification/          # Notifications — :9009
 ├── esprit_D2F-rice/                  # RICE — Référentiel Intelligent (FastAPI)
 ├── esprit_D2F-predictive-analytics/  # Analyse prédictive (FastAPI / ML)
 ├── esprit_D2F-common-security/       # Bibliothèque partagée (sécurité, JWT)
@@ -38,6 +39,7 @@ pfe-d2f-enseignants/
 | Certificat | Spring Boot | `8086` | via Gateway |
 | Formation | Spring Boot | `8088` | via Gateway |
 | Analyse | Spring Boot | `8089` | via Gateway |
+| Notification | Spring Boot | `9009` | via Gateway |
 | RICE | FastAPI | interne | via Gateway |
 | Analyse Prédictive | FastAPI / ML | interne | via Gateway |
 | Webapp | React 19 / Vite | `3000` (nginx) | navigateur |

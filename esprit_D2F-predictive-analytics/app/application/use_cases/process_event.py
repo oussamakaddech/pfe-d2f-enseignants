@@ -7,13 +7,19 @@ logger = get_logger("process_event")
 
 
 class ProcessEvent:
+    # Injecte le dépôt d'idempotence (anti double-traitement) et les handlers
+    # métier enregistrés par type d'événement.
     def __init__(self, idempotency_repository: IdempotencyRepository, handlers: dict[str, Any] | None = None) -> None:
         self._idempotency_repository = idempotency_repository
         self._handlers = handlers or {}
 
+    # Enregistre un handler métier pour un type d'événement donné (ex: "EvaluationUpdated").
     def register(self, event_type: str, handler: Any) -> None:
         self._handlers[event_type] = handler
 
+    # Traite un événement RabbitMQ : refuse les événements sans ID, ignore les
+    # doublons (idempotence), exécute le handler correspondant puis marque
+    # l'événement comme traité.
     def execute(self, event: dict) -> dict:
         event_id = event.get("event_id") or event.get("id")
         if not event_id:

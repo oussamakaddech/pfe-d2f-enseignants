@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Table,
@@ -39,18 +39,16 @@ import dayjs from 'dayjs';
 import { useAuth } from '@/hooks/auth/useAuth';
 import {
   useAllFormations,
-  useFormationsParDepartement,
+  useMesFormationsPilote,
   useFormationsWithDocuments,
   useDeleteFormation,
   useExportFormations,
   useUps,
   useDepartements,
-  useProfile,
 } from '@/hooks/formation';
 import type { Formation } from '@/models/formation';
 import type { FormationDocument } from '@/models/document';
 import type { Id } from '@/models/common';
-import FormationWorkflowEditForm from './FormationWorkflowEditForm';
 import MailForm from '@/pages/besoin/MailForm';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 
@@ -111,27 +109,42 @@ function renderExpandRow(record: Formation) {
 export default function FormationConsultationPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const canManageFormations = normalizeRole(user?.role) === 'admin';
+  // Parité FORMATION_CREATE/UPDATE/DELETE (AuthorizationMatrix) : ADMIN, CUP et
+  // CHEF_DEPARTEMENT gèrent les formations (contrôle fin du périmètre côté serveur).
+  const canManageFormations = ['admin', 'cup', 'chefdepartement'].includes(
+    normalizeRole(user?.role),
+  );
   const isChefDept = normalizeRole(user?.role) === 'chefdepartement';
+  const isCup = normalizeRole(user?.role) === 'cup';
+  // Scoping serveur (§8) : CUP → son UP, chef → son département (ADMIN = global).
+  const isScopedPilote = isCup || isChefDept;
   const { message: msgApi } = useAppNotification();
-
-  const { data: profile } = useProfile();
-  const deptId = (user?.deptId ?? profile?.deptId ?? profile?.departementId) as Id | undefined;
 
   const {
     data: formationsAll = [],
     isLoading: loadingAll,
     refetch: refetchAll,
-  } = useAllFormations();
+  } = useAllFormations(!isScopedPilote);
   const {
-    data: formationsDept = [],
-    isLoading: loadingDept,
-    refetch: refetchDept,
-  } = useFormationsParDepartement(isChefDept ? deptId : undefined);
-  const loading = loadingAll || loadingDept;
+    data: formationsScoped = [],
+    isLoading: loadingScoped,
+    refetch: refetchScoped,
+    error: scopedError,
+  } = useMesFormationsPilote(isScopedPilote);
+  useEffect(() => {
+    if (scopedError) {
+      const e = scopedError as { response?: { data?: { message?: string } }; message?: string };
+      msgApi.error(
+        e.response?.data?.message || e.message || 'Impossible de charger vos formations.',
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopedError]);
+  const loading = loadingAll || loadingScoped;
+  const refetchFormations = isScopedPilote ? refetchScoped : refetchAll;
   const formations = useMemo(
-    () => (isChefDept && deptId ? formationsDept : formationsAll),
-    [isChefDept, deptId, formationsDept, formationsAll],
+    () => (isScopedPilote ? formationsScoped : formationsAll),
+    [isScopedPilote, formationsScoped, formationsAll],
   );
 
   const { data: formationsWithDocs = [] } = useFormationsWithDocuments();
@@ -173,7 +186,6 @@ export default function FormationConsultationPage() {
   const [periodFilter, setPeriodFilter] = useState<string | undefined>();
   const [periodRange, setPeriodRange] = useState<[Dayjs, Dayjs] | null>(null);
 
-  const [openEdit, setOpenEdit] = useState(false);
   const [openExport, setOpenExport] = useState(false);
   const [openMail, setOpenMail] = useState(false);
 
@@ -469,8 +481,14 @@ export default function FormationConsultationPage() {
                 shape="circle"
                 icon={<EditOutlined />}
                 onClick={() => {
-                  setSelectedFormation(r);
-                  setOpenEdit(true);
+                  if (r.idFormation == null) return;
+                  // Page dédiée (GET détail frais) pour les gestionnaires ;
+                  // le responsable dossier gère les documents de la formation.
+                  navigate(
+                    canManageFormations
+                      ? `/home/Formation/Modifier/${r.idFormation}`
+                      : `/home/Formation/Consulter/${r.idFormation}/documents`,
+                  );
                 }}
                 title={isResponsableDossier ? 'Gérer Dossier' : 'Modifier'}
                 className="formation-btn-edit"
@@ -750,8 +768,7 @@ export default function FormationConsultationPage() {
                 type="text"
                 icon={<ReloadOutlined />}
                 onClick={() => {
-                  void refetchAll();
-                  if (isChefDept && deptId) void refetchDept();
+                  void refetchFormations();
                 }}
                 loading={loading}
               />
@@ -814,32 +831,6 @@ export default function FormationConsultationPage() {
               onSendSuccess={() => {
                 msgApi.success('E-mail envoyé !');
                 setOpenMail(false);
-              }}
-            />
-          )}
-        </Drawer>
-      )}
-
-      {canManageFormations && (
-        <Drawer
-          title="Modifier Formation"
-          placement="right"
-          width={960}
-          onClose={() => setOpenEdit(false)}
-          open={openEdit}
-          className="formation-drawer formation-drawer--edit"
-        >
-          {selectedFormation && (
-            <FormationWorkflowEditForm
-              formation={
-                selectedFormation as unknown as Parameters<
-                  typeof FormationWorkflowEditForm
-                >[0]['formation']
-              }
-              onFormationUpdated={() => {
-                setOpenEdit(false);
-                void refetchAll();
-                if (isChefDept && deptId) void refetchDept();
               }}
             />
           )}

@@ -140,10 +140,10 @@ public class CreateFormationRequest {
     private String customPeriodLabel;
 
     @Schema(description = "UP ID", example = "1")
-    private Long upId;
+    private String upId;
 
     @Schema(description = "Department ID")
-    private Long departementId;
+    private String departementId;
 
     /**
      * Validates that dateDebut < dateFin

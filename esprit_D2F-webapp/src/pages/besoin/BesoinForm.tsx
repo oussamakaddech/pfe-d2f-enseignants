@@ -114,6 +114,7 @@ export default function BesoinForm() {
                   onClick={() => {
                     ctx.setSubmitted(false);
                     ctx.form.resetFields();
+                    ctx.applyCreationLocks();
                     ctx.setCurrentStep(0);
                   }}
                 >
@@ -143,12 +144,15 @@ export default function BesoinForm() {
       key="contexte"
       ups={ctx.ups}
       departements={ctx.departements}
-      canManageParticipants={ctx.canManageParticipants}
       participantsCount={ctx.participantsCount}
       lastImportCount={ctx.lastImportCount}
       participantsFileInputRef={ctx.participantsFileInputRef}
       onImportExcel={ctx.importParticipantsFromExcel}
       onClearParticipants={ctx.clearParticipants}
+      lockedType={ctx.lockedType}
+      lockedUp={ctx.lockedUp}
+      lockedDepartement={ctx.lockedDepartement}
+      scopeMissing={(ctx.isCupCreator || ctx.isChefCreator) && !ctx.scopeLoading && !ctx.myScope}
     />,
     <BesoinFormationStep key="formation" />,
     <BesoinDetailsStep
@@ -163,11 +167,14 @@ export default function BesoinForm() {
       compCompetences={ctx.compCompetences}
       selectedCompLinks={ctx.selectedCompLinks}
       setSelectedCompLinks={ctx.setSelectedCompLinks}
+      rowSousCompetences={ctx.rowSousCompetences}
       rowSavoirs={ctx.rowSavoirs}
       setRowSavoirs={ctx.setRowSavoirs}
       compSearch={ctx.compSearch}
       setCompSearch={ctx.setCompSearch}
       onCompetenceChange={ctx.handleCompetenceChange}
+      onSousCompetencesChange={ctx.handleSousCompetencesChange}
+      onSavoirsChange={ctx.handleSavoirsChange}
     />,
     <BesoinParametresStep key="parametres" />,
   ];

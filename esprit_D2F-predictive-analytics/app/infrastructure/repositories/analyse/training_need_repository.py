@@ -1,3 +1,5 @@
+import json
+
 from sqlalchemy import text
 
 from app.core.logging import get_logger
@@ -11,7 +13,7 @@ INSERT_NEED = """
          nb_enseignants, evidence_json, statut, detected_at)
     VALUES
         (:type_besoin, :competence_id, :competence_code, :nom, :scope_type, :scope_id,
-         :nb_enseignants, :evidence_json, :statut, now())
+         :nb_enseignants, CAST(:evidence_json AS jsonb), :statut, now())
     RETURNING id, detected_at
 """
 
@@ -44,7 +46,7 @@ class SqlTrainingNeedRepository:
                     "scope_type": need.scope_type,
                     "scope_id": need.scope_id,
                     "nb_enseignants": need.teachers_count,
-                    "evidence_json": need.evidence,
+                    "evidence_json": json.dumps(need.evidence or {}, ensure_ascii=False, default=str),
                     "statut": need.status,
                 },
             ).mappings().first()

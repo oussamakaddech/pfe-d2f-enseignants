@@ -25,18 +25,18 @@ const sample: TeacherRiskIndicator[] = [
 ];
 
 describe('GlassRiskTable', () => {
-  it('displays "Score de risque" column header (not "Risque d\'attrition")', () => {
+  it('displays "Indice de risque" column header (not "Risque d\'attrition")', () => {
     render(<GlassRiskTable data={sample} />);
-    expect(screen.getByText('Score de risque')).toBeInTheDocument();
+    expect(screen.getByText('Indice de risque')).toBeInTheDocument();
     expect(screen.queryByText("Risque d'attrition")).not.toBeInTheDocument();
   });
 
-  it('converts score_risque from 0-1 to 0-100% (single multiplication)', () => {
+  it('converts score_risque from 0-1 to 0-100/100 (single multiplication)', () => {
     render(<GlassRiskTable data={sample} />);
-    // 0.82 * 100 = 82%
-    expect(screen.getByText('82%')).toBeInTheDocument();
-    // 0.58 * 100 = 58%
-    expect(screen.getByText('58%')).toBeInTheDocument();
+    // 0.82 * 100 = 82/100
+    expect(screen.getByText('82/100')).toBeInTheDocument();
+    // 0.58 * 100 = 58/100
+    expect(screen.getByText('58/100')).toBeInTheDocument();
   });
 
   it('handles zero score', () => {
@@ -52,10 +52,10 @@ describe('GlassRiskTable', () => {
       },
     ];
     render(<GlassRiskTable data={zeroData} />);
-    expect(screen.getByText('0%')).toBeInTheDocument();
+    expect(screen.getByText('0/100')).toBeInTheDocument();
   });
 
-  it('handles score of 1.0 (100%)', () => {
+  it('handles score of 1.0 (100/100)', () => {
     const maxData: TeacherRiskIndicator[] = [
       {
         teacher_id: 'E00006',
@@ -68,6 +68,6 @@ describe('GlassRiskTable', () => {
       },
     ];
     render(<GlassRiskTable data={maxData} />);
-    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.getByText('100/100')).toBeInTheDocument();
   });
 });

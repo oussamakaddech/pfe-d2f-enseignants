@@ -33,7 +33,7 @@ import java.time.format.DateTimeFormatter;
  * Règles RBAC :
  *   ADMIN / CUP                              → accès à tous les passeports
  *   Tout autre utilisateur authentifié       → son propre passeport uniquement
- *   (ENSEIGNANT, ANIMATEUR, FORMATEUR, CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER)
+ *   (ENSEIGNANT, ANIMATEUR, CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER)
  *
  * Endpoints :
  *   GET /api/v1/skill-passports/me                           → PDF de l'enseignant connecté
@@ -61,7 +61,7 @@ public class SkillPassportController {
     @Operation(
         summary = "Télécharger mon passeport PDF",
         description = "Génère et retourne le Passeport de Compétences de l'utilisateur authentifié au format PDF. "
-            + "Accessible à tout utilisateur authentifié (ENSEIGNANT, ANIMATEUR, FORMATEUR, CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER, ADMIN, CUP)."
+            + "Accessible à tout utilisateur authentifié (ENSEIGNANT, ANIMATEUR, CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER, ADMIN, CUP)."
     )
     @ApiResponse(responseCode = "200", description = "PDF généré avec succès",
         content = @Content(mediaType = MediaType.APPLICATION_PDF_VALUE,
@@ -173,7 +173,7 @@ public class SkillPassportController {
     @Operation(
         summary = "Données JSON de mon passeport",
         description = "Retourne le TeacherSkillPassportDTO de l'utilisateur authentifié. "
-            + "Accessible à tout utilisateur authentifié (ENSEIGNANT, ANIMATEUR, FORMATEUR, CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER, ADMIN, CUP)."
+            + "Accessible à tout utilisateur authentifié (ENSEIGNANT, ANIMATEUR, CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER, ADMIN, CUP)."
     )
     @ApiResponse(responseCode = "200", description = "Données JSON du passeport",
         content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,

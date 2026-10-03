@@ -24,13 +24,10 @@ public class WebSocketSessionRegistry {
     }
 
     public void unregister(String recipient, WebSocketSession session) {
-        Set<WebSocketSession> set = sessionsByRecipient.get(recipient);
-        if (set != null) {
+        sessionsByRecipient.computeIfPresent(recipient, (key, set) -> {
             set.remove(session);
-            if (set.isEmpty()) {
-                sessionsByRecipient.remove(recipient);
-            }
-        }
+            return set.isEmpty() ? null : set;
+        });
     }
 
     public Set<WebSocketSession> getSessions(String recipient) {

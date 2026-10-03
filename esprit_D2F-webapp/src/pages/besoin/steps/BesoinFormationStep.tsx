@@ -52,7 +52,13 @@ export default function BesoinFormationStep() {
           <Form.Item
             label="Nom de la formation"
             name="titre"
-            rules={[{ required: true, message: 'Le titre est obligatoire' }]}
+            rules={[
+              { required: true, message: 'Le titre est obligatoire' },
+              // Parité BesoinFormationRequest (@Size(min = 5, max = 200)) — sans
+              // ces règles le backend renvoyait un 400 BESOIN_VALIDATION_ERROR.
+              { min: 5, message: 'Le titre doit contenir au moins 5 caractères' },
+              { max: 200, message: 'Le titre ne peut pas dépasser 200 caractères' },
+            ]}
           >
             <Input placeholder="Ex : Formation Angular avancé" size="large" />
           </Form.Item>

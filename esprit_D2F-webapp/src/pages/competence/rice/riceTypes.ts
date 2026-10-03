@@ -1,4 +1,5 @@
 import type { RiceDomaine } from '@/models/competence';
+import type { RiceAnalysisStats } from './review/AnalysisEngineNotice';
 
 export interface EnseignantRef extends Record<string, unknown> {
   id?: string | number;
@@ -22,7 +23,7 @@ export interface AnalysisResult extends Record<string, unknown> {
   detectedDepartment?: string;
   departementDetecte?: string;
   departement_detecte?: string;
-  stats?: { departement?: string };
+  stats?: { departement?: string } & RiceAnalysisStats;
 }
 
 export interface CreateEnsTarget {

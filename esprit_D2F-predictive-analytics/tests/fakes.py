@@ -1,10 +1,12 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from app.core.config import Settings
 from app.domain.entities.alert import Alert
 from app.domain.entities.competency import Competency, Savoir
 from app.domain.entities.recommendation import Recommendation
 from app.domain.entities.risk_profile import RiskProfile
+from app.domain.value_objects.enums import RiskLevel
+
 from app.domain.entities.skill_gap import SkillGap
 from app.domain.entities.teacher import Teacher
 from app.domain.entities.training_need import TrainingNeed
@@ -25,7 +27,7 @@ COMPETENCIES = [
         nom="Pedagogie active",
         domaine_id=10,
         domaine_nom="Pedagogie",
-        savoirs=(Savoir(id=101, code="S101", nom="Classes inversees", required_level=4), Savoir(id=102, code="S102", nom="Evaluation formative", required_level=3)),
+        savoirs=(Savoir(id=101, code="S101", nom="Classes inversees", knowledge_difficulty_level=4), Savoir(id=102, code="S102", nom="Evaluation formative", knowledge_difficulty_level=3)),
     ),
     Competency(
         id=2,
@@ -33,7 +35,7 @@ COMPETENCIES = [
         nom="Outils numeriques",
         domaine_id=10,
         domaine_nom="Pedagogie",
-        savoirs=(Savoir(id=201, code="S201", nom="Tableaux interactifs", required_level=3),),
+        savoirs=(Savoir(id=201, code="S201", nom="Tableaux interactifs", knowledge_difficulty_level=3),),
     ),
 ]
 
@@ -74,9 +76,14 @@ class FakeCompetencySource:
     ) -> list[Competency]:
         # Simule le filtrage : T001 est rattaché au département D1 dont le
         # domaine 10 (Pedagogie) contient C1 ; C2 est hors périmètre pour D1.
+        # Tout périmètre déclaré sans domaine correspondant -> liste vide ;
+        # le use case AnalyzeTeacherScope replie alors EXPLICITEMENT sur le
+        # référentiel global (fallback=True + raison).
         if dept_id == "D1":
             return [c for c in COMPETENCIES if c.id == 1]
-        return list(COMPETENCIES)
+        if up_id == "UP1":
+            return [c for c in COMPETENCIES if c.id == 2]
+        return []
 
     def get_teacher_savoir_levels(self, teacher_id: str) -> dict[int, int]:
         return dict(TEACHER_LEVELS.get(teacher_id, {}))
@@ -86,7 +93,9 @@ class FakeCompetencySource:
 
 
 class FakeFormationSource:
-    def get_candidates_for_competency(self, competence_id: int) -> list[TrainingCandidate]:
+    def get_candidates_for_competency(
+        self, competence_id: int, dept_id: str | None = None, up_id: str | None = None
+    ) -> list[TrainingCandidate]:
         return [c for c in FORMATIONS if c.savoir_ids]
 
     def get_completed_formation_ids(self, teacher_id: str) -> set[int]:
@@ -114,12 +123,17 @@ class FakeAnalysisRepository:
         self.gaps: list[SkillGap] = []
         self.risk: list[RiskProfile] = []
         self.recommendations: list[Recommendation] = []
+        # Raison du dernier repli par enseignant (journal ml_observability).
+        self.serving_reasons: dict[str, str] = {}
 
     def save_skill_gaps(self, gaps: list[SkillGap], teacher_id: str | None = None) -> None:
         self.gaps = list(gaps)
 
     def list_gaps_by_teacher(self, teacher_id: str) -> list[SkillGap]:
         return [g for g in self.gaps if g.teacher_id == teacher_id]
+
+    def last_serving_fallback_reason(self, teacher_id: str) -> str | None:
+        return self.serving_reasons.get(teacher_id)
 
     def save_risk_snapshot(self, profile: RiskProfile) -> None:
         self.risk.append(profile)
@@ -135,8 +149,39 @@ class FakeModelPort:
     def predict_risk(self, teacher_id: str) -> RiskProfile | None:
         return None
 
+    def predict_risk_serving(self, teacher_id: str) -> tuple[RiskProfile | None, dict | None, str | None]:
+        """Serving du risque : ML desactive dans le fake -> (None, raison),
+        le use case replie sur predict_risk puis l'heuristique comportementale."""
+        return None, None, "modele de risque indisponible (fake)"
+
+
+    def heuristic_risk_reference(self, teacher_id: str) -> RiskProfile:
+        return RiskProfile(teacher_id=teacher_id, risk_score=0.0, risk_level=RiskLevel.LOW, factors=())
+
+    def risk_ml_status(self) -> dict:
+        return {"risk_ml_active": False, "risk_fallback_reason": "modele de risque indisponible (fake)"}
+
     def status(self) -> dict:
-        return {"name": "gap_predictor", "available": False, "version": None, "mode": "HEURISTIC_FALLBACK"}
+        return {
+            "name": "gap_predictor",
+            "available": False,
+            "version": None,
+            "mode": "HEURISTIC_FALLBACK",
+
+            "model_mode": "HEURISTIC_FALLBACK",
+            "model_version": None,
+            "artifact_name": "gap_predictor",
+            "model_name": "gap_predictor",
+            "fallback_reason": "faux port de test",
+            "prediction_horizon": None,
+            "target_validity": None,
+            "data_origin": None,
+            "validation_scope": None,
+            "provenance": {
+                "synthetic_share_pct": 0.0,
+                "dataset_version": "test",
+            },
+        }
 
     def risk_available(self) -> bool:
         return False
@@ -182,25 +227,50 @@ class FakeAlertRepository:
             return False
         return True
 
-    def list_alerts(self, page: int, size: int, severity: str | None = None, status: str | None = None, target_type: str | None = None, department_id: str | None = None) -> tuple[list[Alert], int]:
-        matching = [a for a in self.alerts if self._matches(a, severity, status, target_type) and (not department_id or a.department_id == department_id)]
+    @staticmethod
+    def _matches_since(alert: Alert, since_days: int | None) -> bool:
+        if since_days is None:
+            return True
+        created = alert.created_at
+        if created is None:
+            return False
+        now = datetime.utcnow()
+        if getattr(created, "tzinfo", None) is not None:
+            now = datetime.now(timezone.utc)
+        return (now - created).days < since_days
+
+    @staticmethod
+    def _matches_type_and_bucket(alert: Alert, alert_type: str | None, severity_bucket: str | None) -> bool:
+        from app.infrastructure.repositories.analyse.alert_repository import SEVERITY_BUCKETS
+
+        if alert_type and (alert.alert_type or "").upper() != alert_type.upper():
+            return False
+        if severity_bucket:
+            bucket = SEVERITY_BUCKETS.get(severity_bucket.upper(), ())
+            if (alert.severity or "").upper() not in bucket:
+                return False
+        return True
+
+    def list_alerts(self, page: int, size: int, severity: str | None = None, status: str | None = None, target_type: str | None = None, department_id: str | None = None, since_days: int | None = None, alert_type: str | None = None, severity_bucket: str | None = None) -> tuple[list[Alert], int]:
+        matching = [a for a in self.alerts if self._matches(a, severity, status, target_type) and (not department_id or a.department_id == department_id) and self._matches_since(a, since_days) and self._matches_type_and_bucket(a, alert_type, severity_bucket)]
         start = (page - 1) * size
         return matching[start : start + size], len(matching)
 
-    def list_for_teacher(self, teacher_id: str, page: int, size: int, severity: str | None = None, status: str | None = None) -> tuple[list[Alert], int]:
-        matching = [a for a in self.alerts if a.teacher_id == teacher_id and self._matches(a, severity, status, None)]
+    def list_for_teacher(self, teacher_id: str, page: int, size: int, severity: str | None = None, status: str | None = None, since_days: int | None = None, alert_type: str | None = None, severity_bucket: str | None = None) -> tuple[list[Alert], int]:
+        matching = [a for a in self.alerts if a.teacher_id == teacher_id and self._matches(a, severity, status, None) and self._matches_since(a, since_days) and self._matches_type_and_bucket(a, alert_type, severity_bucket)]
         start = (page - 1) * size
         return matching[start : start + size], len(matching)
 
-    def list_for_department(self, department_id: str, page: int, size: int, severity: str | None = None, status: str | None = None) -> tuple[list[Alert], int]:
-        matching = [a for a in self.alerts if a.department_id == department_id and self._matches(a, severity, status, None)]
+    def list_for_department(self, department_id: str, page: int, size: int, severity: str | None = None, status: str | None = None, since_days: int | None = None, alert_type: str | None = None, severity_bucket: str | None = None) -> tuple[list[Alert], int]:
+        matching = [a for a in self.alerts if a.department_id == department_id and self._matches(a, severity, status, None) and self._matches_since(a, since_days) and self._matches_type_and_bucket(a, alert_type, severity_bucket)]
         start = (page - 1) * size
         return matching[start : start + size], len(matching)
 
     def count_open_by_severity(self, severity: str | None = None, status: str | None = None,
                                target_type: str | None = None,
                                teacher_id: str | None = None,
-                               department_id: str | None = None) -> dict[str, int]:
+                               department_id: str | None = None,
+                               since_days: int | None = None) -> dict[str, int]:
         result = {"CRITICAL": 0, "WARNING": 0, "INFO": 0}
         for alert in self.alerts:
             if alert.status not in ("NOUVELLE", "LUE"):
@@ -214,6 +284,8 @@ class FakeAlertRepository:
             if teacher_id and alert.teacher_id != teacher_id:
                 continue
             if department_id and alert.department_id != department_id:
+                continue
+            if not self._matches_since(alert, since_days):
                 continue
             sev = alert.severity.upper()
             bucket = "CRITICAL" if sev in ("CRITICAL", "CRITIQUE") else "WARNING" if sev in ("WARNING", "HAUTE", "MOYENNE") else "INFO"
@@ -400,7 +472,8 @@ def build_fake_container(settings: Settings | None = None):
     from app.application.use_cases.analyze_teacher_scope import AnalyzeTeacherScope
 
     container.analyze_teacher_scope = AnalyzeTeacherScope(
-        competency_source, container.recommend_trainings, settings
+        competency_source, container.recommend_trainings, settings,
+        compute_gaps=container.compute_gaps,
     )
 
     from app.application.use_cases.build_dashboards import BuildDashboards
@@ -410,7 +483,9 @@ def build_fake_container(settings: Settings | None = None):
     from app.domain.services.need_detector import TeacherScope
 
     def teacher_scopes() -> dict[str, TeacherScope]:
-        return {t.id: TeacherScope(t.id, "DEPARTEMENT", t.dept_id) for t in TEACHERS}
+        return {
+            t.id: TeacherScope(t.id, "DEPARTEMENT", t.dept_id, up_id=t.up_id) for t in TEACHERS
+        }
 
     container.teacher_scopes = teacher_scopes
     container.detect_needs = DetectNeeds(

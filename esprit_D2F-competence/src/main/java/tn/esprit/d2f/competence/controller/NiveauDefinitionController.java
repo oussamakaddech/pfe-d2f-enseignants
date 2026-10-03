@@ -68,7 +68,7 @@ public class NiveauDefinitionController {
 
     @Operation(summary = "Associer un savoir requis à un niveau")
     @PostMapping
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_CONTENU_WRITE)
     public ResponseEntity<NiveauSavoirRequisDTO> addSavoirRequis(
             @Valid @RequestBody NiveauSavoirRequisRequest request) {
         return new ResponseEntity<>(niveauService.addSavoirRequis(request), HttpStatus.CREATED);
@@ -76,7 +76,7 @@ public class NiveauDefinitionController {
 
     @Operation(summary = "Mettre à jour une association savoir-niveau")
     @PutMapping("/{id}")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_CONTENU_WRITE)
     public ResponseEntity<NiveauSavoirRequisDTO> updateSavoirRequis(
             @PathVariable Long id,
             @Valid @RequestBody NiveauSavoirRequisRequest request) {
@@ -85,7 +85,7 @@ public class NiveauDefinitionController {
 
     @Operation(summary = "Supprimer une association savoir-niveau")
     @DeleteMapping("/{id}")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_CONTENU_WRITE)
     public ResponseEntity<Void> removeSavoirRequis(@PathVariable Long id) {
         niveauService.removeSavoirRequis(id);
         return ResponseEntity.noContent().build();
