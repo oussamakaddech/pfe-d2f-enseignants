@@ -147,9 +147,7 @@ describe('AnalyticsDashboardPage', () => {
       niveau_risque: undefined,
       days: 30,
     });
-    expect(mocks.useAlerts).toHaveBeenCalledWith(
-      expect.objectContaining({ since_days: 30 }),
-    );
+    expect(mocks.useAlerts).toHaveBeenCalledWith(expect.objectContaining({ since_days: 30 }));
 
     // Changer la période refetch les statistiques sur la nouvelle fenêtre.
     fireEvent.click(screen.getByText('7 j'));
@@ -159,11 +157,9 @@ describe('AnalyticsDashboardPage', () => {
       niveau_risque: undefined,
       days: 7,
     });
-    expect(mocks.useAlerts).toHaveBeenLastCalledWith(
-      expect.objectContaining({ since_days: 7 }),
-    );
+    expect(mocks.useAlerts).toHaveBeenLastCalledWith(expect.objectContaining({ since_days: 7 }));
   });
-  it("liste tous les enseignants et isole les scores sans niveau dans la vue à risque", () => {
+  it('liste tous les enseignants et isole les scores sans niveau dans la vue à risque', () => {
     const row = (id: string, prenom: string, score: number, significatif: boolean) => ({
       enseignant_id: id,
       nom: 'TEST',

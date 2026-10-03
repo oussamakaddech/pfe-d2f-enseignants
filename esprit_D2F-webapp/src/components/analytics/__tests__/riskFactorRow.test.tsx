@@ -74,7 +74,9 @@ describe('RiskFactorRow', () => {
       screen.queryByText('Écarts de couverture critiques — Périmètre : Département Réseaux'),
     ).not.toBeInTheDocument();
     expect(screen.queryByText(/périmètrepérimètre/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Écarts de couverture critiques du périmètre/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Écarts de couverture critiques du périmètre/),
+    ).not.toBeInTheDocument();
   });
 
   it("n'affiche aucun badge de périmètre si le backend n'en fournit pas", () => {

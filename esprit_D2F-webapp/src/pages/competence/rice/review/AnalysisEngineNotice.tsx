@@ -23,7 +23,7 @@ export default function AnalysisEngineNotice({
   const modeleSuffix = modele ? ` (${modele})` : '';
   const moteur = semantique
     ? `Rapprochement au référentiel par un modèle d'embeddings exécuté sur le serveur${modeleSuffix}.`
-    :'Modèle sémantique non chargé : rapprochement par mots-clés uniquement.';
+    : 'Modèle sémantique non chargé : rapprochement par mots-clés uniquement.';
 
   if (stats.referentielSource !== 'competence-db') {
     return (

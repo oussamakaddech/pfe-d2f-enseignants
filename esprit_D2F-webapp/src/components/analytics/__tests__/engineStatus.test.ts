@@ -3,15 +3,13 @@ import { describeGapEngine, describeRiskEngine } from '@/components/analytics/en
 
 // Raisons réellement renvoyées par le service prédictif (relevées en direct).
 const AUCUN_NIVEAU = "prédiction ML vide : aucun savoir évaluable pour l'enseignant";
-const DERIVE =
-  'dérive KS détectée (Holm, risque de famille 0.01) sur : days_since_last_training';
+const DERIVE = 'dérive KS détectée (Holm, risque de famille 0.01) sur : days_since_last_training';
 const HORS_PLAGE =
   'features invalides au serving : feature training_frequency_per_month hors plage [0.0, 0.49]';
-const RISQUE_REJETE =
-  'modele de risque non deploye : decision=reject (macro-F1 0.525 < 0.70)';
+const RISQUE_REJETE = 'modele de risque non deploye : decision=reject (macro-F1 0.525 < 0.70)';
 
 describe('describeGapEngine', () => {
-  it("ne dit rien quand le ML a servi : le badge « ML actif » suffit", () => {
+  it('ne dit rien quand le ML a servi : le badge « ML actif » suffit', () => {
     expect(describeGapEngine('PRODUCTION_ML', null)).toBeNull();
     expect(describeGapEngine('DEMO_ML', null)).toBeNull();
   });
@@ -75,7 +73,8 @@ describe('describeRiskEngine', () => {
     const raison =
       'formule ponderee retenue : validee en simulation (macro-F1 0.7222 >= 0.7) et meilleure que le modele ML de risque (macro-F1 0.6629) — decision=reject';
     expect(describeRiskEngine('HEURISTIC', raison, 'PRODUCTION_ML')).toEqual({
-      label: 'Formule pondérée sur les écarts prédits par le ML (validée, meilleure que le modèle ML testé)',
+      label:
+        'Formule pondérée sur les écarts prédits par le ML (validée, meilleure que le modèle ML testé)',
       detail: raison,
       tone: 'info',
     });

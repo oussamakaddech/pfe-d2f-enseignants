@@ -187,8 +187,7 @@ export default function AlertCenter({
     notify?: (filters: AlertServerFilters) => void,
   ) => {
     if (!notify) return;
-    const next: { type_alerte?: string; severity_bucket?: 'CRITICAL' | 'WARNING' | 'INFO' } =
-      {};
+    const next: { type_alerte?: string; severity_bucket?: 'CRITICAL' | 'WARNING' | 'INFO' } = {};
     if (type !== '__ALL__') next.type_alerte = type;
     if (severite === '__CRIT__') next.severity_bucket = 'CRITICAL';
     else if (severite === '__WARN__') next.severity_bucket = 'WARNING';
@@ -227,8 +226,7 @@ export default function AlertCenter({
       if (severiteFilter === '__CRIT__' && !SEVERITE_CRIT.has(a.severite)) return false;
       if (severiteFilter === '__WARN__' && !SEVERITE_WARN.has(a.severite)) return false;
       if (severiteFilter === '__INFO__' && a.severite !== 'INFO') return false;
-      if (statutFilter === '__OUVERT__' && !ALERT_STATUTS_OUVERTS.includes(a.statut))
-        return false;
+      if (statutFilter === '__OUVERT__' && !ALERT_STATUTS_OUVERTS.includes(a.statut)) return false;
       if (statutFilter !== '__ALL__' && statutFilter !== '__OUVERT__' && a.statut !== statutFilter)
         return false;
       if (term) {

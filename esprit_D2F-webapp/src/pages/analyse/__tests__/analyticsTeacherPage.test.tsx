@@ -491,7 +491,7 @@ describe('AnalyticsTeacherPage — pourquoi le ML n a pas servi', () => {
     ['PRODUCTION_ML', true],
     ['HEURISTIC_FALLBACK', false],
   ])(
-    "avertissement « proche des limites » seulement si le modèle a servi (%s)",
+    'avertissement « proche des limites » seulement si le modèle a servi (%s)',
     (mode, visible) => {
       setup();
       mocks.useTeacherGaps.mockReturnValue({
@@ -506,7 +506,9 @@ describe('AnalyticsTeacherPage — pourquoi le ML n a pas servi', () => {
       });
       render(<AnalyticsTeacherPage />, { wrapper });
       // en repli heuristique, « la prédiction reste servie » serait faux
-      expect(screen.queryByText("Proche des limites du domaine d'entraînement") !== null).toBe(visible);
+      expect(screen.queryByText("Proche des limites du domaine d'entraînement") !== null).toBe(
+        visible,
+      );
     },
   );
 });

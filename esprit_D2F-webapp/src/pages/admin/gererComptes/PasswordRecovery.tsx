@@ -23,9 +23,7 @@ function PasswordRecovery() {
         typeof response === 'string'
           ? response
           : (response as { message?: unknown } | null)?.message;
-      message.success(
-        typeof text === 'string' && text ? text : 'Email de réinitialisation envoyé',
-      );
+      message.success(typeof text === 'string' && text ? text : 'Email de réinitialisation envoyé');
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||

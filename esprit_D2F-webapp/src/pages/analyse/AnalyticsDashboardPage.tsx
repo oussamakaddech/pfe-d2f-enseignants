@@ -49,12 +49,7 @@ import {
 } from '@/hooks/analytics/useAnalyticsQueries';
 import { useSupplyDemand } from '@/hooks/analyse/useAnalysePredictive';
 import { analyticsApi } from '@/services/analyse/analyticsApi';
-import {
-  AtRiskTeachersTable,
-  TrendChart,
-  Heatmap,
-  AlertCenter,
-} from '@/components/analytics';
+import { AtRiskTeachersTable, TrendChart, Heatmap, AlertCenter } from '@/components/analytics';
 import type { AlertServerFilters } from '@/components/analytics/AlertCenter';
 import SupplyDemandChart from '@/components/charts/SupplyDemandChart';
 import type {
@@ -97,7 +92,8 @@ const KPI_DEFS: Record<string, string> = {
     'Alertes réelles au statut NOUVELLE ou LUE, créées sur la période sélectionnée (analyse.alert_events).',
   'Taux de couverture':
     'Part des enseignants actifs du périmètre filtré ayant au moins une compétence affectée (competence.enseignant_competences).',
-  'Écarts de couverture prioritaires': "Écarts de couverture d'urgence HAUTE du périmètre filtré, sur les données réelles.",
+  'Écarts de couverture prioritaires':
+    "Écarts de couverture d'urgence HAUTE du périmètre filtré, sur les données réelles.",
   'Avec écarts calculés':
     'Enseignants distincts du périmètre filtré présents dans la table des écarts de couverture (analyse.skill_gaps).',
   'Alertes critiques ouvertes':
@@ -397,9 +393,10 @@ export default function AnalyticsDashboardPage() {
 
   /** Couverture réelle par département (enseignants, affectations, niveau moyen). */
   const coverageByDept = useMemo<RealCoverageByDept[]>(
-    () => [...(data?.coverage_by_dept ?? [])].sort(
-      (a, b) => (b.nb_enseignants ?? 0) - (a.nb_enseignants ?? 0),
-    ),
+    () =>
+      [...(data?.coverage_by_dept ?? [])].sort(
+        (a, b) => (b.nb_enseignants ?? 0) - (a.nb_enseignants ?? 0),
+      ),
     [data],
   );
 
@@ -520,7 +517,10 @@ export default function AnalyticsDashboardPage() {
         valeur: formatCount(kpis?.nb_enseignants_avec_gaps),
       },
       { indicateur: 'Indice de risque moyen', valeur: (kpis?.avg_risk_score ?? 0).toFixed(2) },
-      { indicateur: 'Écarts de couverture critiques', valeur: formatCount(kpis?.nb_gaps_critiques) },
+      {
+        indicateur: 'Écarts de couverture critiques',
+        valeur: formatCount(kpis?.nb_gaps_critiques),
+      },
       { indicateur: 'Écarts de couverture prioritaires', valeur: formatCount(kpis?.nb_gaps_haute) },
       { indicateur: 'Alertes non traitées', valeur: formatCount(kpis?.nb_alertes_non_traitees) },
       { indicateur: 'Alertes critiques ouvertes', valeur: formatCount(kpis?.nb_alertes_critiques) },
@@ -1164,9 +1164,7 @@ function CoverageByDeptTable({ rows }: { readonly rows: RealCoverageByDept[] }) 
                   <Tag>{total}</Tag>
                 </td>
                 <td>
-                  <Tag color={pct >= 80 ? 'green' : pct >= 50 ? 'orange' : 'red'}>
-                    {pct} %
-                  </Tag>
+                  <Tag color={pct >= 80 ? 'green' : pct >= 50 ? 'orange' : 'red'}>{pct} %</Tag>
                   <div style={{ fontSize: 11, color: '#94a3b8' }}>
                     {covered}/{total} avec compétences
                   </div>

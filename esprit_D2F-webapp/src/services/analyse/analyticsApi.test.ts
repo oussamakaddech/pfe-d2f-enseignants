@@ -544,7 +544,11 @@ describe('analyticsApi – monitoring', () => {
     skew_reason: 'aucune dérive KS détectée',
     fallback_reason: null,
     inert_features: ['nb_besoins_exprimes'],
-    skew_guard: { enabled: true, test: 'kolmogorov_smirnov_2samp', last_verdict: { min_p_value: 0.4 } },
+    skew_guard: {
+      enabled: true,
+      test: 'kolmogorov_smirnov_2samp',
+      last_verdict: { min_p_value: 0.4 },
+    },
   };
 
   it('getModelStatus lit /model-health et expose le modèle réellement servi', async () => {

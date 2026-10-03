@@ -87,14 +87,18 @@ describe('AlertCenter', () => {
 
   it('remonte le bucket de sévérité au backend', () => {
     const onServerFilterChange = vi.fn();
-    render(<AlertCenter alerts={[alert, warningAlert]} onServerFilterChange={onServerFilterChange} />);
+    render(
+      <AlertCenter alerts={[alert, warningAlert]} onServerFilterChange={onServerFilterChange} />,
+    );
     fireEvent.click(screen.getByText(/1 critiques/));
     expect(onServerFilterChange).toHaveBeenLastCalledWith({ severity_bucket: 'CRITICAL' });
   });
 
   it('la réinitialisation vide les filtres serveur', () => {
     const onServerFilterChange = vi.fn();
-    render(<AlertCenter alerts={[alert, warningAlert]} onServerFilterChange={onServerFilterChange} />);
+    render(
+      <AlertCenter alerts={[alert, warningAlert]} onServerFilterChange={onServerFilterChange} />,
+    );
     fireEvent.click(screen.getByText(/1 critiques/));
     fireEvent.click(screen.getByText('Réinitialiser'));
     expect(onServerFilterChange).toHaveBeenLastCalledWith({});

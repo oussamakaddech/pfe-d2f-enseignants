@@ -9,9 +9,7 @@ describe('normalizeDemandes', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].enseignant).toEqual({});
     // Lecture sûre comme dans le rendu :
-    expect(`${rows[0].enseignant.prenom ?? ''} ${rows[0].enseignant.nom ?? ''}`.trim()).toBe(
-      '',
-    );
+    expect(`${rows[0].enseignant.prenom ?? ''} ${rows[0].enseignant.nom ?? ''}`.trim()).toBe('');
   });
 
   it('accepte le format Page {content} et garde les enseignants présents', () => {

@@ -30,6 +30,7 @@ const gap: SkillGap = {
   nb_besoins_exprimes: 0,
   justification: null,
   computed_at: '2024-01-01',
+  trend: null,
 };
 
 const reco: Recommendation = {

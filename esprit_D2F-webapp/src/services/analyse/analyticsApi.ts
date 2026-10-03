@@ -1165,12 +1165,10 @@ export const analyticsApi = {
   // Endpoint backend réel : /model-health (identité, exactitude, intégrité et
   // dérive RÉELLEMENT mesurées du modèle servi).
   getModelStatus(): Promise<ModelStatus> {
-    return axios
-      .get<unknown>(`${BASE}/model-health`)
-      .then((r) => {
-        const body = r.data as { data?: unknown };
-        return mapModelHealth(body?.data ?? r.data);
-      });
+    return axios.get<unknown>(`${BASE}/model-health`).then((r) => {
+      const body = r.data as { data?: unknown };
+      return mapModelHealth(body?.data ?? r.data);
+    });
   },
 
   // Endpoint backend réel : /dashboard/risk-evolution (proxy drift/évolution).

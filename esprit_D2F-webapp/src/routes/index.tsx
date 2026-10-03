@@ -272,7 +272,10 @@ export default function AppRoutes() {
                     {/* Ancienne vue « D2F master » : elle affichait des enseignants
                         pseudonymisés lus dans des CSV figés du service (aucune donnée de
                         la base, audit 2026-09-24). Redirigée vers le tableau de bord réel. */}
-                    <Route path="/home/analytics/d2f" element={<Navigate to="/home/analytics/dashboard" replace />} />
+                    <Route
+                      path="/home/analytics/d2f"
+                      element={<Navigate to="/home/analytics/dashboard" replace />}
+                    />
                   </Route>
 
                   <Route element={<RoleGuard allowedRoles={[ROLES.ENSEIGNANT, ROLES.ANIMATEUR]} />}>

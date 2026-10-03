@@ -220,7 +220,9 @@ function renderSousCompBlock(sc: SousCompNode, di: number, ci: number, sci: numb
             <Input
               size="small"
               value={editingNom?.value}
-              onChange={(e) => editingNom && setEditingNom({ ...editingNom, value: e.target.value })}
+              onChange={(e) =>
+                editingNom && setEditingNom({ ...editingNom, value: e.target.value })
+              }
               onPressEnter={commitRename}
               onBlur={commitRename}
               onKeyDown={(e) => e.key === 'Escape' && setEditingNom(null)}
@@ -280,7 +282,9 @@ function renderCompetenceBlock(comp: CompNode, di: number, ci: number, ctx: Tree
             <Input
               size="small"
               value={editingNom?.value}
-              onChange={(e) => editingNom && setEditingNom({ ...editingNom, value: e.target.value })}
+              onChange={(e) =>
+                editingNom && setEditingNom({ ...editingNom, value: e.target.value })
+              }
               onPressEnter={commitRename}
               onBlur={commitRename}
               onKeyDown={(e) => e.key === 'Escape' && setEditingNom(null)}
@@ -387,7 +391,9 @@ function renderDomainBlock(domaine: DomaineNode, di: number, ctx: TreeCtx) {
             <Input
               size="small"
               value={editingNom?.value}
-              onChange={(e) => editingNom && setEditingNom({ ...editingNom, value: e.target.value })}
+              onChange={(e) =>
+                editingNom && setEditingNom({ ...editingNom, value: e.target.value })
+              }
               onPressEnter={commitRename}
               onBlur={commitRename}
               onKeyDown={(e) => e.key === 'Escape' && setEditingNom(null)}

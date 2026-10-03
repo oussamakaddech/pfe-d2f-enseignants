@@ -15,8 +15,7 @@ export function normalizeTeacherType(type: unknown): 'P' | 'V' | 'C' | null {
     .toUpperCase();
   if (v === 'P' || v === 'PERMANENT' || v === 'PERMANENTE') return 'P';
   if (v === 'V' || v === 'VACATAIRE') return 'V';
-  if (v === 'C' || v === 'CONTRACTUEL' || v === 'CONTRACTUELLE' || v === 'CONTRACTOR')
-    return 'C';
+  if (v === 'C' || v === 'CONTRACTUEL' || v === 'CONTRACTUELLE' || v === 'CONTRACTOR') return 'C';
   return null;
 }
 

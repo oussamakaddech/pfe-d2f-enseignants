@@ -190,9 +190,7 @@ export default function ReviewStep({
   const [expandedDomainKeys, setExpandedDomainKeys] = useState<string[]>(
     () => expandKeys(tree).domains,
   );
-  const [expandedCompKeys, setExpandedCompKeys] = useState<string[]>(
-    () => expandKeys(tree).comps,
-  );
+  const [expandedCompKeys, setExpandedCompKeys] = useState<string[]>(() => expandKeys(tree).comps);
   const [showInlineHint, setShowInlineHint] = useState(true);
   const [localTeachers] = useState<EnseignantRef[]>([]);
   const [selectedNode, setSelectedNode] = useState<SelectedNode>(null);

@@ -24,12 +24,7 @@ describe('resolvePeriodLabel', () => {
 
 describe('resolveStructureLabel', () => {
   it('préfère la variante listes (up1/departement1)', () => {
-    expect(
-      resolveStructureLabel(
-        { libelle: 'Listes' },
-        { libelle: 'Détail' },
-      ),
-    ).toBe('Listes');
+    expect(resolveStructureLabel({ libelle: 'Listes' }, { libelle: 'Détail' })).toBe('Listes');
   });
 
   it('replit sur la variante détail (up/departement)', () => {

@@ -65,6 +65,7 @@ function toNewSkillGap(gap: import('@/models/analyse').SkillGap): SkillGap {
     nb_besoins_exprimes: 0,
     justification: gap.justification,
     computed_at: gap.computed_at,
+    trend: null,
   };
 }
 

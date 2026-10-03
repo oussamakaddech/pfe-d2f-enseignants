@@ -310,7 +310,9 @@ const GapHeatmap = memo(function GapHeatmap({
             <>
               <Space style={{ marginBottom: 16 }} size={16}>
                 <Tag color="blue">{drilldownData.nb_enseignants} enseignant(s)</Tag>
-                <Tag color="orange">Écart de couverture moyen : {(drilldownData.avg_gap * 100).toFixed(1)}%</Tag>
+                <Tag color="orange">
+                  Écart de couverture moyen : {(drilldownData.avg_gap * 100).toFixed(1)}%
+                </Tag>
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   Cliquez sur 👁 pour lancer une analyse individuelle
                 </Text>

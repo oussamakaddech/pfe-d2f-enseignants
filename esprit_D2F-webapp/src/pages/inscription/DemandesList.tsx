@@ -75,7 +75,8 @@ interface Demande {
 export function normalizeDemandes(data: unknown): Demande[] {
   const list: unknown[] = Array.isArray(data)
     ? data
-    : (data as { content?: unknown } | null) && Array.isArray((data as { content?: unknown }).content)
+    : (data as { content?: unknown } | null) &&
+        Array.isArray((data as { content?: unknown }).content)
       ? ((data as { content: unknown[] }).content as unknown[])
       : [];
   return (list as Demande[]).map((r) => ({ ...r, enseignant: r.enseignant ?? {} }));

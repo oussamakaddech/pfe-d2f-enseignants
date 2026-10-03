@@ -157,7 +157,9 @@ export default function CompetenceMatchingPage() {
     const selectedDomaine = state.filters.domaine;
     const list = (competences || []).filter((c) => {
       if (selectedDomaine !== 'all') return String(c.domaineId ?? '') === String(selectedDomaine);
-      return selectedDept === 'all' || deptByDomaine.get(String(c.domaineId ?? '')) === selectedDept;
+      return (
+        selectedDept === 'all' || deptByDomaine.get(String(c.domaineId ?? '')) === selectedDept
+      );
     });
     return [
       { value: 'all', label: 'Toutes les compétences' },
@@ -176,7 +178,8 @@ export default function CompetenceMatchingPage() {
         return String(sc.competenceId ?? '') === String(selectedCompetence);
       }
       const comp = (competences || []).find((c) => String(c.id) === String(sc.competenceId));
-      if (selectedDomaine !== 'all') return String(comp?.domaineId ?? '') === String(selectedDomaine);
+      if (selectedDomaine !== 'all')
+        return String(comp?.domaineId ?? '') === String(selectedDomaine);
       return (
         selectedDept === 'all' || deptByDomaine.get(String(comp?.domaineId ?? '')) === selectedDept
       );
@@ -480,9 +483,7 @@ export default function CompetenceMatchingPage() {
     if (selectedDept !== 'all') list = list.filter((e) => resolveDeptId(e) === selectedDept);
     if (ensSearch.trim()) {
       const q = ensSearch.toLowerCase();
-      list = list.filter((e) =>
-        `${e.prenom} ${e.nom} ${resolveDept(e)}`.toLowerCase().includes(q),
-      );
+      list = list.filter((e) => `${e.prenom} ${e.nom} ${resolveDept(e)}`.toLowerCase().includes(q));
     }
     if (ensSort === 'name')
       list.sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`));

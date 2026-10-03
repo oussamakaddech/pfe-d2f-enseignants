@@ -217,7 +217,7 @@ interface ScoreCardProps {
   readonly score: number;
   readonly levelLabel: string;
   readonly color: string;
-  readonly trend: string;
+  readonly trend: string | null;
   readonly isMlRisk: boolean;
   readonly riskClass?: string | null;
   readonly precedentScore?: number | null;
@@ -1035,4 +1035,3 @@ function RiskMLExplanationPanel({
     </div>
   );
 }
-

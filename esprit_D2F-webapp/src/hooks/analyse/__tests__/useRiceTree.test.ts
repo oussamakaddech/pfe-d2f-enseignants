@@ -9,7 +9,7 @@ vi.mock('@/utils/secureRandom', () => ({ secureRandomId: () => 'id', __esModule:
 // Même implémentation que le vrai module (structuredClone) : une copie JSON
 // masquait qu'un brouillon immer (Proxy) ne peut pas être cloné.
 vi.mock('@/pages/competence/rice/constants', () => ({
-  cloneDeep: <T,>(x: T): T => structuredClone(x),
+  cloneDeep: <T>(x: T): T => structuredClone(x),
   __esModule: true,
 }));
 

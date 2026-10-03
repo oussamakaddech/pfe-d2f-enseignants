@@ -109,8 +109,8 @@ export default function WhatIfSimulator({ enseignantId }: { readonly enseignantI
       }
     >
       <Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 12 }}>
-        Projetez le score de risque et les écarts de couverture <em>comme si</em> le plan de formations ci-dessous
-        avait été suivi. Réutilise la chaîne de scoring de risque du moteur.
+        Projetez le score de risque et les écarts de couverture <em>comme si</em> le plan de
+        formations ci-dessous avait été suivi. Réutilise la chaîne de scoring de risque du moteur.
       </Paragraph>
 
       <Space direction="vertical" style={{ width: '100%' }} size={10}>

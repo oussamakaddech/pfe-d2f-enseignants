@@ -33,7 +33,11 @@ export function resolveDeptId(teacher: TeacherLike): string {
 
 /** Libellé de l'UP (à défaut son identifiant), '' si non renseignée. */
 export function resolveUp(teacher: TeacherLike): string {
-  return pickFirst(field(teacher, 'upLibelle'), field(teacher, 'unitePedagogique'), field(teacher, 'upId'));
+  return pickFirst(
+    field(teacher, 'upLibelle'),
+    field(teacher, 'unitePedagogique'),
+    field(teacher, 'upId'),
+  );
 }
 
 /** « Département · UP », sans répéter l'UP quand elle porte le même libellé. */

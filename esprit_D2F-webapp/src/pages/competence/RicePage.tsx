@@ -474,7 +474,6 @@ export default function RicePage() {
               )}
             </AnimatePresence>
           </main>
-
         </div>
 
         <CreateEnseignantModal

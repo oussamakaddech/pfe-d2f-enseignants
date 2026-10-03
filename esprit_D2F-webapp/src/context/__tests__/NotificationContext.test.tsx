@@ -83,9 +83,7 @@ describe('NotificationContext', () => {
   });
 
   it("n'ouvre pas de WebSocket sans session (pas de handshake anonyme)", async () => {
-    vi.mocked(useAuth).mockReturnValueOnce({ user: null } as unknown as ReturnType<
-      typeof useAuth
-    >);
+    vi.mocked(useAuth).mockReturnValueOnce({ user: null } as unknown as ReturnType<typeof useAuth>);
     render(
       <NotificationProvider>
         <Capture onCtx={() => {}} />

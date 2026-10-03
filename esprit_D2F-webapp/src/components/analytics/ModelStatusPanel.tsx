@@ -70,9 +70,7 @@ export default function ModelStatusPanel({ status, loading }: ModelStatusPanelPr
             </Tag>
           )}
         </Descriptions.Item>
-        <Descriptions.Item label="Dérive de distribution">
-          {renderDrift(status)}
-        </Descriptions.Item>
+        <Descriptions.Item label="Dérive de distribution">{renderDrift(status)}</Descriptions.Item>
         {status.r2 !== null && status.r2 !== undefined && (
           <Descriptions.Item label="R² (variance expliquée)">
             {status.r2.toFixed(4)}

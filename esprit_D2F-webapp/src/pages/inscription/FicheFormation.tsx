@@ -270,8 +270,8 @@ export default function FicheFormation() {
                   </Space>
                 }
               >
-              {resolvePeriodLabel(periodCode, customPeriodLabel, periodeFormation)}
-            </Descriptions.Item>
+                {resolvePeriodLabel(periodCode, customPeriodLabel, periodeFormation)}
+              </Descriptions.Item>
               <Descriptions.Item
                 label={
                   <Space>
@@ -288,10 +288,7 @@ export default function FicheFormation() {
                   </Space>
                 }
               >
-                <InfoTag
-                  color="blue"
-                  value={resolveStructureLabel(departement1, departement)}
-                />
+                <InfoTag color="blue" value={resolveStructureLabel(departement1, departement)} />
               </Descriptions.Item>
               <Descriptions.Item
                 label={

@@ -32,6 +32,7 @@ const data: TeacherScopeAnalysis = {
       nb_besoins_exprimes: 0,
       justification: null,
       computed_at: '2026-08-01',
+      trend: null,
     },
   ],
   recommendations: [

@@ -72,7 +72,11 @@ function ResetPasswordPage() {
                 { min: 8, message: 'Au moins 8 caractères' },
               ]}
             >
-              <Input.Password prefix={<LockOutlined />} placeholder="Nouveau mot de passe" size="large" />
+              <Input.Password
+                prefix={<LockOutlined />}
+                placeholder="Nouveau mot de passe"
+                size="large"
+              />
             </Form.Item>
             <Form.Item
               name="confirmation"
@@ -90,10 +94,21 @@ function ResetPasswordPage() {
                 }),
               ]}
             >
-              <Input.Password prefix={<LockOutlined />} placeholder="Confirmer le mot de passe" size="large" />
+              <Input.Password
+                prefix={<LockOutlined />}
+                placeholder="Confirmer le mot de passe"
+                size="large"
+              />
             </Form.Item>
             <Form.Item>
-              <Button type="primary" danger htmlType="submit" loading={submitting} block size="large">
+              <Button
+                type="primary"
+                danger
+                htmlType="submit"
+                loading={submitting}
+                block
+                size="large"
+              >
                 {submitting ? 'Enregistrement…' : 'Réinitialiser'}
               </Button>
             </Form.Item>
