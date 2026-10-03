@@ -186,6 +186,47 @@ class FormationWorkflowServiceHelperTest {
     }
 
     @Test
+    @DisplayName("createSeancesForFormation - Propage les animateurs formation vers séance sans animateur")
+    void shouldPropagateFormationAnimateursToSeance() {
+        Enseignant a1 = new Enseignant(); a1.setId("A1");
+        formation.setAnimateurs(new ArrayList<>(List.of(a1)));
+
+        FormationWorkflowRequest.SeanceRequest sr = new FormationWorkflowRequest.SeanceRequest();
+        sr.setDateSeance(formation.getDateDebut());
+        sr.setHeureDebut("09:00");
+        sr.setHeureFin("11:00");
+        // pas d'animateursIds : le repli doit copier A1 depuis la formation
+
+        when(enseignantRepository.findById("A1")).thenReturn(Optional.of(a1));
+
+        List<SeanceFormation> seances = helper.createSeancesForFormation(formation, List.of(sr), List.of());
+
+        assertThat(seances).hasSize(1);
+        assertThat(seances.get(0).getAnimateurs()).containsExactly(a1);
+    }
+
+    @Test
+    @DisplayName("createSeancesForFormation - Animateur explicite de séance prioritaire sur formation")
+    void shouldPreferExplicitSeanceAnimateurs() {
+        Enseignant a1 = new Enseignant(); a1.setId("A1");
+        Enseignant a2 = new Enseignant(); a2.setId("A2");
+        formation.setAnimateurs(new ArrayList<>(List.of(a1)));
+
+        FormationWorkflowRequest.SeanceRequest sr = new FormationWorkflowRequest.SeanceRequest();
+        sr.setDateSeance(formation.getDateDebut());
+        sr.setHeureDebut("09:00");
+        sr.setHeureFin("11:00");
+        sr.setAnimateursIds(List.of("A2"));
+
+        when(enseignantRepository.findById("A2")).thenReturn(Optional.of(a2));
+
+        List<SeanceFormation> seances = helper.createSeancesForFormation(formation, List.of(sr), List.of());
+
+        assertThat(seances).hasSize(1);
+        assertThat(seances.get(0).getAnimateurs()).containsExactly(a2);
+    }
+
+    @Test
     @DisplayName("createPresencesForSeances - Succès")
     void shouldCreatePresencesForSeances() {
         SeanceFormation sf = new SeanceFormation();

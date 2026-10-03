@@ -329,7 +329,7 @@ class FormationWorkflowServiceCoverageTest {
         sf.setAnimateurs(new ArrayList<>());
         sf.setParticipants(new ArrayList<>());
         f.setSeances(List.of(sf));
-        when(formationRepository.findDistinctBySeancesAnimateursMail("a@t.tn")).thenReturn(List.of(f));
+        when(formationRepository.findDistinctBySeancesAnimateursMailIgnoreCase("a@t.tn")).thenReturn(List.of(f));
         List<FormationResponseDTO> result = service.getFormationsByAnimateurEmail("a@t.tn");
         assertThat(result).isNotEmpty();
     }

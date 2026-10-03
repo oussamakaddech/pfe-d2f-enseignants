@@ -157,6 +157,17 @@ public class FormationWorkflowServiceHelper {
         sf.setSalle(sr.getSalle());
 
         List<String> seanceAnimIds = Optional.ofNullable(sr.getAnimateursIds()).orElse(Collections.emptyList());
+        // Repli : animateur posé au niveau formation mais oublié sur la séance.
+        // Sans lien seance_animateur, la formation reste invisible dans
+        // « Mes Formations à animer » (résolution par seance_animateur, cf. V48) :
+        // on propage donc les animateurs de la formation vers les séances sans
+        // animateur explicite (un choix explicite par séance reste prioritaire).
+        if (seanceAnimIds.isEmpty() && formation.getAnimateurs() != null && !formation.getAnimateurs().isEmpty()) {
+            seanceAnimIds = formation.getAnimateurs().stream()
+                    .map(Enseignant::getId)
+                    .filter(Objects::nonNull)
+                    .toList();
+        }
         // Collections gérées par Hibernate => listes MUTABLES et propres à CHAQUE séance
         // (Stream.toList()/List.of() sont immuables, et partager une même instance entre
         // séances déclenche « Found shared references to a collection » au flush).

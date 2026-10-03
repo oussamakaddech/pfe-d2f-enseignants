@@ -306,6 +306,14 @@ public class FormationWorkflowService {
         Map<String, Enseignant> enseignantMap = loadEnseignantsMap(request);
         List<SeanceFormation> managedList = prepareManagedSeancesList(formation);
 
+        // Repli animateurs formation → séances : les animateurs déjà rattachés à
+        // la formation (requête sans animateursIds) doivent aussi être résolus.
+        List<String> formationAnimIds = formationAnimateurIds(formation);
+        if (!formationAnimIds.isEmpty()) {
+            enseignantRepository.findAllById(formationAnimIds)
+                    .forEach(e -> enseignantMap.putIfAbsent(e.getId(), e));
+        }
+
         processSeanceRequests(formation, request, enseignantMap, managedList);
         handleEtatTransitions(formation, oldEtat);
         // Si l'état n'a pas changé mais que la formation est déjà planifiée (des
@@ -407,6 +415,11 @@ public class FormationWorkflowService {
                 .orElse(Collections.emptyList());
 
         Set<String> allIds = new HashSet<>(partIds);
+        // Les animateurs posés au niveau formation peuvent être propagés vers
+        // les séances (repli) : ils doivent être résolus dans la map.
+        if (request.getAnimateursIds() != null) {
+            allIds.addAll(request.getAnimateursIds());
+        }
         for (FormationWorkflowRequest.SeanceRequest sr : seanceReqs) {
             if (sr.getAnimateursIds() != null) {
                 allIds.addAll(sr.getAnimateursIds());
@@ -454,7 +467,7 @@ public class FormationWorkflowService {
 
             updateSeanceDetails(sf, sr, isNew);
             assignParticipantsToSeance(sf, sr, request.getParticipantsIds(), enseignantMap, isNew,
-                    formation.getIdFormation());
+                    formation.getIdFormation(), formationAnimateurIds(formation));
 
             if (isNew)
                 managedList.add(sf);
@@ -491,9 +504,27 @@ public class FormationWorkflowService {
         sf.setDureePratique(sr.getDureePratique());
     }
 
+    private static List<String> formationAnimateurIds(Formation formation) {
+        if (formation.getAnimateurs() == null) {
+            return Collections.emptyList();
+        }
+        return formation.getAnimateurs().stream()
+                .map(Enseignant::getId)
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
     private void assignParticipantsToSeance(SeanceFormation sf, FormationWorkflowRequest.SeanceRequest sr,
-            List<String> partIds, Map<String, Enseignant> enseignantMap, boolean isNew, Long formationId) {
+            List<String> partIds, Map<String, Enseignant> enseignantMap, boolean isNew, Long formationId,
+            List<String> formationAnimateurIds) {
         List<String> seanceAnimIds = Optional.ofNullable(sr.getAnimateursIds()).orElse(Collections.emptyList());
+        // Même repli qu'à la création : un animateur posé au niveau formation doit
+        // apparaître sur les séances, sinon la formation reste invisible dans
+        // « Mes Formations à animer » (résolution par seance_animateur, cf. V48).
+        // Un choix explicite par séance reste prioritaire.
+        if (seanceAnimIds.isEmpty() && formationAnimateurIds != null && !formationAnimateurIds.isEmpty()) {
+            seanceAnimIds = formationAnimateurIds;
+        }
         if (partIds == null)
             partIds = Collections.emptyList();
         LocalTime hd = sf.getHeureDebut();
@@ -1571,7 +1602,7 @@ public class FormationWorkflowService {
     }
 
     public List<FormationResponseDTO> getFormationsByAnimateurEmail(String email) {
-        List<Formation> allFormations = formationRepository.findDistinctBySeancesAnimateursMail(email);
+        List<Formation> allFormations = formationRepository.findDistinctBySeancesAnimateursMailIgnoreCase(email);
         // Toutes les formations animées (y compris ACHEVE) : l'animateur doit pouvoir
         // consulter et finaliser la feuille de présence même après la fin de la
         // formation — le filtrage par statut est fait côté interface.
@@ -1737,16 +1768,25 @@ public class FormationWorkflowService {
                 dto.setRecordedBy(p.getRecordedBy());
                 dto.setRecordedAt(p.getRecordedAt());
             if (p.getSeanceFormation() != null) {
-                dto.setSeanceId(p.getSeanceFormation().getIdSeance());
-                dto.setDateSeance(p.getSeanceFormation().getDateSeance());
-                dto.setHeureDebut(p.getSeanceFormation().getHeureDebut() != null ? p.getSeanceFormation().getHeureDebut().toString() : null);
-                dto.setHeureFin(p.getSeanceFormation().getHeureFin() != null ? p.getSeanceFormation().getHeureFin().toString() : null);
-                dto.setSalle(p.getSeanceFormation().getSalle());
-                if (p.getSeanceFormation().getFormation() != null) {
-                    dto.setFormationId(p.getSeanceFormation().getFormation().getIdFormation());
-                    dto.setTitreFormation(p.getSeanceFormation().getFormation().getTitreFormation());
-                    dto.setEtatFormation(p.getSeanceFormation().getFormation().getEtatFormation() != null
-                            ? p.getSeanceFormation().getFormation().getEtatFormation().toString() : null);
+                try {
+                    dto.setSeanceId(p.getSeanceFormation().getIdSeance());
+                    dto.setDateSeance(p.getSeanceFormation().getDateSeance());
+                    dto.setHeureDebut(p.getSeanceFormation().getHeureDebut() != null ? p.getSeanceFormation().getHeureDebut().toString() : null);
+                    dto.setHeureFin(p.getSeanceFormation().getHeureFin() != null ? p.getSeanceFormation().getHeureFin().toString() : null);
+                    dto.setSalle(p.getSeanceFormation().getSalle());
+                    if (p.getSeanceFormation().getFormation() != null) {
+                        try {
+                            dto.setFormationId(p.getSeanceFormation().getFormation().getIdFormation());
+                            dto.setTitreFormation(p.getSeanceFormation().getFormation().getTitreFormation());
+                            dto.setEtatFormation(p.getSeanceFormation().getFormation().getEtatFormation() != null
+                                    ? p.getSeanceFormation().getFormation().getEtatFormation().toString() : null);
+                        } catch (jakarta.persistence.EntityNotFoundException archived) {
+                            // Formation archivée (soft-delete) : l'historique de
+                            // présence est conservé, sans le détail formation.
+                        }
+                    }
+                } catch (jakarta.persistence.EntityNotFoundException archived) {
+                    // Séance rattachée à une formation archivée : présence gardée sans détail.
                 }
             }
             return dto;

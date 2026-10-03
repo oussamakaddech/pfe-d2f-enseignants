@@ -16,7 +16,8 @@ from rice.models import (
     SavoirProposition,
     SousCompetenceProposition,
 )
-from rice.db import _fetch_all_enseignants_info, _create_enseignant_if_new
+import rice.referential as _referential
+from rice.db import _fetch_all_enseignants_info
 # LLM removed
 _LLM_OK = False
 from rice.nlp import (
@@ -40,6 +41,7 @@ from rice.nlp import (
 )
 from rice.enseignants import _match_enseignants_by_name, _match_enseignants_by_module
 from rice.referential import (
+    _get_effective_referential,
     _match_gc_savoir,
     _gc_ref_niveau,
     _match_gc_competence,
@@ -47,6 +49,17 @@ from rice.referential import (
 )
 
 logger = logging.getLogger("rice_analyzer")
+
+
+# Moteur réellement utilisé pour l'analyse : aucun LLM ; embeddings locaux
+# si le modèle est chargé, sinon mots-clés seuls.
+def _moteur_ia() -> Dict[str, Any]:
+    semantique = _referential._SEMANTIC_MODEL is not None
+    return {
+        "llm": False,
+        "mode": "semantique-locale+mots-cles" if semantique else "mots-cles",
+        "modele": _referential._SEMANTIC_MODEL_REF if semantique else None,
+    }
 
 
 # Order used to compare canonical mastery levels.
@@ -336,31 +349,10 @@ def _build_competences_from_referentiel(referentiel_items: List, comp_idx: int, 
     return competences, comp_idx
 
 
-def _auto_create_teachers(
-    fiche_ens_names: List[str],
-    name_match_map: Dict,
-    all_ens_by_id: Dict[str, EnseignantInfo],
-    matched_by_name: List,
-    departement: str,
-) -> None:
-    """Auto-create new teachers who aren't matched by name."""
-    for name in fiche_ens_names:
-        if name in name_match_map:
-            continue
-        try:
-            new_id, display_name = _create_enseignant_if_new(name, departement)
-            name_match_map[name] = (new_id, display_name)
-            if new_id not in all_ens_by_id:
-                all_ens_by_id[new_id] = EnseignantInfo(id=new_id, nom=name, prenom="", modules=[])
-            if new_id not in matched_by_name:
-                matched_by_name.append(new_id)
-        except Exception as e:
-            logger.warning(f"Could not auto-create teacher '{name}': {e}")
-
-
-# Rassemble tous les enseignants liés à une fiche : match par nom, match par
-# module enseigné, match par codes référentiels + auto-création des nouveaux
-# noms non reconnus en base (_create_enseignant_if_new).
+# Rassemble tous les enseignants liés à une fiche : match par nom (annuaire
+# complet : liste transmise + base), par module enseigné et par codes
+# référentiels. Lecture seule : un nom non reconnu reste sans identifiant
+# (matched_id=None) et est proposé à la création côté interface.
 def _match_all_enseignants(fiche_ens_names: List[str], roles_map: Dict, text: str, enseignants: List[EnseignantInfo], departement: str, filename: str, meta: Dict) -> Tuple[List[FicheEnseignantExtrait], List[str], List[str], List[str], List[str]]:
     if meta.get("responsable"):
         if meta["responsable"] not in fiche_ens_names:
@@ -368,16 +360,15 @@ def _match_all_enseignants(fiche_ens_names: List[str], roles_map: Dict, text: st
         roles_map.setdefault(meta["responsable"], "responsable")
     fiche_ens_names = list(dict.fromkeys(fiche_ens_names))
 
-    matched_by_name, name_match_map = _match_enseignants_by_name(fiche_ens_names, enseignants)
-    matched_by_module = _match_enseignants_by_module(text, enseignants)
-
     all_ens_by_id: Dict[str, EnseignantInfo] = {str(e.id): e for e in enseignants}
     try:
-        all_ens_by_id.update(_fetch_all_enseignants_info())
+        for eid, info in _fetch_all_enseignants_info().items():
+            all_ens_by_id.setdefault(eid, info)
     except Exception:
         pass
 
-    _auto_create_teachers(fiche_ens_names, name_match_map, all_ens_by_id, matched_by_name, departement)
+    matched_by_name, name_match_map = _match_enseignants_by_name(fiche_ens_names, list(all_ens_by_id.values()))
+    matched_by_module = _match_enseignants_by_module(text, enseignants)
 
     extracted_ens = _build_extracted_ens(fiche_ens_names, roles_map, name_match_map, filename)
     logger.info(f"  Extracted professor names: {[e.nom_complet for e in extracted_ens]}")
@@ -662,6 +653,11 @@ def analyze_files(
         "tauxCouverture": round(len(assigned_ens) / max(len(enseignants), 1) * 100, 1),
         "refCodesCovered": all_ref_codes_covered,
         "refCodesCoveredCount": len(all_ref_codes_covered),
+        # Traçabilité : d'où viennent les refCodes et comment ils ont été trouvés.
+        # "competence-db" = référentiel officiel ; sinon référentiel de secours
+        # (JSON/intégré) dont les codes peuvent ne pas exister en base.
+        "referentielSource": _get_effective_referential(departement).get("source", "secours"),
+        "moteurIA": _moteur_ia(),
     }
 
     all_db_infos = _fetch_all_enseignants_info()

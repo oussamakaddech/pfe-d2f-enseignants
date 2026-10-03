@@ -20,7 +20,7 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
 
   // ==================== BASIC QUERIES ====================
   
-  List<Formation> findDistinctBySeancesAnimateursMail(String email);
+  List<Formation> findDistinctBySeancesAnimateursMailIgnoreCase(String email);
 
   List<Formation> findByEtatFormation(EtatFormation etatFormation);
 

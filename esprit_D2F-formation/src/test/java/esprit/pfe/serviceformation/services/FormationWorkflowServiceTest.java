@@ -245,7 +245,7 @@ class FormationWorkflowServiceTest {
         sf.setParticipants(new ArrayList<>());
         formation.setSeances(List.of(sf));
         
-        lenient().when(formationRepository.findDistinctBySeancesAnimateursMail("test@esprit.tn")).thenReturn(List.of(formation));
+        lenient().when(formationRepository.findDistinctBySeancesAnimateursMailIgnoreCase("test@esprit.tn")).thenReturn(List.of(formation));
 
         List<FormationResponseDTO> list = formationWorkflowService.getFormationsByAnimateurEmail("test@esprit.tn");
 
@@ -685,6 +685,85 @@ class FormationWorkflowServiceTest {
         assertThat(formationWorkflowService.isSelfCalendar("INCONNU", user)).isFalse();
         assertThat(formationWorkflowService.isSelfCalendar(null, user)).isFalse();
         assertThat(formationWorkflowService.isSelfCalendar("E00007", null)).isFalse();
+    }
+
+    @Test
+    @DisplayName("updateFormationWorkflow - Propage animateurs formation vers séance sans animateur")
+    void shouldPropagateFormationAnimateursOnUpdate() {
+        Formation existing = createFullFormation();
+        existing.setIdFormation(1L);
+        Enseignant a1 = new Enseignant();
+        a1.setId("A1");
+        a1.setMail("a1@esprit.tn");
+        existing.setAnimateurs(new ArrayList<>(List.of(a1)));
+
+        SeanceFormation s1 = new SeanceFormation();
+        s1.setIdSeance(10L);
+        s1.setFormation(existing);
+        s1.setAnimateurs(new ArrayList<>());
+        s1.setParticipants(new ArrayList<>());
+        existing.setSeances(new ArrayList<>(List.of(s1)));
+
+        // Séance sans animateursIds : le repli doit copier A1 depuis la formation,
+        // sinon la formation reste invisible dans « Mes Formations à animer ».
+        FormationWorkflowRequest.SeanceRequest srUpdate = createSeanceRequest("2026-10-10", "09:00", "11:00");
+        srUpdate.setIdSeance(10L);
+        request.setSeances(List.of(srUpdate));
+        request.setAnimateursIds(List.of("A1"));
+        request.setParticipantsIds(new ArrayList<>());
+
+        lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        lenient().when(formationRepository.save(any())).thenReturn(existing);
+        lenient().when(enseignantRepository.findById("A1")).thenReturn(Optional.of(a1));
+        lenient().when(enseignantRepository.findAllById(anySet())).thenReturn(List.of(a1));
+        lenient().when(helper.parseTime(anyString())).thenReturn(LocalTime.MIDNIGHT);
+
+        Formation result = formationWorkflowService.updateFormationWorkflow(1L, request);
+
+        assertThat(result.getSeances()).hasSize(1);
+        assertThat(result.getSeances().get(0).getAnimateurs())
+                .extracting(Enseignant::getId).containsExactly("A1");
+    }
+
+    @Test
+    @DisplayName("updateFormationWorkflow - Animateur explicite de séance prioritaire sur formation")
+    void shouldPreferExplicitSeanceAnimateursOnUpdate() {
+        Formation existing = createFullFormation();
+        existing.setIdFormation(1L);
+        Enseignant a1 = new Enseignant();
+        a1.setId("A1");
+        a1.setMail("a1@esprit.tn");
+        Enseignant a2 = new Enseignant();
+        a2.setId("A2");
+        a2.setMail("a2@esprit.tn");
+        existing.setAnimateurs(new ArrayList<>(List.of(a1)));
+
+        SeanceFormation s1 = new SeanceFormation();
+        s1.setIdSeance(10L);
+        s1.setFormation(existing);
+        s1.setAnimateurs(new ArrayList<>());
+        s1.setParticipants(new ArrayList<>());
+        existing.setSeances(new ArrayList<>(List.of(s1)));
+
+        FormationWorkflowRequest.SeanceRequest srUpdate = createSeanceRequest("2026-10-10", "09:00", "11:00");
+        srUpdate.setIdSeance(10L);
+        srUpdate.setAnimateursIds(List.of("A2"));
+        request.setSeances(List.of(srUpdate));
+        request.setAnimateursIds(List.of("A1"));
+        request.setParticipantsIds(new ArrayList<>());
+
+        lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        lenient().when(formationRepository.save(any())).thenReturn(existing);
+        lenient().when(enseignantRepository.findById("A1")).thenReturn(Optional.of(a1));
+        lenient().when(enseignantRepository.findById("A2")).thenReturn(Optional.of(a2));
+        lenient().when(enseignantRepository.findAllById(anySet())).thenReturn(List.of(a1, a2));
+        lenient().when(helper.parseTime(anyString())).thenReturn(LocalTime.MIDNIGHT);
+
+        Formation result = formationWorkflowService.updateFormationWorkflow(1L, request);
+
+        assertThat(result.getSeances()).hasSize(1);
+        assertThat(result.getSeances().get(0).getAnimateurs())
+                .extracting(Enseignant::getId).containsExactly("A2");
     }
 
     private Formation createFullFormation() {

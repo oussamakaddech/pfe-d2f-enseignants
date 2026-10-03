@@ -1297,6 +1297,26 @@ class FormationWorkflowServiceLineCoverageTest {
         assertThat(result.get(0).getEtatFormation()).isNull();
     }
 
+    @Test @DisplayName("getMesPresences - formation archivée : présence gardée sans détail")
+    void mesPres_archivedFormation() {
+        Enseignant ens = buildEnseignant("E1", "N", "P", "e@e.tn", "E");
+        Presence p = new Presence(); p.setIdParticipation(1L); p.setPresent(true);
+        SeanceFormation sf = new SeanceFormation(); sf.setIdSeance(10L);
+        // Proxy Hibernate vers une formation soft-deleted : l'accès lève
+        // EntityNotFoundException (@SQLRestriction).
+        Formation archived = mock(Formation.class);
+        when(archived.getIdFormation()).thenThrow(new jakarta.persistence.EntityNotFoundException(
+                "Unable to find Formation with id 29"));
+        sf.setFormation(archived); p.setSeanceFormation(sf);
+        when(enseignantRepository.findByMailIgnoreCase("e@e.tn")).thenReturn(Optional.of(ens));
+        when(presenceRepository.findByEnseignant_Id("E1")).thenReturn(List.of(p));
+        List<MesPresenceDTO> result = service.getMesPresences("e@e.tn");
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getSeanceId()).isEqualTo(10L);
+        assertThat(result.get(0).getFormationId()).isNull();
+        assertThat(result.get(0).getTitreFormation()).isNull();
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     //  getFormationsAchevees
     // ═══════════════════════════════════════════════════════════════════════
@@ -1452,14 +1472,14 @@ class FormationWorkflowServiceLineCoverageTest {
     @Test @DisplayName("byEmail - success EN_COURS")
     void byEmail_ok() {
         Formation f = buildFormation(1L, EtatFormation.EN_COURS);
-        when(formationRepository.findDistinctBySeancesAnimateursMail("a@e.tn")).thenReturn(List.of(f));
+        when(formationRepository.findDistinctBySeancesAnimateursMailIgnoreCase("a@e.tn")).thenReturn(List.of(f));
         assertThat(service.getFormationsByAnimateurEmail("a@e.tn")).hasSize(1);
     }
 
     @Test @DisplayName("byEmail - returns all statuses (ANNULE/ACHEVE inclus)")
     void byEmail_filtered() {
         Formation f = buildFormation(1L, EtatFormation.ANNULE);
-        when(formationRepository.findDistinctBySeancesAnimateursMail("a@e.tn")).thenReturn(List.of(f));
+        when(formationRepository.findDistinctBySeancesAnimateursMailIgnoreCase("a@e.tn")).thenReturn(List.of(f));
         assertThat(service.getFormationsByAnimateurEmail("a@e.tn")).hasSize(1);
     }
 

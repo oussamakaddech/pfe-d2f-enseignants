@@ -128,6 +128,26 @@ spring:
                 name: evaluation-cb
                 fallbackUri: forward:/fallback
 
+        # ── Formation : arborescence / fichiers OneDrive (Microsoft Graph) ────
+        # Le parcours Graph prend ~25 s : sous le délai global (5 s) la page
+        # « Gestion documentaire » recevait 503. Route dédiée (déclarée AVANT
+        # formation-service) avec son propre délai et son circuit breaker, pour
+        # ne pas relâcher le délai des autres appels formation.
+        - id: formation-onedrive
+          uri: ${FORMATION_SERVICE_URL:http://localhost:8088}
+          predicates:
+            - Path=/api/formation/onedrive/**
+          metadata:
+            response-timeout: ${GW_ONEDRIVE_RESPONSE_TIMEOUT:60000}
+          filters:
+            - RewritePath=/api/formation/(?<segment>.*), /api/v1/${segment}
+            - AuthorizationFilter
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - name: CircuitBreaker
+              args:
+                name: onedrive-cb
+                fallbackUri: forward:/fallback
+
         # ── Formation Service (port 8088) ───────────────────────────────────
         - id: formation-service
           uri: ${FORMATION_SERVICE_URL:http://localhost:8088}
@@ -175,6 +195,10 @@ spring:
           uri: ${RICE_SERVICE_URL:http://localhost:8001}
           predicates:
             - Path=/api/rice/**
+          # Aligné sur le TimeLimiter ai-services (30 s) : sans cela le délai HTTP
+          # global (5 s) coupait une analyse de fiche plus longue.
+          metadata:
+            response-timeout: ${GW_AI_RESPONSE_TIMEOUT:30000}
           filters:
             - StripPrefix=1
             - AuthorizationFilter

@@ -147,6 +147,7 @@ public class AccountServiceImpl implements AccountService {
     public void banAccount(String userName) {
         User user = this.userRepository.findByUsername(userName)
                 .orElseThrow(() -> new BadRequestException(USER_NOT_FOUND));
+        assertNotLastActiveAdmin(user);
         user.setDisabled(true);
         this.userRepository.save(user);
     }
@@ -225,6 +226,7 @@ public class AccountServiceImpl implements AccountService {
     public void deleteAccount(String userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
+        assertNotLastActiveAdmin(user);
         // Soft-delete simple : @SQLDelete positionne deleted_at. L'unicité
         // email/username étant désormais portée par des index partiels
         // (deleted_at IS NULL — cf. V20), l'email/username réel reste lisible
@@ -266,12 +268,29 @@ public class AccountServiceImpl implements AccountService {
 
         // Update role if provided (réutilise la résolution commune)
         if (roleName != null && !roleName.isBlank()) {
+            Role newRole = resolveRole(roleName);
+            if (newRole.getName() != ERole.ADMIN) {
+                assertNotLastActiveAdmin(user);
+            }
             Set<Role> roles = new HashSet<>();
-            roles.add(resolveRole(roleName));
+            roles.add(newRole);
             user.setRoles(roles);
         }
 
         return userRepository.save(user);
+    }
+
+    /** Refuse de retirer (blocage, suppression, changement de rôle) le dernier administrateur actif. */
+    private void assertNotLastActiveAdmin(User user) {
+        boolean isActiveAdmin = !Boolean.TRUE.equals(user.getDisabled())
+                && user.getRoles().stream().anyMatch(r -> r.getName() == ERole.ADMIN);
+        if (!isActiveAdmin) {
+            return;
+        }
+        long activeAdmins = userRepository.count(UserSpecifications.build(null, "ADMIN", true));
+        if (activeAdmins <= 1) {
+            throw new BadRequestException("Impossible : c'est le dernier administrateur actif.");
+        }
     }
 
 }

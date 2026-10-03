@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json as _json_local
 import logging
 import re
@@ -412,14 +413,119 @@ def _merge_non_gc_ref(override: Dict, db_competences: Dict, db_domaines: Dict, d
     return merged
 
 
-# Charge le référentiel d'un département depuis la base (cache 1h) :
-# vérifie l'existence des tables ref_*, fetch tout et fusionne. None si absent.
+# ── Référentiel officiel (schéma `competence`, géré par le service compétence) ──
+# Département RICE → départements du référentiel (`competence.domaines.departement_id`).
+# « info » regroupe les départements informatiques (tronc commun, GL, IA, Web).
+# ge / meca n'ont pas de contenu en base : ils restent sur leur JSON de `refs/`.
+_DEPT_TO_REFERENTIEL: Dict[str, Tuple[str, ...]] = {
+    "gc": ("DEPT_GC",),
+    "genie_civil": ("DEPT_GC",),
+    "genie-civil": ("DEPT_GC",),
+    "info": ("DEPT_INFO", "DEPT_GL", "DEPT_IA", "DEPT_WEB"),
+    "telecom": ("DEPT_RT",),
+}
+
+# Un savoir est rattaché à une sous-compétence (chemin canonique) ou, à défaut,
+# directement à une compétence (`savoirs.competence_id` dénormalisée).
+_SQL_REFERENTIEL = """
+    SELECT s.code, s.nom, s.description, sc.nom,
+           c.code, c.nom, d.code, d.nom,
+           COALESCE(nsr.niveau, s.niveau)
+    FROM competence.savoirs s
+    LEFT JOIN competence.sous_competences sc ON sc.id = s.sous_competence_id
+    JOIN competence.competences c ON c.id = COALESCE(sc.competence_id, s.competence_id)
+    JOIN competence.domaines d ON d.id = c.domaine_id
+    LEFT JOIN (
+        SELECT savoir_id, MAX(niveau) AS niveau
+        FROM competence.niveau_savoir_requis
+        WHERE savoir_id IS NOT NULL
+        GROUP BY savoir_id
+    ) nsr ON nsr.savoir_id = s.id
+    WHERE d.departement_id = ANY(%s) AND COALESCE(d.actif, TRUE)
+    ORDER BY s.code
+"""
+
+
+def _referentiel_from_rows(rows: List[Tuple]) -> Dict[str, Any]:
+    """Construit la structure référentiel RICE à partir des lignes du schéma competence.
+
+    * ``savoirs``       : code → mots-clés (libellé + description, en minuscules)
+    * ``savoir_textes`` : code → texte riche encodé par le modèle sémantique
+    * ``competences``   : code → {nom, keywords} ; les mots-clés incluent les codes
+      des savoirs rattachés (``_match_gc_competence`` reçoit des codes joints)
+    * ``niveaux``       : code savoir → niveau requis officiel (N1…N5)
+    """
+    savoirs: Dict[str, List[str]] = {}
+    textes: Dict[str, str] = {}
+    competences: Dict[str, Dict[str, Any]] = {}
+    domaines: Dict[str, str] = {}
+    niveaux: Dict[str, str] = {}
+    for code, nom, description, sc_nom, c_code, c_nom, d_code, d_nom, niveau in rows:
+        if not code or not nom:
+            continue
+        savoirs[code] = [k.strip().lower() for k in (nom, description) if k and k.strip()]
+        textes[code] = ". ".join(p.strip() for p in (nom, description, sc_nom) if p and p.strip())
+        comp = competences.setdefault(c_code, {"nom": c_nom or c_code, "keywords": [(c_nom or "").lower()]})
+        comp["keywords"].append(code.lower())
+        domaines[d_code] = d_nom or d_code
+        if niveau:
+            niveaux[code] = niveau
+    return {
+        "domaines": domaines,
+        "competences": competences,
+        "savoirs": savoirs,
+        "savoir_textes": textes,
+        "niveaux": niveaux,
+        "source": "competence-db",
+    }
+
+
+def _load_ref_from_competence_schema(dept_key: str) -> Optional[Dict]:
+    """Lit le référentiel officiel du département (lecture seule). None si indisponible."""
+    departements = _DEPT_TO_REFERENTIEL.get(dept_key)
+    if not departements:
+        return None
+    conn = _get_db_connection()
+    try:
+        cur = conn.cursor()
+        try:
+            cur.execute(_SQL_REFERENTIEL, (list(departements),))
+            rows = cur.fetchall()
+        finally:
+            cur.close()
+    finally:
+        _put_db_connection(conn)
+    if not isinstance(rows, list) or not rows:
+        return None
+    ref = _referentiel_from_rows(rows)
+    # Un référentiel sans savoir exploitable ne doit jamais masquer le repli.
+    return ref if ref["savoirs"] else None
+
+
+# Charge le référentiel d'un département depuis la base (cache 10 min).
+# Source 1 : référentiel officiel (schéma competence) ; source 2 (historique) :
+# tables public.ref_*. None si aucune n'est disponible.
 def _load_ref_from_db(departement: str = "gc") -> Optional[Dict]:
     global _SEMANTIC_CORPUS_BUILT
     dept_key = departement.lower().strip()
     cached = _REF_DB_CACHE.get(dept_key, ttl=_REF_DB_TTL)
     if cached is not None:
         return cached
+    try:
+        official = _load_ref_from_competence_schema(dept_key)
+    except Exception as exc:
+        official = None
+        logger.warning(
+            "Référentiel officiel illisible pour [%s] (droits SELECT sur le schéma competence ?) : %s",
+            _sanitize_log(dept_key), _sanitize_log(exc),
+        )
+    if official is not None:
+        _REF_DB_CACHE.set(dept_key, official)
+        logger.info(
+            "Referential loaded from competence schema [%s]: %d savoirs, %d compétences",
+            _sanitize_log(dept_key), len(official["savoirs"]), len(official["competences"]),
+        )
+        return official
     try:
         conn = _get_db_connection()
         cur = conn.cursor()
@@ -675,116 +781,180 @@ _dept_ref_manager = _DepartmentReferentialManager()
 # ─────────────────────────────────────────────────────────────────────────────
 
 _SEMANTIC_MODEL = None
+_SEMANTIC_MODEL_REF: str = ""
+# Compatibilité : dernier corpus construit (liste (code, vecteur)).
 _SEMANTIC_CORPUS: List[Tuple[str, Any]] = []
 _SEMANTIC_CORPUS_BUILT: bool = False
 _SEMANTIC_CORPUS_DEPT: str = ""
 _SEMANTIC_CORPUS_LOCK = _threading.Lock()
+# Un corpus par département : {dept: {"fingerprint", "codes", "matrix"}}.
+# Deux requêtes sur des départements différents ne s'écrasent plus mutuellement.
+_SEMANTIC_CORPORA: Dict[str, Dict[str, Any]] = {}
+
+# Seuil de similarité cosinus (vecteurs normalisés) en dessous duquel aucun
+# savoir n'est proposé. Surchargeable sans rebuild (RICE_SEMANTIC_THRESHOLD).
+try:
+    _SEMANTIC_THRESHOLD = float(_os.getenv("RICE_SEMANTIC_THRESHOLD", "0.40"))
+except ValueError:
+    _SEMANTIC_THRESHOLD = 0.40
+
+# Préfixes attendus par certains modèles (famille e5 : "query: " / "passage: ").
+# Vides par défaut (modèles sentence-transformers classiques).
+_SEMANTIC_QUERY_PREFIX = _os.getenv("RICE_SEMANTIC_QUERY_PREFIX", "")
+_SEMANTIC_PASSAGE_PREFIX = _os.getenv("RICE_SEMANTIC_PASSAGE_PREFIX", "")
 
 
 # Charge (lazy, thread-safe) le modèle sentence-transformers ; révision
 # épinglée via RICE_SEMANTIC_MODEL_REVISION. None si indisponible.
 def _get_semantic_model():
-    global _SEMANTIC_MODEL
+    global _SEMANTIC_MODEL, _SEMANTIC_MODEL_REF
     if _SEMANTIC_MODEL is None and _SEMANTIC_OK:
         # DSI #9 — pas de téléchargement HuggingFace au runtime : en conteneur,
         # RICE_SEMANTIC_MODEL pointe sur un chemin LOCAL pré-téléchargé (révision
         # épinglée) ; en dev on retombe sur l'identifiant HF + révision épinglée.
-        model_ref = _os.getenv("RICE_SEMANTIC_MODEL", "all-MiniLM-L6-v2")
+        # Modèle multilingue (les fiches sont en français) : choisi sur banc
+        # d'évaluation FR contre all-MiniLM-L6-v2 (anglais), cf. README.
+        model_ref = _os.getenv("RICE_SEMANTIC_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
         try:
             if _os.path.isdir(model_ref):
                 _SEMANTIC_MODEL = _SentenceTransformer(model_ref)
+                # L'image écrit « dépôt@révision » à côté du modèle vendu : c'est
+                # l'identité réelle (le chemin seul ne distingue pas deux modèles).
+                id_file = Path(model_ref) / "MODEL_ID"
+                if id_file.is_file():
+                    model_ref = id_file.read_text(encoding="utf-8").strip() or model_ref
             else:
                 _SEMANTIC_MODEL = _SentenceTransformer(
                     model_ref,
                     revision=_os.getenv(
                         "RICE_SEMANTIC_MODEL_REVISION",
-                        "c9745ed1d9f207416be6d2e6f8de32d1f16199bf",
+                        "e8f8c211226b894fcb81acc59f3b34ba3efd5f42",
                     ),
                 )
+            _SEMANTIC_MODEL_REF = model_ref
             logger.info("Semantic model loaded: %s", model_ref)
         except Exception as exc:
             logger.warning(f"Cannot load semantic model: {exc}")
     return _SEMANTIC_MODEL
 
 
-_SEMANTIC_CACHE_DIR = Path(__file__).resolve().parent.parent / "_semantic_cache"
+_SEMANTIC_CACHE_DIR = Path(
+    _os.getenv("RICE_SEMANTIC_CACHE_DIR", str(Path(__file__).resolve().parent.parent / "_semantic_cache"))
+)
+
+
+# Textes encodés pour chaque savoir : texte riche du référentiel officiel
+# (libellé + description + sous-compétence) sinon concaténation des mots-clés.
+def _semantic_corpus_texts(ref: Dict) -> Tuple[List[str], List[str]]:
+    textes = ref.get("savoir_textes") or {}
+    codes = list(ref.get("savoirs", {}).keys())
+    texts = [textes.get(c) or " ".join(ref["savoirs"][c]) for c in codes]
+    return codes, texts
+
+
+# Empreinte du corpus : change dès que le modèle, un code ou un texte change.
+# Un cache disque ne peut donc plus servir des vecteurs périmés (l'ancien
+# contrôle ne portait que sur le nombre de lignes).
+def _corpus_fingerprint(model_ref: str, codes: List[str], texts: List[str]) -> str:
+    h = hashlib.sha256(model_ref.encode("utf-8"))
+    for code, text in zip(codes, texts):
+        h.update(f"|{code}={text}".encode("utf-8"))
+    return h.hexdigest()
+
+
+def _load_or_encode(model, dept_key: str, fingerprint: str, texts: List[str]):
+    cache_file = _SEMANTIC_CACHE_DIR / f"{dept_key}-{fingerprint[:16]}.npy"
+    if cache_file.is_file():
+        try:
+            matrix = _np.load(str(cache_file))
+            if matrix.shape[0] == len(texts):
+                logger.info("Embeddings sémantiques chargés depuis le disque [%s] (%d vecteurs)",
+                            dept_key, len(texts))
+                return matrix
+        except Exception as exc:
+            logger.warning(f"Erreur lecture cache embeddings [{dept_key}]: {exc}")
+    matrix = model.encode([_SEMANTIC_PASSAGE_PREFIX + t for t in texts],
+                          convert_to_numpy=True, normalize_embeddings=True)
+    try:
+        _SEMANTIC_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        _np.save(str(cache_file), matrix)
+    except Exception as save_exc:
+        logger.info("Cache embeddings non persisté [%s] (recalcul au démarrage) : %s", dept_key, save_exc)
+    return matrix
 
 
 def _build_semantic_corpus(departement: str = "gc") -> None:
-    """Pre-compute embeddings for every savoir description for the given department."""
+    """Pré-calcule (ou recharge) les embeddings des savoirs d'un département.
+
+    Idempotent et peu coûteux quand le corpus est à jour : seule l'empreinte
+    (modèle + textes du référentiel courant) est recalculée.
+    """
     global _SEMANTIC_CORPUS, _SEMANTIC_CORPUS_BUILT, _SEMANTIC_CORPUS_DEPT
     with _SEMANTIC_CORPUS_LOCK:
         dept_key = departement.lower().strip()
-        if _SEMANTIC_CORPUS_BUILT and _SEMANTIC_CORPUS_DEPT == dept_key:
-            return
         model = _get_semantic_model()
         if not model:
             return
-        ref = _get_effective_referential(departement)
-        codes = list(ref["savoirs"].keys())
-        descriptions = [" ".join(kws) for kws in ref["savoirs"].values()]
+        codes, texts = _semantic_corpus_texts(_get_effective_referential(departement))
         if not codes:
             return
-
-        cache_file = _SEMANTIC_CACHE_DIR / f"{dept_key}.npy"
-        if _SEMANTIC_OK and cache_file.is_file():
+        fingerprint = _corpus_fingerprint(_SEMANTIC_MODEL_REF + "|" + _SEMANTIC_PASSAGE_PREFIX, codes, texts)
+        entry = _SEMANTIC_CORPORA.get(dept_key)
+        if entry is None or entry["fingerprint"] != fingerprint:
             try:
-                cached_embeddings = _np.load(str(cache_file))
-                if cached_embeddings.shape[0] == len(codes):
-                    _SEMANTIC_CORPUS = list(zip(codes, cached_embeddings))
-                    _SEMANTIC_CORPUS_BUILT = True
-                    _SEMANTIC_CORPUS_DEPT = dept_key
-                    logger.info(f"Embeddings sémantiques chargés depuis le disque pour [{dept_key}] "
-                                f"({len(codes)} vecteurs)")
-                    return
-                else:
-                    logger.info(f"Cache embeddings size mismatch for [{dept_key}], rebuilding")
+                matrix = _load_or_encode(model, dept_key, fingerprint, texts)
             except Exception as exc:
-                logger.warning(f"Erreur lecture cache embeddings [{dept_key}]: {exc}")
-
-        try:
-            embeddings = model.encode(descriptions, convert_to_numpy=True)
-            _SEMANTIC_CORPUS = list(zip(codes, embeddings))
-            _SEMANTIC_CORPUS_BUILT = True
-            _SEMANTIC_CORPUS_DEPT = dept_key
-            logger.info(f"Semantic corpus built [{departement}]: {len(_SEMANTIC_CORPUS)} savoir embeddings")
-            try:
-                _SEMANTIC_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-                _np.save(str(cache_file), embeddings)
-                logger.info(f"Embeddings sémantiques persistés sur disque ({len(embeddings)} vecteurs) [{dept_key}]")
-            except Exception as save_exc:
-                logger.warning(f"Impossible de persister le corpus sémantique [{dept_key}]: {save_exc}")
-        except Exception as exc:
-            logger.warning(f"Cannot build semantic corpus: {exc}")
+                logger.warning(f"Cannot build semantic corpus: {exc}")
+                return
+            mean = matrix.mean(axis=0) if len(codes) > 1 else _np.zeros_like(matrix[0])
+            entry = {"fingerprint": fingerprint, "codes": codes, "matrix": matrix,
+                     "mean": mean, "centered": _unit_rows(matrix - mean)}
+            _SEMANTIC_CORPORA[dept_key] = entry
+            logger.info(f"Semantic corpus built [{dept_key}]: {len(codes)} savoir embeddings")
+        _SEMANTIC_CORPUS = list(zip(entry["codes"], entry["matrix"]))
+        _SEMANTIC_CORPUS_BUILT = True
+        _SEMANTIC_CORPUS_DEPT = dept_key
 
 
-# Matching SÉMANTIQUE : encode le texte, calcule la similarité cosinus avec
-# les embeddings du corpus (mots-clés des savoirs) et renvoie les top-k codes
-# au-dessus du seuil (0.35 par défaut).
-def _match_gc_savoir_semantic(text: str, threshold: float = 0.35, top_k: int = 5,
-                               departement: str = "gc") -> List[str]:
-    if not _SEMANTIC_OK:
+def _unit_rows(m):
+    norms = _np.linalg.norm(m, axis=-1, keepdims=True)
+    return m / _np.maximum(norms, 1e-8)
+
+
+def _semantic_scores(text: str, departement: str = "gc") -> List[Tuple[str, float, float]]:
+    """(code, similarité brute, similarité centrée) pour chaque savoir, par score centré décroissant.
+
+    * brute   : cosinus texte/savoir — sert de SEUIL d'abstention (sépare bien
+      le hors-sujet du pertinent) ;
+    * centrée : cosinus après soustraction du vecteur moyen du référentiel — sert
+      au CLASSEMENT. Neutralise les savoirs « hubs » au libellé générique qui
+      remontaient en tête pour des textes sans rapport (mesuré : top-1 64 → 69 %).
+    """
+    if not _SEMANTIC_OK or not text or not text.strip():
         return []
-    if not _SEMANTIC_CORPUS_BUILT or _SEMANTIC_CORPUS_DEPT != departement.lower().strip():
-        _build_semantic_corpus(departement)
-    if not _SEMANTIC_CORPUS:
-        return []
+    _build_semantic_corpus(departement)
+    entry = _SEMANTIC_CORPORA.get(departement.lower().strip())
     model = _get_semantic_model()
-    if not model:
+    if not entry or not model:
         return []
     try:
-        q_emb = model.encode([text], convert_to_numpy=True)[0]
-        scores: List[Tuple[str, float]] = []
-        for code, emb in _SEMANTIC_CORPUS:
-            norm_val = float(_np.linalg.norm(q_emb) * _np.linalg.norm(emb))
-            sim = float(_np.dot(q_emb, emb)) / (norm_val + 1e-8)
-            if sim >= threshold:
-                scores.append((code, sim))
-        scores.sort(key=lambda x: x[1], reverse=True)
-        return [c for c, _ in scores[:top_k]]
+        q_emb = model.encode([_SEMANTIC_QUERY_PREFIX + text], convert_to_numpy=True,
+                             normalize_embeddings=True)[0]
+        raw = entry["matrix"] @ q_emb
+        centered = entry["centered"] @ _unit_rows(q_emb - entry["mean"])
+        order = _np.argsort(-centered)
+        return [(entry["codes"][i], float(raw[i]), float(centered[i])) for i in order]
     except Exception as exc:
         logger.warning(f"Semantic matching error: {exc}")
         return []
+
+
+# Matching SÉMANTIQUE : parmi les savoirs dont la similarité brute dépasse le
+# seuil, les top-k selon la similarité centrée.
+def _match_gc_savoir_semantic(text: str, threshold: Optional[float] = None, top_k: int = 5,
+                               departement: str = "gc") -> List[str]:
+    seuil = _SEMANTIC_THRESHOLD if threshold is None else threshold
+    return [c for c, raw, _ in _semantic_scores(text, departement) if raw >= seuil][:top_k]
 
 
 _DEPT_SIGNALS_WEIGHTED = [

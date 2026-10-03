@@ -1,5 +1,7 @@
 package tn.esprit.d2f.exception;
 
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -152,6 +154,12 @@ public class GlobalExceptionHandler {
 
     // ── 500 — Erreur inattendue ───────────────────────────────────────────────
 
+    // Paramètre absent ou mal typé : erreur du client (400), pas une panne serveur.
+    @ExceptionHandler({MissingServletRequestParameterException.class, MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<ErrorResponse> handleBadRequestParameter(Exception ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ERR_VALIDATION, badParameterMessage(ex), request);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneral(
             Exception ex, HttpServletRequest request) {
@@ -182,5 +190,16 @@ public class GlobalExceptionHandler {
                 .traceId(traceId)
                 .build();
         return new ResponseEntity<>(body, status);
+    }
+
+    /** Message client pour un paramètre de requête absent ou mal typé (sans nom de classe Java). */
+    private static String badParameterMessage(Exception ex) {
+        if (ex instanceof MissingServletRequestParameterException missing) {
+            return "Paramètre obligatoire manquant : " + missing.getParameterName();
+        }
+        if (ex instanceof MethodArgumentTypeMismatchException mismatch) {
+            return "Valeur invalide pour le paramètre '" + mismatch.getName() + "'";
+        }
+        return "Paramètre de requête invalide.";
     }
 }

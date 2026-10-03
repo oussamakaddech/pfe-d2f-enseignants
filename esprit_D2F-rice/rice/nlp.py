@@ -866,6 +866,12 @@ _RE_RESPONSABLE = re.compile(
     r"^[ \t]*(?:Responsable(?:\s+(?:Module|UE|Mati[eè]re|Cours))?|Coordinat(?:eur|rice))[ \t]*([^\n]{3,80})",
     re.IGNORECASE | re.MULTILINE,
 )
+# « Responsable Module : Nom » : libellé ET valeur sur la même ligne.
+_RE_RESPONSABLE_INLINE = re.compile(
+    r"^[ \t]*(?:Responsable(?:[ \t]+(?:du[ \t]+)?(?:Module|UE|Mati[eè]re|Cours))?|Coordinat(?:eur|rice))"
+    r"[ \t]*:[ \t]*([^\n]{3,80})",
+    re.IGNORECASE | re.MULTILINE,
+)
 # Reversed format: capture line BEFORE "Responsable Module" label
 _RE_RESPONSABLE_REV = re.compile(
     r"^([^\n]{5,80})\n[ \t]*Responsable[ \t]*(?:Module|UE|Mati[eè]re|Cours)?",
@@ -1282,7 +1288,8 @@ def _extract_regex_nom_module(text: str) -> Optional[str]:
     m = _RE_MODULE_NAME.search(text)
     if not m:
         return None
-    name = m.group(1).strip().rstrip(".")
+    # « Module : X » (typographie française) : le « : » était capturé avec le nom.
+    name = m.group(1).strip().lstrip(":").strip().rstrip(".")
     return re.sub(r"^(.*?)[ \t]{0,8}(?:Pr\u00e9requis|Niveaux|Objectif|Derni[eè]re)[^\n]{0,200}$", r"\1", name, flags=re.I)
 
 
@@ -1297,8 +1304,17 @@ def _extract_regex_unite_pedagogique(text: str) -> Optional[str]:
 
 
 def _extract_regex_responsable(text: str) -> Optional[str]:
+    # La ligne « Responsable … : Nom » porte sa propre valeur : prioritaire sur
+    # le format tableau inversé, qui sinon prenait la ligne précédente
+    # (ex. « Unité pédagogique : UP Génie Civil ») pour le responsable.
+    m_inline = _RE_RESPONSABLE_INLINE.search(text)
+    if m_inline:
+        cleaned = _clean_name(m_inline.group(1).strip())
+        if cleaned:
+            return cleaned
     m_rev = _RE_RESPONSABLE_REV.search(text)
-    if m_rev:
+    # Une ligne « libellé : valeur » n'est jamais un nom de personne.
+    if m_rev and ":" not in m_rev.group(1):
         cleaned = _clean_name(m_rev.group(1).strip())
         if cleaned:
             return cleaned
@@ -1587,7 +1603,9 @@ def _parse_aa_lines(block: str) -> List[Dict[str, Any]]:
             continue
         if _is_metadata_line(stripped):
             continue
-        m = re.match(r'^AA\s*(\d+)\s*(.*)', stripped)
+        # Le séparateur qui suit le numéro ("AA1 : …", "AA1. …", "AA1 - …") n'appartient
+        # pas à l'intitulé : sans lui, les savoirs commençaient par ": ".
+        m = re.match(r'^AA\s*(\d+)\s*[:.)\-–—]?\s*(.*)', stripped)
         if m:
             parsed.append({'type': 'marker', 'aa': int(m.group(1)), 'rest': m.group(2).strip()})
         else:

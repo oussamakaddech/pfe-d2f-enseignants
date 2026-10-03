@@ -74,6 +74,8 @@ class AccountServiceImplTest {
         Set<Role> roles = new HashSet<>();
         roles.add(testRole);
         testUser.setRoles(roles);
+        // Par défaut : plusieurs administrateurs actifs (le garde « dernier admin » ne s'applique pas)
+        lenient().when(userRepository.count(any(Specification.class))).thenReturn(2L);
 
         editProfileRequest = new EditProfileRequest();
         editProfileRequest.setFirstName("Updated");
@@ -785,5 +787,37 @@ class AccountServiceImplTest {
 
         assertThrows(ResourceNotFoundException.class, () -> accountService.permanentDeleteAccount("ghost"));
         verify(userRepository, never()).deletePermanentById(anyString());
+    }
+
+    // ── garde « dernier administrateur actif » ───────────────────────────────
+
+    @Test
+    void banAccount_lastActiveAdmin_refused() {
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        when(userRepository.count(any(Specification.class))).thenReturn(1L);
+
+        assertThrows(BadRequestException.class, () -> accountService.banAccount("testuser"));
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void deleteAccount_lastActiveAdmin_refused() {
+        when(userRepository.findById("test123")).thenReturn(Optional.of(testUser));
+        when(userRepository.count(any(Specification.class))).thenReturn(1L);
+
+        assertThrows(BadRequestException.class, () -> accountService.deleteAccount("test123"));
+        verify(userRepository, never()).delete(any(User.class));
+    }
+
+    @Test
+    void updateAccount_demotingLastActiveAdmin_refused() {
+        Role enseignant = new Role(ERole.ENSEIGNANT);
+        when(userRepository.findById("test123")).thenReturn(Optional.of(testUser));
+        when(roleRepository.findByName(ERole.ENSEIGNANT)).thenReturn(Optional.of(enseignant));
+        when(userRepository.count(any(Specification.class))).thenReturn(1L);
+
+        assertThrows(BadRequestException.class,
+                () -> accountService.updateAccount("test123", editProfileRequest, "ENSEIGNANT"));
+        verify(userRepository, never()).save(any(User.class));
     }
 }

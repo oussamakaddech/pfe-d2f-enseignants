@@ -565,7 +565,7 @@ class FormationWorkflowServiceEnhancedTest {
         seance.setParticipants(new ArrayList<>());
         formation.setSeances(List.of(seance));
 
-        when(formationRepository.findDistinctBySeancesAnimateursMail("test@esprit.tn"))
+        when(formationRepository.findDistinctBySeancesAnimateursMailIgnoreCase("test@esprit.tn"))
                 .thenReturn(List.of(formation));
 
         List<FormationResponseDTO> result = formationWorkflowService.getFormationsByAnimateurEmail("test@esprit.tn");

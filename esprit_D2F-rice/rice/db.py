@@ -34,6 +34,9 @@ def _get_db_pool():
                     password=os.getenv("DB_PASS"),
                     host=os.getenv("DB_HOST", "localhost"),
                     port=int(os.getenv("DB_PORT", "7432")),
+                    # Sans délai, une base qui ne répond pas (conteneur en pause,
+                    # réseau coupé) bloquait indéfiniment le démarrage et /analyze.
+                    connect_timeout=int(os.getenv("RICE_DB_CONNECT_TIMEOUT", "5")),
                 )
     return _DB_POOL
 
@@ -77,13 +80,14 @@ def _fetch_enseignant_affectations() -> Dict[str, List[str]]:
     try:
         conn = _get_db_connection()
         cur = conn.cursor()
+        # Tables qualifiées : RICE ne possède aucun schéma, il lit les
+        # affectations du service compétence (lecture seule).
         cur.execute("""
-            SELECT e.id, array_agg(s.code ORDER BY s.code)
-            FROM enseignant_competences ec
-            JOIN enseignants e ON e.id = ec.enseignant_id
-            JOIN savoirs     s ON s.id = ec.savoir_id
-            GROUP BY e.id
-            ORDER BY e.id
+            SELECT ec.enseignant_id, array_agg(DISTINCT s.code ORDER BY s.code)
+            FROM competence.enseignant_competences ec
+            JOIN competence.savoirs s ON s.id = ec.savoir_id
+            GROUP BY ec.enseignant_id
+            ORDER BY ec.enseignant_id
         """)
         result: Dict[str, List[str]] = {}
         for ens_id, codes in cur.fetchall():
@@ -116,7 +120,8 @@ def _fetch_all_enseignants_info() -> Dict[str, EnseignantInfo]:
         conn = _get_db_connection()
         cur = conn.cursor()
         # Base enseignant info
-        cur.execute("SELECT id, nom, prenom FROM enseignants")
+        # Annuaire du service formation, hors fiches archivées (soft delete).
+        cur.execute("SELECT id, nom, prenom FROM formation.enseignants WHERE deleted_at IS NULL")
         res: Dict[str, Any] = {}
         for row in cur.fetchall():
             eid = str(row[0])
@@ -130,8 +135,8 @@ def _fetch_all_enseignants_info() -> Dict[str, EnseignantInfo]:
         try:
             cur.execute("""
                 SELECT ec.enseignant_id, s.nom
-                FROM enseignant_competences ec
-                JOIN savoirs s ON s.id = ec.savoir_id
+                FROM competence.enseignant_competences ec
+                JOIN competence.savoirs s ON s.id = ec.savoir_id
             """)
             for eid_raw, snom in cur.fetchall():
                 eid = str(eid_raw)
@@ -174,6 +179,11 @@ def _dept_to_numeric_id(departement: str) -> int:
 
 def _create_enseignant_if_new(nom_complet: str, departement: str = "gc") -> Tuple[str, str]:
     """Auto-create a new enseignant row from a name extracted in a fiche module.
+
+    N'est plus appelée par ``/analyze`` : l'analyse est en lecture seule et
+    RICE n'a aucun droit d'écriture (rôle ``app_user_rice``). Les noms non
+    reconnus sont renvoyés dans ``extractedEnseignants`` (``matched_id=None``)
+    et créés par l'utilisateur via le service compétence.
 
     If the name was not fuzzy-matched against any existing DB teacher, this
     function inserts a new row into ``enseignants`` so the extracted professor
