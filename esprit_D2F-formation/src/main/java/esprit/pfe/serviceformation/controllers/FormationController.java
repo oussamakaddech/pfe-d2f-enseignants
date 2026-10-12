@@ -121,7 +121,7 @@ public class FormationController {
 
     /**
      * Update an entire formation.
-     * Restricted to ADMIN, CUP, D2F, RESPONSABLE_DOSSIER roles.
+     * Restricted to ADMIN, CUP, CHEF_DEPARTEMENT roles (FORMATION_UPDATE).
      *
      * @param id formation ID
      * @param request update request (validated, all fields present)
@@ -129,7 +129,7 @@ public class FormationController {
      */
     @Operation(
         summary = "Mettre à jour une formation",
-        description = "Met à jour tous les champs d'une formation. Réservé aux rôles ADMIN, CUP, D2F, RESPONSABLE_DOSSIER."
+        description = "Met à jour tous les champs d'une formation. Réservé aux rôles ADMIN, CUP, CHEF_DEPARTEMENT."
     )
     @ApiResponse(
         responseCode = "200",

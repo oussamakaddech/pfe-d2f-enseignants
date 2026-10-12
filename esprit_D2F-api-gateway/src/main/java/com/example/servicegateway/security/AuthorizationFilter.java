@@ -12,6 +12,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 /**
  * Gateway Authorization Filter
@@ -43,7 +44,6 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     // exact-match comparison is possible and substring false-positives are avoided.
     private static final String ROLE_ADMIN = "ROLE_ADMIN";
     private static final String ROLE_CUP = "ROLE_CUP";
-    private static final String ROLE_D2F = "ROLE_D2F";
     private static final String ROLE_ENSEIGNANT = "ROLE_ENSEIGNANT";
     private static final String ROLE_ANIMATEUR = "ROLE_ANIMATEUR";
     private static final String ROLE_CHEF_DEPARTEMENT = "ROLE_CHEF_DEPARTEMENT";
@@ -53,16 +53,16 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
 
     /** All authenticated users */
     private static final List<String> ALL_ROLES = List.of(
-        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_ANIMATEUR,
+        ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_ANIMATEUR,
         ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER
     );
 
     /** Admin only */
     private static final List<String> ADMIN_ONLY = List.of(ROLE_ADMIN);
 
-    /** Admin + CUP + D2F + Chef de département */
+    /** Admin + CUP + Chef de département */
     private static final List<String> ADMIN_CUP = List.of(
-        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_CHEF_DEPARTEMENT
+        ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT
     );
 
     /** Pilotage (dashboard/BFF analytics) : ADMIN + CUP + Chef de département.
@@ -73,14 +73,26 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
 
     /** Tableau de bord exécutif (/home hors espace personnel) : pilotage + responsable dossier. */
     private static final List<String> EXECUTIVE_DASHBOARD_ROLES = List.of(
-        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER
+        ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER
     );
 
-    /** Admin + CUP + Enseignant + Chef de département + Animateur + D2F + Responsable dossier */
+    /** Admin + CUP + Enseignant + Chef de département + Animateur + Responsable dossier */
     private static final List<String> NO_FORMATEUR = List.of(
-        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_ANIMATEUR,
+        ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_ANIMATEUR,
         ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER
     );
+
+    /** S'inscrire à une formation (parité AuthorizationMatrix.INSCRIPTION_CREATE). */
+    private static final List<String> INSCRIPTION_CREATE_ROLES = List.of(
+        ROLE_CUP, ROLE_ENSEIGNANT, ROLE_ANIMATEUR, ROLE_CHEF_DEPARTEMENT
+    );
+
+    /** Écritures sur la structure de l'école : UP et départements (parité STRUCTURE_WRITE). */
+    private static final Pattern STRUCTURE_PATH =
+        Pattern.compile("^/api/formation/(ups|departements)(/.*)?$");
+    /** Fiche enseignant ciblée par son identifiant (modification / suppression = STRUCTURE_WRITE). */
+    private static final Pattern ENSEIGNANT_ITEM_PATH =
+        Pattern.compile("^/api/formation/enseignants/[^/]+$");
 
     public AuthorizationFilter(JwtTokenProvider tokenProvider) {
         super(Config.class);
@@ -206,7 +218,7 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     }
 
     private List<String> getAccountRoles(String path) {
-        if (path.contains("/list-accounts")) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_ANIMATEUR, ROLE_CHEF_DEPARTEMENT);
+        if (path.contains("/list-accounts")) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT);
         return getAuthRoles(path);
     }
 
@@ -221,6 +233,13 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
      * a {@link #formationRolesByMethod(String, HttpMethod)}.
      */
     private Optional<List<String>> formationRolesByPath(String path, HttpMethod method) {
+        // Structure de l'école : créer / modifier / supprimer UP et départements,
+        // modifier / supprimer une fiche enseignant → ADMIN (parité
+        // AuthorizationMatrix.STRUCTURE_WRITE). La création d'une fiche enseignant
+        // (ajout d'un participant) reste ouverte au CUP (REFERENTIEL_WRITE).
+        if (isWrite(method) && STRUCTURE_PATH.matcher(path).matches()) return Optional.of(ADMIN_ONLY);
+        if ((method == HttpMethod.PUT || method == HttpMethod.PATCH || method == HttpMethod.DELETE)
+                && ENSEIGNANT_ITEM_PATH.matcher(path).matches()) return Optional.of(ADMIN_ONLY);
         if (path.contains("/kpi")) return Optional.of(NO_FORMATEUR);
         // DSI §: la « gestion des dossiers de formations » (arborescence OneDrive)
         // est réservée à ADMIN + RESPONSABLE_DOSSIER — CUP/CHEF_DEPARTEMENT exclus.
@@ -263,18 +282,18 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     /** Regles attachees a la METHODE HTTP, appliquees apres les regles de chemin. */
     private List<String> formationRolesByMethod(String path, HttpMethod method) {
         if (method == HttpMethod.DELETE) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT);
-        if (path.contains("/inscription/inscriptions") && method == HttpMethod.POST) return ALL_ROLES;
+        if (path.contains("/inscription/inscriptions") && method == HttpMethod.POST) return INSCRIPTION_CREATE_ROLES;
         // Présences d'une séance : marquage autorisé à l'animateur/formateur de la
         // séance (parité avec AuthorizationMatrix.PRESENCE_MARK). Le contrôle fin
         // (appartenance à la séance) est fait par le microservice formation.
         if ((path.contains("/presences") || path.contains("/presence/"))
                 && (method == HttpMethod.PUT || method == HttpMethod.PATCH))
-            return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER,
-                    ROLE_ANIMATEUR, ROLE_ENSEIGNANT);
+            return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_ANIMATEUR, ROLE_ENSEIGNANT);
         if (method == HttpMethod.POST) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT);
-        // FORMATION_UPDATE = ADMIN, CUP, CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER (cf. AuthorizationMatrix)
+        // FORMATION_UPDATE = ADMIN, CUP, CHEF_DEPARTEMENT (cf. AuthorizationMatrix) ; le
+        // responsable dossier n'écrit que les documents (règle /documents plus haut).
         if (method == HttpMethod.PUT || method == HttpMethod.PATCH)
-            return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER);
+            return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT);
         // Vérifications inter-services évaluation → formation (parité
         // AuthorizationMatrix.FORMATION_ANIMATEUR_CHECK) : le jeton de service
         // ROLE_SVC_EVALUATION est autorisé aux côtés des rôles humains de lecture.
@@ -307,7 +326,7 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         // ANIMATEUR (parité AuthorizationMatrix) : le chef de département exprime
         // aussi des besoins pour son périmètre.
         if (method == HttpMethod.POST)
-            return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_CHEF_DEPARTEMENT, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
+            return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
         return ALL_ROLES;
     }
 

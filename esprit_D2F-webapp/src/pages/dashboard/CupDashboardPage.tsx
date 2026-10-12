@@ -70,9 +70,10 @@ export default function CupDashboardPage() {
   // Les appels analytics prédictifs (overview) sont réservés au pilotage
   // ADMIN/CUP (DASHBOARD_ADMIN_FULL) : pour le chef de département et
   // RESPONSABLE_DOSSIER ils renvoient 403 — on ne les déclenche donc pas.
-  // Les KPI / besoins globaux (DASHBOARD_ADMIN_LIMITED / READ_ALL) sont
-  // autorisés pour ADMIN/CUP/CHEF_DEPARTEMENT/ANIMATEUR/RESPONSABLE_DOSSIER,
-  // mais PAS pour l'ENSEIGNANT — on les garde pour éviter les 403 sur /home.
+  // Les KPI (DASHBOARD_ADMIN_LIMITED) sont autorisés pour ADMIN/CUP/
+  // CHEF_DEPARTEMENT/ANIMATEUR/RESPONSABLE_DOSSIER ; les besoins globaux
+  // (READ_ALL) pour ADMIN/CUP/CHEF_DEPARTEMENT/RESPONSABLE_DOSSIER — on les
+  // garde pour éviter les 403 sur /home.
   const isPilotage = hasAnyRole(user?.role, ['admin', 'CUP', 'CHEF_DEPARTEMENT']);
   const canReadKpis = hasAnyRole(user?.role, [
     'admin',
@@ -81,11 +82,11 @@ export default function CupDashboardPage() {
     'Animateur',
     'ResponsableDossier',
   ]);
+  // Parité BESOIN_FORMATION_READ_ALL : l'animateur ne lit que ses propres besoins.
   const canReadBesoins = hasAnyRole(user?.role, [
     'admin',
     'CUP',
     'CHEF_DEPARTEMENT',
-    'Animateur',
     'ResponsableDossier',
   ]);
   // L'overview (tuiles d'en-tête prédictives) est scopé côté serveur :
@@ -139,9 +140,9 @@ export default function CupDashboardPage() {
     return [];
   }, [formationsRaw]);
   // Compteur inscriptions : GET /inscription/inscriptions exige INSCRIPTION_APPROVE
-  // (ADMIN/CUP, cf. AuthorizationMatrix) — on ne déclenche pas la requête pour les
-  // autres rôles (RESPONSABLE_DOSSIER etc.) afin d'éviter les 403 sur /home.
-  const canReadInscriptions = hasAnyRole(user?.role, ['admin', 'CUP']);
+  // (ADMIN/CUP/CHEF_DEPARTEMENT, périmètre appliqué côté serveur) — on ne déclenche
+  // pas la requête pour les autres rôles afin d'éviter les 403 sur /home.
+  const canReadInscriptions = hasAnyRole(user?.role, ['admin', 'CUP', 'CHEF_DEPARTEMENT']);
   const { data: inscriptionsRaw } = useQuery({
     queryKey: ['cup', 'inscriptions'],
     queryFn: () => InscriptionService.getAllInscriptions(500),

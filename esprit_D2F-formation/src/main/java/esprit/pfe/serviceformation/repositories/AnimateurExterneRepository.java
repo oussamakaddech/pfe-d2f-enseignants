@@ -14,4 +14,5 @@ public interface AnimateurExterneRepository extends JpaRepository<AnimateurExter
     Page<AnimateurExterne> findByBureauIdOrderByNomAscPrenomAsc(Long bureauId, Pageable pageable);
     boolean existsByIdAndBureauId(Long id, Long bureauId);
     boolean existsByEmail(String email);
+    boolean existsByEmailIgnoreCase(String email);
 }

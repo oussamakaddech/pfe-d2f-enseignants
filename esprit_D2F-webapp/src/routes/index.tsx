@@ -410,6 +410,10 @@ export default function AppRoutes() {
                     }
                   >
                     <Route path="/home/affectations" element={<AffectationEnseignantPage />} />
+                  </Route>
+                  {/* Matchmaking IA : crée/modifie des fiches enseignant et des
+                      affectations (STRUCTURE_WRITE, AFFECTATION_CREATE = ADMIN). */}
+                  <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN]} />}>
                     <Route path="/home/rice/matchmaking" element={<CompetenceMatchingPage />} />
                     <Route
                       path="/home/rice/competence-matching"
@@ -451,7 +455,13 @@ export default function AppRoutes() {
                     <Route path="/home/besoins/ajouter" element={<BesoinForm />} />
                   </Route>
 
-                  <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP]} />}>
+                  {/* Validation des inscriptions : CUP (son UP) et chef de département
+                      (son département), périmètre appliqué par InscriptionService. */}
+                  <Route
+                    element={
+                      <RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />
+                    }
+                  >
                     <Route path="/home/ListeFormation/:id/demandes" element={<DemandesList />} />
                     <Route
                       path="/home/Inscriptions/Suivi"

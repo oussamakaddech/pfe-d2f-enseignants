@@ -89,6 +89,12 @@ class ComprehensiveControllersTest {
                 .setMessageConverters(new ByteArrayHttpMessageConverter(), new StringHttpMessageConverter(), converter)
                 .setControllerAdvice(exceptionHandler)
                 .build();
+        // Politique d'envoi réelle (domaine de l'établissement), dépôts simulés.
+        org.springframework.test.util.ReflectionTestUtils.setField(mailController, "sendPolicy",
+                new esprit.pfe.serviceformation.microsoft.MailSendPolicy(
+                        org.mockito.Mockito.mock(esprit.pfe.serviceformation.repositories.EnseignantRepository.class),
+                        org.mockito.Mockito.mock(esprit.pfe.serviceformation.repositories.AnimateurExterneRepository.class),
+                        "esprit.tn", 30));
         mockMvcMail = MockMvcBuilders.standaloneSetup(mailController)
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
                 .setMessageConverters(new ByteArrayHttpMessageConverter(), new StringHttpMessageConverter(), converter)
@@ -174,7 +180,7 @@ class ComprehensiveControllersTest {
 
     @Test
     void testMail() throws Exception {
-        String json = "{\"to\":\"test@test.com\",\"subject\":\"Subj\",\"content\":\"Body\"}";
+        String json = "{\"to\":\"test@esprit.tn\",\"subject\":\"Subj\",\"content\":\"Body\"}";
         mockMvcMail.perform(post("/api/v1/mail/send")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json)).andExpect(status().is2xxSuccessful());

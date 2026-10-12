@@ -27,7 +27,8 @@ from app.core.envelope import error_response
 from app.core.exceptions import AppError, ForbiddenError, UnauthorizedError
 from app.core.security import SCOPE_CLAIM, _extract_bearer, decode_token, normalize_role
 
-PILOTAGE = frozenset({"ADMIN", "CUP", "D2F", "CHEF_DEPARTEMENT"})
+# Parité passerelle (ADMIN_CUP) : le libellé hérité D2F, porté par aucun jeton, est retiré.
+PILOTAGE = frozenset({"ADMIN", "CUP", "CHEF_DEPARTEMENT"})
 EXECUTIF = PILOTAGE | {"RESPONSABLE_DOSSIER"}
 ADMIN = frozenset({"ADMIN"})
 AUTHENTIFIE = frozenset()  # tout rôle : la route applique ses propres contrôles

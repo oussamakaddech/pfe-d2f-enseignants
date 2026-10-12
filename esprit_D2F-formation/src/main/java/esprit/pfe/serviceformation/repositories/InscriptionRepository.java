@@ -15,6 +15,10 @@ import java.util.List;
 public interface InscriptionRepository extends JpaRepository<Inscription, Long> {
 
     Page<Inscription> findByFormation_IdFormation(Long formationId, Pageable pageable);
+    /** Inscriptions des formations d'une UP (périmètre du CUP). */
+    Page<Inscription> findByFormation_Up_Id(String upId, Pageable pageable);
+    /** Inscriptions des formations d'un département (périmètre du chef). */
+    Page<Inscription> findByFormation_Departement_Id(String deptId, Pageable pageable);
     List<Inscription> findByFormation_IdFormation(Long formationId);
     Page<Inscription> findByEnseignant_Id(String enseignantId, Pageable pageable);
     List<Inscription> findByEnseignant_Id(String enseignantId);

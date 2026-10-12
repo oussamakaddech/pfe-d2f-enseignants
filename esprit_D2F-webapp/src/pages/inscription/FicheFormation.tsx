@@ -28,6 +28,8 @@ import {
   UserAddOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import AnimatorProposalsPanel from '@/pages/formation/components/AnimatorProposalsPanel';
+import { useAnimatorPermissions } from '@/pages/formation/hooks/useAnimatorPermissions';
 import { useFormationById } from '@/hooks/formation/useFormations';
 import {
   useProfile,
@@ -93,6 +95,8 @@ export default function FicheFormation() {
   const { data: formation, isLoading: loading, error } = useFormationById(id);
   const { data: profile } = useProfile();
   const role = String(profile?.role ?? '').toLowerCase();
+  // Workflow d'animation (se proposer, proposer, valider) : le serveur revalide tout.
+  const animatorPermissions = useAnimatorPermissions(profile?.role);
   // Admin / CUP : accès à la liste des participants + statistiques.
   const canViewParticipants =
     role === ROLES.ADMIN.toLowerCase() || role === ROLES.CUP.toLowerCase();
@@ -437,6 +441,9 @@ export default function FicheFormation() {
           />
         </Card>
       )}
+
+      {/* Propositions d'animateurs : API ANIMATOR_PROPOSAL_* (formation-service). */}
+      {id && <AnimatorProposalsPanel formationId={Number(id)} {...animatorPermissions} />}
     </div>
   );
 }

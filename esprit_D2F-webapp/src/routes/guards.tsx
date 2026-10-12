@@ -14,7 +14,6 @@ export const FRONTEND_PERMISSIONS = {
     CREATE: ['admin'],
     UPDATE: ['admin'],
     DELETE: ['admin'],
-    ASSIGN: ['admin'],
   },
   AFFECTATION: {
     READ: ['admin', 'CUP', 'Enseignant', 'CHEF_DEPARTEMENT'],
@@ -25,10 +24,9 @@ export const FRONTEND_PERMISSIONS = {
   },
   BESOIN_FORMATION: {
     // Parité AuthorizationMatrix.BESOIN_FORMATION_READ_ALL (ADMIN, CUP,
-    // CHEF_DEPARTEMENT, ANIMATEUR, RESPONSABLE_DOSSIER) — l'ENSEIGNANT en est exclu.
-    READ_ALL: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'Animateur', 'ResponsableDossier'],
-    READ_CUP: ['admin', 'CUP'],
-    READ_ENSEIGNANT: ['admin', 'Enseignant'],
+    // CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER) — l'ENSEIGNANT et l'ANIMATEUR ne
+    // lisent que leurs propres besoins (/mine).
+    READ_ALL: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'ResponsableDossier'],
     CREATE: ['admin', 'CUP', 'Enseignant', 'Animateur', 'CHEF_DEPARTEMENT'],
     // Parité AuthorizationMatrix.BESOIN_FORMATION_UPDATE/DELETE : CRUD complet
     // CUP/CHEF_DEPARTEMENT sur leur périmètre (contrôle fin côté service).
@@ -45,30 +43,21 @@ export const FRONTEND_PERMISSIONS = {
     // Parité AuthorizationMatrix.FORMATION_CREATE/UPDATE/DELETE : CRUD complet
     // CUP/CHEF_DEPARTEMENT sur leur périmètre (contrôle fin côté service).
     CREATE: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
-    UPDATE: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'ResponsableDossier'],
+    UPDATE: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
     DELETE: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
-    APPROVE: ['admin', 'CUP'],
+    // Génération des certificats d'une formation (AuthorizationMatrix.FORMATION_APPROVE).
+    APPROVE: ['admin'],
     READ_OWN: ['admin', 'Animateur', 'Enseignant'],
     // Marquage des présences d'une séance (parité AuthorizationMatrix.PRESENCE_MARK).
-    PRESENCE_MARK: [
-      'admin',
-      'CUP',
-      'CHEF_DEPARTEMENT',
-      'ResponsableDossier',
-      'Animateur',
-      'Enseignant',
-    ],
+    PRESENCE_MARK: ['admin', 'CUP', 'Animateur', 'Enseignant'],
   },
   EVALUATION: {
     READ_ALL: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'Enseignant', 'Animateur'],
-    READ_FORMATION: ['admin', 'CHEF_DEPARTEMENT', 'Enseignant', 'Animateur'],
-    READ_CUP: ['admin', 'CUP'],
+    READ_FORMATION: ['admin', 'CUP', 'CHEF_DEPARTEMENT', 'Enseignant', 'Animateur'],
     READ_ENSEIGNANT: ['admin', 'Enseignant'],
-    READ_FORMATEUR: ['admin', 'Animateur'],
     CREATE: ['admin', 'CUP', 'Animateur', 'Enseignant', 'CHEF_DEPARTEMENT'],
     UPDATE: ['admin', 'CUP', 'Animateur', 'Enseignant', 'CHEF_DEPARTEMENT'],
     DELETE: ['admin'],
-    MARK_ENTRY: ['admin', 'Animateur'],
   },
   CERTIFICAT: {
     READ: ['admin', 'CUP', 'Enseignant', 'Animateur', 'CHEF_DEPARTEMENT'],

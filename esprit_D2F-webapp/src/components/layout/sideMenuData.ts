@@ -24,6 +24,7 @@ import {
   DashboardOutlined,
   EyeOutlined,
   HomeOutlined,
+  IdcardOutlined,
 } from '@ant-design/icons';
 
 export interface MenuItem {
@@ -118,6 +119,7 @@ export const cupMenu: MenuItem[] = [
     label: 'COMPÉTENCES & BESOINS',
     children: [
       { label: 'Référentiel Compétences', key: '/home/competences', icon: BookOutlined },
+      { label: 'Mon passeport', key: '/home/skill-passport', icon: IdcardOutlined },
       {
         label: 'Besoins de Formation',
         key: 'besoin_formation_menu',
@@ -146,6 +148,7 @@ export const enseignantMenu: MenuItem[] = [
   // Pas d'entrée « Tableau de bord » pour ce rôle (demande métier) : la page
   // /home reste accessible par URL mais n'est plus exposée dans la navigation.
   { label: 'Mon espace', key: '/home/personal-dashboard', icon: HomeOutlined },
+  { label: 'Mon passeport', key: '/home/skill-passport', icon: IdcardOutlined },
   {
     label: 'Besoins de Formation',
     key: 'besoin_formation_menu',
@@ -167,6 +170,7 @@ export const animateurMenu: MenuItem[] = [
   // Pas d'entrée « Tableau de bord » pour ce rôle (demande métier) : la page
   // /home reste accessible par URL mais n'est plus exposée dans la navigation.
   { label: 'Mon espace', key: '/home/personal-dashboard', icon: HomeOutlined },
+  { label: 'Mon passeport', key: '/home/skill-passport', icon: IdcardOutlined },
   { label: "Sessions d'Animation", key: '/home/animateur-formations', icon: ReadOutlined },
   { label: 'Calendrier Global', key: '/home/Calendrier', icon: CalendarOutlined },
   { label: 'Mes Présences', key: '/home/mes-presences', icon: EyeOutlined },
@@ -189,6 +193,8 @@ export const responsableDossierMenu: MenuItem[] = [
   // /home reste accessible par URL mais n'est plus exposée dans la navigation.
   { label: 'Catalogue Formations', key: '/home/Formation/Consulter', icon: AppstoreOutlined },
   { label: 'Gestion Documentaire', key: '/home/File', icon: FileTextOutlined },
+  // Parité CALENDAR_READ : la route était autorisée sans entrée de menu.
+  { label: 'Calendrier Global', key: '/home/Calendrier', icon: CalendarOutlined },
 ];
 
 export const chefDepartementMenu: MenuItem[] = [
@@ -210,6 +216,7 @@ export const chefDepartementMenu: MenuItem[] = [
     label: 'COMPÉTENCES & BESOINS',
     children: [
       { label: 'Référentiel Compétences', key: '/home/competences', icon: BookOutlined },
+      { label: 'Mon passeport', key: '/home/skill-passport', icon: IdcardOutlined },
       // Parité BESOIN_FORMATION_CREATE/READ_ALL : le chef consulte les besoins de
       // son département et dépose aussi des besoins.
       {

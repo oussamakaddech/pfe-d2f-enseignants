@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +33,7 @@ public class InscriptionService {
     private final FormationCompetenceRepository formationCompetenceRepo;
     private final InscriptionService self;
     private final FormationMapper formationMapper;
+    private final KpiScopeService kpiScopeService;
 
     @Autowired
     public InscriptionService(FormationRepository formationRepo,
@@ -39,13 +41,38 @@ public class InscriptionService {
                               InscriptionRepository inscriptionRepo,
                               FormationCompetenceRepository formationCompetenceRepo,
                               @Lazy InscriptionService self,
-                              FormationMapper formationMapper) {
+                              FormationMapper formationMapper,
+                              KpiScopeService kpiScopeService) {
         this.formationRepo = formationRepo;
         this.enseignantRepo = enseignantRepo;
         this.inscriptionRepo = inscriptionRepo;
         this.formationCompetenceRepo = formationCompetenceRepo;
         this.self = self;
         this.formationMapper = formationMapper;
+        this.kpiScopeService = kpiScopeService;
+    }
+
+    /**
+     * Périmètre de validation des inscriptions : ADMIN global, CUP = son UP,
+     * chef de département = son département (résolu côté serveur, deny-by-default).
+     * Un service construit sans {@link KpiScopeService} (tests unitaires) est global.
+     */
+    private KpiScopeService.KpiScope validationScope() {
+        if (kpiScopeService == null) {
+            return new KpiScopeService.KpiScope(null, null);
+        }
+        KpiScopeService.KpiScope scope = kpiScopeService.resolveScope();
+        return scope != null ? scope : new KpiScopeService.KpiScope(null, null);
+    }
+
+    private static boolean formationInScope(Formation f, KpiScopeService.KpiScope scope) {
+        if (scope.global()) {
+            return true;
+        }
+        String upForm = f.getUp() != null ? f.getUp().getId() : null;
+        String deptForm = f.getDepartement() != null ? f.getDepartement().getId() : null;
+        return (scope.upId() != null && scope.upId().equals(upForm))
+                || (scope.deptId() != null && scope.deptId().equals(deptForm));
     }
 
 
@@ -161,7 +188,17 @@ public class InscriptionService {
      */
     @Transactional(readOnly = true)
     public Page<InscriptionDTO> listerToutesInscriptions(Pageable pageable) {
-        return inscriptionRepo.findAll(pageable).map(this::mapInscriptionToDTO);
+        // CUP → inscriptions des formations de son UP ; chef → de son département.
+        KpiScopeService.KpiScope scope = validationScope();
+        Page<Inscription> page;
+        if (scope.global()) {
+            page = inscriptionRepo.findAll(pageable);
+        } else if (scope.upId() != null) {
+            page = inscriptionRepo.findByFormation_Up_Id(scope.upId(), pageable);
+        } else {
+            page = inscriptionRepo.findByFormation_Departement_Id(scope.deptId(), pageable);
+        }
+        return page.map(this::mapInscriptionToDTO);
     }
 
     @Transactional(readOnly = true)
@@ -215,6 +252,10 @@ public class InscriptionService {
     private Inscription doTraiterDemande(Long inscriptionId, boolean approuver, String motif) {
         Inscription ins = inscriptionRepo.findById(inscriptionId)
                 .orElseThrow(() -> new IllegalArgumentException("Demande introuvable"));
+        if (ins.getFormation() != null && !formationInScope(ins.getFormation(), validationScope())) {
+            throw new AccessDeniedException(
+                    "Cette inscription concerne une formation hors de votre périmètre.");
+        }
         ins.setEtat(approuver
                 ? EtatInscription.APPROVED
                 : EtatInscription.REJECTED);
