@@ -313,7 +313,8 @@ public class FormationWorkflowController {
     @PreAuthorize(AuthorizationMatrix.EVALUATION_CREATE)
     @Operation(summary = "Formations que le participant connecté peut évaluer")
     public ResponseEntity<List<Map<String, Object>>> getMesFormationsAEvaluer(@AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(formationWorkflowService.getMesFormationsAEvaluer(jwt.getClaimAsString("email")));
+        return ResponseEntity.ok(formationWorkflowService
+                .getMesFormationsAEvaluer(CurrentUser.fromJwt(jwt)));
     }
 
     @GetMapping("/achevees")

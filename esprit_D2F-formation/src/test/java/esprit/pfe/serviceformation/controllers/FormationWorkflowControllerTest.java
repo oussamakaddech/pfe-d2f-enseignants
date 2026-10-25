@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -116,6 +117,22 @@ class FormationWorkflowControllerTest {
     }
 
     @Test
+    void testGetMesFormationsAEvaluerFallsBackToSubjectWhenEmailClaimIsAbsent() throws Exception {
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject("E00007")
+                .claim("scope", "ROLE_ENSEIGNANT")
+                .build();
+
+        when(formationWorkflowService.getMesFormationsAEvaluer(any(esprit.pfe.serviceformation.services.CurrentUser.class)))
+                .thenReturn(Collections.emptyList());
+
+        controller.getMesFormationsAEvaluer(jwt);
+        org.mockito.Mockito.verify(formationWorkflowService)
+                .getMesFormationsAEvaluer(any(esprit.pfe.serviceformation.services.CurrentUser.class));
+    }
+
+    @Test
     void testGetAllFormationsWithDocuments() throws Exception {
         when(formationWorkflowService.getAllFormationsWithDocuments()).thenReturn(Collections.emptyList());
         mockMvc.perform(get("/api/v1/formations-workflow/with-documents")).andExpect(status().isOk());
@@ -160,4 +177,3 @@ class FormationWorkflowControllerTest {
                 .param("end", "2023-12-31")).andExpect(status().isOk());
     }
 }
-

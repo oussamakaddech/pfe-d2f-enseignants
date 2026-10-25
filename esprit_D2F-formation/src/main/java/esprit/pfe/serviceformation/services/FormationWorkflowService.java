@@ -2169,10 +2169,20 @@ public class FormationWorkflowService {
      */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getMesFormationsAEvaluer(String email) {
-        if (email == null) {
+        return getMesFormationsAEvaluer(resolveTeacherByIdentity(email));
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getMesFormationsAEvaluer(CurrentUser user) {
+        if (user == null) {
             return List.of();
         }
-        Optional<Enseignant> fiche = enseignantRepository.findByMailIgnoreCase(email);
+        return getMesFormationsAEvaluer(resolveTeacherByIdentity(user.email())
+                .or(() -> resolveTeacherByIdentity(user.userId()))
+                .or(() -> resolveTeacherByIdentity(user.username())));
+    }
+
+    private List<Map<String, Object>> getMesFormationsAEvaluer(Optional<Enseignant> fiche) {
         if (fiche.isEmpty()) {
             return List.of();
         }
@@ -2197,6 +2207,15 @@ public class FormationWorkflowService {
                     return m;
                 })
                 .toList();
+    }
+
+    private Optional<Enseignant> resolveTeacherByIdentity(String identity) {
+        if (identity == null || identity.isBlank()) {
+            return Optional.empty();
+        }
+        return enseignantRepository.findByMailIgnoreCase(identity)
+                .or(() -> enseignantRepository.findByUserId(identity))
+                .or(() -> enseignantRepository.findById(identity));
     }
 
     public List<MesPresenceDTO> getMesPresences(String email) {
