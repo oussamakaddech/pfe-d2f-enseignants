@@ -23,4 +23,10 @@ public class FormationClientFallback implements FormationClient {
     public Boolean isParticipantOfFormation(Long formationId, String enseignantId) {
         return false;
     }
+
+    /** null = service formation injoignable (distinct de « non participant »). */
+    @Override
+    public java.util.Map<String, Object> participantInfo(Long formationId, String idOrMail) {
+        return null;
+    }
 }

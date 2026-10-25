@@ -11,6 +11,7 @@ import java.util.List;
         name = "evaluation-service",
         url = "${EVALUATION_SERVICE_URL}",
         contextId = "evaluationClient",
+        configuration = esprit.pfe.serviceformation.config.EvaluationFeignConfig.class,
         fallback = EvaluationClientFallback.class)
 public interface EvaluationClient {
 
@@ -22,7 +23,9 @@ public interface EvaluationClient {
     /**
      * Vérifie si une évaluation a été soumise pour un participant à une formation.
      */
-    @GetMapping("/evaluations/submitted/{trainingId}/{participantId}")
+    // Questionnaire de satisfaction du service évaluation (la route /evaluations/submitted
+    // n'existait pas : le critère « évaluation soumise » était toujours faux).
+    @GetMapping("/api/v1/formation-feedback/submitted/{trainingId}/{participantId}")
     boolean hasEvaluationSubmitted(@PathVariable Long trainingId, @PathVariable String participantId);
     
     /**

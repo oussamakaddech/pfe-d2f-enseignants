@@ -469,6 +469,7 @@ class BesoinFormationServiceImplTest {
     @Test
     void retrieveAllByPriorite_shouldReturnPage() {
         Pageable pageable = PageRequest.of(0, 10);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.findAllByOrderByPrioriteDesc(pageable)).thenReturn(Page.empty());
         service.retrieveAllByPriorite(pageable);
         verify(besoinFormationRepository).findAllByOrderByPrioriteDesc(pageable);
@@ -477,6 +478,7 @@ class BesoinFormationServiceImplTest {
     @Test
     void retrieveByPriorite_shouldReturnPage() {
         Pageable pageable = PageRequest.of(0, 10);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.findByPriorite(any(), eq(pageable))).thenReturn(Page.empty());
         service.retrieveByPriorite(null, pageable);
         verify(besoinFormationRepository).findByPriorite(null, pageable);

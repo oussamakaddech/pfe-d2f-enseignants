@@ -199,7 +199,9 @@ export const antdComponentTokens = {
   },
   Steps: {
     iconSize: 32,
-    titleLineHeight: 1.4,
+    // En PIXELS pour Steps (≠ Modal, ratio) : 1.4 donnait une hauteur de ligne de
+    // 1,4 px → titres d'étapes écrasés et rognés dans tous les assistants.
+    titleLineHeight: 32,
   },
   Badge: {
     borderRadius: radius.full,

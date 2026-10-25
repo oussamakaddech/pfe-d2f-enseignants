@@ -462,13 +462,13 @@ class BesoinFormationWorkflowCoverageTest {
     void retrievePendingApproval_chef() {
         when(reviewerScopeService.resolveCurrentUser()).thenReturn(CHEF_SCOPE);
         Pageable pageable = PageRequest.of(0, 10);
-        when(besoinFormationRepository.findByCurrentApprovalStepAndDepartement(
-                ApprovalStep.CHEF_DEPARTEMENT, "DEPT_GL", pageable))
+        when(besoinFormationRepository.findByCurrentApprovalStepAndDepartementAndCreatedByRole(
+                ApprovalStep.CHEF_DEPARTEMENT, "DEPT_GL", CreatorRole.CUP, pageable))
                 .thenReturn(new PageImpl<>(Collections.emptyList()));
 
         service.retrievePendingApproval(pageable);
-        verify(besoinFormationRepository).findByCurrentApprovalStepAndDepartement(
-                ApprovalStep.CHEF_DEPARTEMENT, "DEPT_GL", pageable);
+        verify(besoinFormationRepository).findByCurrentApprovalStepAndDepartementAndCreatedByRole(
+                ApprovalStep.CHEF_DEPARTEMENT, "DEPT_GL", CreatorRole.CUP, pageable);
     }
 
     @Test
@@ -487,7 +487,8 @@ class BesoinFormationWorkflowCoverageTest {
                 .thenReturn(new PageImpl<>(Collections.emptyList()));
         when(besoinFormationRepository.findByUpAndStatusNotIn(eq("UP_INFO"), anyCollection(), eq(pageable)))
                 .thenReturn(new PageImpl<>(Collections.emptyList()));
-        when(besoinFormationRepository.findByDepartementAndStatusNotIn(eq("DEPT_GL"), anyCollection(), eq(pageable)))
+        when(besoinFormationRepository.findChefVisibleByStatusNotIn(
+                eq("DEPT_GL"), eq("chef-user"), anyCollection(), eq(pageable)))
                 .thenReturn(new PageImpl<>(Collections.emptyList()));
 
         when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
@@ -500,11 +501,21 @@ class BesoinFormationWorkflowCoverageTest {
 
         when(reviewerScopeService.resolveCurrentUser()).thenReturn(CHEF_SCOPE);
         service.retrieveScope(pageable);
-        verify(besoinFormationRepository).findByDepartementAndStatusNotIn(
-                eq("DEPT_GL"), anyCollection(), eq(pageable));
+        verify(besoinFormationRepository).findChefVisibleByStatusNotIn(
+                eq("DEPT_GL"), eq("chef-user"), anyCollection(), eq(pageable));
 
         when(reviewerScopeService.resolveCurrentUser()).thenReturn(ENS_SCOPE);
         assertThrows(AccessDeniedException.class, () -> service.retrieveScope(pageable));
+    }
+
+    @Test
+    void listesNonFiltrees_chef_doitLever403() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(CHEF_SCOPE);
+        assertThrows(AccessDeniedException.class, () -> service.retrieveAllByPriorite(pageable));
+        assertThrows(AccessDeniedException.class, () -> service.retrieveByPriorite(null, pageable));
+        assertThrows(AccessDeniedException.class, () -> service.retrieveByUsername("ens-user", pageable));
+        verify(besoinFormationRepository, never()).findAllByOrderByPrioriteDesc(any());
     }
 
     // ── Consultation scopée des besoins approuvés (/approved) ───────────────
@@ -523,15 +534,15 @@ class BesoinFormationWorkflowCoverageTest {
     }
 
     @Test
-    void retrieveApprovedBesoinFormations_chef_limiteASonDepartement() {
+    void retrieveApprovedBesoinFormations_chef_limiteAuxBesoinsCupDeSonDepartement() {
         Pageable pageable = PageRequest.of(0, 10);
         when(reviewerScopeService.resolveCurrentUser()).thenReturn(CHEF_SCOPE);
-        when(besoinFormationRepository.findByDepartementAndApprouveAdminTrue("DEPT_GL", pageable))
+        when(besoinFormationRepository.findChefVisibleApproved("DEPT_GL", "chef-user", pageable))
                 .thenReturn(new PageImpl<>(Collections.emptyList()));
 
         service.retrieveApprovedBesoinFormations(pageable);
 
-        verify(besoinFormationRepository).findByDepartementAndApprouveAdminTrue("DEPT_GL", pageable);
+        verify(besoinFormationRepository).findChefVisibleApproved("DEPT_GL", "chef-user", pageable);
         verify(besoinFormationRepository, never()).findByApprouveAdminTrue(pageable);
     }
 

@@ -166,6 +166,7 @@ class FormationWorkflowServiceLineCoverageTest {
     private FormationWorkflowRequest buildRequest() {
         FormationWorkflowRequest r = new FormationWorkflowRequest();
         r.setTitreFormation("Formation Test");
+        r.setChargeHoraireGlobal(24); // durée obligatoire à la création
         r.setDateDebut(LocalDate.of(2026, Month.JANUARY, 1));
         r.setDateFin(LocalDate.of(2026, Month.DECEMBER, 31));
         r.setTypeFormation(TypeFormation.INTERNE);
@@ -289,6 +290,37 @@ class FormationWorkflowServiceLineCoverageTest {
         service.handleEtatTransitions(f, EtatFormation.PLANIFIE);
         verify(outlookMailService, atLeast(1)).sendMail(anyString(), contains("Annulation"), anyString());
         verify(outlookCalendarService).deleteEventInCalendar("admin@esprit.tn", "EVT_001");
+    }
+
+    @Test @DisplayName("handleEtatTransitions - ENREGISTRE -> ANNULE : personne n'avait été prévenu, aucun e-mail")
+    void handleEtat_annule_depuisEnregistre_aucunMail() {
+        Formation f = buildFormation(1L, EtatFormation.ANNULE);
+        SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
+        f.setSeances(new ArrayList<>(List.of(sf)));
+        service.handleEtatTransitions(f, EtatFormation.ENREGISTRE);
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
+    }
+
+    @Test @DisplayName("ANNULE - un événement personnel introuvable dans Outlook n'empêche pas de retirer les autres")
+    void handleEtat_annule_evenementPersonnelEnEchec() {
+        Formation f = buildFormation(1L, EtatFormation.ANNULE);
+        SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
+        f.setSeances(new ArrayList<>(List.of(sf)));
+        esprit.pfe.serviceformation.repositories.SeanceCalendarEventRepository repo =
+                mock(esprit.pfe.serviceformation.repositories.SeanceCalendarEventRepository.class);
+        service.setSeanceCalendarEventRepository(repo);
+        var supprimeParLaPersonne = new esprit.pfe.serviceformation.entities.SeanceCalendarEvent(10L, "a@esprit.tn", "EV_A");
+        var autre = new esprit.pfe.serviceformation.entities.SeanceCalendarEvent(10L, "b@esprit.tn", "EV_B");
+        when(repo.findBySeanceId(10L)).thenReturn(List.of(supprimeParLaPersonne, autre));
+        doThrow(new RuntimeException("404 ErrorItemNotFound")).when(outlookCalendarService)
+                .deleteEventInCalendar("a@esprit.tn", "EV_A");
+
+        service.handleEtatTransitions(f, EtatFormation.PLANIFIE);
+
+        verify(outlookCalendarService).deleteEventInCalendar("b@esprit.tn", "EV_B");
+        verify(repo).delete(supprimeParLaPersonne);
+        verify(repo).delete(autre);
     }
 
     @Test @DisplayName("handleEtatTransitions - ANNULE with calendar cleanup exception")
@@ -589,15 +621,15 @@ class FormationWorkflowServiceLineCoverageTest {
         assertDoesNotThrow(() -> service.updateFormationWorkflow(1L, r));
     }
 
-    @Test @DisplayName("updateFormation - same state + Outlook events => resync calendar")
+    @Test @DisplayName("updateFormation - same state + Outlook events + séance modifiée => resync calendar")
     void update_sameStateResync() {
         Formation ex = buildFormation(1L, EtatFormation.PLANIFIE);
         SeanceFormation sf = buildSeance(10L, ex, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
         sf.setCalendarEventId("EVT_1"); sf.setSalle("A100");
         ex.setSeances(new ArrayList<>(List.of(sf)));
         FormationWorkflowRequest r = buildRequest(); r.setEtatFormation(EtatFormation.PLANIFIE);
-        FormationWorkflowRequest.SeanceRequest sr = buildSeanceRequest(LocalDate.of(2026, Month.OCTOBER, 10), "09:00", "11:00", "A100");
-        sr.setIdSeance(10L); r.setSeances(List.of(sr));
+        FormationWorkflowRequest.SeanceRequest sr = buildSeanceRequest(LocalDate.of(2026, Month.OCTOBER, 10), "09:00", "11:00", "B200");
+        sr.setIdSeance(10L); r.setSeances(List.of(sr)); // salle modifiée → resynchronisation
         when(formationRepository.findById(1L)).thenReturn(Optional.of(ex));
         when(formationRepository.save(any())).thenReturn(ex);
         when(seanceFormationRepository.findById(10L)).thenReturn(Optional.of(sf));
@@ -705,7 +737,7 @@ class FormationWorkflowServiceLineCoverageTest {
 
     @Test @DisplayName("removeFormationCalendar - with events")
     void removeCal_withEvents() {
-        Formation f = buildFormation(1L, EtatFormation.ANNULE);
+        Formation f = buildFormation(1L, EtatFormation.PLANIFIE);
         SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
         sf.setCalendarEventId("EVT_1");
         sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
@@ -714,6 +746,22 @@ class FormationWorkflowServiceLineCoverageTest {
         service.removeFormationCalendar(f);
         verify(outlookCalendarService).deleteEventInCalendar("admin@esprit.tn", "EVT_1");
         verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
+    }
+
+    @Test @DisplayName("removeFormationCalendar - formation déjà annulée, achevée ou jamais planifiée : événements supprimés, aucun e-mail")
+    void removeCal_personneNonInformee_aucunMail() {
+        for (EtatFormation etat : List.of(EtatFormation.ANNULE, EtatFormation.ACHEVE, EtatFormation.ENREGISTRE)) {
+            org.mockito.Mockito.clearInvocations(outlookMailService, outlookCalendarService);
+            Formation f = buildFormation(1L, etat);
+            SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
+            sf.setCalendarEventId("EVT_1");
+            sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
+            f.setSeances(new ArrayList<>(List.of(sf)));
+            when(formationRepository.findById(1L)).thenReturn(Optional.of(f));
+            service.removeFormationCalendar(f);
+            verify(outlookCalendarService).deleteEventInCalendar("admin@esprit.tn", "EVT_1");
+            verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
+        }
     }
 
     @Test @DisplayName("removeFormationCalendar - null calendar service")

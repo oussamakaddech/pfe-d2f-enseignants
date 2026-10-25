@@ -961,6 +961,11 @@ export function useFormationWorkflow({
       message.error('La date de fin doit être postérieure à la date de début');
       return false;
     }
+    // Durée (charge horaire) obligatoire — parité contrôle serveur à la création.
+    if (!chargeH || chargeH < 1) {
+      message.error('La charge horaire (durée) est obligatoire : au moins 1 heure');
+      return false;
+    }
     return true;
   };
 
@@ -1522,6 +1527,10 @@ export function useFormationWorkflow({
     if (!validateSeancesForSubmit()) return;
     if (titre.trim().length < 5) {
       message.warning('Le titre doit contenir au moins 5 caractères.');
+      return;
+    }
+    if (!chargeH || chargeH < 1) {
+      message.warning('La charge horaire (durée) est obligatoire : au moins 1 heure.');
       return;
     }
     try {

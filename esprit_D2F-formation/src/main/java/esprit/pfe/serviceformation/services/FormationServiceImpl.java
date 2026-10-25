@@ -13,6 +13,8 @@ import esprit.pfe.serviceformation.repositories.FormationRepository;
 import esprit.pfe.serviceformation.repositories.InscriptionRepository;
 import esprit.pfe.serviceformation.repositories.UpRepository;
 import esprit.pfe.serviceformation.repositories.DeptRepository;
+import esprit.pfe.serviceformation.repositories.EnseignantRepository;
+import esprit.pfe.serviceformation.repositories.SeanceFormationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
@@ -290,7 +292,51 @@ public class FormationServiceImpl implements FormationService {
         if (formationRepository.existsAnimateurInFormation(formationId, enseignantId)) {
             return true;
         }
+        // Participants ajoutés directement aux séances (sans inscription) : ils
+        // étaient refusés à l'évaluation de la formation.
+        if (seanceFormationRepository != null
+                && seanceFormationRepository.existsParticipantInFormation(formationId, enseignantId)) {
+            return true;
+        }
         return inscriptionRepository.existsApprovedByIdOrMail(
                 formationId, enseignantId, EtatInscription.APPROVED);
+    }
+
+    // Dépôts optionnels (setter) : null dans les tests qui construisent le service à la main.
+    private SeanceFormationRepository seanceFormationRepository;
+    private EnseignantRepository enseignantRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setSeanceFormationRepository(SeanceFormationRepository repository) {
+        this.seanceFormationRepository = repository;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setEnseignantRepository(EnseignantRepository repository) {
+        this.enseignantRepository = repository;
+    }
+
+    /**
+     * Participant (séance ou inscription approuvée) d'une formation, avec l'id de sa
+     * fiche et son UP : utilisé par le service évaluation pour enregistrer le
+     * questionnaire de satisfaction (UP agrégée dans les statistiques, sans le nom).
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Map<String, Object> participantInfo(Long formationId, String idOrMail) {
+        java.util.Map<String, Object> info = new java.util.HashMap<>();
+        boolean participant = (seanceFormationRepository != null
+                && seanceFormationRepository.existsParticipantInFormation(formationId, idOrMail))
+                || inscriptionRepository.existsApprovedByIdOrMail(formationId, idOrMail, EtatInscription.APPROVED);
+        info.put("participant", participant);
+        if (enseignantRepository != null) {
+            enseignantRepository.findById(idOrMail)
+                    .or(() -> enseignantRepository.findByMailIgnoreCase(idOrMail))
+                    .ifPresent(e -> {
+                        info.put("enseignantId", e.getId());
+                        info.put("up", e.getUp() != null ? e.getUp().getLibelle() : null);
+                    });
+        }
+        return info;
     }
 }

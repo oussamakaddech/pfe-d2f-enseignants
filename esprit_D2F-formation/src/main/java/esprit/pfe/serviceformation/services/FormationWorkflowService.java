@@ -17,6 +17,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import static java.util.stream.Collectors.toList;
 
@@ -136,8 +138,86 @@ public class FormationWorkflowService {
     private static final String DETAIL_FORMATION = "Formation";
     private static final String LINK_START = "<a href=\"";
 
-    @Value("${d2f.platform.formations-path:/formations/}")
+    @Value("${d2f.platform.formations-path:/home/ListeFormation/}")
     private String formationsPath;
+
+    // Boîte Microsoft 365 RÉELLE qui porte l'événement « organisateur » de chaque
+    // séance (réunion Teams). formation.organizer.email est une identité technique
+    // hors tenant (Graph : ErrorInvalidUser) : sans cette boîte, aucun événement
+    // n'était jamais créé.
+    @Value("${d2f.calendar.graph-mailbox:}")
+    private String calendarMailbox;
+
+    // Événements personnels (un par personne et par séance), optionnel : null dans
+    // les tests unitaires qui construisent le service à la main.
+    private SeanceCalendarEventRepository seanceCalendarEventRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setSeanceCalendarEventRepository(SeanceCalendarEventRepository repository) {
+        this.seanceCalendarEventRepository = repository;
+    }
+
+    // Inscriptions approuvées (formations à évaluer), optionnel : null dans les tests unitaires.
+    private InscriptionRepository inscriptionRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setInscriptionRepository(InscriptionRepository repository) {
+        this.inscriptionRepository = repository;
+    }
+
+    private String calendarOrganizer() {
+        return calendarMailbox != null && !calendarMailbox.isBlank() ? calendarMailbox : organizerEmail;
+    }
+
+    // Fil dédié aux appels Microsoft 365 (null dans les tests unitaires : exécution immédiate).
+    private java.util.concurrent.Executor outlookExecutor;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setOutlookExecutor(@org.springframework.beans.factory.annotation.Qualifier(
+            esprit.pfe.serviceformation.config.AsyncConfig.OUTLOOK_SYNC_EXECUTOR) java.util.concurrent.Executor executor) {
+        this.outlookExecutor = executor;
+    }
+
+    /**
+     * Les appels Microsoft (calendriers, e-mails) prennent plusieurs secondes : faits
+     * pendant la requête, ils dépassaient le délai de la passerelle (503 alors que la
+     * modification était enregistrée). Ils partent donc APRÈS validation de la
+     * transaction, dans un fil dédié. Hors transaction (tests) : exécution immédiate.
+     */
+    private void apresValidation(Runnable action) {
+        if (outlookExecutor == null || !TransactionSynchronizationManager.isSynchronizationActive()) {
+            action.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                outlookExecutor.execute(() -> {
+                    try {
+                        action.run();
+                    } catch (Exception ex) {
+                        log.error("Traitement Microsoft 365 différé en échec : {}", ex.getMessage(), ex);
+                    }
+                });
+            }
+        });
+    }
+
+    /** Variante qui recharge la formation dans une nouvelle transaction (collections lazy). */
+    private void apresValidation(Formation formation, java.util.function.Consumer<Formation> action) {
+        Long id = formation.getIdFormation();
+        if (outlookExecutor == null || self == null || id == null
+                || !TransactionSynchronizationManager.isSynchronizationActive()) {
+            action.accept(formation);
+            return;
+        }
+        apresValidation(() -> self.executerSurFormation(id, action));
+    }
+
+    @Transactional
+    public void executerSurFormation(Long formationId, java.util.function.Consumer<Formation> action) {
+        formationRepository.findById(formationId).ifPresent(action);
+    }
 
     private LocalTime parseTime(String heure) {
         return helper.parseTime(heure);
@@ -233,6 +313,12 @@ public class FormationWorkflowService {
 
     @Transactional
     public Formation createFormationWorkflow(FormationWorkflowRequest request) {
+        // Durée (charge horaire) obligatoire à la création : au moins 1 heure.
+        // La modification d'une formation existante n'est pas concernée.
+        if (request.getChargeHoraireGlobal() == null || request.getChargeHoraireGlobal() < 1) {
+            throw new IllegalArgumentException(
+                    "La durée de la formation (charge horaire) est obligatoire : au moins 1 heure.");
+        }
         // Resolve participants using new config-based or fallback to old IDs
         List<String> partIds = resolveParticipantIds(request);
         List<FormationWorkflowRequest.SeanceRequest> seanceReqs = Optional.ofNullable(request.getSeances())
@@ -299,12 +385,15 @@ public class FormationWorkflowService {
         // le département ont pu changer dans la requête).
         checkFormationScope(formation);
         EtatFormation oldEtat = formation.getEtatFormation();
+        List<SeanceFormation> managedList = prepareManagedSeancesList(formation);
+        // Empreinte AVANT modification (titre et salle de la formation compris).
+        Map<Long, String> signaturesAvant = seanceSignatures(managedList, formation, true);
+        Map<String, Personne> personnesAvant = personnesConcernees(formation);
         updateFormationBasicFields(formation, request);
         updateFormationRelations(formation, request);
         checkFormationScope(formation);
 
         Map<String, Enseignant> enseignantMap = loadEnseignantsMap(request);
-        List<SeanceFormation> managedList = prepareManagedSeancesList(formation);
 
         // Repli animateurs formation → séances : les animateurs déjà rattachés à
         // la formation (requête sans animateursIds) doivent aussi être résolus.
@@ -314,7 +403,8 @@ public class FormationWorkflowService {
                     .forEach(e -> enseignantMap.putIfAbsent(e.getId(), e));
         }
 
-        processSeanceRequests(formation, request, enseignantMap, managedList);
+        processSeanceRequests(formation, request, enseignantMap,
+                managedList);
         handleEtatTransitions(formation, oldEtat);
         // Si l'état n'a pas changé mais que la formation est déjà planifiée (des
         // événements Outlook existent), propager les modifications de séances (salle,
@@ -322,8 +412,30 @@ public class FormationWorkflowService {
         // après la planification reste invisible dans Outlook (l'événement garde son
         // ancien titre « D2f-Salle-TBD-... »), car handleEtatTransitions ne resynchronise
         // que lors d'un changement d'état.
+        // Seules les séances réellement modifiées ou ajoutées sont resynchronisées.
+        // Changement de date, d'horaire, de salle, séance ajoutée ou supprimée : mise à
+        // jour des calendriers Microsoft uniquement, AUCUN e-mail. Seul l'ajout / le
+        // retrait d'un participant ou d'un animateur prévient la personne concernée.
         if (formation.getEtatFormation() == oldEtat && hasOutlookEvents(formation)) {
-            synchronizeFormationCalendar(formation);
+            Set<Long> aSynchroniser = changedSeanceIds(signaturesAvant, managedList, formation, true);
+            Map<String, Personne> personnesApres = personnesConcernees(formation);
+            Map<String, Personne> ajoutees = new LinkedHashMap<>();
+            personnesApres.forEach((mail, pers) -> {
+                Personne avant = personnesAvant.get(mail);
+                if (avant == null || !avant.role().equals(pers.role())) {
+                    ajoutees.put(mail, pers);
+                }
+            });
+            Map<String, Personne> retirees = new LinkedHashMap<>(personnesAvant);
+            retirees.keySet().removeAll(personnesApres.keySet());
+
+            apresValidation(formation, f -> {
+                for (Long seanceId : aSynchroniser) {
+                    seanceFormationRepository.findById(seanceId).ifPresent(seance -> synchronizeSeance(f, seance));
+                }
+                notifyPersonnesAjoutees(f, ajoutees);
+                notifyPersonnesRetirees(f, retirees);
+            });
         }
         syncPresencesForSeances(managedList, request.getParticipantsIds());
         publishEvaluationUpdatesIfPossible(formationId, request.getParticipantsIds());
@@ -448,7 +560,53 @@ public class FormationWorkflowService {
         return managedList;
     }
 
-    private void processSeanceRequests(Formation formation, FormationWorkflowRequest request,
+    /**
+     * Empreinte de ce que porte l'événement Outlook d'une séance (date, horaires,
+     * salle, titre, animateurs, participants) : sert à ne resynchroniser que les
+     * séances réellement modifiées.
+     */
+    private Map<Long, String> seanceSignatures(List<SeanceFormation> seances, Formation formation,
+            boolean avecPersonnes) {
+        Map<Long, String> signatures = new HashMap<>();
+        for (SeanceFormation s : seances) {
+            if (s.getIdSeance() != null) {
+                signatures.put(s.getIdSeance(), seanceSignature(s, formation, avecPersonnes));
+            }
+        }
+        return signatures;
+    }
+
+    /** @param avecPersonnes inclure animateurs / participants (invités de l'événement Outlook). */
+    private String seanceSignature(SeanceFormation s, Formation formation, boolean avecPersonnes) {
+        String planning = s.getDateSeance() + "|" + s.getHeureDebut() + "|" + s.getHeureFin() + "|" + s.getSalle()
+                + "|" + formation.getTitreFormation() + "|" + formation.getSalle();
+        return avecPersonnes
+                ? planning + "|" + idsOf(s.getAnimateurs()) + "|" + idsOf(s.getParticipants())
+                : planning;
+    }
+
+    private static String idsOf(List<Enseignant> enseignants) {
+        if (enseignants == null) {
+            return "";
+        }
+        return enseignants.stream().map(Enseignant::getId).filter(Objects::nonNull).sorted()
+                .collect(Collectors.joining(","));
+    }
+
+    private Set<Long> changedSeanceIds(Map<Long, String> avant, List<SeanceFormation> seances,
+            Formation formation, boolean avecPersonnes) {
+        Set<Long> modifiees = new HashSet<>();
+        for (SeanceFormation s : seances) {
+            if (s.getIdSeance() != null
+                    && !seanceSignature(s, formation, avecPersonnes).equals(avant.get(s.getIdSeance()))) {
+                modifiees.add(s.getIdSeance());
+            }
+        }
+        return modifiees;
+    }
+
+    /** @return les séances retirées de la formation par la requête. */
+    private List<SeanceFormation> processSeanceRequests(Formation formation, FormationWorkflowRequest request,
             Map<String, Enseignant> enseignantMap, List<SeanceFormation> managedList) {
         List<FormationWorkflowRequest.SeanceRequest> seanceReqs = Optional.ofNullable(request.getSeances())
                 .orElse(Collections.emptyList());
@@ -469,14 +627,21 @@ public class FormationWorkflowService {
             assignParticipantsToSeance(sf, sr, request.getParticipantsIds(), enseignantMap, isNew,
                     formation.getIdFormation(), formationAnimateurIds(formation));
 
-            if (isNew)
+            if (isNew) {
                 managedList.add(sf);
+                // Identifiant attribué tout de suite (IDENTITY) : sans lui, la séance
+                // ajoutée n'avait ni présences ni événement calendrier.
+                seanceFormationRepository.save(sf);
+            }
         }
 
-        for (SeanceFormation orphan : existingMap.values()) {
-            removeSeanceFromCalendar(orphan);
+        List<SeanceFormation> supprimees = new ArrayList<>(existingMap.values());
+        for (SeanceFormation orphan : supprimees) {
+            // Pas d'e-mail par séance supprimée : elle figure dans le récapitulatif.
+            supprimerEvenementsApresValidation(orphan);
             managedList.remove(orphan);
         }
+        return supprimees;
     }
 
     private void updateSeanceDetails(SeanceFormation sf, FormationWorkflowRequest.SeanceRequest sr, boolean isNew) {
@@ -544,12 +709,16 @@ public class FormationWorkflowService {
             .toList()));
     }
 
+    @Transactional
     public void handleEtatTransitions(Formation formation, EtatFormation oldEtat) {
         EtatFormation newEtat = formation.getEtatFormation();
         if (newEtat == oldEtat) return;
 
         log.info("Transition d'etat de la formation {} : {} -> {}", formation.getIdFormation(), oldEtat, newEtat);
+        apresValidation(formation, f -> notifierTransition(f, oldEtat, newEtat));
+    }
 
+    private void notifierTransition(Formation formation, EtatFormation oldEtat, EtatFormation newEtat) {
         try {
             switch (newEtat) {
                 case ENREGISTRE -> notifyEnregistrement(formation);
@@ -557,7 +726,7 @@ public class FormationWorkflowService {
                 case VISIBLE -> notifyVisibilite(formation);
                 case EN_COURS -> notifyEnCours(formation);
                 case ACHEVE -> notifyAcheve(formation);
-                case ANNULE -> notifyAnnulation(formation);
+                case ANNULE -> notifyAnnulation(formation, oldEtat);
                 default -> log.debug("Aucune notification configuree pour l'etat {}", newEtat);
             }
         } catch (Exception ex) {
@@ -606,10 +775,97 @@ public class FormationWorkflowService {
         sendStateNotification(formation,
                 "[D2F] Formation planifiée : " + formation.getTitreFormation(),
                 "Formation planifiée", "📅",
-                "Votre formation a été planifiée. Les séances ci-dessous ont été ajoutées à votre calendrier Outlook ; "
-                        + "vous recevrez l'invitation et le lien Teams pour chaque séance.",
+                "Votre formation a été planifiée. Les séances ci-dessous ont été ajoutées à votre "
+                        + "calendrier Outlook ; leurs modifications y seront reportées sans nouvel e-mail.",
                 "#e65100",
-                "Merci de vérifier que les créneaux sont compatibles avec votre emploi du temps.<br><br>" + planifCta);
+                "Merci de vérifier que les créneaux sont compatibles avec votre emploi du temps."
+                        + teamsLinksNote(formation) + "<br><br>" + planifCta);
+    }
+
+    /** Personne concernée par une formation : rôle (animateur prioritaire) et nom pour l'accroche. */
+    record Personne(String role, String nom) {}
+
+    private static final String ROLE_ANIMATEUR = "animateur";
+    private static final String ROLE_PARTICIPANT = "participant";
+
+    /** Personnes concernées indexées par e-mail (animateurs formation / séances, participants, externe). */
+    private Map<String, Personne> personnesConcernees(Formation formation) {
+        Map<String, Personne> personnes = new LinkedHashMap<>();
+        if (formation.getAnimateurs() != null) {
+            formation.getAnimateurs().forEach(e -> ajouterPersonne(personnes, e, ROLE_ANIMATEUR));
+        }
+        if (formation.getSeances() != null) {
+            for (SeanceFormation s : formation.getSeances()) {
+                if (s.getAnimateurs() != null) {
+                    s.getAnimateurs().forEach(e -> ajouterPersonne(personnes, e, ROLE_ANIMATEUR));
+                }
+            }
+            for (SeanceFormation s : formation.getSeances()) {
+                if (s.getParticipants() != null) {
+                    s.getParticipants().forEach(e -> ajouterPersonne(personnes, e, ROLE_PARTICIPANT));
+                }
+            }
+        }
+        String externe = formation.getExterneFormateurEmail();
+        if (externe != null && !externe.isBlank()) {
+            String nom = ((formation.getExterneFormateurPrenom() != null ? formation.getExterneFormateurPrenom() + " " : "")
+                    + (formation.getExterneFormateurNom() != null ? formation.getExterneFormateurNom() : "")).trim();
+            personnes.putIfAbsent(externe, new Personne(ROLE_ANIMATEUR, nom.isEmpty() ? null : nom));
+        }
+        return personnes;
+    }
+
+    private void ajouterPersonne(Map<String, Personne> personnes, Enseignant e, String role) {
+        if (e != null && e.getMail() != null && !e.getMail().isBlank()) {
+            personnes.putIfAbsent(e.getMail(), new Personne(role, fullName(e)));
+        }
+    }
+
+    private static Map<String, String> nomDe(String mail, Personne pers) {
+        Map<String, String> noms = new HashMap<>();
+        noms.put(mail, pers.nom());
+        return noms;
+    }
+
+    // ── Personne ajoutée (participant ou animateur) : e-mail à elle seule ──
+    private void notifyPersonnesAjoutees(Formation formation, Map<String, Personne> ajoutees) {
+        ajoutees.forEach((mail, pers) -> sendNotificationTo(formation, Set.of(mail), nomDe(mail, pers),
+                "[D2F] Ajout à la formation : " + formation.getTitreFormation(),
+                "Vous avez été ajouté(e) à une formation", "➕",
+                "Vous avez été ajouté(e) comme <strong>" + pers.role() + "</strong> de la formation ci-dessous.",
+                "#2e7d32",
+                "Merci de vérifier que les créneaux sont compatibles avec votre emploi du temps."
+                        + teamsLinksNote(formation)));
+    }
+
+    // ── Personne retirée : e-mail à elle seule (les autres ne sont pas prévenus) ──
+    private void notifyPersonnesRetirees(Formation formation, Map<String, Personne> retirees) {
+        retirees.forEach((mail, pers) -> sendNotificationTo(formation, Set.of(mail), nomDe(mail, pers),
+                "[D2F] Retrait de la formation : " + formation.getTitreFormation(),
+                "Vous avez été retiré(e) d'une formation", "➖",
+                "Vous n'êtes plus <strong>" + pers.role() + "</strong> de la formation ci-dessous.",
+                CANCELLATION_ACCENT_COLOR,
+                "Les séances listées ne vous concernent plus. Aucune action n'est requise de votre part."));
+    }
+
+    // ── Liens Teams de toutes les séances (relus en base : posés par la synchronisation) ──
+    private String teamsLinksNote(Formation formation) {
+        if (formation.getIdFormation() == null) {
+            return "";
+        }
+        List<SeanceFormation> seances = seanceFormationRepository
+                .findByFormation_IdFormation(formation.getIdFormation());
+        StringBuilder links = new StringBuilder();
+        if (seances != null) {
+            for (SeanceFormation s : seances) {
+                if (s.getOnlineMeetingUrl() != null && !s.getOnlineMeetingUrl().isBlank()) {
+                    links.append(formatDate(s.getDateSeance())).append(" → ")
+                            .append(LINK_START).append(s.getOnlineMeetingUrl())
+                            .append("\" style=\"color:#e65100;font-weight:bold;\">Rejoindre la réunion Teams</a><br>");
+                }
+            }
+        }
+        return links.isEmpty() ? "" : "<br><br>Liens Teams par séance :<br>" + links;
     }
 
     // ── VISIBLE : Notification que la formation est visible/publiée ──
@@ -657,7 +913,7 @@ public class FormationWorkflowService {
                 : "Liens Teams par séance :<br>" + seanceLinks;
 
         String ctaNote = teamsNote + "<br><br>"
-                + "<a href=\"" + platformUrl + "/mes-formations/" + formation.getIdFormation() + "\" "
+                + "<a href=\"" + platformUrl + "/home/mes-presences\" "
                 + "style=\"background:#6a1b9a;color:#fff;padding:10px 20px;border-radius:6px;"
                 + "text-decoration:none;font-weight:bold;display:inline-block;margin-top:8px;\">"
                 + "Confirmer ma présence</a>";
@@ -673,7 +929,7 @@ public class FormationWorkflowService {
     // ── ACHEVE : Notification de fin de formation + demande évaluation ──
     private void notifyAcheve(Formation formation) {
         // FIX-S5 + FIX-C3: add clickable evaluation link
-        String evalCta = LINK_START + platformUrl + "/evaluations/" + formation.getIdFormation() + "\" "
+        String evalCta = LINK_START + platformUrl + "/home/Evaluations\" "
                 + "style=\"background:#00695c;color:#fff;padding:10px 20px;border-radius:6px;"
                 + "text-decoration:none;font-weight:bold;display:inline-block;margin-top:8px;\">"
                 + "📝 Évaluer la formation maintenant</a>";
@@ -687,17 +943,21 @@ public class FormationWorkflowService {
     }
 
     // ── ANNULE : Notification d'annulation + suppression calendrier ──
-    private void notifyAnnulation(Formation formation) {
-        log.info("Notification d'annulation pour la formation {} - envoi emails aux concernes", formation.getIdFormation());
-
-        // 1. Envoyer l'email d'annulation a tous les concernes
-        sendStateNotification(formation,
-                "[D2F] Annulation de formation : " + formation.getTitreFormation(),
-                "Formation annulée", "❌",
-                "Nous vous informons que la formation ci-dessous a été <strong>annulée</strong>. "
-                        + "Les séances correspondantes seront retirées de votre calendrier.",
-            CANCELLATION_ACCENT_COLOR,
-                "Aucune action n'est requise de votre part. Nous restons à votre disposition pour toute question.");
+    private void notifyAnnulation(Formation formation, EtatFormation oldEtat) {
+        // 1. E-mail d'annulation seulement si les personnes avaient été prévenues
+        //    (formation planifiée, publiée ou en cours) ; sinon, rien à annuler pour elles.
+        if (!personnesInformees(oldEtat)) {
+            log.info("Annulation de la formation {} depuis {} : aucun e-mail (personne n'avait été prévenu)",
+                    formation.getIdFormation(), oldEtat);
+        } else {
+            sendStateNotification(formation,
+                    "[D2F] Annulation de formation : " + formation.getTitreFormation(),
+                    "Formation annulée", "❌",
+                    "Nous vous informons que la formation ci-dessous a été <strong>annulée</strong>. "
+                            + "Les séances correspondantes seront retirées de votre calendrier.",
+                    CANCELLATION_ACCENT_COLOR,
+                    "Aucune action n'est requise de votre part. Nous restons à votre disposition pour toute question.");
+        }
 
         // 2. Supprimer les evenements Outlook calendar
         try {
@@ -805,8 +1065,18 @@ public class FormationWorkflowService {
             log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — notification « {} » ignorée.", subject);
             return;
         }
-        Set<String> emails = collectAllRecipientEmails(formation);
-        Map<String, String> nameByEmail = buildNameByEmail(formation);
+        sendNotificationTo(formation, collectAllRecipientEmails(formation), buildNameByEmail(formation),
+                subject, title, icon, intro, accentColor, note);
+    }
+
+    // ── Même gabarit, destinataires explicites (ex. seule la personne ajoutée / retirée) ──
+    @SuppressWarnings("java:S107")
+    private void sendNotificationTo(Formation formation, Set<String> emails, Map<String, String> nameByEmail,
+            String subject, String title, String icon, String intro, String accentColor, String note) {
+        if (outlookMailService == null) {
+            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — notification « {} » ignorée.", subject);
+            return;
+        }
         log.info("sendStateNotification: envoi a {} destinataires, sujet={}", emails.size(), subject);
         // FIX-Q5: derive email type from subject prefix for audit log
         String emailType = subject.replaceAll("^\\[D2F\\]\\s*", "").replaceAll(":.*", "").trim().toUpperCase()
@@ -1033,6 +1303,11 @@ public class FormationWorkflowService {
                 presenceRepository.save(p);
             }
         }
+    }
+
+    /** États où animateurs et participants ont reçu l'e-mail de planification (séances à venir). */
+    private static boolean personnesInformees(EtatFormation etat) {
+        return etat == EtatFormation.PLANIFIE || etat == EtatFormation.VISIBLE || etat == EtatFormation.EN_COURS;
     }
 
     @Transactional
@@ -1287,21 +1562,24 @@ public class FormationWorkflowService {
             salleEvent = null;
         }
         OutlookEventParameters eventParams = OutlookEventParameters.builder()
-                .organizerEmail(organizerEmail)
+                .organizerEmail(calendarOrganizer())
                 .eventId(freshSeance.getCalendarEventId())
                 .subject(eventSubject)
                 .htmlContent(eventHtmlContent)
                 .start(eventStart)
                 .end(eventEnd)
                 .salle(salleEvent)
-                .attendeeEmails(new ArrayList<>(emails))
+                .attendeeEmails(new ArrayList<>())
                 .build();
 
         try {
             if (!isNewEvent) {
                 OutlookCalendarService.EventCreationResult res = outlookCalendarService
                         .updateEventInCalendarWithTeamsUrl(eventParams);
-                freshSeance.setOnlineMeetingUrl(res.getJoinUrl());
+                // La réponse d'un PATCH ne contient pas toujours la réunion : garder le lien connu.
+                if (res.getJoinUrl() != null) {
+                    freshSeance.setOnlineMeetingUrl(res.getJoinUrl());
+                }
                 seanceFormationRepository.save(freshSeance);
             } else {
                 OutlookCalendarService.EventCreationResult res = outlookCalendarService
@@ -1315,7 +1593,128 @@ public class FormationWorkflowService {
                     freshSeance.getIdSeance(), ex.getMessage());
         }
 
+        syncPersonalEvents(freshSeance, emails, eventParams);
         sendCalendarNotification(emails, isNewEvent, freshFormation);
+    }
+
+    /**
+     * Événement de la séance dans le calendrier PERSONNEL de chaque personne concernée
+     * (Graph, Calendars.ReadWrite). Sans invités : création, modification et
+     * suppression se font sans aucun e-mail. Une personne retirée de la séance perd
+     * son événement ; une adresse hors tenant (formateur externe) est ignorée.
+     */
+    private void syncPersonalEvents(SeanceFormation seance, Set<String> emails, OutlookEventParameters base) {
+        if (seanceCalendarEventRepository == null || seance.getIdSeance() == null) {
+            return;
+        }
+        Map<String, SeanceCalendarEvent> existants = new HashMap<>();
+        for (SeanceCalendarEvent e : seanceCalendarEventRepository.findBySeanceId(seance.getIdSeance())) {
+            existants.put(e.getEmail().toLowerCase(Locale.ROOT), e);
+        }
+        String html = base.getHtmlContent() + teamsLinkHtml(seance);
+        int ok = 0;
+        for (String email : emails) {
+            String cle = email.toLowerCase(Locale.ROOT);
+            SeanceCalendarEvent lien = existants.remove(cle);
+            OutlookEventParameters params = OutlookEventParameters.builder()
+                    .organizerEmail(email)
+                    .eventId(lien != null ? lien.getEventId() : null)
+                    .subject(base.getSubject())
+                    .htmlContent(html)
+                    .start(base.getStart())
+                    .end(base.getEnd())
+                    .salle(base.getSalle())
+                    .build();
+            try {
+                String eventId = upsertOrRecreate(params);
+                if (lien == null) {
+                    seanceCalendarEventRepository.save(new SeanceCalendarEvent(seance.getIdSeance(), cle, eventId));
+                } else if (!eventId.equals(lien.getEventId())) {
+                    lien.setEventId(eventId);
+                    seanceCalendarEventRepository.save(lien);
+                }
+                ok++;
+            } catch (Exception ex) {
+                log.warn("Calendrier personnel non mis à jour pour une personne de la séance {} : {}",
+                        seance.getIdSeance(), ex.getMessage());
+            }
+        }
+        for (SeanceCalendarEvent retire : existants.values()) {
+            supprimerEvenementPersonnel(seance, retire);
+        }
+        log.info("Séance {} : {}/{} calendrier(s) personnel(s) à jour, {} retiré(s)",
+                seance.getIdSeance(), ok, emails.size(), existants.size());
+    }
+
+    /** Mise à jour ; si la personne a supprimé l'événement (PATCH en échec), on le recrée. */
+    private String upsertOrRecreate(OutlookEventParameters params) {
+        try {
+            return outlookCalendarService.upsertPersonalEvent(params);
+        } catch (RuntimeException ex) {
+            if (params.getEventId() == null) {
+                throw ex;
+            }
+            params.setEventId(null);
+            return outlookCalendarService.upsertPersonalEvent(params);
+        }
+    }
+
+    /** Événements (organisateur + personnels) d'une séance supprimée, retirés après validation. */
+    private void supprimerEvenementsApresValidation(SeanceFormation seance) {
+        if (outlookCalendarService == null) {
+            return;
+        }
+        List<String[]> evenements = new ArrayList<>();
+        if (seance.getCalendarEventId() != null) {
+            evenements.add(new String[] { calendarOrganizer(), seance.getCalendarEventId() });
+        }
+        if (seanceCalendarEventRepository != null && seance.getIdSeance() != null) {
+            for (SeanceCalendarEvent e : seanceCalendarEventRepository.findBySeanceId(seance.getIdSeance())) {
+                evenements.add(new String[] { e.getEmail(), e.getEventId() });
+                seanceCalendarEventRepository.delete(e);
+            }
+        }
+        if (!evenements.isEmpty()) {
+            apresValidation(() -> evenements.forEach(ev -> {
+                try {
+                    outlookCalendarService.deleteEventInCalendar(ev[0], ev[1]);
+                } catch (RuntimeException ex) {
+                    log.error("Suppression d'un événement Outlook de la séance {} impossible : {}",
+                            seance.getIdSeance(), ex.getMessage());
+                }
+            }));
+        }
+    }
+
+    private void deletePersonalEvents(SeanceFormation seance) {
+        if (seanceCalendarEventRepository == null || outlookCalendarService == null || seance.getIdSeance() == null) {
+            return;
+        }
+        for (SeanceCalendarEvent e : seanceCalendarEventRepository.findBySeanceId(seance.getIdSeance())) {
+            supprimerEvenementPersonnel(seance, e);
+        }
+    }
+
+    /**
+     * Retire l'événement d'une personne de son calendrier. Un échec Graph (événement déjà
+     * supprimé par la personne, boîte indisponible) n'interrompt pas les suivants ; le lien
+     * est oublié dans tous les cas pour ne pas bloquer les synchronisations futures.
+     */
+    private void supprimerEvenementPersonnel(SeanceFormation seance, SeanceCalendarEvent lien) {
+        try {
+            outlookCalendarService.deleteEventInCalendar(lien.getEmail(), lien.getEventId());
+        } catch (RuntimeException ex) {
+            log.warn("Événement personnel de la séance {} non supprimé dans Outlook : {}",
+                    seance.getIdSeance(), ex.getMessage());
+        }
+        seanceCalendarEventRepository.delete(lien);
+    }
+
+    private String teamsLinkHtml(SeanceFormation seance) {
+        if (seance.getOnlineMeetingUrl() == null || seance.getOnlineMeetingUrl().isBlank()) {
+            return "";
+        }
+        return "<p>" + LINK_START + seance.getOnlineMeetingUrl() + "\">Rejoindre la réunion Teams</a></p>";
     }
 
     @SuppressWarnings("java:S1172")
@@ -1334,6 +1733,12 @@ public class FormationWorkflowService {
 
     @SuppressWarnings("java:S3776") // graph API cleanup with multiple try/catch layers — single transactional unit
     public void removeSeanceFromCalendar(SeanceFormation seance) {
+        removeSeanceFromCalendar(seance, true);
+    }
+
+    /** @param notify false : pas d'e-mail d'annulation dédié (séance reprise dans un récapitulatif). */
+    @SuppressWarnings("java:S3776")
+    public void removeSeanceFromCalendar(SeanceFormation seance, boolean notify) {
         // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
         if (outlookCalendarService == null) {
             log.info("[Formation] Calendrier Outlook désactivé (azure.ad.enabled=false) — suppression événement ignorée pour séance {}.", seance.getIdSeance());
@@ -1345,10 +1750,14 @@ public class FormationWorkflowService {
 
         if (seance.getCalendarEventId() != null) {
             try {
-                outlookCalendarService.deleteEventInCalendar(organizerEmail, seance.getCalendarEventId());
+                outlookCalendarService.deleteEventInCalendar(calendarOrganizer(), seance.getCalendarEventId());
             } catch (Exception ex) {
                 log.error("Erreur lors de la suppression de l'evenement : {}", ex.getMessage());
             }
+        }
+        deletePersonalEvents(seance);
+        if (!notify) {
+            return;
         }
         try {
             String mailSubject = String.format("[D2F] Annulation de séance : %s",
@@ -1412,33 +1821,35 @@ public class FormationWorkflowService {
         // Collecter tous les emails des personnes concernees
         Set<String> allRecipientEmails = collectAllRecipientEmails(freshFormation);
 
-        // Envoyer un email global d'annulation a tous les concernes
+        // Envoyer un email global d'annulation a tous les concernes (après validation :
+        // la formation est supprimée, le contenu est donc figé ici) — seulement s'ils
+        // avaient été prévenus : rien pour une formation enregistrée (jamais planifiée),
+        // déjà annulée (e-mail déjà reçu) ou achevée (rien à annuler).
         // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
-        if (outlookMailService != null) {
+        if (!personnesInformees(freshFormation.getEtatFormation())) {
+            log.info("Suppression de la formation {} ({}) : aucun e-mail d'annulation",
+                    freshFormation.getIdFormation(), freshFormation.getEtatFormation());
+        } else if (outlookMailService != null) {
             String subject = "[D2F] Annulation de formation : " + freshFormation.getTitreFormation();
             String htmlContent = buildCancellationFormationHtml(freshFormation);
-            for (String email : allRecipientEmails) {
-                try {
-                    outlookMailService.sendMail(email, subject, htmlContent);
-                } catch (Exception ex) {
-                    log.warn("Echec envoi mail d'annulation formation : {}", ex.getMessage());
+            List<String> destinataires = new ArrayList<>(allRecipientEmails);
+            apresValidation(() -> {
+                for (String email : destinataires) {
+                    try {
+                        outlookMailService.sendMail(email, subject, htmlContent);
+                    } catch (Exception ex) {
+                        log.warn("Echec envoi mail d'annulation formation : {}", ex.getMessage());
+                    }
                 }
-            }
+            });
         } else {
             log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — {} emails d'annulation formation non envoyés.", allRecipientEmails.size());
         }
 
-        // Supprimer les evenements Outlook calendar pour chaque seance
+        // Supprimer les evenements Outlook calendar (organisateur + calendriers personnels)
         if (outlookCalendarService != null) {
             for (SeanceFormation seance : freshFormation.getSeances()) {
-                if (seance.getCalendarEventId() != null) {
-                    try {
-                        outlookCalendarService.deleteEventInCalendar(organizerEmail, seance.getCalendarEventId());
-                    } catch (Exception ex) {
-                        log.error("Erreur lors de la suppression de l'evenement calendar pour seance {} : {}",
-                                seance.getIdSeance(), ex.getMessage());
-                    }
-                }
+                supprimerEvenementsApresValidation(seance);
             }
         } else {
             log.info("[Formation] Calendrier Outlook désactivé (azure.ad.enabled=false) — suppression des événements calendrier ignorée.");
@@ -1459,7 +1870,7 @@ public class FormationWorkflowService {
         for (SeanceFormation seance : formation.getSeances()) {
             if (seance.getCalendarEventId() != null) {
                 try {
-                    outlookCalendarService.deleteEventInCalendar(organizerEmail, seance.getCalendarEventId());
+                    outlookCalendarService.deleteEventInCalendar(calendarOrganizer(), seance.getCalendarEventId());
                     log.info("Evenement calendrier supprime pour la seance {} de la formation {}",
                             seance.getIdSeance(), formation.getIdFormation());
                 } catch (Exception ex) {
@@ -1467,6 +1878,7 @@ public class FormationWorkflowService {
                             seance.getIdSeance(), ex.getMessage());
                 }
             }
+            deletePersonalEvents(seance);
         }
     }
 
@@ -1749,6 +2161,42 @@ public class FormationWorkflowService {
         presence.setRecordedBy(user != null ? user.username() : null);
         // Fuseau explicite (S8688) : identique au defaut implicite precedent.
         presence.setRecordedAt(LocalDateTime.now(ZoneId.systemDefault()));
+    }
+
+    /**
+     * Formations EN_COURS ou ACHEVE dont l'enseignant (e-mail du jeton) est participant
+     * d'une séance ou inscrit approuvé — celles qu'il peut évaluer. Vide sans fiche.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getMesFormationsAEvaluer(String email) {
+        if (email == null) {
+            return List.of();
+        }
+        Optional<Enseignant> fiche = enseignantRepository.findByMailIgnoreCase(email);
+        if (fiche.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, Formation> formations = new LinkedHashMap<>();
+        seanceFormationRepository.findFormationsByParticipant(fiche.get().getId())
+                .forEach(f -> formations.put(f.getIdFormation(), f));
+        if (inscriptionRepository != null) {
+            inscriptionRepository.findByEnseignant_Id(fiche.get().getId()).stream()
+                    .filter(i -> i.getEtat() == EtatInscription.APPROVED && i.getFormation() != null)
+                    .forEach(i -> formations.putIfAbsent(i.getFormation().getIdFormation(), i.getFormation()));
+        }
+        return formations.values().stream()
+                .filter(f -> f.getEtatFormation() == EtatFormation.EN_COURS || f.getEtatFormation() == EtatFormation.ACHEVE)
+                .sorted(Comparator.comparing(Formation::getDateDebut, Comparator.nullsLast(Comparator.reverseOrder())))
+                .map(f -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("idFormation", f.getIdFormation());
+                    m.put("titreFormation", f.getTitreFormation());
+                    m.put("dateDebut", f.getDateDebut());
+                    m.put("dateFin", f.getDateFin());
+                    m.put("etatFormation", f.getEtatFormation());
+                    return m;
+                })
+                .toList();
     }
 
     public List<MesPresenceDTO> getMesPresences(String email) {

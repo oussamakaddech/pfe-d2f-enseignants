@@ -159,7 +159,7 @@ if ($Services.Count -gt 0) {
     if ($unknown.Count -gt 0) { throw "Services inconnus : $($unknown -join ', ')" }
     $builtServices = @($builtServices | Where-Object { $_ -in $Services })
 }
-$targets = if ($Services.Count -gt 0) { $Services } else { $allServices }
+$targets = @(if ($Services.Count -gt 0) { $Services } else { $allServices })
 
 if (-not $NoBuild -and $builtServices.Count -gt 0) {
     Write-Step "Build : $($builtServices -join ', ')"

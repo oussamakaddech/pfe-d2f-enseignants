@@ -487,6 +487,7 @@ class FormationWorkflowServiceExtraTest {
         Formation f = new Formation();
         f.setIdFormation(1L);
         f.setTitreFormation("Java");
+        f.setEtatFormation(EtatFormation.PLANIFIE);
         f.setDateDebut(LocalDate.now());
         f.setDateFin(LocalDate.now());
 

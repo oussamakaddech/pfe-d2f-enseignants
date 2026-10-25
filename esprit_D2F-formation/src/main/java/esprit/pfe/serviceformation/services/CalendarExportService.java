@@ -39,10 +39,10 @@ public class CalendarExportService {
     private final IcsCalendarWriter icsWriter;
     private final CalendarProperties properties;
 
-    /** .ics de toutes les séances de toutes les formations. */
+    /** .ics de toutes les séances des formations importées du calendrier (.xlsx). */
     @Transactional(readOnly = true)
     public String generateIcsForAll() {
-        List<SeanceFormation> seances = seanceFormationRepository.findAllByOrderByDateSeanceAscHeureDebutAsc();
+        List<SeanceFormation> seances = seanceFormationRepository.findByFormation_SourceCalendrierTrueOrderByDateSeanceAscHeureDebutAsc();
         return icsWriter.buildPublishCalendar(toEvents(seances, null));
     }
 

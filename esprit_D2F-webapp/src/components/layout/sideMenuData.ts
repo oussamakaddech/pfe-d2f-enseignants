@@ -103,23 +103,14 @@ export const adminMenu: MenuItem[] = [
 
 export const cupMenu: MenuItem[] = [
   dashboardItem,
-  {
-    type: 'group',
-    label: 'FORMATIONS',
-    children: [
-      { label: 'Nouvelle Formation', key: '/home/Formation/Creer', icon: PlusCircleOutlined },
-      // Calendrier réouvert au CUP (demande métier) : uniquement les formations
-      // où il est inscrit (filtrage dans CalendrierPage).
-      { label: 'Calendrier Global', key: '/home/Calendrier', icon: CalendarOutlined },
-      { label: 'Catalogue', key: '/home/Formation/Consulter', icon: AppstoreOutlined },
-    ],
-  },
+  // Groupe « FORMATIONS » (Nouvelle Formation, Calendrier Global, Catalogue)
+  // retiré du menu de ce rôle (demande métier, 20/10/2026) ; les routes restent.
   {
     type: 'group',
     label: 'COMPÉTENCES & BESOINS',
     children: [
       { label: 'Référentiel Compétences', key: '/home/competences', icon: BookOutlined },
-      { label: 'Mon passeport', key: '/home/skill-passport', icon: IdcardOutlined },
+      { label: 'Fiche enseignant', key: '/home/skill-passport', icon: IdcardOutlined },
       {
         label: 'Besoins de Formation',
         key: 'besoin_formation_menu',
@@ -148,7 +139,7 @@ export const enseignantMenu: MenuItem[] = [
   // Pas d'entrée « Tableau de bord » pour ce rôle (demande métier) : la page
   // /home reste accessible par URL mais n'est plus exposée dans la navigation.
   { label: 'Mon espace', key: '/home/personal-dashboard', icon: HomeOutlined },
-  { label: 'Mon passeport', key: '/home/skill-passport', icon: IdcardOutlined },
+  { label: 'Fiche enseignant', key: '/home/skill-passport', icon: IdcardOutlined },
   {
     label: 'Besoins de Formation',
     key: 'besoin_formation_menu',
@@ -170,7 +161,7 @@ export const animateurMenu: MenuItem[] = [
   // Pas d'entrée « Tableau de bord » pour ce rôle (demande métier) : la page
   // /home reste accessible par URL mais n'est plus exposée dans la navigation.
   { label: 'Mon espace', key: '/home/personal-dashboard', icon: HomeOutlined },
-  { label: 'Mon passeport', key: '/home/skill-passport', icon: IdcardOutlined },
+  { label: 'Fiche enseignant', key: '/home/skill-passport', icon: IdcardOutlined },
   { label: "Sessions d'Animation", key: '/home/animateur-formations', icon: ReadOutlined },
   { label: 'Calendrier Global', key: '/home/Calendrier', icon: CalendarOutlined },
   { label: 'Mes Présences', key: '/home/mes-presences', icon: EyeOutlined },
@@ -199,24 +190,14 @@ export const responsableDossierMenu: MenuItem[] = [
 
 export const chefDepartementMenu: MenuItem[] = [
   dashboardItem,
-  {
-    type: 'group',
-    label: 'FORMATIONS',
-    children: [
-      // Parité FORMATION_CREATE = ADMIN, CUP, CHEF_DEPARTEMENT (AuthorizationMatrix).
-      { label: 'Nouvelle Formation', key: '/home/Formation/Creer', icon: PlusCircleOutlined },
-      // Calendrier réouvert au chef (demande métier) : uniquement les formations
-      // où il est inscrit (filtrage dans CalendrierPage).
-      { label: 'Calendrier Global', key: '/home/Calendrier', icon: CalendarOutlined },
-      { label: 'Catalogue Formations', key: '/home/Formation/Consulter', icon: AppstoreOutlined },
-    ],
-  },
+  // Groupe « FORMATIONS » (Nouvelle Formation, Calendrier Global, Catalogue)
+  // retiré du menu de ce rôle (demande métier, 20/10/2026) ; les routes restent.
   {
     type: 'group',
     label: 'COMPÉTENCES & BESOINS',
     children: [
       { label: 'Référentiel Compétences', key: '/home/competences', icon: BookOutlined },
-      { label: 'Mon passeport', key: '/home/skill-passport', icon: IdcardOutlined },
+      { label: 'Fiche enseignant', key: '/home/skill-passport', icon: IdcardOutlined },
       // Parité BESOIN_FORMATION_CREATE/READ_ALL : le chef consulte les besoins de
       // son département et dépose aussi des besoins.
       {

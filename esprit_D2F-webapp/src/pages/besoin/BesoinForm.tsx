@@ -47,7 +47,7 @@ const STEPS_META = [
   {
     key: 'competences',
     title: 'Compétences',
-    subtitle: 'Référentiel RICE',
+    subtitle: 'Liste des compétences',
     icon: <NodeIndexOutlined />,
   },
   {
@@ -263,7 +263,15 @@ export default function BesoinForm() {
         <Form
           form={ctx.form}
           layout="vertical"
-          onFinish={ctx.handleSubmit}
+          // Pas d'onFinish : l'enregistrement ne part que du bouton du récapitulatif.
+          // Entrée dans un champ = « Suivant » (sinon le besoin était enregistré à
+          // n'importe quelle étape).
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
+              e.preventDefault();
+              if (!isSummary) void ctx.next();
+            }
+          }}
           autoComplete="off"
           preserve={true}
           className="bf-form"
@@ -349,7 +357,6 @@ export default function BesoinForm() {
             <Button
               type="primary"
               size="large"
-              htmlType="submit"
               icon={<SaveOutlined />}
               loading={ctx.submitting}
               onClick={ctx.handleSubmit}

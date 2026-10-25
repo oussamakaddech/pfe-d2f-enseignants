@@ -192,8 +192,9 @@ export default function BesoinDetailsStep({
           <Form.Item
             label="Durée prévue (heures)"
             name="dureeFormation"
-            // Parité @Min(1) BesoinFormationRequest (400 sinon).
+            // Champ obligatoire — parité @NotNull @Min(1) BesoinFormationRequest (400 sinon).
             rules={[
+              { required: true, message: 'Précisez la durée de la formation' },
               {
                 validator: (_, v?: string | number) =>
                   v === undefined || v === '' || Number(v) >= 1

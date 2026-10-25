@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────────────────
- * BesoinCompetencesStep — Step 3: Référentiel RICE competences selection
+ * BesoinCompetencesStep — Step 3: sélection dans la liste des compétences
  * ─────────────────────────────────────────────────────────────────────── */
 import { Select, Input, Button, Spin, Empty } from 'antd';
 import { NodeIndexOutlined, PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
@@ -50,7 +50,7 @@ export default function BesoinCompetencesStep({
     <div className="bf-step">
       <SectionLabel
         icon={<NodeIndexOutlined />}
-        title="Compétences visées (référentiel RICE)"
+        title="Liste des compétences"
         hint="Optionnel — sélectionnez les compétences et savoirs ciblés par cette formation"
       />
 

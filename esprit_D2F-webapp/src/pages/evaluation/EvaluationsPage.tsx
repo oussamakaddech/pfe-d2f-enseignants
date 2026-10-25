@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Tabs } from 'antd';
-import { TrophyOutlined, UserOutlined } from '@ant-design/icons';
+import { BarChartOutlined, FormOutlined, UserOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUserRole } from '@/routes/guards';
 import { ROLES, hasAnyRole } from '@/utils/constants/roles';
-import EvaluationGlobalePage from './EvaluationGlobalePage';
 import EvaluationParticipantPage from './EvaluationParticipantPage';
+import QuestionnaireEvaluationPage from './QuestionnaireEvaluationPage';
+import EvaluationStatsPage from './EvaluationStatsPage';
 
 const TAB_FORMATION = 'formation';
 const TAB_PARTICIPANTS = 'participants';
@@ -22,15 +23,15 @@ function resolveActiveTab(pathname: string, hash: string): string {
 }
 
 /**
- * Page unique d'évaluation regroupant les deux dimensions (étape 3) :
- *  - « Éval. Formation »  : évaluation de la formation (contenu, organisation,
- *    supports, durée, satisfaction) — EvaluationGlobalePage. Création : ADMIN,
- *    CUP, CHEF_DEPARTEMENT (pilotage) + membres de la formation (backend).
- *  - « Éval. Formateur »  : évaluation des participants par les animateurs
- *    (note, satisfaisant, commentaire) — EvaluationParticipantPage, VISIBLE
- *    AUX SEULS ANIMATEURS (les autres rôles n'y ont pas accès).
- *  - « Éval. Formation » : visible à tous les rôles admis, contenu scopé
- *    serveur (ADMIN/ANIMATEUR : tout ; autres : leurs évaluations).
+ * Page Évaluations :
+ *  - ADMIN : « Statistiques » — graphiques du questionnaire de satisfaction
+ *    (répartition par aspect, moyennes, formation complémentaire, par formation
+ *    et par UP, remarques), résultats anonymes.
+ *  - autres rôles : « Évaluer mes formations » — questionnaire (3 aspects notés
+ *    de « Pas du tout satisfaisant » à « Très satisfaisant », besoin de formation
+ *    complémentaire, remarques) pour les formations en cours ou achevées dont
+ *    l'utilisateur est participant.
+ *  - ANIMATEUR : en plus, « Éval. Formateur (participants) ».
  *
  * L'onglet actif est partagé avec l'URL (partageable / retour-arrière cohérent).
  */
@@ -39,6 +40,7 @@ export default function EvaluationsPage() {
   const location = useLocation();
   const userRole = useUserRole() ?? '';
   const isAnimateur = hasAnyRole(userRole, [ROLES.ANIMATEUR]);
+  const isAdmin = hasAnyRole(userRole, [ROLES.ADMIN]);
 
   const activeTab = isAnimateur
     ? resolveActiveTab(location.pathname, location.hash)
@@ -56,14 +58,20 @@ export default function EvaluationsPage() {
   };
 
   const items = [
-    {
-      key: TAB_FORMATION,
-      label: 'Éval. Formation',
-      icon: <TrophyOutlined />,
-      children: mounted[TAB_FORMATION] ? <EvaluationGlobalePage /> : null,
-    },
-    // Onglet réservé aux animateurs : les autres rôles ne voient que
-    // leurs propres évaluations via l'onglet Formation (scopé serveur).
+    isAdmin
+      ? {
+          key: TAB_FORMATION,
+          label: 'Statistiques',
+          icon: <BarChartOutlined />,
+          children: mounted[TAB_FORMATION] ? <EvaluationStatsPage /> : null,
+        }
+      : {
+          key: TAB_FORMATION,
+          label: 'Évaluer mes formations',
+          icon: <FormOutlined />,
+          children: mounted[TAB_FORMATION] ? <QuestionnaireEvaluationPage /> : null,
+        },
+    // Onglet réservé aux animateurs : évaluation des participants.
     ...(isAnimateur
       ? [
           {

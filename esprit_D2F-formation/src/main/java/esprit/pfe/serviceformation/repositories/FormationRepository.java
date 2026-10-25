@@ -286,7 +286,7 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
   // ==================== CALENDRIER (formations planifiées en séances) ====================
 
   /**
-   * Formations possédant au moins une séance planifiée, avec filtres optionnels
+   * Formations issues de l'import du calendrier (.xlsx) possédant au moins une séance, avec filtres optionnels
    * (titre insensible à la casse, état). Utilisé par l'API calendrier paginée.
    */
   // CAST(:titre AS string) : sans cast, un :titre null est inféré « bytea » par
@@ -294,7 +294,8 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
   @Query("""
         SELECT DISTINCT f FROM Formation f
         JOIN f.seances s
-        WHERE (:titre IS NULL OR LOWER(f.titreFormation) LIKE LOWER(CONCAT('%', CAST(:titre AS string), '%')))
+        WHERE f.sourceCalendrier = true
+          AND (:titre IS NULL OR LOWER(f.titreFormation) LIKE LOWER(CONCAT('%', CAST(:titre AS string), '%')))
           AND (:etat IS NULL OR f.etatFormation = :etat)
         """)
   org.springframework.data.domain.Page<Formation> findCalendarFormations(

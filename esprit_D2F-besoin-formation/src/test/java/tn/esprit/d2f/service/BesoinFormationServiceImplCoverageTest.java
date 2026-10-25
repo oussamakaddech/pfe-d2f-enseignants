@@ -569,6 +569,7 @@ class BesoinFormationServiceImplCoverageTest {
     @Test
     void retrieveAllByPriorite_withResults_shouldMapAll() {
         Pageable pageable = PageRequest.of(0, 10);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         BesoinFormation b = new BesoinFormation();
         b.setIdBesoinFormation(1L);
         b.setPriorite(Priorite.HAUTE);
@@ -591,6 +592,7 @@ class BesoinFormationServiceImplCoverageTest {
     @Test
     void retrieveByPriorite_withResults_shouldMapAll() {
         Pageable pageable = PageRequest.of(0, 10);
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         BesoinFormation b = new BesoinFormation();
         b.setIdBesoinFormation(1L);
         b.setPriorite(Priorite.CRITIQUE);

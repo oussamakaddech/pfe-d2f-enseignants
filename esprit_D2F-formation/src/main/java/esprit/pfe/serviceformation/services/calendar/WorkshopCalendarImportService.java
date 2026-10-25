@@ -217,6 +217,7 @@ public class WorkshopCalendarImportService {
         formation.setResponsableName(blankToNull(firstSession.getTrainerName()));
         formation.setSalle(blankToNull(firstSession.getRoom()));
         formation.setCertifGenerated(false);
+        formation.setSourceCalendrier(true);
         formation.setCoutFormation(0f);
         formation.setChargeHoraireGlobal(0);
         Formation saved = formationRepository.save(formation);
@@ -260,7 +261,7 @@ public class WorkshopCalendarImportService {
     private ImportLog saveImportLog(MultipartFile file, String hash, long size, ImportReportDTO report) {
         long errorCount = report.getErrors().stream().filter(e -> "ERROR".equals(e.getSeverity())).count();
         String status;
-        if (report.getSessionsCreated() == 0 && report.getFormationsCreated() == 0) {
+        if (nothingImportedNorSkipped(report)) {
             status = STATUS_FAILED;
         } else if (errorCount > 0) {
             status = "PARTIAL";
@@ -338,9 +339,19 @@ public class WorkshopCalendarImportService {
         return sameDate && sameSession;
     }
 
+    /**
+     * Échec seulement si rien n'a été créé NI reconnu comme déjà présent. Un fichier
+     * dont toutes les séances existent déjà (réimport forcé) n'est pas un échec :
+     * statut PARTIAL avec les lignes ignorées (avant : FAILED, trompeur).
+     */
+    private static boolean nothingImportedNorSkipped(ImportReportDTO report) {
+        return report.getSessionsCreated() == 0 && report.getFormationsCreated() == 0
+                && report.getRowsSkipped() == 0;
+    }
+
     private String resolveStatus(ImportReportDTO report) {
         boolean hasErrors = report.getErrors().stream().anyMatch(e -> "ERROR".equals(e.getSeverity()));
-        if (report.getSessionsCreated() == 0 && report.getFormationsCreated() == 0) {
+        if (nothingImportedNorSkipped(report)) {
             return STATUS_FAILED;
         }
         return hasErrors || report.getRowsSkipped() > 0 || report.getConflictsDetected() > 0

@@ -306,6 +306,16 @@ public class FormationWorkflowController {
         }
     }
 
+    /** Formations (en cours ou achevées) dont l'utilisateur connecté est participant : questionnaire de satisfaction. */
+    @GetMapping("/mes-formations-a-evaluer")
+    // Mêmes rôles que l'envoi du questionnaire (service évaluation) : FORMATION_READ_OWN
+    // excluait CUP et chef de département, pourtant participants possibles (403).
+    @PreAuthorize(AuthorizationMatrix.EVALUATION_CREATE)
+    @Operation(summary = "Formations que le participant connecté peut évaluer")
+    public ResponseEntity<List<Map<String, Object>>> getMesFormationsAEvaluer(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(formationWorkflowService.getMesFormationsAEvaluer(jwt.getClaimAsString("email")));
+    }
+
     @GetMapping("/achevees")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<Object> getFormationsAchevees(@PageableDefault(size = 20) Pageable pageable) {

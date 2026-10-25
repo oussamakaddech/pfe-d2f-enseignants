@@ -20,7 +20,10 @@ function countSousComp(nodes: { enfants?: unknown[] }[]): number {
   );
 }
 
-export function buildDomaineColumns(onToggleActif: (id: Id) => void): TableColumnsType<Domaine> {
+export function buildDomaineColumns(
+  onToggleActif: (id: Id) => void,
+  canEdit = true,
+): TableColumnsType<Domaine> {
   return [
     { title: 'Code', dataIndex: 'code', key: 'code', width: 130 },
     {
@@ -40,15 +43,19 @@ export function buildDomaineColumns(onToggleActif: (id: Id) => void): TableColum
       dataIndex: 'actif',
       key: 'actif',
       width: 80,
-      render: (actif: boolean, record) => (
-        <Switch
-          checked={actif}
-          size="small"
-          onChange={() => {
-            onToggleActif(record.id!);
-          }}
-        />
-      ),
+      // Consultation seule (CUP, chef) : état affiché sans interrupteur.
+      render: (actif: boolean, record) =>
+        canEdit ? (
+          <Switch
+            checked={actif}
+            size="small"
+            onChange={() => {
+              onToggleActif(record.id!);
+            }}
+          />
+        ) : (
+          <Tag color={actif ? 'green' : 'default'}>{actif ? 'Actif' : 'Inactif'}</Tag>
+        ),
     },
     {
       title: 'Compétences',

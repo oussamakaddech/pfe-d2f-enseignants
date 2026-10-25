@@ -450,7 +450,11 @@ export default function CompetencePage() {
       <AppPageHeader
         icon={<ApartmentOutlined />}
         title="Référentiel des Compétences"
-        subtitle="Gérer les domaines, compétences, sous-compétences et savoirs"
+        subtitle={
+          canCreate || canEdit || canDelete
+            ? 'Gérer les domaines, compétences, sous-compétences et savoirs'
+            : 'Consultation des domaines, compétences, sous-compétences et savoirs'
+        }
       />
 
       <Tabs

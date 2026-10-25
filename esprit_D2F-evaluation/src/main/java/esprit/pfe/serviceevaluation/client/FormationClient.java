@@ -17,4 +17,8 @@ public interface FormationClient {
 
     @GetMapping("/api/v1/formations/{formationId}/is-participant/{enseignantId}")
     Boolean isParticipantOfFormation(@PathVariable("formationId") Long formationId, @PathVariable("enseignantId") String enseignantId);
+
+    /** {participant: bool, enseignantId, up} — questionnaire de satisfaction. */
+    @GetMapping("/api/v1/formations/{formationId}/participant-info/{idOrMail}")
+    java.util.Map<String, Object> participantInfo(@PathVariable("formationId") Long formationId, @PathVariable("idOrMail") String idOrMail);
 }

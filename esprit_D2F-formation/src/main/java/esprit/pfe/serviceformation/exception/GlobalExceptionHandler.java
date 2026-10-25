@@ -265,8 +265,43 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, badParameterMessage(ex), MODULE_PREFIX + "-400", request);
     }
 
+    // Format demandé (en-tête Accept) non produit par la route : 406, sans corps
+    // (un corps JSON ne serait pas acceptable non plus). Avant : 500.
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotAcceptableException.class)
+    public ResponseEntity<Void> handleNotAcceptable(Exception ex) {
+        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
+    }
+
+    // Mauvaise méthode HTTP : 405 + en-tête Allow (avant : 500).
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupported(
+            org.springframework.web.HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+        ResponseEntity<ErrorResponse> base = buildResponse(HttpStatus.METHOD_NOT_ALLOWED,
+                "Méthode " + ex.getMethod() + " non prise en charge pour cette ressource.",
+                MODULE_PREFIX + "-405", request);
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        if (ex.getSupportedHttpMethods() != null) {
+            headers.setAllow(ex.getSupportedHttpMethods());
+        }
+        return new ResponseEntity<>(base.getBody(), headers, HttpStatus.METHOD_NOT_ALLOWED);
+    }
+
+    // Client parti avant la fin de la réponse (onglet fermé, délai de la passerelle) :
+    // rien à renvoyer, ce n'est pas une panne serveur.
+    @ExceptionHandler(org.springframework.web.context.request.async.AsyncRequestNotUsableException.class)
+    public void handleClientGone(Exception ex) {
+        log.debug("Client déconnecté avant la fin de la réponse : {}", ex.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneral(Exception ex, HttpServletRequest request) {
+        // Élément OneDrive / Graph introuvable : 404, pas 500.
+        for (Throwable t = ex; t != null; t = t.getCause()) {
+            if (t instanceof com.microsoft.graph.http.GraphServiceException g && g.getResponseCode() == 404) {
+                return buildResponse(HttpStatus.NOT_FOUND, "Élément Microsoft 365 introuvable.",
+                        MODULE_PREFIX + "-404", request);
+            }
+        }
         // Une FeignException peut être enveloppée (circuit breaker /
         // NoFallbackAvailableException…) : on la déballe pour reporter le statut
         // amont (409, 403…) plutôt qu'un 500 opaque.

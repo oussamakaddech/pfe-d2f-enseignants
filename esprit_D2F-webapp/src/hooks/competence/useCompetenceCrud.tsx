@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import type { FormInstance, TableColumnsType } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import useAppNotification from '@/hooks/ui/useAppNotification';
+import { useHasPermission } from '@/routes/guards';
 import CompetenceService from '@/services/competence/CompetenceService';
 import {
   buildDomaineColumns,
@@ -99,6 +100,8 @@ function buildCompDeleteErrorMessage(sousCompsCount: number, savoirsDirectsCount
 export default function useCompetenceCrud() {
   const { message: msgApi } = useAppNotification();
   const qc = useQueryClient();
+  // CUP / chef : référentiel en consultation seule (pas d'interrupteur « Actif »).
+  const canEditDomaine = useHasPermission('COMPETENCE', 'UPDATE');
 
   const [domaineModal, setDomaineModal] = useState(false);
   const [editingDomaine, setEditingDomaine] = useState<Domaine | null>(null);
@@ -581,8 +584,8 @@ export default function useCompetenceCrud() {
   );
 
   const domaineColumns = useMemo<TableColumnsType<Domaine>>(
-    () => buildDomaineColumns((id) => domaineToggleActifMutation.mutate(id)),
-    [domaineToggleActifMutation],
+    () => buildDomaineColumns((id) => domaineToggleActifMutation.mutate(id), canEditDomaine),
+    [domaineToggleActifMutation, canEditDomaine],
   );
 
   const compColumns = useMemo<TableColumnsType<Competence>>(

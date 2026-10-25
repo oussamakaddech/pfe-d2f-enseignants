@@ -75,6 +75,7 @@ class FormationWorkflowServiceEnhancedTest {
 
         request = new FormationWorkflowRequest();
         request.setTitreFormation("Formation Test");
+        request.setChargeHoraireGlobal(24); // durée obligatoire à la création
         request.setTypeBesoin("PROJET");
 
         request.setDateDebut(LocalDate.of(2026, 1, 1));
@@ -523,13 +524,15 @@ class FormationWorkflowServiceEnhancedTest {
         lenient().when(enseignantRepository.findById("P1")).thenReturn(Optional.of(participant));
         lenient().when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(List.of(malformedPresence));
 
-        assertThrows(IllegalStateException.class, () -> formationWorkflowService.updateFormationWorkflow(1L, request));
+        // Une présence sans enseignant est ignorée : la présence du participant est créée.
+        assertDoesNotThrow(() -> formationWorkflowService.updateFormationWorkflow(1L, request));
+        verify(presenceRepository).save(argThat(pr -> pr.getEnseignant() == participant));
     }
 
     @Test
     @DisplayName("removeFormationCalendar - Succès")
     void shouldRemoveFormationCalendar() {
-        Formation formation = createFormation(1L, EtatFormation.ANNULE);
+        Formation formation = createFormation(1L, EtatFormation.PLANIFIE);
         formation.setTitreFormation("Formation Test");
         
         SeanceFormation seance = new SeanceFormation();

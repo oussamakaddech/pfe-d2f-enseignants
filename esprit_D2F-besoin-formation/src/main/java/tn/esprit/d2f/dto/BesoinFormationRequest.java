@@ -20,7 +20,7 @@ import java.time.LocalDate;
  *   <li>{@code dateDebut} : {@code LocalDate} avec contrainte {@code @Future}</li>
  *   <li>{@code dateFin} : doit être strictement après {@code dateDebut} (@AssertTrue)</li>
  *   <li>{@code nbMaxParticipants} : entre 1 et 500</li>
- *   <li>{@code dureeFormation} : minimum 1 heure</li>
+ *   <li>{@code dureeFormation} : obligatoire, minimum 1 heure</li>
  * </ul>
  *
  * <p><strong>Note :</strong> Le même DTO sert à la création (POST) et la mise à jour (PUT).
@@ -58,6 +58,7 @@ public class BesoinFormationRequest {
     @Schema(description = "Nombre maximum de participants", example = "25")
     private Integer nbMaxParticipants;
 
+    @NotNull(message = "La durée de la formation est obligatoire")
     @Min(value = 1, message = "La durée de la formation doit être d'au moins 1 heure")
     @Schema(description = "Durée de la formation en heures", example = "8")
     private Integer dureeFormation;

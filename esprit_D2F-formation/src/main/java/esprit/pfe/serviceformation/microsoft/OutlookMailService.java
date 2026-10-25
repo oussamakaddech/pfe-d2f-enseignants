@@ -1,11 +1,14 @@
 package esprit.pfe.serviceformation.microsoft;
 
+import com.microsoft.graph.models.Attachment;
 import com.microsoft.graph.models.BodyType;
 import com.microsoft.graph.models.EmailAddress;
+import com.microsoft.graph.models.FileAttachment;
 import com.microsoft.graph.models.ItemBody;
 import com.microsoft.graph.models.Message;
 import com.microsoft.graph.models.Recipient;
 import com.microsoft.graph.models.UserSendMailParameterSet;
+import com.microsoft.graph.requests.AttachmentCollectionPage;
 import com.microsoft.graph.requests.GraphServiceClient;
 import okhttp3.Request;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +30,24 @@ public class OutlookMailService {
     }
 
     public void sendMail(String to, String subject, String content, boolean isHtml) {
+        sendMail(to, subject, content, isHtml, null);
+    }
+
+    /**
+     * Envoi avec une pièce jointe (ex. invitation .ics) par Microsoft Graph — le SMTP
+     * authentifié étant désactivé côté Office 365, c'est le seul canal opérationnel.
+     */
+    public void sendMailWithAttachment(String to, String subject, String content, boolean isHtml,
+                                       String fileName, String contentType, byte[] bytes) {
+        FileAttachment attachment = new FileAttachment();
+        attachment.oDataType = "#microsoft.graph.fileAttachment";
+        attachment.name = fileName;
+        attachment.contentType = contentType;
+        attachment.contentBytes = bytes;
+        sendMail(to, subject, content, isHtml, attachment);
+    }
+
+    private void sendMail(String to, String subject, String content, boolean isHtml, FileAttachment attachment) {
         // Validation des paramètres
         if (to == null || to.isBlank()) {
             throw new IllegalArgumentException("L'adresse du destinataire est obligatoire");
@@ -58,6 +79,10 @@ public class OutlookMailService {
         Recipient recipient = new Recipient();
         recipient.emailAddress = emailAddress;
         message.toRecipients = Collections.singletonList(recipient);
+        if (attachment != null) {
+            message.attachments = new AttachmentCollectionPage(
+                    Collections.<Attachment>singletonList(attachment), null);
+        }
 
         // Envoi du mail à partir de la boîte "Application.Formationdesformateurs@Esprit.tn"
         try {

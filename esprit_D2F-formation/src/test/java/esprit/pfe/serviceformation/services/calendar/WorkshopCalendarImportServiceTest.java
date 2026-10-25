@@ -49,6 +49,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -193,6 +194,10 @@ class WorkshopCalendarImportServiceTest {
         assertThat(report.getParticipantsImported()).isEqualTo(1);
         assertThat(report.getImportLogId()).isEqualTo(42L);
         verify(conflictService).detectAndLog(anyList(), eq(42L));
+        // Formation créée par l'import : marquée pour la page « Gestion du calendrier ».
+        ArgumentCaptor<Formation> formationCaptor = ArgumentCaptor.forClass(Formation.class);
+        verify(formationRepository, atLeastOnce()).save(formationCaptor.capture());
+        assertThat(formationCaptor.getAllValues()).allMatch(Formation::isSourceCalendrier);
     }
 
     @Test
@@ -412,6 +417,12 @@ class WorkshopCalendarImportServiceTest {
         ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getRowsSkipped()).isGreaterThanOrEqualTo(1);
+        // Toutes les séances existaient déjà : pas un échec (avant : FAILED).
+        assertThat(report.getSessionsCreated()).isZero();
+        assertThat(report.getStatus()).isEqualTo("PARTIAL");
+        ArgumentCaptor<ImportLog> logCaptor = ArgumentCaptor.forClass(ImportLog.class);
+        verify(importLogRepository).save(logCaptor.capture());
+        assertThat(logCaptor.getValue().getStatus()).isEqualTo("SUCCESS");
     }
 
     @Test

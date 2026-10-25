@@ -117,8 +117,8 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
 
     @Override
     public Page<BesoinFormationResponse> retrieveAllBesoinFormations(Pageable pageable) {
-        // Visibilité stricte : CUP → son UP, chef → son département.
-        // Les autres rôles autorisés (ADMIN global, ANIMATEUR, RESPONSABLE)
+        // Visibilité stricte : CUP → son UP, chef → besoins des CUP de son
+        // département (+ les siens). Les autres rôles autorisés (ADMIN global, ANIMATEUR, RESPONSABLE)
         // conservent la vue complète.
         ResolvedScope scope = reviewerScopeService.resolveCurrentUser();
         if (!scope.global() && scope.actorRole() == CreatorRole.CUP) {
@@ -127,8 +127,8 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
                     .map(besoinFormationMapper::toResponse);
         }
         if (!scope.global() && scope.actorRole() == CreatorRole.CHEF_DEPARTEMENT) {
-            return besoinFormationRepository.findByDepartementAndStatusNotIn(
-                            scope.departmentCode(), APPROVED_FINAL_STATUSES, pageable)
+            return besoinFormationRepository.findChefVisibleByStatusNotIn(
+                            scope.departmentCode(), scope.username(), APPROVED_FINAL_STATUSES, pageable)
                     .map(besoinFormationMapper::toResponse);
         }
         return besoinFormationRepository.findByStatusNotIn(APPROVED_FINAL_STATUSES, pageable)
@@ -146,8 +146,7 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         if (!scope.global()
                 && (scope.actorRole() == CreatorRole.CUP
                     || scope.actorRole() == CreatorRole.CHEF_DEPARTEMENT)) {
-            reviewerScopeService.ensureInScope(scope, b.getUp(), b.getDepartement(),
-                    b.getIdBesoinFormation());
+            reviewerScopeService.ensureInScope(scope, b);
         }
         return besoinFormationMapper.toResponse(b);
     }
@@ -435,7 +434,7 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         }
 
         // 6-7. Périmètre UP / département (403).
-        reviewerScopeService.ensureInScope(scope, b.getUp(), b.getDepartement(), id);
+        reviewerScopeService.ensureInScope(scope, b);
 
         // Cohérence type/étape : l'étape CUP ne traite que de l'individuel.
         if (step == ApprovalStep.CUP && b.getTypeBesoin() == TypeBesoin.COLLECTIF) {
@@ -484,8 +483,9 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
                         pageable);
             case CUP -> besoinFormationRepository.findByCurrentApprovalStepAndUp(
                     ApprovalStep.CUP, scope.upCode(), pageable);
-            case CHEF_DEPARTEMENT -> besoinFormationRepository.findByCurrentApprovalStepAndDepartement(
-                    ApprovalStep.CHEF_DEPARTEMENT, scope.departmentCode(), pageable);
+            // périmètre chef : besoins déposés par un CUP de son département
+            case CHEF_DEPARTEMENT -> besoinFormationRepository.findByCurrentApprovalStepAndDepartementAndCreatedByRole(
+                    ApprovalStep.CHEF_DEPARTEMENT, scope.departmentCode(), CreatorRole.CUP, pageable);
             case ENSEIGNANT -> throw new AccessDeniedException(
                     "La liste des besoins en attente est réservée aux valideurs (CUP, chef, admin).");
         };
@@ -501,8 +501,8 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
             case ADMIN -> besoinFormationRepository.findByStatusNotIn(APPROVED_FINAL_STATUSES, pageable);
             case CUP -> besoinFormationRepository.findByUpAndStatusNotIn(
                     scope.upCode(), APPROVED_FINAL_STATUSES, pageable);
-            case CHEF_DEPARTEMENT -> besoinFormationRepository.findByDepartementAndStatusNotIn(
-                    scope.departmentCode(), APPROVED_FINAL_STATUSES, pageable);
+            case CHEF_DEPARTEMENT -> besoinFormationRepository.findChefVisibleByStatusNotIn(
+                    scope.departmentCode(), scope.username(), APPROVED_FINAL_STATUSES, pageable);
             case ENSEIGNANT -> throw new AccessDeniedException(
                     "Utilisez /mine pour consulter vos propres besoins.");
         };
@@ -533,8 +533,8 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
                     scope.upCode(), pageable).map(besoinFormationMapper::toResponse);
         }
         if (!scope.global() && scope.actorRole() == CreatorRole.CHEF_DEPARTEMENT) {
-            return besoinFormationRepository.findByDepartementAndApprouveAdminTrue(
-                    scope.departmentCode(), pageable).map(besoinFormationMapper::toResponse);
+            return besoinFormationRepository.findChefVisibleApproved(
+                    scope.departmentCode(), scope.username(), pageable).map(besoinFormationMapper::toResponse);
         }
         return besoinFormationRepository.findByApprouveAdminTrue(pageable)
                 .map(besoinFormationMapper::toResponse);
@@ -576,29 +576,45 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         if (scope.actorRole() == CreatorRole.CUP || scope.actorRole() == CreatorRole.ENSEIGNANT) {
             throw new AccessDeniedException("Utilisez /scope ou /mine selon votre rôle.");
         }
+        if (!scope.global() && scope.actorRole() == CreatorRole.CHEF_DEPARTEMENT) {
+            return besoinFormationRepository.findChefVisible(departement, scope.username(), pageable)
+                    .map(besoinFormationMapper::toResponse);
+        }
         return besoinFormationRepository.findByDepartement(departement, pageable)
                 .map(besoinFormationMapper::toResponse);
     }
 
     @Override
     public Page<BesoinFormationResponse> retrieveAllByPriorite(Pageable pageable) {
+        refuseChefUnscopedListing();
         return besoinFormationRepository.findAllByOrderByPrioriteDesc(pageable)
                 .map(besoinFormationMapper::toResponse);
     }
 
     @Override
     public Page<BesoinFormationResponse> retrieveByPriorite(Priorite priorite, Pageable pageable) {
+        refuseChefUnscopedListing();
         return besoinFormationRepository.findByPriorite(priorite, pageable)
                 .map(besoinFormationMapper::toResponse);
     }
 
     @Override
     public Page<BesoinFormationResponse> retrieveByUsername(String username, Pageable pageable) {
+        refuseChefUnscopedListing();
         return besoinFormationRepository.findByUsername(username, pageable)
                 .map(besoinFormationMapper::toResponse);
     }
 
     // ── Helpers privés ────────────────────────────────────────────────────────
+
+    /** Listes non filtrées par périmètre : le chef de département passe par /scope. */
+    private void refuseChefUnscopedListing() {
+        ResolvedScope scope = reviewerScopeService.resolveCurrentUser();
+        if (!scope.global() && scope.actorRole() == CreatorRole.CHEF_DEPARTEMENT) {
+            throw new AccessDeniedException(
+                    "Liste hors périmètre : utilisez /scope (besoins des CUP de votre département).");
+        }
+    }
 
     /**
      * Vérifie que l'utilisateur courant peut modifier/supprimer le besoin :
@@ -625,8 +641,7 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         }
         ResolvedScope scope = reviewerScopeService.resolveCurrentUser();
         if (scope.actorRole() == CreatorRole.CUP || scope.actorRole() == CreatorRole.CHEF_DEPARTEMENT) {
-            reviewerScopeService.ensureInScope(scope, b.getUp(), b.getDepartement(),
-                    b.getIdBesoinFormation());
+            reviewerScopeService.ensureInScope(scope, b);
             return;
         }
         throw new AccessDeniedException("Vous ne pouvez modifier ou supprimer que vos propres besoins de formation.");

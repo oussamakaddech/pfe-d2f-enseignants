@@ -79,6 +79,25 @@ const BesoinEditModal = memo(function BesoinEditModal({
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
+            {/* Champ obligatoire — parité @NotNull @Min(1) BesoinFormationRequest. */}
+            <Form.Item
+              label="Durée prévue (heures)"
+              name="dureeFormation"
+              rules={[
+                { required: true, message: 'Précisez la durée de la formation' },
+                {
+                  validator: (_, v?: string | number) =>
+                    v === undefined || v === '' || Number(v) >= 1
+                      ? Promise.resolve()
+                      : Promise.reject(new Error('La durée doit être d’au moins 1 heure')),
+                },
+              ]}
+              normalize={(v?: string) => (v === '' || v === undefined ? undefined : Number(v))}
+            >
+              <Input type="number" size="large" suffix="h" min={1} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
             <Form.Item label="Période" name="periodCode" rules={[{ required: true }]}>
               <Select size="large">
                 {PERIOD_OPTIONS.map((o) => (

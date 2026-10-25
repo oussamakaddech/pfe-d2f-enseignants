@@ -333,11 +333,25 @@ public class ExportExcelService {
         return participants;
     }
 
+    /**
+     * Nom d'onglet valide (31 caractères max) et unique sans tenir compte de la casse :
+     * deux formations de même titre faisaient échouer tout l'export
+     * (« The workbook already contains a sheet named … »).
+     */
+    static String uniqueSheetName(Workbook workbook, String sheetName) {
+        String base = WorkbookUtil.createSafeSheetName(sheetName == null || sheetName.isBlank() ? "Formation" : sheetName);
+        base = base.length() > 31 ? base.substring(0, 31) : base;
+        String candidate = base;
+        for (int i = 2; workbook.getSheetIndex(candidate) >= 0; i++) {
+            String suffix = " (" + i + ")";
+            candidate = (base.length() + suffix.length() > 31 ? base.substring(0, 31 - suffix.length()) : base) + suffix;
+        }
+        return candidate;
+    }
+
     private void createParticipantSheet(Workbook workbook, String sheetName,
                                          Set<ParticipantDTO> participants, CellStyle headStyle) {
-        String baseName = WorkbookUtil.createSafeSheetName(sheetName);
-        String safeName = baseName.length() > 31 ? baseName.substring(0, 31) : baseName;
-        Sheet sh = workbook.createSheet(safeName);
+        Sheet sh = workbook.createSheet(uniqueSheetName(workbook, sheetName));
 
         CellStyle dataStyle = createDataCellStyle(workbook);
         CellStyle altStyle = createAlternateRowStyle(workbook);

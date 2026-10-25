@@ -76,7 +76,9 @@ const FormationWorkflowService = {
   },
 
   async getAllFormationWorkflows(): Promise<Formation[]> {
-    const response = await axios.get<Formation[]>(API_URL);
+    // La route est paginée (20 par défaut côté serveur) : sans « size », seules les
+    // 20 premières formations arrivaient (titres manquants, listes incomplètes).
+    const response = await axios.get<Formation[]>(API_URL, { params: { size: 1000 } });
     return normalizeListResponse(response.data);
   },
 

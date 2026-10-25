@@ -10,6 +10,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tn.esprit.d2f.entity.BesoinFormation;
 import tn.esprit.d2f.entity.ReviewerScope;
 import tn.esprit.d2f.entity.enumerations.CreatorRole;
 import tn.esprit.d2f.exception.ResourceNotFoundException;
@@ -149,6 +150,23 @@ public class ReviewerScopeService {
                 && (besoinDepartement == null || !besoinDepartement.equals(scope.departmentCode()))) {
             throw new AccessDeniedException("Périmètre interdit : ce besoin n'appartient pas à votre département ("
                     + scope.departmentCode() + "). Besoin n°" + besoinId + ".");
+        }
+    }
+
+    /**
+     * Périmètre complet d'un besoin : UP / département, puis, pour le chef de
+     * département, origine du besoin — il ne voit que les besoins déposés par un
+     * CUP de son département et les siens (403 sinon).
+     */
+    public void ensureInScope(ResolvedScope scope, BesoinFormation besoin) {
+        ensureInScope(scope, besoin.getUp(), besoin.getDepartement(), besoin.getIdBesoinFormation());
+        if (scope.global() || scope.actorRole() != CreatorRole.CHEF_DEPARTEMENT) return;
+        boolean fromCup = besoin.getCreatedByRole() == CreatorRole.CUP;
+        boolean own = scope.username() != null && scope.username().equals(besoin.getUsername());
+        if (!fromCup && !own) {
+            throw new AccessDeniedException("Périmètre interdit : le chef de département ne consulte que "
+                    + "les besoins déposés par les CUP de son département. Besoin n°"
+                    + besoin.getIdBesoinFormation() + ".");
         }
     }
 

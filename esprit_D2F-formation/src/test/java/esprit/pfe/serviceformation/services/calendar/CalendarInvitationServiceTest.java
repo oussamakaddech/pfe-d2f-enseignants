@@ -51,6 +51,18 @@ class CalendarInvitationServiceTest {
     }
 
     @Test
+    void sendForFormationRefusesFinishedFormation() {
+        var f = formation();
+        f.setDateFin(java.time.LocalDate.now().minusDays(1));
+        when(formationRepository.findById(1L)).thenReturn(java.util.Optional.of(f));
+
+        SendInvitationsResultDTO result = service.sendForFormation(1L);
+
+        assertThat(result.getStatus()).isEqualTo("FORMATION_PASSEE");
+        verifyNoInteractions(mailSender);
+    }
+
+    @Test
     void sendForFormationThrowsWhenFormationNotFound() {
         when(formationRepository.findById(99L)).thenReturn(java.util.Optional.empty());
         assertThatThrownBy(() -> service.sendForFormation(99L))

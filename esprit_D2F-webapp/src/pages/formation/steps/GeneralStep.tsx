@@ -35,7 +35,8 @@ function ChargeHoraireField({ chargeH, setChargeH, seances, toMinutes }: Readonl
   return (
     <div className="creation-field">
       <label className="creation-field-label">
-        <ClockCircleOutlined /> Charge Horaire (h)
+        <ClockCircleOutlined /> Charge Horaire (h){' '}
+        <span style={{ color: 'var(--color-error)' }}>*</span>
       </label>
       <InputNumber
         size="large"

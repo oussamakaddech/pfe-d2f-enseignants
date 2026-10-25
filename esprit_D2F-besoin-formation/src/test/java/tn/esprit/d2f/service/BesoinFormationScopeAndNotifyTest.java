@@ -86,17 +86,18 @@ class BesoinFormationScopeAndNotifyTest {
     }
 
     @Test
-    @DisplayName("Chef de departement non global : la liste est restreinte a son departement")
+    @DisplayName("Chef de departement non global : la liste est restreinte aux besoins des CUP de son departement")
     void listeChefRestreinteAuDepartement() {
         Pageable pageable = PageRequest.of(0, 10);
         when(reviewerScopeService.resolveCurrentUser()).thenReturn(new ReviewerScopeService.ResolvedScope(
                 "chef", "chef-id", CreatorRole.CHEF_DEPARTEMENT, null, "DEPT_GL", false));
-        when(besoinFormationRepository.findByDepartementAndStatusNotIn(
-                eq("DEPT_GL"), any(), eq(pageable))).thenReturn(Page.empty(pageable));
+        when(besoinFormationRepository.findChefVisibleByStatusNotIn(
+                eq("DEPT_GL"), eq("chef"), any(), eq(pageable))).thenReturn(Page.empty(pageable));
 
         service.retrieveAllBesoinFormations(pageable);
 
-        verify(besoinFormationRepository).findByDepartementAndStatusNotIn(eq("DEPT_GL"), any(), eq(pageable));
+        verify(besoinFormationRepository).findChefVisibleByStatusNotIn(eq("DEPT_GL"), eq("chef"), any(), eq(pageable));
+        verify(besoinFormationRepository, never()).findByDepartementAndStatusNotIn(any(), any(), any());
         verify(besoinFormationRepository, never()).findByStatusNotIn(any(), any());
     }
 

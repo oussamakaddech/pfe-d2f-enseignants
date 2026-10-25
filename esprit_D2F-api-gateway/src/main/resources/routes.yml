@@ -243,6 +243,10 @@ spring:
           uri: ${SKILL_PASSPORT_SERVICE_URL:http://localhost:8089}
           predicates:
             - Path=/api/v1/skill-passports/**
+          # Fiche agrégée (plusieurs services appelés) et PDF : un premier appel à
+          # froid dépassait les 5 s globaux, ouvrait le disjoncteur → 503 pendant 30 s.
+          metadata:
+            response-timeout: ${GW_SKILL_PASSPORT_RESPONSE_TIMEOUT:30000}
           filters:
             - AuthorizationFilter
             - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST

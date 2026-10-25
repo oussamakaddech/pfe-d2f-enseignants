@@ -18,7 +18,8 @@ import java.util.stream.Collectors;
 
 /**
  * Service de rappel automatique pour les formations planifiées.
- * Envoie des notifications J-7, J-3 et J-1 avant chaque séance.
+ * Envoie des notifications J-7, J-3 et J-1 avant la PREMIÈRE séance de chaque
+ * formation (un rappel par séance multipliait les e-mails : 10 séances = 30 rappels).
  */
 @Service
 @Slf4j
@@ -31,6 +32,9 @@ public class FormationReminderScheduler {
 
     @Value("${d2f.platform.url}")
     private String platformUrl;
+
+    @Value("${d2f.platform.formations-path:/home/ListeFormation/}")
+    private String formationsPath;
 
     public FormationReminderScheduler(SeanceFormationRepository seanceFormationRepository,
                                       ReminderSentLogRepository reminderSentLogRepository,
@@ -61,7 +65,8 @@ public class FormationReminderScheduler {
 
             for (SeanceFormation seance : seances) {
                 Formation formation = seance.getFormation();
-                if (formation == null || formation.getEtatFormation() != EtatFormation.PLANIFIE) {
+                if (formation == null || formation.getEtatFormation() != EtatFormation.PLANIFIE
+                        || !isFirstSeance(seance, formation)) {
                     continue;
                 }
                 try {
@@ -94,10 +99,23 @@ public class FormationReminderScheduler {
 
         for (SeanceFormation seance : matching) {
             Formation formation = seance.getFormation();
-            if (formation != null && formation.getEtatFormation() == EtatFormation.PLANIFIE) {
+            if (formation != null && formation.getEtatFormation() == EtatFormation.PLANIFIE
+                    && isFirstSeance(seance, formation)) {
                 doSendReminderForSeance(formation, seance, daysBefore);
             }
         }
+    }
+
+    /** Première séance de la formation (date puis heure de début). */
+    boolean isFirstSeance(SeanceFormation seance, Formation formation) {
+        Comparator<SeanceFormation> ordre = Comparator
+                .comparing(SeanceFormation::getDateSeance, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(SeanceFormation::getHeureDebut, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(SeanceFormation::getIdSeance, Comparator.nullsLast(Comparator.naturalOrder()));
+        return seanceFormationRepository.findByFormation_IdFormation(formation.getIdFormation()).stream()
+                .min(ordre)
+                .map(first -> Objects.equals(first.getIdSeance(), seance.getIdSeance()))
+                .orElse(true);
     }
 
     private void doSendReminderForSeance(Formation formation, SeanceFormation seance, int daysBefore) {
@@ -146,7 +164,7 @@ public class FormationReminderScheduler {
                         .detail("Date", formattedDate)
                         .detail("Horaire", formattedStart + " – " + formattedEnd)
                         .detail("Salle", salle)
-                        .note("<a href=\"" + platformUrl + "/mes-formations/" + formation.getIdFormation() + "\" "
+                        .note("<a href=\"" + platformUrl + formationsPath + formation.getIdFormation() + "\" "
                                 + "style=\"background:#e65100;color:#fff;padding:10px 20px;border-radius:6px;"
                                 + "text-decoration:none;font-weight:bold;display:inline-block;\">"
                                 + "Confirmer ma présence</a>")

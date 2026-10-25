@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import tn.esprit.d2f.entity.BesoinFormation;
 import tn.esprit.d2f.entity.enumerations.ApprovalStep;
 import tn.esprit.d2f.entity.enumerations.BesoinStatus;
+import tn.esprit.d2f.entity.enumerations.CreatorRole;
 import tn.esprit.d2f.entity.enumerations.Priorite;
 
 import java.util.Collection;
@@ -58,6 +59,38 @@ public interface BesoinFormationRepository extends JpaRepository<BesoinFormation
     Page<BesoinFormation> findByDepartementAndStatusNotIn(
             String departement, Collection<BesoinStatus> statuses, Pageable pageable);
 
+    // ── Périmètre chef de département ────────────────────────────────────────
+    // Le chef ne voit que les besoins déposés par un CUP de son département,
+    // plus ceux qu'il a lui-même déposés (sans quoi il ne pourrait pas les
+    // suivre). Les besoins individuels des enseignants ne lui sont pas exposés.
+
+    /** Besoins visibles du chef, hors statuts fournis (liste courante). */
+    @Query("SELECT b FROM BesoinFormation b WHERE b.departement = :departement"
+            + " AND b.status NOT IN :statuses"
+            + " AND (b.createdByRole = tn.esprit.d2f.entity.enumerations.CreatorRole.CUP"
+            + " OR b.username = :username)")
+    Page<BesoinFormation> findChefVisibleByStatusNotIn(@Param("departement") String departement,
+                                                       @Param("username") String username,
+                                                       @Param("statuses") Collection<BesoinStatus> statuses,
+                                                       Pageable pageable);
+
+    /** Besoins visibles du chef approuvés par le D2F (lecture seule). */
+    @Query("SELECT b FROM BesoinFormation b WHERE b.departement = :departement"
+            + " AND b.approuveAdmin = true"
+            + " AND (b.createdByRole = tn.esprit.d2f.entity.enumerations.CreatorRole.CUP"
+            + " OR b.username = :username)")
+    Page<BesoinFormation> findChefVisibleApproved(@Param("departement") String departement,
+                                                  @Param("username") String username,
+                                                  Pageable pageable);
+
+    /** Besoins visibles du chef, tous statuts (filtre par département). */
+    @Query("SELECT b FROM BesoinFormation b WHERE b.departement = :departement"
+            + " AND (b.createdByRole = tn.esprit.d2f.entity.enumerations.CreatorRole.CUP"
+            + " OR b.username = :username)")
+    Page<BesoinFormation> findChefVisible(@Param("departement") String departement,
+                                          @Param("username") String username,
+                                          Pageable pageable);
+
     /** Filtrage par UP + département */
     Page<BesoinFormation> findByUpAndDepartement(String up, String departement, Pageable pageable);
 
@@ -81,6 +114,10 @@ public interface BesoinFormationRepository extends JpaRepository<BesoinFormation
     /** Besoins en attente à une étape dans un département (périmètre chef). */
     Page<BesoinFormation> findByCurrentApprovalStepAndDepartement(
             ApprovalStep step, String departement, Pageable pageable);
+
+    /** Besoins en attente au stade chef, déposés par un rôle donné (périmètre chef = CUP). */
+    Page<BesoinFormation> findByCurrentApprovalStepAndDepartementAndCreatedByRole(
+            ApprovalStep step, String departement, CreatorRole createdByRole, Pageable pageable);
 
     /** Besoins dans un statut donné (republication d'événements, pilotage). */
     java.util.List<BesoinFormation> findByStatusAndEventPublishedFalse(BesoinStatus status);

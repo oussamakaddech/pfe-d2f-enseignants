@@ -73,4 +73,7 @@ public interface FormationService {
     boolean isAnimateurOfFormation(Long formationId, String enseignantId);
 
     boolean isParticipantOfFormation(Long formationId, String enseignantId);
+
+    /** Participant d'une formation + id de fiche + UP (questionnaire de satisfaction). */
+    java.util.Map<String, Object> participantInfo(Long formationId, String idOrMail);
 }

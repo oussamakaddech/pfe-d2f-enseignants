@@ -200,7 +200,7 @@ export function buildSummarySections(
     },
     {
       key: 'competences',
-      title: 'Compétences RICE',
+      title: 'Liste des compétences',
       icon: null,
       items:
         selectedCompLinks.filter((l) => l.competenceId).length === 0

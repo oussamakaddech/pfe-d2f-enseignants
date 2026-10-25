@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -70,6 +72,16 @@ public class CalendarInvitationService {
     private SendInvitationsResultDTO doSendForFormation(Long formationId) {
         Formation formation = formationRepository.findById(formationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Formation introuvable : " + formationId));
+
+        // Formation terminée : une invitation à des séances passées n'a pas de sens.
+        if (formation.getDateFin() != null
+                && formation.getDateFin().isBefore(LocalDate.now(ZoneId.of("Africa/Tunis")))) {
+            return SendInvitationsResultDTO.builder()
+                    .formationId(formationId)
+                    .status("FORMATION_PASSEE")
+                    .message("Formation terminée : aucune invitation envoyée.")
+                    .build();
+        }
 
         List<String> recipients = resolveRecipients(formationId);
         if (recipients.isEmpty()) {

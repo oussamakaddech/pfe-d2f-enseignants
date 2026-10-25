@@ -324,6 +324,14 @@ public class FormationController {
         return ResponseEntity.ok(formationService.isParticipantOfFormation(formationId, enseignantId));
     }
 
+    @GetMapping("/{formationId}/participant-info/{idOrMail}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_ANIMATEUR_CHECK)
+    @Operation(summary = "Participant d'une formation (séance ou inscription approuvée), id de fiche et UP")
+    public ResponseEntity<java.util.Map<String, Object>> participantInfo(
+            @PathVariable Long formationId, @PathVariable String idOrMail) {
+        return ResponseEntity.ok(formationService.participantInfo(formationId, idOrMail));
+    }
+
     @PostMapping("/search/advanced")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     @Operation(
