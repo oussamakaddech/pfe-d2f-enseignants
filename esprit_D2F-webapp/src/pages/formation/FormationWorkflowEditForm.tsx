@@ -33,6 +33,7 @@ import {
   FilterOutlined,
   FolderOpenOutlined,
   InfoCircleOutlined,
+  MailOutlined,
   PlusOutlined,
   ReadOutlined,
   ReloadOutlined,
@@ -50,6 +51,7 @@ import dayjs, { type Dayjs } from 'dayjs';
 import { brand, statusColors, type FormationStatus } from '@/styles/themes/tokens';
 
 import { useFormationWorkflowEdit } from './hooks/useFormationWorkflowEdit';
+import { selectedFromOptions } from './hooks/formationEditActors';
 import DocumentUploadPanel from '../documentFormation/DocumentUploadPanel';
 import DocumentListModal from '../documentFormation/DocumentListModal';
 import type { FormationEdit } from './formationWorkflowTypes';
@@ -996,6 +998,33 @@ export default function FormationWorkflowEditForm({
                   />
                 </div>
                 <Divider style={{ margin: '12px 0' }} />
+                <div className="edit-actors-email-add">
+                  <div className="creation-field-label">
+                    <MailOutlined /> Ajouter par e-mail
+                  </div>
+                  <Space.Compact style={{ width: '100%' }}>
+                    <Input
+                      allowClear
+                      value={h.animEmail}
+                      onChange={(e) => h.setAnimEmail(e.target.value)}
+                      onPressEnter={h.addAnimByEmails}
+                      placeholder="email1@esprit.tn, email2@esprit.tn…"
+                      aria-label="E-mail d'un animateur à ajouter"
+                    />
+                    <Button
+                      type="primary"
+                      ghost
+                      onClick={h.addAnimByEmails}
+                      disabled={!h.animEmail.trim()}
+                    >
+                      Ajouter
+                    </Button>
+                  </Space.Compact>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    Séparez plusieurs adresses par une virgule puis validez : l'e-mail doit
+                    correspondre à un enseignant ou à un compte animateur existant.
+                  </Text>
+                </div>
                 <Spin spinning={isReloading} tip="Rechargement…">
                   {h.optionsAnim.length === 0 ? (
                     <Empty
@@ -1012,8 +1041,7 @@ export default function FormationWorkflowEditForm({
                       size="large"
                       value={h.animSel.map((a) => String(a.id))}
                       onChange={(ids) => {
-                        const set = new Set(ids.map(String));
-                        h.setAnimSel(h.optionsAnim.filter((o) => set.has(String(o.id))));
+                        h.setAnimSel(selectedFromOptions(h.optionsAnim, ids));
                       }}
                       options={h.optionsAnim.map((o) => ({
                         value: String(o.id),
@@ -1134,6 +1162,33 @@ export default function FormationWorkflowEditForm({
                 />
               </div>
               <Divider style={{ margin: '12px 0' }} />
+              <div className="edit-actors-email-add">
+                <div className="creation-field-label">
+                  <MailOutlined /> Ajouter par e-mail
+                </div>
+                <Space.Compact style={{ width: '100%' }}>
+                  <Input
+                    allowClear
+                    value={h.partEmail}
+                    onChange={(e) => h.setPartEmail(e.target.value)}
+                    onPressEnter={h.addPartByEmails}
+                    placeholder="email1@esprit.tn, email2@esprit.tn…"
+                    aria-label="E-mail d'un participant à ajouter"
+                  />
+                  <Button
+                    type="primary"
+                    ghost
+                    onClick={h.addPartByEmails}
+                    disabled={!h.partEmail.trim()}
+                  >
+                    Ajouter
+                  </Button>
+                </Space.Compact>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  Séparez plusieurs adresses par une virgule puis validez : l'e-mail doit
+                  correspondre à un enseignant ou à un compte existant.
+                </Text>
+              </div>
               <Spin spinning={isReloading} tip="Rechargement…">
                 {h.optionsPart.length === 0 ? (
                   <Empty
@@ -1150,8 +1205,7 @@ export default function FormationWorkflowEditForm({
                     size="large"
                     value={h.partSel.map((p) => String(p.id))}
                     onChange={(ids) => {
-                      const set = new Set(ids.map(String));
-                      h.setPartSel(h.optionsPart.filter((o) => set.has(String(o.id))));
+                      h.setPartSel(selectedFromOptions(h.optionsPart, ids));
                     }}
                     options={h.optionsPart.map((o) => ({
                       value: String(o.id),
@@ -1169,7 +1223,8 @@ export default function FormationWorkflowEditForm({
               {h.partSel.length > 0 && (
                 <div className="edit-actors-selected-summary">
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    <InfoCircleOutlined /> Astuce : vous pouvez importer un fichier Excel (1 colonne
+                    <InfoCircleOutlined /> Astuce : saisissez les e-mails dans le champ « Ajouter
+                    par e-mail » (séparés par des virgules) ou importez un fichier Excel (1 colonne
                     "Email") pour ajouter rapidement plusieurs participants.
                   </Text>
                 </div>
@@ -1455,25 +1510,53 @@ export default function FormationWorkflowEditForm({
               >
                 ← Retour
               </Button>
-              <Space size={10}>
+              <div className="edit-card-footer-actions">
                 {!h.isResponsableDossier && (
-                  <Button
-                    type="primary"
-                    size="large"
-                    htmlType="submit"
-                    icon={<SaveOutlined />}
-                    className="edit-btn-save"
-                    loading={h.saving}
-                  >
-                    Enregistrer
-                  </Button>
+                  <div className="edit-notify-toggle">
+                    <Switch
+                      size="small"
+                      checked={h.notifierActeurs}
+                      onChange={h.setNotifierActeurs}
+                      aria-label="Envoyer un e-mail aux animateurs et participants"
+                    />
+                    <div className="edit-notify-toggle-text">
+                      <span className="edit-notify-toggle-label">
+                        <MailOutlined /> E-mail aux animateurs et participants
+                      </span>
+                      <Tooltip
+                        title={
+                          h.notifierActeurs
+                            ? 'Un seul e-mail « Formation modifiée » sera envoyé à tous les animateurs et participants. Si l’état de la formation change, la notification de changement d’état remplace cet envoi.'
+                            : 'Aucun e-mail ne sera envoyé pour cette modification : même une personne ajoutée ou retirée ne sera pas prévenue. Les calendriers Outlook restent à jour ; un changement d’état déclenche toujours sa propre notification.'
+                        }
+                      >
+                        <span className="edit-notify-toggle-hint">
+                          {h.notifierActeurs ? 'Ils seront prévenus' : 'Aucun e-mail'}
+                        </span>
+                      </Tooltip>
+                    </div>
+                  </div>
                 )}
-                {activeStep < STEPS.length - 1 && (
-                  <Button size="large" onClick={goNext} className="edit-btn-next">
-                    Suivant →
-                  </Button>
-                )}
-              </Space>
+                <Space size={10}>
+                  {!h.isResponsableDossier && (
+                    <Button
+                      type="primary"
+                      size="large"
+                      htmlType="submit"
+                      icon={<SaveOutlined />}
+                      className="edit-btn-save"
+                      loading={h.saving}
+                    >
+                      Enregistrer
+                    </Button>
+                  )}
+                  {activeStep < STEPS.length - 1 && (
+                    <Button size="large" onClick={goNext} className="edit-btn-next">
+                      Suivant →
+                    </Button>
+                  )}
+                </Space>
+              </div>
             </div>
           </Card>
         </div>

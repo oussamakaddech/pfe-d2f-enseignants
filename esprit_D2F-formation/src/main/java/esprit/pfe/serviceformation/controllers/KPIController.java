@@ -72,6 +72,17 @@ public class KPIController {
         return ResponseEntity.ok(kpiService.getCountFormationsByCompetence(start, end));
     }
 
+    /**
+     * Formateurs distincts de la période (internes + externes, dédoublonnés).
+     * Périmètre appliqué côté serveur comme les autres agrégations.
+     */
+    @GetMapping("/formateurs")
+    public FormateursKpiDTO countFormateurs(
+            @RequestParam("start") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate start,
+            @RequestParam("end") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
+        return kpiService.countFormateurs(start, end);
+    }
+
     @GetMapping("/top-participants")
     public ResponseEntity<Object> topParticipants(
             @RequestParam(required = false) String upId,

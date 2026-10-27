@@ -36,7 +36,7 @@ import {
 import dayjs from 'dayjs';
 import 'dayjs/locale/fr';
 import { useAuth } from '@/hooks/auth/useAuth';
-import { useCupDashboard } from '@/hooks/dashboard/useCupDashboard';
+import { useCupDashboard, type DashboardPeriod } from '@/hooks/dashboard/useCupDashboard';
 import FormationService from '@/services/formation/FormationService';
 import InscriptionService from '@/services/formation/InscriptionService';
 import { hasAnyRole } from '@/utils/constants/roles';
@@ -51,7 +51,7 @@ const ACCENT = brand[500];
 
 const pct = (v: number | null) => Math.max(0, Math.min(100, Math.round(v ?? 0)));
 
-type PeriodKey = '30j' | 'trimestre' | 'semestre' | 'annee';
+type PeriodKey = DashboardPeriod;
 
 /** Formation à venir (données réelles depuis le backend). */
 interface FormationAVenir {
@@ -94,6 +94,12 @@ export default function CupDashboardPage() {
   const canReadOverview = hasAnyRole(user?.role, ['admin', 'CUP', 'CHEF_DEPARTEMENT']);
   // L'endpoint legacy in-demand est ouvert à ADMIN/CUP/CHEF_DEPARTEMENT (200 testé).
   const canReadInDemand = hasAnyRole(user?.role, ['admin', 'CUP', 'CHEF_DEPARTEMENT']);
+  // Cibles de navigation sûres : /home/Formation (écriture) est réservé à
+  // ADMIN/CUP/CHEF et /home/animateur-formations à ANIMATEUR/ENSEIGNANT/ADMIN/CUP.
+  // Le responsable de dossier voit ces tuiles depuis /home mais tomberait sur le
+  // RoleGuard : on l'envoie vers le catalogue (lecture), ouvert aux 4 rôles.
+  const catalogueHref = '/home/Formation/Consulter';
+  const canOpenPresences = hasAnyRole(user?.role, ['admin', 'CUP', 'Animateur', 'Enseignant']);
 
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<PeriodKey>('annee');
@@ -112,12 +118,16 @@ export default function CupDashboardPage() {
     formationsByDomaineLoading,
     formationsByCompetence,
     formationsByCompetenceLoading,
-  } = useCupDashboard(isPilotage, {
-    readKpis: canReadKpis,
-    readBesoins: canReadBesoins,
-    readOverview: canReadOverview,
-    readInDemand: canReadInDemand,
-  });
+  } = useCupDashboard(
+    isPilotage,
+    {
+      readKpis: canReadKpis,
+      readBesoins: canReadBesoins,
+      readOverview: canReadOverview,
+      readInDemand: canReadInDemand,
+    },
+    period,
+  );
 
   // Formations à venir (données réelles, filtrées depuis le référentiel formations).
   const { data: formationsRaw, isLoading: formationsLoading } = useQuery({
@@ -273,8 +283,8 @@ export default function CupDashboardPage() {
   };
   const periodLabel: Record<PeriodKey, string> = {
     '30j': '30 derniers jours',
-    trimestre: 'ce trimestre',
-    semestre: 'ce semestre',
+    trimestre: '3 derniers mois',
+    semestre: '6 derniers mois',
     annee: '12 derniers mois',
   };
   const chartData = useMemo(() => {
@@ -382,6 +392,53 @@ export default function CupDashboardPage() {
           },
         ]
       : []),
+    // ── Indicateurs de la période sélectionnée (30 j → 12 derniers mois) ──
+    {
+      id: 'heures',
+      label: 'Heures de formation',
+      value: kpis.totalHeures ?? 0,
+      suffix: 'h',
+      caption: periodLabel[period],
+      tone: 'blue' as const,
+      icon: <ClockCircleOutlined />,
+      detail: { label: 'Voir le catalogue', onClick: () => navigate(catalogueHref) },
+      spark: [kpis.totalHeures ?? 0],
+    },
+    {
+      id: 'formateurs',
+      label: 'Formateurs mobilisés',
+      value: kpis.formateurs?.total ?? 0,
+      suffix: '',
+      caption: `${kpis.formateurs?.internes ?? 0} internes · ${kpis.formateurs?.externes ?? 0} externes`,
+      tone: 'navy' as const,
+      icon: <TeamOutlined />,
+      detail: { label: 'Voir le catalogue', onClick: () => navigate(catalogueHref) },
+      spark: [kpis.formateurs?.total ?? 0],
+    },
+    {
+      id: 'participants-periode',
+      label: 'Participants formés',
+      value: kpis.participants ?? 0,
+      suffix: '',
+      caption: `participants de séance · ${periodLabel[period]}`,
+      tone: 'green' as const,
+      icon: <TeamOutlined />,
+      detail: canOpenPresences
+        ? { label: 'Suivi des présences', onClick: () => navigate('/home/animateur-formations') }
+        : { label: 'Voir le catalogue', onClick: () => navigate(catalogueHref) },
+      spark: [kpis.participants ?? 0],
+    },
+    {
+      id: 'formations-competence',
+      label: 'Compétences couvertes',
+      value: kpis.competencesCouvertes ?? 0,
+      suffix: '',
+      caption: `${kpis.liensCompetences ?? 0} rattachements formation · 12 derniers mois`,
+      tone: 'orange' as const,
+      icon: <ThunderboltOutlined />,
+      detail: { label: 'Voir la répartition', onClick: () => scrollTo('cd-domaines') },
+      spark: [kpis.competencesCouvertes ?? 0],
+    },
   ];
 
   const prioColor = (v: string) => {
@@ -542,6 +599,25 @@ export default function CupDashboardPage() {
       </section>
 
       {/* ── KPI principaux ──────────────────────────────────── */}
+      <div className="cd-kpi-toolbar">
+        <div className="cd-kpi-toolbar-titles">
+          <span className="cd-kpi-toolbar-label">Indicateurs clés</span>
+          <span className="cd-kpi-toolbar-hint">
+            Heures, formateurs et participants comptés sur {periodLabel[period]}
+          </span>
+        </div>
+        <Segmented
+          size="small"
+          value={period}
+          onChange={(v) => setPeriod(v as PeriodKey)}
+          options={[
+            { label: '30 j', value: '30j' },
+            { label: '3 mois', value: 'trimestre' },
+            { label: '6 mois', value: 'semestre' },
+            { label: '12 mois', value: 'annee' },
+          ]}
+        />
+      </div>
       <section className="cd-kpis">
         {kpiList.map((k) => (
           <KpiTile key={k.id} {...k} />
@@ -581,9 +657,9 @@ export default function CupDashboardPage() {
               onChange={(v) => setPeriod(v as PeriodKey)}
               options={[
                 { label: '30 j', value: '30j' },
-                { label: 'Trimestre', value: 'trimestre' },
-                { label: 'Semestre', value: 'semestre' },
-                { label: 'Année', value: 'annee' },
+                { label: '3 mois', value: 'trimestre' },
+                { label: '6 mois', value: 'semestre' },
+                { label: '12 mois', value: 'annee' },
               ]}
             />
           }

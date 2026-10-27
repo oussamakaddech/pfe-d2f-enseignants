@@ -922,6 +922,109 @@ class FormationWorkflowServiceTest {
     }
 
     @Test
+    @DisplayName("updateFormationWorkflow - notifierActeurs=true : un seul « Formation modifiée » à tous les acteurs, aucun e-mail d'ajout")
+    void shouldMailAllActorsOnceWhenRequested() {
+        Formation existing = createFullFormation();
+        existing.setIdFormation(1L);
+        existing.setEtatFormation(EtatFormation.PLANIFIE);
+        Enseignant p1 = enseignant("P1", "p1@esprit.tn");
+        Enseignant p2 = enseignant("P2", "p2@esprit.tn");
+        SeanceFormation s10 = seance(10L, existing, "2026-10-10", p1, "EV10");
+        existing.setSeances(new ArrayList<>(List.of(s10)));
+
+        FormationWorkflowRequest.SeanceRequest sr10 = createSeanceRequest("2026-10-10", "09:00", "11:00");
+        sr10.setIdSeance(10L);
+        sr10.setSalle("A1");
+        request.setSeances(List.of(sr10));
+        request.setParticipantsIds(List.of("P1", "P2"));
+        request.setEtatFormation(EtatFormation.PLANIFIE);
+        request.setNotifierActeurs(true);
+
+        lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        lenient().when(formationRepository.save(any())).thenReturn(existing);
+        lenient().when(enseignantRepository.findAllById(anySet())).thenReturn(List.of(p1, p2));
+        lenient().when(enseignantRepository.findById("P1")).thenReturn(Optional.of(p1));
+        lenient().when(enseignantRepository.findById("P2")).thenReturn(Optional.of(p2));
+        lenient().when(helper.parseTime(anyString())).thenAnswer(inv -> LocalTime.parse(inv.getArgument(0)));
+        lenient().when(seanceFormationRepository.findById(10L)).thenReturn(Optional.of(s10));
+        lenient().when(outlookCalendarService.updateEventInCalendarWithTeamsUrl(any()))
+                .thenReturn(new OutlookCalendarService.EventCreationResult("EV10", null));
+
+        formationWorkflowService.updateFormationWorkflow(1L, request);
+
+        // Les deux acteurs reçoivent le même message de modification, y compris celui
+        // qui n'a pas changé : plus d'e-mail « Ajout à la formation » dans ce mode.
+        verify(outlookMailService).sendMail(eq("p1@esprit.tn"), contains("Formation modifiée"), anyString());
+        verify(outlookMailService).sendMail(eq("p2@esprit.tn"), contains("Formation modifiée"), anyString());
+        verify(outlookMailService, never()).sendMail(anyString(), contains("Ajout à la formation"), anyString());
+        verify(outlookMailService, times(2)).sendMail(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("updateFormationWorkflow - notifierActeurs=true sur une formation sans événement Outlook : l'e-mail part quand même")
+    void shouldMailActorsEvenWhenFormationHasNoOutlookEvent() {
+        Formation existing = createFullFormation(); // ENREGISTRE : aucun événement Outlook
+        existing.setIdFormation(1L);
+        Enseignant p1 = enseignant("P1", "p1@esprit.tn");
+        SeanceFormation s10 = seance(10L, existing, "2026-10-10", p1, null);
+        existing.setSeances(new ArrayList<>(List.of(s10)));
+
+        FormationWorkflowRequest.SeanceRequest sr10 = createSeanceRequest("2026-10-10", "09:00", "11:00");
+        sr10.setIdSeance(10L);
+        sr10.setSalle("A1");
+        request.setSeances(List.of(sr10));
+        request.setParticipantsIds(List.of("P1"));
+        request.setEtatFormation(EtatFormation.ENREGISTRE);
+        request.setNotifierActeurs(true);
+
+        lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        lenient().when(formationRepository.save(any())).thenReturn(existing);
+        lenient().when(enseignantRepository.findAllById(anySet())).thenReturn(List.of(p1));
+        lenient().when(enseignantRepository.findById("P1")).thenReturn(Optional.of(p1));
+        lenient().when(helper.parseTime(anyString())).thenAnswer(inv -> LocalTime.parse(inv.getArgument(0)));
+
+        formationWorkflowService.updateFormationWorkflow(1L, request);
+
+        verify(outlookCalendarService, never()).updateEventInCalendarWithTeamsUrl(any());
+        verify(outlookMailService).sendMail(eq("p1@esprit.tn"), contains("Formation modifiée"), anyString());
+    }
+
+    @Test
+    @DisplayName("updateFormationWorkflow - notifierActeurs=false : aucun e-mail, calendriers quand même mis à jour")
+    void shouldSendNoMailWhenUserOptsOut() {
+        Formation existing = createFullFormation();
+        existing.setIdFormation(1L);
+        existing.setEtatFormation(EtatFormation.PLANIFIE);
+        Enseignant p1 = enseignant("P1", "p1@esprit.tn");
+        Enseignant p2 = enseignant("P2", "p2@esprit.tn");
+        SeanceFormation s10 = seance(10L, existing, "2026-10-10", p1, "EV10");
+        existing.setSeances(new ArrayList<>(List.of(s10)));
+
+        FormationWorkflowRequest.SeanceRequest sr10 = createSeanceRequest("2026-10-10", "09:00", "11:00");
+        sr10.setIdSeance(10L);
+        sr10.setSalle("B2"); // planning modifié : resynchronisation attendue
+        request.setSeances(List.of(sr10));
+        request.setParticipantsIds(List.of("P1", "P2"));
+        request.setEtatFormation(EtatFormation.PLANIFIE);
+        request.setNotifierActeurs(false);
+
+        lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        lenient().when(formationRepository.save(any())).thenReturn(existing);
+        lenient().when(enseignantRepository.findAllById(anySet())).thenReturn(List.of(p1, p2));
+        lenient().when(enseignantRepository.findById("P1")).thenReturn(Optional.of(p1));
+        lenient().when(enseignantRepository.findById("P2")).thenReturn(Optional.of(p2));
+        lenient().when(helper.parseTime(anyString())).thenAnswer(inv -> LocalTime.parse(inv.getArgument(0)));
+        lenient().when(seanceFormationRepository.findById(10L)).thenReturn(Optional.of(s10));
+        lenient().when(outlookCalendarService.updateEventInCalendarWithTeamsUrl(any()))
+                .thenReturn(new OutlookCalendarService.EventCreationResult("EV10", null));
+
+        formationWorkflowService.updateFormationWorkflow(1L, request);
+
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
+        verify(outlookCalendarService, times(1)).updateEventInCalendarWithTeamsUrl(any());
+    }
+
+    @Test
     @DisplayName("updateFormationWorkflow - Salle modifiée + participant ajouté : calendriers personnels à jour, seul le nouveau reçoit un e-mail")
     void shouldUpdatePersonalCalendarsAndMailOnlyAddedPerson() {
         Formation existing = createFullFormation();

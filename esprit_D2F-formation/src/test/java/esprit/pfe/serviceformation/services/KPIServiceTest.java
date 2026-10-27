@@ -31,6 +31,7 @@ class KPIServiceTest {
     @Mock private UpRepository upRepository;
     @Mock private DeptRepository deptRepository;
     @Mock private EnseignantRepository enseignantRepository;
+    @Mock private FormationCompetenceRepository formationCompetenceRepository;
     @Mock private KpiScopeService kpiScopeService;
     @InjectMocks private KPIService service;
 
@@ -419,5 +420,95 @@ class KPIServiceTest {
         assertEquals(0L, result.getInterne());
         assertEquals(0L, result.getExterne());
         assertEquals(0L, result.getEnLigne());
+    }
+
+    // ── Formations par compétence : référentiel d'abord, colonne libre en repli ──
+
+    @Test
+    void getCountFormationsByCompetence_shouldPreferReferentielLinks() {
+        when(formationCompetenceRepository.countFormationsByCompetenceReferentielScoped(any(), any(), any(), any()))
+                .thenReturn(List.of(
+                        new Object[] { "BIM & Modélisation", 7L, 3L },
+                        new Object[] { null, 12L, 2L }));
+
+        List<CountByLabelDTO> result = service.getCountFormationsByCompetence(start, end);
+
+        assertEquals(2, result.size());
+        assertEquals("BIM & Modélisation", result.get(0).getLabel());
+        assertEquals(3L, result.get(0).getCount());
+        // Libellé de repli quand competenceNom n'a pas été recopié.
+        assertEquals("Compétence 12", result.get(1).getLabel());
+        assertEquals(2L, result.get(1).getCount());
+        verify(formationRepository, never()).countFormationsByCompetenceScoped(any(), any(), any(), any());
+    }
+
+    @Test
+    void getCountFormationsByCompetence_shouldMergeOneCompetenceRenamed() {
+        // `competence_nom` est dénormalisé : une compétence renommée apparaît sous
+        // deux libellés pour le même identifiant — une seule barre, effectifs cumulés.
+        when(formationCompetenceRepository.countFormationsByCompetenceReferentielScoped(any(), any(), any(), any()))
+                .thenReturn(List.of(
+                        new Object[] { "BIM", 7L, 3L },
+                        new Object[] { "BIM & Modélisation", 7L, 2L },
+                        // Libellé de repli rencontré AVANT le vrai nom : il cède la place.
+                        new Object[] { null, 9L, 1L },
+                        new Object[] { "Géotechnique", 9L, 3L }));
+
+        List<CountByLabelDTO> result = service.getCountFormationsByCompetence(start, end);
+
+        assertEquals(2, result.size());
+        assertEquals("BIM", result.get(0).getLabel());
+        assertEquals(5L, result.get(0).getCount());
+        assertEquals("Géotechnique", result.get(1).getLabel());
+        assertEquals(4L, result.get(1).getCount());
+    }
+
+    @Test
+    void getCountFormationsByCompetence_shouldFallBackToLegacyColumnWhenNoLink() {
+        when(formationCompetenceRepository.countFormationsByCompetenceReferentielScoped(any(), any(), any(), any()))
+                .thenReturn(List.of());
+        when(formationRepository.countFormationsByCompetenceScoped(any(), any(), any(), any()))
+                .thenReturn(java.util.Collections.singletonList(new Object[] { "Maintenance", 4L }));
+
+        List<CountByLabelDTO> result = service.getCountFormationsByCompetence(start, end);
+
+        assertEquals(1, result.size());
+        assertEquals("Maintenance", result.get(0).getLabel());
+        assertEquals(4L, result.get(0).getCount());
+    }
+
+    // ── Formateurs : fusion formation + séance, jamais addition ──
+
+    @Test
+    void countFormateurs_shouldMergeFormationAndSeanceAnimateursWithoutDoubleCounting() {
+        when(formationRepository.findDistinctAnimateurIdsScoped(any(), any(), any(), any()))
+                .thenReturn(List.of("E00001", "E00002"));
+        // E00002 est recopié de la formation dans ses séances : il ne compte qu'une fois.
+        when(formationRepository.findDistinctSeanceAnimateurIdsScoped(any(), any(), any(), any()))
+                .thenReturn(List.of("E00002", "E00003"));
+        when(formationRepository.findDistinctAnimateurExterneIdsScoped(any(), any(), any(), any()))
+                .thenReturn(List.of(10L, 11L));
+
+        FormateursKpiDTO dto = service.countFormateurs(start, end);
+
+        assertEquals(3L, dto.getInternes());
+        assertEquals(2L, dto.getExternes());
+        assertEquals(5L, dto.getTotal());
+    }
+
+    @Test
+    void countFormateurs_withNoAnimateur_shouldReturnZeros() {
+        when(formationRepository.findDistinctAnimateurIdsScoped(any(), any(), any(), any()))
+                .thenReturn(null);
+        when(formationRepository.findDistinctSeanceAnimateurIdsScoped(any(), any(), any(), any()))
+                .thenReturn(null);
+        when(formationRepository.findDistinctAnimateurExterneIdsScoped(any(), any(), any(), any()))
+                .thenReturn(null);
+
+        FormateursKpiDTO dto = service.countFormateurs(start, end);
+
+        assertEquals(0L, dto.getTotal());
+        assertEquals(0L, dto.getInternes());
+        assertEquals(0L, dto.getExternes());
     }
 }

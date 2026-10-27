@@ -161,6 +161,41 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
   List<Object[]> countFormationsByCompetenceScoped(@Param("start") LocalDate start, @Param("end") LocalDate end,
       @Param("upId") String upId, @Param("deptId") String deptId);
 
+  // ==================== FORMATEURS (KPI) ====================
+  // Trois listes d'identifiants DISTINCTS à réunir côté service : un animateur
+  // de formation est recopié dans les séances qui n'ont pas d'animateur explicite
+  // (cf. FormationWorkflowServiceHelper), donc les additionner compterait deux
+  // fois la même personne. Les ids ne sont pas de même type : Enseignant.id est
+  // une chaîne (« E00007 »), AnimateurExterne.id un entier.
+
+  @Query("""
+      SELECT DISTINCT a.id FROM Formation f JOIN f.animateurs a
+      WHERE f.dateDebut BETWEEN :start AND :end
+        AND (:upId IS NULL OR f.up.id = :upId)
+        AND (:deptId IS NULL OR f.departement.id = :deptId)
+      """)
+  List<String> findDistinctAnimateurIdsScoped(@Param("start") LocalDate start, @Param("end") LocalDate end,
+      @Param("upId") String upId, @Param("deptId") String deptId);
+
+  @Query("""
+      SELECT DISTINCT a.id FROM Formation f
+      JOIN f.seances s JOIN s.animateurs a
+      WHERE f.dateDebut BETWEEN :start AND :end
+        AND (:upId IS NULL OR f.up.id = :upId)
+        AND (:deptId IS NULL OR f.departement.id = :deptId)
+      """)
+  List<String> findDistinctSeanceAnimateurIdsScoped(@Param("start") LocalDate start, @Param("end") LocalDate end,
+      @Param("upId") String upId, @Param("deptId") String deptId);
+
+  @Query("""
+      SELECT DISTINCT ae.id FROM Formation f JOIN f.animateursExternes ae
+      WHERE f.dateDebut BETWEEN :start AND :end
+        AND (:upId IS NULL OR f.up.id = :upId)
+        AND (:deptId IS NULL OR f.departement.id = :deptId)
+      """)
+  List<Long> findDistinctAnimateurExterneIdsScoped(@Param("start") LocalDate start, @Param("end") LocalDate end,
+      @Param("upId") String upId, @Param("deptId") String deptId);
+
   // ==================== TEACHER QUERIES ====================
   
   List<Formation> findDistinctBySeances_Animateurs_Id(String enseignantId);

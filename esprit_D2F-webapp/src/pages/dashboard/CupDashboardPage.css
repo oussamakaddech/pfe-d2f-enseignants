@@ -291,6 +291,32 @@
 }
 
 /* ── KPI grid ───────────────────────────────────────────────── */
+.cd-kpi-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-top: 28px;
+}
+.cd-kpi-toolbar-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cd-kpi-toolbar-label {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--ink);
+}
+.cd-kpi-toolbar-hint {
+  font-size: var(--fs-sm);
+  color: var(--ink-3);
+}
+.cd-kpi-toolbar + .cd-kpis {
+  margin-top: 14px;
+}
+
 .cd-kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

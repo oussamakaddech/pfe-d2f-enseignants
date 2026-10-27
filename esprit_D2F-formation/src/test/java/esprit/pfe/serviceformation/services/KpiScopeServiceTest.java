@@ -7,6 +7,7 @@ import esprit.pfe.serviceformation.entities.Dept;
 import esprit.pfe.serviceformation.exception.AccessDeniedException;
 import esprit.pfe.serviceformation.repositories.DeptRepository;
 import esprit.pfe.serviceformation.repositories.EnseignantRepository;
+import esprit.pfe.serviceformation.repositories.FormationCompetenceRepository;
 import esprit.pfe.serviceformation.repositories.FormationRepository;
 import esprit.pfe.serviceformation.repositories.PresenceRepository;
 import esprit.pfe.serviceformation.repositories.UpRepository;
@@ -55,6 +56,8 @@ class KpiScopeServiceTest {
     private DeptRepository deptRepository;
     @Mock
     private EnseignantRepository enseignantRepository;
+    @Mock
+    private FormationCompetenceRepository formationCompetenceRepository;
     @Mock
     private KpiScopeService kpiScopeService;
 

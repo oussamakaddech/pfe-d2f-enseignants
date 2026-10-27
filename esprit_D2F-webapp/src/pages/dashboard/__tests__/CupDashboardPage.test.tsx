@@ -22,6 +22,9 @@ const baseKpis = {
   tauxParticipation: 80,
   totalHeures: 100,
   participants: 50,
+  formateurs: { total: 7, internes: 5, externes: 2 },
+  competencesCouvertes: 6,
+  liensCompetences: 14,
   pendingBesoins: 2,
   critiques: 1,
   totalBesoins: 2,
@@ -90,6 +93,25 @@ describe('CupDashboardPage', () => {
     expect(screen.getByRole('heading', { name: 'Tableau de bord' })).toBeInTheDocument();
     expect(screen.getByText('Formations actives')).toBeInTheDocument();
     expect(screen.getByText('Répartition par type')).toBeInTheDocument();
+  });
+
+  it('renders the period KPIs (heures, formateurs, participants, compétences)', () => {
+    renderWith(queryClient);
+    expect(screen.getByText('Heures de formation')).toBeInTheDocument();
+    expect(screen.getByText('Formateurs mobilisés')).toBeInTheDocument();
+    expect(screen.getByText('Participants formés')).toBeInTheDocument();
+    expect(screen.getByText('Compétences couvertes')).toBeInTheDocument();
+    // Détail des formateurs : internes / externes distincts.
+    expect(screen.getByText('5 internes · 2 externes')).toBeInTheDocument();
+    // Libellé de période : 12 derniers mois par défaut.
+    expect(screen.getAllByText(/12 derniers mois/).length).toBeGreaterThan(0);
+  });
+
+  it('changes the indicator period when a period is selected', () => {
+    renderWith(queryClient);
+    fireEvent.click(screen.getAllByText('3 mois')[0]);
+    // Les deux contrôles de période (KPI + graphique) partagent le même état.
+    expect(screen.getAllByText(/3 derniers mois/).length).toBeGreaterThan(0);
   });
 
   it('renders besoins and top competences data', () => {
@@ -257,8 +279,11 @@ describe('CupDashboardPage', () => {
       } as any),
     );
     renderWith(queryClient);
-    expect(screen.getByText(/12 derniers mois/)).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Trimestre'));
-    await waitFor(() => expect(screen.getByText(/ce trimestre/)).toBeInTheDocument());
+    expect(screen.getAllByText(/12 derniers mois/).length).toBeGreaterThan(0);
+    // Le sélecteur du graphique et celui des KPI pilotent la même période.
+    await userEvent.click(screen.getAllByText('3 mois').at(-1)!);
+    await waitFor(() =>
+      expect(screen.getAllByText(/3 derniers mois/).length).toBeGreaterThan(0),
+    );
   });
 });

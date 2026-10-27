@@ -12,7 +12,13 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +29,7 @@ public class KPIService {
     private final UpRepository upRepository;
     private final DeptRepository deptRepository;
     private final EnseignantRepository enseignantRepository;
+    private final FormationCompetenceRepository formationCompetenceRepository;
     private final KpiScopeService kpiScopeService;
 
     /**
@@ -65,6 +72,42 @@ public class KPIService {
     public int countUniqueParticipants(LocalDate start, LocalDate end) {
         KpiScopeService.KpiScope scope = scopeOrThrow();
         return formationRepository.countUniqueParticipantsScoped(start, end, scope.upId(), scope.deptId());
+    }
+
+    /**
+     * Formateurs distincts de la période : animateurs internes (au niveau
+     * formation OU au niveau séance — les deux listes sont fusionnées, jamais
+     * additionnées) et animateurs externes.
+     */
+    public FormateursKpiDTO countFormateurs(LocalDate start, LocalDate end) {
+        validateDates(start, end);
+        KpiScopeService.KpiScope scope = scopeOrThrow();
+
+        Set<String> internes = new HashSet<>();
+        addAllNonNull(internes, formationRepository.findDistinctAnimateurIdsScoped(
+                start, end, scope.upId(), scope.deptId()));
+        addAllNonNull(internes, formationRepository.findDistinctSeanceAnimateurIdsScoped(
+                start, end, scope.upId(), scope.deptId()));
+
+        Set<Long> externes = new HashSet<>();
+        addAllNonNull(externes, formationRepository.findDistinctAnimateurExterneIdsScoped(
+                start, end, scope.upId(), scope.deptId()));
+
+        return new FormateursKpiDTO(
+                (long) internes.size() + externes.size(),
+                internes.size(),
+                externes.size());
+    }
+
+    private static <T> void addAllNonNull(Set<T> target, Collection<T> values) {
+        if (values == null) {
+            return;
+        }
+        for (T value : values) {
+            if (value != null) {
+                target.add(value);
+            }
+        }
     }
 
     public FormationsByEtatDTO getFormationsByEtat(LocalDate start, LocalDate end) {
@@ -165,10 +208,55 @@ public class KPIService {
     public List<CountByLabelDTO> getCountFormationsByCompetence(LocalDate start, LocalDate end) {
         validateDates(start, end);
         KpiScopeService.KpiScope scope = kpiScopeService.resolveScope();
+        // Source de vérité : les compétences RATTACHÉES (formation_competences),
+        // là où le formulaire de formation enregistre réellement la compétence
+        // visée. La colonne historique `formations.competence` (texte libre)
+        // n'est qu'un repli pour les formations jamais rattachées.
+        List<Object[]> referentiel = formationCompetenceRepository
+                .countFormationsByCompetenceReferentielScoped(start, end, scope.upId(), scope.deptId());
+        if (referentiel != null && !referentiel.isEmpty()) {
+            return mergeByCompetenceId(referentiel);
+        }
         return formationRepository.countFormationsByCompetenceScoped(start, end, scope.upId(), scope.deptId())
                 .stream()
                 .map(row -> new CountByLabelDTO((String) row[0], ((Long) row[1]).intValue()))
                 .toList();
+    }
+
+    /**
+     * Fusionne les lignes [competenceNom, competenceId, count] par identifiant de
+     * compétence : `competence_nom` est dénormalisé au moment du rattachement, donc
+     * une compétence renommée apparaît sous deux libellés. Sans fusion, elle
+     * compterait deux fois dans « compétences couvertes ». Le premier libellé non
+     * vide est conservé (les effectifs s'additionnent).
+     */
+    private static List<CountByLabelDTO> mergeByCompetenceId(List<Object[]> rows) {
+        Map<Long, CountByLabelDTO> merged = new LinkedHashMap<>();
+        for (Object[] row : rows) {
+            Long id = (Long) row[1];
+            if (id == null) {
+                continue;
+            }
+            String nom = (String) row[0];
+            long count = ((Number) row[2]).longValue();
+            CountByLabelDTO existing = merged.get(id);
+            if (existing == null) {
+                String label = (nom == null || nom.isBlank()) ? "Compétence " + id : nom;
+                merged.put(id, new CountByLabelDTO(label, count));
+            } else {
+                existing.setCount(existing.getCount() + count);
+                if (isBlankLabel(existing.getLabel()) && nom != null && !nom.isBlank()) {
+                    existing.setLabel(nom);
+                }
+            }
+        }
+        return merged.values().stream()
+                .sorted(Comparator.comparingLong(CountByLabelDTO::getCount).reversed())
+                .toList();
+    }
+
+    private static boolean isBlankLabel(String label) {
+        return label == null || label.startsWith("Compétence ");
     }
 
     public CountByTrainerTypeWithIdsDTO getCountByTrainerTypeWithIds(FormationFilter filter, String etatParam) {

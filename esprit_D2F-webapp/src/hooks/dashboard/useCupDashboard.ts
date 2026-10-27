@@ -11,6 +11,25 @@ const START = dayjs().subtract(12, 'month').startOf('month').format('YYYY-MM-DD'
 const END = dayjs().format('YYYY-MM-DD');
 const STALE = 5 * 60 * 1000;
 
+/** Période d'observation des indicateurs (fenêtre glissante jusqu'à aujourd'hui). */
+export type DashboardPeriod = '30j' | 'trimestre' | 'semestre' | 'annee';
+
+const PERIOD_MONTHS: Record<Exclude<DashboardPeriod, '30j'>, number> = {
+  trimestre: 3,
+  semestre: 6,
+  annee: 12,
+};
+
+/** Bornes `YYYY-MM-DD` de la fenêtre glissante correspondant à la période. */
+export function periodRange(period: DashboardPeriod): { start: string; end: string } {
+  const now = dayjs();
+  const start =
+    period === '30j'
+      ? now.subtract(30, 'day')
+      : now.subtract(PERIOD_MONTHS[period], 'month');
+  return { start: start.format('YYYY-MM-DD'), end: now.format('YYYY-MM-DD') };
+}
+
 export interface CompetenceDemandee {
   name: string;
   count: number;
@@ -100,13 +119,24 @@ const CAN_READ_KPIS = [
   'ResponsableDossier',
 ] as const;
 
-export function useCupDashboard(pilotage: boolean = true, access: CupDashboardAccess = {}) {
+export function useCupDashboard(
+  pilotage: boolean = true,
+  access: CupDashboardAccess = {},
+  period: DashboardPeriod = 'annee',
+) {
   // Sans garde, ces requêtes partaient en 403 pour l'enseignant (KPI + besoins)
   // et en 403 pour le chef (overview — ADMIN/CUP uniquement).
   const readKpis = access.readKpis ?? pilotage;
   const readBesoins = access.readBesoins ?? pilotage;
   const readOverview = access.readOverview ?? pilotage;
   const readInDemand = access.readInDemand ?? pilotage;
+
+  // Fenêtre des indicateurs « de période » (heures, formateurs, participants).
+  // Les répartitions (domaines / compétences) et l'évolution mensuelle gardent
+  // leur fenêtre de 12 mois pour rester comparables au reste de la page.
+  const window = useMemo(() => periodRange(period), [period]);
+  const wStart = window.start;
+  const wEnd = window.end;
 
   const { data: formationsByEtat, isLoading: etatLoading } = useQuery({
     queryKey: ['kpi', 'formations-by-etat', START, END],
@@ -149,15 +179,24 @@ export function useCupDashboard(pilotage: boolean = true, access: CupDashboardAc
   );
 
   const { data: heures } = useQuery({
-    queryKey: ['kpi', 'heures', START, END],
-    queryFn: () => KPIService.getTotalHeures(START, END),
+    queryKey: ['kpi', 'heures', wStart, wEnd],
+    queryFn: () => KPIService.getTotalHeures(wStart, wEnd),
     staleTime: STALE,
     enabled: readKpis,
   });
 
   const { data: participants } = useQuery({
-    queryKey: ['kpi', 'participants', START, END],
-    queryFn: () => KPIService.getUniqueParticipants(START, END),
+    queryKey: ['kpi', 'participants', wStart, wEnd],
+    queryFn: () => KPIService.getUniqueParticipants(wStart, wEnd),
+    staleTime: STALE,
+    enabled: readKpis,
+  });
+
+  // Formateurs distincts (internes dédoublonnés + externes) : le serveur réunit
+  // les animateurs de formation et de séance, on n'additionne jamais les deux.
+  const { data: formateurs } = useQuery({
+    queryKey: ['kpi', 'formateurs', wStart, wEnd],
+    queryFn: () => KPIService.getFormateurs(wStart, wEnd),
     staleTime: STALE,
     enabled: readKpis,
   });
@@ -341,8 +380,14 @@ export function useCupDashboard(pilotage: boolean = true, access: CupDashboardAc
       enCours,
       tauxReussiteGlobal,
       tauxParticipation,
+      // Fenêtre = période sélectionnée (30 j / 3 / 6 / 12 derniers mois).
       totalHeures: heures ?? 0,
       participants: participants ?? 0,
+      formateurs: formateurs ?? { total: 0, internes: 0, externes: 0 },
+      // Compétences du référentiel couvertes par au moins une formation.
+      competencesCouvertes: formationsByCompetence.length,
+      // Rattachements formation ↔ compétence (une formation peut en couvrir plusieurs).
+      liensCompetences: formationsByCompetence.reduce((s, c) => s + (c.count ?? 0), 0),
       pendingBesoins,
       critiques,
       totalBesoins: besoins.length,
@@ -359,7 +404,16 @@ export function useCupDashboard(pilotage: boolean = true, access: CupDashboardAc
           ? Math.round((overview.deltas.taux_couverture_global as number) * 10) / 10
           : null,
     };
-  }, [formationsByEtat, deptAnalytics, besoins, heures, participants, overview]);
+  }, [
+    formationsByEtat,
+    deptAnalytics,
+    besoins,
+    heures,
+    participants,
+    formateurs,
+    formationsByCompetence,
+    overview,
+  ]);
 
   return {
     kpis,

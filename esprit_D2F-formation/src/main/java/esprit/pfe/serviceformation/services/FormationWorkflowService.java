@@ -414,33 +414,92 @@ public class FormationWorkflowService {
         // que lors d'un changement d'état.
         // Seules les séances réellement modifiées ou ajoutées sont resynchronisées.
         // Changement de date, d'horaire, de salle, séance ajoutée ou supprimée : mise à
-        // jour des calendriers Microsoft uniquement, AUCUN e-mail. Seul l'ajout / le
-        // retrait d'un participant ou d'un animateur prévient la personne concernée.
-        if (formation.getEtatFormation() == oldEtat && hasOutlookEvents(formation)) {
-            Set<Long> aSynchroniser = changedSeanceIds(signaturesAvant, managedList, formation, true);
-            Map<String, Personne> personnesApres = personnesConcernees(formation);
-            Map<String, Personne> ajoutees = new LinkedHashMap<>();
-            personnesApres.forEach((mail, pers) -> {
-                Personne avant = personnesAvant.get(mail);
-                if (avant == null || !avant.role().equals(pers.role())) {
-                    ajoutees.put(mail, pers);
-                }
-            });
-            Map<String, Personne> retirees = new LinkedHashMap<>(personnesAvant);
-            retirees.keySet().removeAll(personnesApres.keySet());
-
-            apresValidation(formation, f -> {
-                for (Long seanceId : aSynchroniser) {
-                    seanceFormationRepository.findById(seanceId).ifPresent(seance -> synchronizeSeance(f, seance));
-                }
-                notifyPersonnesAjoutees(f, ajoutees);
-                notifyPersonnesRetirees(f, retirees);
-            });
+        // jour des calendriers Microsoft uniquement. L'e-mail, lui, suit le choix de
+        // l'écran de modification (notifierActeurs) : un seul « Formation modifiée » à
+        // tous les animateurs et participants, aucun e-mail, ou le comportement
+        // historique (seule la personne ajoutée / retirée est prévenue).
+        Boolean notifierActeurs = request.getNotifierActeurs();
+        boolean evenementsOutlook = hasOutlookEvents(formation);
+        if (formation.getEtatFormation() == oldEtat && (evenementsOutlook || notifierActeurs != null)) {
+            propagerModificationEtNotifier(formation, signaturesAvant, managedList, personnesAvant,
+                    notifierActeurs, evenementsOutlook);
         }
         syncPresencesForSeances(managedList, request.getParticipantsIds());
         publishEvaluationUpdatesIfPossible(formationId, request.getParticipantsIds());
 
         return formationRepository.save(formation);
+    }
+
+    /**
+     * Modification d'une formation dont l'état ne change pas : resynchronise les séances
+     * modifiées dans les calendriers Microsoft (si des événements existent) puis applique
+     * le choix d'e-mail de l'écran de modification.
+     */
+    private void propagerModificationEtNotifier(Formation formation, Map<Long, String> signaturesAvant,
+            List<SeanceFormation> managedList, Map<String, Personne> personnesAvant,
+            Boolean notifierActeurs, boolean evenementsOutlook) {
+        Set<Long> aSynchroniser = evenementsOutlook
+                ? changedSeanceIds(signaturesAvant, managedList, formation, true)
+                : Collections.emptySet();
+        Map<String, Personne> personnesApres = personnesConcernees(formation);
+        Map<String, Personne> ajoutees = new LinkedHashMap<>();
+        personnesApres.forEach((mail, pers) -> {
+            Personne avant = personnesAvant.get(mail);
+            if (avant == null || !avant.role().equals(pers.role())) {
+                ajoutees.put(mail, pers);
+            }
+        });
+        Map<String, Personne> retirees = new LinkedHashMap<>(personnesAvant);
+        retirees.keySet().removeAll(personnesApres.keySet());
+
+        apresValidation(formation, f -> {
+            for (Long seanceId : aSynchroniser) {
+                seanceFormationRepository.findById(seanceId).ifPresent(seance -> synchronizeSeance(f, seance));
+            }
+            appliquerChoixNotification(f, notifierActeurs, personnesApres, ajoutees, retirees);
+        });
+    }
+
+    /**
+     * Choix de l'écran de modification : {@code false} = aucun e-mail, {@code true} = un
+     * seul « Formation modifiée » à tous les animateurs et participants, {@code null} =
+     * comportement historique (seule la personne ajoutée / retirée est prévenue).
+     */
+    private void appliquerChoixNotification(Formation formation, Boolean notifierActeurs,
+            Map<String, Personne> personnesApres, Map<String, Personne> ajoutees,
+            Map<String, Personne> retirees) {
+        if (Boolean.FALSE.equals(notifierActeurs)) {
+            log.info("Modification de la formation {} : aucun e-mail demande par l'utilisateur.",
+                    formation.getIdFormation());
+            return;
+        }
+        if (Boolean.TRUE.equals(notifierActeurs)) {
+            notifierModification(formation, personnesApres);
+            return;
+        }
+        notifyPersonnesAjoutees(formation, ajoutees);
+        notifyPersonnesRetirees(formation, retirees);
+    }
+
+    // ── Formation modifiée : un seul e-mail à tous les animateurs et participants ──
+    private void notifierModification(Formation formation, Map<String, Personne> destinataires) {
+        if (destinataires.isEmpty()) {
+            log.info("Modification de la formation {} : aucun animateur ni participant a prevenir.",
+                    formation.getIdFormation());
+            return;
+        }
+        String cta = LINK_START + platformUrl + formationsPath + formation.getIdFormation() + "\" "
+                + "style=\"background:#1565c0;color:#fff;padding:10px 20px;border-radius:6px;"
+                + "text-decoration:none;font-weight:bold;display:inline-block;margin-top:8px;\">"
+                + "Ouvrir la formation</a>";
+        sendNotificationTo(formation, destinataires.keySet(), buildNameByEmail(formation),
+                "[D2F] Formation modifiée : " + formation.getTitreFormation(),
+                "Formation modifiée", "✏️",
+                "La formation à laquelle vous êtes rattaché(e) vient d'être modifiée. "
+                        + "Le récapitulatif ci-dessous reflète son état actuel.",
+                "#1565c0",
+                "Les changements de date, d'horaire et de salle sont reportés dans votre calendrier "
+                        + "Outlook." + teamsLinksNote(formation) + "<br><br>" + cta);
     }
 
     private void updateFormationBasicFields(Formation formation, FormationWorkflowRequest request) {
