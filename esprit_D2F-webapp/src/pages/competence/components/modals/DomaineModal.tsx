@@ -1,17 +1,6 @@
-import { useAllUps } from '@/hooks/formation/useUpCrud';
-import { useAllDepts } from '@/hooks/formation/useDeptCrud';
-import { Form, Input, Modal, Select, Switch } from 'antd';
+import { Form, Input, Modal, Switch } from 'antd';
 import type { FormInstance } from 'antd';
 import type useCompetenceCrud from '@/hooks/competence/useCompetenceCrud';
-
-const { Option } = Select;
-
-interface RefItem {
-  id?: string | number;
-  nom?: string;
-  libelle?: string;
-  code?: string;
-}
 
 interface DomaineModalProps {
   crud: ReturnType<typeof useCompetenceCrud>;
@@ -19,9 +8,6 @@ interface DomaineModalProps {
 }
 
 export default function DomaineModal({ crud, domaineForm }: Readonly<DomaineModalProps>) {
-  const { data: ups = [] } = useAllUps();
-  const { data: depts = [] } = useAllDepts();
-
   return (
     <Modal
       forceRender
@@ -49,38 +35,6 @@ export default function DomaineModal({ crud, domaineForm }: Readonly<DomaineModa
         </Form.Item>
         <Form.Item name="description" label="Description">
           <Input.TextArea rows={3} placeholder="Description du domaine" />
-        </Form.Item>
-        <Form.Item name="upId" label="UP" rules={[{ required: true, message: 'UP obligatoire' }]}>
-          <Select
-            placeholder="Selectionner une UP"
-            showSearch
-            optionFilterProp="children"
-            loading={ups.length === 0}
-          >
-            {(ups as RefItem[]).map((up) => (
-              <Option key={up.id} value={up.id}>
-                {up.nom ?? up.libelle ?? up.code ?? `UP ${up.id}`}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
-        <Form.Item
-          name="departementId"
-          label="Departement"
-          rules={[{ required: true, message: 'Departement obligatoire' }]}
-        >
-          <Select
-            placeholder="Selectionner un departement"
-            showSearch
-            optionFilterProp="children"
-            loading={depts.length === 0}
-          >
-            {(depts as RefItem[]).map((dept) => (
-              <Option key={dept.id} value={dept.id}>
-                {dept.nom ?? dept.libelle ?? dept.code ?? `Departement ${dept.id}`}
-              </Option>
-            ))}
-          </Select>
         </Form.Item>
         <Form.Item name="actif" label="Actif" valuePropName="checked">
           <Switch />

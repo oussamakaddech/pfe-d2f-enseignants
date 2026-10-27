@@ -89,8 +89,6 @@ public class DomaineServiceImpl implements IDomaineService {
                 .nom(request.getNom())
                 .description(request.getDescription())
                 .actif(request.getActif() != Boolean.FALSE)
-                .upId(request.getUpId())
-                .departementId(request.getDepartementId())
                 .build();
         Domaine saved = domaineRepository.save(domaine);
         log.info("Domaine créé: {} ({})", saved.getNom(), saved.getCode());
@@ -113,8 +111,6 @@ public class DomaineServiceImpl implements IDomaineService {
         existing.setNom(request.getNom());
         existing.setDescription(request.getDescription());
         if (request.getActif() != null) existing.setActif(request.getActif());
-        existing.setUpId(request.getUpId());
-        existing.setDepartementId(request.getDepartementId());
         Domaine saved = domaineRepository.save(existing);
         log.info("Domaine mis à jour: {}", saved.getId());
         return competenceMapper.toDTO(saved);

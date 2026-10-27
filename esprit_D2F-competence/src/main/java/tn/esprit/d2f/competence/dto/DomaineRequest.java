@@ -23,8 +23,4 @@ public class DomaineRequest {
 
     @Builder.Default
     private Boolean actif = true;
-
-    private String upId;
-
-    private String departementId;
 }

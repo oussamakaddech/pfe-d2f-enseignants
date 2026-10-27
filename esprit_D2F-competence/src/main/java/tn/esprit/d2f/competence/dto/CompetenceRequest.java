@@ -5,6 +5,8 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -27,4 +29,10 @@ public class CompetenceRequest {
 
     @Positive(message = "L'ordre doit être un entier positif")
     private Integer ordre;
+
+    /** UP auxquelles la compétence s'applique (optionnel, choix multiple). */
+    private List<String> upIds;
+
+    /** Départements auxquels la compétence s'applique (optionnel, choix multiple). */
+    private List<String> departementIds;
 }

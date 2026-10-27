@@ -241,6 +241,118 @@
   color: #1e40af;
 }
 
+/* ─── Groupes de sous-compétences ─────────────────── */
+
+.ctp-sc-group {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 5px 10px;
+  border-left: 3px solid #d97706;
+  border-radius: 0 var(--ctp-r-sm) var(--ctp-r-sm) 0;
+  background: #fffbeb;
+}
+
+.ctp-sc-group:first-child {
+  margin-top: 0;
+}
+
+.ctp-sc-group--direct {
+  border-left-color: #2563eb;
+  background: #eff6ff;
+}
+
+.ctp-sc-group__tag {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.ctp-sc-group--direct .ctp-sc-group__tag {
+  background: #dbeafe;
+  color: #1e40af;
+  border-color: #93c5fd;
+}
+
+.ctp-sc-group__code {
+  flex-shrink: 0;
+  font-family: 'Fira Code', Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: #b45309;
+}
+
+.ctp-sc-group--direct .ctp-sc-group__code {
+  color: #1d4ed8;
+}
+
+.ctp-sc-group__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ctp-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ctp-sc-group__count {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.ctp-sc-group--direct .ctp-sc-group__count {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.ctp-savoir-mini--sc {
+  border-left-style: solid;
+}
+
+.ctp-sc-missing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 12px;
+  font-size: 11px;
+  color: var(--ctp-muted);
+  overflow: hidden;
+}
+
+.ctp-sc-missing__label {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: #b45309;
+}
+
+.ctp-sc-missing__list {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ctp-sc-missing__item + .ctp-sc-missing__item::before {
+  content: ' · ';
+  color: var(--ctp-border-strong);
+}
+
 .ctp-show-more {
   padding: 8px 12px 12px;
   text-align: center;

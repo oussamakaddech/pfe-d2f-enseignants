@@ -3,7 +3,7 @@ import type { TableColumnsType } from 'antd';
 import { ApartmentOutlined, BookOutlined } from '@ant-design/icons';
 import { NIVEAU_SAVOIR_OPTIONS, TYPE_SAVOIR_OPTIONS } from '@/utils/constants/competenceOptions';
 import type { Domaine, Competence, Savoir } from '@/models/competence';
-import type { Id } from '@/models/common';
+import type { Id, LookupItem } from '@/models/common';
 
 const ellipsisStyle = {
   display: 'block',
@@ -69,7 +69,16 @@ export function buildDomaineColumns(
 export function buildCompColumns(
   domaines: Domaine[],
   savoirsCount: (competenceId: Id) => number,
+  scopeLookups?: { ups?: LookupItem[]; depts?: LookupItem[] },
 ): TableColumnsType<Competence> {
+  const ups = scopeLookups?.ups ?? [];
+  const depts = scopeLookups?.depts ?? [];
+
+  const labelOf = (items: LookupItem[], id: Id): string => {
+    const found = items.find((item) => String(item.id) === String(id));
+    return found?.name ?? found?.libelle ?? String(id);
+  };
+
   return [
     {
       title: '',
@@ -100,6 +109,36 @@ export function buildCompColumns(
       key: 'domaineNom',
       filters: domaines.map((d) => ({ text: d.nom ?? '', value: d.nom ?? '' })),
       onFilter: (v, r) => r.domaineNom === v,
+    },
+    {
+      title: 'UP / Départements',
+      key: 'scope',
+      width: 230,
+      render: (_: unknown, r) => {
+        const upIds = r.upIds ?? [];
+        const deptIds = r.departementIds ?? [];
+        if (upIds.length === 0 && deptIds.length === 0) {
+          return (
+            <Tooltip title="Aucun rattachement explicite : la compétence hérite de la UP et du département de son domaine.">
+              <Tag>-</Tag>
+            </Tooltip>
+          );
+        }
+        return (
+          <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4 }}>
+            {upIds.map((id) => (
+              <Tag color="blue" key={`up-${id}`}>
+                {labelOf(ups, id)}
+              </Tag>
+            ))}
+            {deptIds.map((id) => (
+              <Tag color="cyan" key={`dept-${id}`}>
+                {labelOf(depts, id)}
+              </Tag>
+            ))}
+          </span>
+        );
+      },
     },
     {
       title: 'Structure',

@@ -317,6 +317,7 @@ export default function CompetencePage() {
       <CompetenceExpandedRow
         competence={record}
         sousComps={crud.sousComps}
+        savoirs={crud.savoirs}
         loading={crud.scLoading}
         onAddRoot={(parent: Competence) =>
           crud.openScModal(

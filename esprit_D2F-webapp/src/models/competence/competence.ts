@@ -6,6 +6,7 @@ export interface Domaine {
   nom?: string;
   description?: string;
   actif?: boolean;
+  /** Rattachement historique du domaine, conservé en lecture seule (le choix se fait désormais sur la compétence). */
   upId?: Id;
   departementId?: Id;
   competences?: Competence[];
@@ -19,6 +20,13 @@ export interface Competence {
   description?: string;
   domaineId?: Id;
   domaineNom?: string;
+  /** Rattachement historique porté par le domaine (lecture seule). */
+  upId?: Id;
+  departementId?: Id;
+  /** UP auxquelles la compétence s'applique (choix multiple, optionnel). */
+  upIds?: Id[];
+  /** Départements auxquels la compétence s'applique (choix multiple, optionnel). */
+  departementIds?: Id[];
   prerequisiteManual?: string;
   prerequisiteNames?: string[];
   sousCompetences?: SousCompetence[];
@@ -32,6 +40,8 @@ export interface SousCompetence {
   nomSousCompetence?: string;
   description?: string;
   competenceId?: Id;
+  parentId?: Id | null;
+  niveau?: number;
   enfants?: SousCompetence[];
   savoirs?: Savoir[];
 }

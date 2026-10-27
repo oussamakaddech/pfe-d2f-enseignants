@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 import { useHasPermission } from '@/routes/guards';
 import CompetenceService from '@/services/competence/CompetenceService';
+import { useAllUps } from '@/hooks/formation/useUpCrud';
+import { useAllDepts } from '@/hooks/formation/useDeptCrud';
 import {
   buildDomaineColumns,
   buildCompColumns,
@@ -25,8 +27,6 @@ interface DomaineFormValues {
   nom: string;
   description: string;
   actif: boolean;
-  upId?: Id;
-  departementId?: Id;
 }
 
 interface CompetenceFormValues {
@@ -35,6 +35,8 @@ interface CompetenceFormValues {
   description: string;
   domaineId?: Id;
   prerequisiteManual?: string;
+  upIds?: Id[];
+  departementIds?: Id[];
 }
 
 interface SousCompetenceFormValues {
@@ -137,6 +139,10 @@ export default function useCompetenceCrud() {
     queryFn: () => CompetenceService.savoir.getAll(),
     staleTime: 5 * 60 * 1000,
   });
+
+  // Libellés des UP / départements pour la colonne « UP / Départements ».
+  const upsQuery = useAllUps();
+  const deptsQuery = useAllDepts();
 
   const invalidateAfterDomainMutation = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['domaines'] });
@@ -261,16 +267,12 @@ export default function useCompetenceCrud() {
             nom: record.nom ?? '',
             description: record.description ?? '',
             actif: record.actif ?? true,
-            upId: record.upId ?? undefined,
-            departementId: record.departementId ?? undefined,
           }
         : {
             code: '',
             nom: '',
             description: '',
             actif: true,
-            upId: undefined,
-            departementId: undefined,
           },
     );
     setDomaineModal(true);
@@ -285,8 +287,6 @@ export default function useCompetenceCrud() {
           nom: (values.nom ?? '').trim(),
           description: (values.description ?? '').trim(),
           actif: values.actif ?? true,
-          upId: values.upId,
-          departementId: values.departementId,
         };
         await domaineMutation.mutateAsync({ id: editingDomaine?.id, payload });
         setDomaineModal(false);
@@ -337,8 +337,18 @@ export default function useCompetenceCrud() {
               description: descriptionCore,
               domaineId: record.domaineId,
               prerequisiteManual: effectivePrerequisiteManual,
+              upIds: (record.upIds ?? []).map(String),
+              departementIds: (record.departementIds ?? []).map(String),
             }
-          : { code: '', nom: '', description: '', domaineId: null, prerequisiteManual: '' },
+          : {
+              code: '',
+              nom: '',
+              description: '',
+              domaineId: null,
+              prerequisiteManual: '',
+              upIds: [],
+              departementIds: [],
+            },
       );
       setCompModal(true);
     },
@@ -349,10 +359,14 @@ export default function useCompetenceCrud() {
     async (form: FormInstance) => {
       try {
         const values = (await form.validateFields()) as CompetenceFormValues;
-        const { domaineId, prerequisiteManual, ...rest } = values;
+        const { domaineId, prerequisiteManual, upIds, departementIds, ...rest } = values;
         const payload: Partial<Competence> = {
           ...rest,
           prerequisiteManual: (prerequisiteManual || '').trim() || undefined,
+          // Les identifiants sont transmis en chaînes : la base stocke ces
+          // rattachements en varchar (mélange d'ids numériques et de codes).
+          upIds: (upIds ?? []).map(String),
+          departementIds: (departementIds ?? []).map(String),
         };
         await competenceMutation.mutateAsync({
           id: editingComp?.id,
@@ -596,8 +610,9 @@ export default function useCompetenceCrud() {
           (savoirsQuery.data ?? []).filter(
             (s) => String(s.competenceId) === String(competenceId) && !s.sousCompetenceId,
           ).length,
+        { ups: upsQuery.data ?? [], depts: deptsQuery.data ?? [] },
       ),
-    [domainesQuery.data, savoirsQuery.data],
+    [deptsQuery.data, domainesQuery.data, savoirsQuery.data, upsQuery.data],
   );
 
   const savoirColumns = useMemo<TableColumnsType<Savoir>>(() => buildSavoirColumns(), []);

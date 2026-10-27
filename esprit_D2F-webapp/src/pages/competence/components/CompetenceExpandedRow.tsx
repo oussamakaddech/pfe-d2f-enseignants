@@ -10,7 +10,7 @@ interface SousComp {
   nom?: string;
   code?: string;
   competenceId?: Id;
-  parentId?: Id;
+  parentId?: Id | null;
   enfants?: SousComp[];
   savoirs?: Savoir[];
 }
@@ -143,6 +143,7 @@ function SousCompNode({
 interface CompetenceExpandedRowProps {
   competence: CompetenceNode;
   sousComps?: SousComp[];
+  savoirs?: Savoir[];
   loading?: boolean;
   onAddRoot: (competence: CompetenceNode) => void;
   onAddChild: (node: SousComp) => void;
@@ -157,6 +158,7 @@ interface CompetenceExpandedRowProps {
 export default function CompetenceExpandedRow({
   competence,
   sousComps,
+  savoirs,
   loading = false,
   onAddRoot,
   onAddChild,
@@ -170,6 +172,15 @@ export default function CompetenceExpandedRow({
   const allNodesForComp = flattenSousCompList(sousComps ?? []).filter(
     (sc) => String(sc.competenceId) === String(competence.id),
   );
+
+  // Savoirs rattachés directement à la compétence (hors sous-compétences).
+  // Une compétence ne peut pas avoir à la fois des savoirs directs et des sous-compétences.
+  const directSavoirs = (savoirs ?? []).filter(
+    (s) =>
+      String(s.competenceId) === String(competence.id) &&
+      (s.sousCompetenceId == null || String(s.sousCompetenceId) === ''),
+  );
+  const hasDirectSavoirs = directSavoirs.length > 0;
 
   const byId = new Map<string, SousCompMutable>();
   allNodesForComp.forEach((n) => {
@@ -190,26 +201,47 @@ export default function CompetenceExpandedRow({
       <Space style={{ marginBottom: 12 }} wrap>
         <Text strong>Sous-compétences de {competence.nom}</Text>
         {canCreate && (
-          <Button
-            size="small"
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => onAddRoot(competence)}
+          <Tooltip
+            title={
+              hasDirectSavoirs
+                ? 'Impossible d’ajouter une sous-compétence : cette compétence contient déjà des savoirs directs'
+                : 'Ajouter une sous-compétence'
+            }
           >
-            Ajouter une sous-compétence
-          </Button>
+            <Button
+              size="small"
+              type="primary"
+              icon={<PlusOutlined />}
+              disabled={hasDirectSavoirs}
+              onClick={() => onAddRoot(competence)}
+            >
+              Ajouter une sous-compétence
+            </Button>
+          </Tooltip>
         )}
       </Space>
 
+      {hasDirectSavoirs && (
+        <Alert
+          type="warning"
+          showIcon
+          message={`Savoirs directs (${directSavoirs.length})`}
+          description="Cette compétence contient déjà des savoirs directs : ajoutez-y des savoirs ou supprimez-les avant de créer des sous-compétences."
+          style={{ marginBottom: 8 }}
+        />
+      )}
+
       {roots.length === 0 ? (
         <>
-          <Alert
-            type="info"
-            showIcon
-            message="Savoirs directs"
-            description="Cette compétence ne contient pas de sous-compétence. Vous pouvez y rattacher des savoirs directs."
-            style={{ marginBottom: 8 }}
-          />
+          {!hasDirectSavoirs && (
+            <Alert
+              type="info"
+              showIcon
+              message="Savoirs directs"
+              description="Cette compétence ne contient pas de sous-compétence. Vous pouvez y rattacher des savoirs directs."
+              style={{ marginBottom: 8 }}
+            />
+          )}
           <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Aucune sous-compétence" />
         </>
       ) : (

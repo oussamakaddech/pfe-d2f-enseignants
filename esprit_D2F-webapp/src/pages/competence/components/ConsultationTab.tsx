@@ -11,6 +11,7 @@ import ViewToolbar from './consultation/ViewToolbar';
 import CardsView from './consultation/CardsView';
 import SavoirDetailDrawer, { type DrawerPayload } from './consultation/SavoirDetailDrawer';
 import {
+  buildAllowedCompetenceIds,
   buildFlatSavoirs,
   DISPLAY_MODE_KEY,
   type FlatSavoir,
@@ -18,13 +19,7 @@ import {
 import { useAllUps } from '@/hooks/formation/useUpCrud';
 import { useAllDepts } from '@/hooks/formation/useDeptCrud';
 import type useStructureData from '@/hooks/competence/useStructureData';
-import type {
-  Domaine,
-  Competence,
-  SousCompetence,
-  Savoir,
-  StructureData,
-} from '@/models/competence';
+import type { Domaine, Competence, SousCompetence, Savoir } from '@/models/competence';
 import type { LookupItem } from '@/models/common';
 import { brand, neutral, semantic } from '@/styles/themes/tokens';
 import '@/styles/pages/consultation-tab.css';
@@ -113,15 +108,17 @@ export default function ConsultationTab({
   const [selectedDeptId, setSelectedDeptId] = useState<number | null>(null);
   const [selectedDomaineId, setSelectedDomaineId] = useState<number | null>(null);
 
+  const { applyFilter, setSelectedDomaine } = structure;
+
   const handleFilterChange = useCallback(
     (upId: number | null, deptId: number | null, domaineId: number | null) => {
       setSelectedUpId(upId);
       setSelectedDeptId(deptId);
       setSelectedDomaineId(domaineId);
-      structure.applyFilter?.(upId, deptId);
-      structure.setSelectedDomaine?.(domaineId);
+      applyFilter?.(upId, deptId);
+      setSelectedDomaine?.(domaineId);
     },
-    [structure],
+    [applyFilter, setSelectedDomaine],
   );
 
   const handleSearchChange = useCallback(
@@ -196,10 +193,35 @@ export default function ConsultationTab({
     handleSearchClear();
   }, [handleFilterChange, handleSearchClear]);
 
+  // Les filtres UP / département restreignent les compétences (le rattachement
+  // est porté par la compétence depuis la V24), donc les domaines et les
+  // savoirs affichés.
+  const allowedCompetenceIds = useMemo(
+    () =>
+      buildAllowedCompetenceIds(crud.competences ?? [], crud.domaines ?? [], selectedUpId, selectedDeptId),
+    [crud.competences, crud.domaines, selectedDeptId, selectedUpId],
+  );
+
+  // Un domaine n'est proposé que s'il contient au moins une compétence du
+  // périmètre : sinon le sélectionner donnerait une liste vide.
   const domaineOptions = useMemo(() => {
-    const data = structure.structure as StructureData | undefined;
-    return data?.domaines ?? [];
-  }, [structure.structure]);
+    const domaines = crud.domaines ?? [];
+    if (!allowedCompetenceIds) return domaines;
+    const visible = new Set(
+      (crud.competences ?? [])
+        .filter((c) => c.id != null && allowedCompetenceIds.has(String(c.id)))
+        .map((c) => String(c.domaineId)),
+    );
+    return domaines.filter((d) => d.id != null && visible.has(String(d.id)));
+  }, [allowedCompetenceIds, crud.competences, crud.domaines]);
+
+  // Un domaine sélectionné hors du nouveau périmètre (changement d'UP / de
+  // département) est désélectionné pour éviter une liste vide trompeuse.
+  useEffect(() => {
+    if (selectedDomaineId == null) return;
+    const stillVisible = domaineOptions.some((d) => String(d.id) === String(selectedDomaineId));
+    if (!stillVisible) handleFilterChange(selectedUpId, selectedDeptId, null);
+  }, [domaineOptions, handleFilterChange, selectedDeptId, selectedDomaineId, selectedUpId]);
 
   return (
     <div className="ctp">
@@ -362,6 +384,7 @@ export default function ConsultationTab({
               <CardsView
                 crud={crud}
                 selectedDomaine={structure.selectedDomaine}
+                allowedCompetenceIds={allowedCompetenceIds}
                 flatSavoirs={flatSavoirs}
                 onOpenSavoir={openSingleSavoir}
                 openAll={cardsOpenAll}
