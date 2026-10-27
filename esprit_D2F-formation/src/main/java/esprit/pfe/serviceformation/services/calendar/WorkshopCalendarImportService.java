@@ -20,6 +20,7 @@ import esprit.pfe.serviceformation.repositories.FormationRepository;
 import esprit.pfe.serviceformation.repositories.ImportLogRepository;
 import esprit.pfe.serviceformation.repositories.RoomConflictLogRepository;
 import esprit.pfe.serviceformation.repositories.SeanceFormationRepository;
+import esprit.pfe.serviceformation.services.FormationStateScheduler;
 import esprit.pfe.serviceformation.utils.FileSecurityValidator;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -58,6 +59,9 @@ public class WorkshopCalendarImportService {
 
     private static final String STATUS_FAILED = "FAILED";
     private static final Logger log = PiiSafeLogger.getLogger(WorkshopCalendarImportService.class);
+
+    /** Fuseau de l'école : la « date du jour » ne dépend pas du fuseau du conteneur. */
+    private static final ZoneId ZONE = ZoneId.of("Africa/Tunis");
 
     private static final Set<String> ALLOWED_XLSX_MIME =
             Set.of("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
@@ -206,13 +210,13 @@ public class WorkshopCalendarImportService {
                                                LocalDate min, LocalDate max, ImportReportDTO report) {
         Optional<Formation> existing = formationRepository.findFirstByTitreFormationOrderByIdFormationAsc(name);
         if (existing.isPresent()) {
-            return existing.get();
+            return alignerEtatSurDates(existing.get());
         }
         Formation formation = new Formation();
         formation.setTitreFormation(name);
         formation.setDateDebut(toDate(min));
         formation.setDateFin(toDate(max));
-        formation.setEtatFormation(EtatFormation.PLANIFIE);
+        formation.setEtatFormation(etatALaDate(formation));
         formation.setTypeFormation(TypeFormation.INTERNE);
         formation.setResponsableName(blankToNull(firstSession.getTrainerName()));
         formation.setSalle(blankToNull(firstSession.getRoom()));
@@ -223,6 +227,41 @@ public class WorkshopCalendarImportService {
         Formation saved = formationRepository.save(formation);
         report.setFormationsCreated(report.getFormationsCreated() + 1);
         return saved;
+    }
+
+    /**
+     * État d'une formation créée par l'import : celui que le planificateur lui donnerait
+     * aujourd'hui. Un calendrier ancien est donc archivé dès l'import (ACHEVE), sans
+     * attendre le passage toutes les 2 h ni envoyer l'e-mail « formation achevée ».
+     */
+    private static EtatFormation etatALaDate(Formation formation) {
+        EtatFormation etat = FormationStateScheduler.computeNextState(formation, LocalDate.now(ZONE));
+        return etat != null ? etat : EtatFormation.PLANIFIE;
+    }
+
+    /**
+     * Réimport d'une formation déjà présente : on aligne son état sur ses dates si (et
+     * seulement si) elle a été créée par un import. Une formation saisie dans
+     * l'application n'est jamais retouchée, et l'état ne recule jamais
+     * (ACHEVE / ANNULE sont définitifs, un EN_COURS ne redevient pas PLANIFIE).
+     */
+    private Formation alignerEtatSurDates(Formation formation) {
+        if (!formation.isSourceCalendrier()) {
+            return formation;
+        }
+        EtatFormation actuel = formation.getEtatFormation();
+        if (actuel == EtatFormation.ACHEVE || actuel == EtatFormation.ANNULE) {
+            return formation;
+        }
+        EtatFormation cible = etatALaDate(formation);
+        if (cible == actuel
+                || (cible == EtatFormation.PLANIFIE && actuel == EtatFormation.EN_COURS)) {
+            return formation;
+        }
+        formation.setEtatFormation(cible);
+        formationRepository.save(formation);
+        log.info("Formation {} importée du calendrier : état {} → {}", formation.getIdFormation(), actuel, cible);
+        return formation;
     }
 
     private void persistParticipants(ParsedCalendarDTO parsed, ImportReportDTO report) {

@@ -8,6 +8,7 @@ import esprit.pfe.serviceformation.dto.calendar.ParsedCalendarDTO;
 import esprit.pfe.serviceformation.dto.calendar.ParsedParticipantDTO;
 import esprit.pfe.serviceformation.dto.calendar.ParsedSessionDTO;
 import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.entities.EtatFormation;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.entities.FormationParticipantEmail;
 import esprit.pfe.serviceformation.entities.ImportLog;
@@ -37,6 +38,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -58,6 +60,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("WorkshopCalendarImportService")
 class WorkshopCalendarImportServiceTest {
+
+    /** Même fuseau que le service : la « date du jour » du test ne doit pas en dépendre. */
+    private static final ZoneId ZONE = ZoneId.of("Africa/Tunis");
 
     @Mock private WorkshopCalendarParser parser;
     @Mock private CalendarConflictService conflictService;
@@ -907,7 +912,7 @@ class WorkshopCalendarImportServiceTest {
                 .formationName("New Course")
                 .trainerName("Dr. Smith")
                 .room("Room A")
-                .date(LocalDate.of(2026, Month.JUNE, 15))
+                .date(LocalDate.now(ZONE).plusMonths(2))
                 .startTime(LocalTime.of(9, 0))
                 .endTime(LocalTime.of(12, 0))
                 .sessionNumber(1)
@@ -950,7 +955,7 @@ class WorkshopCalendarImportServiceTest {
         assertThat(created.getTitreFormation()).isEqualTo("New Course");
         assertThat(created.getResponsableName()).isEqualTo("Dr. Smith");
         assertThat(created.getSalle()).isEqualTo("Room A");
-        assertThat(created.getEtatFormation()).isEqualTo(esprit.pfe.serviceformation.entities.EtatFormation.PLANIFIE);
+        assertThat(created.getEtatFormation()).isEqualTo(EtatFormation.PLANIFIE);
         assertThat(created.getTypeFormation()).isEqualTo(esprit.pfe.serviceformation.entities.TypeFormation.INTERNE);
         assertThat(created.isCertifGenerated()).isFalse();
     }
@@ -1271,7 +1276,167 @@ class WorkshopCalendarImportServiceTest {
         assertThat(report.getSessionsCreated()).isEqualTo(1);
     }
 
+    // ───────────────────── État selon les dates (calendriers anciens) ─────────────────────
+
+    @Test
+    @DisplayName("importCalendar() archive en ACHEVE une formation créée depuis un calendrier ancien")
+    void importCalendar_pastCalendar_createsAcheveFormation() {
+        Formation created = importNewFormation("Atelier passé", LocalDate.now(ZONE).minusMonths(3));
+
+        assertThat(created.getEtatFormation()).isEqualTo(EtatFormation.ACHEVE);
+    }
+
+    @Test
+    @DisplayName("importCalendar() laisse PLANIFIE une formation créée depuis un calendrier à venir")
+    void importCalendar_futureCalendar_createsPlanifieFormation() {
+        Formation created = importNewFormation("Atelier futur", LocalDate.now(ZONE).plusMonths(2));
+
+        assertThat(created.getEtatFormation()).isEqualTo(EtatFormation.PLANIFIE);
+    }
+
+    @Test
+    @DisplayName("importCalendar() marque EN_COURS une formation dont la séance est aujourd'hui")
+    void importCalendar_currentCalendar_createsEnCoursFormation() {
+        Formation created = importNewFormation("Atelier du jour", LocalDate.now(ZONE));
+
+        assertThat(created.getEtatFormation()).isEqualTo(EtatFormation.EN_COURS);
+    }
+
+    @Test
+    @DisplayName("importCalendar() passe en ACHEVE une formation de calendrier déjà présente et terminée")
+    void importCalendar_existingCalendarFormationPast_markedAcheve() {
+        Formation existing = calendarFormation(7L, "Ancien atelier", EtatFormation.PLANIFIE);
+        existing.setDateDebut(LocalDate.now(ZONE).minusMonths(2));
+        existing.setDateFin(LocalDate.now(ZONE).minusDays(1));
+
+        importWithExistingFormation(existing, LocalDate.now(ZONE).minusMonths(2));
+
+        assertThat(existing.getEtatFormation()).isEqualTo(EtatFormation.ACHEVE);
+        verify(formationRepository, times(1)).save(existing);
+    }
+
+    @Test
+    @DisplayName("importCalendar() ne retouche jamais une formation saisie dans l'application")
+    void importCalendar_applicationFormationPast_notRestamped() {
+        Formation existing = new Formation();
+        existing.setIdFormation(8L);
+        existing.setTitreFormation("Atelier de l'application");
+        existing.setSourceCalendrier(false);
+        existing.setEtatFormation(EtatFormation.PLANIFIE);
+        existing.setDateDebut(LocalDate.now(ZONE).minusMonths(2));
+        existing.setDateFin(LocalDate.now(ZONE).minusDays(1));
+
+        importWithExistingFormation(existing, LocalDate.now(ZONE).minusMonths(2));
+
+        assertThat(existing.getEtatFormation()).isEqualTo(EtatFormation.PLANIFIE);
+        verify(formationRepository, never()).save(any(Formation.class));
+    }
+
+    @Test
+    @DisplayName("importCalendar() laisse ACHEVE et ANNULE définitifs et ne réécrit pas un état déjà juste")
+    void importCalendar_existingCalendarFormation_notRewrittenUnnecessarily() {
+        Formation achevee = calendarFormation(9L, "Atelier archivé", EtatFormation.ACHEVE);
+        achevee.setDateDebut(LocalDate.now(ZONE).minusMonths(3));
+        achevee.setDateFin(LocalDate.now(ZONE).minusMonths(2));
+        importWithExistingFormation(achevee, LocalDate.now(ZONE).minusMonths(2));
+        assertThat(achevee.getEtatFormation()).isEqualTo(EtatFormation.ACHEVE);
+
+        Formation annulee = calendarFormation(10L, "Atelier annulé", EtatFormation.ANNULE);
+        annulee.setDateDebut(LocalDate.now(ZONE).minusMonths(3));
+        annulee.setDateFin(LocalDate.now(ZONE).minusMonths(2));
+        importWithExistingFormation(annulee, LocalDate.now(ZONE).minusMonths(2));
+        assertThat(annulee.getEtatFormation()).isEqualTo(EtatFormation.ANNULE);
+
+        Formation aVenir = calendarFormation(11L, "Atelier à venir", EtatFormation.PLANIFIE);
+        aVenir.setDateDebut(LocalDate.now(ZONE).plusMonths(1));
+        aVenir.setDateFin(LocalDate.now(ZONE).plusMonths(2));
+        importWithExistingFormation(aVenir, LocalDate.now(ZONE).plusMonths(1));
+        assertThat(aVenir.getEtatFormation()).isEqualTo(EtatFormation.PLANIFIE);
+
+        verify(formationRepository, never()).save(any(Formation.class));
+    }
+
+    @Test
+    @DisplayName("importCalendar() ne fait pas reculer une formation de EN_COURS à PLANIFIE")
+    void importCalendar_existingEnCours_neverBackToPlanifie() {
+        Formation existing = calendarFormation(12L, "Atelier décalé", EtatFormation.EN_COURS);
+        existing.setDateDebut(LocalDate.now(ZONE).plusMonths(1));
+        existing.setDateFin(LocalDate.now(ZONE).plusMonths(2));
+
+        importWithExistingFormation(existing, LocalDate.now(ZONE).plusMonths(1));
+
+        assertThat(existing.getEtatFormation()).isEqualTo(EtatFormation.EN_COURS);
+        verify(formationRepository, never()).save(any(Formation.class));
+    }
+
     // ───────────────────── Helpers ─────────────────────
+
+    private Formation calendarFormation(Long id, String titre, EtatFormation etat) {
+        Formation formation = new Formation();
+        formation.setIdFormation(id);
+        formation.setTitreFormation(titre);
+        formation.setSourceCalendrier(true);
+        formation.setEtatFormation(etat);
+        return formation;
+    }
+
+    /** Import d'une séance unique créant une nouvelle formation issue du calendrier. */
+    private Formation importNewFormation(String titre, LocalDate dateSeance) {
+        when(importLogRepository.findFirstByFileHashOrderByImportedAtDesc(anyString()))
+                .thenReturn(Optional.empty());
+        when(parser.parse(any())).thenReturn(ParsedCalendarDTO.builder()
+                .sessions(List.of(session(titre, dateSeance, 1, 1)))
+                .build());
+        when(formationRepository.findFirstByTitreFormationOrderByIdFormationAsc(titre))
+                .thenReturn(Optional.empty());
+        when(formationRepository.save(any(Formation.class)))
+                .thenAnswer(invocation -> {
+                    Formation f = invocation.getArgument(0);
+                    f.setIdFormation(1L);
+                    return f;
+                });
+        when(seanceRepository.findByFormation_IdFormationOrderByNumeroSeanceAscDateSeanceAsc(1L))
+                .thenReturn(Collections.emptyList());
+        when(seanceRepository.save(any(SeanceFormation.class)))
+                .thenAnswer(invocation -> {
+                    SeanceFormation s = invocation.getArgument(0);
+                    s.setIdSeance(1L);
+                    return s;
+                });
+        stubImportTail();
+
+        service.importCalendar(xlsxMultipartFile(), false);
+
+        ArgumentCaptor<Formation> captor = ArgumentCaptor.forClass(Formation.class);
+        verify(formationRepository).save(captor.capture());
+        return captor.getValue();
+    }
+
+    /** Import d'une séance unique réutilisant une formation déjà existante. */
+    private void importWithExistingFormation(Formation existing, LocalDate dateSeance) {
+        when(importLogRepository.findFirstByFileHashOrderByImportedAtDesc(anyString()))
+                .thenReturn(Optional.empty());
+        when(parser.parse(any())).thenReturn(ParsedCalendarDTO.builder()
+                .sessions(List.of(session(existing.getTitreFormation(), dateSeance, 1, 1)))
+                .build());
+        when(formationRepository.findFirstByTitreFormationOrderByIdFormationAsc(existing.getTitreFormation()))
+                .thenReturn(Optional.of(existing));
+        when(seanceRepository.findByFormation_IdFormationOrderByNumeroSeanceAscDateSeanceAsc(
+                existing.getIdFormation())).thenReturn(Collections.emptyList());
+        when(seanceRepository.save(any(SeanceFormation.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        stubImportTail();
+
+        service.importCalendar(xlsxMultipartFile(), false);
+    }
+
+    private void stubImportTail() {
+        when(conflictService.detect(anyList())).thenReturn(ConflictReportDTO.builder().build());
+        when(conflictService.detectAndLog(anyList(), anyLong()))
+                .thenReturn(ConflictReportDTO.builder().build());
+        when(importLogRepository.save(any(ImportLog.class)))
+                .thenReturn(ImportLog.builder().id(1L).build());
+    }
 
     private MultipartFile xlsxMultipartFile() {
         return new MockMultipartFile(

@@ -77,8 +77,11 @@ public class FormationStateScheduler {
      * avant la date de début → PLANIFIE ; du jour de début au jour de fin inclus
      * → EN_COURS ; une fois la date de fin passée → ACHEVE. Sans dates : null
      * (état inchangé).
+     * <p>Règle unique du projet : réutilisée par l'import du calendrier
+     * ({@code WorkshopCalendarImportService}) pour qu'une formation importée reçoive
+     * immédiatement l'état qu'aurait posé ce planificateur.
      */
-    static EtatFormation computeNextState(Formation f, LocalDate now) {
+    public static EtatFormation computeNextState(Formation f, LocalDate now) {
         if (f.getDateDebut() == null || f.getDateFin() == null) {
             return null;
         }

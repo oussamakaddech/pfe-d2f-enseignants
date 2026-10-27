@@ -12,20 +12,11 @@ import { useCalendarFormations, useSendInvitations } from '@/hooks/formation/use
 import CalendarService from '@/services/formation/CalendarService';
 import { useUpdateInscriptionsOuvertes } from '@/hooks/formation/useFormations';
 import type { CalendarFormation, CalendarFormationFilters } from '@/models/calendar';
+import { ETAT_FORMATION_OPTIONS, etatFormationAffichage } from './formationEtat';
 
 /** Date de fin passée (format ISO yyyy-MM-dd, comparable comme chaîne). */
 const estTerminee = (f: CalendarFormation) =>
   !!f.dateFin && f.dateFin < new Date().toLocaleDateString('sv-SE');
-
-const ETAT_OPTIONS = [
-  'NOUVEAU',
-  'ENREGISTRE',
-  'PLANIFIE',
-  'EN_COURS',
-  'ACHEVE',
-  'ANNULE',
-  'VISIBLE',
-].map((v) => ({ label: v, value: v }));
 
 /** Liste paginée des formations planifiées avec enregistrement dans le catalogue. */
 export default function CalendarFormationsTable() {
@@ -87,7 +78,10 @@ export default function CalendarFormationsTable() {
       title: 'État',
       dataIndex: 'etat',
       width: 130,
-      render: (etat?: string) => (etat ? <Tag>{etat}</Tag> : '—'),
+      render: (etat?: string) => {
+        const affichage = etatFormationAffichage(etat);
+        return etat ? <Tag color={affichage.color}>{affichage.label}</Tag> : '—';
+      },
     },
     { title: 'Du', dataIndex: 'dateDebut', width: 120, render: (v?: string) => v || '—' },
     { title: 'Au', dataIndex: 'dateFin', width: 120, render: (v?: string) => v || '—' },
@@ -167,7 +161,7 @@ export default function CalendarFormationsTable() {
         <Select
           allowClear
           placeholder="État"
-          options={ETAT_OPTIONS}
+          options={ETAT_FORMATION_OPTIONS}
           style={{ width: 180 }}
           onChange={(etat?: string) => setFilters((f) => ({ ...f, etat, page: 0 }))}
         />
