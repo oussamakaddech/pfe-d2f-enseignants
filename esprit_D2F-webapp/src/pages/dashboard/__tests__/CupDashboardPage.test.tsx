@@ -64,6 +64,9 @@ const makeMock = (overrides: Record<string, unknown> = {}): any => ({
 
 vi.mock('@/hooks/dashboard/useCupDashboard', () => ({
   useCupDashboard: vi.fn(() => makeMock()),
+  // Le vrai helper est testé dans useCupDashboard.test.ts : ici on évite juste
+  // un import manquant si un test renseigne une plage personnalisée.
+  customRangeLabel: (r: { start: string; end: string }) => `du ${r.start} au ${r.end}`,
 }));
 
 vi.mock('@/hooks/auth/useAuth', () => ({
@@ -112,6 +115,14 @@ describe('CupDashboardPage', () => {
     fireEvent.click(screen.getAllByText('3 mois')[0]);
     // Les deux contrôles de période (KPI + graphique) partagent le même état.
     expect(screen.getAllByText(/3 derniers mois/).length).toBeGreaterThan(0);
+  });
+
+  it('offers a custom date range next to the presets', () => {
+    renderWith(queryClient);
+    // Le sélecteur de dates libres accompagne le préréglage 30 j / 3 / 6 / 12 mois.
+    expect(screen.getByPlaceholderText('Du')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Au')).toBeInTheDocument();
+    expect(screen.getAllByText(/Heures, formateurs et participants comptés sur/).length).toBe(1);
   });
 
   it('renders besoins and top competences data', () => {
@@ -282,8 +293,6 @@ describe('CupDashboardPage', () => {
     expect(screen.getAllByText(/12 derniers mois/).length).toBeGreaterThan(0);
     // Le sélecteur du graphique et celui des KPI pilotent la même période.
     await userEvent.click(screen.getAllByText('3 mois').at(-1)!);
-    await waitFor(() =>
-      expect(screen.getAllByText(/3 derniers mois/).length).toBeGreaterThan(0),
-    );
+    await waitFor(() => expect(screen.getAllByText(/3 derniers mois/).length).toBeGreaterThan(0));
   });
 });

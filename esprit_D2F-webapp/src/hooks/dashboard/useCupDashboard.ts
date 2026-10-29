@@ -14,6 +14,12 @@ const STALE = 5 * 60 * 1000;
 /** Période d'observation des indicateurs (fenêtre glissante jusqu'à aujourd'hui). */
 export type DashboardPeriod = '30j' | 'trimestre' | 'semestre' | 'annee';
 
+/** Plage de dates explicite (`YYYY-MM-DD`), prioritaire sur le préréglage. */
+export interface KpiDateRange {
+  start: string;
+  end: string;
+}
+
 const PERIOD_MONTHS: Record<Exclude<DashboardPeriod, '30j'>, number> = {
   trimestre: 3,
   semestre: 6,
@@ -24,10 +30,13 @@ const PERIOD_MONTHS: Record<Exclude<DashboardPeriod, '30j'>, number> = {
 export function periodRange(period: DashboardPeriod): { start: string; end: string } {
   const now = dayjs();
   const start =
-    period === '30j'
-      ? now.subtract(30, 'day')
-      : now.subtract(PERIOD_MONTHS[period], 'month');
+    period === '30j' ? now.subtract(30, 'day') : now.subtract(PERIOD_MONTHS[period], 'month');
   return { start: start.format('YYYY-MM-DD'), end: now.format('YYYY-MM-DD') };
+}
+
+/** Libellé lisible d'une plage personnalisée : « du 01/02/2026 au 28/02/2026 ». */
+export function customRangeLabel(range: KpiDateRange): string {
+  return `du ${dayjs(range.start).format('DD/MM/YYYY')} au ${dayjs(range.end).format('DD/MM/YYYY')}`;
 }
 
 export interface CompetenceDemandee {
@@ -123,6 +132,7 @@ export function useCupDashboard(
   pilotage: boolean = true,
   access: CupDashboardAccess = {},
   period: DashboardPeriod = 'annee',
+  customRange?: KpiDateRange | null,
 ) {
   // Sans garde, ces requêtes partaient en 403 pour l'enseignant (KPI + besoins)
   // et en 403 pour le chef (overview — ADMIN/CUP uniquement).
@@ -132,9 +142,18 @@ export function useCupDashboard(
   const readInDemand = access.readInDemand ?? pilotage;
 
   // Fenêtre des indicateurs « de période » (heures, formateurs, participants).
-  // Les répartitions (domaines / compétences) et l'évolution mensuelle gardent
-  // leur fenêtre de 12 mois pour rester comparables au reste de la page.
-  const window = useMemo(() => periodRange(period), [period]);
+  // Une plage personnalisée (choisie à la main) prime sur la fenêtre glissante
+  // du préréglage ; l'effacer ramène au préréglage. Les répartitions (domaines /
+  // compétences) et l'évolution mensuelle gardent leur fenêtre de 12 mois pour
+  // rester comparables au reste de la page.
+  const rangeStart = customRange?.start;
+  const rangeEnd = customRange?.end;
+  const window = useMemo(() => {
+    if (rangeStart && rangeEnd) {
+      return { start: rangeStart, end: rangeEnd };
+    }
+    return periodRange(period);
+  }, [period, rangeStart, rangeEnd]);
   const wStart = window.start;
   const wEnd = window.end;
 

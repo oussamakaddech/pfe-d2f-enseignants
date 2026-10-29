@@ -13,6 +13,7 @@ import {
   Tooltip,
   Avatar,
   Badge,
+  DatePicker,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -34,9 +35,15 @@ import {
   DashboardOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
 import 'dayjs/locale/fr';
 import { useAuth } from '@/hooks/auth/useAuth';
-import { useCupDashboard, type DashboardPeriod } from '@/hooks/dashboard/useCupDashboard';
+import {
+  useCupDashboard,
+  customRangeLabel,
+  type DashboardPeriod,
+  type KpiDateRange,
+} from '@/hooks/dashboard/useCupDashboard';
 import FormationService from '@/services/formation/FormationService';
 import InscriptionService from '@/services/formation/InscriptionService';
 import { hasAnyRole } from '@/utils/constants/roles';
@@ -103,6 +110,9 @@ export default function CupDashboardPage() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<PeriodKey>('annee');
+  // Plage choisie à la main : elle prime sur le préréglage, l'effacer (ou
+  // cliquer un préréglage) ramène à la fenêtre glissante.
+  const [customRange, setCustomRange] = useState<KpiDateRange | null>(null);
   const [besoinSearch, setBesoinSearch] = useState('');
 
   const {
@@ -127,6 +137,7 @@ export default function CupDashboardPage() {
       readInDemand: canReadInDemand,
     },
     period,
+    customRange,
   );
 
   // Formations à venir (données réelles, filtrées depuis le référentiel formations).
@@ -287,6 +298,12 @@ export default function CupDashboardPage() {
     semestre: '6 derniers mois',
     annee: '12 derniers mois',
   };
+  // Libellé commun aux KPI « de période » : la plage personnalisée quand elle
+  // est renseignée, sinon le préréglage.
+  const kpiPeriodLabel = customRange ? customRangeLabel(customRange) : periodLabel[period];
+  const rangePickerValue: [Dayjs, Dayjs] | null = customRange
+    ? [dayjs(customRange.start), dayjs(customRange.end)]
+    : null;
   const chartData = useMemo(() => {
     const all = (timeline?.periodes ?? []).map((p) => ({
       label: p.label,
@@ -392,13 +409,13 @@ export default function CupDashboardPage() {
           },
         ]
       : []),
-    // ── Indicateurs de la période sélectionnée (30 j → 12 derniers mois) ──
+    // ── Indicateurs de la période sélectionnée (préréglage ou plage choisie) ──
     {
       id: 'heures',
       label: 'Heures de formation',
       value: kpis.totalHeures ?? 0,
       suffix: 'h',
-      caption: periodLabel[period],
+      caption: kpiPeriodLabel,
       tone: 'blue' as const,
       icon: <ClockCircleOutlined />,
       detail: { label: 'Voir le catalogue', onClick: () => navigate(catalogueHref) },
@@ -420,7 +437,7 @@ export default function CupDashboardPage() {
       label: 'Participants formés',
       value: kpis.participants ?? 0,
       suffix: '',
-      caption: `participants de séance · ${periodLabel[period]}`,
+      caption: `participants de séance · ${kpiPeriodLabel}`,
       tone: 'green' as const,
       icon: <TeamOutlined />,
       detail: canOpenPresences
@@ -603,20 +620,44 @@ export default function CupDashboardPage() {
         <div className="cd-kpi-toolbar-titles">
           <span className="cd-kpi-toolbar-label">Indicateurs clés</span>
           <span className="cd-kpi-toolbar-hint">
-            Heures, formateurs et participants comptés sur {periodLabel[period]}
+            Heures, formateurs et participants comptés sur {kpiPeriodLabel}
           </span>
         </div>
-        <Segmented
-          size="small"
-          value={period}
-          onChange={(v) => setPeriod(v as PeriodKey)}
-          options={[
-            { label: '30 j', value: '30j' },
-            { label: '3 mois', value: 'trimestre' },
-            { label: '6 mois', value: 'semestre' },
-            { label: '12 mois', value: 'annee' },
-          ]}
-        />
+        <div className="cd-kpi-toolbar-actions">
+          <DatePicker.RangePicker
+            size="small"
+            format="DD/MM/YYYY"
+            placeholder={['Du', 'Au']}
+            value={rangePickerValue}
+            allowClear
+            onChange={(dates) => {
+              if (!dates || !dates[0] || !dates[1]) {
+                // Plage effacée : retour à la fenêtre glissante du préréglage.
+                setCustomRange(null);
+                return;
+              }
+              setCustomRange({
+                start: dates[0].format('YYYY-MM-DD'),
+                end: dates[1].format('YYYY-MM-DD'),
+              });
+            }}
+          />
+          <Segmented
+            size="small"
+            value={period}
+            onChange={(v) => {
+              // Choisir un préréglage efface la plage personnalisée.
+              setPeriod(v as PeriodKey);
+              setCustomRange(null);
+            }}
+            options={[
+              { label: '30 j', value: '30j' },
+              { label: '3 mois', value: 'trimestre' },
+              { label: '6 mois', value: 'semestre' },
+              { label: '12 mois', value: 'annee' },
+            ]}
+          />
+        </div>
       </div>
       <section className="cd-kpis">
         {kpiList.map((k) => (

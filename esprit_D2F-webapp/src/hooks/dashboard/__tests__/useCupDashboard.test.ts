@@ -2,7 +2,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useCupDashboard } from '@/hooks/dashboard/useCupDashboard';
+import { useCupDashboard, customRangeLabel } from '@/hooks/dashboard/useCupDashboard';
 import AnalyticsService from '@/services/analyse/AnalyticsService';
 import KPIService from '@/services/analyse/KPIService';
 import BesoinFormationService from '@/services/besoin/BesoinFormationService';
@@ -322,5 +322,34 @@ describe('useCupDashboard', () => {
     const spanYear = (new Date(endYear).getTime() - new Date(startYear).getTime()) / 86_400_000;
     expect(Math.round(spanYear)).toBeGreaterThanOrEqual(364);
     expect(result.current.kpis).toBeDefined();
+  });
+
+  it('uses an explicit custom range and returns to the preset when cleared', async () => {
+    type Range = { start: string; end: string } | null;
+    const { rerender } = renderHook(
+      ({ range }: { range: Range }) => useCupDashboard(true, {}, 'annee', range),
+      {
+        wrapper: createWrapper(),
+        initialProps: { range: { start: '2026-01-05', end: '2026-02-20' } as Range },
+      },
+    );
+
+    await waitFor(() => expect(K.getTotalHeures).toHaveBeenCalled());
+    expect(K.getTotalHeures).toHaveBeenLastCalledWith('2026-01-05', '2026-02-20');
+    // Les KPI « de période » suivent la plage, pas la fenêtre glissante.
+    expect(K.getUniqueParticipants).toHaveBeenLastCalledWith('2026-01-05', '2026-02-20');
+
+    rerender({ range: null });
+    await waitFor(() => expect(K.getTotalHeures).toHaveBeenCalledTimes(2));
+    const [start, end] = K.getTotalHeures.mock.calls.at(-1) as [string, string];
+    // Plage effacée : retour à la fenêtre glissante de 12 mois.
+    const spanDays = (new Date(end).getTime() - new Date(start).getTime()) / 86_400_000;
+    expect(Math.round(spanDays)).toBeGreaterThanOrEqual(364);
+  });
+
+  it('formats a custom range label in French day/month/year', () => {
+    expect(customRangeLabel({ start: '2026-01-05', end: '2026-02-20' })).toBe(
+      'du 05/01/2026 au 20/02/2026',
+    );
   });
 });
