@@ -353,6 +353,7 @@ jobs:
             echo "::warning::Base NVD inutilisable (${SIZE:-0} Mo) - mise a jour locale (plus lent)."
             AUTOUPDATE=true
           fi
+          set +e
           mvn -B org.owasp:dependency-check-maven:${DC_VERSION}:check \
             -DfailBuildOnCVSS=7 \
             -DautoUpdate=$AUTOUPDATE \
@@ -366,7 +367,16 @@ jobs:
             -DartifactoryAnalyzerEnabled=false \
             -DnexusAnalyzerEnabled=false \
             $SUPPRESSION \
-            -Dformats=HTML,JSON
+            -Dformats=HTML,JSON > /tmp/dc.log 2>&1
+          STATUS=$?
+          set -e
+          tail -n 40 /tmp/dc.log
+          # Le motif reel de l'echec n'est lisible que dans le log (compte
+          # GitHub requis) : les lignes utiles sont republiees en annotations.
+          if [ $STATUS -ne 0 ]; then
+            grep -E "^\[ERROR\]|Unable to|Exception|NVD|uppress" /tmp/dc.log | tail -n 12 | sed "s/^/::error::/"
+          fi
+          exit $STATUS
 
       # Un echec OWASP n'est exploitable que si les CVE bloquantes sont lisibles
       # sans ouvrir les logs (qui exigent un compte GitHub). Elles sont donc
