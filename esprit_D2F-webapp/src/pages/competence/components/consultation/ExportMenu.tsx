@@ -1,19 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
-import {
-  CodeOutlined,
-  DownloadOutlined,
-  FileExcelOutlined,
-  FileTextOutlined,
-} from '@ant-design/icons';
+import { DownloadOutlined, FileExcelOutlined } from '@ant-design/icons';
 import { Button, Dropdown, Tag } from 'antd';
 import type { MenuProps } from 'antd';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 import {
-  doExportCompetencesCSV,
-  doExportSavoirsCSV,
   doExportSavoirsExcel,
   doExportStructureExcel,
-  doExportStructureJSON,
   doExportSynthesisExcel,
 } from '@/utils/helpers/exportUtils';
 import { getFilteredCrud } from '@/utils/helpers/consultationViewUtils';
@@ -67,9 +59,6 @@ export default function ExportMenu({
         else if (key === 'excel-savoirs') doExportSavoirsExcel(crud, domaineId);
         else if (key === 'excel-synthesis') doExportSynthesisExcel(crud, stats);
         else if (key === 'excel-matrix') handleExportExcel();
-        else if (key === 'csv-savoirs') doExportSavoirsCSV(crud, domaineId);
-        else if (key === 'csv-competences') doExportCompetencesCSV(crud, domaineId);
-        else if (key === 'json-full') doExportStructureJSON(crud);
         messageApi.success('Export genere');
       } catch (err: unknown) {
         const e = err as { message?: string };
@@ -125,55 +114,6 @@ export default function ExportMenu({
             <span className="ctp-export-menu-item">
               <span>Matrice niveaux</span>
               <span className="ctp-export-badge ctp-export-badge--xlsx">xlsx</span>
-            </span>
-          ),
-        },
-      ],
-    },
-    { type: 'divider' },
-    {
-      type: 'group',
-      label: (
-        <span className="ctp-export-group-label">
-          <FileTextOutlined /> CSV
-        </span>
-      ),
-      children: [
-        {
-          key: 'csv-savoirs',
-          label: (
-            <span className="ctp-export-menu-item">
-              <span>Savoirs{filterSuffix}</span>
-              <span className="ctp-export-badge ctp-export-badge--csv">csv</span>
-            </span>
-          ),
-        },
-        {
-          key: 'csv-competences',
-          label: (
-            <span className="ctp-export-menu-item">
-              <span>Competences{filterSuffix}</span>
-              <span className="ctp-export-badge ctp-export-badge--csv">csv</span>
-            </span>
-          ),
-        },
-      ],
-    },
-    { type: 'divider' },
-    {
-      type: 'group',
-      label: (
-        <span className="ctp-export-group-label">
-          <CodeOutlined /> JSON
-        </span>
-      ),
-      children: [
-        {
-          key: 'json-full',
-          label: (
-            <span className="ctp-export-menu-item">
-              <span>Structure complete</span>
-              <span className="ctp-export-badge ctp-export-badge--json">json</span>
             </span>
           ),
         },

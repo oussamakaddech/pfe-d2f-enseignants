@@ -36,6 +36,7 @@ import {
   doExportSavoirsCSV,
   doExportCompetencesCSV,
   doExportStructureJSON,
+  savoirParentRattachement,
 } from './exportUtilsEnhanced';
 
 const crud = {
@@ -110,6 +111,71 @@ describe('exportUtilsEnhanced', () => {
     });
   });
 
+  describe('savoirParentRattachement', () => {
+    const sousComps = [
+      { id: 100, code: 'SC1', nom: 'SousComp 1', competenceId: 10, parentId: null },
+      { id: 101, code: 'SC2', nom: 'SousComp 2', competenceId: 10, parentId: 100 },
+    ];
+    const competences = [{ id: 10, code: 'C1', nom: 'Comp 1', domaineId: 1 }];
+
+    it('marque RACINE un savoir porté directement par la compétence', () => {
+      const savoir = {
+        id: 2,
+        code: 'S2',
+        nom: 'S2',
+        type: 'PRATIQUE',
+        niveau: 'N2',
+        competenceId: 10,
+      };
+      expect(savoirParentRattachement(savoir, sousComps, competences)).toBe(
+        'RACINE — Compétence [C1] Comp 1',
+      );
+    });
+
+    it('nomme la sous-compétence racine et la compétence pour un savoir rangé dessous', () => {
+      const savoir = {
+        id: 1,
+        code: 'S1',
+        nom: 'S1',
+        type: 'THEORIQUE',
+        niveau: 'N1',
+        sousCompetenceId: 100,
+      };
+      expect(savoirParentRattachement(savoir, sousComps, competences)).toBe(
+        'RACINE — Compétence [C1] Comp 1 → Sous-compétence [SC1] SousComp 1',
+      );
+    });
+
+    it('remonte la sous-compétence parente pour une descendante', () => {
+      const savoir = {
+        id: 3,
+        code: 'S3',
+        nom: 'S3',
+        type: 'PRATIQUE',
+        niveau: 'N3',
+        sousCompetenceId: 101,
+      };
+      expect(savoirParentRattachement(savoir, sousComps, competences)).toBe(
+        'Sous-compétence [SC1] SousComp 1 → Sous-compétence [SC2] SousComp 2',
+      );
+    });
+
+    it('signale une sous-compétence absente de la liste filtrée', () => {
+      const savoir = {
+        id: 4,
+        code: 'S4',
+        nom: 'S4',
+        type: 'PRATIQUE',
+        niveau: 'N1',
+        sousCompetenceId: 999,
+        competenceId: 10,
+      };
+      expect(savoirParentRattachement(savoir, sousComps, competences)).toBe(
+        'Sous-compétence #999 (hors liste) → RACINE — Compétence [C1] Comp 1',
+      );
+    });
+  });
+
   describe('excel exporters', () => {
     it('doExportStructureExcel writes a file', () => {
       doExportStructureExcel(crud);
@@ -119,6 +185,17 @@ describe('exportUtilsEnhanced', () => {
     it('doExportStructureExcel uses domaine suffix when domaineId provided', () => {
       doExportStructureExcel(crud, 1);
       expect(writeFileMock.mock.calls[0][1]).toMatch(/^structure_domaine_/);
+    });
+    it('doExportStructureExcel ajoute le rattachement en dernière colonne des savoirs', () => {
+      doExportStructureExcel(crud);
+      const sheets = (writeFileMock.mock.calls[0][0] as { Sheets: Record<string, unknown> }).Sheets;
+      const rows = (sheets['04-SAVOIRS'] as { __data: Record<string, unknown>[] }).__data;
+
+      expect(Object.keys(rows[0]).at(-1)).toBe('PARENT / RATTACHEMENT');
+      expect(rows[0]['PARENT / RATTACHEMENT']).toBe(
+        'RACINE — Compétence [C1] Comp 1 → Sous-compétence [SC1] SousComp 1',
+      );
+      expect(rows[1]['PARENT / RATTACHEMENT']).toBe('RACINE — Compétence [C1] Comp 1');
     });
     it('doExportSavoirsExcel writes a file', () => {
       doExportSavoirsExcel(crud);

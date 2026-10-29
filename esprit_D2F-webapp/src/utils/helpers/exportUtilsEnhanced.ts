@@ -139,6 +139,48 @@ const createStyledSheet = (
   return ws;
 };
 
+function referentielLabel(code?: string | null, nom?: string | null): string {
+  return (
+    [code ? `[${code}]` : '', nom ?? '']
+      .filter((part) => part !== '')
+      .join(' ')
+      .trim() || '—'
+  );
+}
+
+/**
+ * Colonne « PARENT / RATTACHEMENT » de la feuille Savoirs : dit si le savoir est
+ * porté par la compétence elle-même (RACINE) ou par une sous-compétence, puis
+ * nomme la compétence / sous-compétence à laquelle il est rattaché.
+ */
+export function savoirParentRattachement(
+  savoir: Savoir,
+  sousComps: SousCompetence[],
+  competences: Competence[],
+): string {
+  const findSousComp = (id?: NullableId) =>
+    id == null ? null : (sousComps.find((sc) => String(sc.id) === String(id)) ?? null);
+
+  const sc = findSousComp(savoir.sousCompetenceId);
+  const competence =
+    (sc ? (competences.find((c) => String(c.id) === String(sc.competenceId)) ?? null) : null) ??
+    (savoir.competenceId != null
+      ? (competences.find((c) => String(c.id) === String(savoir.competenceId)) ?? null)
+      : null);
+  const racine = `RACINE — Compétence ${referentielLabel(competence?.code, competence?.nom)}`;
+
+  if (savoir.sousCompetenceId != null && !sc) {
+    return `Sous-compétence #${savoir.sousCompetenceId} (hors liste) → ${racine}`;
+  }
+  if (!sc) return racine;
+
+  const parentSc = findSousComp(sc.parentId);
+  const parent = parentSc
+    ? `Sous-compétence ${referentielLabel(parentSc.code, parentSc.nom)}`
+    : racine;
+  return `${parent} → Sous-compétence ${referentielLabel(sc.code, sc.nom)}`;
+}
+
 export function doExportStructureExcel(crud: unknown, domaineId?: unknown): void {
   const f = getFilteredCrud(crud as FilteredCrudParam, domaineId) as unknown as ReferentielCrud;
   const wb = XLSX.utils.book_new();
@@ -212,6 +254,7 @@ export function doExportStructureExcel(crud: unknown, domaineId?: unknown): void
           NIVEAU: s.niveau,
           'SOUS-COMPÉTENCE': fsc?.nom || 'DIRECT',
           COMPÉTENCE: comp?.nom || '',
+          'PARENT / RATTACHEMENT': savoirParentRattachement(s, f.sousComps, f.competences),
         };
       }),
       '04-SAVOIRS',
