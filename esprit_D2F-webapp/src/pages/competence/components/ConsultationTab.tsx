@@ -198,7 +198,12 @@ export default function ConsultationTab({
   // savoirs affichés.
   const allowedCompetenceIds = useMemo(
     () =>
-      buildAllowedCompetenceIds(crud.competences ?? [], crud.domaines ?? [], selectedUpId, selectedDeptId),
+      buildAllowedCompetenceIds(
+        crud.competences ?? [],
+        crud.domaines ?? [],
+        selectedUpId,
+        selectedDeptId,
+      ),
     [crud.competences, crud.domaines, selectedDeptId, selectedUpId],
   );
 

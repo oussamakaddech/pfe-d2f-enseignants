@@ -91,7 +91,7 @@ describe('filterByAllowedIds', () => {
 });
 
 describe('perimetreLabel', () => {
-  it("null pour un administrateur (aucune restriction à afficher)", () => {
+  it('null pour un administrateur (aucune restriction à afficher)', () => {
     expect(perimetreLabel(adminPerimetre)).toBeNull();
     expect(perimetreLabel(null)).toBeNull();
   });

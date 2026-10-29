@@ -299,7 +299,9 @@ export function buildAllowedCompetenceIds(
     const deptList = explicitList(c.departementIds);
     const deptOk =
       wantedDept === '' ||
-      (deptList.length > 0 ? deptList.includes(wantedDept) : norm(domaine?.departementId) === wantedDept);
+      (deptList.length > 0
+        ? deptList.includes(wantedDept)
+        : norm(domaine?.departementId) === wantedDept);
 
     if (upOk && deptOk) allowed.add(norm(c.id));
   });
