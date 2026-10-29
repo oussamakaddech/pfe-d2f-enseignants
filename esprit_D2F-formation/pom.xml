@@ -249,6 +249,19 @@
 
 	<build>
 		<plugins>
+			<!-- Memes regles qu'en CI : la commande locale ne doit pas signaler
+			     ce que le pipeline a deja accepte (voir owasp-suppressions.xml). -->
+			<plugin>
+				<groupId>org.owasp</groupId>
+				<artifactId>dependency-check-maven</artifactId>
+				<version>13.0.0</version>
+				<configuration>
+					<failBuildOnCVSS>7</failBuildOnCVSS>
+					<suppressionFiles>
+						<suppressionFile>${project.basedir}/../owasp-suppressions.xml</suppressionFile>
+					</suppressionFiles>
+				</configuration>
+			</plugin>
 			<!-- Plugin pour la compilation et le traitement des annotations Lombok -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
