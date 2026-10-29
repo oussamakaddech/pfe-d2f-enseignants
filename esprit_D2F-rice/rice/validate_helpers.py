@@ -56,23 +56,26 @@ def _resolve_existing_domaine_code(cur, domaine) -> Optional[str]:
         search_values[4] = lookup[0]
         search_values[5] = lookup[0]
 
-    try:
-        cur.execute(query, tuple(search_values))
-        row = cur.fetchone()
-        if row:
-            return row[0]
-    except Exception:
-        return None
-    return None
+    cur.execute(query, tuple(search_values))
+    row = cur.fetchone()
+    return row[0] if row else None
 
 
 # Reuse an existing application domain instead of creating/updating extracted fiche domains.
 def _upsert_domaine(cur, domaine, errors: List[str], conn) -> bool:
-    domain_code = _resolve_existing_domaine_code(cur, domaine)
+    domaine_code = getattr(domaine, "code", None) or (domaine.get("code") if isinstance(domaine, dict) else "<inconnu>")
+    try:
+        domain_code = _resolve_existing_domaine_code(cur, domaine)
+    except Exception as dom_err:
+        # Une requête en échec avorte la transaction PostgreSQL : sans rollback,
+        # les compétences et savoirs du même import échoueraient tous à leur tour.
+        conn.rollback()
+        errors.append(f"domaine {domaine_code}: {dom_err}")
+        return False
+
     if domain_code:
         return True
 
-    domaine_code = getattr(domaine, "code", None) or (domaine.get("code") if isinstance(domaine, dict) else "<inconnu>")
     errors.append(
         f"domaine {domaine_code}: absent du référentiel applicatif, import RICE ignoré"
     )
