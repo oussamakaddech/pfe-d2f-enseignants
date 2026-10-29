@@ -176,8 +176,8 @@ jobs:
         run: |
           # Perimetre = code embarque dans l'image Docker (voir Dockerfile :
           # app/, app_legacy/, data/). Les outils dev/CLI (pipelines/, scripts/,
-          # reports/, scripts racine de diagnostic) ne sont PAS copies dans
-          # l'image : leur sortie console (print) est legitime.
+          # reports/, colab/, scripts racine de diagnostic) ne sont PAS copies
+          # dans l'image : leur sortie console (print) est legitime.
           FOUND=$(grep -rn --include="*.py" -E "^\s*print\(" \
             ${{ matrix.service }} \
             --exclude-dir tests \
@@ -187,6 +187,7 @@ jobs:
             --exclude-dir pipelines \
             --exclude-dir scripts \
             --exclude-dir reports \
+            --exclude-dir colab \
             --exclude=validate_catalogue.py || true)
           if [ -n "$FOUND" ]; then
             echo "PII risk - print() trouve dans le code de production :"
@@ -252,6 +253,20 @@ jobs:
           key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
           restore-keys: owasp-nvd-${{ runner.os }}-
 
+      # Un cache peut contenir une base « fraiche » mais vide (mise a jour NVD
+      # interrompue ou refusee) : nvdValidForHours la ferait alors juger a jour,
+      # l'update serait saute et le defaut se propagerait a chaque run. On
+      # valide donc la taille avant de faire confiance au cache.
+      - name: Validate restored NVD database
+        run: |
+          DB=~/.m2/repository/org/owasp/dependency-check-data
+          SIZE=$(du -sm "$DB" 2>/dev/null | cut -f1 || echo 0)
+          echo "Base NVD restauree : ${SIZE:-0} Mo"
+          if [ "${SIZE:-0}" -lt 100 ]; then
+            echo "::warning::Base NVD inutilisable (${SIZE:-0} Mo < 100 Mo) - suppression pour forcer un telechargement complet."
+            rm -rf "$DB"
+          fi
+
       - name: Update NVD database
         working-directory: esprit_D2F-common-security
         run: |
@@ -262,6 +277,18 @@ jobs:
           mvn -B org.owasp:dependency-check-maven:${DC_VERSION}:update-only \
             -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
             -DnvdValidForHours=24
+
+      # Jamais de sauvegarde d'une base inutilisable : sinon le cache empoisonne
+      # tous les runs suivants (base recente, donc jugee « a jour »).
+      - name: Verify NVD database
+        run: |
+          DB=~/.m2/repository/org/owasp/dependency-check-data
+          SIZE=$(du -sm "$DB" 2>/dev/null | cut -f1 || echo 0)
+          if [ "${SIZE:-0}" -lt 100 ]; then
+            echo "::error::Base NVD absente ou vide (${SIZE:-0} Mo) apres mise a jour - verifiez le secret NVD_API_KEY et l'etat de l'API NVD."
+            exit 1
+          fi
+          echo "Base NVD prete : ${SIZE} Mo"
 
       - name: Save NVD database
         uses: actions/cache/save@v4
@@ -315,11 +342,15 @@ jobs:
           SUPPRESSION=""
           curl -sL https://raw.githubusercontent.com/oussamakaddech/pfe-d2f-enseignants/oussama/owasp-suppressions.xml -o owasp-suppressions.xml 2>/dev/null || true
           [ -f owasp-suppressions.xml ] && SUPPRESSION="-DsuppressionFile=owasp-suppressions.xml"
-          # Base deja a jour (job security-nvd) : aucune mise a jour ici. Repli
-          # fail-safe si AUCUN cache n'a pu etre restitue.
+          # Base deja a jour (job security-nvd) : aucune mise a jour ici, sinon
+          # 8 jobs telechargeraient la base en parallele (rate-limit NVD).
+          # Repli fail-safe si aucun cache n'a pu etre restitue OU si la base
+          # restauree est inutilisable (cache empoisonne par une base vide).
           AUTOUPDATE=false
-          if [ -z "${{ steps.nvd-cache.outputs.cache-matched-key }}" ]; then
-            echo "::warning::Base NVD absente du cache - mise a jour locale (plus lent)."
+          DB=~/.m2/repository/org/owasp/dependency-check-data
+          SIZE=$(du -sm "$DB" 2>/dev/null | cut -f1 || echo 0)
+          if [ -z "${{ steps.nvd-cache.outputs.cache-matched-key }}" ] || [ "${SIZE:-0}" -lt 100 ]; then
+            echo "::warning::Base NVD inutilisable (${SIZE:-0} Mo) - mise a jour locale (plus lent)."
             AUTOUPDATE=true
           fi
           mvn -B org.owasp:dependency-check-maven:${DC_VERSION}:check \
@@ -336,6 +367,20 @@ jobs:
             -DnexusAnalyzerEnabled=false \
             $SUPPRESSION \
             -Dformats=HTML,JSON
+
+      # Un echec OWASP n'est exploitable que si les CVE bloquantes sont lisibles
+      # sans ouvrir les logs (qui exigent un compte GitHub). Elles sont donc
+      # publiees en annotations, visibles dans l'onglet Summary du run.
+      - name: List blocking vulnerabilities
+        if: failure()
+        working-directory: ${{ matrix.service }}
+        run: |
+          R=target/dependency-check-report.json
+          if [ ! -f "$R" ]; then
+            echo "::error::Rapport dependency-check absent : le scan n'a pas abouti (base NVD inutilisable ?)."
+            exit 0
+          fi
+          python3 -c "import json,sys;r=json.load(open(sys.argv[1]));rows=sorted({(v.get('cvssv3',{}).get('baseScore') or v.get('cvssv2',{}).get('score') or 0,d.get('fileName','?'),v.get('name','?')) for d in r.get('dependencies',[]) for v in d.get('vulnerabilities',[])},reverse=True);rows=[x for x in rows if x[0]>=7];print(len(rows),'vulnerabilite(s) de score >= 7 non supprimee(s)');print(chr(10).join('::error file=%s::CVSS %s - %s'%(f,s,n) for s,f,n in rows[:15]))" "$R"
 
       - name: Upload OWASP report
         if: always()
