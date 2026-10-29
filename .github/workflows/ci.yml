@@ -423,12 +423,18 @@ jobs:
 
   # -- SonarQube Dashboard Refresh (cleanup doublons + projets obsoletes) --------
   # DSI S3.7 - Nettoyage automatique avant analyse pour un dashboard propre.
+  # Ce job exige un runner self-hosted (acces reseau au SonarQube interne) : sans
+  # runner enregistre il restait « queued » indefiniment, si bien que le run ne
+  # pouvait jamais conclure malgre tous les autres jobs verts. Il est donc
+  # conditionne a une variable dediee : l'enregistrer puis la passer a true
+  # (Settings > Secrets and variables > Actions > Variables) le reactive.
   sonar-dashboard-refresh:
     name: SonarQube Dashboard Refresh
     runs-on: self-hosted
     needs: [security-backend, security-frontend, test-python]
     if: >-
       vars.SONAR_ENABLED == 'true' &&
+      vars.SONAR_SELF_HOSTED_ENABLED == 'true' &&
       !inputs.skip_sonar &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     steps:
