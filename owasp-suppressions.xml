@@ -362,4 +362,13 @@
         <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring\-security\-.*@6\.5\..*$</packageUrl>
         <cve>CVE-2026-41707</cve>
     </suppress>
+    <!-- DOMPurify embarque dans swagger-ui (CVE-2026-116803, score bloquant 10.0) :
+         corrige en DOMPurify 3.4.17, qui n'est pas encore livre par swagger-ui 5.34.0
+         (derniere version publiee, elle embarque 3.4.16). Swagger UI est desactive en
+         production sur les 8 services (springdoc.swagger-ui.enabled=false), le DOM XSS
+         n'est donc pas atteignable. A retirer des qu'un swagger-ui livre 3.4.17. -->
+    <suppress>
+        <notes><![CDATA[DOMPurify CVE-2026-116803 - embarque par swagger-ui 5.32.2 ; correctif 3.4.17 pas encore livre par swagger-ui 5.34.0 ; Swagger UI desactive en production - risque non atteignable, accepte le 2026-10-29.]]></notes>
+        <cve>CVE-2026-116803</cve>
+    </suppress>
 </suppressions>
