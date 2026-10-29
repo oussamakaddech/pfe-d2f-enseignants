@@ -94,6 +94,14 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     private static final Pattern ENSEIGNANT_ITEM_PATH =
         Pattern.compile("^/api/formation/enseignants/[^/]+$");
 
+    /**
+     * Affectations enseignant ↔ savoirs (chemin public avant réécriture
+     * {@code /api/competence/... → /api/v1/...}). Écriture ouverte aux rôles de
+     * pilotage : le service compétence borne au périmètre UP / département.
+     */
+    private static final Pattern AFFECTATION_PATH =
+        Pattern.compile("^/api/competence/enseignant-competences(/.*)?$");
+
     public AuthorizationFilter(JwtTokenProvider tokenProvider) {
         super(Config.class);
         this.tokenProvider = tokenProvider;
@@ -340,7 +348,13 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     }
 
     private List<String> getCompetenceRoles(String path, HttpMethod method) {
-        if (path.contains("/rice") || method == HttpMethod.DELETE || method == HttpMethod.POST
+        if (path.contains("/rice")) return ADMIN_ONLY;
+        // Affectations enseignant ↔ savoirs : le CUP et le chef de département
+        // peuvent écrire, le service compétence bornant chaque écriture à leur
+        // périmètre (UP / département, résolu côté serveur). Le reste du
+        // référentiel (domaines, compétences, savoirs…) reste ADMIN en écriture.
+        if (isWrite(method) && AFFECTATION_PATH.matcher(path).matches()) return ADMIN_CUP;
+        if (method == HttpMethod.DELETE || method == HttpMethod.POST
                 || method == HttpMethod.PUT || method == HttpMethod.PATCH) return ADMIN_ONLY;
         return NO_FORMATEUR;
     }

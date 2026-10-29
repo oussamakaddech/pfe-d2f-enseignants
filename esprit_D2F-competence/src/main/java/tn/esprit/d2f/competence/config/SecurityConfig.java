@@ -41,6 +41,8 @@ import java.nio.charset.StandardCharsets;
 public class SecurityConfig {
 
     private static final String API_PATTERN = "/api/**";
+    /** Affectations enseignant ↔ savoirs (écriture bornée au périmètre UP / département). */
+    private static final String AFFECTATION_PATTERN = "/api/v1/enseignant-competences/**";
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_CUP = "CUP";
     private static final String ROLE_ENSEIGNANT = "ENSEIGNANT";
@@ -91,6 +93,15 @@ public class SecurityConfig {
                         // Lecture : tous les rôles
                         .requestMatchers(HttpMethod.GET, API_PATTERN)
                             .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_ANIMATEUR, ROLE_CHEF_DEPARTEMENT)
+                        // Affectations enseignant ↔ savoirs : écriture ouverte au CUP
+                        // et au chef de département, bornée à leur périmètre par
+                        // AffectationScopeService (@PreAuthorize AFFECTATION_*).
+                        .requestMatchers(HttpMethod.POST, AFFECTATION_PATTERN)
+                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT)
+                        .requestMatchers(HttpMethod.PATCH, AFFECTATION_PATTERN)
+                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT)
+                        .requestMatchers(HttpMethod.DELETE, AFFECTATION_PATTERN)
+                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT)
                         // Création / modification : admin, CUP, Enseignant, Animateur
                         .requestMatchers(HttpMethod.POST, API_PATTERN)
                             .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_ANIMATEUR)

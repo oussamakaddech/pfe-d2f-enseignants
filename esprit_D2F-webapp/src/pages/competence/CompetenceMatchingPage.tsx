@@ -13,6 +13,7 @@ import {
   Skeleton,
   Empty,
   Progress,
+  Segmented,
 } from 'antd';
 import {
   ReloadOutlined,
@@ -54,8 +55,23 @@ import {
 import { useMatchingReferential } from './hooks/useMatchingReferential';
 import { resolveDept, resolveDeptId, resolveUp } from './rice/teacherAffiliation';
 import { useDepartements } from '@/hooks/formation/useFormations';
+import { buildSavoirGroupes, type SavoirGroupe } from './components/affectationGroupee';
+import type { PerimetreAffectation } from '@/models/competence';
 
 const { Text } = Typography;
+
+/** Périmètres glissables du panneau gauche (un savoir, ou un groupe de savoirs). */
+const MODE_OPTIONS: { value: PerimetreAffectation; label: string }[] = [
+  { value: 'savoir', label: 'Savoir' },
+  { value: 'competence', label: 'Compétence' },
+  { value: 'sousCompetence', label: 'Sous-compétence' },
+];
+
+const MODE_PANEL_TITLE: Record<PerimetreAffectation, string> = {
+  savoir: 'Savoirs Disponibles',
+  competence: 'Compétences (tous leurs savoirs)',
+  sousCompetence: 'Sous-compétences (et leurs savoirs)',
+};
 
 /**
  * Clés de domaine d'un savoir pour le filtre : identifiant du référentiel,
@@ -82,6 +98,8 @@ export default function CompetenceMatchingPage() {
   const [dragOverEns, setDragOverEns] = useState<string | null>(null);
   const [ensSearch, setEnsSearch] = useState('');
   const [ensSort, setEnsSort] = useState('name');
+  /** Périmètre glissé depuis le panneau gauche : savoir, compétence ou sous-compétence. */
+  const [affectMode, setAffectMode] = useState<PerimetreAffectation>('savoir');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingEns, setEditingEns] = useState<RiceEnseignantEntry | null>(null);
   const [form] = Form.useForm<RiceEnseignantEntry>();
@@ -277,15 +295,65 @@ export default function CompetenceMatchingPage() {
     setDragOverEns(null);
   }, []);
 
+  /**
+   * Dépôt d'un groupe (compétence / sous-compétence) sur un enseignant :
+   * chaque savoir du périmètre est ajouté aux modifications en attente
+   * (les savoirs déjà assignés sont ignorés, aucun doublon).
+   */
+  const handleGroupeDrop = useCallback(
+    (groupe: SavoirGroupe, ensId: string) => {
+      const assignments = stateRef.current.assignments;
+      const aAjouter = groupe.savoirIds.filter(
+        (savoirId) => !(assignments[savoirId] ?? []).includes(ensId),
+      );
+      const teacher = teacherById.get(ensId);
+      const teacherName = teacher ? `${teacher.prenom} ${teacher.nom}`.trim() : ensId;
+      if (aAjouter.length === 0) {
+        message.warning(
+          `Tous les savoirs de « ${groupe.nom} » sont déjà assignés à ${teacherName}`,
+          2.5,
+        );
+        return;
+      }
+      aAjouter.forEach((savoirId) =>
+        dispatch({ type: 'ASSIGN_SAVOIR', payload: { savoirId, enseignantId: ensId } }),
+      );
+      message.success(
+        `${groupe.code || groupe.nom} → ${teacherName} (${aAjouter.length} savoir(s))`,
+        2.5,
+      );
+    },
+    [teacherById, message],
+  );
+
+  /** Retrait d'un groupe : tous ses savoirs sont désaffectés de l'enseignant. */
+  const handleGroupeUnassign = useCallback(
+    (groupe: SavoirGroupe, ensId: string) => {
+      groupe.savoirIds.forEach((savoirId) =>
+        dispatch({ type: 'UNASSIGN_SAVOIR', payload: { savoirId, enseignantId: ensId } }),
+      );
+      message.info('Affectation(s) retirée(s)', 1.5);
+    },
+    [message],
+  );
+
   const handleEnsDrop = useCallback(
     (e: React.DragEvent, ensId: string) => {
       e.preventDefault();
       e.stopPropagation();
-      let payload: { savoirId?: string } = {};
+      let payload: { savoirId?: string; groupe?: SavoirGroupe } = {};
       try {
-        payload = JSON.parse(e.dataTransfer.getData('text/plain') || '{}') as { savoirId?: string };
+        payload = JSON.parse(e.dataTransfer.getData('text/plain') || '{}') as {
+          savoirId?: string;
+          groupe?: SavoirGroupe;
+        };
       } catch {
         payload = {};
+      }
+      if (payload.groupe?.savoirIds?.length) {
+        handleGroupeDrop(payload.groupe, ensId);
+        handleDragEnd();
+        return;
       }
       const sId = String(payload.savoirId ?? '');
       if (!sId) {
@@ -304,7 +372,7 @@ export default function CompetenceMatchingPage() {
       message.success(`${savoir?.code ?? sId} → ${teacherName}`, 2);
       handleDragEnd();
     },
-    [teacherById, handleDragEnd, message],
+    [teacherById, handleDragEnd, handleGroupeDrop, message],
   );
 
   const handleUnassign = useCallback(
@@ -455,6 +523,101 @@ export default function CompetenceMatchingPage() {
     [state.pendingChanges],
   );
 
+  /** Savoirs normalisés pour le regroupement (compétence résolue par la hiérarchie). */
+  const savoirsPourGroupes = useMemo(
+    () =>
+      (state.savoirs || []).map((s) => {
+        const h = hierarchies.get(String(s.id));
+        return {
+          id: s.id,
+          code: s.code,
+          nom: s.nom,
+          competenceId: s.competenceId ?? (h?.competenceId || undefined),
+          sousCompetenceId: s.sousCompetenceId ?? (h?.sousCompetenceId || undefined),
+        };
+      }),
+    [state.savoirs, hierarchies],
+  );
+
+  /** Compétences et sous-compétences glissables (uniquement celles portant des savoirs). */
+  const groupes = useMemo(() => {
+    if (affectMode === 'savoir') return [];
+    return buildSavoirGroupes({
+      perimetre: affectMode,
+      savoirs: savoirsPourGroupes,
+      competences,
+      sousCompetences,
+    });
+  }, [affectMode, savoirsPourGroupes, competences, sousCompetences]);
+
+  /** Mêmes filtres que la liste des savoirs, appliqués aux groupes. */
+  const filteredGroupes = useMemo(() => {
+    if (affectMode === 'savoir') return [];
+    const q = (state.filters.search ?? '').toLowerCase();
+    const compById = new Map((competences || []).map((c) => [String(c.id), c]));
+    const scById = new Map((sousCompetences || []).map((sc) => [String(sc.id), sc]));
+    const scFiltre =
+      state.filters.sousCompetence !== 'all'
+        ? scById.get(String(state.filters.sousCompetence))
+        : undefined;
+    return groupes.filter((g) => {
+      if (q && !`${g.code} ${g.nom}`.toLowerCase().includes(q)) return false;
+      const domaineId = String(compById.get(g.competenceId)?.domaineId ?? '');
+      if (selectedDept !== 'all' && deptByDomaine.get(domaineId) !== selectedDept) return false;
+      if (state.filters.domaine !== 'all' && domaineId !== String(state.filters.domaine)) {
+        return false;
+      }
+      if (
+        state.filters.competence !== 'all' &&
+        g.competenceId !== String(state.filters.competence)
+      ) {
+        return false;
+      }
+      if (scFiltre) {
+        const cible =
+          g.perimetre === 'competence' ? String(scFiltre.competenceId ?? '') : String(scFiltre.id);
+        if (g.id !== cible) return false;
+      }
+      if (
+        state.filters.showUnassignedOnly &&
+        g.savoirIds.every((savoirId) => (state.assignments[savoirId] ?? []).length > 0)
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [
+    affectMode,
+    groupes,
+    competences,
+    sousCompetences,
+    state.filters.search,
+    state.filters.domaine,
+    state.filters.competence,
+    state.filters.sousCompetence,
+    state.filters.showUnassignedOnly,
+    state.assignments,
+    selectedDept,
+    deptByDomaine,
+  ]);
+
+  /** Enseignants couvrant TOUT le groupe (toutes ses affectations) : tags retirables. */
+  const couvertureParGroupe = useMemo(() => {
+    const map = new Map<string, string[]>();
+    filteredGroupes.forEach((g) => {
+      const [premier, ...reste] = g.savoirIds;
+      if (!premier) return;
+      const candidats = state.assignments[premier] ?? [];
+      map.set(
+        g.id,
+        candidats.filter((ensId) =>
+          reste.every((savoirId) => (state.assignments[savoirId] ?? []).includes(ensId)),
+        ),
+      );
+    });
+    return map;
+  }, [filteredGroupes, state.assignments]);
+
   const assignmentCountByEns = useMemo(() => {
     const counts: Record<string, number> = {};
     state.enseignants.forEach((e) => (counts[String(e.id)] = 0));
@@ -511,6 +674,68 @@ export default function CompetenceMatchingPage() {
   let savoirsContent;
   if (state.loading.data) {
     savoirsContent = <Skeleton active paragraph={{ rows: 10 }} />;
+  } else if (affectMode !== 'savoir') {
+    savoirsContent =
+      filteredGroupes.length === 0 ? (
+        <Empty
+          description={`Aucun(e) ${affectMode === 'competence' ? 'compétence' : 'sous-compétence'} avec des savoirs`}
+        />
+      ) : (
+        filteredGroupes.map((g) => {
+          const couverts = couvertureParGroupe.get(g.id) ?? [];
+          return (
+            <button
+              key={`${g.perimetre}-${g.id}`}
+              type="button"
+              className={`savoir-assignment-card groupe-card ${couverts.length > 0 ? 'assigned' : 'unassigned'} ${draggingId === `g:${g.id}` ? 'dragging' : ''}`}
+              draggable
+              tabIndex={0}
+              onKeyDown={() => {}}
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/plain', JSON.stringify({ groupe: g }));
+                e.dataTransfer.effectAllowed = 'copy';
+                setDraggingId(`g:${g.id}`);
+              }}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="savoir-card-header">
+                <span className="savoir-drag-handle">
+                  <HolderOutlined />
+                </span>
+                {g.code ? <span className="savoir-code-label">{g.code}</span> : null}
+                <span className="savoir-name-inline">{g.nom}</span>
+                <Tag color="gold" style={{ marginInlineStart: 'auto' }}>
+                  {g.savoirIds.length} savoir(s)
+                </Tag>
+              </div>
+              {g.parentLabel ? (
+                <div className="savoir-hierarchy-tags">
+                  <Tag color="blue" style={{ marginBottom: 2 }}>
+                    {g.parentLabel}
+                  </Tag>
+                </div>
+              ) : null}
+              {couverts.length > 0 && (
+                <div className="savoir-assigned-teachers">
+                  {couverts.map((ensId) => {
+                    const ens = teacherById.get(ensId);
+                    return (
+                      <Tag
+                        key={ensId}
+                        className="teacher-assignment-tag"
+                        closable
+                        onClose={() => handleGroupeUnassign(g, ensId)}
+                      >
+                        {ens ? `${ens.prenom} ${ens.nom}` : ensId}
+                      </Tag>
+                    );
+                  })}
+                </div>
+              )}
+            </button>
+          );
+        })
+      );
   } else if (filteredSavoirs.length === 0) {
     savoirsContent = <Empty description="Aucun savoir trouvé" />;
   } else {
@@ -694,7 +919,7 @@ export default function CompetenceMatchingPage() {
       <AppPageHeader
         icon={<ThunderboltOutlined />}
         title="Matchmaking & Affectations"
-        subtitle="Assignez intelligemment les savoirs aux enseignants"
+        subtitle="Assignez un savoir, une compétence (tous ses savoirs) ou une sous-compétence aux enseignants"
         actions={
           <Space size="middle">
             <Select
@@ -756,9 +981,11 @@ export default function CompetenceMatchingPage() {
             </Button>
           )}
           <Text type="secondary" style={{ fontSize: 12 }}>
-            {filteredSavoirs.length} savoir(s) · {domainOptions.length - 1} domaine(s) ·{' '}
-            {competenceOptions.length - 1} compétence(s) · {sousCompetenceOptions.length - 1}{' '}
-            sous-compétence(s)
+            {affectMode === 'savoir'
+              ? `${filteredSavoirs.length} savoir(s)`
+              : `${filteredGroupes.length} groupe(s) glissable(s) · ${filteredGroupes.reduce((n, g) => n + g.savoirIds.length, 0)} savoir(s)`}{' '}
+            · {domainOptions.length - 1} domaine(s) · {competenceOptions.length - 1} compétence(s) ·{' '}
+            {sousCompetenceOptions.length - 1} sous-compétence(s)
           </Text>
         </Space>
       </div>
@@ -766,9 +993,18 @@ export default function CompetenceMatchingPage() {
         <section className="matching-panel savoirs-list-panel">
           <div className="panel-header-section">
             <div className="panel-title-section">
-              <BookOutlined style={{ color: '#1890ff' }} /> Savoirs Disponibles
+              <BookOutlined style={{ color: '#1890ff' }} /> {MODE_PANEL_TITLE[affectMode]}
             </div>
-            <div className="panel-controls-section">
+            <div className="panel-controls-section" style={{ flexWrap: 'wrap', gap: 8 }}>
+              <Segmented
+                size="small"
+                value={affectMode}
+                onChange={(v) => {
+                  setAffectMode(v as PerimetreAffectation);
+                  handleDragEnd();
+                }}
+                options={MODE_OPTIONS}
+              />
               <Switch
                 checked={state.filters.showUnassignedOnly}
                 onChange={(v) =>

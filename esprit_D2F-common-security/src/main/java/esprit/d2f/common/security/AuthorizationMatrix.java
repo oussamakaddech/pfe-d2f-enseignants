@@ -10,10 +10,14 @@ public final class AuthorizationMatrix {
     public static final String COMPETENCE_DELETE = "hasAnyRole('ROLE_ADMIN')";
 
     public static final String AFFECTATION_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_CHEF_DEPARTEMENT')";
-    public static final String AFFECTATION_CREATE = "hasAnyRole('ROLE_ADMIN')";
+    // Écriture des affectations : le CUP et le chef de département affectent les
+    // enseignants de LEUR périmètre (UP / département). Le contrôle fin est
+    // appliqué dans AffectationScopeService (JWT + fiche enseignant, deny-by-default),
+    // jamais depuis le frontend.
+    public static final String AFFECTATION_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
     public static final String AFFECTATION_UPDATE_SELF = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT')";
-    public static final String AFFECTATION_UPDATE_ALL = "hasAnyRole('ROLE_ADMIN')";
-    public static final String AFFECTATION_DELETE = "hasAnyRole('ROLE_ADMIN')";
+    public static final String AFFECTATION_UPDATE_ALL = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
+    public static final String AFFECTATION_DELETE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
 
     // Vue globale (hors périmètre CUP/chef, filtré par le service) : ADMIN et
     // RESPONSABLE_DOSSIER (tuiles du tableau de bord exécutif). L'ANIMATEUR, comme

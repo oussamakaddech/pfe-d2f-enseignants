@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import tn.esprit.d2f.competence.entity.Savoir;
 import tn.esprit.d2f.competence.entity.enumerations.TypeSavoir;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,6 +30,28 @@ public interface SavoirRepository extends JpaRepository<Savoir, Long> {
     /** IDs des savoirs rattachés à une sous-compétence */
     @Query("SELECT s.id FROM Savoir s WHERE s.sousCompetence.id = :sousCompetenceId")
     List<Long> findIdsBySousCompetenceId(@Param("sousCompetenceId") Long sousCompetenceId);
+
+    /**
+     * Tous les savoirs d'une compétence : savoirs directs ({@code savoir.competence})
+     * ET savoirs portés par ses sous-compétences ({@code savoir.sousCompetence.competence}).
+     *
+     * <p>LEFT JOIN explicites obligatoires (même raison que {@link #findIdsByDomaineId(Long)} :
+     * une navigation implicite en OR produit des INNER JOIN qui écarteraient les
+     * savoirs dont l'autre parent est NULL, donc soit les savoirs directs, soit ceux
+     * des sous-compétences — la couverture resterait partielle).</p>
+     */
+    @Query("""
+        SELECT DISTINCT s FROM Savoir s
+        LEFT JOIN s.competence c1
+        LEFT JOIN s.sousCompetence sc
+        LEFT JOIN sc.competence c2
+        WHERE c1.id = :competenceId OR c2.id = :competenceId
+    """)
+    List<Savoir> findByCompetenceWithSousCompetences(@Param("competenceId") Long competenceId);
+
+    /** Savoirs rattachés à l'une des sous-compétences données (sous-arbre aplati). */
+    @Query("SELECT s FROM Savoir s WHERE s.sousCompetence.id IN :sousCompetenceIds")
+    List<Savoir> findBySousCompetenceIdIn(@Param("sousCompetenceIds") Collection<Long> sousCompetenceIds);
 
     /**
      * IDs de tous les savoirs appartenant à un domaine (via sous-compétence ou compétence directe).

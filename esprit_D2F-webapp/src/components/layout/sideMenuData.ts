@@ -111,6 +111,8 @@ export const cupMenu: MenuItem[] = [
     children: [
       { label: 'Référentiel Compétences', key: '/home/competences', icon: BookOutlined },
       { label: 'Fiche enseignant', key: '/home/skill-passport', icon: IdcardOutlined },
+      // Affectations bornées à l'UP du CUP (périmètre résolu côté serveur).
+      { label: 'Affectations', key: '/home/affectations', icon: SolutionOutlined },
       {
         label: 'Besoins de Formation',
         key: 'besoin_formation_menu',
@@ -198,6 +200,8 @@ export const chefDepartementMenu: MenuItem[] = [
     children: [
       { label: 'Référentiel Compétences', key: '/home/competences', icon: BookOutlined },
       { label: 'Fiche enseignant', key: '/home/skill-passport', icon: IdcardOutlined },
+      // Affectations bornées au département du chef (périmètre résolu côté serveur).
+      { label: 'Affectations', key: '/home/affectations', icon: SolutionOutlined },
       // Parité BESOIN_FORMATION_CREATE/READ_ALL : le chef consulte les besoins de
       // son département et dépose aussi des besoins.
       {

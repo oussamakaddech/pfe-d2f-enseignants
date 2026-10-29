@@ -123,6 +123,19 @@ GRANT USAGE ON SCHEMA "formation" TO app_user_rice;
 GRANT SELECT (id, nom, prenom, deleted_at) ON "formation".enseignants TO app_user_rice;
 
 -- ---------------------------------------------------------------------
+-- 4 bis. Rôle COMPETENCE — périmètre des affectations CUP / chef
+-- ---------------------------------------------------------------------
+-- Les affectations enseignant ↔ savoirs sont écrites par le CUP (son UP) et
+-- le chef de département (son département). Le service compétence résout ce
+-- périmètre depuis la fiche enseignant de l'utilisateur connecté, donc il lit
+-- l'annuaire du schéma formation en LECTURE SEULE (colonnes d'identification
+-- et de rattachement uniquement). Aucune écriture : le garde-fou de la
+-- section 5 révoque INSERT/UPDATE/DELETE.
+GRANT USAGE ON SCHEMA "formation" TO app_user_competence;
+GRANT SELECT (id, mail, user_id, up_id, dept_id, deleted_at)
+  ON "formation".enseignants TO app_user_competence;
+
+-- ---------------------------------------------------------------------
 -- 5. Contrôle : aucune écriture croisée
 -- ---------------------------------------------------------------------
 -- Garde-fou explicite (audit MLOps, anomalie 1) : un grant d'écriture

@@ -173,6 +173,23 @@
   box-shadow: none;
 }
 
+/* Cartes de groupe (compétence / sous-compétence) : un dépôt affecte tous
+   les savoirs du groupe, la bordure gauche épaisse et le liseré pointillé
+   signalent qu'il s'agit d'un ensemble. */
+.savoir-assignment-card.groupe-card {
+  border-left-width: 4px;
+  border-style: dashed;
+}
+
+.savoir-assignment-card.groupe-card.assigned {
+  border-left-style: solid;
+  background: linear-gradient(90deg, rgba(82, 196, 26, 0.06), transparent 55%);
+}
+
+.savoir-assignment-card.groupe-card.unassigned {
+  border-left-style: solid;
+}
+
 .savoir-card-header {
   display: flex;
   align-items: center;

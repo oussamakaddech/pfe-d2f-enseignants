@@ -17,10 +17,13 @@ export const FRONTEND_PERMISSIONS = {
   },
   AFFECTATION: {
     READ: ['admin', 'CUP', 'Enseignant', 'CHEF_DEPARTEMENT'],
-    CREATE: ['admin'],
+    // Parité AuthorizationMatrix.AFFECTATION_* : le CUP et le chef de département
+    // affectent les enseignants de leur UP / département. Le périmètre est
+    // appliqué côté serveur (AffectationScopeService), jamais ici.
+    CREATE: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
     UPDATE_SELF: ['admin', 'CUP', 'Enseignant'],
-    UPDATE_ALL: ['admin'],
-    DELETE: ['admin'],
+    UPDATE_ALL: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
+    DELETE: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
   },
   BESOIN_FORMATION: {
     // Parité AuthorizationMatrix.BESOIN_FORMATION_READ_ALL (ADMIN, CUP,
