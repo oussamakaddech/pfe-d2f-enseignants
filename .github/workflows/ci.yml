@@ -380,7 +380,9 @@ jobs:
             echo "::error::Rapport dependency-check absent : le scan n'a pas abouti (base NVD inutilisable ?)."
             exit 0
           fi
-          python3 -c "import json,sys;r=json.load(open(sys.argv[1]));rows=sorted({(v.get('cvssv3',{}).get('baseScore') or v.get('cvssv2',{}).get('score') or 0,d.get('fileName','?'),v.get('name','?')) for d in r.get('dependencies',[]) for v in d.get('vulnerabilities',[])},reverse=True);rows=[x for x in rows if x[0]>=7];print(len(rows),'vulnerabilite(s) de score >= 7 non supprimee(s)');print(chr(10).join('::error file=%s::CVSS %s - %s'%(f,s,n) for s,f,n in rows[:15]))" "$R"
+          DB=~/.m2/repository/org/owasp/dependency-check-data
+          SIZE=$(du -sm "$DB" 2>/dev/null | cut -f1)
+          python3 -c "import json,sys;r=json.load(open(sys.argv[1]));deps=r.get('dependencies',[]);v=[(x.get('cvssv3',{}).get('baseScore') or x.get('cvssv2',{}).get('score') or 0,d.get('fileName','?'),x.get('name','?')) for d in deps for x in d.get('vulnerabilities',[])];hi=[z for z in v if z[0]>=7];print('::error::base NVD='+sys.argv[2]+' Mo | dependances analysees=%d | vulnerabilites=%d | dont CVSS>=7=%d'%(len(deps),len(v),len(hi)));print(chr(10).join('::error file=%s::CVSS %s - %s'%(f,s,n) for s,f,n in sorted(hi,reverse=True)[:8]))" "$R" "${SIZE:-0}"
 
       - name: Upload OWASP report
         if: always()
