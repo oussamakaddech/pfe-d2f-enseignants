@@ -156,23 +156,10 @@ export default function SavoirFormModal({ crud, savoirForm }: Readonly<SavoirFor
               rules={[
                 { required: true, message: 'Completez le code' },
                 { pattern: /^[A-Z0-9_]+$/, message: 'Majuscules, chiffres et _ uniquement' },
-                {
-                  validator: (_, value) => {
-                    const prefix = savoirForm.getFieldValue('codePrefix') || '';
-                    const suffix = value || '';
-                    if (`${prefix}${suffix}`.length > 100) {
-                      return Promise.reject(
-                        new Error('Le code ne doit pas depasser 100 caracteres'),
-                      );
-                    }
-                    return Promise.resolve();
-                  },
-                },
               ]}
             >
               <Input
                 placeholder="ex: S1"
-                maxLength={100}
                 style={{ width: '100%' }}
                 onChange={(e) => {
                   const sanitized = (e.target.value || '')

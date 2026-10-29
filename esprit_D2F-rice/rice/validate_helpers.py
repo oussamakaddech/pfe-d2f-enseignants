@@ -2,31 +2,81 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
+import re
+from typing import Dict, List, Optional, Tuple
 
 from rice.models import ValidateRequest, ValidateSummary
 
 
-# Insère ou met à jour un domaine en base (ON CONFLICT code → UPDATE).
-# En cas d'erreur : rollback + message ajouté à `errors`, renvoie False.
-def _upsert_domaine(cur, domaine, errors: List[str], conn) -> bool:
+def _canonical_domain_token(value: Optional[str]) -> str:
+    if value is None:
+        return ""
+    return re.sub(r"[^a-z0-9]+", "", value.lower())
+
+
+def _resolve_existing_domaine_code(cur, domaine) -> Optional[str]:
+    """Return the canonical application-domain code if the imported fiche domain already exists.
+
+    The RICE validation step must not create or overwrite official domain rows: it should
+    only reuse domains that already exist in the application registry.
+    """
+    domaine_code = getattr(domaine, "code", None) or (domaine.get("code") if isinstance(domaine, dict) else None)
+    domaine_nom = getattr(domaine, "nom", None) or (domaine.get("nom") if isinstance(domaine, dict) else None)
+    if not domaine_code and not domaine_nom:
+        return None
+
+    tokens = []
+    for value in (domaine_code, domaine_nom):
+        if value:
+            tokens.append(value)
+
+    query = """
+        SELECT code
+        FROM domaines
+        WHERE LOWER(code) = LOWER(%s)
+           OR LOWER(nom) = LOWER(%s)
+           OR regexp_replace(LOWER(code), '[^a-z0-9]+', '', 'g') = %s
+           OR regexp_replace(LOWER(nom), '[^a-z0-9]+', '', 'g') = %s
+        ORDER BY
+           CASE
+             WHEN LOWER(code) = LOWER(%s) THEN 0
+             WHEN LOWER(nom) = LOWER(%s) THEN 1
+             ELSE 2
+           END,
+           code
+        LIMIT 1
+    """
+    lookup = list(dict.fromkeys([t for t in tokens if t]))
+    if not lookup:
+        return None
+
+    search_values = [lookup[0], lookup[0], _canonical_domain_token(lookup[0]), _canonical_domain_token(lookup[0]), lookup[0], lookup[0]]
+    if len(lookup) > 1:
+        search_values[1] = lookup[1]
+        search_values[4] = lookup[0]
+        search_values[5] = lookup[0]
+
     try:
-        cur.execute("""
-            INSERT INTO domaines (code, nom, description, actif)
-            VALUES (%s, %s, %s, true)
-            ON CONFLICT (code) DO UPDATE SET
-                nom         = EXCLUDED.nom,
-                description = EXCLUDED.description
-        """, (
-            domaine.code[:50],
-            domaine.nom[:255],
-            (domaine.description or "")[:500],
-        ))
+        cur.execute(query, tuple(search_values))
+        row = cur.fetchone()
+        if row:
+            return row[0]
+    except Exception:
+        return None
+    return None
+
+
+# Reuse an existing application domain instead of creating/updating extracted fiche domains.
+def _upsert_domaine(cur, domaine, errors: List[str], conn) -> bool:
+    domain_code = _resolve_existing_domaine_code(cur, domaine)
+    if domain_code:
         return True
-    except Exception as dom_err:
-        conn.rollback()
-        errors.append(f"domaine {domaine.code}: {dom_err}")
-        return False
+
+    domaine_code = getattr(domaine, "code", None) or (domaine.get("code") if isinstance(domaine, dict) else "<inconnu>")
+    errors.append(
+        f"domaine {domaine_code}: absent du référentiel applicatif, import RICE ignoré"
+    )
+    return False
 
 
 # Insère ou met à jour une compétence, liée à son domaine (recherche par code).

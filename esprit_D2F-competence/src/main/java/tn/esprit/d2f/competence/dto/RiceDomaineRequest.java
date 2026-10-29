@@ -20,6 +20,12 @@ public class RiceDomaineRequest {
 
     private String description;
 
+    /**
+     * Domaine du référentiel auquel rattacher CE domaine RICE (choisi dans le
+     * panneau de revue). Prime sur le domaine par défaut de la requête.
+     */
+    private String domaineCibleId;
+
     @Valid
     private List<RiceCompetenceRequest> competences;
 }

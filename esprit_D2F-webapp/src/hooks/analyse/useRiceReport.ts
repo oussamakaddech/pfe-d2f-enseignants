@@ -73,12 +73,18 @@ const buildCompetencePayload = (c: RiceCompetence) => ({
   nom: c.nom,
   description: c.description ?? null,
   ordre: c.ordre ?? 1,
+  ...(c.upIds !== undefined ? { upIds: c.upIds } : {}),
+  ...(c.departementIds !== undefined ? { departementIds: c.departementIds } : {}),
   savoirs: buildSavoirPayload(c.savoirs),
   sousCompetences: (c.sousCompetences ?? []).map(buildSousCompetencePayload),
 });
 
 export function useRiceReport({ tree, departement, msgApi, onImportSuccess }: UseRiceReportProps) {
   const [report, setReport] = useState<ImportReport | null>(null);
+  // Domaine de l'application recevant l'import : quand il est choisi, chaque
+  // domaine RICE devient une compétence de ce domaine (nom du domaine RICE =
+  // nom de la compétence) et ses compétences deviennent des sous-compétences.
+  const [domaineCibleId, setDomaineCibleId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const computeClientCoverage = useCallback(() => {
@@ -126,9 +132,13 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }: Us
         code: d.code,
         nom: d.nom,
         description: d.description ?? null,
+        // Rattachement choisi sur ce domaine RICE dans le panneau de revue ;
+        // il prime sur le domaine par défaut de l'étape Rapport.
+        ...(d.domaineExistantId ? { domaineCibleId: String(d.domaineExistantId) } : {}),
         competences: (d.competences ?? []).map(buildCompetencePayload),
       })),
       departement: departement === 'auto' ? undefined : departement,
+      ...(domaineCibleId ? { domaineCibleId } : {}),
     };
 
     try {
@@ -158,6 +168,7 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }: Us
   }, [
     tree,
     departement,
+    domaineCibleId,
     computeClientCoverage,
     msgApi,
     onImportSuccess,
@@ -195,6 +206,8 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }: Us
     importing: importMutation.isPending,
     report,
     setReport,
+    domaineCibleId,
+    setDomaineCibleId,
     importHistory: historyQuery.data ?? null,
     setImportHistory,
     historyLoading: historyQuery.isFetching,

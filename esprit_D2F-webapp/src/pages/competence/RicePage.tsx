@@ -118,6 +118,8 @@ export default function RicePage() {
     importing,
     report,
     setReport,
+    domaineCibleId,
+    setDomaineCibleId,
     importHistory,
     setImportHistory,
     historyLoading,
@@ -226,6 +228,7 @@ export default function RicePage() {
     setDepartement('auto');
     setTree([]);
     setReport(null);
+    setDomaineCibleId(null);
     setImportHistory(null);
     prevTreeRef.current = [];
     skipHistoryRef.current = true;
@@ -235,7 +238,7 @@ export default function RicePage() {
     try {
       sessionStorage.removeItem(STORAGE_KEY);
     } catch {}
-  }, [setTree, setReport, setImportHistory]);
+  }, [setTree, setReport, setDomaineCibleId, setImportHistory]);
 
   // Confetti on clean import success
   useEffect(() => {
@@ -469,6 +472,8 @@ export default function RicePage() {
                     }
                     setCurrentStep={setCurrentStep}
                     resetAll={resetAll}
+                    domaineCibleId={domaineCibleId}
+                    setDomaineCibleId={setDomaineCibleId}
                   />
                 </motion.div>
               )}

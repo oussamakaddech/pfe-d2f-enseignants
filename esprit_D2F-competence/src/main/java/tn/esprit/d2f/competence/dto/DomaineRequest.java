@@ -11,7 +11,6 @@ import lombok.*;
 public class DomaineRequest {
 
     @NotBlank(message = "Le code est obligatoire")
-    @Size(max = 20, message = "Le code ne doit pas dépasser 20 caractères")
     private String code;
 
     @NotBlank(message = "Le nom est obligatoire")

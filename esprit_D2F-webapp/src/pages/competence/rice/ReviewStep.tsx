@@ -343,6 +343,17 @@ export default function ReviewStep({
     setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, [field]: value } });
   };
 
+  // Plusieurs champs d'un coup (reprise d'un domaine du référentiel) : une seule
+  // mise à jour du nœud sélectionné, sinon chaque appel repartirait du même
+  // instantané et seul le dernier champ resterait affiché.
+  const handleUpdateFields = (fields: Record<string, unknown>) => {
+    if (!selectedNode) return;
+    Object.entries(fields).forEach(([field, value]) =>
+      updateNodeField(selectedNode.path, field, value),
+    );
+    setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, ...fields } });
+  };
+
   const deleteNode = (node: SelectedNode) => {
     if (!node) return;
     const { type, path } = node;
@@ -445,6 +456,7 @@ export default function ReviewStep({
           mergedEnseignants={mergedEnseignants}
           scOptions={scOptions}
           handleUpdateField={handleUpdateField}
+          handleUpdateFields={handleUpdateFields}
           handleRemoveEnseignant={(id) => {
             const cur = (selectedNode?.data?.enseignantsSuggeres as unknown[]) ?? [];
             handleUpdateField(
