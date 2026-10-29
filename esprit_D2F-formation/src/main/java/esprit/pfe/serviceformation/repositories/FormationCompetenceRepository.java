@@ -41,6 +41,21 @@ public interface FormationCompetenceRepository extends JpaRepository<FormationCo
     List<FormationCompetence> findByDomaineId(@Param("domaineId") Long domaineId);
 
     /**
+     * Toutes les liaisons formation ↔ compétence des formations actives.
+     * Alimente le filtre « par compétence » du catalogue et son export Excel.
+     * Ligne = [idFormation, competenceId, competenceNom (nullable)]. Une même
+     * compétence peut apparaître plusieurs fois pour une formation (une ligne
+     * par sous-compétence / savoir) : `DISTINCT` évite les doublons.
+     */
+    @Query("""
+            SELECT DISTINCT f.idFormation, fc.competenceId, fc.competenceNom
+            FROM FormationCompetence fc JOIN fc.formation f
+            WHERE f.deletedAt IS NULL
+            ORDER BY fc.competenceNom ASC, f.idFormation ASC
+            """)
+    List<Object[]> findAllFormationCompetenceLinks();
+
+    /**
      * Nombre de formations DISTINCTES rattachées à chaque compétence du
      * référentiel (table de liaison), sur la période de début de formation et le
      * périmètre demandé (CUP → UP, chef → département).

@@ -1,5 +1,6 @@
 package esprit.pfe.serviceformation.services;
 
+import esprit.pfe.serviceformation.dto.FormationCompetenceLinkDTO;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.entities.FormationCompetence;
 import esprit.pfe.serviceformation.repositories.FormationCompetenceRepository;
@@ -80,6 +81,20 @@ public class FormationCompetenceService {
 
     public List<FormationCompetence> getByCompetenceId(Long competenceId) {
         return formationCompetenceRepository.findByCompetenceId(competenceId);
+    }
+
+    /**
+     * Toutes les liaisons formation ↔ compétence des formations actives
+     * (une seule requête) : filtre « par compétence » du catalogue et export.
+     */
+    public List<FormationCompetenceLinkDTO> getAllLinks() {
+        return formationCompetenceRepository.findAllFormationCompetenceLinks().stream()
+                .filter(row -> row[0] != null && row[1] != null)
+                .map(row -> new FormationCompetenceLinkDTO(
+                        ((Number) row[0]).longValue(),
+                        ((Number) row[1]).longValue(),
+                        (String) row[2]))
+                .toList();
     }
 
     /** Récupérer les formations liées à un domaine (paginé) */

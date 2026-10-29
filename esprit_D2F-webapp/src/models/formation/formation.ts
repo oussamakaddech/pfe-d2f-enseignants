@@ -35,6 +35,7 @@ export interface Formation {
   typeFormation?: string;
   dateDebut?: string;
   dateFin?: string;
+  salle?: string;
   objectif?: string;
   responsableEmail?: string;
   responsableName?: string;

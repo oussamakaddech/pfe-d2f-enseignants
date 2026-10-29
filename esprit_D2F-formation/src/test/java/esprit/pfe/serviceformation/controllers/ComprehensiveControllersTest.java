@@ -153,7 +153,10 @@ class ComprehensiveControllersTest {
         when(fcService.getByFormationId(anyLong(), any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
         when(fcService.getByCompetenceId(anyLong(), any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
         when(fcService.getByDomaineId(anyLong(), any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
+        when(fcService.getAllLinks()).thenReturn(Collections.emptyList());
         mockMvcFC.perform(get("/api/v1/formation-competences/formation/1")).andExpect(status().is2xxSuccessful());
+        // Toutes les liaisons (filtre « par compétence » du catalogue, une seule requête).
+        mockMvcFC.perform(get("/api/v1/formation-competences/all")).andExpect(status().is2xxSuccessful());
 
         mockMvcFC.perform(post("/api/v1/formation-competences/formation/1")
                 .contentType(MediaType.APPLICATION_JSON)

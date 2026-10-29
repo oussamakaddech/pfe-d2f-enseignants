@@ -1,6 +1,6 @@
 import { defaultApi as api } from '@/services/httpClient';
 import { config } from '@/config/env';
-import type { FormationCompetence } from '@/models/formation';
+import type { FormationCompetence, FormationCompetenceLink } from '@/models/formation';
 
 const API_URL = `${config.FORMATION_URL}/formation/formation-competences`;
 
@@ -45,6 +45,15 @@ const FormationCompetenceService = {
 
   async getByDomaine(domaineId: number | string): Promise<FormationCompetence[]> {
     const response = await api.get(`${API_URL}/domaine/${domaineId}`);
+    return response.data;
+  },
+
+  /**
+   * Toutes les liaisons formation ↔ compétence des formations actives, en une
+   * seule requête (filtre « par compétence » du catalogue + export Excel).
+   */
+  async getAllLinks(): Promise<FormationCompetenceLink[]> {
+    const response = await api.get(`${API_URL}/all`);
     return response.data;
   },
 };
