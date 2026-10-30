@@ -1,7 +1,7 @@
 import { defaultApi as axios } from '@/services/httpClient';
 import { config } from '@/config/env';
 
-const BASE = `${config.FORMATION_URL}/api/v1/unified-profiles`;
+const BASE = `${config.FORMATION_URL}/formation/unified-profiles`;
 
 export interface UnifiedProfile {
   id: string;

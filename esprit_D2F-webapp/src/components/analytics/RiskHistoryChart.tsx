@@ -19,13 +19,22 @@ interface RiskHistoryChartProps {
   readonly loading?: boolean;
 }
 
-/** Courbe d'evolution du score de risque dans le temps (F3). */
+/** Courbe d'evolution du Indice de risque dans le temps (F3). */
 export default function RiskHistoryChart({ points, loading }: RiskHistoryChartProps) {
   if (loading) return <div>Chargement…</div>;
   if (!points || points.length === 0) return <Empty description="Aucun historique disponible" />;
 
   const labels = points.map((p) => p.date);
   const data = points.map((p) => Math.round(p.score * 100));
+  // Historique du risque (etape ML actif) : tracer la classe et la probabilite
+  // calibree quand elles sont servies par le modele (points ML), pas seulement le %.
+  const hasMlInfo = points.some((p) => p.risk_class != null || p.probability_calibrated != null);
+  const CLASS_LABELS: Record<string, string> = {
+    LOW: 'FAIBLE',
+    MEDIUM: 'MODEREE',
+    HIGH: 'HAUTE',
+    CRITICAL: 'CRITIQUE',
+  };
 
   const first = points[0].score;
   const lastPoint = points.at(-1)!;
@@ -56,7 +65,7 @@ export default function RiskHistoryChart({ points, loading }: RiskHistoryChartPr
           labels,
           datasets: [
             {
-              label: 'Score de risque (%)',
+              label: 'Indice de risque (/100)',
               data,
               borderColor: '#c8102e',
               backgroundColor: 'rgba(200,16,46,0.12)',
@@ -68,11 +77,33 @@ export default function RiskHistoryChart({ points, loading }: RiskHistoryChartPr
         }}
         options={{
           responsive: true,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                afterLabel: (ctx) => {
+                  if (!hasMlInfo) return '';
+                  const p = points[ctx.dataIndex];
+                  const parts: string[] = [];
+                  if (p.risk_class != null) {
+                    parts.push(
+                      `Classe : ${CLASS_LABELS[p.risk_class.toUpperCase()] ?? p.risk_class}`,
+                    );
+                  }
+                  if (p.probability_calibrated != null) {
+                    parts.push(
+                      `Probabilité calibrée : ${Math.round(p.probability_calibrated * 100)}%`,
+                    );
+                  }
+                  return parts;
+                },
+              },
+            },
+          },
           scales: {
             y: {
               min: 0,
               max: 100,
-              title: { display: true, text: 'Score de risque (%)' },
+              title: { display: true, text: 'Indice de risque (/100)' },
             },
           },
         }}

@@ -46,6 +46,14 @@ class SchedulerManager:
             replace_existing=True,
             max_instances=1,
         )
+        self._scheduler.add_job(
+            jobs.purger_observabilite,
+            IntervalTrigger(hours=24),
+            args=[self._container],
+            id="purge_observabilite",
+            replace_existing=True,
+            max_instances=1,
+        )
         self._scheduler.start()
         logger.info("scheduler demarre")
 

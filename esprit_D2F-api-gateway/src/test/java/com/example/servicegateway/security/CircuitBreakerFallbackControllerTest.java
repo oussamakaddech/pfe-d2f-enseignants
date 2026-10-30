@@ -101,4 +101,30 @@ class CircuitBreakerFallbackControllerTest {
                 .assertNext(body -> assertThat(body).contains(expectedService))
                 .verifyComplete();
     }
+
+    @Test
+    void describeCause_nommeLaCauseEtSaRacine() {
+        Throwable cause = new IllegalStateException("appel refusé",
+                new java.net.ConnectException("Connection refused: d2f-predictive-analytics/172.18.0.14:8000"));
+        assertThat(CircuitBreakerFallbackController.describeCause(cause))
+                .isEqualTo("IllegalStateException: appel refusé <- ConnectException: "
+                        + "Connection refused: d2f-predictive-analytics/172.18.0.14:8000");
+    }
+
+    @Test
+    void describeCause_sansCause() {
+        assertThat(CircuitBreakerFallbackController.describeCause(null)).isEqualTo("inconnue");
+        assertThat(CircuitBreakerFallbackController.describeCause(new RuntimeException("x")))
+                .isEqualTo("RuntimeException: x");
+    }
+
+    @Test
+    void fallback_neRenvoiePasLaCauseAuClient() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/fallback").build());
+        exchange.getAttributes().put(ServerWebExchangeUtils.CIRCUITBREAKER_EXECUTION_EXCEPTION_ATTR,
+                new java.net.ConnectException("Connection refused: interne/10.0.0.1:8000"));
+        StepVerifier.create(controller.fallback(exchange))
+                .assertNext(body -> assertThat(body).doesNotContain("10.0.0.1").contains("GATEWAY-CB-503"))
+                .verifyComplete();
+    }
 }

@@ -9,6 +9,9 @@ export interface DashboardScope {
   readonly isCup: boolean;
   readonly isEnseignant: boolean;
   readonly isAnimateur: boolean;
+  /** Rôles de pilotage (ADMIN, CUP, chef de département) : seuls autorisés sur
+   *  les données nominatives d'analyse (écarts, risques, inactifs). */
+  readonly isPilotage: boolean;
   /** Bornes ISO yyyy-MM-dd pour les endpoints date-rangés. */
   readonly start: string;
   readonly end: string;

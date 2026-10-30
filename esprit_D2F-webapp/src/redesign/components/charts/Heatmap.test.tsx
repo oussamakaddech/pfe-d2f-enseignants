@@ -31,7 +31,7 @@ describe('Heatmap', () => {
   });
   it('affiche un message vide sans cellules', () => {
     render(<Heatmap cells={[]} loading={false} />);
-    expect(screen.getByText('Aucun écart de compétence calculé')).toBeInTheDocument();
+    expect(screen.getByText('Aucun écart de couverture calculé')).toBeInTheDocument();
   });
   it('affiche les départements et compétences', () => {
     render(<Heatmap cells={cells} loading={false} />);

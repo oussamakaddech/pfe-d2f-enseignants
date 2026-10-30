@@ -146,9 +146,11 @@ class StructureServiceImplTest {
     }
 
     @Test
-    @DisplayName("getStructureComplete(upId, departementId): avec domaines filtrés")
+    @DisplayName("getStructureComplete(upId, departementId): competence sans rattachement explicite = repli sur le domaine")
     void testGetStructureCompleteWithFilters() {
-        when(domaineRepository.findByUpIdAndDepartementId("1", "2")).thenReturn(List.of(domaine));
+        domaine.setUpId("1");
+        domaine.setDepartementId("2");
+        when(domaineRepository.findAll()).thenReturn(List.of(domaine));
         when(savoirRepository.findAll()).thenReturn(List.of(savoir1, savoir2));
         when(competenceMapper.toDTO(any(Savoir.class))).thenReturn(new SavoirDTO());
 
@@ -163,9 +165,21 @@ class StructureServiceImplTest {
     }
 
     @Test
+    @DisplayName("getStructureComplete(upId, departementId): le rattachement de la competence prime sur celui du domaine")
+    void testGetStructureCompleteWithFiltersUsesCompetenceScope() {
+        // Le domaine n'est rattaché à aucune UP ; la compétence porte le choix.
+        competence.setUpIds(new java.util.LinkedHashSet<>(List.of("7")));
+        competence.setDepartementIds(new java.util.LinkedHashSet<>(List.of("70")));
+        when(domaineRepository.findAll()).thenReturn(List.of(domaine));
+
+        assertThat(structureService.getStructureComplete("7", "70").getDomaines()).hasSize(1);
+        assertThat(structureService.getStructureComplete("1", "2").getDomaines()).isEmpty();
+    }
+
+    @Test
     @DisplayName("getStructureComplete(upId, departementId): avec domaines vides")
     void testGetStructureCompleteWithFiltersEmptyDomaines() {
-        when(domaineRepository.findByUpIdAndDepartementId("99", "99")).thenReturn(List.of());
+        when(domaineRepository.findAll()).thenReturn(List.of());
 
         StructureArbreDTO result = structureService.getStructureComplete("99", "99");
 

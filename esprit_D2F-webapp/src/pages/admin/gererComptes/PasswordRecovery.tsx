@@ -16,8 +16,14 @@ function PasswordRecovery() {
   const handleSubmit = async (values: { email: string }) => {
     setSubmitting(true);
     try {
-      const response = (await forgotPwd(values.email)) as unknown as string | undefined;
-      message.success(response || 'Email de réinitialisation envoyé');
+      // Le backend renvoie un OBJET {message} — ne jamais le passer brut à
+      // message.success (React #31 : objet rendu comme enfant).
+      const response = (await forgotPwd(values.email)) as unknown;
+      const text =
+        typeof response === 'string'
+          ? response
+          : (response as { message?: unknown } | null)?.message;
+      message.success(typeof text === 'string' && text ? text : 'Email de réinitialisation envoyé');
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||

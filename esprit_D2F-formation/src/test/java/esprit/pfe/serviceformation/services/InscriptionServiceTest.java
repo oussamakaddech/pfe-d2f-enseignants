@@ -86,12 +86,18 @@ class InscriptionServiceTest {
 
     @Test
     void testListerFormationsAccessiblesPageable_shouldSliceAndPaginate() {
+        // Périmètre strict : l'enseignant et les formations partagent la même UP.
+        Up up = new Up();
+        up.setId("UP1");
         Enseignant ens = new Enseignant();
         ens.setId("E1");
+        ens.setUp(up);
         when(enseignantRepo.findById("E1")).thenReturn(Optional.of(ens));
 
         Formation f1 = createValidFormation(1L);
+        f1.setUp(up);
         Formation f2 = createValidFormation(2L);
+        f2.setUp(up);
         when(formationRepo.findAll()).thenReturn(List.of(f1, f2));
 
         Page<FormationResponseDTO> firstPage = service.listerFormationsAccessibles("E1", PageRequest.of(0, 1));
@@ -105,27 +111,39 @@ class InscriptionServiceTest {
 
     @Test
     void testDemanderInscription_Success() {
+        // Périmètre strict : enseignant et formation partagent la même UP.
+        Up up = new Up();
+        up.setId("UP1");
         Formation f = createValidFormation(1L);
+        f.setUp(up);
         when(formationRepo.findById(1L)).thenReturn(Optional.of(f));
-        
+
         Enseignant e = new Enseignant();
         e.setId("E1");
+        e.setUp(up);
         when(enseignantRepo.findById("E1")).thenReturn(Optional.of(e));
-        
+
         when(inscriptionRepo.findByEnseignant_Id("E1")).thenReturn(Collections.emptyList());
         when(inscriptionRepo.save(any())).thenReturn(new Inscription());
-        
+
         assertNotNull(service.demanderInscription(1L, "E1"));
     }
 
     @Test
     void testDemanderInscription_Duplicate() {
+        // Périmètre strict : enseignant et formation partagent la même UP.
+        Up up = new Up();
+        up.setId("UP1");
         Formation f = createValidFormation(1L);
+        f.setUp(up);
         when(formationRepo.findById(1L)).thenReturn(Optional.of(f));
-        when(enseignantRepo.findById(anyString())).thenReturn(Optional.of(new Enseignant()));
-        when(inscriptionRepo.findByEnseignant_Id(anyString())).thenReturn(Collections.emptyList());
+        Enseignant e = new Enseignant();
+        e.setId("E1");
+        e.setUp(up);
+        when(enseignantRepo.findById(anyString())).thenReturn(Optional.of(e));
+        when(inscriptionRepo.findByEnseignant_Id("E1")).thenReturn(Collections.emptyList());
         when(inscriptionRepo.save(any())).thenThrow(new RuntimeException("Duplicate"));
-        
+
         assertThrows(IllegalStateException.class, () -> service.demanderInscription(1L, "E1"));
     }
 

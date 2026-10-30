@@ -1,0 +1,100 @@
+{
+ "reel": {
+  "dataset": "Reel ESPRIT",
+  "rows": 200,
+  "n_test": 40,
+  "resultats": [
+   {
+    "model": "Règle simple (référence)",
+    "rmse": 0.3418,
+    "mae": 0.2312,
+    "r2": 0.8284,
+    "accuracy_pm05": 85.0,
+    "accuracy_pm10": 100.0
+   },
+   {
+    "model": "XGBoost v1.3.1 (servi)",
+    "rmse": 0.3702,
+    "mae": 0.2808,
+    "r2": 0.7987,
+    "accuracy_pm05": 82.5,
+    "accuracy_pm10": 100.0
+   },
+   {
+    "model": "Random Forest",
+    "rmse": 0.3853,
+    "mae": 0.3066,
+    "r2": 0.782,
+    "accuracy_pm05": 80.0,
+    "accuracy_pm10": 100.0
+   },
+   {
+    "model": "Gradient Boosting",
+    "rmse": 0.3989,
+    "mae": 0.3007,
+    "r2": 0.7663,
+    "accuracy_pm05": 77.5,
+    "accuracy_pm10": 100.0
+   },
+   {
+    "model": "Perceptron (MLP)",
+    "rmse": 0.4849,
+    "mae": 0.3931,
+    "r2": 0.6546,
+    "accuracy_pm05": 70.0,
+    "accuracy_pm10": 97.5
+   }
+  ]
+ },
+ "simulation": {
+  "dataset": "Simulation",
+  "rows": 11010,
+  "n_test": 2202,
+  "resultats": [
+   {
+    "model": "Règle simple (référence)",
+    "rmse": 0.6136,
+    "mae": 0.3854,
+    "r2": 0.6021,
+    "accuracy_pm05": 69.7,
+    "accuracy_pm10": 86.6
+   },
+   {
+    "model": "XGBoost",
+    "rmse": 0.504,
+    "mae": 0.3352,
+    "r2": 0.7316,
+    "accuracy_pm05": 73.2,
+    "accuracy_pm10": 93.0
+   },
+   {
+    "model": "Random Forest",
+    "rmse": 0.5079,
+    "mae": 0.3504,
+    "r2": 0.7273,
+    "accuracy_pm05": 73.6,
+    "accuracy_pm10": 93.2
+   },
+   {
+    "model": "Gradient Boosting",
+    "rmse": 0.5043,
+    "mae": 0.3436,
+    "r2": 0.7312,
+    "accuracy_pm05": 73.2,
+    "accuracy_pm10": 93.1
+   },
+   {
+    "model": "Perceptron (MLP)",
+    "rmse": 0.515,
+    "mae": 0.3362,
+    "r2": 0.7197,
+    "accuracy_pm05": 73.5,
+    "accuracy_pm10": 92.2
+   }
+  ]
+ },
+ "sources": [
+  "pipelines/compare_four_models.py -> reports/compare_four_models.json",
+  "pipelines/promote_v131_xgb.py -> reports/v131xgb_promotion.json"
+ ]
+}

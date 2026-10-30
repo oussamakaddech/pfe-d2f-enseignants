@@ -87,4 +87,9 @@ public interface CompetencePrerequisiteRepository extends JpaRepository<Competen
 
     @Query("SELECT cp.prerequisite.nom FROM CompetencePrerequisite cp WHERE cp.competence.id = :competenceId ORDER BY cp.prerequisite.nom")
     List<String> findPrerequisiteNamesByCompetenceId(@Param("competenceId") Long competenceId);
+
+    @Transactional
+    @Modifying
+    @Query("DELETE FROM CompetencePrerequisite cp WHERE cp.competence.domaine.id = :domaineId OR cp.prerequisite.domaine.id = :domaineId")
+    void deleteByCompetence_DomaineId(@Param("domaineId") Long domaineId);
 }

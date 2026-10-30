@@ -121,7 +121,7 @@ export default function PriorityActionsQueue({
         },
       },
       {
-        title: 'Gaps Critiques',
+        title: 'Écarts critiques',
         dataIndex: 'nb_gaps_critiques',
         width: 90,
         align: 'center' as const,

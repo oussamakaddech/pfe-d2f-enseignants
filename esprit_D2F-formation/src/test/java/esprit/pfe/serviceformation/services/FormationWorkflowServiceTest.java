@@ -4,6 +4,7 @@ import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.entities.*;
 import esprit.pfe.serviceformation.repositories.*;
 import esprit.pfe.serviceformation.microsoft.OutlookCalendarService;
+import esprit.pfe.serviceformation.microsoft.OutlookEventParameters;
 import esprit.pfe.serviceformation.microsoft.OutlookMailService;
 import esprit.pfe.serviceformation.messaging.EvaluationPublisher;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,13 +48,19 @@ class FormationWorkflowServiceTest {
     @InjectMocks
     private FormationWorkflowService formationWorkflowService;
 
+    /** Utilisateur à portée globale : contourne le contrôle row-level présences. */
+    private static final CurrentUser ADMIN_USER =
+            new CurrentUser("admin", "1", "admin@esprit.tn", Set.of("ADMIN"));
+
     private FormationWorkflowRequest request;
 
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(formationWorkflowService, "formationMapper", formationMapper);
+        ReflectionTestUtils.setField(formationWorkflowService, "d2fNotificationEmail", "d2f@esprit.tn");
         request = new FormationWorkflowRequest();
         request.setTitreFormation("Formation Test");
+        request.setChargeHoraireGlobal(24); // durée obligatoire à la création
         request.setTypeBesoin("PROJET");
         
         request.setDateDebut(LocalDate.of(2026, 1, 1));
@@ -62,6 +69,20 @@ class FormationWorkflowServiceTest {
         request.setTypeFormation(TypeFormation.INTERNE);
         request.setObjectifs("Test Objectifs");
         request.setSeances(new ArrayList<>());
+    }
+
+    @Test
+    @DisplayName("createFormationWorkflow - Durée (charge horaire) absente ou nulle : refus")
+    void shouldRejectCreationWithoutDuration() {
+        request.setChargeHoraireGlobal(null);
+        IllegalArgumentException absent = assertThrows(IllegalArgumentException.class,
+                () -> formationWorkflowService.createFormationWorkflow(request));
+        assertTrue(absent.getMessage().contains("durée"));
+
+        request.setChargeHoraireGlobal(0);
+        assertThrows(IllegalArgumentException.class,
+                () -> formationWorkflowService.createFormationWorkflow(request));
+        verify(formationRepository, never()).save(any());
     }
 
     @Test
@@ -240,7 +261,7 @@ class FormationWorkflowServiceTest {
         sf.setParticipants(new ArrayList<>());
         formation.setSeances(List.of(sf));
         
-        lenient().when(formationRepository.findDistinctBySeancesAnimateursMail("test@esprit.tn")).thenReturn(List.of(formation));
+        lenient().when(formationRepository.findDistinctBySeancesAnimateursMailIgnoreCase("test@esprit.tn")).thenReturn(List.of(formation));
 
         List<FormationResponseDTO> list = formationWorkflowService.getFormationsByAnimateurEmail("test@esprit.tn");
 
@@ -254,7 +275,7 @@ class FormationWorkflowServiceTest {
         presence.setIdParticipation(1L);
         lenient().when(presenceRepository.findById(1L)).thenReturn(Optional.of(presence));
         
-        formationWorkflowService.updatePresence(1L, true, "OK");
+        formationWorkflowService.updatePresence(1L, true, "OK", ADMIN_USER);
         
         assertThat(presence.isPresent()).isTrue();
         assertThat(presence.getCommentaire()).isEqualTo("OK");
@@ -350,6 +371,100 @@ class FormationWorkflowServiceTest {
         
         List<FormationResponseDTO> list = formationWorkflowService.getFormationsParDepartement("D1");
         assertThat(list).isNotEmpty();
+    }
+
+    private CurrentUser cupUser() {
+        return new CurrentUser("fbenhassen", "u1", "f.benhassen@esprit.tn", java.util.Set.of("CUP"));
+    }
+
+    private CurrentUser chefUser() {
+        return new CurrentUser("sbouazizi", "u2", "s.bouazizi@esprit.tn",
+                java.util.Set.of("CHEF_DEPARTEMENT"));
+    }
+
+    private CurrentUser adminUser() {
+        return new CurrentUser("admin", "u3", "admin@d2f.tn", java.util.Set.of("ADMIN"));
+    }
+
+    private Enseignant enseignantWith(Up up, Dept dept) {
+        Enseignant e = new Enseignant();
+        e.setId("ENS001");
+        e.setMail("x@esprit.tn");
+        e.setUp(up);
+        e.setDept(dept);
+        return e;
+    }
+
+    @Test
+    @DisplayName("getMesFormationsPilote - CUP : formations de son UP uniquement")
+    void shouldGetMesFormationsPilote_cupScopedToUp() {
+        Formation f = createFullFormation();
+        Up up = new Up();
+        up.setId("UP1");
+        Enseignant ens = enseignantWith(up, null);
+        when(enseignantRepository.findByMailIgnoreCase("f.benhassen@esprit.tn"))
+                .thenReturn(Optional.of(ens));
+        when(formationRepository.findByUp_Id("UP1")).thenReturn(List.of(f));
+
+        List<FormationResponseDTO> list = formationWorkflowService.getMesFormationsPilote(cupUser());
+
+        assertThat(list).isNotEmpty();
+        verify(formationRepository).findByUp_Id("UP1");
+        verify(formationRepository, never()).findAll();
+    }
+
+    @Test
+    @DisplayName("getMesFormationsPilote - Chef : formations de son département uniquement")
+    void shouldGetMesFormationsPilote_chefScopedToDept() {
+        Formation f = createFullFormation();
+        Dept dept = new Dept();
+        dept.setId("D1");
+        Enseignant ens = enseignantWith(null, dept);
+        when(enseignantRepository.findByMailIgnoreCase("s.bouazizi@esprit.tn"))
+                .thenReturn(Optional.of(ens));
+        when(formationRepository.findByDepartement_Id("D1")).thenReturn(List.of(f));
+
+        List<FormationResponseDTO> list = formationWorkflowService.getMesFormationsPilote(chefUser());
+
+        assertThat(list).isNotEmpty();
+        verify(formationRepository).findByDepartement_Id("D1");
+        verify(formationRepository, never()).findAll();
+    }
+
+    @Test
+    @DisplayName("getMesFormationsPilote - Admin : vue complète")
+    void shouldGetMesFormationsPilote_adminSeesAll() {
+        Formation f = createFullFormation();
+        when(formationRepository.findAll()).thenReturn(List.of(f));
+
+        List<FormationResponseDTO> list = formationWorkflowService.getMesFormationsPilote(adminUser());
+
+        assertThat(list).isNotEmpty();
+        verify(formationRepository).findAll();
+        verifyNoInteractions(enseignantRepository);
+    }
+
+    @Test
+    @DisplayName("getMesFormationsPilote - profil enseignant introuvable : erreur explicite")
+    void shouldGetMesFormationsPilote_unknownProfile() {
+        when(enseignantRepository.findByMailIgnoreCase("f.benhassen@esprit.tn"))
+                .thenReturn(Optional.empty());
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> formationWorkflowService.getMesFormationsPilote(cupUser()));
+        assertThat(ex.getMessage()).contains("Profil enseignant introuvable");
+    }
+
+    @Test
+    @DisplayName("getMesFormationsPilote - CUP sans UP rattachée : erreur explicite")
+    void shouldGetMesFormationsPilote_cupWithoutUp() {
+        Enseignant ens = enseignantWith(null, null);
+        when(enseignantRepository.findByMailIgnoreCase("f.benhassen@esprit.tn"))
+                .thenReturn(Optional.of(ens));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> formationWorkflowService.getMesFormationsPilote(cupUser()));
+        assertThat(ex.getMessage()).contains("Aucune UP rattachée");
     }
 
     @Test
@@ -448,9 +563,20 @@ class FormationWorkflowServiceTest {
         SeanceFormation s1 = new SeanceFormation();
         s1.setIdSeance(10L);
         s1.setFormation(existing);
+        Enseignant annuleAnim = new Enseignant();
+        annuleAnim.setId("E1");
+        annuleAnim.setMail("e1@esprit.tn");
+        s1.setAnimateurs(new ArrayList<>(List.of(annuleAnim)));
         existing.setSeances(new ArrayList<>(List.of(s1)));
 
         request.setEtatFormation(EtatFormation.ANNULE);
+        FormationWorkflowRequest.SeanceRequest keep = createSeanceRequest("2026-10-10", "09:00", "11:00");
+        keep.setIdSeance(10L);
+        keep.setAnimateursIds(List.of("E1"));
+        lenient().when(enseignantRepository.findAllById(anySet())).thenReturn(List.of(annuleAnim));
+        lenient().when(enseignantRepository.findById("E1")).thenReturn(Optional.of(annuleAnim));
+        request.setSeances(List.of(keep));
+        lenient().when(helper.parseTime(anyString())).thenAnswer(inv -> LocalTime.parse(inv.getArgument(0)));
         
         lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(existing));
         lenient().when(formationRepository.save(any())).thenReturn(existing);
@@ -527,6 +653,142 @@ class FormationWorkflowServiceTest {
         assertThrows(IllegalArgumentException.class, () -> formationWorkflowService.updateFormationWorkflow(1L, request));
     }
 
+    // ── isSelfCalendar (calendrier enseignant : contrôle d'identité) ─────────
+    // Bug corrigé : l'id du path (ex "E00007") est l'identifiant fonctionnel de
+    // la fiche, alors que le JWT porte sub=username + email — l'ancienne
+    // comparaison id-vs-email renvoyait toujours false → 403 pour TOUS les
+    // enseignants consultant leur propre calendrier.
+
+    @Test
+    @DisplayName("isSelfCalendar - username JWT = id fonctionnel → self")
+    void isSelfCalendarUsernameMatch() {
+        CurrentUser user = new CurrentUser("E00007", "uuid-1", "o.kaddech@esprit.tn", Set.of("ENSEIGNANT"));
+        assertThat(formationWorkflowService.isSelfCalendar("E00007", user)).isTrue();
+    }
+
+    @Test
+    @DisplayName("isSelfCalendar - croisement mail de la fiche avec l'email du JWT → self")
+    void isSelfCalendarMailMatch() {
+        Enseignant fiche = new Enseignant();
+        fiche.setId("E00007");
+        fiche.setMail("oussama.kaddech@esprit.tn");
+        lenient().when(enseignantRepository.findById("E00007")).thenReturn(Optional.of(fiche));
+        // JWT : sub = username canonique ≠ id fonctionnel, email = mail de la fiche
+        CurrentUser user = new CurrentUser("oussama", "uuid-1", "oussama.kaddech@esprit.tn", Set.of("ENSEIGNANT"));
+        assertThat(formationWorkflowService.isSelfCalendar("E00007", user)).isTrue();
+    }
+
+    @Test
+    @DisplayName("isSelfCalendar - croisement mail de la fiche avec le username JWT → self")
+    void isSelfCalendarMailVsUsernameMatch() {
+        Enseignant fiche = new Enseignant();
+        fiche.setId("E00007");
+        fiche.setMail("oussama");
+        lenient().when(enseignantRepository.findById("E00007")).thenReturn(Optional.of(fiche));
+        CurrentUser user = new CurrentUser("oussama", "uuid-1", null, Set.of("ENSEIGNANT"));
+        assertThat(formationWorkflowService.isSelfCalendar("E00007", user)).isTrue();
+    }
+
+    @Test
+    @DisplayName("isSelfCalendar - autre enseignant (anti-énumération) → refus")
+    void isSelfCalendarOtherTeacherDenied() {
+        Enseignant fiche = new Enseignant();
+        fiche.setId("E00007");
+        fiche.setMail("oussama.kaddech@esprit.tn");
+        lenient().when(enseignantRepository.findById("E00007")).thenReturn(Optional.of(fiche));
+        CurrentUser user = new CurrentUser("fjlassi", "uuid-2", "f.jlassi@esprit.tn", Set.of("ENSEIGNANT"));
+        assertThat(formationWorkflowService.isSelfCalendar("E00007", user)).isFalse();
+    }
+
+    @Test
+    @DisplayName("isSelfCalendar - fiche inconnue / entrées vides → refus")
+    void isSelfCalendarUnknownOrBlankDenied() {
+        lenient().when(enseignantRepository.findById("INCONNU")).thenReturn(Optional.empty());
+        CurrentUser user = new CurrentUser("fjlassi", "uuid-2", "f.jlassi@esprit.tn", Set.of("ENSEIGNANT"));
+        assertThat(formationWorkflowService.isSelfCalendar("INCONNU", user)).isFalse();
+        assertThat(formationWorkflowService.isSelfCalendar(null, user)).isFalse();
+        assertThat(formationWorkflowService.isSelfCalendar("E00007", null)).isFalse();
+    }
+
+    @Test
+    @DisplayName("updateFormationWorkflow - Propage animateurs formation vers séance sans animateur")
+    void shouldPropagateFormationAnimateursOnUpdate() {
+        Formation existing = createFullFormation();
+        existing.setIdFormation(1L);
+        Enseignant a1 = new Enseignant();
+        a1.setId("A1");
+        a1.setMail("a1@esprit.tn");
+        existing.setAnimateurs(new ArrayList<>(List.of(a1)));
+
+        SeanceFormation s1 = new SeanceFormation();
+        s1.setIdSeance(10L);
+        s1.setFormation(existing);
+        s1.setAnimateurs(new ArrayList<>());
+        s1.setParticipants(new ArrayList<>());
+        existing.setSeances(new ArrayList<>(List.of(s1)));
+
+        // Séance sans animateursIds : le repli doit copier A1 depuis la formation,
+        // sinon la formation reste invisible dans « Mes Formations à animer ».
+        FormationWorkflowRequest.SeanceRequest srUpdate = createSeanceRequest("2026-10-10", "09:00", "11:00");
+        srUpdate.setIdSeance(10L);
+        request.setSeances(List.of(srUpdate));
+        request.setAnimateursIds(List.of("A1"));
+        request.setParticipantsIds(new ArrayList<>());
+
+        lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        lenient().when(formationRepository.save(any())).thenReturn(existing);
+        lenient().when(enseignantRepository.findById("A1")).thenReturn(Optional.of(a1));
+        lenient().when(enseignantRepository.findAllById(anySet())).thenReturn(List.of(a1));
+        lenient().when(helper.parseTime(anyString())).thenReturn(LocalTime.MIDNIGHT);
+
+        Formation result = formationWorkflowService.updateFormationWorkflow(1L, request);
+
+        assertThat(result.getSeances()).hasSize(1);
+        assertThat(result.getSeances().get(0).getAnimateurs())
+                .extracting(Enseignant::getId).containsExactly("A1");
+    }
+
+    @Test
+    @DisplayName("updateFormationWorkflow - Animateur explicite de séance prioritaire sur formation")
+    void shouldPreferExplicitSeanceAnimateursOnUpdate() {
+        Formation existing = createFullFormation();
+        existing.setIdFormation(1L);
+        Enseignant a1 = new Enseignant();
+        a1.setId("A1");
+        a1.setMail("a1@esprit.tn");
+        Enseignant a2 = new Enseignant();
+        a2.setId("A2");
+        a2.setMail("a2@esprit.tn");
+        existing.setAnimateurs(new ArrayList<>(List.of(a1)));
+
+        SeanceFormation s1 = new SeanceFormation();
+        s1.setIdSeance(10L);
+        s1.setFormation(existing);
+        s1.setAnimateurs(new ArrayList<>());
+        s1.setParticipants(new ArrayList<>());
+        existing.setSeances(new ArrayList<>(List.of(s1)));
+
+        FormationWorkflowRequest.SeanceRequest srUpdate = createSeanceRequest("2026-10-10", "09:00", "11:00");
+        srUpdate.setIdSeance(10L);
+        srUpdate.setAnimateursIds(List.of("A2"));
+        request.setSeances(List.of(srUpdate));
+        request.setAnimateursIds(List.of("A1"));
+        request.setParticipantsIds(new ArrayList<>());
+
+        lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        lenient().when(formationRepository.save(any())).thenReturn(existing);
+        lenient().when(enseignantRepository.findById("A1")).thenReturn(Optional.of(a1));
+        lenient().when(enseignantRepository.findById("A2")).thenReturn(Optional.of(a2));
+        lenient().when(enseignantRepository.findAllById(anySet())).thenReturn(List.of(a1, a2));
+        lenient().when(helper.parseTime(anyString())).thenReturn(LocalTime.MIDNIGHT);
+
+        Formation result = formationWorkflowService.updateFormationWorkflow(1L, request);
+
+        assertThat(result.getSeances()).hasSize(1);
+        assertThat(result.getSeances().get(0).getAnimateurs())
+                .extracting(Enseignant::getId).containsExactly("A2");
+    }
+
     private Formation createFullFormation() {
         Formation f = new Formation();
         f.setIdFormation(1L);
@@ -542,6 +804,303 @@ class FormationWorkflowServiceTest {
         f.setEtatFormation(EtatFormation.ENREGISTRE);
         f.setSeances(new ArrayList<>());
         return f;
+    }
+
+    @Test
+    @DisplayName("updateFormationWorkflow - Formation planifiée : seule la séance modifiée est resynchronisée, sans invité Outlook ni e-mail")
+    void shouldResyncOnlyChangedSeanceWithoutMail() {
+        Formation existing = createFullFormation();
+        existing.setIdFormation(1L);
+        existing.setEtatFormation(EtatFormation.PLANIFIE);
+        Enseignant p1 = new Enseignant();
+        p1.setId("P1");
+        p1.setMail("p1@esprit.tn");
+
+        SeanceFormation inchangee = seance(10L, existing, "2026-10-10", p1, "EV10");
+        SeanceFormation modifiee = seance(11L, existing, "2026-10-11", p1, "EV11");
+        existing.setSeances(new ArrayList<>(List.of(inchangee, modifiee)));
+
+        FormationWorkflowRequest.SeanceRequest sr10 = createSeanceRequest("2026-10-10", "09:00", "11:00");
+        sr10.setIdSeance(10L);
+        sr10.setSalle("A1");
+        FormationWorkflowRequest.SeanceRequest sr11 = createSeanceRequest("2026-10-11", "09:00", "11:00");
+        sr11.setIdSeance(11L);
+        sr11.setSalle("B2"); // seule modification
+        request.setSeances(List.of(sr10, sr11));
+        request.setParticipantsIds(List.of("P1"));
+        request.setEtatFormation(EtatFormation.PLANIFIE);
+
+        lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        lenient().when(formationRepository.save(any())).thenReturn(existing);
+        lenient().when(enseignantRepository.findAllById(anySet())).thenReturn(List.of(p1));
+        lenient().when(enseignantRepository.findById("P1")).thenReturn(Optional.of(p1));
+        lenient().when(helper.parseTime(anyString())).thenAnswer(inv -> LocalTime.parse(inv.getArgument(0)));
+        lenient().when(seanceFormationRepository.findById(10L)).thenReturn(Optional.of(inchangee));
+        lenient().when(seanceFormationRepository.findById(11L)).thenReturn(Optional.of(modifiee));
+        lenient().when(outlookCalendarService.updateEventInCalendarWithTeamsUrl(any()))
+                .thenReturn(new OutlookCalendarService.EventCreationResult("EV11", null));
+
+        formationWorkflowService.updateFormationWorkflow(1L, request);
+
+        org.mockito.ArgumentCaptor<OutlookEventParameters> params =
+                org.mockito.ArgumentCaptor.forClass(OutlookEventParameters.class);
+        verify(outlookCalendarService, times(1)).updateEventInCalendarWithTeamsUrl(params.capture());
+        assertThat(params.getValue().getEventId()).isEqualTo("EV11");
+        assertThat(params.getValue().getAttendeeEmails()).isEmpty();
+        // Changement de salle : calendrier seulement, aucun e-mail.
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("updateFormationWorkflow - Formation planifiée sans changement de séance : aucun e-mail")
+    void shouldSendNothingWhenSeancesUnchanged() {
+        Formation existing = createFullFormation();
+        existing.setIdFormation(1L);
+        existing.setEtatFormation(EtatFormation.PLANIFIE);
+        Enseignant p1 = new Enseignant();
+        p1.setId("P1");
+        p1.setMail("p1@esprit.tn");
+        SeanceFormation s10 = seance(10L, existing, "2026-10-10", p1, "EV10");
+        existing.setSeances(new ArrayList<>(List.of(s10)));
+
+        FormationWorkflowRequest.SeanceRequest sr10 = createSeanceRequest("2026-10-10", "09:00", "11:00");
+        sr10.setIdSeance(10L);
+        sr10.setSalle("A1");
+        request.setSeances(List.of(sr10));
+        request.setParticipantsIds(List.of("P1"));
+        request.setEtatFormation(EtatFormation.PLANIFIE);
+
+        lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        lenient().when(formationRepository.save(any())).thenReturn(existing);
+        lenient().when(enseignantRepository.findAllById(anySet())).thenReturn(List.of(p1));
+        lenient().when(enseignantRepository.findById("P1")).thenReturn(Optional.of(p1));
+        lenient().when(helper.parseTime(anyString())).thenAnswer(inv -> LocalTime.parse(inv.getArgument(0)));
+
+        formationWorkflowService.updateFormationWorkflow(1L, request);
+
+        verify(outlookCalendarService, never()).updateEventInCalendarWithTeamsUrl(any());
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("updateFormationWorkflow - Ajout d'un participant / retrait d'un animateur : e-mail à la seule personne concernée")
+    void shouldMailOnlyAddedAndRemovedPeople() {
+        Formation existing = createFullFormation();
+        existing.setIdFormation(1L);
+        existing.setEtatFormation(EtatFormation.PLANIFIE);
+        Enseignant p1 = enseignant("P1", "p1@esprit.tn");
+        Enseignant p2 = enseignant("P2", "p2@esprit.tn");
+        Enseignant a1 = enseignant("A1", "a1@esprit.tn");
+        SeanceFormation s10 = seance(10L, existing, "2026-10-10", p1, "EV10");
+        s10.setAnimateurs(new ArrayList<>(List.of(a1)));
+        existing.setSeances(new ArrayList<>(List.of(s10)));
+
+        // Même planning ; P2 ajouté comme participant, A1 retiré comme animateur.
+        FormationWorkflowRequest.SeanceRequest sr10 = createSeanceRequest("2026-10-10", "09:00", "11:00");
+        sr10.setIdSeance(10L);
+        sr10.setSalle("A1");
+        request.setSeances(List.of(sr10));
+        request.setParticipantsIds(List.of("P1", "P2"));
+        request.setEtatFormation(EtatFormation.PLANIFIE);
+
+        lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        lenient().when(formationRepository.save(any())).thenReturn(existing);
+        lenient().when(enseignantRepository.findAllById(anySet())).thenReturn(List.of(p1, p2));
+        lenient().when(enseignantRepository.findById("P1")).thenReturn(Optional.of(p1));
+        lenient().when(enseignantRepository.findById("P2")).thenReturn(Optional.of(p2));
+        lenient().when(helper.parseTime(anyString())).thenAnswer(inv -> LocalTime.parse(inv.getArgument(0)));
+        lenient().when(seanceFormationRepository.findById(10L)).thenReturn(Optional.of(s10));
+        lenient().when(outlookCalendarService.updateEventInCalendarWithTeamsUrl(any()))
+                .thenReturn(new OutlookCalendarService.EventCreationResult("EV10", null));
+
+        formationWorkflowService.updateFormationWorkflow(1L, request);
+
+        verify(outlookMailService).sendMail(eq("p2@esprit.tn"), contains("Ajout à la formation"), anyString());
+        verify(outlookMailService).sendMail(eq("a1@esprit.tn"), contains("Retrait de la formation"), anyString());
+        verify(outlookMailService, never()).sendMail(eq("p1@esprit.tn"), anyString(), anyString());
+        verify(outlookMailService, times(2)).sendMail(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("updateFormationWorkflow - notifierActeurs=true : un seul « Formation modifiée » à tous les acteurs, aucun e-mail d'ajout")
+    void shouldMailAllActorsOnceWhenRequested() {
+        Formation existing = createFullFormation();
+        existing.setIdFormation(1L);
+        existing.setEtatFormation(EtatFormation.PLANIFIE);
+        Enseignant p1 = enseignant("P1", "p1@esprit.tn");
+        Enseignant p2 = enseignant("P2", "p2@esprit.tn");
+        SeanceFormation s10 = seance(10L, existing, "2026-10-10", p1, "EV10");
+        existing.setSeances(new ArrayList<>(List.of(s10)));
+
+        FormationWorkflowRequest.SeanceRequest sr10 = createSeanceRequest("2026-10-10", "09:00", "11:00");
+        sr10.setIdSeance(10L);
+        sr10.setSalle("A1");
+        request.setSeances(List.of(sr10));
+        request.setParticipantsIds(List.of("P1", "P2"));
+        request.setEtatFormation(EtatFormation.PLANIFIE);
+        request.setNotifierActeurs(true);
+
+        lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        lenient().when(formationRepository.save(any())).thenReturn(existing);
+        lenient().when(enseignantRepository.findAllById(anySet())).thenReturn(List.of(p1, p2));
+        lenient().when(enseignantRepository.findById("P1")).thenReturn(Optional.of(p1));
+        lenient().when(enseignantRepository.findById("P2")).thenReturn(Optional.of(p2));
+        lenient().when(helper.parseTime(anyString())).thenAnswer(inv -> LocalTime.parse(inv.getArgument(0)));
+        lenient().when(seanceFormationRepository.findById(10L)).thenReturn(Optional.of(s10));
+        lenient().when(outlookCalendarService.updateEventInCalendarWithTeamsUrl(any()))
+                .thenReturn(new OutlookCalendarService.EventCreationResult("EV10", null));
+
+        formationWorkflowService.updateFormationWorkflow(1L, request);
+
+        // Les deux acteurs reçoivent le même message de modification, y compris celui
+        // qui n'a pas changé : plus d'e-mail « Ajout à la formation » dans ce mode.
+        verify(outlookMailService).sendMail(eq("p1@esprit.tn"), contains("Formation modifiée"), anyString());
+        verify(outlookMailService).sendMail(eq("p2@esprit.tn"), contains("Formation modifiée"), anyString());
+        verify(outlookMailService, never()).sendMail(anyString(), contains("Ajout à la formation"), anyString());
+        verify(outlookMailService, times(2)).sendMail(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("updateFormationWorkflow - notifierActeurs=true sur une formation sans événement Outlook : l'e-mail part quand même")
+    void shouldMailActorsEvenWhenFormationHasNoOutlookEvent() {
+        Formation existing = createFullFormation(); // ENREGISTRE : aucun événement Outlook
+        existing.setIdFormation(1L);
+        Enseignant p1 = enseignant("P1", "p1@esprit.tn");
+        SeanceFormation s10 = seance(10L, existing, "2026-10-10", p1, null);
+        existing.setSeances(new ArrayList<>(List.of(s10)));
+
+        FormationWorkflowRequest.SeanceRequest sr10 = createSeanceRequest("2026-10-10", "09:00", "11:00");
+        sr10.setIdSeance(10L);
+        sr10.setSalle("A1");
+        request.setSeances(List.of(sr10));
+        request.setParticipantsIds(List.of("P1"));
+        request.setEtatFormation(EtatFormation.ENREGISTRE);
+        request.setNotifierActeurs(true);
+
+        lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        lenient().when(formationRepository.save(any())).thenReturn(existing);
+        lenient().when(enseignantRepository.findAllById(anySet())).thenReturn(List.of(p1));
+        lenient().when(enseignantRepository.findById("P1")).thenReturn(Optional.of(p1));
+        lenient().when(helper.parseTime(anyString())).thenAnswer(inv -> LocalTime.parse(inv.getArgument(0)));
+
+        formationWorkflowService.updateFormationWorkflow(1L, request);
+
+        verify(outlookCalendarService, never()).updateEventInCalendarWithTeamsUrl(any());
+        verify(outlookMailService).sendMail(eq("p1@esprit.tn"), contains("Formation modifiée"), anyString());
+    }
+
+    @Test
+    @DisplayName("updateFormationWorkflow - notifierActeurs=false : aucun e-mail, calendriers quand même mis à jour")
+    void shouldSendNoMailWhenUserOptsOut() {
+        Formation existing = createFullFormation();
+        existing.setIdFormation(1L);
+        existing.setEtatFormation(EtatFormation.PLANIFIE);
+        Enseignant p1 = enseignant("P1", "p1@esprit.tn");
+        Enseignant p2 = enseignant("P2", "p2@esprit.tn");
+        SeanceFormation s10 = seance(10L, existing, "2026-10-10", p1, "EV10");
+        existing.setSeances(new ArrayList<>(List.of(s10)));
+
+        FormationWorkflowRequest.SeanceRequest sr10 = createSeanceRequest("2026-10-10", "09:00", "11:00");
+        sr10.setIdSeance(10L);
+        sr10.setSalle("B2"); // planning modifié : resynchronisation attendue
+        request.setSeances(List.of(sr10));
+        request.setParticipantsIds(List.of("P1", "P2"));
+        request.setEtatFormation(EtatFormation.PLANIFIE);
+        request.setNotifierActeurs(false);
+
+        lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        lenient().when(formationRepository.save(any())).thenReturn(existing);
+        lenient().when(enseignantRepository.findAllById(anySet())).thenReturn(List.of(p1, p2));
+        lenient().when(enseignantRepository.findById("P1")).thenReturn(Optional.of(p1));
+        lenient().when(enseignantRepository.findById("P2")).thenReturn(Optional.of(p2));
+        lenient().when(helper.parseTime(anyString())).thenAnswer(inv -> LocalTime.parse(inv.getArgument(0)));
+        lenient().when(seanceFormationRepository.findById(10L)).thenReturn(Optional.of(s10));
+        lenient().when(outlookCalendarService.updateEventInCalendarWithTeamsUrl(any()))
+                .thenReturn(new OutlookCalendarService.EventCreationResult("EV10", null));
+
+        formationWorkflowService.updateFormationWorkflow(1L, request);
+
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
+        verify(outlookCalendarService, times(1)).updateEventInCalendarWithTeamsUrl(any());
+    }
+
+    @Test
+    @DisplayName("updateFormationWorkflow - Salle modifiée + participant ajouté : calendriers personnels à jour, seul le nouveau reçoit un e-mail")
+    void shouldUpdatePersonalCalendarsAndMailOnlyAddedPerson() {
+        Formation existing = createFullFormation();
+        existing.setIdFormation(1L);
+        existing.setEtatFormation(EtatFormation.PLANIFIE);
+        Enseignant p1 = enseignant("P1", "p1@esprit.tn");
+        Enseignant p2 = enseignant("P2", "p2@esprit.tn");
+        SeanceFormation s10 = seance(10L, existing, "2026-10-10", p1, "EV10");
+        existing.setSeances(new ArrayList<>(List.of(s10)));
+
+        FormationWorkflowRequest.SeanceRequest sr10 = createSeanceRequest("2026-10-10", "09:00", "11:00");
+        sr10.setIdSeance(10L);
+        sr10.setSalle("B2"); // planning modifié
+        request.setSeances(List.of(sr10));
+        request.setParticipantsIds(List.of("P1", "P2"));
+        request.setEtatFormation(EtatFormation.PLANIFIE);
+
+        lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        lenient().when(formationRepository.save(any())).thenReturn(existing);
+        lenient().when(enseignantRepository.findAllById(anySet())).thenReturn(List.of(p1, p2));
+        lenient().when(enseignantRepository.findById("P1")).thenReturn(Optional.of(p1));
+        lenient().when(enseignantRepository.findById("P2")).thenReturn(Optional.of(p2));
+        lenient().when(helper.parseTime(anyString())).thenAnswer(inv -> LocalTime.parse(inv.getArgument(0)));
+        lenient().when(seanceFormationRepository.findById(10L)).thenReturn(Optional.of(s10));
+        lenient().when(outlookCalendarService.updateEventInCalendarWithTeamsUrl(any()))
+                .thenReturn(new OutlookCalendarService.EventCreationResult("EV10", null));
+        // P1 a déjà l'événement dans son calendrier ; X (retiré entre-temps) aussi.
+        SeanceCalendarEventRepository calendarRepo = mock(SeanceCalendarEventRepository.class);
+        formationWorkflowService.setSeanceCalendarEventRepository(calendarRepo);
+        SeanceCalendarEvent lienP1 = new SeanceCalendarEvent(10L, "p1@esprit.tn", "P1EV");
+        SeanceCalendarEvent lienX = new SeanceCalendarEvent(10L, "x@esprit.tn", "XEV");
+        when(calendarRepo.findBySeanceId(10L)).thenReturn(List.of(lienP1, lienX));
+        when(outlookCalendarService.upsertPersonalEvent(any())).thenAnswer(inv -> {
+            OutlookEventParameters p = inv.getArgument(0);
+            return p.getEventId() != null ? p.getEventId() : "NEW-" + p.getOrganizerEmail();
+        });
+
+        formationWorkflowService.updateFormationWorkflow(1L, request);
+
+        org.mockito.ArgumentCaptor<OutlookEventParameters> perso =
+                org.mockito.ArgumentCaptor.forClass(OutlookEventParameters.class);
+        verify(outlookCalendarService, times(2)).upsertPersonalEvent(perso.capture());
+        assertThat(perso.getAllValues()).allSatisfy(p -> {
+            assertThat(p.getSalle()).isEqualTo("B2");
+            assertThat(p.getAttendeeEmails()).isNullOrEmpty();
+        });
+        assertThat(perso.getAllValues()).extracting(OutlookEventParameters::getEventId)
+                .containsExactlyInAnyOrder("P1EV", null);
+        verify(calendarRepo).save(argThat(e -> "p2@esprit.tn".equals(e.getEmail()) && "NEW-p2@esprit.tn".equals(e.getEventId())));
+        verify(outlookCalendarService).deleteEventInCalendar("x@esprit.tn", "XEV");
+        verify(calendarRepo).delete(lienX);
+
+        verify(outlookMailService).sendMail(eq("p2@esprit.tn"), contains("Ajout à la formation"), anyString());
+        verify(outlookMailService, times(1)).sendMail(anyString(), anyString(), anyString());
+    }
+
+    private static Enseignant enseignant(String id, String mail) {
+        Enseignant e = new Enseignant();
+        e.setId(id);
+        e.setMail(mail);
+        return e;
+    }
+
+    private static SeanceFormation seance(Long id, Formation formation, String date, Enseignant participant,
+            String eventId) {
+        SeanceFormation s = new SeanceFormation();
+        s.setIdSeance(id);
+        s.setFormation(formation);
+        s.setDateSeance(LocalDate.parse(date));
+        s.setHeureDebut(LocalTime.of(9, 0));
+        s.setHeureFin(LocalTime.of(11, 0));
+        s.setSalle("A1");
+        s.setCalendarEventId(eventId);
+        s.setAnimateurs(new ArrayList<>());
+        s.setParticipants(new ArrayList<>(List.of(participant)));
+        return s;
     }
 
     private FormationWorkflowRequest.SeanceRequest createSeanceRequest(String date, String debut, String fin) {

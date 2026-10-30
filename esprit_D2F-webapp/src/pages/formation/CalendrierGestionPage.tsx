@@ -1,60 +1,83 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useMemo, useState } from 'react';
 import {
-  Card,
-  Tabs,
-  Button,
-  Typography,
-  Statistic,
   Alert,
-  Spin,
+  Button,
+  Card,
   Checkbox,
+  Space,
+  Statistic,
+  Steps,
+  Table,
+  Tabs,
   Tag,
-  message,
-  Badge,
+  Typography,
 } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import {
   CalendarOutlined,
-  ImportOutlined,
-  FileExcelOutlined,
-  InfoCircleOutlined,
-  PlusOutlined,
-  TeamOutlined,
-  ExportOutlined,
-  WarningOutlined,
   CheckCircleOutlined,
+  FileExcelOutlined,
+  ImportOutlined,
+  ReloadOutlined,
+  SaveOutlined,
+  TeamOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 import type { AxiosError } from 'axios';
-import { useAppNotification } from '@/hooks/ui/useAppNotification';
-import { useAuth } from '@/hooks/auth/useAuth';
-import { isAdmin } from '@/utils/constants/roles';
+import useAppNotification from '@/hooks/ui/useAppNotification';
 import {
-  usePreviewImport,
-  useImportCalendar,
   useCalendarConflicts,
   useCalendarFormations,
+  useImportCalendar,
+  usePreviewImport,
 } from '@/hooks/formation/useCalendar';
 import {
   CalendarFileUpload,
-  ImportResultSummary,
-  ConflictsTable,
   CalendarFormationsTable,
+  ConflictsTable,
+  ImportErrorsTable,
+  ImportResultSummary,
 } from '@/components/calendar';
-import type { ImportReport, ParsedCalendar } from '@/models/calendar';
+import type { ImportReport, ParsedCalendar, ParsedSession } from '@/models/calendar';
 import '../../styles/pages/calendrier-gestion.css';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Paragraph, Text } = Typography;
 
+const STEP_FICHIER = 0;
+const STEP_APERCU = 1;
+const STEP_RESULTAT = 2;
+
+const normaliser = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+function formatDate(d?: string): string {
+  if (!d) return '—';
+  const date = new Date(d);
+  return Number.isNaN(date.getTime()) ? d : date.toLocaleDateString('fr-FR');
+}
+
+function horaire(s: ParsedSession): string {
+  if (!s.startTime && !s.endTime) return '—';
+  return `${(s.startTime ?? '').slice(0, 5)} – ${(s.endTime ?? '').slice(0, 5)}`;
+}
+
+/**
+ * Gestion du calendrier des ateliers (ADMIN) :
+ *  1. choisir le fichier Excel, 2. vérifier l'aperçu (aucune écriture),
+ *  3. « Enregistrer le calendrier » (seule étape qui écrit en base),
+ *  puis consulter / exporter les formations et les conflits.
+ */
 export default function CalendrierGestionPage() {
-  const { user } = useAuth();
-  const { notification } = useAppNotification();
-  const admin = isAdmin(user?.role);
+  const { message, notification, modal } = useAppNotification();
 
   const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useType<ParsedCalendar | null>(null);
-  const [report, setReport] = useType<ImportReport | null>(null);
+  const [preview, setPreview] = useState<ParsedCalendar | null>(null);
+  const [report, setReport] = useState<ImportReport | null>(null);
+  // Dernier enregistrement réussi : conservé pour les tuiles même après « Nouvel import ».
+  const [dernierImport, setDernierImport] = useState<ImportReport | null>(null);
+  const [step, setStep] = useState(STEP_FICHIER);
+  const [ignorerDoublons, setIgnorerDoublons] = useState(false);
+  const [doublonDetecte, setDoublonDetecte] = useState(false);
   const [activeTab, setActiveTab] = useState('import');
-  const [forceImport, setForceImport] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
 
   const previewMutation = usePreviewImport();
   const importMutation = useImportCalendar();
@@ -64,113 +87,359 @@ export default function CalendrierGestionPage() {
   const totalFormations = formations.data?.totalElements ?? 0;
   const totalConflicts = conflicts.data?.totalConflicts ?? 0;
 
-  const handlePreview = useCallback(
-    (f: File) => {
-      setFile(f);
-      setCurrentStep(1);
-      previewMutation.mutate(f, {
-        onSuccess: (data) => {
-          setPreview(data);
-        },
-        onError: () => {
-          setPreview(null);
-          setCurrentStep(0);
-        },
-      });
-    },
-    [previewMutation, setPreview],
-  );
+  // ── Synthèse de l'aperçu ─────────────────────────────────────────────
+  const apercu = useMemo(() => {
+    if (!preview) return null;
+    const participantsParFormation = new Map<string, number>();
+    preview.participants.forEach((p) => {
+      const key = normaliser(p.formationName);
+      participantsParFormation.set(key, (participantsParFormation.get(key) ?? 0) + 1);
+    });
+    const nbFormations = new Set(preview.sessions.map((s) => normaliser(s.formationName))).size;
+    const erreurs = preview.errors.filter((e) => e.severity === 'ERROR').length;
+    return {
+      participantsParFormation,
+      nbFormations,
+      nbSeances: preview.sessions.length,
+      nbParticipants: new Set(preview.participants.map((p) => p.email.toLowerCase())).size,
+      erreurs,
+      avertissements: preview.errors.length - erreurs,
+    };
+  }, [preview]);
 
-  const handleImport = useCallback(
-    (f: File, force: boolean) => {
-      setCurrentStep(2);
-      importMutation.mutate(
-        { file: f, force },
-        {
-          onSuccess: (data) => {
-            setReport(data);
-            setPreview(null);
-            formations.refetch();
-            conflicts.refetch();
-            message.success('Import terminé avec succès');
-          },
-          onError: (err: unknown) => {
-            const axiosErr = err as AxiosError;
-            if (axiosErr.response?.status === 409) {
-              notification.warning({
-                message: 'Conflits détectés',
-                description:
-                  "Des doublons ont été trouvés. Utilisez « Forcer l'import » pour ignorer.",
-              });
-            }
-            setReport(null);
-            setCurrentStep(1);
-          },
-        },
-      );
-    },
-    [importMutation, notification, formations, conflicts],
-  );
-
-  const handleReset = useCallback(() => {
+  const reinitialiser = () => {
     setFile(null);
     setPreview(null);
     setReport(null);
-    setForceImport(false);
-    setCurrentStep(0);
-  }, []);
+    setIgnorerDoublons(false);
+    setDoublonDetecte(false);
+    setStep(STEP_FICHIER);
+  };
 
-  const tabItems = useMemo(
-    () => [
+  const analyser = (f: File | null) => {
+    if (!f) {
+      reinitialiser();
+      return;
+    }
+    setFile(f);
+    setPreview(null);
+    setDoublonDetecte(false);
+    previewMutation.mutate(f, {
+      onSuccess: (data) => {
+        setPreview(data);
+        setStep(STEP_APERCU);
+      },
+      onError: () => {
+        message.error(
+          'Analyse impossible : vérifiez que le fichier respecte le format du calendrier.',
+        );
+      },
+    });
+  };
+
+  const enregistrer = (force: boolean) => {
+    if (!file) return;
+    importMutation.mutate(
+      { file, force },
       {
-        key: 'import',
-        label: (
-          <span className="cal-tab-label">
-            <ImportOutlined />
-            <span>Import Calendrier</span>
-            {totalConflicts > 0 && (
-              <Tag color="error" className="cal-tab-count">
-                {totalConflicts}
+        onSuccess: (data) => {
+          // Fichier déjà importé : on reste sur l'aperçu sans écraser le dernier rapport.
+          if (data.status === 'DUPLICATE') {
+            setDoublonDetecte(true);
+            return;
+          }
+          setReport(data);
+          setDernierImport(data);
+          setStep(STEP_RESULTAT);
+          formations.refetch();
+          conflicts.refetch();
+          if (data.sessionsCreated === 0 && data.rowsSkipped > 0) {
+            message.info('Calendrier déjà à jour : aucune nouvelle séance.');
+          } else if (data.status === 'SUCCESS') {
+            message.success('Calendrier enregistré.');
+          } else if (data.status === 'PARTIAL') {
+            message.warning('Calendrier enregistré partiellement : consultez les erreurs.');
+          } else {
+            message.error("L'enregistrement a échoué : consultez les erreurs.");
+          }
+        },
+        onError: (err: unknown) => {
+          const status = (err as AxiosError).response?.status;
+          if (status === 409) {
+            setDoublonDetecte(true);
+            return;
+          }
+          notification.error({
+            message: 'Enregistrement impossible',
+            description:
+              ((err as AxiosError<{ message?: string }>).response?.data?.message as string) ??
+              'Réessayez plus tard.',
+          });
+        },
+      },
+    );
+  };
+
+  const confirmerEnregistrement = () => {
+    if (!apercu) return;
+    modal.confirm({
+      title: 'Enregistrer le calendrier ?',
+      icon: <SaveOutlined />,
+      content: (
+        <div>
+          <p>
+            {apercu.nbFormations} formation(s), {apercu.nbSeances} séance(s) et{' '}
+            {apercu.nbParticipants} participant(s) vont être enregistrés.
+          </p>
+          {apercu.erreurs > 0 && (
+            <p>
+              <Text type="danger">{apercu.erreurs} ligne(s) en erreur seront ignorées.</Text>
+            </p>
+          )}
+          {ignorerDoublons && <p>Les doublons d'un import précédent seront ignorés.</p>}
+        </div>
+      ),
+      okText: 'Enregistrer',
+      cancelText: 'Annuler',
+      onOk: () => enregistrer(ignorerDoublons),
+    });
+  };
+
+  // ── Colonnes de l'aperçu ─────────────────────────────────────────────
+  const colonnesApercu: ColumnsType<ParsedSession> = [
+    { title: 'Ligne', dataIndex: 'sourceRow', width: 70, align: 'center' },
+    { title: 'Formation', dataIndex: 'formationName', ellipsis: true },
+    {
+      title: 'Séance',
+      width: 90,
+      align: 'center',
+      render: (_, s) => (s.sessionNumber ? `${s.sessionNumber}/${s.totalSessions ?? '?'}` : '—'),
+    },
+    { title: 'Date', dataIndex: 'date', width: 110, render: (d?: string) => formatDate(d) },
+    { title: 'Horaire', width: 120, render: (_, s) => horaire(s) },
+    { title: 'Salle', dataIndex: 'room', width: 110, render: (v?: string) => v || '—' },
+    {
+      title: 'Animateur',
+      dataIndex: 'trainerName',
+      ellipsis: true,
+      render: (v?: string) => v || '—',
+    },
+    {
+      title: 'Participants',
+      width: 110,
+      align: 'center',
+      render: (_, s) => apercu?.participantsParFormation.get(normaliser(s.formationName)) ?? 0,
+    },
+  ];
+
+  const etapes = [
+    { title: 'Fichier', description: 'Choisir le .xlsx' },
+    { title: 'Aperçu et vérification', description: 'Aucune écriture' },
+    { title: 'Enregistrement', description: 'Calendrier enregistré' },
+  ];
+
+  const ongletImport = (
+    <div className="cal-import-section">
+      <Steps current={step} items={etapes} className="cal-steps" />
+
+      {step === STEP_FICHIER && (
+        <div className="cal-step-content">
+          <CalendarFileUpload
+            file={file}
+            onFileChange={analyser}
+            loading={previewMutation.isPending}
+          />
+          {previewMutation.isPending && (
+            <Alert
+              type="info"
+              showIcon
+              message="Analyse du fichier en cours…"
+              className="cal-alert"
+            />
+          )}
+          <Paragraph type="secondary" className="cal-hint">
+            L'analyse ne modifie rien : les données ne sont enregistrées qu'après avoir cliqué sur «
+            Enregistrer le calendrier ».
+          </Paragraph>
+        </div>
+      )}
+
+      {step === STEP_APERCU && preview && apercu && (
+        <div className="cal-step-content">
+          <Space wrap className="cal-preview-stats">
+            <Tag icon={<CalendarOutlined />} color="processing">
+              {apercu.nbFormations} formation(s)
+            </Tag>
+            <Tag icon={<FileExcelOutlined />} color="cyan">
+              {apercu.nbSeances} séance(s)
+            </Tag>
+            <Tag icon={<TeamOutlined />} color="purple">
+              {apercu.nbParticipants} participant(s)
+            </Tag>
+            {apercu.erreurs > 0 && (
+              <Tag icon={<WarningOutlined />} color="error">
+                {apercu.erreurs} erreur(s)
               </Tag>
             )}
-          </span>
-        ),
-      },
-      {
-        key: 'formations',
-        label: (
-          <span className="cal-tab-label">
-            <CalendarOutlined />
-            <span>Formations & Export</span>
-            <Tag color="processing" className="cal-tab-count">
-              {totalFormations}
-            </Tag>
-          </span>
-        ),
-      },
-      {
-        key: 'conflicts',
-        label: (
-          <span className="cal-tab-label">
-            <WarningOutlined />
-            <span>Conflits</span>
-            {totalConflicts > 0 && (
-              <Badge count={totalConflicts} overflowCount={99}>
-                <Tag color="warning" className="cal-tab-count">
-                  {totalConflicts}
-                </Tag>
-              </Badge>
+            {apercu.avertissements > 0 && (
+              <Tag icon={<WarningOutlined />} color="warning">
+                {apercu.avertissements} avertissement(s)
+              </Tag>
             )}
-          </span>
-        ),
-      },
-    ],
-    [totalFormations, totalConflicts],
+          </Space>
+
+          {doublonDetecte && (
+            <Alert
+              type="warning"
+              showIcon
+              className="cal-alert"
+              message="Ce fichier a déjà été importé"
+              description="Cochez « Ignorer les doublons » puis enregistrez à nouveau pour forcer l'import."
+            />
+          )}
+          {apercu.nbSeances === 0 && (
+            <Alert
+              type="error"
+              showIcon
+              className="cal-alert"
+              message="Aucune séance lue dans ce fichier"
+              description="Vérifiez la feuille « Calendrier » et sa ligne d'en-tête (Formation, Formateur, Salle, Horaire…)."
+            />
+          )}
+
+          <Table<ParsedSession>
+            size="small"
+            rowKey={(s) => `${s.sourceRow}-${s.formationName}`}
+            columns={colonnesApercu}
+            dataSource={preview.sessions}
+            pagination={{ pageSize: 10, showSizeChanger: true, hideOnSinglePage: true }}
+            scroll={{ x: 'max-content' }}
+          />
+
+          {preview.errors.length > 0 && (
+            <Card size="small" title="Lignes à vérifier" className="cal-errors-card">
+              <ImportErrorsTable errors={preview.errors} />
+            </Card>
+          )}
+
+          <div className="cal-preview-actions">
+            <Checkbox
+              checked={ignorerDoublons}
+              onChange={(e) => setIgnorerDoublons(e.target.checked)}
+            >
+              Ignorer les doublons (fichier déjà importé)
+            </Checkbox>
+            <Space>
+              <Button onClick={reinitialiser}>Annuler</Button>
+              <Button
+                type="primary"
+                size="large"
+                icon={<SaveOutlined />}
+                loading={importMutation.isPending}
+                disabled={apercu.nbSeances === 0}
+                onClick={confirmerEnregistrement}
+              >
+                Enregistrer le calendrier
+              </Button>
+            </Space>
+          </div>
+        </div>
+      )}
+
+      {step === STEP_RESULTAT && report && (
+        <div className="cal-step-content">
+          {report.sessionsCreated === 0 && report.rowsSkipped > 0 && (
+            <Alert
+              type="info"
+              showIcon
+              className="cal-alert"
+              message="Aucune nouvelle séance"
+              description="Toutes les séances de ce fichier étaient déjà enregistrées : rien n'a été ajouté."
+            />
+          )}
+          <ImportResultSummary report={report} />
+          <div className="cal-result-actions">
+            <Button icon={<ImportOutlined />} onClick={reinitialiser}>
+              Nouvel import
+            </Button>
+            <Button
+              type="primary"
+              icon={<CalendarOutlined />}
+              onClick={() => setActiveTab('formations')}
+            >
+              Voir les formations
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
+
+  const tabItems = [
+    {
+      key: 'import',
+      label: (
+        <span className="cal-tab-label">
+          <ImportOutlined /> Import du calendrier
+        </span>
+      ),
+      children: ongletImport,
+    },
+    {
+      key: 'formations',
+      label: (
+        <span className="cal-tab-label">
+          <CalendarOutlined /> Formations et export
+          <Tag color="processing" className="cal-tab-count">
+            {totalFormations}
+          </Tag>
+        </span>
+      ),
+      children: (
+        <div className="cal-formations-section">
+          <div className="cal-section-header">
+            <Title level={4}>Formations du calendrier</Title>
+          </div>
+          <Paragraph type="secondary" className="cal-hint">
+            Seules les formations extraites d&apos;un fichier .xlsx importé sont listées ; les
+            formations saisies dans l&apos;application n&apos;apparaissent pas ici.
+          </Paragraph>
+          <CalendarFormationsTable />
+        </div>
+      ),
+    },
+    {
+      key: 'conflicts',
+      label: (
+        <span className="cal-tab-label">
+          <WarningOutlined /> Conflits
+          {totalConflicts > 0 && (
+            <Tag color="warning" className="cal-tab-count">
+              {totalConflicts}
+            </Tag>
+          )}
+        </span>
+      ),
+      children: (
+        <div className="cal-conflicts-section">
+          <div className="cal-section-header">
+            <Title level={4}>Conflits détectés</Title>
+            <Button
+              icon={<ReloadOutlined />}
+              loading={conflicts.isFetching}
+              onClick={() => conflicts.refetch()}
+            >
+              Actualiser
+            </Button>
+          </div>
+          <ConflictsTable report={conflicts.data} loading={conflicts.isFetching} />
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="cal-page">
-      {/* Hero Section */}
       <div className="cal-hero">
         <div className="cal-hero-content">
           <div className="cal-hero-icon">
@@ -178,91 +447,49 @@ export default function CalendrierGestionPage() {
           </div>
           <div className="cal-hero-text">
             <Title level={2} className="cal-hero-title">
-              Gestion du Calendrier des Ateliers
+              Gestion du calendrier des ateliers
             </Title>
             <Paragraph className="cal-hero-subtitle">
-              Importez le calendrier Excel des ateliers, détectez les conflits, exportez au format
-              iCalendar (.ics) et envoyez les invitations par e-mail.
+              Importez le calendrier Excel, vérifiez l'aperçu, enregistrez-le, puis exportez les
+              séances au format iCalendar (.ics).
             </Paragraph>
           </div>
-          {admin && (
-            <div className="cal-hero-badge">
-              <Badge count="Admin" style={{ backgroundColor: '#1677ff' }} />
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Stats Row */}
       <div className="cal-stats-row">
-        <Card className="cal-stat-card cal-stat-card--formations" variant="borderless">
+        <Card className="cal-stat-card" variant="borderless">
           <Statistic
-            title={<span className="cal-stat-label">Total Formations</span>}
+            title={<span className="cal-stat-label">Formations du calendrier</span>}
             value={totalFormations}
+            loading={formations.isLoading}
             prefix={<CalendarOutlined className="cal-stat-icon cal-stat-icon--formations" />}
-            valueStyle={{ color: '#1677ff' }}
           />
         </Card>
-        <Card className="cal-stat-card cal-stat-card--sessions" variant="borderless">
+        <Card className="cal-stat-card" variant="borderless">
           <Statistic
-            title={<span className="cal-stat-label">Séances Importées</span>}
-            value={report?.sessionsCreated ?? '—'}
+            title={<span className="cal-stat-label">Conflits détectés</span>}
+            value={totalConflicts}
+            loading={conflicts.isLoading}
+            prefix={<WarningOutlined className="cal-stat-icon cal-stat-icon--participants" />}
+          />
+        </Card>
+        <Card className="cal-stat-card" variant="borderless">
+          <Statistic
+            title={<span className="cal-stat-label">Séances du dernier import</span>}
+            value={dernierImport?.sessionsCreated ?? '—'}
             prefix={<FileExcelOutlined className="cal-stat-icon cal-stat-icon--sessions" />}
-            valueStyle={{ color: '#52c41a' }}
           />
         </Card>
-        <Card className="cal-stat-card cal-stat-card--participants" variant="borderless">
+        <Card className="cal-stat-card" variant="borderless">
           <Statistic
-            title={<span className="cal-stat-label">Participants</span>}
-            value={report?.participantsImported ?? '—'}
-            prefix={<TeamOutlined className="cal-stat-icon cal-stat-icon--participants" />}
-            valueStyle={{ color: '#722ed1' }}
+            title={<span className="cal-stat-label">Participants du dernier import</span>}
+            value={dernierImport?.participantsImported ?? '—'}
+            prefix={<CheckCircleOutlined className="cal-stat-icon cal-stat-icon--status" />}
           />
-        </Card>
-        <Card className="cal-stat-card cal-stat-card--status" variant="borderless">
-          {(() => {
-            let statusIcon: React.ReactNode;
-            if (report?.status === 'SUCCESS') {
-              statusIcon = <CheckCircleOutlined style={{ color: '#52c41a' }} />;
-            } else if (report?.status === 'PARTIAL') {
-              statusIcon = <WarningOutlined style={{ color: '#fa8c16' }} />;
-            } else if (report) {
-              statusIcon = <InfoCircleOutlined style={{ color: '#ff4d4f' }} />;
-            } else {
-              statusIcon = <span>—</span>;
-            }
-
-            let statusLabel: string;
-            if (!report) {
-              statusLabel = 'En attente';
-            } else if (report.status === 'SUCCESS') {
-              statusLabel = 'Succès';
-            } else if (report.status === 'PARTIAL') {
-              statusLabel = 'Partiel';
-            } else if (report.status === 'FAILED') {
-              statusLabel = 'Échoué';
-            } else if (report.status === 'DUPLICATE') {
-              statusLabel = 'Doublon';
-            } else {
-              statusLabel = '—';
-            }
-
-            return (
-              <Statistic
-                title={<span className="cal-stat-label">Statut Import</span>}
-                value={statusIcon as unknown as string}
-                prefix={
-                  <Text strong style={{ fontSize: 14 }}>
-                    {statusLabel}
-                  </Text>
-                }
-              />
-            );
-          })()}
         </Card>
       </div>
 
-      {/* Main Content */}
       <div className="cal-content">
         <Card className="cal-tabs-card" variant="borderless">
           <Tabs
@@ -271,156 +498,8 @@ export default function CalendrierGestionPage() {
             items={tabItems}
             className="cal-tabs"
           />
-
-          {/* Import Tab */}
-          {activeTab === 'import' && (
-            <div className="cal-import-section">
-              {!admin && (
-                <Alert
-                  message="Accès limité"
-                  description="Vous avez un accès en lecture seule. Seuls les administrateurs peuvent importer des calendriers."
-                  type="info"
-                  showIcon
-                  icon={<InfoCircleOutlined />}
-                  className="cal-alert"
-                />
-              )}
-
-              {/* Step 0: Upload */}
-              {currentStep === 0 && (
-                <div className="cal-step-content">
-                  <CalendarFileUpload
-                    file={file}
-                    onFileChange={(f) => {
-                      if (f) handlePreview(f);
-                    }}
-                    loading={previewMutation.isPending}
-                    disabled={!admin}
-                  />
-                </div>
-              )}
-
-              {/* Step 1: Preview */}
-              {currentStep === 1 && preview && (
-                <div className="cal-step-content">
-                  <Card className="cal-preview-card" title="Aperçu du fichier">
-                    <div className="cal-preview-stats">
-                      <Tag icon={<FileExcelOutlined />} color="processing">
-                        {preview.sessions.length} formations
-                      </Tag>
-                      <Tag icon={<CalendarOutlined />} color="cyan">
-                        {preview.sessions.length} séances
-                      </Tag>
-                      <Tag icon={<TeamOutlined />} color="purple">
-                        {preview.participants.length} participants
-                      </Tag>
-                    </div>
-
-                    <div className="cal-preview-table">
-                      <table className="cal-preview-table-inner">
-                        <thead>
-                          <tr>
-                            <th>Formation</th>
-                            <th>Date</th>
-                            <th>Salle</th>
-                            <th>Participants</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {preview.sessions
-                            .slice(0, 10)
-                            .map((s: import('@/models/calendar').ParsedSession, i: number) => (
-                              <tr key={`${s.formationName}-${s.date}-${s.room}`}>
-                                <td>{s.formationName}</td>
-                                <td>
-                                  {s.date ? new Date(s.date).toLocaleDateString('fr-FR') : '—'}
-                                </td>
-                                <td>{s.room || '—'}</td>
-                                <td>—</td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                      {preview.sessions.length > 10 && (
-                        <Text type="secondary" className="cal-preview-more">
-                          +{preview.sessions.length - 10} autres formations...
-                        </Text>
-                      )}
-                    </div>
-
-                    <div className="cal-preview-actions">
-                      <Button onClick={handleReset}>Annuler</Button>
-                      <Button
-                        type="primary"
-                        icon={<ImportOutlined />}
-                        onClick={() => file && handleImport(file, false)}
-                        loading={importMutation.isPending}
-                        disabled={!admin}
-                      >
-                        Importer
-                      </Button>
-                      <Checkbox
-                        checked={forceImport}
-                        onChange={(e) => setForceImport(e.target.checked)}
-                        disabled={!admin}
-                      >
-                        Forcer l'import (ignorer les doublons)
-                      </Checkbox>
-                    </div>
-                  </Card>
-                </div>
-              )}
-
-              {/* Step 1: Loading */}
-              {currentStep === 1 && previewMutation.isPending && (
-                <div className="cal-step-content cal-loading">
-                  <Spin size="large" tip="Analyse du fichier..." />
-                </div>
-              )}
-
-              {/* Step 2: Result */}
-              {currentStep === 2 && report && (
-                <div className="cal-step-content">
-                  <ImportResultSummary report={report} />
-                  <div className="cal-result-actions">
-                    <Button onClick={handleReset}>Nouveau Import</Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Formations Tab */}
-          {activeTab === 'formations' && (
-            <div className="cal-formations-section">
-              <div className="cal-section-header">
-                <Title level={4}>Calendrier des Formations</Title>
-                <div className="cal-section-actions">
-                  <Button icon={<ExportOutlined />}>Exporter .ics</Button>
-                  <Button type="primary" icon={<PlusOutlined />}>
-                    Nouvelle Formation
-                  </Button>
-                </div>
-              </div>
-              <CalendarFormationsTable />
-            </div>
-          )}
-
-          {/* Conflicts Tab */}
-          {activeTab === 'conflicts' && (
-            <div className="cal-conflicts-section">
-              <div className="cal-section-header">
-                <Title level={4}>Conflits Détectés</Title>
-              </div>
-              <ConflictsTable report={conflicts.data} loading={conflicts.isFetching} />
-            </div>
-          )}
         </Card>
       </div>
     </div>
   );
-}
-
-function useType<T>(initial: T) {
-  return useState<T>(initial);
 }

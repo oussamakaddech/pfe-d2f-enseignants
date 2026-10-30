@@ -22,13 +22,13 @@ def build_teacher_features(
         comp_agg = (
             df_comp.groupby("enseignant_id")
             .agg(
-                avg_level=("current_level", "mean"),
-                min_level=("current_level", "min"),
-                max_level=("current_level", "max"),
+                avg_level=("observed_result", "mean"),
+                min_level=("observed_result", "min"),
+                max_level=("observed_result", "max"),
                 nb_savoirs=("savoir_id", "nunique"),
                 nb_competences=("competence_id", "nunique"),
-                nb_level_5=("current_level", lambda x: (x == 5).sum()),
-                nb_level_1=("current_level", lambda x: (x == 1).sum()),
+                nb_level_5=("observed_result", lambda x: (x == 5).sum()),
+                nb_level_1=("observed_result", lambda x: (x == 1).sum()),
             )
             .reset_index()
         )
@@ -108,12 +108,12 @@ def build_gap_labels(
 
     # Merge on savoir_id and competence_id
     merged = df_curr.merge(
-        df_req[["competence_id", "savoir_id", "required_level"]],
+        df_req[["competence_id", "savoir_id", "knowledge_difficulty_level"]],
         on=["competence_id", "savoir_id"],
         how="left",
         validate="m:1",
     )
-    merged["gap"] = merged["required_level"].fillna(0) - merged["current_level"]
+    merged["gap"] = merged["knowledge_difficulty_level"].fillna(0) - merged["observed_result"]
     merged["has_gap"] = (merged["gap"] > 0).astype(int)
     return merged
 
@@ -135,7 +135,7 @@ def validate_features(df: pd.DataFrame) -> dict[str, Any]:
 
     Détecte les outliers métier :
       - taux_assiduite ∈ [0, 1]
-      - niveaux ∈ [1, 5] (current_level / required_level / avg_level / min / max)
+      - niveaux ∈ [1, 5] (observed_result / knowledge_difficulty_level / avg_level / min / max)
       - risk_score ∈ [0, 1]
       - engagement_score >= 0
       - days_since_last_training >= 0
@@ -145,8 +145,8 @@ def validate_features(df: pd.DataFrame) -> dict[str, Any]:
     """
     rules: list[tuple[str, str, float | None, float | None]] = [
         ("taux_assiduite", "in", 0.0, 1.0),
-        ("current_level", "in", 1.0, 5.0),
-        ("required_level", "in", 1.0, 5.0),
+        ("observed_result", "in", 1.0, 5.0),
+        ("knowledge_difficulty_level", "in", 1.0, 5.0),
         ("avg_level", "in", 1.0, 5.0),
         ("min_level", "in", 1.0, 5.0),
         ("max_level", "in", 1.0, 5.0),

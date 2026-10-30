@@ -8,7 +8,7 @@ import type {
 import type { Enseignant } from '@/models/enseignant';
 import type { Savoir, EnseignantCompetence } from '@/models/competence';
 
-const RICE_BASE = `${config.RICE_URL}/rice`; // direct to Python :8001 (no gateway – avoids codec size limit for file uploads)
+const RICE_BASE = `${config.RICE_URL}/rice`; // via la gateway (VITE_RICE_URL = …/api → /api/rice/** → RICE :8001)
 const COMPETENCE_BASE = `${config.COMPETENCE_URL}/competence`;
 const FORMATION_ENS_BASE = `${config.FORMATION_URL}/formation/enseignants`;
 
@@ -93,48 +93,33 @@ const RiceService = {
     return res.data;
   },
 
+  // L'annuaire n'existe que dans le service formation (le service compétence
+  // n'expose pas /enseignants) : aucun repli possible.
   getEnseignants: async (departement: string | null = null): Promise<Enseignant[]> => {
-    const params = departement ? `?departement=${departement}` : '';
-
-    try {
-      // Charge TOUT l'annuaire (corps enseignant) comme la page Administration :
-      // l'endpoint est paginé (défaut 20) → on demande une grande taille et on
-      // fusionne les pages restantes via fetchAllPages, sinon seuls 20 enseignants
-      // remontaient dans le Matchmaking.
-      const data = await fetchAllPages(FORMATION_ENS_BASE, '?size=200');
-      const list = normalizeEnseignantsPayload<Record<string, unknown>>(data);
-      if (!departement) return list;
-      // Les fiches formation portent dept/up sous plusieurs formes (deptLibelle,
-      // deptId, upLibelle, upId…) et non un simple champ `departement`. On compare
-      // de façon tolérante pour ne pas vider la liste.
-      const deptNorm = String(departement).toLowerCase();
-      return list.filter((e) => {
-        const candidates = [
-          e?.departement,
-          e?.department,
-          e?.deptLibelle,
-          e?.deptId,
-          e?.upLibelle,
-          e?.upId,
-        ]
-          .map((v) => String(v ?? '').toLowerCase())
-          .filter(Boolean);
-        return candidates.some(
-          (c) => c === deptNorm || c.includes(deptNorm) || deptNorm.includes(c),
-        );
-      });
-    } catch (err: unknown) {
-      // Compatibility fallback: some deployments expose teachers via competence service,
-      // and some secured deployments reject the formation endpoint while still allowing
-      // the competence endpoint with the same token.
-      try {
-        const data = await fetchAllPages(`${COMPETENCE_BASE}/enseignants`, params);
-        return normalizeEnseignantsPayload<Record<string, unknown>>(data);
-      } catch (error_: unknown) {
-        const fallbackHttpErr = error_ as { response?: { status?: number } };
-        throw fallbackHttpErr?.response?.status ? error_ : err;
-      }
-    }
+    // Charge TOUT l'annuaire (corps enseignant) comme la page Administration :
+    // l'endpoint est paginé (défaut 20) → on demande une grande taille et on
+    // fusionne les pages restantes via fetchAllPages, sinon seuls 20 enseignants
+    // remontaient dans le Matchmaking.
+    const data = await fetchAllPages(FORMATION_ENS_BASE, '?size=200');
+    const list = normalizeEnseignantsPayload<Record<string, unknown>>(data);
+    if (!departement) return list;
+    // Les fiches formation portent dept/up sous plusieurs formes (deptLibelle,
+    // deptId, upLibelle, upId…) et non un simple champ `departement`. On compare
+    // de façon tolérante pour ne pas vider la liste.
+    const deptNorm = String(departement).toLowerCase();
+    return list.filter((e) => {
+      const candidates = [
+        e?.departement,
+        e?.department,
+        e?.deptLibelle,
+        e?.deptId,
+        e?.upLibelle,
+        e?.upId,
+      ]
+        .map((v) => String(v ?? '').toLowerCase())
+        .filter(Boolean);
+      return candidates.some((c) => c === deptNorm || c.includes(deptNorm) || deptNorm.includes(c));
+    });
   },
 
   getEnseignantAffectations: async (): Promise<EnseignantCompetence[]> => {
@@ -144,21 +129,8 @@ const RiceService = {
 
   getSavoirs: async (departement: string | null = null): Promise<Savoir[]> => {
     const params = departement ? `?departement=${departement}` : '';
-    try {
-      const data = await fetchAllPages(`${COMPETENCE_BASE}/savoirs`, params);
-      return normalizeSavoirsPayload(data);
-    } catch (err: unknown) {
-      // Fallback to rice referential endpoint if present
-      try {
-        const res2 = await axios.get(`${RICE_BASE}/referential${params}`);
-        // expected shape: { savoirs: {...}|[], enseignant_affectations: {...} }
-        const savoirs = normalizeSavoirsPayload<Savoir>(res2.data);
-        if (savoirs.length > 0) return savoirs;
-      } catch {
-        // ignore
-      }
-      throw err;
-    }
+    const data = await fetchAllPages(`${COMPETENCE_BASE}/savoirs`, params);
+    return normalizeSavoirsPayload(data);
   },
 
   saveAssignments: async (payload: {
@@ -215,8 +187,10 @@ const RiceService = {
     return res.data;
   },
 
+  // L'annuaire des enseignants appartient au service formation : le service
+  // compétence n'expose aucun /enseignants (ces appels recevaient 404).
   createEnseignant: async (data: Record<string, unknown>): Promise<Enseignant> => {
-    const res = await axios.post(`${COMPETENCE_BASE}/enseignants`, data);
+    const res = await axios.post(FORMATION_ENS_BASE, data);
     return res.data;
   },
 
@@ -224,12 +198,13 @@ const RiceService = {
     id: number | string,
     data: Record<string, unknown>,
   ): Promise<Enseignant> => {
-    const res = await axios.put(`${COMPETENCE_BASE}/enseignants/${id}`, data);
+    const res = await axios.put(`${FORMATION_ENS_BASE}/${id}`, data);
     return res.data;
   },
 
+  // Mise à jour partielle (PUT null-safe côté formation) : seul l'état change.
   deactivateEnseignant: async (id: number | string): Promise<Enseignant> => {
-    const res = await axios.patch(`${COMPETENCE_BASE}/enseignants/${id}`, { etat: 'I' });
+    const res = await axios.put(`${FORMATION_ENS_BASE}/${id}`, { etat: 'I' });
     return res.data;
   },
 };

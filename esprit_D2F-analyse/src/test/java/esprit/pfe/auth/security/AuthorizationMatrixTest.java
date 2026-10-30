@@ -15,7 +15,6 @@ class AuthorizationMatrixTest {
         assertNotNull(AuthorizationMatrix.COMPETENCE_CREATE);
         assertNotNull(AuthorizationMatrix.COMPETENCE_UPDATE);
         assertNotNull(AuthorizationMatrix.COMPETENCE_DELETE);
-        assertNotNull(AuthorizationMatrix.COMPETENCE_ASSIGN);
     }
 
     @Test
@@ -30,8 +29,6 @@ class AuthorizationMatrixTest {
     @Test
     void testBesoinFormationConstants() {
         assertNotNull(AuthorizationMatrix.BESOIN_FORMATION_READ_ALL);
-        assertNotNull(AuthorizationMatrix.BESOIN_FORMATION_READ_CUP);
-        assertNotNull(AuthorizationMatrix.BESOIN_FORMATION_READ_ENSEIGNANT);
         assertNotNull(AuthorizationMatrix.BESOIN_FORMATION_CREATE);
         assertNotNull(AuthorizationMatrix.BESOIN_FORMATION_UPDATE);
         assertNotNull(AuthorizationMatrix.BESOIN_FORMATION_DELETE);
@@ -51,13 +48,10 @@ class AuthorizationMatrixTest {
     @Test
     void testEvaluationConstants() {
         assertNotNull(AuthorizationMatrix.EVALUATION_READ_ALL);
-        assertNotNull(AuthorizationMatrix.EVALUATION_READ_CUP);
         assertNotNull(AuthorizationMatrix.EVALUATION_READ_ENSEIGNANT);
-        assertNotNull(AuthorizationMatrix.EVALUATION_READ_FORMATEUR);
         assertNotNull(AuthorizationMatrix.EVALUATION_CREATE);
         assertNotNull(AuthorizationMatrix.EVALUATION_UPDATE);
         assertNotNull(AuthorizationMatrix.EVALUATION_DELETE);
-        assertNotNull(AuthorizationMatrix.EVALUATION_MARK_ENTRY);
     }
 
     @Test
@@ -95,7 +89,6 @@ class AuthorizationMatrixTest {
 
     @Test
     void testGatewayAndPublicConstants() {
-        assertNotNull(AuthorizationMatrix.GATEWAY_ACCESS);
         assertNotNull(AuthorizationMatrix.PUBLIC_ACCESS);
     }
 

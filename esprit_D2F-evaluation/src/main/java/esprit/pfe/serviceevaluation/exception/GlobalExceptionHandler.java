@@ -1,5 +1,7 @@
 package esprit.pfe.serviceevaluation.exception;
 
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +48,17 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, "Accès refusé : vous n'avez pas les permissions nécessaires.", MODULE_PREFIX + "-403", request);
     }
 
+    /**
+     * Refus d'une règle métier d'autorisation (ex. « Vous devez être animateur… »,
+     * « Vous devez participer… ») levés en {@code java.lang.SecurityException}
+     * par les services : 403 avec le message métier (jamais 500 générique).
+     */
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessDenied(SecurityException ex, HttpServletRequest request) {
+        log.warn("Business authorization denied: {}", ex.getMessage());
+        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), MODULE_PREFIX + "-403", request);
+    }
+
     @ExceptionHandler({AuthenticationException.class, BadCredentialsException.class})
     public ResponseEntity<ErrorResponse> handleAuthentication(Exception ex, HttpServletRequest request) {
         log.error("Authentication error: {}", ex.getMessage());
@@ -81,6 +94,12 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, "La ressource demandée n'existe pas : " + ex.getResourcePath(), MODULE_PREFIX + "-404", request);
     }
 
+    // Paramètre absent ou mal typé : erreur du client (400), pas une panne serveur.
+    @ExceptionHandler({MissingServletRequestParameterException.class, MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<ErrorResponse> handleBadRequestParameter(Exception ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, badParameterMessage(ex), MODULE_PREFIX + "-400", request);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneral(Exception ex, HttpServletRequest request) {
         String traceId = UUID.randomUUID().toString();
@@ -102,5 +121,16 @@ public class GlobalExceptionHandler {
                 .traceId(traceId)
                 .build();
         return new ResponseEntity<>(response, status);
+    }
+
+    /** Message client pour un paramètre de requête absent ou mal typé (sans nom de classe Java). */
+    private static String badParameterMessage(Exception ex) {
+        if (ex instanceof MissingServletRequestParameterException missing) {
+            return "Paramètre obligatoire manquant : " + missing.getParameterName();
+        }
+        if (ex instanceof MethodArgumentTypeMismatchException mismatch) {
+            return "Valeur invalide pour le paramètre '" + mismatch.getName() + "'";
+        }
+        return "Paramètre de requête invalide.";
     }
 }

@@ -5,6 +5,7 @@ import { useUpdatePassword } from '@/hooks/auth/useAuthService';
 import { AppPageHeader, shadow, radius } from '@/components/common';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 interface UpdatePasswordFormValues {
+  oldPassword: string;
   newPassword: string;
   confirmation: string;
 }
@@ -18,7 +19,11 @@ export default function UpdatePassword() {
   const handleSubmit = async (values: UpdatePasswordFormValues) => {
     setLoading(true);
     try {
-      await updatePwd({ newPassword: values.newPassword, confirmation: values.confirmation });
+      await updatePwd({
+        oldPassword: values.oldPassword,
+        newPassword: values.newPassword,
+        confirmation: values.confirmation,
+      });
       message.success('Mot de passe mis à jour avec succès !');
       form.resetFields();
     } catch (error: unknown) {
@@ -47,6 +52,14 @@ export default function UpdatePassword() {
         }}
       >
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
+          <Form.Item
+            name="oldPassword"
+            label="Mot de passe actuel"
+            rules={[{ required: true, message: 'Le mot de passe actuel est requis' }]}
+          >
+            <Input.Password prefix={<LockOutlined />} placeholder="Mot de passe actuel" />
+          </Form.Item>
+
           <Form.Item
             name="newPassword"
             label="Nouveau mot de passe"

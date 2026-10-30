@@ -69,4 +69,11 @@ public interface FormationService {
      * @return cloned formation as response DTO
      */
     FormationResponseDTO cloneFormation(Long sourceId, String newTitle);
+
+    boolean isAnimateurOfFormation(Long formationId, String enseignantId);
+
+    boolean isParticipantOfFormation(Long formationId, String enseignantId);
+
+    /** Participant d'une formation + id de fiche + UP (questionnaire de satisfaction). */
+    java.util.Map<String, Object> participantInfo(Long formationId, String idOrMail);
 }

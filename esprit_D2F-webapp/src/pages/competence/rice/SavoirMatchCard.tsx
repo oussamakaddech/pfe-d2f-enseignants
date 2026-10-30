@@ -7,6 +7,7 @@ import {
   WarningOutlined,
 } from '@ant-design/icons';
 import { NIVEAU_OPTIONS, TYPE_COLOR, TYPE_LABEL } from './constants';
+import { teacherAffiliation } from './teacherAffiliation';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Savoir {
@@ -22,6 +23,14 @@ interface Enseignant {
   nom?: string;
   prenom?: string;
   etat?: string;
+  departement?: string;
+  department?: string;
+  deptLibelle?: string;
+  deptId?: string;
+  upLibelle?: string;
+  upId?: string;
+  unitePedagogique?: string;
+  [key: string]: unknown;
 }
 interface SavoirMatchCardProps {
   savoir: Savoir;
@@ -45,6 +54,11 @@ function getTypeMeta(type = 'THEORIQUE') {
   };
 }
 
+function teacherLabel(t: Enseignant): string {
+  const name = `${t.prenom ?? ''} ${t.nom ?? ''}`.trim() || String(t.id);
+  const aff = teacherAffiliation(t);
+  return aff ? `${name} — ${aff}` : name;
+}
 // ── Component ──────────────────────────────────────────────────────────────────
 export default function SavoirMatchCard({
   savoir,
@@ -60,8 +74,9 @@ export default function SavoirMatchCard({
   const selectOptions = useMemo(
     () =>
       allTeachers.map((t) => ({
-        label: `${t.prenom ?? ''} ${t.nom ?? ''}`.trim(),
+        label: teacherLabel(t),
         value: t.id,
+        title: teacherLabel(t),
       })),
     [allTeachers],
   );
@@ -96,13 +111,14 @@ export default function SavoirMatchCard({
             <CheckCircleOutlined className="smc-teachers__icon" />
             {assignedTeacherIds.map((id) => {
               const t = allTeachers.find((x) => String(x.id) === String(id));
-              const label = t ? `${t.prenom ?? ''} ${t.nom ?? ''}`.trim() : String(id);
+              const label = t ? teacherLabel(t) : String(id);
               return (
                 <Tag
                   key={id}
                   closable
                   onClose={() => onUnassign(savoir.id, id)}
                   className="smc-teacher-tag"
+                  title={label}
                 >
                   {label}
                 </Tag>

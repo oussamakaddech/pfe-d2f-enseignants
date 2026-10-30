@@ -1,6 +1,7 @@
 package esprit.pfe.serviceformation.controllers;
 
 import esprit.d2f.common.security.AuthorizationMatrix;
+import esprit.pfe.serviceformation.dto.FormationCompetenceLinkDTO;
 import esprit.pfe.serviceformation.dto.FormationCompetenceRequestDTO;
 import esprit.pfe.serviceformation.dto.ReferentialMapper;
 import esprit.pfe.serviceformation.entities.FormationCompetence;
@@ -29,6 +30,13 @@ public class FormationCompetenceController {
             @PathVariable Long formationId,
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
         return ResponseEntity.ok(formationCompetenceService.getByFormationId(formationId, pageable));
+    }
+
+    /** GET toutes les liaisons des formations actives (filtre « par compétence » du catalogue) */
+    @PreAuthorize(AuthorizationMatrix.FORMATION_COMPETENCE_READ)
+    @GetMapping("/all")
+    public ResponseEntity<List<FormationCompetenceLinkDTO>> getAllLinks() {
+        return ResponseEntity.ok(formationCompetenceService.getAllLinks());
     }
 
     /** POST ajouter une liaison formation-compétence */

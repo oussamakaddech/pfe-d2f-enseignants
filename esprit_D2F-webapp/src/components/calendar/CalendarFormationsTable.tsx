@@ -1,25 +1,57 @@
 import { useState } from 'react';
 import { Table, Tag, Button, Space, Input, Select, Tooltip } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
-import { SearchOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import {
+  SearchOutlined,
+  CheckCircleOutlined,
+  ExportOutlined,
+  MailOutlined,
+} from '@ant-design/icons';
 import useAppNotification from '@/hooks/ui/useAppNotification';
-import { useCalendarFormations } from '@/hooks/formation/useCalendar';
+import { useCalendarFormations, useSendInvitations } from '@/hooks/formation/useCalendar';
+import CalendarService from '@/services/formation/CalendarService';
 import { useUpdateInscriptionsOuvertes } from '@/hooks/formation/useFormations';
 import type { CalendarFormation, CalendarFormationFilters } from '@/models/calendar';
+import { ETAT_FORMATION_OPTIONS, etatFormationAffichage } from './formationEtat';
 
-const ETAT_OPTIONS = [
-  'NOUVEAU',
-  'ENREGISTRE',
-  'PLANIFIE',
-  'EN_COURS',
-  'ACHEVE',
-  'ANNULE',
-  'VISIBLE',
-].map((v) => ({ label: v, value: v }));
+/** Date de fin passée (format ISO yyyy-MM-dd, comparable comme chaîne). */
+const estTerminee = (f: CalendarFormation) =>
+  !!f.dateFin && f.dateFin < new Date().toLocaleDateString('sv-SE');
 
 /** Liste paginée des formations planifiées avec enregistrement dans le catalogue. */
 export default function CalendarFormationsTable() {
-  const { message } = useAppNotification();
+  const { message, modal } = useAppNotification();
+  const sendInvitations = useSendInvitations();
+  const [exportId, setExportId] = useState<number | null>(null);
+
+  const exporterIcs = async (formation: CalendarFormation) => {
+    setExportId(formation.idFormation);
+    try {
+      await CalendarService.downloadIcsFormation(formation.idFormation);
+    } catch {
+      message.error('Export .ics impossible.');
+    } finally {
+      setExportId(null);
+    }
+  };
+
+  // Un e-mail (avec .ics de toutes les séances) par participant : confirmation obligatoire.
+  const envoyerInvitations = (formation: CalendarFormation) => {
+    modal.confirm({
+      title: 'Envoyer les invitations ?',
+      content: `Chaque participant de « ${formation.titre} » (${formation.participantsCount}) recevra un e-mail avec l'invitation calendrier (.ics).`,
+      okText: 'Envoyer',
+      cancelText: 'Annuler',
+      onOk: () =>
+        sendInvitations.mutateAsync(formation.idFormation).then(
+          (res) =>
+            res.status === 'NO_RECIPIENT' || res.status === 'FORMATION_PASSEE'
+              ? message.warning(res.message)
+              : message.success(res.message),
+          () => message.error("Échec de l'envoi des invitations."),
+        ),
+    });
+  };
   const [filters, setFilters] = useState<CalendarFormationFilters>({ page: 0, size: 10 });
   const [searchInput, setSearchInput] = useState('');
 
@@ -46,7 +78,10 @@ export default function CalendarFormationsTable() {
       title: 'État',
       dataIndex: 'etat',
       width: 130,
-      render: (etat?: string) => (etat ? <Tag>{etat}</Tag> : '—'),
+      render: (etat?: string) => {
+        const affichage = etatFormationAffichage(etat);
+        return etat ? <Tag color={affichage.color}>{affichage.label}</Tag> : '—';
+      },
     },
     { title: 'Du', dataIndex: 'dateDebut', width: 120, render: (v?: string) => v || '—' },
     { title: 'Au', dataIndex: 'dateFin', width: 120, render: (v?: string) => v || '—' },
@@ -55,20 +90,47 @@ export default function CalendarFormationsTable() {
     { title: 'Participants', dataIndex: 'participantsCount', width: 110, align: 'center' },
     {
       title: 'Actions',
-      width: 100,
+      width: 140,
       render: (_, formation) => (
-        <Tooltip title="Enregistrer dans le catalogue">
-          <Button
-            size="small"
-            type="primary"
-            icon={<CheckCircleOutlined />}
-            loading={
-              updateInscriptions.isPending &&
-              updateInscriptions.variables?.id === formation.idFormation
+        <Space size={4}>
+          <Tooltip title="Exporter les séances (.ics)">
+            <Button
+              size="small"
+              icon={<ExportOutlined />}
+              aria-label={`Exporter ${formation.titre} en .ics`}
+              loading={exportId === formation.idFormation}
+              onClick={() => exporterIcs(formation)}
+            />
+          </Tooltip>
+          <Tooltip
+            title={
+              estTerminee(formation)
+                ? 'Formation terminée : pas d’invitation'
+                : 'Envoyer les invitations aux participants'
             }
-            onClick={() => handleRegister(formation)}
-          />
-        </Tooltip>
+          >
+            <Button
+              size="small"
+              icon={<MailOutlined />}
+              aria-label={`Envoyer les invitations de ${formation.titre}`}
+              disabled={formation.participantsCount === 0 || estTerminee(formation)}
+              onClick={() => envoyerInvitations(formation)}
+            />
+          </Tooltip>
+          <Tooltip title="Enregistrer dans le catalogue (inscriptions ouvertes)">
+            <Button
+              size="small"
+              type="primary"
+              icon={<CheckCircleOutlined />}
+              loading={
+                updateInscriptions.isPending &&
+                updateInscriptions.variables?.id === formation.idFormation
+              }
+              onClick={() => handleRegister(formation)}
+              aria-label={`Enregistrer ${formation.titre} dans le catalogue`}
+            />
+          </Tooltip>
+        </Space>
       ),
     },
   ];
@@ -99,7 +161,7 @@ export default function CalendarFormationsTable() {
         <Select
           allowClear
           placeholder="État"
-          options={ETAT_OPTIONS}
+          options={ETAT_FORMATION_OPTIONS}
           style={{ width: 180 }}
           onChange={(etat?: string) => setFilters((f) => ({ ...f, etat, page: 0 }))}
         />
@@ -115,6 +177,7 @@ export default function CalendarFormationsTable() {
         columns={columns}
         dataSource={data?.content ?? []}
         pagination={pagination}
+        locale={{ emptyText: 'Aucune formation importée depuis un fichier .xlsx' }}
         scroll={{ x: 'max-content' }}
       />
     </Space>

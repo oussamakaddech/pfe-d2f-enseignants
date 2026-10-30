@@ -55,10 +55,10 @@
   position: relative;
   margin-bottom: 24px;
   padding: 32px 36px;
-  background: linear-gradient(120deg, #9b1c1c 0%, #c8102e 50%, #e11d2e 100%);
+  background: linear-gradient(120deg, #7a0000 0%, #b51200 50%, #d92b1a 100%);
   border-radius: 20px;
   box-shadow:
-    0 4px 24px rgba(155, 28, 28, 0.25),
+    0 6px 24px rgba(181, 18, 0, 0.28),
     0 1px 3px rgba(0, 0, 0, 0.06);
   overflow: hidden;
 }
@@ -115,35 +115,7 @@
   margin: 0 auto;
   padding: 0 0 32px;
 }
-.ins-page .ant-tabs-nav {
-  margin-bottom: 24px;
-  padding: 0 4px;
-}
-.ins-page .ant-tabs-nav::before {
-  border-bottom: 2px solid rgba(0, 0, 0, 0.06);
-}
-.ins-page .ant-tabs-tab {
-  padding: 12px 20px;
-  margin: 0 4px;
-  border-radius: 12px 12px 0 0;
-  font-weight: 500;
-  font-size: 14px;
-  color: #64748b;
-  transition: all 0.25s;
-}
-.ins-page .ant-tabs-tab:hover {
-  color: #b51200;
-  background: rgba(181, 18, 0, 0.04);
-}
-.ins-page .ant-tabs-tab-active {
-  color: #b51200 !important;
-  font-weight: 600;
-}
-.ins-page .ant-tabs-ink-bar {
-  background: #b51200;
-  height: 3px;
-  border-radius: 3px 3px 0 0;
-}
+/* Tabs : définitions canoniques en section « Tabs en pilules » ci-dessous. */
 .ins-tab-label {
   display: inline-flex;
   align-items: center;
@@ -155,19 +127,9 @@
 }
 
 /* ─── Shared: Buttons ────────────────────────────────────────────────── */
-.ins-btn {
-  border-radius: 8px !important;
-  font-weight: 500 !important;
-}
-.ins-btn--green {
-  background: #1d6f42 !important;
-  border-color: #1d6f42 !important;
-  color: #fff !important;
-}
-.ins-btn--green:hover {
-  background: #165a36 !important;
-  border-color: #165a36 !important;
-}
+/* Boutons partagés : définitions canoniques en fin de fichier
+   (section « Design refresh ») — pas de duplication ici. */
+/* .ins-btn, .ins-btn--green : voir section Design refresh ci-dessous. */
 
 /* ─── Shared: Card container ─────────────────────────────────────────── */
 .ins-card {
@@ -241,11 +203,11 @@
 .cat-hero {
   position: relative;
   margin-bottom: 20px;
-  padding: 24px 28px;
-  background: linear-gradient(120deg, #9b1c1c 0%, #c8102e 50%, #e11d2e 100%);
+  padding: 26px 30px;
+  background: linear-gradient(120deg, #7a0000 0%, #b51200 55%, #d92b1a 100%);
   border-radius: 18px;
   box-shadow:
-    0 4px 20px rgba(155, 28, 28, 0.22),
+    0 6px 24px rgba(181, 18, 0, 0.28),
     0 1px 3px rgba(0, 0, 0, 0.06);
   overflow: hidden;
 }
@@ -260,7 +222,7 @@
   pointer-events: none;
   filter: blur(50px);
   opacity: 0.3;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.12), transparent 70%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.14), transparent 70%);
 }
 .cat-hero > * {
   position: relative;
@@ -281,18 +243,19 @@
   gap: 14px;
 }
 .cat-hero-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 21px;
   color: #fff;
   backdrop-filter: blur(4px);
   flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
 }
 .cat-hero-title-row {
   display: flex;
@@ -426,13 +389,19 @@
 .cat-card {
   border-radius: 16px;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
   border: 1px solid rgba(0, 0, 0, 0.07);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 .cat-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+  border-color: rgba(181, 18, 0, 0.25);
+  box-shadow:
+    0 12px 32px rgba(181, 18, 0, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.05) !important;
 }
 
 .cat-card-header {
@@ -507,7 +476,7 @@
   align-items: center;
   border-top: 1px solid rgba(0, 0, 0, 0.06);
   padding: 12px 8px;
-  background: #f8fafc;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
 }
 
 /* Type header gradients */
@@ -553,6 +522,7 @@
 .mis-row:hover {
   background: #f5f7fa;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border-left-color: #b51200;
 }
 
 .mis-row-body {
@@ -669,6 +639,7 @@
   align-items: center !important;
   gap: 6px !important;
   transition: all 0.2s !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 .suv-toggle:hover {
   transform: translateY(-1px) !important;
@@ -698,11 +669,149 @@
   justify-content: space-between;
   padding: 10px 20px;
   margin: 0 20px 12px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(59, 130, 246, 0.04));
-  border: 1px solid rgba(37, 99, 235, 0.15);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(181, 18, 0, 0.06), rgba(217, 43, 26, 0.04));
+  border: 1px solid rgba(181, 18, 0, 0.18);
   font-weight: 500;
   font-size: 13px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * Design refresh — boutons & polish (marque #b51200)
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Boutons partagés (.ins-btn) ────────────────────────────────────── */
+.ins-btn {
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease !important;
+}
+.ins-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+}
+.ins-btn--green {
+  background: linear-gradient(135deg, #1d6f42, #166534) !important;
+  border-color: #1d6f42 !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(29, 111, 66, 0.25) !important;
+}
+.ins-btn--green:hover:not(:disabled) {
+  background: linear-gradient(135deg, #166534, #14532d) !important;
+  border-color: #166534 !important;
+  box-shadow: 0 4px 14px rgba(29, 111, 66, 0.35) !important;
+}
+
+/* ── Boutons des cartes catalogue ───────────────────────────────────── */
+.cat-card-actions .ant-btn {
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  display: inline-flex;
+  align-items: center;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+.cat-card-actions .ant-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.14);
+}
+
+/* « S'inscrire » : dégradé rouge marque */
+.cat-card-actions .ant-btn-primary {
+  background: linear-gradient(135deg, #c51700, #9a0f00) !important;
+  border-color: #b51200 !important;
+  box-shadow: 0 3px 10px rgba(181, 18, 0, 0.3) !important;
+}
+.cat-card-actions .ant-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #9a0f00, #7a0000) !important;
+  border-color: #9a0f00 !important;
+  box-shadow: 0 5px 16px rgba(181, 18, 0, 0.4) !important;
+}
+
+/* « Détails » / « Demandes » : ghost slate avec hover assumé */
+.cat-card-actions .ant-btn-default:not(:disabled) {
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+  background: #fff !important;
+}
+.cat-card-actions .ant-btn-default:not(:disabled):hover {
+  border-color: #94a3b8 !important;
+  background: #f8fafc !important;
+  color: #1f2937 !important;
+}
+
+/* « Envoyée » (désactivé) : état validé discret */
+.cat-card-actions .ant-btn[disabled] {
+  color: #059669 !important;
+  background: rgba(16, 185, 129, 0.08) !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+  opacity: 1 !important;
+}
+.cat-card-actions .ant-btn[disabled] .anticon {
+  color: #059669;
+}
+
+/* « Fermer / Ouvrir » (danger/ghost) : arrondi cohérent */
+.cat-card-actions .ant-btn-dangerous:not(:disabled) {
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.18) !important;
+}
+
+/* ── Cartes catalogue : hover marque ────────────────────────────────── */
+/* .cat-card, .cat-card:hover, .cat-card-actions : définitions fusionnées
+   ci-dessus (section carte catalogue) — pas de duplication ici. */
+
+/* ── Boutons de gestion (Suivi) : vert export, rouge bulk ───────────── */
+.suv-bulk-bar .ant-btn-primary {
+  background: linear-gradient(135deg, #c51700, #9a0f00) !important;
+  border-color: #b51200 !important;
+  box-shadow: 0 2px 8px rgba(181, 18, 0, 0.3) !important;
+}
+
+/* ── Mes inscriptions : hover bordure marque ────────────────────────── */
+/* Mes inscriptions : survol fusionné dans les définitions ci-dessus. */
+
+/* ── Tabs en pilules (style segmenté) ───────────────────────────────── */
+.ins-page .ant-tabs-nav {
+  margin-bottom: 24px;
+  padding: 5px;
+  background: #f1f5f9;
+  border-radius: 14px;
+}
+.ins-page .ant-tabs-nav::before {
+  border-bottom: none;
+}
+.ins-page .ant-tabs-tab {
+  padding: 9px 22px;
+  margin: 0 2px;
+  border-radius: 10px !important;
+  font-weight: 600;
+  font-size: 14px;
+  color: #64748b;
+  transition: all 0.25s;
+}
+.ins-page .ant-tabs-tab:hover {
+  color: #b51200;
+  background: rgba(181, 18, 0, 0.05);
+}
+.ins-page .ant-tabs-tab-active {
+  background: #fff !important;
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.1),
+    0 0 0 1px rgba(181, 18, 0, 0.08);
+}
+.ins-page .ant-tabs-tab-active .ins-tab-label {
+  color: #b51200 !important;
+}
+.ins-page .ant-tabs-ink-bar {
+  display: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════

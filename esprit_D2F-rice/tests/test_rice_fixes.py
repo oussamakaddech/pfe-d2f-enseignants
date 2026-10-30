@@ -58,6 +58,7 @@ from rice_analyzer import (
     analyze_files,
 )
 
+from rice.models import EnseignantInfo  # noqa: E402
 from main import app  # noqa: E402
 from fastapi.testclient import TestClient
 
@@ -498,26 +499,12 @@ class _DummyPool:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class TestEnseignantsSuggeresFallback:
-    """When DB has no affectations and the passed enseignants list is empty,
-    savoirs should still get the professors extracted from the fiche itself
-    (via extracted_ids fallback)."""
+    """Analyse en lecture seule : un enseignant nommé dans la fiche mais absent
+    de l'annuaire est signalé (matched_id=None) sans identifiant fictif ; un
+    enseignant présent dans l'annuaire en base est reconnu même si le front
+    n'a transmis aucune liste."""
 
-    def test_savoir_has_extracted_teacher_as_fallback(self, monkeypatch):
-        """
-        Fiche names a professor; no DB affectation match exists.
-        Savoirs must still hold that professor's ID in enseignantsSuggeres.
-        """
-        # Stub: _fetch_enseignant_affectations returns empty (no DB matches)
-        monkeypatch.setattr("rice.referential._fetch_enseignant_affectations", lambda: {})
-        # Stub: _fetch_all_enseignants_info returns empty (new teacher, not in DB yet)
-        monkeypatch.setattr("rice.analyzer._fetch_all_enseignants_info", lambda: {})
-        # Stub _create_enseignant_if_new to avoid DB
-        monkeypatch.setattr(
-            "rice.db._create_enseignant_if_new",
-            lambda name, dept="gc": (f"EX-{name.split()[0].upper()}", name),
-        )
-
-        fiche_with_teacher = b"""
+    _FICHE = b"""
 Module : Structures Metalliques
 Responsable Module : Ahmed Tounsi
 Enseignants : Ahmed Tounsi
@@ -526,26 +513,41 @@ Acquis d'apprentissage :
 AA1 Analyser les structures metalliques 3
 AA2 Dimensionner profile I en acier 4
 """
-        result = analyze_files(
-            ["fiche_metal.txt"],
-            [fiche_with_teacher],
-            enseignants=[],
-            departement="gc",
-        )
-        # Collect all teacher IDs mentioned in savoirs (both direct and nested)
-        all_suggested = set()
+
+    @staticmethod
+    def _suggested_ids(result):
+        ids = set()
         for dom in result.propositions:
             for comp in dom.competences:
                 for sav in comp.savoirs:
-                    all_suggested.update(sav.enseignantsSuggeres)
+                    ids.update(sav.enseignantsSuggeres)
                 for sc in comp.sousCompetences:
                     for sav in sc.savoirs:
-                        all_suggested.update(sav.enseignantsSuggeres)
-        # The auto-created ID for "Ahmed Tounsi" should appear somewhere
-        assert len(all_suggested) > 0, (
-            "Expected at least one teacher in enseignantsSuggeres but got none. "
-            "extracted_ids fallback may not be working."
+                        ids.update(sav.enseignantsSuggeres)
+        return ids
+
+    def test_unknown_teacher_is_reported_without_phantom_id(self, monkeypatch):
+        monkeypatch.setattr("rice.referential._fetch_enseignant_affectations", lambda: {})
+        monkeypatch.setattr("rice.analyzer._fetch_all_enseignants_info", lambda: {})
+
+        result = analyze_files(["fiche_metal.txt"], [self._FICHE], enseignants=[], departement="gc")
+
+        tounsi = [e for e in result.extractedEnseignants if "Tounsi" in e.nom_complet]
+        assert tounsi, "le nom extrait de la fiche doit être remonté"
+        assert all(e.matched_id is None for e in tounsi)
+        assert not any(str(i).startswith("EX-") for i in self._suggested_ids(result))
+
+    def test_teacher_found_in_db_directory_without_front_list(self, monkeypatch):
+        monkeypatch.setattr("rice.referential._fetch_enseignant_affectations", lambda: {})
+        monkeypatch.setattr(
+            "rice.analyzer._fetch_all_enseignants_info",
+            lambda: {"ENS042": EnseignantInfo(id="ENS042", nom="Tounsi", prenom="Ahmed", modules=[])},
         )
+
+        result = analyze_files(["fiche_metal.txt"], [self._FICHE], enseignants=[], departement="gc")
+
+        assert any(e.matched_id == "ENS042" for e in result.extractedEnseignants)
+        assert "ENS042" in self._suggested_ids(result)
 
     def test_empty_fiche_no_teacher_no_crash(self, monkeypatch):
         """Edge case: fiche with no teacher name must not crash."""

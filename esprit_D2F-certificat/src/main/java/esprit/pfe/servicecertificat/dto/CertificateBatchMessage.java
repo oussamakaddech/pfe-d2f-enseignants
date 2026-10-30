@@ -40,5 +40,8 @@ public class CertificateBatchMessage {
 
         // Indique si l’animateur était réellement présent
         private boolean present;
+
+        // Compétences validées par la formation (affichées sur la page de vérification)
+        private String competencesValidees;
     }
 }

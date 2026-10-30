@@ -46,11 +46,12 @@ const DashboardHealthCard = memo(function DashboardHealthCard({
 }) {
   const isAdmin = scope.isAdmin;
   const presenceQ = useGlobalParticipantKPI(scope.start, scope.end);
-  const overview = useOverview();
+  const overview = useOverview(scope.isPilotage);
   const besoins = useBesoins(isAdmin);
   const global = useGlobalDashboard(isAdmin);
   const upQ = useParticipationByUp(!isAdmin);
-  const inactifs = useInactifs(!isAdmin);
+  // Liste nominative : rôles de pilotage seulement (refusée au responsable dossier).
+  const inactifs = useInactifs(scope.isPilotage && !isAdmin);
 
   const loading = isAdmin
     ? presenceQ.isLoading || overview.isLoading || global.isLoading

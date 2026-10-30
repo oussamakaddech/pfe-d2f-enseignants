@@ -12,8 +12,8 @@ def make_gap(teacher_id: str, competence_id: int, code: str, nom: str, gap_score
         competence_id=competence_id,
         competence_code=code,
         competence_nom=nom,
-        current_level=2.0,
-        target_level=4.0,
+        observed_result=2.0,
+        knowledge_difficulty_level=4.0,
         gap_score=gap_score,
         severity=severity,
         trend=Trend.STABLE,
@@ -51,6 +51,21 @@ def test_detect_collective_needs_groups_by_competence_and_scope():
     assert needs[0].scope_id == "D1"
     assert needs[0].teachers_count == 3
     assert needs[0].competence_id == 1
+
+
+def test_collective_need_evidence_reports_the_actual_minimum():
+    """La preuve annonce un "min_gap_score" : elle doit porter le plus PETIT
+    ecart du groupe, pas celui de la premiere ligne rencontree (0.7 ici, alors
+    que le minimum reel est 0.6). Le chiffre justifie un besoin collectif : le
+    surevaluer gonfle la priorite affichee aux decideurs."""
+    gaps = {
+        "T1": [make_gap("T1", 1, "C1", "Pedagogie", 0.7)],
+        "T2": [make_gap("T2", 1, "C1", "Pedagogie", 0.6)],
+        "T3": [make_gap("T3", 1, "C1", "Pedagogie", 0.8)],
+    }
+    scopes = {t: TeacherScope(t, "DEPARTEMENT", "D1") for t in ("T1", "T2", "T3")}
+    needs = detect_collective_needs(gaps, scopes, threshold=0.5, min_teachers=3)
+    assert needs[0].evidence["min_gap_score"] == 0.6
 
 
 def test_detect_collective_needs_respects_min_teachers():

@@ -59,19 +59,19 @@ public class UpController {
     }
 
     @PostMapping
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.STRUCTURE_WRITE)
     public ResponseEntity<UpDTO> createUp(@RequestBody UpDTO upDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ReferentialMapper.toUpDTO(upService.create(ReferentialMapper.toUpEntity(upDTO))));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.STRUCTURE_WRITE)
     public ResponseEntity<UpDTO> updateUp(@PathVariable String id, @RequestBody UpDTO upDTO) {
         return ResponseEntity.ok(ReferentialMapper.toUpDTO(upService.update(id, ReferentialMapper.toUpEntity(upDTO))));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.STRUCTURE_WRITE)
     public ResponseEntity<Void> deleteUp(@PathVariable String id) {
         upService.delete(id);
         return ResponseEntity.noContent().build();

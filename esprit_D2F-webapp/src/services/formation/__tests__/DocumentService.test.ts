@@ -51,13 +51,18 @@ describe('DocumentService', () => {
   });
 
   it('updates a document', async () => {
-    httpMocks.mockPut.mockResolvedValueOnce({ data: { id: 3 } });
+    httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 3 } });
     const result = await DocumentService.updateDocument(3, {
       pathType: 'x',
       nomDocument: 'y',
       obligation: 'false',
     });
-    expect(httpMocks.mockPut).toHaveBeenCalledOnce();
+    // Contrat backend : POST multipart /documents/{id} (aucun PUT exposé).
+    expect(httpMocks.mockPost).toHaveBeenCalledWith(
+      expect.stringMatching(/\/formation\/documents\/3$/),
+      expect.any(FormData),
+    );
+    expect(httpMocks.mockPut).not.toHaveBeenCalled();
     expect(result).toEqual({ id: 3 });
   });
 

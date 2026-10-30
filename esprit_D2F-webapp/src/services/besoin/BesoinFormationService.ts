@@ -1,14 +1,9 @@
 import { defaultApi as axios } from '@/services/httpClient';
 import { config } from '@/config/env';
 import type { Id, ApiListOrPage } from '@/models/common';
-import type { BesoinFormation } from '@/models/besoin';
+import type { BesoinApprovalHistoryEntry, BesoinFormation, ReviewerScope } from '@/models/besoin';
 
 const API_URL = `${config.BESOIN_URL}/besoins-formation`;
-
-interface ModifyBesoinPayload {
-  besoinFormation: Partial<BesoinFormation>;
-  commentaire: string;
-}
 
 export interface BesoinNotification {
   id?: Id;
@@ -78,11 +73,14 @@ const BesoinFormationService = {
     besoinFormation: Partial<BesoinFormation>,
     commentaire: string,
   ): Promise<BesoinFormation> {
-    const payload: ModifyBesoinPayload = {
-      besoinFormation,
+    // Backend PUT /api/v1/besoins-formations attend un BesoinFormationRequest
+    // PLAT (+ commentaire pour la notification) — pas le wrapper imbriqué
+    // { besoinFormation } : celui-ci était silencieusement ignoré par Jackson,
+    // laissant un DTO vide rejeté en 400 BESOIN_VALIDATION_ERROR.
+    const response = await axios.put<BesoinFormation>(`${API_URL}`, {
+      ...besoinFormation,
       commentaire,
-    };
-    const response = await axios.put<BesoinFormation>(`${API_URL}`, payload);
+    });
     return response.data;
   },
 
@@ -93,6 +91,57 @@ const BesoinFormationService = {
   async approveBesoin(id: Id): Promise<BesoinFormation> {
     const response = await axios.put<BesoinFormation>(`${API_URL}/${id}/approve`);
     return response.data;
+  },
+
+  async rejectBesoin(id: Id, reason: string): Promise<BesoinFormation> {
+    const response = await axios.put<BesoinFormation>(`${API_URL}/${id}/reject`, { reason });
+    return response.data;
+  },
+
+  async cancelBesoin(id: Id): Promise<BesoinFormation> {
+    const response = await axios.put<BesoinFormation>(`${API_URL}/${id}/cancel`);
+    return response.data;
+  },
+
+  async getPendingApproval(): Promise<BesoinFormation[]> {
+    return fetchAllBesoins<BesoinFormation>(`${API_URL}/pending-approval`);
+  },
+
+  async getScopeBesoins(): Promise<BesoinFormation[]> {
+    return fetchAllBesoins<BesoinFormation>(`${API_URL}/scope`);
+  },
+
+  async getApprovalHistory(id: Id): Promise<BesoinApprovalHistoryEntry[]> {
+    const response = await axios.get<BesoinApprovalHistoryEntry[]>(`${API_URL}/${id}/history`);
+    return Array.isArray(response.data) ? response.data : [];
+  },
+
+  // ── Périmètres validateurs (ADMIN, sauf /me) ──────────────────────────
+
+  async getReviewerScopes(): Promise<ReviewerScope[]> {
+    const response = await axios.get<ApiListOrPage<ReviewerScope>>(`${API_URL}/reviewer-scopes`);
+    const data = response.data as { content?: ReviewerScope[] };
+    return data.content ?? (response.data as ReviewerScope[]) ?? [];
+  },
+
+  async getMyReviewerScope(): Promise<ReviewerScope> {
+    const response = await axios.get<ReviewerScope>(`${API_URL}/reviewer-scopes/me`);
+    return response.data;
+  },
+
+  async upsertReviewerScope(
+    username: string,
+    scope: Partial<ReviewerScope>,
+  ): Promise<ReviewerScope> {
+    const response = await axios.put<ReviewerScope>(
+      `${API_URL}/reviewer-scopes/${username}`,
+      scope,
+    );
+    return response.data;
+  },
+
+  async deleteReviewerScope(username: string): Promise<void> {
+    await axios.delete(`${API_URL}/reviewer-scopes/${username}`);
   },
 
   async getUserNotifications(username: string): Promise<BesoinNotification[]> {

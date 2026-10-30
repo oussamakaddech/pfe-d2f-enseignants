@@ -141,23 +141,29 @@ const NotificationProvider = memo(function NotificationProvider({
   }, [userId, setNotifications]);
 
   // Connexion au transport temps réel (WebSocket réel, REST, ou démo).
+  // Le handshake WS exige le cookie JWT : sans session, on reste en REST
+  // (sinon rejet en boucle + spam console/logs toutes les 15 s).
+  const isAuthenticated = !!userId;
   useEffect(() => {
-    const transport = createNotificationTransport(config.NOTIFICATIONS_WS_URL, {
-      onMessage: (msg) => {
-        setNotifications((draft) => {
-          applyIncomingNotification(draft, msg);
-        });
+    const transport = createNotificationTransport(
+      isAuthenticated ? config.NOTIFICATIONS_WS_URL : undefined,
+      {
+        onMessage: (msg) => {
+          setNotifications((draft) => {
+            applyIncomingNotification(draft, msg);
+          });
+        },
+        onStatus: (s) => setStatus(s),
+        onError: () => setStatus('closed'),
       },
-      onStatus: (s) => setStatus(s),
-      onError: () => setStatus('closed'),
-    });
+    );
     transportRef.current = transport;
     transport.connect();
     return () => {
       transport.close();
       transportRef.current = null;
     };
-  }, [setNotifications]);
+  }, [setNotifications, isAuthenticated]);
 
   const markAsRead = useCallback(
     (id: string) => {

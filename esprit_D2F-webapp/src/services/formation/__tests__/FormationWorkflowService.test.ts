@@ -85,6 +85,15 @@ describe('FormationWorkflowService', () => {
       { id: 1, present: true },
     ]);
 
+    // Regression : l'endpoint renvoie une Page Spring ({content:[...]}) — sans
+    // désencapsulation, FormationDetail crashait (« .map is not a function »).
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: { content: [{ id: 2, present: false }], totalElements: 1 },
+    });
+    await expect(FormationWorkflowService.getPresencesBySeance(11)).resolves.toEqual([
+      { id: 2, present: false },
+    ]);
+
     httpMocks.mockPut.mockResolvedValueOnce({ data: { id: 7, inscriptionsOuvertes: false } });
     await expect(FormationWorkflowService.updateInscriptionsOuvertes(7, false)).resolves.toEqual({
       id: 7,
@@ -97,6 +106,12 @@ describe('FormationWorkflowService', () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 8 }] });
     await expect(FormationWorkflowService.getFormationsByAnimateur()).resolves.toEqual([{ id: 8 }]);
 
+    // Regression : l'endpoint /animateur renvoie une Page Spring ({content}).
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { content: [{ id: 18 }] } });
+    await expect(FormationWorkflowService.getFormationsByAnimateur()).resolves.toEqual([
+      { id: 18 },
+    ]);
+
     // getFormationsForCalendar normalizes into { asAnimateur, asParticipant }.
     httpMocks.mockGet.mockResolvedValueOnce({
       data: { asAnimateur: [{ id: 9 }], asParticipant: [] },
@@ -105,6 +120,34 @@ describe('FormationWorkflowService', () => {
       asAnimateur: [{ id: 9 }],
       asParticipant: [],
     });
+  });
+
+  it('normalizes getMesPresences from a Spring Page response', async () => {
+    // Regression : /mes-presences renvoie une Page {content:[...]} — sans
+    // désencapsulation, la page « Mes Présences » restait vide.
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: {
+        content: [
+          { idParticipation: 85, present: true, seanceId: 22 },
+          { idParticipation: 87, present: false, seanceId: 23 },
+        ],
+        totalElements: 2,
+      },
+    });
+    await expect(FormationWorkflowService.getMesPresences()).resolves.toEqual([
+      { idParticipation: 85, present: true, seanceId: 22 },
+      { idParticipation: 87, present: false, seanceId: 23 },
+    ]);
+
+    // Compat : une réponse tableau brut est renvoyée telle quelle.
+    httpMocks.mockGet.mockResolvedValueOnce({ data: [{ idParticipation: 1 }] });
+    await expect(FormationWorkflowService.getMesPresences()).resolves.toEqual([
+      { idParticipation: 1 },
+    ]);
+
+    // Payload inattendu → liste vide (jamais de crash).
+    httpMocks.mockGet.mockResolvedValueOnce({ data: null });
+    await expect(FormationWorkflowService.getMesPresences()).resolves.toEqual([]);
   });
 
   it('exports formations', async () => {

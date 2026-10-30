@@ -57,6 +57,11 @@ interface Enseignant {
   nom?: string;
   prenom?: string;
   departement?: string;
+  deptLibelle?: string;
+  deptId?: string;
+  upLibelle?: string;
+  upId?: string;
+  unitePedagogique?: string;
   grade?: string;
   etat?: string;
   [key: string]: unknown;

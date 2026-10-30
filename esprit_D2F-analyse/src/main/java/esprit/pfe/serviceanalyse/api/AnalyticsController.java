@@ -124,8 +124,9 @@ public class AnalyticsController {
 
     // ── Model administration (ADMIN / CUP / DEPARTMENT_MANAGER) ─────────────
 
+    // Pas d'annotation de méthode : la règle de pilotage de la classe s'applique
+    // (DASHBOARD_ADMIN_LIMITED l'aurait élargie à l'animateur et au responsable dossier).
     @PostMapping("/teachers/{teacherId}/analyze")
-    @PreAuthorize(AuthorizationMatrix.DASHBOARD_ADMIN_LIMITED)
     public ResponseEntity<JobDto> analyzeTeacher(
             @PathVariable String teacherId,
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String bearerToken) {

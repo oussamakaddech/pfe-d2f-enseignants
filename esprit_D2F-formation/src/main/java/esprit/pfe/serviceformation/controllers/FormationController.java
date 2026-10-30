@@ -112,7 +112,7 @@ public class FormationController {
     @ApiResponse(responseCode = "401", description = "Non authentifié")
     @ApiResponse(responseCode = "404", description = "Formation introuvable")
     @GetMapping("/{id}")
-    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    @PreAuthorize(AuthorizationMatrix.FORMATION_ANIMATEUR_CHECK)
     public ResponseEntity<FormationResponseDTO> getFormationById(
             @Parameter(description = "ID de la formation", example = "42") @PathVariable Long id) {
         log.debug("Fetching formation with id: {}", id);
@@ -121,7 +121,7 @@ public class FormationController {
 
     /**
      * Update an entire formation.
-     * Restricted to ADMIN, CUP, D2F, RESPONSABLE_DOSSIER roles.
+     * Restricted to ADMIN, CUP, CHEF_DEPARTEMENT roles (FORMATION_UPDATE).
      *
      * @param id formation ID
      * @param request update request (validated, all fields present)
@@ -129,7 +129,7 @@ public class FormationController {
      */
     @Operation(
         summary = "Mettre à jour une formation",
-        description = "Met à jour tous les champs d'une formation. Réservé aux rôles ADMIN, CUP, D2F, RESPONSABLE_DOSSIER."
+        description = "Met à jour tous les champs d'une formation. Réservé aux rôles ADMIN, CUP, CHEF_DEPARTEMENT."
     )
     @ApiResponse(
         responseCode = "200",
@@ -296,6 +296,40 @@ public class FormationController {
             @Parameter(description = "Pagination (page, size, sort)") Pageable pageable) {
         log.debug("Searching formations by domain: {}", domain);
         return ResponseEntity.ok(formationSearchService.searchByDomain(domain, pageable));
+    }
+
+    @GetMapping("/{formationId}/is-animateur/{enseignantId}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_ANIMATEUR_CHECK)
+    @Operation(
+        summary = "Vérifier si un enseignant est animateur d'une formation",
+        description = "Retourne true si l'enseignant est assigné comme animateur de la formation."
+    )
+    @ApiResponse(responseCode = "200", description = "Résultat de la vérification")
+    public ResponseEntity<Boolean> isAnimateurOfFormation(
+            @Parameter(description = "ID de la formation") @PathVariable Long formationId,
+            @Parameter(description = "ID de l'enseignant") @PathVariable String enseignantId) {
+        return ResponseEntity.ok(formationService.isAnimateurOfFormation(formationId, enseignantId));
+    }
+
+    @GetMapping("/{formationId}/is-participant/{enseignantId}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_ANIMATEUR_CHECK)
+    @Operation(
+        summary = "Vérifier si un enseignant participe à une formation",
+        description = "Retourne true si l'enseignant est inscrit (approuvé), animateur ou formateur de la formation."
+    )
+    @ApiResponse(responseCode = "200", description = "Résultat de la vérification")
+    public ResponseEntity<Boolean> isParticipantOfFormation(
+            @Parameter(description = "ID de la formation") @PathVariable Long formationId,
+            @Parameter(description = "ID de l'enseignant") @PathVariable String enseignantId) {
+        return ResponseEntity.ok(formationService.isParticipantOfFormation(formationId, enseignantId));
+    }
+
+    @GetMapping("/{formationId}/participant-info/{idOrMail}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_ANIMATEUR_CHECK)
+    @Operation(summary = "Participant d'une formation (séance ou inscription approuvée), id de fiche et UP")
+    public ResponseEntity<java.util.Map<String, Object>> participantInfo(
+            @PathVariable Long formationId, @PathVariable String idOrMail) {
+        return ResponseEntity.ok(formationService.participantInfo(formationId, idOrMail));
     }
 
     @PostMapping("/search/advanced")

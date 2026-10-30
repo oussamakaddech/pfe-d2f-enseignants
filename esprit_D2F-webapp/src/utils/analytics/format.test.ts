@@ -4,7 +4,6 @@ import {
   formatScore,
   riskColor,
   riskLabel,
-  scoreToRiskLevel,
   teacherStatus,
   gapSeverityColor,
   formatDepartment,
@@ -50,26 +49,6 @@ describe('riskLabel', () => {
   });
 });
 
-describe('scoreToRiskLevel', () => {
-  it('FAIBLE en dessous de 0,25', () => {
-    expect(scoreToRiskLevel(0.1)).toBe('FAIBLE');
-  });
-  it('MODERE entre 0,25 et 0,5', () => {
-    expect(scoreToRiskLevel(0.3)).toBe('MODERE');
-  });
-  it('ELEVE entre 0,5 et 0,75', () => {
-    expect(scoreToRiskLevel(0.6)).toBe('ELEVE');
-  });
-  it('CRITIQUE au-dessus de 0,75', () => {
-    expect(scoreToRiskLevel(0.8)).toBe('CRITIQUE');
-  });
-  it('gère les seuils exacts', () => {
-    expect(scoreToRiskLevel(0.25)).toBe('MODERE');
-    expect(scoreToRiskLevel(0.5)).toBe('ELEVE');
-    expect(scoreToRiskLevel(0.75)).toBe('CRITIQUE');
-  });
-});
-
 describe('teacherStatus', () => {
   it('Critique si niveau CRITIQUE', () => {
     expect(teacherStatus('STABLE', 'CRITIQUE')).toBe('Critique');
@@ -110,9 +89,12 @@ describe('formatDepartment', () => {
     expect(formatDepartment(undefined)).toBe('—');
     expect(formatDepartment('')).toBe('—');
   });
-  it('mappe les codes département connus', () => {
+  it('mappe les codes département connus (libellés formation.departements)', () => {
     expect(formatDepartment('DEPT_INFO')).toBe('Informatique');
-    expect(formatDepartment('DEPT_IA')).toBe('Intelligence Artificielle');
+    expect(formatDepartment('DEPT_IA')).toBe('Intelligence Artificielle & Data');
+    expect(formatDepartment('DEPT_GL')).toBe('Génie Logiciel');
+    expect(formatDepartment('DEPT_INF2')).toBe('Informatique & Infrastructures');
+    expect(formatDepartment('DEPT_WEB')).toBe('Développement Web');
   });
   it('nettoie le préfixe DEPT_ en repli', () => {
     expect(formatDepartment('DEPT_XYZ')).toBe('XYZ');

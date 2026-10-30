@@ -31,9 +31,9 @@ class EvaluationGlobaleControllerTest {
     void createEvaluationGlobale_shouldReturnCreated() {
         EvaluationGlobaleDTO dto = new EvaluationGlobaleDTO();
         dto.setFormationId(1L);
-        when(service.createEvaluationGlobale(any())).thenReturn(dto);
+        when(service.createEvaluationGlobale(any(), any(), any())).thenReturn(dto);
 
-        var response = controller.createEvaluationGlobale(dto);
+        var response = controller.createEvaluationGlobale(null, dto);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -76,9 +76,9 @@ class EvaluationGlobaleControllerTest {
     @Test
     void updateEvaluationGlobale_shouldReturnUpdated() {
         EvaluationGlobaleDTO dto = new EvaluationGlobaleDTO();
-        when(service.updateEvaluationGlobale(eq(1L), any())).thenReturn(dto);
+        when(service.updateEvaluationGlobale(eq(1L), any(), any(), any())).thenReturn(dto);
 
-        var response = controller.updateEvaluationGlobale(1L, dto);
+        var response = controller.updateEvaluationGlobale(null, 1L, dto);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }

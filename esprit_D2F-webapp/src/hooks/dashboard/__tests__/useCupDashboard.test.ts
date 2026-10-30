@@ -2,7 +2,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useCupDashboard } from '@/hooks/dashboard/useCupDashboard';
+import { useCupDashboard, customRangeLabel } from '@/hooks/dashboard/useCupDashboard';
 import AnalyticsService from '@/services/analyse/AnalyticsService';
 import KPIService from '@/services/analyse/KPIService';
 import BesoinFormationService from '@/services/besoin/BesoinFormationService';
@@ -21,8 +21,11 @@ vi.mock('@/services/analyse/KPIService', () => ({
   default: {
     getFormationsByEtat: vi.fn(),
     getFormationsByTypeFiltered: vi.fn(),
+    getFormationsByDomaine: vi.fn(),
+    getFormationsByCompetence: vi.fn(),
     getTotalHeures: vi.fn(),
     getUniqueParticipants: vi.fn(),
+    getFormateurs: vi.fn(),
   },
   __esModule: true,
 }));
@@ -52,8 +55,11 @@ describe('useCupDashboard', () => {
     vi.clearAllMocks();
     K.getFormationsByEtat.mockResolvedValue({ total: 0, acheve: 0, enCours: 0 });
     K.getFormationsByTypeFiltered.mockResolvedValue([]);
+    K.getFormationsByDomaine.mockResolvedValue([]);
+    K.getFormationsByCompetence.mockResolvedValue([]);
     K.getTotalHeures.mockResolvedValue(0);
     K.getUniqueParticipants.mockResolvedValue(0);
+    K.getFormateurs.mockResolvedValue({ total: 0, internes: 0, externes: 0 });
     A.getFormationsParDepartement.mockResolvedValue({ departements: [] });
     A.getFormationsParUp.mockResolvedValue([]);
     A.getFormationsParPeriode.mockResolvedValue([]);
@@ -274,5 +280,76 @@ describe('useCupDashboard', () => {
     expect(result.current.loading).toBe(false);
     expect(typeof result.current.formationsByTypeLoading).toBe('boolean');
     expect(typeof result.current.timelineLoading).toBe('boolean');
+  });
+
+  // ── Indicateurs de période : heures, formateurs, participants, compétences ──
+
+  it('exposes period KPIs (heures, formateurs, participants, compétences)', async () => {
+    K.getTotalHeures.mockResolvedValue(320);
+    K.getUniqueParticipants.mockResolvedValue(57);
+    K.getFormateurs.mockResolvedValue({ total: 12, internes: 9, externes: 3 });
+    K.getFormationsByCompetence.mockResolvedValue([
+      { label: 'BIM', count: 4 },
+      { label: 'Géotechnique', count: 2 },
+    ]);
+    const { result } = renderHook(() => useCupDashboard(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.kpis.formateurs.total).toBe(12));
+    expect(result.current.kpis.totalHeures).toBe(320);
+    expect(result.current.kpis.participants).toBe(57);
+    expect(result.current.kpis.formateurs).toEqual({ total: 12, internes: 9, externes: 3 });
+    // 2 compétences couvertes, 6 rattachements formation ↔ compétence.
+    expect(result.current.kpis.competencesCouvertes).toBe(2);
+    expect(result.current.kpis.liensCompetences).toBe(6);
+  });
+
+  it('queries the rolling window of the selected period', async () => {
+    type P = '30j' | 'trimestre' | 'semestre' | 'annee';
+    const { result, rerender } = renderHook(
+      ({ period }: { period: P }) => useCupDashboard(true, {}, period),
+      { wrapper: createWrapper(), initialProps: { period: '30j' as P } },
+    );
+
+    await waitFor(() => expect(K.getTotalHeures).toHaveBeenCalled());
+    const [start30, end30] = K.getTotalHeures.mock.calls[0] as [string, string];
+    // Fenêtre de 30 jours (et non 12 mois) : au moins 29 jours d'écart.
+    const spanDays = (new Date(end30).getTime() - new Date(start30).getTime()) / 86_400_000;
+    expect(Math.round(spanDays)).toBe(30);
+
+    rerender({ period: 'annee' });
+    await waitFor(() => expect(K.getTotalHeures).toHaveBeenCalledTimes(2));
+    const [startYear, endYear] = K.getTotalHeures.mock.calls[1] as [string, string];
+    const spanYear = (new Date(endYear).getTime() - new Date(startYear).getTime()) / 86_400_000;
+    expect(Math.round(spanYear)).toBeGreaterThanOrEqual(364);
+    expect(result.current.kpis).toBeDefined();
+  });
+
+  it('uses an explicit custom range and returns to the preset when cleared', async () => {
+    type Range = { start: string; end: string } | null;
+    const { rerender } = renderHook(
+      ({ range }: { range: Range }) => useCupDashboard(true, {}, 'annee', range),
+      {
+        wrapper: createWrapper(),
+        initialProps: { range: { start: '2026-01-05', end: '2026-02-20' } as Range },
+      },
+    );
+
+    await waitFor(() => expect(K.getTotalHeures).toHaveBeenCalled());
+    expect(K.getTotalHeures).toHaveBeenLastCalledWith('2026-01-05', '2026-02-20');
+    // Les KPI « de période » suivent la plage, pas la fenêtre glissante.
+    expect(K.getUniqueParticipants).toHaveBeenLastCalledWith('2026-01-05', '2026-02-20');
+
+    rerender({ range: null });
+    await waitFor(() => expect(K.getTotalHeures).toHaveBeenCalledTimes(2));
+    const [start, end] = K.getTotalHeures.mock.calls.at(-1) as [string, string];
+    // Plage effacée : retour à la fenêtre glissante de 12 mois.
+    const spanDays = (new Date(end).getTime() - new Date(start).getTime()) / 86_400_000;
+    expect(Math.round(spanDays)).toBeGreaterThanOrEqual(364);
+  });
+
+  it('formats a custom range label in French day/month/year', () => {
+    expect(customRangeLabel({ start: '2026-01-05', end: '2026-02-20' })).toBe(
+      'du 05/01/2026 au 20/02/2026',
+    );
   });
 });

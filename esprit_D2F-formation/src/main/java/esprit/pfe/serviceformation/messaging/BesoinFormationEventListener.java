@@ -91,8 +91,8 @@ public class BesoinFormationEventListener {
                                   Channel channel,
                                   @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
         
-        log.info("Received BesoinFormationApprovedEvent [besoinId={}, username={}]", 
-                evt.getIdBesoinFormation(), evt.getUsername());
+        log.info("Received BesoinFormationApprovedEvent [eventId={}, besoinId={}, username={}]",
+                evt.getEventId(), evt.getIdBesoinFormation(), evt.getUsername());
 
         
         eventReceivedCounter.increment();

@@ -71,4 +71,24 @@ class WorkshopCalendarParserTest {
             assertThat(result.getErrors()).anyMatch(e -> e.getField().equals("header"));
         }
     }
+
+    @Test
+    @DisplayName("Créneau manquant ou illisible : ligne signalée en erreur, pas d'exception (500)")
+    void reportsMissingTimeSlotWithoutCrashing() throws Exception {
+        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Planning");
+            writeRow(sheet, 0, "Date", "Formation", "Animateur", "Salle", "Statut", "Créneau", "Séance");
+            writeRow(sheet, 1, "10/06/2026", "Java Avancé", "Ben Ali", "Salle A", "Teams", null, "Séance 1/2");
+            writeRow(sheet, 2, "11/06/2026", "Java Avancé", "Ben Ali", "Salle A", "Teams", "à définir", "Séance 2/2");
+            writeRow(sheet, 3, "12/06/2026", "Java Avancé", "Ben Ali", "Salle A", "Teams", "09:00-12:00", "Séance 2/2");
+
+            ParsedCalendarDTO result = parser.parse(workbook);
+
+            assertThat(result.getSessions()).hasSize(1);
+            assertThat(result.getErrors())
+                    .filteredOn(e -> e.getField().equals("créneau"))
+                    .extracting("row")
+                    .containsExactly(2, 3);
+        }
+    }
 }

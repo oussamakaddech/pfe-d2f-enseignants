@@ -100,6 +100,8 @@ def test_fetch_niveaux_from_db_success(monkeypatch):
 
 def test_load_ref_from_db_gc_and_cache(monkeypatch):
     ref._REF_DB_CACHE.clear()
+    # Chemin historique public.ref_* : le référentiel officiel est absent.
+    monkeypatch.setattr(ref, "_load_ref_from_competence_schema", lambda d: None)
 
     cur = MagicMock()
     # 4 fetchone calls: ref_savoirs exists, dept col, ref_competences, ref_domaines

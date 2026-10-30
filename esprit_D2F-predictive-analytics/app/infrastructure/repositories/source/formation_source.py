@@ -14,6 +14,14 @@ CANDIDATES_QUERY = """
     WHERE fc.competence_id = :competence_id
       AND f.deleted_at IS NULL
       AND f.etat_formation IN ('PLANIFIE', 'EN_COURS', 'ACHEVE')
+      -- Périmètre OU (parité list_competencies_for_scope) : une formation SANS
+      -- département mais de l'UP de l'enseignant reste candidate. L'ancien ET
+      -- excluait à tort ces formations (ex. UP_IA sans departement_id).
+      AND (
+            (:dept_id IS NULL AND :up_id IS NULL)
+            OR (:dept_id IS NOT NULL AND f.departement_id = :dept_id)
+            OR (:up_id IS NOT NULL AND f.up_id = :up_id)
+          )
     GROUP BY f.id_formation, eg.note_globale
 """
 
@@ -41,9 +49,14 @@ class SqlFormationSource:
     def __init__(self, database) -> None:
         self._database = database
 
-    def get_candidates_for_competency(self, competence_id: int) -> list[TrainingCandidate]:
+    def get_candidates_for_competency(
+        self, competence_id: int, dept_id: str | None = None, up_id: str | None = None
+    ) -> list[TrainingCandidate]:
         with self._database.read_connection() as connection:
-            rows = connection.execute(text(CANDIDATES_QUERY), {"competence_id": competence_id}).mappings().all()
+            rows = connection.execute(
+                text(CANDIDATES_QUERY),
+                {"competence_id": competence_id, "dept_id": dept_id, "up_id": up_id},
+            ).mappings().all()
         return [
             TrainingCandidate(
                 formation_id=int(row["id_formation"]),

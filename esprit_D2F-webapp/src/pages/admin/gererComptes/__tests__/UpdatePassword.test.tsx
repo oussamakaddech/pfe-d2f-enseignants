@@ -42,6 +42,7 @@ describe('UpdatePassword', () => {
 
   it('rend le formulaire avec les champs attendus', () => {
     renderComponent();
+    expect(screen.getByLabelText(/mot de passe actuel/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/nouveau mot de passe/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/confirmer le mot de passe/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /mettre à jour/i })).toBeInTheDocument();
@@ -49,10 +50,12 @@ describe('UpdatePassword', () => {
 
   it('affiche une erreur quand les mots de passe ne correspondent pas', async () => {
     renderComponent();
+    const oldPwd = screen.getByLabelText(/mot de passe actuel/i);
     const newPwd = screen.getByLabelText(/nouveau mot de passe/i);
     const confirmPwd = screen.getByLabelText(/confirmer le mot de passe/i);
     const submitBtn = screen.getByRole('button', { name: /mettre à jour/i });
 
+    fireEvent.change(oldPwd, { target: { value: 'OldPass1!' } });
     fireEvent.change(newPwd, { target: { value: 'Password1!' } });
     fireEvent.change(confirmPwd, { target: { value: 'Different2!' } });
     fireEvent.click(submitBtn);
@@ -67,16 +70,19 @@ describe('UpdatePassword', () => {
   it('appelle updatePassword avec les bons champs quand les mots de passe correspondent', async () => {
     mockMutateAsync.mockResolvedValueOnce('ok');
     renderComponent();
+    const oldPwd = screen.getByLabelText(/mot de passe actuel/i);
     const newPwd = screen.getByLabelText(/nouveau mot de passe/i);
     const confirmPwd = screen.getByLabelText(/confirmer le mot de passe/i);
     const submitBtn = screen.getByRole('button', { name: /mettre à jour/i });
 
+    fireEvent.change(oldPwd, { target: { value: 'OldPass1!' } });
     fireEvent.change(newPwd, { target: { value: 'Password1!' } });
     fireEvent.change(confirmPwd, { target: { value: 'Password1!' } });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
       expect(mockMutateAsync).toHaveBeenCalledWith({
+        oldPassword: 'OldPass1!',
         newPassword: 'Password1!',
         confirmation: 'Password1!',
       });
@@ -89,10 +95,12 @@ describe('UpdatePassword', () => {
       response: { data: { message: 'Erreur serveur' } },
     });
     renderComponent();
+    const oldPwd = screen.getByLabelText(/mot de passe actuel/i);
     const newPwd = screen.getByLabelText(/nouveau mot de passe/i);
     const confirmPwd = screen.getByLabelText(/confirmer le mot de passe/i);
     const submitBtn = screen.getByRole('button', { name: /mettre à jour/i });
 
+    fireEvent.change(oldPwd, { target: { value: 'OldPass1!' } });
     fireEvent.change(newPwd, { target: { value: 'Password1!' } });
     fireEvent.change(confirmPwd, { target: { value: 'Password1!' } });
     fireEvent.click(submitBtn);

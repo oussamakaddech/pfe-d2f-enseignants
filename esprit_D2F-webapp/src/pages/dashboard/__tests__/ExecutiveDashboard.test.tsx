@@ -131,16 +131,24 @@ describe('ExecutiveDashboard', () => {
     expect(exportExcel).toHaveBeenCalledWith('PAR_DEPT');
   });
 
-  it('exports report for non-admin (PAR_UP)', () => {
+  it('exports report for non-admin pilotage role (PAR_UP)', () => {
     const exportExcel = vi.fn();
     vi.mocked(useAnalyticsExport).mockReturnValue({ exporting: false, exportExcel } as never);
-    renderWith(queryClient, 'ENSEIGNANT');
+    renderWith(queryClient, 'CUP');
     const btn = Array.from(document.querySelectorAll('button')).find((b) =>
       b.querySelector('.anticon-download'),
     ) as HTMLElement;
     expect(btn).toBeTruthy();
     fireEvent.click(btn);
     expect(exportExcel).toHaveBeenCalledWith('PAR_UP');
+  });
+
+  it("n'offre pas l'export d'analyse au responsable dossier (réservé au pilotage)", () => {
+    renderWith(queryClient, 'RESPONSABLE_DOSSIER');
+    const btn = Array.from(document.querySelectorAll('button')).find((b) =>
+      b.querySelector('.anticon-download'),
+    );
+    expect(btn).toBeUndefined();
   });
 
   it('refreshes data via the refresh button', async () => {

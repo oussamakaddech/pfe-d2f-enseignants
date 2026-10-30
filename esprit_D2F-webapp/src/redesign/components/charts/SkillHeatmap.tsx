@@ -21,7 +21,7 @@ export default function SkillHeatmap({
   readonly onCellClick: (dept: string, compId: number, compName: string) => void;
 }) {
   if (loading && cells.length === 0) return <ChartSkeleton height={240} />;
-  if (cells.length === 0) return <div className="rd-empty">Aucun écart de compétence calculé</div>;
+  if (cells.length === 0) return <div className="rd-empty">Aucun écart de couverture calculé</div>;
 
   const depts = Array.from(new Set(cells.map((c) => c.department))).sort((a, b) =>
     a.localeCompare(b),

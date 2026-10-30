@@ -9,10 +9,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +28,8 @@ class EvaluationGlobaleServiceExtendedTest {
 
     @Mock
     private EvaluationGlobaleRepository repository;
+    @Mock
+    private esprit.pfe.serviceevaluation.client.FormationClient formationClient;
     @InjectMocks
     private EvaluationGlobaleService service;
 
@@ -53,7 +57,7 @@ class EvaluationGlobaleServiceExtendedTest {
         when(repository.existsByFormationId(100L)).thenReturn(false);
         when(repository.save(any())).thenReturn(entity);
 
-        EvaluationGlobaleDTO result = service.createEvaluationGlobale(dto);
+        EvaluationGlobaleDTO result = service.createEvaluationGlobale(dto, "admin@test.com", "ROLE_ADMIN");
 
         assertNotNull(result);
         assertEquals(1L, result.getIdEvalGlobale());
@@ -64,7 +68,7 @@ class EvaluationGlobaleServiceExtendedTest {
     void createEvaluationGlobale_duplicate_shouldThrow() {
         when(repository.existsByFormationId(100L)).thenReturn(true);
 
-        assertThrows(RuntimeException.class, () -> service.createEvaluationGlobale(dto));
+        assertThrows(RuntimeException.class, () -> service.createEvaluationGlobale(dto, "admin@test.com", "ROLE_ADMIN"));
         verify(repository, never()).save(any());
     }
 
@@ -78,7 +82,7 @@ class EvaluationGlobaleServiceExtendedTest {
         updated.setCommentaireGeneral("Excellente");
         updated.setRecommandation("Fortement recommandée");
 
-        EvaluationGlobaleDTO result = service.updateEvaluationGlobale(1L, updated);
+        EvaluationGlobaleDTO result = service.updateEvaluationGlobale(1L, updated, "admin@test.com", "ROLE_ADMIN");
 
         assertNotNull(result);
         verify(repository).save(any());
@@ -87,7 +91,7 @@ class EvaluationGlobaleServiceExtendedTest {
     @Test
     void updateEvaluationGlobale_notFound_shouldThrow() {
         when(repository.findById(999L)).thenReturn(Optional.empty());
-        assertThrows(RuntimeException.class, () -> service.updateEvaluationGlobale(999L, dto));
+        assertThrows(RuntimeException.class, () -> service.updateEvaluationGlobale(999L, dto, "admin@test.com", "ROLE_ADMIN"));
     }
 
     @Test
@@ -133,8 +137,16 @@ class EvaluationGlobaleServiceExtendedTest {
     void getAllEvaluationGlobales_shouldReturnList() {
         Page<EvaluationGlobale> page = new PageImpl<>(List.of(entity));
         when(repository.findAll(any(Pageable.class))).thenReturn(page);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", null,
+                        List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
 
-        Page<EvaluationGlobaleDTO> result = service.getAllEvaluationGlobales(Pageable.ofSize(10));
+        Page<EvaluationGlobaleDTO> result;
+        try {
+            result = service.getAllEvaluationGlobales(Pageable.ofSize(10));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
 
         assertEquals(1, result.getContent().size());
     }

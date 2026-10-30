@@ -130,12 +130,12 @@ export default function Login() {
           >
             <Form.Item
               name="username"
-              label="Nom d'utilisateur"
+              label="Identifiant ou email"
               rules={[{ required: true, message: 'Champ requis' }]}
             >
               <Input
                 prefix={<UserOutlined style={{ color: '#bbb' }} />}
-                placeholder="Votre identifiant"
+                placeholder="Votre identifiant ou email"
                 size="large"
                 className="login-input"
               />

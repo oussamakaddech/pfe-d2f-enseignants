@@ -16,7 +16,7 @@ describe('TopGapCompetencies', () => {
   });
   it('affiche un message vide sans cellules', () => {
     render(<TopGapCompetencies cells={[]} loading={false} />);
-    expect(screen.getByText('Aucun écart de compétence calculé')).toBeInTheDocument();
+    expect(screen.getByText('Aucun écart de couverture calculé')).toBeInTheDocument();
   });
   it('trie par écart décroissant', () => {
     render(<TopGapCompetencies cells={cells} loading={false} />);

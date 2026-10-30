@@ -101,7 +101,7 @@ describe('BesoinReviewStep', () => {
       'Contexte',
       'Formation',
       'Détails & planning',
-      'Compétences RICE',
+      'Liste des compétences',
       'Paramètres',
     ]);
     render(<BesoinReviewStep sections={sections} onEditSection={vi.fn()} />);

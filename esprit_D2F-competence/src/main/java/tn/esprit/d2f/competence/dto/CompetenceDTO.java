@@ -22,8 +22,13 @@ public class CompetenceDTO {
     private Integer ordre;
     private Long domaineId;
     private String domaineNom;
+    /** Rattachement historique porté par le domaine (lecture seule, conservé pour compatibilité). */
     private String upId;
     private String departementId;
+    /** UP auxquelles la compétence s'applique (choix multiple, optionnel). */
+    private List<String> upIds;
+    /** Départements auxquels la compétence s'applique (choix multiple, optionnel). */
+    private List<String> departementIds;
     private Long nbEnseignants;
     private Long prerequisiteCount;
     private List<String> prerequisiteNames;

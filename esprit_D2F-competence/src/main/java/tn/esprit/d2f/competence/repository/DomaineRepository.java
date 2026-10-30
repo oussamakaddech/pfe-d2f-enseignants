@@ -27,16 +27,28 @@ public interface DomaineRepository extends JpaRepository<Domaine, Long> {
     Page<Domaine> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
 
     // ─── Filtres UP / Département ────────────────────────────────────────────
+    //
+    // Le rattachement est porté par les COMPÉTENCES (V24). Un domaine est
+    // retenu dès qu'une de ses compétences porte la valeur demandée ; une
+    // compétence sans rattachement explicite retombe sur les colonnes
+    // historiques du domaine. Sans filtre, tous les domaines sont renvoyés.
 
-    @Query("SELECT d FROM Domaine d WHERE (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)")
+    String FILTER_CLAUSE = "(:upId IS NULL AND :departementId IS NULL) OR EXISTS ("
+            + "SELECT c FROM Competence c WHERE c.domaine = d AND "
+            + "(:upId IS NULL OR :upId MEMBER OF c.upIds"
+            + "  OR (c.upIds IS EMPTY AND d.upId = :upId)) AND "
+            + "(:departementId IS NULL OR :departementId MEMBER OF c.departementIds"
+            + "  OR (c.departementIds IS EMPTY AND d.departementId = :departementId)))";
+
+    @Query("SELECT d FROM Domaine d WHERE " + FILTER_CLAUSE)
     List<Domaine> findByUpIdAndDepartementId(@Param("upId") String upId, @Param("departementId") String departementId);
 
-    @Query("SELECT d FROM Domaine d WHERE (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)")
+    @Query("SELECT d FROM Domaine d WHERE " + FILTER_CLAUSE)
     Page<Domaine> findByUpIdAndDepartementId(@Param("upId") String upId, @Param("departementId") String departementId, Pageable pageable);
 
-    @Query("SELECT d FROM Domaine d WHERE d.actif = true AND (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)")
+    @Query("SELECT d FROM Domaine d WHERE d.actif = true AND (" + FILTER_CLAUSE + ")")
     List<Domaine> findActifsByUpIdAndDepartementId(@Param("upId") String upId, @Param("departementId") String departementId);
 
-    @Query("SELECT d FROM Domaine d WHERE d.actif = true AND (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)")
+    @Query("SELECT d FROM Domaine d WHERE d.actif = true AND (" + FILTER_CLAUSE + ")")
     Page<Domaine> findActifsByUpIdAndDepartementId(@Param("upId") String upId, @Param("departementId") String departementId, Pageable pageable);
 }

@@ -10,11 +10,15 @@ import esprit.pfe.serviceformation.microsoft.OutlookMailService;
 import esprit.pfe.serviceformation.messaging.AnalyticsEventPublisher;
 import esprit.pfe.serviceformation.messaging.EvaluationBatchMessage;
 import esprit.pfe.serviceformation.messaging.EvaluationPublisher;
+import esprit.pfe.serviceformation.services.animator.AnimatorScopeService;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import static java.util.stream.Collectors.toList;
 
@@ -28,6 +32,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
@@ -51,6 +56,30 @@ public class FormationWorkflowService {
     private final AnimateurParticipantResolver animateurParticipantResolver;
     // FIX-Q5: email audit log
     private final EmailAuditLogRepository emailAuditLogRepository;
+    // Scoping CRUD CUP/chef (optionnel : null dans les tests unitaires qui
+    // construisent le service manuellement — les contrôles sont alors sautés).
+    private AnimatorScopeService animatorScopeService;
+    private FormationWorkflowService self;
+
+    /**
+     * Auto-référence @Lazy pour appeler les méthodes @Transactional via le
+     * proxy Spring (S6809) sans injection par champ (S6813). Non renseigné
+     * dans les tests unitaires qui construisent le service manuellement.
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setSelf(@Lazy FormationWorkflowService self) {
+        this.self = self;
+    }
+
+    /**
+     * Périmètre CUP/chef, injecté par setter plutôt que par champ (S6813) :
+     * la dépendance reste optionnelle et les tests unitaires qui construisent
+     * le service à la main la laissent simplement nulle.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setAnimatorScopeService(AnimatorScopeService animatorScopeService) {
+        this.animatorScopeService = animatorScopeService;
+    }
 
     public FormationWorkflowService(DocumentRepository documentRepository,
             FormationRepository formationRepository,
@@ -87,8 +116,15 @@ public class FormationWorkflowService {
     }
 
     // FIX-C2: injected from application.properties (formation.organizer.email)
+    // Identité TECHNIQUE (expéditeur / ICS ORGANIZER) — jamais destinataire :
+    // n'utiliser que d2fNotificationEmail pour les notifications admin.
     @Value("${formation.organizer.email}")
     private String organizerEmail;
+
+    // Boîte applicative D2F destinataire des notifications admin (parité
+    // BesoinFormationMailNotifier / D2F_NOTIFICATION_EMAIL du service besoin).
+    @Value("${d2f.notification.email}")
+    private String d2fNotificationEmail;
 
     // FIX-C3: platform base URL for clickable CTAs in emails
     @Value("${d2f.platform.url}")
@@ -102,11 +138,150 @@ public class FormationWorkflowService {
     private static final String DETAIL_FORMATION = "Formation";
     private static final String LINK_START = "<a href=\"";
 
-    @Value("${d2f.platform.formations-path:/formations/}")
+    @Value("${d2f.platform.formations-path:/home/ListeFormation/}")
     private String formationsPath;
+
+    // Boîte Microsoft 365 RÉELLE qui porte l'événement « organisateur » de chaque
+    // séance (réunion Teams). formation.organizer.email est une identité technique
+    // hors tenant (Graph : ErrorInvalidUser) : sans cette boîte, aucun événement
+    // n'était jamais créé.
+    @Value("${d2f.calendar.graph-mailbox:}")
+    private String calendarMailbox;
+
+    // Événements personnels (un par personne et par séance), optionnel : null dans
+    // les tests unitaires qui construisent le service à la main.
+    private SeanceCalendarEventRepository seanceCalendarEventRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setSeanceCalendarEventRepository(SeanceCalendarEventRepository repository) {
+        this.seanceCalendarEventRepository = repository;
+    }
+
+    // Inscriptions approuvées (formations à évaluer), optionnel : null dans les tests unitaires.
+    private InscriptionRepository inscriptionRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setInscriptionRepository(InscriptionRepository repository) {
+        this.inscriptionRepository = repository;
+    }
+
+    private String calendarOrganizer() {
+        return calendarMailbox != null && !calendarMailbox.isBlank() ? calendarMailbox : organizerEmail;
+    }
+
+    // Fil dédié aux appels Microsoft 365 (null dans les tests unitaires : exécution immédiate).
+    private java.util.concurrent.Executor outlookExecutor;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setOutlookExecutor(@org.springframework.beans.factory.annotation.Qualifier(
+            esprit.pfe.serviceformation.config.AsyncConfig.OUTLOOK_SYNC_EXECUTOR) java.util.concurrent.Executor executor) {
+        this.outlookExecutor = executor;
+    }
+
+    /**
+     * Les appels Microsoft (calendriers, e-mails) prennent plusieurs secondes : faits
+     * pendant la requête, ils dépassaient le délai de la passerelle (503 alors que la
+     * modification était enregistrée). Ils partent donc APRÈS validation de la
+     * transaction, dans un fil dédié. Hors transaction (tests) : exécution immédiate.
+     */
+    private void apresValidation(Runnable action) {
+        if (outlookExecutor == null || !TransactionSynchronizationManager.isSynchronizationActive()) {
+            action.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                outlookExecutor.execute(() -> {
+                    try {
+                        action.run();
+                    } catch (Exception ex) {
+                        log.error("Traitement Microsoft 365 différé en échec : {}", ex.getMessage(), ex);
+                    }
+                });
+            }
+        });
+    }
+
+    /** Variante qui recharge la formation dans une nouvelle transaction (collections lazy). */
+    private void apresValidation(Formation formation, java.util.function.Consumer<Formation> action) {
+        Long id = formation.getIdFormation();
+        if (outlookExecutor == null || self == null || id == null
+                || !TransactionSynchronizationManager.isSynchronizationActive()) {
+            action.accept(formation);
+            return;
+        }
+        apresValidation(() -> self.executerSurFormation(id, action));
+    }
+
+    @Transactional
+    public void executerSurFormation(Long formationId, java.util.function.Consumer<Formation> action) {
+        formationRepository.findById(formationId).ifPresent(action);
+    }
 
     private LocalTime parseTime(String heure) {
         return helper.parseTime(heure);
+    }
+
+    /**
+     * Vérifie que l'appelant peut gérer la formation selon son périmètre
+     * (ADMIN global, CUP → UP de la formation, chef → département).
+     * Sautée si le scope service n'est pas injecté (tests unitaires).
+     */
+    private void checkFormationScope(Formation formation) {
+        if (animatorScopeService == null) {
+            return;
+        }
+        animatorScopeService.ensureCanManageFormation(
+                formation, animatorScopeService.resolveScope());
+    }
+
+    /**
+     * Force le périmètre d'une formation créée à celui de l'appelant scopé
+     * (CUP → son UP, chef → son département). Les valeurs du formulaire sont
+     * écrasées pour un appelant scopé : il ne peut JAMAIS créer une formation
+     * hors de son périmètre (parité KpiScopeService).
+     */
+    private void applyCreationScope(Formation formation) {
+        if (animatorScopeService == null || formation == null) {
+            return;
+        }
+        AnimatorScopeService.ResolvedAnimatorScope scope = animatorScopeService.resolveScope();
+        if (scope.global()) {
+            return;
+        }
+        if (scope.user().hasRole("CUP") && scope.upCode() != null) {
+            formation.setUp(upRepository.findById(scope.upCode()).orElse(null));
+            return;
+        }
+        if (scope.user().hasRole("CHEF_DEPARTEMENT") && scope.departmentCode() != null) {
+            formation.setDepartement(departementRepository.findById(scope.departmentCode()).orElse(null));
+        }
+    }
+
+    /**
+     * Filtre une liste de formations au périmètre de l'appelant :
+     * CUP → UP, chef → département, autres rôles inchangés.
+     * Deny-by-default : périmètre CUP/chef indéterminé → 403 propagée.
+     */
+    private List<Formation> filterByScope(List<Formation> formations) {
+        if (animatorScopeService == null) {
+            return formations;
+        }
+        AnimatorScopeService.ResolvedAnimatorScope scope = animatorScopeService.resolveScope();
+        if (scope.global()) {
+            return formations;
+        }
+        return formations.stream().filter(f -> {
+            try {
+                animatorScopeService.ensureCanManageFormation(f, scope);
+                return true;
+            } catch (AccessDeniedException | esprit.pfe.serviceformation.exception.AccessDeniedException ex) {
+                // Hors périmètre (CUP → UP, chef → département) : la formation est
+                // simplement exclue de la liste (et non une erreur globale).
+                return false;
+            }
+        }).toList();
     }
 
     private OffsetDateTime convertToOffsetDateTime(LocalDate date, LocalTime time) {
@@ -138,6 +313,12 @@ public class FormationWorkflowService {
 
     @Transactional
     public Formation createFormationWorkflow(FormationWorkflowRequest request) {
+        // Durée (charge horaire) obligatoire à la création : au moins 1 heure.
+        // La modification d'une formation existante n'est pas concernée.
+        if (request.getChargeHoraireGlobal() == null || request.getChargeHoraireGlobal() < 1) {
+            throw new IllegalArgumentException(
+                    "La durée de la formation (charge horaire) est obligatoire : au moins 1 heure.");
+        }
         // Resolve participants using new config-based or fallback to old IDs
         List<String> partIds = resolveParticipantIds(request);
         List<FormationWorkflowRequest.SeanceRequest> seanceReqs = Optional.ofNullable(request.getSeances())
@@ -145,6 +326,14 @@ public class FormationWorkflowService {
 
         Formation formation = new Formation();
         helper.initFormationFromRequest(formation, request);
+        // CRUD scopé : pour un CUP / chef de département, le périmètre (UP /
+        // département) de la formation créée est IMPOSÉ à celui de l'appelant
+        // (parité KpiScopeService : valeurs client écrasées pour un appelant
+        // scopé) — impossible de créer hors de son périmètre. ADMIN et rôles
+        // non scopés gardent le choix du formulaire.
+        applyCreationScope(formation);
+        // CRUD scopé : CUP → UP de la formation, chef → département (403 sinon).
+        checkFormationScope(formation);
         formation = formationRepository.save(formation);
 
         List<SeanceFormation> seances = helper.createSeancesForFormation(formation, seanceReqs, partIds);
@@ -192,28 +381,125 @@ public class FormationWorkflowService {
         Formation formation = formationRepository.findById(formationId)
                 .orElseThrow(() -> new IllegalStateException("Formation introuvable"));
 
+        // CRUD scopé : périmètre vérifié avant ET après modification (l'UP ou
+        // le département ont pu changer dans la requête).
+        checkFormationScope(formation);
         EtatFormation oldEtat = formation.getEtatFormation();
+        List<SeanceFormation> managedList = prepareManagedSeancesList(formation);
+        // Empreinte AVANT modification (titre et salle de la formation compris).
+        Map<Long, String> signaturesAvant = seanceSignatures(managedList, formation, true);
+        Map<String, Personne> personnesAvant = personnesConcernees(formation);
         updateFormationBasicFields(formation, request);
         updateFormationRelations(formation, request);
+        checkFormationScope(formation);
 
         Map<String, Enseignant> enseignantMap = loadEnseignantsMap(request);
-        List<SeanceFormation> managedList = prepareManagedSeancesList(formation);
 
-        processSeanceRequests(formation, request, enseignantMap, managedList);
+        // Repli animateurs formation → séances : les animateurs déjà rattachés à
+        // la formation (requête sans animateursIds) doivent aussi être résolus.
+        List<String> formationAnimIds = formationAnimateurIds(formation);
+        if (!formationAnimIds.isEmpty()) {
+            enseignantRepository.findAllById(formationAnimIds)
+                    .forEach(e -> enseignantMap.putIfAbsent(e.getId(), e));
+        }
+
+        processSeanceRequests(formation, request, enseignantMap,
+                managedList);
         handleEtatTransitions(formation, oldEtat);
         // Si l'état n'a pas changé mais que la formation est déjà planifiée (des
         // événements Outlook existent), propager les modifications de séances (salle,
         // horaires, animateurs) vers le calendrier. Sinon, une salle ajoutée/corrigée
         // après la planification reste invisible dans Outlook (l'événement garde son
-        // ancien titre « D2f-Salle-TBD-... »), car handleEtatTransitions ne resynchronise
+        // ancien titre « D2F-Salle-TBD-... »), car handleEtatTransitions ne resynchronise
         // que lors d'un changement d'état.
-        if (formation.getEtatFormation() == oldEtat && hasOutlookEvents(formation)) {
-            synchronizeFormationCalendar(formation);
+        // Seules les séances réellement modifiées ou ajoutées sont resynchronisées.
+        // Changement de date, d'horaire, de salle, séance ajoutée ou supprimée : mise à
+        // jour des calendriers Microsoft uniquement. L'e-mail, lui, suit le choix de
+        // l'écran de modification (notifierActeurs) : un seul « Formation modifiée » à
+        // tous les animateurs et participants, aucun e-mail, ou le comportement
+        // historique (seule la personne ajoutée / retirée est prévenue).
+        Boolean notifierActeurs = request.getNotifierActeurs();
+        boolean evenementsOutlook = hasOutlookEvents(formation);
+        if (formation.getEtatFormation() == oldEtat && (evenementsOutlook || notifierActeurs != null)) {
+            propagerModificationEtNotifier(formation, signaturesAvant, managedList, personnesAvant,
+                    notifierActeurs, evenementsOutlook);
         }
         syncPresencesForSeances(managedList, request.getParticipantsIds());
         publishEvaluationUpdatesIfPossible(formationId, request.getParticipantsIds());
 
         return formationRepository.save(formation);
+    }
+
+    /**
+     * Modification d'une formation dont l'état ne change pas : resynchronise les séances
+     * modifiées dans les calendriers Microsoft (si des événements existent) puis applique
+     * le choix d'e-mail de l'écran de modification.
+     */
+    private void propagerModificationEtNotifier(Formation formation, Map<Long, String> signaturesAvant,
+            List<SeanceFormation> managedList, Map<String, Personne> personnesAvant,
+            Boolean notifierActeurs, boolean evenementsOutlook) {
+        Set<Long> aSynchroniser = evenementsOutlook
+                ? changedSeanceIds(signaturesAvant, managedList, formation, true)
+                : Collections.emptySet();
+        Map<String, Personne> personnesApres = personnesConcernees(formation);
+        Map<String, Personne> ajoutees = new LinkedHashMap<>();
+        personnesApres.forEach((mail, pers) -> {
+            Personne avant = personnesAvant.get(mail);
+            if (avant == null || !avant.role().equals(pers.role())) {
+                ajoutees.put(mail, pers);
+            }
+        });
+        Map<String, Personne> retirees = new LinkedHashMap<>(personnesAvant);
+        retirees.keySet().removeAll(personnesApres.keySet());
+
+        apresValidation(formation, f -> {
+            for (Long seanceId : aSynchroniser) {
+                seanceFormationRepository.findById(seanceId).ifPresent(seance -> synchronizeSeance(f, seance));
+            }
+            appliquerChoixNotification(f, notifierActeurs, personnesApres, ajoutees, retirees);
+        });
+    }
+
+    /**
+     * Choix de l'écran de modification : {@code false} = aucun e-mail, {@code true} = un
+     * seul « Formation modifiée » à tous les animateurs et participants, {@code null} =
+     * comportement historique (seule la personne ajoutée / retirée est prévenue).
+     */
+    private void appliquerChoixNotification(Formation formation, Boolean notifierActeurs,
+            Map<String, Personne> personnesApres, Map<String, Personne> ajoutees,
+            Map<String, Personne> retirees) {
+        if (Boolean.FALSE.equals(notifierActeurs)) {
+            log.info("Modification de la formation {} : aucun e-mail demande par l'utilisateur.",
+                    formation.getIdFormation());
+            return;
+        }
+        if (Boolean.TRUE.equals(notifierActeurs)) {
+            notifierModification(formation, personnesApres);
+            return;
+        }
+        notifyPersonnesAjoutees(formation, ajoutees);
+        notifyPersonnesRetirees(formation, retirees);
+    }
+
+    // ── Formation modifiée : un seul e-mail à tous les animateurs et participants ──
+    private void notifierModification(Formation formation, Map<String, Personne> destinataires) {
+        if (destinataires.isEmpty()) {
+            log.info("Modification de la formation {} : aucun animateur ni participant a prevenir.",
+                    formation.getIdFormation());
+            return;
+        }
+        String cta = LINK_START + platformUrl + formationsPath + formation.getIdFormation() + "\" "
+                + "style=\"background:#1565c0;color:#fff;padding:10px 20px;border-radius:6px;"
+                + "text-decoration:none;font-weight:bold;display:inline-block;margin-top:8px;\">"
+                + "Ouvrir la formation</a>";
+        sendNotificationTo(formation, destinataires.keySet(), buildNameByEmail(formation),
+                "[D2F] Formation modifiée : " + formation.getTitreFormation(),
+                "Formation modifiée", "✏️",
+                "La formation à laquelle vous êtes rattaché(e) vient d'être modifiée. "
+                        + "Le récapitulatif ci-dessous reflète son état actuel.",
+                "#1565c0",
+                "Les changements de date, d'horaire et de salle sont reportés dans votre calendrier "
+                        + "Outlook." + teamsLinksNote(formation) + "<br><br>" + cta);
     }
 
     private void updateFormationBasicFields(Formation formation, FormationWorkflowRequest request) {
@@ -300,6 +586,11 @@ public class FormationWorkflowService {
                 .orElse(Collections.emptyList());
 
         Set<String> allIds = new HashSet<>(partIds);
+        // Les animateurs posés au niveau formation peuvent être propagés vers
+        // les séances (repli) : ils doivent être résolus dans la map.
+        if (request.getAnimateursIds() != null) {
+            allIds.addAll(request.getAnimateursIds());
+        }
         for (FormationWorkflowRequest.SeanceRequest sr : seanceReqs) {
             if (sr.getAnimateursIds() != null) {
                 allIds.addAll(sr.getAnimateursIds());
@@ -328,7 +619,53 @@ public class FormationWorkflowService {
         return managedList;
     }
 
-    private void processSeanceRequests(Formation formation, FormationWorkflowRequest request,
+    /**
+     * Empreinte de ce que porte l'événement Outlook d'une séance (date, horaires,
+     * salle, titre, animateurs, participants) : sert à ne resynchroniser que les
+     * séances réellement modifiées.
+     */
+    private Map<Long, String> seanceSignatures(List<SeanceFormation> seances, Formation formation,
+            boolean avecPersonnes) {
+        Map<Long, String> signatures = new HashMap<>();
+        for (SeanceFormation s : seances) {
+            if (s.getIdSeance() != null) {
+                signatures.put(s.getIdSeance(), seanceSignature(s, formation, avecPersonnes));
+            }
+        }
+        return signatures;
+    }
+
+    /** @param avecPersonnes inclure animateurs / participants (invités de l'événement Outlook). */
+    private String seanceSignature(SeanceFormation s, Formation formation, boolean avecPersonnes) {
+        String planning = s.getDateSeance() + "|" + s.getHeureDebut() + "|" + s.getHeureFin() + "|" + s.getSalle()
+                + "|" + formation.getTitreFormation() + "|" + formation.getSalle();
+        return avecPersonnes
+                ? planning + "|" + idsOf(s.getAnimateurs()) + "|" + idsOf(s.getParticipants())
+                : planning;
+    }
+
+    private static String idsOf(List<Enseignant> enseignants) {
+        if (enseignants == null) {
+            return "";
+        }
+        return enseignants.stream().map(Enseignant::getId).filter(Objects::nonNull).sorted()
+                .collect(Collectors.joining(","));
+    }
+
+    private Set<Long> changedSeanceIds(Map<Long, String> avant, List<SeanceFormation> seances,
+            Formation formation, boolean avecPersonnes) {
+        Set<Long> modifiees = new HashSet<>();
+        for (SeanceFormation s : seances) {
+            if (s.getIdSeance() != null
+                    && !seanceSignature(s, formation, avecPersonnes).equals(avant.get(s.getIdSeance()))) {
+                modifiees.add(s.getIdSeance());
+            }
+        }
+        return modifiees;
+    }
+
+    /** @return les séances retirées de la formation par la requête. */
+    private List<SeanceFormation> processSeanceRequests(Formation formation, FormationWorkflowRequest request,
             Map<String, Enseignant> enseignantMap, List<SeanceFormation> managedList) {
         List<FormationWorkflowRequest.SeanceRequest> seanceReqs = Optional.ofNullable(request.getSeances())
                 .orElse(Collections.emptyList());
@@ -347,16 +684,23 @@ public class FormationWorkflowService {
 
             updateSeanceDetails(sf, sr, isNew);
             assignParticipantsToSeance(sf, sr, request.getParticipantsIds(), enseignantMap, isNew,
-                    formation.getIdFormation());
+                    formation.getIdFormation(), formationAnimateurIds(formation));
 
-            if (isNew)
+            if (isNew) {
                 managedList.add(sf);
+                // Identifiant attribué tout de suite (IDENTITY) : sans lui, la séance
+                // ajoutée n'avait ni présences ni événement calendrier.
+                seanceFormationRepository.save(sf);
+            }
         }
 
-        for (SeanceFormation orphan : existingMap.values()) {
-            removeSeanceFromCalendar(orphan);
+        List<SeanceFormation> supprimees = new ArrayList<>(existingMap.values());
+        for (SeanceFormation orphan : supprimees) {
+            // Pas d'e-mail par séance supprimée : elle figure dans le récapitulatif.
+            supprimerEvenementsApresValidation(orphan);
             managedList.remove(orphan);
         }
+        return supprimees;
     }
 
     private void updateSeanceDetails(SeanceFormation sf, FormationWorkflowRequest.SeanceRequest sr, boolean isNew) {
@@ -384,9 +728,27 @@ public class FormationWorkflowService {
         sf.setDureePratique(sr.getDureePratique());
     }
 
+    private static List<String> formationAnimateurIds(Formation formation) {
+        if (formation.getAnimateurs() == null) {
+            return Collections.emptyList();
+        }
+        return formation.getAnimateurs().stream()
+                .map(Enseignant::getId)
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
     private void assignParticipantsToSeance(SeanceFormation sf, FormationWorkflowRequest.SeanceRequest sr,
-            List<String> partIds, Map<String, Enseignant> enseignantMap, boolean isNew, Long formationId) {
+            List<String> partIds, Map<String, Enseignant> enseignantMap, boolean isNew, Long formationId,
+            List<String> formationAnimateurIds) {
         List<String> seanceAnimIds = Optional.ofNullable(sr.getAnimateursIds()).orElse(Collections.emptyList());
+        // Même repli qu'à la création : un animateur posé au niveau formation doit
+        // apparaître sur les séances, sinon la formation reste invisible dans
+        // « Mes Formations à animer » (résolution par seance_animateur, cf. V48).
+        // Un choix explicite par séance reste prioritaire.
+        if (seanceAnimIds.isEmpty() && formationAnimateurIds != null && !formationAnimateurIds.isEmpty()) {
+            seanceAnimIds = formationAnimateurIds;
+        }
         if (partIds == null)
             partIds = Collections.emptyList();
         LocalTime hd = sf.getHeureDebut();
@@ -406,12 +768,16 @@ public class FormationWorkflowService {
             .toList()));
     }
 
+    @Transactional
     public void handleEtatTransitions(Formation formation, EtatFormation oldEtat) {
         EtatFormation newEtat = formation.getEtatFormation();
         if (newEtat == oldEtat) return;
 
         log.info("Transition d'etat de la formation {} : {} -> {}", formation.getIdFormation(), oldEtat, newEtat);
+        apresValidation(formation, f -> notifierTransition(f, oldEtat, newEtat));
+    }
 
+    private void notifierTransition(Formation formation, EtatFormation oldEtat, EtatFormation newEtat) {
         try {
             switch (newEtat) {
                 case ENREGISTRE -> notifyEnregistrement(formation);
@@ -419,7 +785,7 @@ public class FormationWorkflowService {
                 case VISIBLE -> notifyVisibilite(formation);
                 case EN_COURS -> notifyEnCours(formation);
                 case ACHEVE -> notifyAcheve(formation);
-                case ANNULE -> notifyAnnulation(formation);
+                case ANNULE -> notifyAnnulation(formation, oldEtat);
                 default -> log.debug("Aucune notification configuree pour l'etat {}", newEtat);
             }
         } catch (Exception ex) {
@@ -430,9 +796,10 @@ public class FormationWorkflowService {
 
     // ── ENREGISTRE : Notification admin + CUPs qu'une formation est enregistrée ──
     private void notifyEnregistrement(Formation formation) {
-        // Notification admin (boîte applicative D2F)
+        // Notification admin (boîte applicative D2F — jamais l'organizer
+        // technique noreply, domaine inexistant → NDR).
         // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
-        if (outlookMailService != null) {
+        if (outlookMailService != null && d2fNotificationEmail != null && !d2fNotificationEmail.isBlank()) {
             try {
                 String subject = "[D2F] Nouvelle formation enregistrée : " + formation.getTitreFormation();
                 // FIX-S8: include actor identity in admin email
@@ -442,12 +809,12 @@ public class FormationWorkflowService {
                                 + "Vous trouverez ci-dessous le récapitulatif.", formation);
                 buildActorAuditDetail(adminBuilder);
                 String html = adminBuilder.build();
-                outlookMailService.sendMail(organizerEmail, subject, html);
+                outlookMailService.sendMail(d2fNotificationEmail, subject, html);
             } catch (Exception ex) {
                 log.warn("Echec notification admin enregistrement : {}", ex.getMessage());
             }
         } else {
-            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — notification admin enregistrement ignorée.");
+            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) ou boîte D2F non configurée — notification admin enregistrement ignorée.");
         }
 
         // Notification CUPs pour planifier
@@ -467,10 +834,97 @@ public class FormationWorkflowService {
         sendStateNotification(formation,
                 "[D2F] Formation planifiée : " + formation.getTitreFormation(),
                 "Formation planifiée", "📅",
-                "Votre formation a été planifiée. Les séances ci-dessous ont été ajoutées à votre calendrier Outlook ; "
-                        + "vous recevrez l'invitation et le lien Teams pour chaque séance.",
+                "Votre formation a été planifiée. Les séances ci-dessous ont été ajoutées à votre "
+                        + "calendrier Outlook ; leurs modifications y seront reportées sans nouvel e-mail.",
                 "#e65100",
-                "Merci de vérifier que les créneaux sont compatibles avec votre emploi du temps.<br><br>" + planifCta);
+                "Merci de vérifier que les créneaux sont compatibles avec votre emploi du temps."
+                        + teamsLinksNote(formation) + "<br><br>" + planifCta);
+    }
+
+    /** Personne concernée par une formation : rôle (animateur prioritaire) et nom pour l'accroche. */
+    record Personne(String role, String nom) {}
+
+    private static final String ROLE_ANIMATEUR = "animateur";
+    private static final String ROLE_PARTICIPANT = "participant";
+
+    /** Personnes concernées indexées par e-mail (animateurs formation / séances, participants, externe). */
+    private Map<String, Personne> personnesConcernees(Formation formation) {
+        Map<String, Personne> personnes = new LinkedHashMap<>();
+        if (formation.getAnimateurs() != null) {
+            formation.getAnimateurs().forEach(e -> ajouterPersonne(personnes, e, ROLE_ANIMATEUR));
+        }
+        if (formation.getSeances() != null) {
+            for (SeanceFormation s : formation.getSeances()) {
+                if (s.getAnimateurs() != null) {
+                    s.getAnimateurs().forEach(e -> ajouterPersonne(personnes, e, ROLE_ANIMATEUR));
+                }
+            }
+            for (SeanceFormation s : formation.getSeances()) {
+                if (s.getParticipants() != null) {
+                    s.getParticipants().forEach(e -> ajouterPersonne(personnes, e, ROLE_PARTICIPANT));
+                }
+            }
+        }
+        String externe = formation.getExterneFormateurEmail();
+        if (externe != null && !externe.isBlank()) {
+            String nom = ((formation.getExterneFormateurPrenom() != null ? formation.getExterneFormateurPrenom() + " " : "")
+                    + (formation.getExterneFormateurNom() != null ? formation.getExterneFormateurNom() : "")).trim();
+            personnes.putIfAbsent(externe, new Personne(ROLE_ANIMATEUR, nom.isEmpty() ? null : nom));
+        }
+        return personnes;
+    }
+
+    private void ajouterPersonne(Map<String, Personne> personnes, Enseignant e, String role) {
+        if (e != null && e.getMail() != null && !e.getMail().isBlank()) {
+            personnes.putIfAbsent(e.getMail(), new Personne(role, fullName(e)));
+        }
+    }
+
+    private static Map<String, String> nomDe(String mail, Personne pers) {
+        Map<String, String> noms = new HashMap<>();
+        noms.put(mail, pers.nom());
+        return noms;
+    }
+
+    // ── Personne ajoutée (participant ou animateur) : e-mail à elle seule ──
+    private void notifyPersonnesAjoutees(Formation formation, Map<String, Personne> ajoutees) {
+        ajoutees.forEach((mail, pers) -> sendNotificationTo(formation, Set.of(mail), nomDe(mail, pers),
+                "[D2F] Ajout à la formation : " + formation.getTitreFormation(),
+                "Vous avez été ajouté(e) à une formation", "➕",
+                "Vous avez été ajouté(e) comme <strong>" + pers.role() + "</strong> de la formation ci-dessous.",
+                "#2e7d32",
+                "Merci de vérifier que les créneaux sont compatibles avec votre emploi du temps."
+                        + teamsLinksNote(formation)));
+    }
+
+    // ── Personne retirée : e-mail à elle seule (les autres ne sont pas prévenus) ──
+    private void notifyPersonnesRetirees(Formation formation, Map<String, Personne> retirees) {
+        retirees.forEach((mail, pers) -> sendNotificationTo(formation, Set.of(mail), nomDe(mail, pers),
+                "[D2F] Retrait de la formation : " + formation.getTitreFormation(),
+                "Vous avez été retiré(e) d'une formation", "➖",
+                "Vous n'êtes plus <strong>" + pers.role() + "</strong> de la formation ci-dessous.",
+                CANCELLATION_ACCENT_COLOR,
+                "Les séances listées ne vous concernent plus. Aucune action n'est requise de votre part."));
+    }
+
+    // ── Liens Teams de toutes les séances (relus en base : posés par la synchronisation) ──
+    private String teamsLinksNote(Formation formation) {
+        if (formation.getIdFormation() == null) {
+            return "";
+        }
+        List<SeanceFormation> seances = seanceFormationRepository
+                .findByFormation_IdFormation(formation.getIdFormation());
+        StringBuilder links = new StringBuilder();
+        if (seances != null) {
+            for (SeanceFormation s : seances) {
+                if (s.getOnlineMeetingUrl() != null && !s.getOnlineMeetingUrl().isBlank()) {
+                    links.append(formatDate(s.getDateSeance())).append(" → ")
+                            .append(LINK_START).append(s.getOnlineMeetingUrl())
+                            .append("\" style=\"color:#e65100;font-weight:bold;\">Rejoindre la réunion Teams</a><br>");
+                }
+            }
+        }
+        return links.isEmpty() ? "" : "<br><br>Liens Teams par séance :<br>" + links;
     }
 
     // ── VISIBLE : Notification que la formation est visible/publiée ──
@@ -479,9 +933,10 @@ public class FormationWorkflowService {
         notifyTeachersOfApprovedFormation(formation);
         // Notification aux CUPs
         notifyCUPOfApprovedFormation(formation);
-        // Notification admin (boîte applicative D2F)
+        // Notification admin (boîte applicative D2F — jamais l'organizer
+        // technique noreply, domaine inexistant → NDR).
         // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
-        if (outlookMailService != null) {
+        if (outlookMailService != null && d2fNotificationEmail != null && !d2fNotificationEmail.isBlank()) {
             try {
                 String subject = "[D2F] Formation publiée : " + formation.getTitreFormation();
                 // FIX-S8: include actor identity in admin email
@@ -490,12 +945,12 @@ public class FormationWorkflowService {
                         "La formation est désormais visible et ouverte aux inscriptions.", formation);
                 buildActorAuditDetail(adminBuilder);
                 String html = adminBuilder.build();
-                outlookMailService.sendMail(organizerEmail, subject, html);
+                outlookMailService.sendMail(d2fNotificationEmail, subject, html);
             } catch (Exception ex) {
                 log.warn("Echec notification admin visibilite : {}", ex.getMessage());
             }
         } else {
-            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — notification admin visibilité ignorée.");
+            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) ou boîte D2F non configurée — notification admin visibilité ignorée.");
         }
     }
 
@@ -517,7 +972,7 @@ public class FormationWorkflowService {
                 : "Liens Teams par séance :<br>" + seanceLinks;
 
         String ctaNote = teamsNote + "<br><br>"
-                + "<a href=\"" + platformUrl + "/mes-formations/" + formation.getIdFormation() + "\" "
+                + "<a href=\"" + platformUrl + "/home/mes-presences\" "
                 + "style=\"background:#6a1b9a;color:#fff;padding:10px 20px;border-radius:6px;"
                 + "text-decoration:none;font-weight:bold;display:inline-block;margin-top:8px;\">"
                 + "Confirmer ma présence</a>";
@@ -533,7 +988,7 @@ public class FormationWorkflowService {
     // ── ACHEVE : Notification de fin de formation + demande évaluation ──
     private void notifyAcheve(Formation formation) {
         // FIX-S5 + FIX-C3: add clickable evaluation link
-        String evalCta = LINK_START + platformUrl + "/evaluations/" + formation.getIdFormation() + "\" "
+        String evalCta = LINK_START + platformUrl + "/home/Evaluations\" "
                 + "style=\"background:#00695c;color:#fff;padding:10px 20px;border-radius:6px;"
                 + "text-decoration:none;font-weight:bold;display:inline-block;margin-top:8px;\">"
                 + "📝 Évaluer la formation maintenant</a>";
@@ -547,17 +1002,21 @@ public class FormationWorkflowService {
     }
 
     // ── ANNULE : Notification d'annulation + suppression calendrier ──
-    private void notifyAnnulation(Formation formation) {
-        log.info("Notification d'annulation pour la formation {} - envoi emails aux concernes", formation.getIdFormation());
-
-        // 1. Envoyer l'email d'annulation a tous les concernes
-        sendStateNotification(formation,
-                "[D2F] Annulation de formation : " + formation.getTitreFormation(),
-                "Formation annulée", "❌",
-                "Nous vous informons que la formation ci-dessous a été <strong>annulée</strong>. "
-                        + "Les séances correspondantes seront retirées de votre calendrier.",
-            CANCELLATION_ACCENT_COLOR,
-                "Aucune action n'est requise de votre part. Nous restons à votre disposition pour toute question.");
+    private void notifyAnnulation(Formation formation, EtatFormation oldEtat) {
+        // 1. E-mail d'annulation seulement si les personnes avaient été prévenues
+        //    (formation planifiée, publiée ou en cours) ; sinon, rien à annuler pour elles.
+        if (!personnesInformees(oldEtat)) {
+            log.info("Annulation de la formation {} depuis {} : aucun e-mail (personne n'avait été prévenu)",
+                    formation.getIdFormation(), oldEtat);
+        } else {
+            sendStateNotification(formation,
+                    "[D2F] Annulation de formation : " + formation.getTitreFormation(),
+                    "Formation annulée", "❌",
+                    "Nous vous informons que la formation ci-dessous a été <strong>annulée</strong>. "
+                            + "Les séances correspondantes seront retirées de votre calendrier.",
+                    CANCELLATION_ACCENT_COLOR,
+                    "Aucune action n'est requise de votre part. Nous restons à votre disposition pour toute question.");
+        }
 
         // 2. Supprimer les evenements Outlook calendar
         try {
@@ -650,7 +1109,8 @@ public class FormationWorkflowService {
                 && !formation.getExterneFormateurEmail().isBlank()) {
             emails.add(formation.getExterneFormateurEmail());
         }
-        emails.add(organizerEmail);
+        // L'organizer technique (noreply, domaine inexistant) n'est JAMAIS
+        // destinataire — il n'est qu'expéditeur / identité ICS ORGANIZER.
         log.info("collectAllRecipientEmails: {} destinataires collectes pour la formation {}",
                 emails.size(), formation.getIdFormation());
         return emails;
@@ -664,8 +1124,18 @@ public class FormationWorkflowService {
             log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — notification « {} » ignorée.", subject);
             return;
         }
-        Set<String> emails = collectAllRecipientEmails(formation);
-        Map<String, String> nameByEmail = buildNameByEmail(formation);
+        sendNotificationTo(formation, collectAllRecipientEmails(formation), buildNameByEmail(formation),
+                subject, title, icon, intro, accentColor, note);
+    }
+
+    // ── Même gabarit, destinataires explicites (ex. seule la personne ajoutée / retirée) ──
+    @SuppressWarnings("java:S107")
+    private void sendNotificationTo(Formation formation, Set<String> emails, Map<String, String> nameByEmail,
+            String subject, String title, String icon, String intro, String accentColor, String note) {
+        if (outlookMailService == null) {
+            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — notification « {} » ignorée.", subject);
+            return;
+        }
         log.info("sendStateNotification: envoi a {} destinataires, sujet={}", emails.size(), subject);
         // FIX-Q5: derive email type from subject prefix for audit log
         String emailType = subject.replaceAll("^\\[D2F\\]\\s*", "").replaceAll(":.*", "").trim().toUpperCase()
@@ -894,10 +1364,17 @@ public class FormationWorkflowService {
         }
     }
 
+    /** États où animateurs et participants ont reçu l'e-mail de planification (séances à venir). */
+    private static boolean personnesInformees(EtatFormation etat) {
+        return etat == EtatFormation.PLANIFIE || etat == EtatFormation.VISIBLE || etat == EtatFormation.EN_COURS;
+    }
+
     @Transactional
     public void deleteFormationWorkflow(Long formationId) {
         Formation formation = formationRepository.findById(formationId)
                 .orElseThrow(() -> new IllegalArgumentException("Formation introuvable avec l'id : " + formationId));
+        // CRUD scopé : suppression limitée au périmètre (UP / département).
+        checkFormationScope(formation);
         try {
             removeFormationCalendar(formation);
         } catch (RuntimeException ex) {
@@ -1081,10 +1558,10 @@ public class FormationWorkflowService {
     }
 
     /**
-     * Titre de l'événement Outlook au format demandé : {@code D2f-Salle-Formation-Animateur}.
+     * Titre de l'événement Outlook au format demandé : {@code D2F-Salle-Formation-Animateur}.
      * Format à 4 champs, cohérent avec {@code FormationServiceImpl.createOutlookEvent} :
      * des placeholders sont utilisés quand une valeur manque (ex.
-     * {@code D2f-B201-Formation Java-Karim TRABELSI} ou {@code D2f-Salle-TBD-formation-Animateur-TBD}).
+     * {@code D2F-B201-Formation Java-Karim TRABELSI} ou {@code D2F-Salle-TBD-formation-Animateur-TBD}).
      */
     private String buildEventSubject(SeanceFormation freshSeance, Formation freshFormation, String animateursStr) {
         String salle;
@@ -1099,7 +1576,7 @@ public class FormationWorkflowService {
                 ? freshFormation.getTitreFormation().trim() : DETAIL_FORMATION;
         String animateur = (animateursStr != null && !animateursStr.isBlank())
                 ? animateursStr.trim() : "Animateur-TBD";
-        return "D2f-" + salle + "-" + titre + "-" + animateur;
+        return "D2F-" + salle + "-" + titre + "-" + animateur;
     }
 
     private Set<String> buildEmailsSet(SeanceFormation freshSeance, Formation freshFormation) {
@@ -1120,7 +1597,8 @@ public class FormationWorkflowService {
                 && !freshFormation.getExterneFormateurEmail().isBlank()) {
             emails.add(freshFormation.getExterneFormateurEmail());
         }
-        emails.add(organizerEmail);
+        // L'organizer technique (noreply, domaine inexistant) n'est JAMAIS
+        // invité aux événements — il n'est qu'organisateur / expéditeur.
         return emails;
     }
 
@@ -1143,21 +1621,24 @@ public class FormationWorkflowService {
             salleEvent = null;
         }
         OutlookEventParameters eventParams = OutlookEventParameters.builder()
-                .organizerEmail(organizerEmail)
+                .organizerEmail(calendarOrganizer())
                 .eventId(freshSeance.getCalendarEventId())
                 .subject(eventSubject)
                 .htmlContent(eventHtmlContent)
                 .start(eventStart)
                 .end(eventEnd)
                 .salle(salleEvent)
-                .attendeeEmails(new ArrayList<>(emails))
+                .attendeeEmails(new ArrayList<>())
                 .build();
 
         try {
             if (!isNewEvent) {
                 OutlookCalendarService.EventCreationResult res = outlookCalendarService
                         .updateEventInCalendarWithTeamsUrl(eventParams);
-                freshSeance.setOnlineMeetingUrl(res.getJoinUrl());
+                // La réponse d'un PATCH ne contient pas toujours la réunion : garder le lien connu.
+                if (res.getJoinUrl() != null) {
+                    freshSeance.setOnlineMeetingUrl(res.getJoinUrl());
+                }
                 seanceFormationRepository.save(freshSeance);
             } else {
                 OutlookCalendarService.EventCreationResult res = outlookCalendarService
@@ -1171,7 +1652,128 @@ public class FormationWorkflowService {
                     freshSeance.getIdSeance(), ex.getMessage());
         }
 
+        syncPersonalEvents(freshSeance, emails, eventParams);
         sendCalendarNotification(emails, isNewEvent, freshFormation);
+    }
+
+    /**
+     * Événement de la séance dans le calendrier PERSONNEL de chaque personne concernée
+     * (Graph, Calendars.ReadWrite). Sans invités : création, modification et
+     * suppression se font sans aucun e-mail. Une personne retirée de la séance perd
+     * son événement ; une adresse hors tenant (formateur externe) est ignorée.
+     */
+    private void syncPersonalEvents(SeanceFormation seance, Set<String> emails, OutlookEventParameters base) {
+        if (seanceCalendarEventRepository == null || seance.getIdSeance() == null) {
+            return;
+        }
+        Map<String, SeanceCalendarEvent> existants = new HashMap<>();
+        for (SeanceCalendarEvent e : seanceCalendarEventRepository.findBySeanceId(seance.getIdSeance())) {
+            existants.put(e.getEmail().toLowerCase(Locale.ROOT), e);
+        }
+        String html = base.getHtmlContent() + teamsLinkHtml(seance);
+        int ok = 0;
+        for (String email : emails) {
+            String cle = email.toLowerCase(Locale.ROOT);
+            SeanceCalendarEvent lien = existants.remove(cle);
+            OutlookEventParameters params = OutlookEventParameters.builder()
+                    .organizerEmail(email)
+                    .eventId(lien != null ? lien.getEventId() : null)
+                    .subject(base.getSubject())
+                    .htmlContent(html)
+                    .start(base.getStart())
+                    .end(base.getEnd())
+                    .salle(base.getSalle())
+                    .build();
+            try {
+                String eventId = upsertOrRecreate(params);
+                if (lien == null) {
+                    seanceCalendarEventRepository.save(new SeanceCalendarEvent(seance.getIdSeance(), cle, eventId));
+                } else if (!eventId.equals(lien.getEventId())) {
+                    lien.setEventId(eventId);
+                    seanceCalendarEventRepository.save(lien);
+                }
+                ok++;
+            } catch (Exception ex) {
+                log.warn("Calendrier personnel non mis à jour pour une personne de la séance {} : {}",
+                        seance.getIdSeance(), ex.getMessage());
+            }
+        }
+        for (SeanceCalendarEvent retire : existants.values()) {
+            supprimerEvenementPersonnel(seance, retire);
+        }
+        log.info("Séance {} : {}/{} calendrier(s) personnel(s) à jour, {} retiré(s)",
+                seance.getIdSeance(), ok, emails.size(), existants.size());
+    }
+
+    /** Mise à jour ; si la personne a supprimé l'événement (PATCH en échec), on le recrée. */
+    private String upsertOrRecreate(OutlookEventParameters params) {
+        try {
+            return outlookCalendarService.upsertPersonalEvent(params);
+        } catch (RuntimeException ex) {
+            if (params.getEventId() == null) {
+                throw ex;
+            }
+            params.setEventId(null);
+            return outlookCalendarService.upsertPersonalEvent(params);
+        }
+    }
+
+    /** Événements (organisateur + personnels) d'une séance supprimée, retirés après validation. */
+    private void supprimerEvenementsApresValidation(SeanceFormation seance) {
+        if (outlookCalendarService == null) {
+            return;
+        }
+        List<String[]> evenements = new ArrayList<>();
+        if (seance.getCalendarEventId() != null) {
+            evenements.add(new String[] { calendarOrganizer(), seance.getCalendarEventId() });
+        }
+        if (seanceCalendarEventRepository != null && seance.getIdSeance() != null) {
+            for (SeanceCalendarEvent e : seanceCalendarEventRepository.findBySeanceId(seance.getIdSeance())) {
+                evenements.add(new String[] { e.getEmail(), e.getEventId() });
+                seanceCalendarEventRepository.delete(e);
+            }
+        }
+        if (!evenements.isEmpty()) {
+            apresValidation(() -> evenements.forEach(ev -> {
+                try {
+                    outlookCalendarService.deleteEventInCalendar(ev[0], ev[1]);
+                } catch (RuntimeException ex) {
+                    log.error("Suppression d'un événement Outlook de la séance {} impossible : {}",
+                            seance.getIdSeance(), ex.getMessage());
+                }
+            }));
+        }
+    }
+
+    private void deletePersonalEvents(SeanceFormation seance) {
+        if (seanceCalendarEventRepository == null || outlookCalendarService == null || seance.getIdSeance() == null) {
+            return;
+        }
+        for (SeanceCalendarEvent e : seanceCalendarEventRepository.findBySeanceId(seance.getIdSeance())) {
+            supprimerEvenementPersonnel(seance, e);
+        }
+    }
+
+    /**
+     * Retire l'événement d'une personne de son calendrier. Un échec Graph (événement déjà
+     * supprimé par la personne, boîte indisponible) n'interrompt pas les suivants ; le lien
+     * est oublié dans tous les cas pour ne pas bloquer les synchronisations futures.
+     */
+    private void supprimerEvenementPersonnel(SeanceFormation seance, SeanceCalendarEvent lien) {
+        try {
+            outlookCalendarService.deleteEventInCalendar(lien.getEmail(), lien.getEventId());
+        } catch (RuntimeException ex) {
+            log.warn("Événement personnel de la séance {} non supprimé dans Outlook : {}",
+                    seance.getIdSeance(), ex.getMessage());
+        }
+        seanceCalendarEventRepository.delete(lien);
+    }
+
+    private String teamsLinkHtml(SeanceFormation seance) {
+        if (seance.getOnlineMeetingUrl() == null || seance.getOnlineMeetingUrl().isBlank()) {
+            return "";
+        }
+        return "<p>" + LINK_START + seance.getOnlineMeetingUrl() + "\">Rejoindre la réunion Teams</a></p>";
     }
 
     @SuppressWarnings("java:S1172")
@@ -1190,6 +1792,12 @@ public class FormationWorkflowService {
 
     @SuppressWarnings("java:S3776") // graph API cleanup with multiple try/catch layers — single transactional unit
     public void removeSeanceFromCalendar(SeanceFormation seance) {
+        removeSeanceFromCalendar(seance, true);
+    }
+
+    /** @param notify false : pas d'e-mail d'annulation dédié (séance reprise dans un récapitulatif). */
+    @SuppressWarnings("java:S3776")
+    public void removeSeanceFromCalendar(SeanceFormation seance, boolean notify) {
         // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
         if (outlookCalendarService == null) {
             log.info("[Formation] Calendrier Outlook désactivé (azure.ad.enabled=false) — suppression événement ignorée pour séance {}.", seance.getIdSeance());
@@ -1201,10 +1809,14 @@ public class FormationWorkflowService {
 
         if (seance.getCalendarEventId() != null) {
             try {
-                outlookCalendarService.deleteEventInCalendar(organizerEmail, seance.getCalendarEventId());
+                outlookCalendarService.deleteEventInCalendar(calendarOrganizer(), seance.getCalendarEventId());
             } catch (Exception ex) {
                 log.error("Erreur lors de la suppression de l'evenement : {}", ex.getMessage());
             }
+        }
+        deletePersonalEvents(seance);
+        if (!notify) {
+            return;
         }
         try {
             String mailSubject = String.format("[D2F] Annulation de séance : %s",
@@ -1268,33 +1880,35 @@ public class FormationWorkflowService {
         // Collecter tous les emails des personnes concernees
         Set<String> allRecipientEmails = collectAllRecipientEmails(freshFormation);
 
-        // Envoyer un email global d'annulation a tous les concernes
+        // Envoyer un email global d'annulation a tous les concernes (après validation :
+        // la formation est supprimée, le contenu est donc figé ici) — seulement s'ils
+        // avaient été prévenus : rien pour une formation enregistrée (jamais planifiée),
+        // déjà annulée (e-mail déjà reçu) ou achevée (rien à annuler).
         // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
-        if (outlookMailService != null) {
+        if (!personnesInformees(freshFormation.getEtatFormation())) {
+            log.info("Suppression de la formation {} ({}) : aucun e-mail d'annulation",
+                    freshFormation.getIdFormation(), freshFormation.getEtatFormation());
+        } else if (outlookMailService != null) {
             String subject = "[D2F] Annulation de formation : " + freshFormation.getTitreFormation();
             String htmlContent = buildCancellationFormationHtml(freshFormation);
-            for (String email : allRecipientEmails) {
-                try {
-                    outlookMailService.sendMail(email, subject, htmlContent);
-                } catch (Exception ex) {
-                    log.warn("Echec envoi mail d'annulation formation : {}", ex.getMessage());
+            List<String> destinataires = new ArrayList<>(allRecipientEmails);
+            apresValidation(() -> {
+                for (String email : destinataires) {
+                    try {
+                        outlookMailService.sendMail(email, subject, htmlContent);
+                    } catch (Exception ex) {
+                        log.warn("Echec envoi mail d'annulation formation : {}", ex.getMessage());
+                    }
                 }
-            }
+            });
         } else {
             log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — {} emails d'annulation formation non envoyés.", allRecipientEmails.size());
         }
 
-        // Supprimer les evenements Outlook calendar pour chaque seance
+        // Supprimer les evenements Outlook calendar (organisateur + calendriers personnels)
         if (outlookCalendarService != null) {
             for (SeanceFormation seance : freshFormation.getSeances()) {
-                if (seance.getCalendarEventId() != null) {
-                    try {
-                        outlookCalendarService.deleteEventInCalendar(organizerEmail, seance.getCalendarEventId());
-                    } catch (Exception ex) {
-                        log.error("Erreur lors de la suppression de l'evenement calendar pour seance {} : {}",
-                                seance.getIdSeance(), ex.getMessage());
-                    }
-                }
+                supprimerEvenementsApresValidation(seance);
             }
         } else {
             log.info("[Formation] Calendrier Outlook désactivé (azure.ad.enabled=false) — suppression des événements calendrier ignorée.");
@@ -1315,7 +1929,7 @@ public class FormationWorkflowService {
         for (SeanceFormation seance : formation.getSeances()) {
             if (seance.getCalendarEventId() != null) {
                 try {
-                    outlookCalendarService.deleteEventInCalendar(organizerEmail, seance.getCalendarEventId());
+                    outlookCalendarService.deleteEventInCalendar(calendarOrganizer(), seance.getCalendarEventId());
                     log.info("Evenement calendrier supprime pour la seance {} de la formation {}",
                             seance.getIdSeance(), formation.getIdFormation());
                 } catch (Exception ex) {
@@ -1323,6 +1937,7 @@ public class FormationWorkflowService {
                             seance.getIdSeance(), ex.getMessage());
                 }
             }
+            deletePersonalEvents(seance);
         }
     }
 
@@ -1345,6 +1960,11 @@ public class FormationWorkflowService {
     public FormationResponseDTO getFormationWorkflowById(Long formationId) {
         Formation formation = formationRepository.findById(formationId)
                 .orElseThrow(() -> new IllegalArgumentException("Formation introuvable avec l'id : " + formationId));
+        // Lecture scopée : un CUP/chef ne peut pas consulter par identifiant une
+        // formation hors de son UP/département (anti-BOLA ; autres rôles libres).
+        if (animatorScopeService != null) {
+            animatorScopeService.checkReadScope(formation);
+        }
         if (formation.getSeances() != null) {
             formation.getSeances().forEach(seance -> {
                 if (seance.getAnimateurs() != null)
@@ -1362,7 +1982,7 @@ public class FormationWorkflowService {
 
     @Transactional(readOnly = true)
     public List<FormationResponseDTO> getAllFormationWorkflows() {
-        List<Formation> formations = formationRepository.findAll();
+        List<Formation> formations = filterByScope(formationRepository.findAll());
         formations.forEach(this::initializeFormationCollections);
         return formations.stream().map(formationMapper::toResponseDTO).toList();
     }
@@ -1391,12 +2011,30 @@ public class FormationWorkflowService {
         }
     }
 
+    /**
+     * Contrôle row-level : seuls les rôles de gestion (ADMIN/CUP/RESPONSABLE_DOSSIER,
+     * cf. CurrentUser#hasGlobalScope) ou un animateur affecté à la séance peuvent
+     * modifier sa feuille de présence.
+     */
+    private void assertCanManageSeancePresences(SeanceFormation seance, CurrentUser user) {
+        if (user != null && user.hasGlobalScope()) {
+            return;
+        }
+        String email = user != null ? user.email() : null;
+        boolean membre = email != null && seance != null && seance.getAnimateurs() != null
+                && seance.getAnimateurs().stream().anyMatch(e -> email.equalsIgnoreCase(e.getMail()));
+        if (!membre) {
+            throw new AccessDeniedException("Vous n'êtes pas animateur de cette séance");
+        }
+    }
+
     @Transactional
-    public void updatePresence(Long idParticipation, boolean isPresent, String commentaire) {
+    public void updatePresence(Long idParticipation, boolean isPresent, String commentaire, CurrentUser user) {
         Presence presence = presenceRepository.findById(idParticipation)
                 .orElseThrow(() -> new IllegalArgumentException("Presence introuvable pour id " + idParticipation));
-        presence.setPresent(isPresent);
-        presence.setCommentaire(commentaire);
+        assertCanManageSeancePresences(presence.getSeanceFormation(), user);
+        applyPresenceUpdate(presence, isPresent ? PresenceStatus.PRESENT : PresenceStatus.ABSENT,
+            null, null, null, commentaire, user);
         presenceRepository.save(presence);
     }
 
@@ -1422,6 +2060,8 @@ public class FormationWorkflowService {
         dto.setTypeSeance(seance.getTypeSeance());
         dto.setDureePratique(seance.getDureePratique());
         dto.setDureeTheorique(seance.getDureeTheorique());
+        dto.setNumeroSeance(seance.getNumeroSeance());
+        dto.setTotalSeances(seance.getTotalSeances());
 
         if (seance.getAnimateurs() != null) {
             dto.setAnimateurs(seance.getAnimateurs().stream().map(this::mapEnseignantToDTO).toList());
@@ -1433,11 +2073,11 @@ public class FormationWorkflowService {
     }
 
     public List<FormationResponseDTO> getFormationsByAnimateurEmail(String email) {
-        List<Formation> allFormations = formationRepository.findDistinctBySeancesAnimateursMail(email);
-        List<Formation> enCours = allFormations.stream()
-                .filter(f -> f.getEtatFormation() == EtatFormation.EN_COURS)
-                .toList();
-        enCours.forEach(f -> {
+        List<Formation> allFormations = formationRepository.findDistinctBySeancesAnimateursMailIgnoreCase(email);
+        // Toutes les formations animées (y compris ACHEVE) : l'animateur doit pouvoir
+        // consulter et finaliser la feuille de présence même après la fin de la
+        // formation — le filtrage par statut est fait côté interface.
+        allFormations.forEach(f -> {
             if (f.getSeances() != null) {
                 f.getSeances().forEach(s -> {
                     Hibernate.initialize(s.getAnimateurs());
@@ -1445,7 +2085,7 @@ public class FormationWorkflowService {
                 });
             }
         });
-        return enCours.stream().map(formationMapper::toResponseDTO).toList();
+        return allFormations.stream().map(formationMapper::toResponseDTO).toList();
     }
 
     public List<PresenceDTO> getPresencesBySeance(Long seanceId) {
@@ -1459,7 +2099,10 @@ public class FormationWorkflowService {
     }
 
     @Transactional
-    public List<PresenceDTO> batchUpdatePresences(Long seanceId, esprit.pfe.serviceformation.dto.BatchPresenceUpdateRequest request) {
+    public List<PresenceDTO> batchUpdatePresences(Long seanceId, esprit.pfe.serviceformation.dto.BatchPresenceUpdateRequest request, CurrentUser user) {
+        SeanceFormation seance = seanceFormationRepository.findById(seanceId)
+                .orElseThrow(() -> new IllegalArgumentException("Seance introuvable for id " + seanceId));
+        assertCanManageSeancePresences(seance, user);
         if (request == null || request.getUpdates() == null || request.getUpdates().isEmpty()) {
             return getPresencesBySeance(seanceId);
         }
@@ -1475,20 +2118,25 @@ public class FormationWorkflowService {
             if (existing == null) {
                 continue; // skip null items and presences that don't belong to this seance
             }
-            existing.setPresent(item.isPresent());
-            if (item.getCommentaire() != null) {
-                existing.setCommentaire(item.getCommentaire());
-            }
+                applyPresenceUpdate(existing,
+                    item.getStatus() != null ? item.getStatus()
+                        : (item.isPresent() ? PresenceStatus.PRESENT : PresenceStatus.ABSENT),
+                    item.getArrivalTime(), item.getDepartureTime(), item.getJustification(),
+                    item.getCommentaire(), user);
         }
         presenceRepository.saveAll(seancePresences);
         return seancePresences.stream().map(this::mapPresenceToDTO).toList();
     }
 
     @Transactional
-    public List<PresenceDTO> markAllPresences(Long seanceId, boolean present) {
+    public List<PresenceDTO> markAllPresences(Long seanceId, boolean present, CurrentUser user) {
+        SeanceFormation seance = seanceFormationRepository.findById(seanceId)
+                .orElseThrow(() -> new IllegalArgumentException("Seance introuvable for id " + seanceId));
+        assertCanManageSeancePresences(seance, user);
         List<Presence> seancePresences = presenceRepository.findBySeanceFormation_IdSeance(seanceId);
         for (Presence p : seancePresences) {
-            p.setPresent(present);
+            applyPresenceUpdate(p, present ? PresenceStatus.PRESENT : PresenceStatus.ABSENT,
+                    null, null, null, null, user);
             if (present && (p.getCommentaire() == null || p.getCommentaire().isBlank()
                     || "Presence a valider".equalsIgnoreCase(p.getCommentaire()))) {
                 p.setCommentaire("Presence confirmee");
@@ -1511,11 +2159,122 @@ public class FormationWorkflowService {
         PresenceDTO dto = new PresenceDTO();
         dto.setIdParticipation(presence.getIdParticipation());
         dto.setPresent(presence.isPresent());
+        dto.setStatus(presence.getStatus() != null ? presence.getStatus()
+            : (presence.isPresent() ? PresenceStatus.PRESENT : PresenceStatus.ABSENT));
+        dto.setArrivalTime(presence.getArrivalTime());
+        dto.setDepartureTime(presence.getDepartureTime());
+        dto.setJustification(presence.getJustification());
         dto.setCommentaire(presence.getCommentaire());
+        dto.setRecordedBy(presence.getRecordedBy());
+        dto.setRecordedAt(presence.getRecordedAt());
         if (presence.getEnseignant() != null) {
             dto.setEnseignant(mapEnseignantToDTO(presence.getEnseignant()));
         }
         return dto;
+    }
+
+    private void applyPresenceUpdate(Presence presence, PresenceStatus status, LocalTime arrival,
+                                     LocalTime departure, String justification, String comment,
+                                     CurrentUser user) {
+        SeanceFormation seance = presence.getSeanceFormation();
+        // Cohérence temporelle : l'heure de départ ne peut pas précéder l'heure d'arrivée.
+        if (arrival != null && departure != null && departure.isBefore(arrival)) {
+            throw new IllegalArgumentException("L'heure de départ ne peut pas précéder l'heure d'arrivée.");
+        }
+        // Cohérence avec la séance : arrivée pendant la séance, départ après le début.
+        if (seance != null) {
+            if (arrival != null && seance.getHeureFin() != null && arrival.isAfter(seance.getHeureFin())) {
+                throw new IllegalArgumentException("L'heure d'arrivée ne peut pas être postérieure à la fin de la séance.");
+            }
+            if (departure != null && seance.getHeureDebut() != null && departure.isBefore(seance.getHeureDebut())) {
+                throw new IllegalArgumentException("L'heure de départ ne peut pas être antérieure au début de la séance.");
+            }
+        }
+        // ABSENT / EXCUSED : aucune présence enregistrée → horaires réinitialisés.
+        if (status == PresenceStatus.ABSENT || status == PresenceStatus.EXCUSED) {
+            arrival = null;
+            departure = null;
+        }
+        // EXCUSED : absence justifiée → la justification est obligatoire.
+        if (status == PresenceStatus.EXCUSED && (justification == null || justification.isBlank())) {
+            throw new IllegalArgumentException("Une absence justifiée (EXCUSED) doit comporter une justification.");
+        }
+        // PRESENT : arrivée dans le délai prévu (défaut : début de séance).
+        if ((status == PresenceStatus.PRESENT || status == PresenceStatus.LATE)
+                && arrival == null && seance != null && seance.getHeureDebut() != null) {
+            arrival = seance.getHeureDebut();
+        }
+        // LATE : arrivée après l'heure de début de la séance.
+        if (status == PresenceStatus.PRESENT && arrival != null && seance != null
+                && seance.getHeureDebut() != null && arrival.isAfter(seance.getHeureDebut())) {
+            status = PresenceStatus.LATE;
+        }
+        presence.setStatus(status);
+        presence.setPresent(status == PresenceStatus.PRESENT || status == PresenceStatus.LATE);
+        presence.setArrivalTime(arrival);
+        presence.setDepartureTime(departure);
+        presence.setJustification(justification);
+        if (comment != null) {
+            presence.setCommentaire(comment);
+        }
+        presence.setRecordedBy(user != null ? user.username() : null);
+        // Fuseau explicite (S8688) : identique au defaut implicite precedent.
+        presence.setRecordedAt(LocalDateTime.now(ZoneId.systemDefault()));
+    }
+
+    /**
+     * Formations EN_COURS ou ACHEVE dont l'enseignant (e-mail du jeton) est participant
+     * d'une séance ou inscrit approuvé — celles qu'il peut évaluer. Vide sans fiche.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getMesFormationsAEvaluer(String email) {
+        return getMesFormationsAEvaluer(resolveTeacherByIdentity(email));
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getMesFormationsAEvaluer(CurrentUser user) {
+        if (user == null) {
+            return List.of();
+        }
+        return getMesFormationsAEvaluer(resolveTeacherByIdentity(user.email())
+                .or(() -> resolveTeacherByIdentity(user.userId()))
+                .or(() -> resolveTeacherByIdentity(user.username())));
+    }
+
+    private List<Map<String, Object>> getMesFormationsAEvaluer(Optional<Enseignant> fiche) {
+        if (fiche.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, Formation> formations = new LinkedHashMap<>();
+        seanceFormationRepository.findFormationsByParticipant(fiche.get().getId())
+                .forEach(f -> formations.put(f.getIdFormation(), f));
+        if (inscriptionRepository != null) {
+            inscriptionRepository.findByEnseignant_Id(fiche.get().getId()).stream()
+                    .filter(i -> i.getEtat() == EtatInscription.APPROVED && i.getFormation() != null)
+                    .forEach(i -> formations.putIfAbsent(i.getFormation().getIdFormation(), i.getFormation()));
+        }
+        return formations.values().stream()
+                .filter(f -> f.getEtatFormation() == EtatFormation.EN_COURS || f.getEtatFormation() == EtatFormation.ACHEVE)
+                .sorted(Comparator.comparing(Formation::getDateDebut, Comparator.nullsLast(Comparator.reverseOrder())))
+                .map(f -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("idFormation", f.getIdFormation());
+                    m.put("titreFormation", f.getTitreFormation());
+                    m.put("dateDebut", f.getDateDebut());
+                    m.put("dateFin", f.getDateFin());
+                    m.put("etatFormation", f.getEtatFormation());
+                    return m;
+                })
+                .toList();
+    }
+
+    private Optional<Enseignant> resolveTeacherByIdentity(String identity) {
+        if (identity == null || identity.isBlank()) {
+            return Optional.empty();
+        }
+        return enseignantRepository.findByMailIgnoreCase(identity)
+                .or(() -> enseignantRepository.findByUserId(identity))
+                .or(() -> enseignantRepository.findById(identity));
     }
 
     public List<MesPresenceDTO> getMesPresences(String email) {
@@ -1526,22 +2285,46 @@ public class FormationWorkflowService {
             MesPresenceDTO dto = new MesPresenceDTO();
             dto.setIdParticipation(p.getIdParticipation());
             dto.setPresent(p.isPresent());
+                dto.setStatus(p.getStatus() != null ? p.getStatus()
+                    : (p.isPresent() ? PresenceStatus.PRESENT : PresenceStatus.ABSENT));
+                dto.setArrivalTime(p.getArrivalTime());
+                dto.setDepartureTime(p.getDepartureTime());
+                dto.setJustification(p.getJustification());
             dto.setCommentaire(p.getCommentaire());
+                dto.setRecordedBy(p.getRecordedBy());
+                dto.setRecordedAt(p.getRecordedAt());
             if (p.getSeanceFormation() != null) {
-                dto.setSeanceId(p.getSeanceFormation().getIdSeance());
-                dto.setDateSeance(p.getSeanceFormation().getDateSeance());
-                dto.setHeureDebut(p.getSeanceFormation().getHeureDebut() != null ? p.getSeanceFormation().getHeureDebut().toString() : null);
-                dto.setHeureFin(p.getSeanceFormation().getHeureFin() != null ? p.getSeanceFormation().getHeureFin().toString() : null);
-                dto.setSalle(p.getSeanceFormation().getSalle());
-                if (p.getSeanceFormation().getFormation() != null) {
-                    dto.setFormationId(p.getSeanceFormation().getFormation().getIdFormation());
-                    dto.setTitreFormation(p.getSeanceFormation().getFormation().getTitreFormation());
-                    dto.setEtatFormation(p.getSeanceFormation().getFormation().getEtatFormation() != null
-                            ? p.getSeanceFormation().getFormation().getEtatFormation().toString() : null);
+                try {
+                    dto.setSeanceId(p.getSeanceFormation().getIdSeance());
+                    dto.setDateSeance(p.getSeanceFormation().getDateSeance());
+                    dto.setHeureDebut(p.getSeanceFormation().getHeureDebut() != null ? p.getSeanceFormation().getHeureDebut().toString() : null);
+                    dto.setHeureFin(p.getSeanceFormation().getHeureFin() != null ? p.getSeanceFormation().getHeureFin().toString() : null);
+                    dto.setSalle(p.getSeanceFormation().getSalle());
+                    if (p.getSeanceFormation().getFormation() != null) {
+                        copyFormationDetails(dto, p.getSeanceFormation().getFormation());
+                    }
+                } catch (jakarta.persistence.EntityNotFoundException archived) {
+                    // Séance rattachée à une formation archivée : présence gardée sans détail.
                 }
             }
             return dto;
         }).toList();
+    }
+
+    /**
+     * Recopie le détail de la formation d'une présence. Une formation archivée
+     * (soft-delete) lève EntityNotFoundException au chargement paresseux :
+     * l'historique de présence est alors conservé, sans le détail formation.
+     */
+    private static void copyFormationDetails(MesPresenceDTO dto, Formation formation) {
+        try {
+            dto.setFormationId(formation.getIdFormation());
+            dto.setTitreFormation(formation.getTitreFormation());
+            dto.setEtatFormation(formation.getEtatFormation() != null
+                    ? formation.getEtatFormation().toString() : null);
+        } catch (jakarta.persistence.EntityNotFoundException archived) {
+            // Formation archivée : présence conservée sans le détail formation.
+        }
     }
 
     public List<FormationResponseDTO> getFormationsAchevees() {
@@ -1590,6 +2373,41 @@ public class FormationWorkflowService {
 
             return dto;
         }).toList();
+    }
+
+    /**
+     * Contrôle d'identité pour le calendrier enseignant (anti-énumération).
+     *
+     * L'id du path est l'identifiant fonctionnel de la fiche enseignant alors
+     * que le JWT porte username (sub), email et userId technique — une
+     * comparaison directe id-vs-email était toujours fausse et renvoyait 403
+     * aux enseignants consultant leur PROPRE calendrier. Comme
+     * InscriptionService (id OU mail), on croise les identités JWT avec la
+     * fiche résolue par id : l'accès self passe si l'un des identifiants
+     * correspond.
+     */
+    public boolean isSelfCalendar(String enseignantId, CurrentUser user) {
+        if (enseignantId == null || enseignantId.isBlank() || user == null) {
+            return false;
+        }
+        boolean identityMatch = enseignantId.equalsIgnoreCase(user.emailOrUsername())
+                || (user.username() != null && enseignantId.equalsIgnoreCase(user.username()))
+                || (user.userId() != null && enseignantId.equalsIgnoreCase(user.userId()));
+        if (identityMatch) {
+            return true;
+        }
+        return enseignantRepository.findById(enseignantId)
+                .map(enseignant -> matchesIdentity(enseignant.getMail(), user))
+                .orElse(false);
+    }
+
+    /** Le mail de la fiche correspond-il à l'identité du JWT (email ou username) ? */
+    private boolean matchesIdentity(String mail, CurrentUser user) {
+        if (mail == null || mail.isBlank()) {
+            return false;
+        }
+        return mail.equalsIgnoreCase(user.email())
+                || mail.equalsIgnoreCase(user.username());
     }
 
     public FormationsByRoleDTO getFormationsForCalendar(String enseignantId) {
@@ -1652,6 +2470,60 @@ public class FormationWorkflowService {
     @Transactional(readOnly = true)
     public List<FormationResponseDTO> getFormationsParDepartement(String deptId) {
         List<Formation> formations = formationRepository.findByDepartement_Id(deptId);
+        formations.forEach(f -> {
+            if (f.getSeances() != null) {
+                f.getSeances().forEach(seance -> {
+                    if (seance.getAnimateurs() != null)
+                        Hibernate.initialize(seance.getAnimateurs());
+                    if (seance.getParticipants() != null)
+                        Hibernate.initialize(seance.getParticipants());
+                });
+            }
+            if (f.getFormationCompetences() != null)
+                Hibernate.initialize(f.getFormationCompetences());
+            if (f.getInscriptions() != null)
+                Hibernate.initialize(f.getInscriptions());
+        });
+        return formations.stream().map(formationMapper::toResponseDTO).toList();
+    }
+
+    /**
+     * Catalogue scopé serveur pour les pilotes (§8 droits) :
+     * un CUP ne voit que les formations de son UP, un chef de département
+     * celles de son département — périmètre résolu depuis l'email JWT via
+     * l'entité Enseignant, jamais depuis un paramètre client. Les autres
+     * rôles avec FORMATION_READ conservent la vue complète.
+     */
+    @Transactional(readOnly = true)
+    public List<FormationResponseDTO> getMesFormationsPilote(CurrentUser user) {
+        if (user == null || user.email() == null) {
+            throw new IllegalArgumentException("Utilisateur non identifiable");
+        }
+        boolean isCup = user.hasRole("CUP") && !user.isAdmin();
+        boolean isChef = user.hasRole("CHEF_DEPARTEMENT") && !user.isAdmin();
+        if (!isCup && !isChef) {
+            // Vue complète (admin et autres rôles FORMATION_READ).
+            FormationWorkflowService target = (self != null) ? self : this;
+            return target.getAllFormationWorkflows();
+        }
+        Enseignant enseignant = enseignantRepository.findByMailIgnoreCase(user.email())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Profil enseignant introuvable pour l'email : " + user.email()
+                        + " — impossible de résoudre le périmètre (UP/département)."));
+        List<Formation> formations;
+        if (isCup) {
+            if (enseignant.getUp() == null || enseignant.getUp().getId() == null) {
+                throw new IllegalArgumentException(
+                        "Aucune UP rattachée à votre profil — contactez l'administrateur.");
+            }
+            formations = formationRepository.findByUp_Id(enseignant.getUp().getId());
+        } else {
+            if (enseignant.getDept() == null || enseignant.getDept().getId() == null) {
+                throw new IllegalArgumentException(
+                        "Aucun département rattaché à votre profil — contactez l'administrateur.");
+            }
+            formations = formationRepository.findByDepartement_Id(enseignant.getDept().getId());
+        }
         formations.forEach(f -> {
             if (f.getSeances() != null) {
                 f.getSeances().forEach(seance -> {

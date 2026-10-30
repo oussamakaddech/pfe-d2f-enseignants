@@ -16,6 +16,15 @@ import java.util.List;
 public interface SeanceFormationRepository extends JpaRepository<SeanceFormation, Long> {
     // ✅ AJOUTER CETTE MÉTHODE
     List<SeanceFormation> findByFormation_IdFormation(Long formationId);
+
+    /** Participant d'une séance de la formation (id de fiche ou e-mail, casse ignorée). */
+    @Query("SELECT COUNT(s) > 0 FROM SeanceFormation s JOIN s.participants p WHERE s.formation.idFormation = :formationId "
+            + "AND (p.id = :idOrMail OR LOWER(p.mail) = LOWER(:idOrMail))")
+    boolean existsParticipantInFormation(@Param("formationId") Long formationId, @Param("idOrMail") String idOrMail);
+
+    /** Formations dont l'enseignant est participant d'au moins une séance. */
+    @Query("SELECT DISTINCT s.formation FROM SeanceFormation s JOIN s.participants p WHERE p.id = :enseignantId")
+    List<Formation> findFormationsByParticipant(@Param("enseignantId") String enseignantId);
     @Query("""
       SELECT DISTINCT sf.formation
       FROM SeanceFormation sf
@@ -137,32 +146,45 @@ public interface SeanceFormationRepository extends JpaRepository<SeanceFormation
     );
 
     // Pour le reminder scheduler : séances à une date donnée
-    List<SeanceFormation> findByDateSeance(LocalDate dateSeance);
+    // (formations supprimées exclues : leur séance renvoyait un proxy introuvable)
+    @Query("SELECT s FROM SeanceFormation s JOIN s.formation f WHERE s.dateSeance = :dateSeance AND f.deletedAt IS NULL")
+    List<SeanceFormation> findByDateSeance(@Param("dateSeance") LocalDate dateSeance);
 
     // Pour l'export .ics : séances d'un animateur
-    @Query("SELECT s FROM SeanceFormation s JOIN s.animateurs a WHERE a.id = :ensId")
+    @Query("SELECT s FROM SeanceFormation s JOIN s.formation f JOIN s.animateurs a WHERE a.id = :ensId AND f.deletedAt IS NULL")
     List<SeanceFormation> findByAnimateurs_Id(@Param("ensId") String ensId);
 
     // Pour l'export .ics : séances d'un participant
-    @Query("SELECT s FROM SeanceFormation s JOIN s.participants p WHERE p.id = :ensId")
+    @Query("SELECT s FROM SeanceFormation s JOIN s.formation f JOIN s.participants p WHERE p.id = :ensId AND f.deletedAt IS NULL")
     List<SeanceFormation> findByParticipants_Id(@Param("ensId") String ensId);
 
     // ==================== CALENDRIER ====================
 
-    /** Toutes les séances, ordonnées chronologiquement (export « tout le calendrier »). */
+    /** Séances des formations non supprimées, ordonnées chronologiquement (détection des conflits). */
     @Query("""
         SELECT s FROM SeanceFormation s
-        LEFT JOIN FETCH s.formation
+        JOIN FETCH s.formation f
+        WHERE f.deletedAt IS NULL
         ORDER BY s.dateSeance, s.heureDebut
         """)
     List<SeanceFormation> findAllByOrderByDateSeanceAscHeureDebutAsc();
 
+    /** Séances des formations importées du calendrier (.xlsx), pour l'export .ics global. */
+    @Query("""
+        SELECT s FROM SeanceFormation s
+        JOIN FETCH s.formation f
+        WHERE f.sourceCalendrier = true
+        ORDER BY s.dateSeance, s.heureDebut
+        """)
+    List<SeanceFormation> findByFormation_SourceCalendrierTrueOrderByDateSeanceAscHeureDebutAsc();
+
     /** Séances d'un participant identifié par son e-mail (export personnel par e-mail). */
-    @Query("SELECT s FROM SeanceFormation s JOIN s.participants p WHERE LOWER(p.mail) = LOWER(:mail)")
+    @Query("SELECT s FROM SeanceFormation s JOIN s.formation f JOIN s.participants p WHERE LOWER(p.mail) = LOWER(:mail) AND f.deletedAt IS NULL")
     List<SeanceFormation> findByParticipantMail(@Param("mail") String mail);
 
     /** Séances appartenant à un ensemble de formations (résolution par e-mail importé). */
-    List<SeanceFormation> findByFormation_IdFormationIn(List<Long> formationIds);
+    @Query("SELECT s FROM SeanceFormation s JOIN s.formation f WHERE f.idFormation IN :formationIds AND f.deletedAt IS NULL")
+    List<SeanceFormation> findByFormation_IdFormationIn(@Param("formationIds") List<Long> formationIds);
 
     /** Séances d'une formation, ordonnées par numéro de séance puis date. */
     List<SeanceFormation> findByFormation_IdFormationOrderByNumeroSeanceAscDateSeanceAsc(Long formationId);

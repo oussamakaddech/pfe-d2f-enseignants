@@ -18,7 +18,7 @@ describe('SkillHeatmap', () => {
   });
   it('affiche un message vide sans cellules', () => {
     render(<SkillHeatmap cells={[]} loading={false} selected={null} onCellClick={vi.fn()} />);
-    expect(screen.getByText('Aucun écart de compétence calculé')).toBeInTheDocument();
+    expect(screen.getByText('Aucun écart de couverture calculé')).toBeInTheDocument();
   });
   it('affiche les départements et compétences', () => {
     render(<SkillHeatmap cells={cells} loading={false} selected={null} onCellClick={vi.fn()} />);

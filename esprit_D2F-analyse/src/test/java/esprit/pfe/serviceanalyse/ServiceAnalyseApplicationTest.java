@@ -6,7 +6,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(properties = {"JWT_SECRET=test-secret", "spring.main.web-application-type=none"})
+@SpringBootTest(properties = {"JWT_SECRET=test-secret-key-for-integration-tests-must-be-at-least-64-chars-long-for-hs512", "spring.main.web-application-type=none"})
 @ActiveProfiles("test")
 class ServiceAnalyseApplicationTest {
 
@@ -21,14 +21,14 @@ class ServiceAnalyseApplicationTest {
     @Test
     void mainMethodTest() {
         // Test that the main method can be called without throwing exceptions
-        String[] args = {"--JWT_SECRET=test-secret", "--spring.main.web-application-type=none"};
+        String[] args = {"--JWT_SECRET=test-secret-key-for-integration-tests-must-be-at-least-64-chars-long-for-hs512", "--spring.main.web-application-type=none"};
         assertDoesNotThrow(() -> ServiceAnalyseApplication.main(args), "La méthode main ne doit pas lancer d'exception");
     }
 
     @Test
     void mainMethodTestWithArguments() {
         // Test that the main method can be called with arguments without throwing exceptions
-        String[] args = {"--spring.profiles.active=test", "--JWT_SECRET=test-secret", "--spring.main.web-application-type=none"};
+        String[] args = {"--spring.profiles.active=test", "--JWT_SECRET=test-secret-key-for-integration-tests-must-be-at-least-64-chars-long-for-hs512", "--spring.main.web-application-type=none"};
         assertDoesNotThrow(() -> ServiceAnalyseApplication.main(args), "La méthode main ne doit pas lancer d'exception avec des arguments");
     }
 
@@ -43,14 +43,14 @@ class ServiceAnalyseApplicationTest {
     @Test
     void mainMethodTestWithEmptyArguments() {
         // Test that the main method can be called with empty arguments without throwing exceptions
-        String[] args = {"--JWT_SECRET=test-secret", "--spring.main.web-application-type=none"};
+        String[] args = {"--JWT_SECRET=test-secret-key-for-integration-tests-must-be-at-least-64-chars-long-for-hs512", "--spring.main.web-application-type=none"};
         assertDoesNotThrow(() -> ServiceAnalyseApplication.main(args), "La méthode main ne doit pas lancer d'exception avec des arguments vides");
     }
 
     @Test
     void mainMethodTestWithMultipleArguments() {
         // Test that the main method can be called with multiple arguments without throwing exceptions
-        String[] args = {"--spring.profiles.active=test", "--JWT_SECRET=test-secret", "--spring.main.web-application-type=none", "--logging.level.root=INFO"};
+        String[] args = {"--spring.profiles.active=test", "--JWT_SECRET=test-secret-key-for-integration-tests-must-be-at-least-64-chars-long-for-hs512", "--spring.main.web-application-type=none", "--logging.level.root=INFO"};
         assertDoesNotThrow(() -> ServiceAnalyseApplication.main(args), "La méthode main ne doit pas lancer d'exception avec plusieurs arguments");
     }
 }

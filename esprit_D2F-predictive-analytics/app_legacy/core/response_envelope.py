@@ -19,6 +19,10 @@ Data source values (data_source):
   - cache        : Cached dashboard snapshot.
   - heuristic    : Rule-based fallback (no model).
   - ml_model     : Predictive model output.
+
+Audit d'autorité 2026-09-22 (§3.6) : toutes les enveloppes ci-dessous injectent
+le bloc contractuel `meta` (model_mode / model_version / fallback_reason /
+target_validity…) via `_with_model_meta`.
 """
 
 from __future__ import annotations
@@ -44,11 +48,33 @@ SRC_ML = "ml_model"
 STALENESS_THRESHOLD_HOURS = 24
 
 
+def _with_model_meta(data: dict[str, Any]) -> dict[str, Any]:
+    """Injecte le bloc meta contractuel (audit d'autorité 2026-09-22, §3.6).
+
+    Chaque enveloppe analytics porte désormais `model_mode` / `model_version` /
+    `fallback_reason` / `target_validity`… construits par
+    `app.api.v1.model_meta.legacy_model_meta()` : une réponse qui ne dit pas
+    quel moteur l'a produite n'est pas auditable. Injection paresseuse (import
+    différé — pas de cycle) et JAMAIS écrasante : si la route a déjà posé une
+    clé du contrat, elle prévaut.
+    """
+    try:
+        from app.api.v1.model_meta import legacy_model_meta
+
+        meta = legacy_model_meta()
+    except Exception:  # pragma: no cover - le legacy reste servi sans meta
+        return data
+    for key, value in meta.items():
+        data.setdefault(key, value)
+    return data
+STALENESS_THRESHOLD_HOURS = 24
+
+
 def ready(data: dict[str, Any], *, data_source: str = SRC_DB) -> dict[str, Any]:
     """Wrap a response dict with READY status."""
     data["analysis_status"] = READY
     data["data_source"] = data_source
-    return data
+    return _with_model_meta(data)
 
 
 def data_incomplete(
@@ -62,7 +88,7 @@ def data_incomplete(
     data["data_source"] = data_source
     if warnings:
         data["warnings"] = warnings
-    return data
+    return _with_model_meta(data)
 
 
 def not_found(
@@ -74,7 +100,7 @@ def not_found(
     data["analysis_status"] = NOT_FOUND
     data["data_source"] = None
     data["warnings"] = [message]
-    return data
+    return _with_model_meta(data)
 
 
 def model_fallback(
@@ -87,7 +113,7 @@ def model_fallback(
     data["data_source"] = SRC_HEURISTIC
     if warnings:
         data["warnings"] = warnings
-    return data
+    return _with_model_meta(data)
 
 
 def stale_data(
@@ -103,7 +129,7 @@ def stale_data(
     data.setdefault("warnings", []).append(msg)
     if warnings:
         data["warnings"].extend(warnings)
-    return data
+    return _with_model_meta(data)
 
 
 def computation_failed(
@@ -115,4 +141,4 @@ def computation_failed(
     data["analysis_status"] = COMPUTATION_FAILED
     data["data_source"] = None
     data["warnings"] = [f"Computation failed: {error}"]
-    return data
+    return _with_model_meta(data)

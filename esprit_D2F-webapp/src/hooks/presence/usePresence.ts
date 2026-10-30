@@ -40,14 +40,20 @@ export function useUpdatePresence() {
   return useMutation({
     mutationFn: ({
       id,
+      seanceId,
       isPresent,
       commentaire,
     }: {
       id: Id;
+      seanceId?: Id;
       isPresent: boolean;
       commentaire?: string;
     }) => FormationWorkflowService.updatePresence(id, isPresent, commentaire),
-    onSuccess: (_, { id }) => qc.invalidateQueries({ queryKey: KEYS.seancePresences(id) }),
+    onSuccess: (_, { seanceId }) => {
+      if (seanceId !== undefined) {
+        qc.invalidateQueries({ queryKey: KEYS.seancePresences(seanceId) });
+      }
+    },
   });
 }
 

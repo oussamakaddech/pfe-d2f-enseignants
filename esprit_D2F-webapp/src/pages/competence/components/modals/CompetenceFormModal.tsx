@@ -1,8 +1,18 @@
 import { Form, Input, Modal, Select } from 'antd';
 import type { FormInstance } from 'antd';
 import type useCompetenceCrud from '@/hooks/competence/useCompetenceCrud';
+import { useAllUps } from '@/hooks/formation/useUpCrud';
+import { useAllDepts } from '@/hooks/formation/useDeptCrud';
+import type { LookupItem } from '@/models/common';
 
 const { Option } = Select;
+
+function toOptions(items: LookupItem[]) {
+  return (items ?? []).map((item) => ({
+    value: item.id as string | number,
+    label: item.name ?? item.libelle ?? String(item.id),
+  }));
+}
 
 interface CompetenceFormModalProps {
   crud: ReturnType<typeof useCompetenceCrud>;
@@ -13,6 +23,9 @@ export default function CompetenceFormModal({
   crud,
   compForm,
 }: Readonly<CompetenceFormModalProps>) {
+  const { data: ups = [] } = useAllUps();
+  const { data: depts = [] } = useAllDepts();
+
   return (
     <Modal
       forceRender
@@ -76,6 +89,34 @@ export default function CompetenceFormModal({
           extra="Optionnel: saisie manuelle libre (ex: Java avance, Maven, SQL)."
         >
           <Input.TextArea rows={3} placeholder="Ecrire les prerequis manuellement" />
+        </Form.Item>
+        <Form.Item
+          name="upIds"
+          label="UP concernees"
+          extra="Optionnel: plusieurs UP possibles. Sans selection, la competence herite de la UP de son domaine."
+        >
+          <Select
+            mode="multiple"
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            placeholder="Selectionner une ou plusieurs UP"
+            options={toOptions(ups)}
+          />
+        </Form.Item>
+        <Form.Item
+          name="departementIds"
+          label="Departements concernes"
+          extra="Optionnel: plusieurs departements possibles. Sans selection, la competence herite du departement de son domaine."
+        >
+          <Select
+            mode="multiple"
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            placeholder="Selectionner un ou plusieurs departements"
+            options={toOptions(depts)}
+          />
         </Form.Item>
       </Form>
     </Modal>

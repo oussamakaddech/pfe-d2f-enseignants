@@ -45,6 +45,7 @@ export default function PersonalDashboard({ role: roleProp }: { readonly role?: 
       isCup: false,
       isEnseignant: roleKey === 'enseignant',
       isAnimateur: roleKey === 'animateur',
+      isPilotage: false,
       start,
       end,
       rangeKey: '12m',
@@ -68,12 +69,18 @@ export default function PersonalDashboard({ role: roleProp }: { readonly role?: 
       color: '#8b5cf6',
     },
     { label: 'Mes formations', to: '/home/Inscriptions', icon: <BookOutlined />, color: '#3b82f6' },
-    {
-      label: 'Mon calendrier',
-      to: '/home/Calendrier',
-      icon: <CalendarOutlined />,
-      color: '#00b4d8',
-    },
+    // Le calendrier global n'est accessible qu'aux CHEF_DEPARTEMENT et ADMIN ;
+    // masqué pour l'ENSEIGNANT (RoleGuard /home/Calendrier ne l'autorise pas).
+    ...(roleKey !== 'enseignant'
+      ? [
+          {
+            label: 'Mon calendrier',
+            to: '/home/Calendrier',
+            icon: <CalendarOutlined />,
+            color: '#00b4d8',
+          },
+        ]
+      : []),
     {
       label: 'Déposer un besoin',
       to: '/home/besoins/ajouter',

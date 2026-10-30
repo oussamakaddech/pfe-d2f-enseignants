@@ -1,7 +1,8 @@
-import { Button, Popconfirm, Tooltip, Avatar } from 'antd';
+import { Button, Popconfirm, Tooltip, Avatar, Tag } from 'antd';
 import type React from 'react';
 import {
   CheckCircleOutlined,
+  CloseCircleOutlined,
   MailOutlined,
   EditOutlined,
   DeleteOutlined,
@@ -15,6 +16,8 @@ import {
 import BesoinPriorityBadge from './BesoinPriorityBadge';
 import BesoinStatusBadge from './BesoinStatusBadge';
 import BesoinCardMeta from './BesoinCardMeta';
+import { getDecisionState, stepLabel } from '@/utils/besoin/workflow';
+import type { BesoinFormation } from '@/models/besoin';
 
 const TYPE_TONES: Record<string, string> = {
   INDIVIDUEL: 'info',
@@ -31,11 +34,18 @@ interface BesoinData {
   id?: string | number;
   priorite?: string;
   username?: string;
+  createdByUserId?: string;
   titre?: string;
   objectifFormation?: string;
   typeBesoin?: string;
   dateCreation?: string;
+  approuveCUP?: boolean;
+  approuveChefDep?: boolean;
   approuveAdmin?: boolean;
+  status?: string;
+  currentApprovalStep?: string;
+  rejectionReason?: string;
+  rejectedBy?: string;
   propositionAnimateur?: string;
   horaireSouhaite?: string;
   theme?: string;
@@ -47,7 +57,15 @@ interface BesoinCardProps {
   deptLabel?: string | null;
   periodLabel?: string | null;
   approvingId?: string | number | null;
+  canApprove?: boolean;
+  canReject?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  userRole?: string;
+  currentUsername?: string | null;
+  currentUserId?: string | number | null;
   onApprove: (besoin: Record<string, unknown>) => void;
+  onReject: (besoin: Record<string, unknown>) => void;
   onOpenMail: (besoin: Record<string, unknown>) => void;
   onEdit: (besoin: Record<string, unknown>) => void;
   onDelete: (id: string | number) => void;
@@ -103,7 +121,15 @@ export default function BesoinCard({
   deptLabel,
   periodLabel,
   approvingId,
+  canApprove = true,
+  canReject = true,
+  canEdit = true,
+  canDelete = true,
+  userRole = '',
+  currentUsername = null,
+  currentUserId = null,
   onApprove,
+  onReject,
   onOpenMail,
   onEdit,
   onDelete,
@@ -117,6 +143,17 @@ export default function BesoinCard({
   const typeTone = TYPE_TONES[besoin.typeBesoin ?? ''] || 'info';
   const typeLabel = TYPE_LABELS[besoin.typeBesoin ?? ''] || besoin.typeBesoin?.replaceAll('_', ' ');
   const recent = isRecent(besoin.dateCreation);
+
+  // Règles d'affichage miroir du backend (le serveur refait tous les contrôles) :
+  // étape ↔ rôle, statuts terminaux, créateur exclu.
+  const decision = getDecisionState(besoin as unknown as BesoinFormation, {
+    username: currentUsername,
+    userId: currentUserId,
+    role: userRole,
+  });
+  const showApprove = canApprove && decision.canApprove;
+  const showReject = canReject && decision.canReject;
+  const stepChip = !decision.isTerminal && decision.step ? stepLabel(decision.step) : null;
 
   const bRecord = besoin as unknown as Record<string, unknown>;
   const stopProp = (fn: () => void) => (e?: React.SyntheticEvent) => {
@@ -167,8 +204,21 @@ export default function BesoinCard({
         {/* Top : badges */}
         <header className="bf-card__top">
           <BesoinPriorityBadge value={priorite} />
-          <BesoinStatusBadge approved={!!besoin.approuveAdmin} />
+          <BesoinStatusBadge approved={!!besoin.approuveAdmin} status={besoin.status} />
         </header>
+        {stepChip && (
+          <div style={{ marginBottom: 4 }}>
+            <Tag color="default" className="bf-step-chip">
+              <ClockCircleOutlined /> {stepChip}
+            </Tag>
+          </div>
+        )}
+        {besoin.status === 'REJECTED' && besoin.rejectionReason && (
+          <p className="bf-card__reject-reason">
+            <strong>Motif du refus{besoin.rejectedBy ? ` (${besoin.rejectedBy})` : ''} : </strong>
+            {besoin.rejectionReason}
+          </p>
+        )}
 
         {/* Title */}
         <h3 className="bf-card__title" title={title}>
@@ -223,7 +273,7 @@ export default function BesoinCard({
 
       {/* Actions */}
       <div className="bf-card__actions">
-        {!besoin.approuveAdmin && (
+        {showApprove && (
           <Popconfirm
             title="Approuver ce besoin ?"
             description="Cela lance la création de la formation associée."
@@ -245,6 +295,21 @@ export default function BesoinCard({
             </Button>
           </Popconfirm>
         )}
+        {showReject && (
+          <Tooltip title="Refuser ce besoin (motif obligatoire)">
+            <Button
+              danger
+              size="small"
+              icon={<CloseCircleOutlined />}
+              loading={approvingId === id}
+              className="bf-card__cta"
+              onClick={stopProp(() => onReject(bRecord))}
+              aria-label="Refuser"
+            >
+              Refuser
+            </Button>
+          </Tooltip>
+        )}
         <Tooltip title="Demander des informations au CUP">
           <Button
             size="small"
@@ -254,35 +319,39 @@ export default function BesoinCard({
             aria-label="Email CUP"
           />
         </Tooltip>
-        <Tooltip title="Modifier">
-          <Button
-            size="small"
-            icon={<EditOutlined />}
-            onClick={stopProp(() => onEdit(bRecord))}
-            className="bf-iconbtn"
-            aria-label="Modifier"
-          />
-        </Tooltip>
-        <Popconfirm
-          title="Supprimer ce besoin ?"
-          description="Cette action est irréversible."
-          onConfirm={stopProp(() => {
-            if (id != null) onDelete(id);
-          })}
-          onCancel={(e) => e?.stopPropagation()}
-          okText="Supprimer"
-          cancelText="Annuler"
-          okButtonProps={{ danger: true }}
-        >
-          <Button
-            danger
-            size="small"
-            icon={<DeleteOutlined />}
-            className="bf-iconbtn bf-iconbtn--danger"
-            onClick={(e) => e.stopPropagation()}
-            aria-label="Supprimer"
-          />
-        </Popconfirm>
+        {canEdit && (
+          <Tooltip title="Modifier">
+            <Button
+              size="small"
+              icon={<EditOutlined />}
+              onClick={stopProp(() => onEdit(bRecord))}
+              className="bf-iconbtn"
+              aria-label="Modifier"
+            />
+          </Tooltip>
+        )}
+        {canDelete && (
+          <Popconfirm
+            title="Supprimer ce besoin ?"
+            description="Cette action est irréversible."
+            onConfirm={stopProp(() => {
+              if (id != null) onDelete(id);
+            })}
+            onCancel={(e) => e?.stopPropagation()}
+            okText="Supprimer"
+            cancelText="Annuler"
+            okButtonProps={{ danger: true }}
+          >
+            <Button
+              danger
+              size="small"
+              icon={<DeleteOutlined />}
+              className="bf-iconbtn bf-iconbtn--danger"
+              onClick={(e) => e.stopPropagation()}
+              aria-label="Supprimer"
+            />
+          </Popconfirm>
+        )}
       </div>
     </div>
   );

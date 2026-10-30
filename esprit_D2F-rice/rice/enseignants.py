@@ -25,6 +25,9 @@ def _normalize_match_name(fiche_name: str) -> str:
     ).strip()
 
 
+# Recherche par sous-chaîne (fallback quand la lib fuzzy est absente) :
+# teste si le nom normalisé de l'enseignant (ou l'inversion nom/prénom, ou
+# juste son nom de famille > 3 lettres) est contenu dans le nom de la fiche.
 def _substring_match_name(fn_norm: str, ens_lookup: List[Tuple[str, str, str]]) -> Optional[Tuple[str, str]]:
     for eid, display, ens_norm in ens_lookup:
         if ens_norm in fn_norm or _normalize("".join(reversed(ens_norm.split()))) in fn_norm:
@@ -35,6 +38,9 @@ def _substring_match_name(fn_norm: str, ens_lookup: List[Tuple[str, str, str]]) 
     return None
 
 
+# Associe les noms extraits des fiches aux enseignants de la base :
+# fuzzy matching (token_sort_ratio, seuil 82) si disponible, sinon
+# sous-chaînes. Renvoie (liste des IDs matchés, mapping nom → (id, affichage)).
 def _match_enseignants_by_name(
     fiche_names: List[str],
     enseignants: List[EnseignantInfo],

@@ -1,5 +1,7 @@
 package esprit.pfe.serviceanalyse.service.passport;
 
+import esprit.pfe.serviceanalyse.exception.ResourceNotFoundException;
+import org.springframework.web.client.HttpClientErrorException;
 import esprit.pfe.serviceanalyse.dto.passport.*;
 import esprit.pfe.serviceanalyse.services.AnalysePredictiveService;
 import esprit.pfe.serviceanalyse.service.client.AuthServiceClient;
@@ -54,7 +56,13 @@ public class SkillPassportAssembler {
             identity = authClient.getTeacherIdentityFromJwt(authentication);
         } else {
             // Admin/CUP cherche le passeport d'un autre → fetcher depuis auth
-            identity = authClient.getTeacherIdentity(enseignantUsername, bearerToken);
+            try {
+                identity = authClient.getTeacherIdentity(enseignantUsername, bearerToken);
+            } catch (HttpClientErrorException.NotFound e) {
+                // Compte inconnu du service d'authentification : 404 explicite,
+                // pas une erreur interne (500) remontée au client.
+                throw new ResourceNotFoundException("Aucun compte utilisateur : " + enseignantUsername);
+            }
         }
 
         // ── 2/3/4. Agrégations inter-services — isolées : l'échec d'un service

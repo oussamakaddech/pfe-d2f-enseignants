@@ -27,6 +27,7 @@ from fastapi.responses import JSONResponse
 logger = logging.getLogger("rice.error_handlers")
 
 
+# Construit l'enveloppe d'erreur standard DSI : {timestamp, status, errorCode, message, path, traceId}.
 def _envelope(status: int, error_code: str, message: str, path: str, trace_id: str) -> dict:
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -38,6 +39,7 @@ def _envelope(status: int, error_code: str, message: str, path: str, trace_id: s
     }
 
 
+# Récupère/récupère l'ID de corrélation : header X-Trace-Id → request.state → UUID généré.
 def _trace_id(request: Request) -> str:
     return (
         request.headers.get("X-Trace-Id")
@@ -49,6 +51,8 @@ def _trace_id(request: Request) -> str:
 def register_exception_handlers(app: FastAPI, service_prefix: str = "RICE") -> None:
     """Register DSI-standard error handlers on the given FastAPI app."""
 
+    # Handler HTTPException : erreurs métier attendues (400, 404…) →
+    # enveloppe standard, code RICE-<status>, log côté serveur avec traceId.
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):
         trace_id = _trace_id(request)
@@ -67,6 +71,8 @@ def register_exception_handlers(app: FastAPI, service_prefix: str = "RICE") -> N
             ),
         )
 
+    # Handler RequestValidationError : payload invalide (pydantic) → 422
+    # avec le détail des champs en erreur, enveloppe standard.
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
         trace_id = _trace_id(request)
@@ -89,6 +95,8 @@ def register_exception_handlers(app: FastAPI, service_prefix: str = "RICE") -> N
             ),
         )
 
+    # Handler générique : toute exception imprévue → 500 avec message neutre
+    # (jamais de stack trace au client) ; la stack est loggée serveur.
     @app.exception_handler(Exception)
     async def generic_exception_handler(request: Request, exc: Exception):
         trace_id = _trace_id(request)

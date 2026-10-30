@@ -13,12 +13,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import esprit.pfe.serviceanalyse.exception.ResourceNotFoundException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.client.HttpClientErrorException;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -430,5 +434,16 @@ class SkillPassportAssemblerTest {
         assertThat(passport.getIdentity().getUsername()).isEqualTo("jdoe");
         verify(authClient).getTeacherIdentityFromJwt(any());
         verify(authClient, never()).getTeacherIdentity(any(), any());
+    }
+
+    // ── Compte inconnu de l'auth : 404, pas 500 ───────────────────────────
+    @Test
+    void assemble_unknownAuthAccount_throwsNotFound() {
+        when(authClient.getTeacherIdentity(eq("ENS015"), any()))
+                .thenThrow(HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
+
+        assertThatThrownBy(() -> assembler.assemble("ENS015", authentication, "Bearer token"))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("ENS015");
     }
 }

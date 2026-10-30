@@ -364,6 +364,7 @@
   display: flex;
   gap: 8px;
   margin-top: 4px;
+  flex-wrap: wrap;
 }
 .tlc-dept {
   font-size: 12px;
@@ -372,6 +373,15 @@
   border-radius: 6px;
   padding: 4px 8px;
   font-weight: 700;
+}
+.tlc-up {
+  background: #eef4ff;
+  color: #1d4ed8;
+}
+.tlc-dept--empty {
+  background: #fafafa;
+  color: #999;
+  font-weight: 400;
 }
 .tlc-grade {
   font-size: 12px;

@@ -1,5 +1,7 @@
 package esprit.pfe.servicecertificat.exception;
 
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -70,6 +72,12 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), MODULE_PREFIX + "-500", request);
     }
 
+    @ExceptionHandler(QrCodeGenerationException.class)
+    public ResponseEntity<ErrorResponse> handleQrCodeGeneration(QrCodeGenerationException ex, HttpServletRequest request) {
+        log.error("QR code generation error: {}", ex.getMessage());
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), MODULE_PREFIX + "-500", request);
+    }
+
     /**
      * Ressource statique / endpoint introuvable → 404 (au lieu de 500).
      * Empêche NoResourceFoundException de tomber dans le handler générique.
@@ -78,6 +86,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleNoResourceFound(NoResourceFoundException ex, HttpServletRequest request) {
         log.error("Resource not found: {}", ex.getMessage());
         return buildResponse(HttpStatus.NOT_FOUND, "La ressource demandée n'existe pas : " + ex.getResourcePath(), MODULE_PREFIX + "-404", request);
+    }
+
+    // Paramètre absent ou mal typé : erreur du client (400), pas une panne serveur.
+    @ExceptionHandler({MissingServletRequestParameterException.class, MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<ErrorResponse> handleBadRequestParameter(Exception ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, badParameterMessage(ex), MODULE_PREFIX + "-400", request);
     }
 
     @ExceptionHandler(Exception.class)
@@ -101,5 +115,16 @@ public class GlobalExceptionHandler {
                 .traceId(traceId)
                 .build();
         return new ResponseEntity<>(response, status);
+    }
+
+    /** Message client pour un paramètre de requête absent ou mal typé (sans nom de classe Java). */
+    private static String badParameterMessage(Exception ex) {
+        if (ex instanceof MissingServletRequestParameterException missing) {
+            return "Paramètre obligatoire manquant : " + missing.getParameterName();
+        }
+        if (ex instanceof MethodArgumentTypeMismatchException mismatch) {
+            return "Valeur invalide pour le paramètre '" + mismatch.getName() + "'";
+        }
+        return "Paramètre de requête invalide.";
     }
 }

@@ -4,10 +4,12 @@ import esprit.pfe.serviceformation.config.AsyncConfig;
 import esprit.pfe.serviceformation.config.CalendarProperties;
 import esprit.pfe.serviceformation.config.PiiSafeLogger;
 import esprit.pfe.serviceformation.entities.EmailAuditLog;
+import esprit.pfe.serviceformation.microsoft.OutlookMailService;
 import esprit.pfe.serviceformation.repositories.EmailAuditLogRepository;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -38,6 +40,9 @@ public class CalendarMailSender {
     private final JavaMailSender mailSender;
     private final EmailAuditLogRepository auditRepository;
     private final CalendarProperties properties;
+    /** Microsoft Graph (azure.ad.enabled=true) : canal prioritaire, le SMTP authentifié
+     *  étant désactivé côté Office 365 ; SMTP seulement en repli quand Graph est absent. */
+    private final ObjectProvider<OutlookMailService> outlookMailServiceProvider;
 
     @Async(AsyncConfig.CALENDAR_MAIL_EXECUTOR)
     public void sendInvitation(Long formationId, String recipient, byte[] icsContent,
@@ -45,6 +50,14 @@ public class CalendarMailSender {
         boolean success = false;
         String error = null;
         try {
+            OutlookMailService graph = outlookMailServiceProvider != null
+                    ? outlookMailServiceProvider.getIfAvailable() : null;
+            if (graph != null) {
+                graph.sendMailWithAttachment(recipient, subject, body, false,
+                        ICS_FILENAME, ICS_CONTENT_TYPE, icsContent);
+                success = true;
+                return;
+            }
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
             helper.setFrom(properties.getMail().getFrom());

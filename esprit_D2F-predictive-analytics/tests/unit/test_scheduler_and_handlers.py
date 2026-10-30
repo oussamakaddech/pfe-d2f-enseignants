@@ -1,23 +1,16 @@
-"""Couverture des modules scheduler/jobs, messaging/event_handlers et schemas/dashboards."""
+"""Couverture des modules scheduler/jobs et messaging/event_handlers."""
 from types import SimpleNamespace
 
 import pytest
 
 from app.infrastructure.scheduler import jobs as jobs_mod
 from app.infrastructure.messaging.event_handlers import build_event_handlers
-from app.schemas.dashboards import DashboardOut
 from tests.fakes import build_fake_container
 
 
 @pytest.fixture
 def container():
     return build_fake_container()
-
-
-def test_dashboard_out_serializes_data():
-    model = DashboardOut(data={"kpi": 1, "nested": [1, 2]})
-    assert model.data["kpi"] == 1
-    assert DashboardOut.model_config.get("protected_namespaces") == ()
 
 
 def test_lancer_batch_analyses_all_teachers(container):

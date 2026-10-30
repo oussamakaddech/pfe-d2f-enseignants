@@ -1,7 +1,6 @@
 import { Button, Space, Typography } from 'antd';
 import {
   FileTextOutlined,
-  LoadingOutlined,
   MergeCellsOutlined,
   ReloadOutlined,
   RobotOutlined,
@@ -20,15 +19,10 @@ interface LiveStats {
 interface RiceHeroSectionProps {
   currentDeptLabel: string;
   filesCount: number;
-  currentStep: number;
-  stepsCount: number;
-  currentStageTitle: string;
   liveStats: LiveStats;
   allEnseignants: EnseignantRef[];
   ignoreEnseignants: boolean;
   effectiveEnseignants: EnseignantRef[];
-  analyzing: boolean;
-  onAnalyze: () => void;
   onNavigateMatchmaking: () => void;
   onReset: () => void;
 }
@@ -45,15 +39,10 @@ const METRIC_ICONS = [
 export default function RiceHeroSection({
   currentDeptLabel,
   filesCount,
-  currentStep,
-  stepsCount,
-  currentStageTitle,
   liveStats,
   allEnseignants,
   ignoreEnseignants,
   effectiveEnseignants,
-  analyzing,
-  onAnalyze,
   onNavigateMatchmaking,
   onReset,
 }: Readonly<RiceHeroSectionProps>) {
@@ -77,9 +66,9 @@ export default function RiceHeroSection({
       note: `${liveStats.totalDomaines} dom. · ${liveStats.totalComp} comp.`,
     },
     {
-      label: 'Affectations',
+      label: 'Enseignants affectés',
       value: liveStats.enseignantsAssigned,
-      note: `${effectiveEnseignants.length} enseignants visibles`,
+      note: `sur ${effectiveEnseignants.length} disponibles`,
     },
   ];
 
@@ -97,10 +86,6 @@ export default function RiceHeroSection({
           </Title>
           <div className="rice-hero-chips">
             <span className="rice-chip rice-chip-accent">{currentDeptLabel}</span>
-            <span className="rice-chip">
-              Étape {currentStep + 1}&thinsp;/&thinsp;{stepsCount}
-            </span>
-            <span className="rice-chip">{currentStageTitle}</span>
           </div>
         </div>
 
@@ -111,15 +96,6 @@ export default function RiceHeroSection({
             </Button>
             <Button icon={<ReloadOutlined />} onClick={onReset}>
               Réinitialiser
-            </Button>
-            <Button
-              type="primary"
-              className="rice-primary-action"
-              icon={analyzing ? <LoadingOutlined /> : <RobotOutlined />}
-              onClick={onAnalyze}
-              disabled={filesCount === 0 || analyzing}
-            >
-              {analyzing ? 'Analyse en cours…' : "Lancer l'analyse"}
             </Button>
           </Space>
         </div>

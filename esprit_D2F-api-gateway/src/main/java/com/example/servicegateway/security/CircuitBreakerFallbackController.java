@@ -54,8 +54,12 @@ public class CircuitBreakerFallbackController {
         String serviceName = inferServiceName(originalPath);
         String traceId = UUID.randomUUID().toString();
 
-        log.warn("Circuit breaker fallback triggered for service={} path={} traceId={}",
-                serviceName, originalPath, traceId);
+        // Cause réelle (circuit OPEN, timeout, connexion refusée...) : sans elle,
+        // un 503 est indiagnosticable. Journalisée seulement, jamais renvoyée au client.
+        Throwable cause = exchange.getAttribute(
+                org.springframework.cloud.gateway.support.ServerWebExchangeUtils.CIRCUITBREAKER_EXECUTION_EXCEPTION_ATTR);
+        log.warn("Circuit breaker fallback triggered for service={} path={} traceId={} cause={}",
+                serviceName, originalPath, traceId, describeCause(cause));
 
         exchange.getResponse().setStatusCode(HttpStatus.SERVICE_UNAVAILABLE);
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
@@ -72,6 +76,20 @@ public class CircuitBreakerFallbackController {
         );
 
         return Mono.just(body);
+    }
+
+    /** Type et message de l'exception d'origine (sans pile), pour le journal. */
+    static String describeCause(Throwable cause) {
+        if (cause == null) return "inconnue";
+        Throwable root = cause;
+        while (root.getCause() != null && root.getCause() != root) {
+            root = root.getCause();
+        }
+        String described = cause.getClass().getSimpleName() + ": " + cause.getMessage();
+        if (root != cause) {
+            described += " <- " + root.getClass().getSimpleName() + ": " + root.getMessage();
+        }
+        return described;
     }
 
     /**

@@ -123,6 +123,17 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void handleBusinessDenied_ShouldReturn403WithBusinessMessage() {
+        SecurityException ex = new SecurityException(
+                "Vous devez être animateur de cette formation pour évaluer les participants.");
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleBusinessDenied(ex, request);
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertTrue(response.getBody().getMessage().contains("animateur"));
+        assertEquals("EVAL-403", response.getBody().getErrorCode());
+    }
+
+    @Test
     void handleIllegalState_ShouldReturn409() {
         IllegalStateException ex = new IllegalStateException("State conflict message");
         ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleIllegalState(ex, request);

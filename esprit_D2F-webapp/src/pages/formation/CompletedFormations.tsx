@@ -64,7 +64,7 @@ export default function CompletedFormations() {
   const genBatchMut = useGenerateFormationCertificates();
   const reportFetchMut = useFormationReportFetch();
   const [loadingButtons, setLoadingButtons] = useState<Record<string, boolean>>({});
-  const [typeCertif, setTypeCertif] = useState('CERTIF');
+  const [typeCertif, setTypeCertif] = useState<'CERTIF' | 'ATTESTATION' | 'BADGE'>('CERTIF');
   const navigate = useNavigate();
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [selectedEns, setSelectedEns] = useState<EnseignantRef | null>(null);
@@ -180,7 +180,10 @@ export default function CompletedFormations() {
     try {
       const formation = formations.find((f) => f.idFormation === newCertFormationId);
       if (!formation) return;
-      await generateCertMut.mutateAsync(formation.idFormation!);
+      await generateCertMut.mutateAsync({
+        formationId: formation.idFormation!,
+        typeCertif: 'CERTIF',
+      });
       message.success('Certificat créé !');
       setNewCertDrawerVisible(false);
     } catch {

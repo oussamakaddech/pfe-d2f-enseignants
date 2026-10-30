@@ -8,7 +8,7 @@ import { notificationService } from '@/services/notification/notificationService
 import { createNotificationTransport } from '@/services/notification';
 
 vi.mock('@/hooks/auth/useAuth', () => ({
-  useAuth: () => ({ user: { userId: 1, username: 'u' } }),
+  useAuth: vi.fn(() => ({ user: { userId: 1, username: 'u' } })),
 }));
 
 vi.mock('@/services/notification/notificationService', () => ({
@@ -80,6 +80,20 @@ describe('NotificationContext', () => {
     });
     expect(mockTransport.connect).toHaveBeenCalled();
     expect(createNotificationTransport).toHaveBeenCalled();
+  });
+
+  it("n'ouvre pas de WebSocket sans session (pas de handshake anonyme)", async () => {
+    vi.mocked(useAuth).mockReturnValueOnce({ user: null } as unknown as ReturnType<typeof useAuth>);
+    render(
+      <NotificationProvider>
+        <Capture onCtx={() => {}} />
+      </NotificationProvider>,
+    );
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(createNotificationTransport).toHaveBeenCalledWith(undefined, expect.anything());
+    expect(mockTransport.connect).toHaveBeenCalled();
   });
 
   it('reflète le statut du transport via onStatus', async () => {

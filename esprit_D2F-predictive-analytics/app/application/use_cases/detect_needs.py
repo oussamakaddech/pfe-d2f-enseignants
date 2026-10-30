@@ -14,15 +14,19 @@ logger = get_logger("detect_needs")
 
 @dataclass
 class NeedDetectionResult:
+    # Résultat de la détection : liste des besoins individuels et collectifs.
     individual: list[TrainingNeed]
     collective: list[TrainingNeed]
 
+    # Nombre total de besoins détectés (individuels + collectifs).
     @property
     def total(self) -> int:
         return len(self.individual) + len(self.collective)
 
 
 class DetectNeeds:
+    # Injecte : le fournisseur de gaps par enseignant, le fournisseur des
+    # périmètres, le dépôt des besoins de formation et la configuration.
     def __init__(
         self,
         gaps_provider: Callable[[str], list[SkillGap]],
@@ -35,6 +39,8 @@ class DetectNeeds:
         self._training_need_repository = training_need_repository
         self._settings = settings
 
+    # Orchestration : récupère les gaps de chaque enseignant (tolérant aux
+    # erreurs), puis lance les détections individuelle et collective.
     def execute(self) -> NeedDetectionResult:
         scopes = self._teacher_scopes_provider()
         gaps_by_teacher: dict[str, list[SkillGap]] = {}
@@ -50,6 +56,7 @@ class DetectNeeds:
         collective = self._detect_collective(gaps_by_teacher, scopes)
         return NeedDetectionResult(individual=individual, collective=collective)
 
+    # Besoins individuels : un gap au-dessus du seuil → 1 besoin pour cet enseignant.
     def _detect_individual(self, gaps_by_teacher: dict[str, list[SkillGap]]) -> list[TrainingNeed]:
         needs: list[TrainingNeed] = []
         for teacher_id, gaps in gaps_by_teacher.items():
@@ -73,6 +80,8 @@ class DetectNeeds:
                     )
         return needs
 
+    # Besoins collectifs : regroupe les gaps par (compétence, périmètre) et ne
+    # garde que ceux touchant au moins `need_detection_min_teachers` enseignants.
     def _detect_collective(self, gaps_by_teacher: dict[str, list[SkillGap]], scopes: dict[str, TeacherScope]) -> list[TrainingNeed]:
         key_count: Counter[tuple[int, str, str | None]] = Counter()
         first_gap: dict[tuple[int, str, str | None], SkillGap] = {}
@@ -110,6 +119,7 @@ class DetectNeeds:
             )
         return needs
 
+    # Sauvegarde tous les besoins détectés (individuels puis collectifs) en base.
     def persist(self, result: NeedDetectionResult) -> None:
         for need in result.individual:
             self._training_need_repository.save(need)

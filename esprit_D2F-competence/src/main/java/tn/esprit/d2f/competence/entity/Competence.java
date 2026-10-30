@@ -6,7 +6,9 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "competences", indexes = {
@@ -16,7 +18,7 @@ import java.util.List;
 @Getter
 @Setter
 @EqualsAndHashCode(of = "id", callSuper = false)
-@ToString(exclude = {"domaine", "sousCompetences", "savoirs", "prerequisite"})
+@ToString(exclude = {"domaine", "sousCompetences", "savoirs", "prerequisite", "upIds", "departementIds"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -44,6 +46,29 @@ public class Competence extends BaseAuditEntity {
     @JoinColumn(name = "domaine_id", nullable = false)
     @JsonBackReference("domaine-competence")
     private Domaine domaine;
+
+    /**
+     * UP auxquelles cette compétence s'applique (choix multiple, optionnel).
+     * Stockées sur la compétence depuis la V24 : le rattachement n'est plus
+     * porté par le domaine (les colonnes historiques de `domaines` restent en
+     * base pour les autres services, mais ne sont plus alimentées par l'IHM).
+     */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "competence_ups",
+            joinColumns = @JoinColumn(name = "competence_id"))
+    @Column(name = "up_id", nullable = false, length = 255)
+    @Builder.Default
+    private Set<String> upIds = new LinkedHashSet<>();
+
+    /** Départements auxquels cette compétence s'applique (optionnel, multiple). */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "competence_departements",
+            joinColumns = @JoinColumn(name = "competence_id"))
+    @Column(name = "departement_id", nullable = false, length = 255)
+    @Builder.Default
+    private Set<String> departementIds = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "competence", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference("competence-souscompetence")

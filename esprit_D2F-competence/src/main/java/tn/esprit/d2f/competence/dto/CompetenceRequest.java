@@ -5,6 +5,8 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -12,7 +14,6 @@ import lombok.*;
 public class CompetenceRequest {
 
     @NotBlank(message = "Le code est obligatoire")
-    @Size(max = 20, message = "Le code ne doit pas dépasser 20 caractères")
     private String code;
 
     @NotBlank(message = "Le nom est obligatoire")
@@ -27,4 +28,10 @@ public class CompetenceRequest {
 
     @Positive(message = "L'ordre doit être un entier positif")
     private Integer ordre;
+
+    /** UP auxquelles la compétence s'applique (optionnel, choix multiple). */
+    private List<String> upIds;
+
+    /** Départements auxquels la compétence s'applique (optionnel, choix multiple). */
+    private List<String> departementIds;
 }

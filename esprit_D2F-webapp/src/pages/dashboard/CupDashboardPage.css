@@ -291,6 +291,41 @@
 }
 
 /* ── KPI grid ───────────────────────────────────────────────── */
+.cd-kpi-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-top: 28px;
+}
+.cd-kpi-toolbar-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cd-kpi-toolbar-label {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--ink);
+}
+.cd-kpi-toolbar-hint {
+  font-size: var(--fs-sm);
+  color: var(--ink-3);
+}
+.cd-kpi-toolbar-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cd-kpi-toolbar-actions .ant-picker {
+  background: var(--surface);
+}
+.cd-kpi-toolbar + .cd-kpis {
+  margin-top: 14px;
+}
+
 .cd-kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -838,5 +873,20 @@
   }
   .cd-priority-cta .ant-btn {
     flex: 1;
+  }
+  .cd-kpi-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  /* Sur mobile le sélecteur de dates et le préréglage prennent toute la largeur. */
+  .cd-kpi-toolbar-actions {
+    width: 100%;
+  }
+  .cd-kpi-toolbar-actions .ant-picker,
+  .cd-kpi-toolbar-actions .ant-segmented {
+    flex: 1 1 100%;
+  }
+  .cd-kpi-toolbar-actions .ant-segmented-group {
+    width: 100%;
   }
 }

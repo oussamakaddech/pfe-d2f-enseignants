@@ -11,6 +11,13 @@ interface SavoirFormModalProps {
 }
 
 export default function SavoirFormModal({ crud, savoirForm }: Readonly<SavoirFormModalProps>) {
+  // Une compétence qui possède des sous-compétences ne peut pas recevoir de savoir direct.
+  const competenceIdsWithSousComps = new Set(
+    (crud.sousComps ?? [])
+      .map((sc) => (sc.competenceId == null ? null : String(sc.competenceId)))
+      .filter((id): id is string => id !== null),
+  );
+
   return (
     <Modal
       forceRender
@@ -94,7 +101,23 @@ export default function SavoirFormModal({ crud, savoirForm }: Readonly<SavoirFor
           <Form.Item
             name="competenceId"
             label="Competence mere"
-            rules={[{ required: !crud.editingSavoir, message: 'Competence mere obligatoire' }]}
+            rules={[
+              { required: !crud.editingSavoir, message: 'Competence mere obligatoire' },
+              {
+                validator: (_, value) => {
+                  if (!value || crud.editingSavoir) return Promise.resolve();
+                  if (competenceIdsWithSousComps.has(String(value))) {
+                    return Promise.reject(
+                      new Error(
+                        'Cette compétence possède des sous-compétences : rattachez le savoir à une sous-compétence',
+                      ),
+                    );
+                  }
+                  return Promise.resolve();
+                },
+              },
+            ]}
+            extra="Seules les compétences sans sous-compétences acceptent des savoirs directs."
           >
             <Select
               placeholder="Selectionner une competence mere"
@@ -102,11 +125,14 @@ export default function SavoirFormModal({ crud, savoirForm }: Readonly<SavoirFor
               showSearch
               optionFilterProp="children"
             >
-              {crud.competences.map((c) => (
-                <Option key={c.id} value={c.id}>
-                  {c.nom} ({c.domaineNom})
-                </Option>
-              ))}
+              {crud.competences.map((c) => {
+                const hasSousComps = competenceIdsWithSousComps.has(String(c.id));
+                return (
+                  <Option key={c.id} value={c.id} disabled={hasSousComps}>
+                    {c.nom} ({c.domaineNom}){hasSousComps ? ' — contient des sous-compétences' : ''}
+                  </Option>
+                );
+              })}
             </Select>
           </Form.Item>
         )}
@@ -130,23 +156,10 @@ export default function SavoirFormModal({ crud, savoirForm }: Readonly<SavoirFor
               rules={[
                 { required: true, message: 'Completez le code' },
                 { pattern: /^[A-Z0-9_]+$/, message: 'Majuscules, chiffres et _ uniquement' },
-                {
-                  validator: (_, value) => {
-                    const prefix = savoirForm.getFieldValue('codePrefix') || '';
-                    const suffix = value || '';
-                    if (`${prefix}${suffix}`.length > 100) {
-                      return Promise.reject(
-                        new Error('Le code ne doit pas depasser 100 caracteres'),
-                      );
-                    }
-                    return Promise.resolve();
-                  },
-                },
               ]}
             >
               <Input
                 placeholder="ex: S1"
-                maxLength={100}
                 style={{ width: '100%' }}
                 onChange={(e) => {
                   const sanitized = (e.target.value || '')

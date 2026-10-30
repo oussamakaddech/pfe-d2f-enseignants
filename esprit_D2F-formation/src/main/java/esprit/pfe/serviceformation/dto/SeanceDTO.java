@@ -24,6 +24,10 @@ public class SeanceDTO implements Serializable {
     private Float dureeTheorique;
     private Float dureePratique;
     private String onlineMeetingUrl;  // URL de réunion Teams
+    /** Numéro de la séance dans la formation (colonne session_number). */
+    private Integer numeroSeance;
+    /** Nombre total de séances de la formation (colonne total_sessions). */
+    private Integer totalSeances;
     private List<EnseignantDTO> animateurs;
     private List<EnseignantDTO> participants;
 

@@ -4,6 +4,8 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import javax.crypto.SecretKey;
@@ -14,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class JwtTokenProviderTest {
 
     private JwtTokenProvider jwtTokenProvider;
-    private final String secret = "testSecretKeyWithEnoughLengthToSatisfyHmacShaKeyForRequirement";
+    private final String secret = "testSecretKeyWithEnoughLengthToSatisfyHmacShaKeyForRequirementOK";
     private String validToken;
     private String expiredToken;
 
@@ -106,5 +108,25 @@ class JwtTokenProviderTest {
     @Test
     void isValidToken_ShouldReturnFalseForMalformedToken() {
         assertFalse(jwtTokenProvider.isValidToken("this.is.not-a-valid-jwt"));
+    }
+
+    @Test
+    void validateJwtSecret_ShouldPassWithStrongSecret() {
+        assertDoesNotThrow(jwtTokenProvider::validateJwtSecret);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "null, JWT_SECRET est obligatoire",
+        "trop-court, trop court",
+        "CHANGE_ME_please_replace_this_long_placeholder_secret_value_CHANGE_ME_123, placeholder"
+    })
+    void validateJwtSecret_ShouldRejectInvalidSecrets(String candidate, String expectedFragment) {
+        // "null" marque un secret null (indiquant une variable d'environnement absente).
+        String secretValue = "null".equals(candidate) ? null : candidate;
+        ReflectionTestUtils.setField(jwtTokenProvider, "jwtSecret", secretValue);
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                jwtTokenProvider::validateJwtSecret);
+        assertTrue(ex.getMessage().contains(expectedFragment));
     }
 }

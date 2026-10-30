@@ -72,7 +72,7 @@ def test_dashboard_global_admin_ok(client):
 
 def test_dashboard_requires_admin_or_cup(client):
     response = client.get("/api/v1/analytics/dashboard", headers=auth_headers("ens", ["ENSEIGNANT"]))
-    assert response.status_code == 401
+    assert response.status_code == 403
 
 
 def test_dashboard_declining_returns_list(client):
@@ -108,4 +108,4 @@ def test_process_event_forbidden_for_enseignant(client):
         headers=auth_headers("ens", ["ENSEIGNANT"]),
         json={"event_id": "evt-int-3", "event_type": "analyse.requested", "payload": {}},
     )
-    assert response.status_code == 401
+    assert response.status_code == 403

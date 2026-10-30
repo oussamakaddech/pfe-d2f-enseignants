@@ -1,12 +1,34 @@
 // NodePropsPanel — right-side properties panel for selected tree node in ReviewStep.
 // Extracted from ReviewStep.tsx for DSI 200-line compliance.
 
-import { Badge, Button, Form, Input, Popconfirm, Select, Segmented, Tag, Typography } from 'antd';
+import { Button, Form, Input, Popconfirm, Select, Segmented, Tag, Typography } from 'antd';
 import { DeleteOutlined, UserOutlined, ApartmentOutlined } from '@ant-design/icons';
 import type { FormInstance } from 'antd';
+import { useQuery } from '@tanstack/react-query';
+import { useAllUps } from '@/hooks/formation/useUpCrud';
+import { useAllDepts } from '@/hooks/formation/useDeptCrud';
+import CompetenceService from '@/services/competence/CompetenceService';
+import type { LookupItem } from '@/models/common';
+import type { Domaine } from '@/models/competence';
 import type { EnseignantRef, SelectedNode } from './TreeBrowser';
+import { champsDepuisDomaine } from './domaineReferentiel';
+import { TYPE_LABEL } from '../constants';
+
+const NODE_TYPE_LABEL: Record<NonNullable<SelectedNode>['type'], string> = {
+  domaine: 'Domaine',
+  competence: 'Compétence',
+  sousComp: 'Sous-compétence',
+  savoir: 'Savoir',
+};
 
 const { Text } = Typography;
+
+function toOptions(items: LookupItem[]) {
+  return (items ?? []).map((item) => ({
+    value: String(item.id),
+    label: item.name ?? item.libelle ?? String(item.id),
+  }));
+}
 
 interface NodePropsPanelProps {
   selectedNode: SelectedNode;
@@ -15,6 +37,8 @@ interface NodePropsPanelProps {
   mergedEnseignants: EnseignantRef[];
   scOptions: { label: string; value: string }[];
   handleUpdateField: (field: string, value: unknown) => void;
+  /** Met à jour plusieurs champs du nœud en une fois (import d'un domaine du référentiel). */
+  handleUpdateFields: (fields: Record<string, unknown>) => void;
   handleRemoveEnseignant: (id: unknown) => void;
   handleMoveSavoir: (targetPath: number[]) => void;
   deleteNode: (node: SelectedNode) => void;
@@ -30,6 +54,7 @@ export default function NodePropsPanel({
   mergedEnseignants,
   scOptions,
   handleUpdateField,
+  handleUpdateFields,
   handleRemoveEnseignant,
   handleMoveSavoir,
   deleteNode,
@@ -37,6 +62,28 @@ export default function NodePropsPanel({
   setCreateEnsData,
   setCreateEnsModal,
 }: Readonly<NodePropsPanelProps>) {
+  const { data: ups = [] } = useAllUps();
+  const { data: departments = [] } = useAllDepts();
+  const { data: referentielDomaines, isLoading: domainesLoading } = useQuery({
+    queryKey: ['rice', 'domaines-rattachement'],
+    queryFn: () => CompetenceService.domaine.getAll(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const domaines = (referentielDomaines ?? []) as Domaine[];
+
+  // Choisir un domaine du référentiel remplit Code / Nom / Description depuis
+  // ce domaine et retient le rattachement de l'import sur ce nœud.
+  const handlePickDomaine = (value?: string) => {
+    if (!selectedNode) return;
+    if (!value) {
+      handleUpdateFields({ domaineExistantId: null });
+      return;
+    }
+    const domaine = domaines.find((d) => String(d.id) === value);
+    if (!domaine) return;
+    handleUpdateFields(champsDepuisDomaine(domaine, (selectedNode.data?.code as string) ?? ''));
+  };
+
   if (!selectedNode) {
     return (
       <div className="props-panel-empty">
@@ -50,36 +97,53 @@ export default function NodePropsPanel({
     );
   }
 
+  const typeLabel = NODE_TYPE_LABEL[selectedNode.type];
+  const title = [selectedNode.data?.code, selectedNode.data?.nom]
+    .filter((v) => typeof v === 'string' && v.trim())
+    .join(' · ');
+
   return (
     <div className="props-panel-inner">
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 12,
-        }}
-      >
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 0 }}>
-          <Badge count={0} style={{ background: 'transparent' }} />
-          <div style={{ minWidth: 0 }}>
-            <Text
-              strong
-              style={{
-                display: 'block',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {`${selectedNode.data?.code ?? ''} · ${selectedNode.data?.nom ?? ''}`}
-            </Text>
-            <Text type="secondary">{selectedNode.type}</Text>
-          </div>
-        </div>
+      <div className="props-panel-head">
+        <Text type="secondary" className="props-panel-kind">
+          {typeLabel}
+        </Text>
+        <Text strong className="props-panel-title" title={title}>
+          {title || 'Sans nom'}
+        </Text>
       </div>
 
       <Form form={propsForm} layout="vertical">
+        {selectedNode.type === 'domaine' && (
+          <>
+            <Form.Item
+              label="Domaine du référentiel"
+              extra="Reprend le code, le nom et la description du domaine choisi (page Référentiel des Compétences)."
+            >
+              <Select
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                loading={domainesLoading}
+                placeholder="Choisir un domaine existant"
+                value={(selectedNode.data?.domaineExistantId as string) ?? undefined}
+                onChange={(value) => handlePickDomaine(value)}
+                options={domaines
+                  .filter((d) => d.id != null)
+                  .map((d) => ({
+                    value: String(d.id),
+                    label: `${d.code ? `[${d.code}] ` : ''}${d.nom ?? ''}`.trim(),
+                  }))}
+              />
+            </Form.Item>
+            <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 12 }}>
+              À l&apos;import, ce domaine RICE devient une compétence du domaine choisi : son nom
+              devient le nom de la compétence, ses compétences deviennent des sous-compétences. Sans
+              domaine choisi, un domaine est créé.
+            </Text>
+          </>
+        )}
+
         <Form.Item
           label="Code"
           rules={[
@@ -127,10 +191,10 @@ export default function NodePropsPanel({
             </Button>
             <Form.Item label="Type">
               <Segmented
-                options={[
-                  { label: 'THEORIQUE', value: 'THEORIQUE' },
-                  { label: 'PRATIQUE', value: 'PRATIQUE' },
-                ]}
+                options={['THEORIQUE', 'PRATIQUE'].map((value) => ({
+                  label: TYPE_LABEL[value],
+                  value,
+                }))}
                 value={(selectedNode.data?.type as string) ?? 'THEORIQUE'}
                 onChange={(v) => handleUpdateField('type', v)}
               />
@@ -183,6 +247,41 @@ export default function NodePropsPanel({
           </>
         )}
 
+        {selectedNode.type === 'competence' && (
+          <>
+            <Form.Item
+              label="UP concernées"
+              extra="Facultatif — plusieurs UP peuvent être sélectionnées."
+            >
+              <Select
+                mode="multiple"
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                placeholder="Sélectionner une ou plusieurs UP"
+                value={(selectedNode.data?.upIds as string[]) ?? []}
+                onChange={(values) => handleUpdateField('upIds', values)}
+                options={toOptions(ups)}
+              />
+            </Form.Item>
+            <Form.Item
+              label="Départements concernés"
+              extra="Facultatif — plusieurs départements peuvent être sélectionnés."
+            >
+              <Select
+                mode="multiple"
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                placeholder="Sélectionner un ou plusieurs départements"
+                value={(selectedNode.data?.departementIds as string[]) ?? []}
+                onChange={(values) => handleUpdateField('departementIds', values)}
+                options={toOptions(departments)}
+              />
+            </Form.Item>
+          </>
+        )}
+
         {(selectedNode.type === 'competence' || selectedNode.type === 'sousComp') && (
           <Form.Item label="Codes référentiels (refCodes)">
             <Select
@@ -195,7 +294,7 @@ export default function NodePropsPanel({
         )}
       </Form>
 
-      <div style={{ marginTop: 12, position: 'sticky', bottom: 8 }}>
+      <div className="props-panel-actions">
         <Popconfirm
           title="Supprimer ce nœud ?"
           description="Cette action supprimera aussi tous ses enfants."
@@ -208,7 +307,7 @@ export default function NodePropsPanel({
           }}
         >
           <Button danger block icon={<DeleteOutlined />}>
-            Supprimer {selectedNode.type}
+            Supprimer {typeLabel.toLowerCase()}
           </Button>
         </Popconfirm>
       </div>

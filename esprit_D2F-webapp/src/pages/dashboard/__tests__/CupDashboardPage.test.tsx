@@ -22,6 +22,9 @@ const baseKpis = {
   tauxParticipation: 80,
   totalHeures: 100,
   participants: 50,
+  formateurs: { total: 7, internes: 5, externes: 2 },
+  competencesCouvertes: 6,
+  liensCompetences: 14,
   pendingBesoins: 2,
   critiques: 1,
   totalBesoins: 2,
@@ -61,6 +64,9 @@ const makeMock = (overrides: Record<string, unknown> = {}): any => ({
 
 vi.mock('@/hooks/dashboard/useCupDashboard', () => ({
   useCupDashboard: vi.fn(() => makeMock()),
+  // Le vrai helper est testé dans useCupDashboard.test.ts : ici on évite juste
+  // un import manquant si un test renseigne une plage personnalisée.
+  customRangeLabel: (r: { start: string; end: string }) => `du ${r.start} au ${r.end}`,
 }));
 
 vi.mock('@/hooks/auth/useAuth', () => ({
@@ -87,9 +93,36 @@ describe('CupDashboardPage', () => {
 
   it('renders title and KPIs', () => {
     renderWith(queryClient);
-    expect(screen.getByText('Tableau de bord CUP')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Tableau de bord' })).toBeInTheDocument();
     expect(screen.getByText('Formations actives')).toBeInTheDocument();
     expect(screen.getByText('Répartition par type')).toBeInTheDocument();
+  });
+
+  it('renders the period KPIs (heures, formateurs, participants, compétences)', () => {
+    renderWith(queryClient);
+    expect(screen.getByText('Heures de formation')).toBeInTheDocument();
+    expect(screen.getByText('Formateurs mobilisés')).toBeInTheDocument();
+    expect(screen.getByText('Participants formés')).toBeInTheDocument();
+    expect(screen.getByText('Compétences couvertes')).toBeInTheDocument();
+    // Détail des formateurs : internes / externes distincts.
+    expect(screen.getByText('5 internes · 2 externes')).toBeInTheDocument();
+    // Libellé de période : 12 derniers mois par défaut.
+    expect(screen.getAllByText(/12 derniers mois/).length).toBeGreaterThan(0);
+  });
+
+  it('changes the indicator period when a period is selected', () => {
+    renderWith(queryClient);
+    fireEvent.click(screen.getAllByText('3 mois')[0]);
+    // Les deux contrôles de période (KPI + graphique) partagent le même état.
+    expect(screen.getAllByText(/3 derniers mois/).length).toBeGreaterThan(0);
+  });
+
+  it('offers a custom date range next to the presets', () => {
+    renderWith(queryClient);
+    // Le sélecteur de dates libres accompagne le préréglage 30 j / 3 / 6 / 12 mois.
+    expect(screen.getByPlaceholderText('Du')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Au')).toBeInTheDocument();
+    expect(screen.getAllByText(/Heures, formateurs et participants comptés sur/).length).toBe(1);
   });
 
   it('renders besoins and top competences data', () => {
@@ -164,7 +197,7 @@ describe('CupDashboardPage', () => {
       } as any),
     );
     renderWith(queryClient);
-    expect(screen.getByText('Tableau de bord CUP')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Tableau de bord' })).toBeInTheDocument();
     expect(document.querySelectorAll('.ant-spin').length).toBeGreaterThan(0);
   });
 
@@ -257,8 +290,9 @@ describe('CupDashboardPage', () => {
       } as any),
     );
     renderWith(queryClient);
-    expect(screen.getByText(/12 derniers mois/)).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Trimestre'));
-    await waitFor(() => expect(screen.getByText(/ce trimestre/)).toBeInTheDocument());
+    expect(screen.getAllByText(/12 derniers mois/).length).toBeGreaterThan(0);
+    // Le sélecteur du graphique et celui des KPI pilotent la même période.
+    await userEvent.click(screen.getAllByText('3 mois').at(-1)!);
+    await waitFor(() => expect(screen.getAllByText(/3 derniers mois/).length).toBeGreaterThan(0));
   });
 });

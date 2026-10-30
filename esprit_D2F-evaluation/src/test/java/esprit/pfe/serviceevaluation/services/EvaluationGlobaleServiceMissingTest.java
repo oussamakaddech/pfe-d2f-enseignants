@@ -14,11 +14,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -31,6 +34,9 @@ class EvaluationGlobaleServiceMissingTest {
 
     @Mock
     private EvaluationGlobaleRepository evaluationRepository;
+
+    @Mock
+    private esprit.pfe.serviceevaluation.client.FormationClient formationClient;
 
     @InjectMocks
     private EvaluationGlobaleService evaluationService;
@@ -65,7 +71,7 @@ class EvaluationGlobaleServiceMissingTest {
         when(evaluationRepository.save(any(EvaluationGlobale.class))).thenReturn(entity);
 
         // When
-        EvaluationGlobaleDTO result = evaluationService.createEvaluationGlobale(dto);
+        EvaluationGlobaleDTO result = evaluationService.createEvaluationGlobale(dto, "admin@test.com", "ROLE_ADMIN");
 
         // Then
         assertThat(result).isNotNull();
@@ -80,7 +86,7 @@ class EvaluationGlobaleServiceMissingTest {
         when(evaluationRepository.save(any())).thenReturn(entity);
 
         // When
-        EvaluationGlobaleDTO result = evaluationService.updateEvaluationGlobale(1L, dto);
+        EvaluationGlobaleDTO result = evaluationService.updateEvaluationGlobale(1L, dto, "admin@test.com", "ROLE_ADMIN");
 
         // Then
         assertThat(result).isNotNull();
@@ -133,10 +139,18 @@ class EvaluationGlobaleServiceMissingTest {
     @DisplayName("getAllEvaluationGlobales() - retourne une liste paginée")
     void shouldGetAllEvaluationGlobales() {
         // Given
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", null,
+                        List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
         when(evaluationRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(Arrays.asList(entity)));
 
         // When
-        Page<EvaluationGlobaleDTO> result = evaluationService.getAllEvaluationGlobales(Pageable.ofSize(10));
+        Page<EvaluationGlobaleDTO> result;
+        try {
+            result = evaluationService.getAllEvaluationGlobales(Pageable.ofSize(10));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
 
         // Then
         assertThat(result).isNotNull()

@@ -12,6 +12,21 @@ import {
 import { useEnseignants } from '@/hooks/enseignant';
 import { useAuth } from '@/hooks/auth/useAuth';
 import type { Id } from '@/models/common';
+import {
+  createOrFindEnseignant,
+  getAnimateurStableId,
+  type PersonItem,
+} from './useFormationWorkflow';
+import {
+  actorLabel,
+  mergeActors,
+  mergeOptionById,
+  parseEmails,
+  resolveActorsByEmails,
+  saveSuccessMessage,
+  synchronizeSeanceAnimateurs,
+  uniqueIds,
+} from './formationEditActors';
 
 export type EditSeance = {
   idSeance?: unknown;
@@ -64,7 +79,6 @@ function mergeAuthAccountAnimateurs(
   enseignantsData: EditPerson[],
 ): EditPerson[] {
   if (!Array.isArray(accountsData)) return [];
-  // Rôle FORMATEUR consolidé dans ANIMATEUR (cf. migration V19).
   const formateurs = accountsData
     .filter((a) => {
       const role = (a.role || '').toUpperCase();
@@ -88,12 +102,13 @@ function mergeAuthAccountAnimateurs(
     formateurs.map((f) => f.userName).filter((n): n is string => Boolean(n)),
   );
   const enriched = formateurs.map((f) => {
-    const prefix = f.mail ? f.mail.split('@')[0] : '';
+    const prefix = f.mail ? f.mail.split('@')[0].toLowerCase() : '';
+    const fMail = (f.mail || '').toLowerCase();
     const match = enseignantsData.find(
       (ex) =>
         (typeof ex.id === 'string' && fUserNames.has(ex.id)) ||
-        ex.mail === f.mail ||
-        (ex.mail ?? '').split('@')[0] === prefix,
+        (!!fMail && (ex.mail ?? '').toLowerCase() === fMail) ||
+        (!!prefix && (ex.mail ?? '').split('@')[0].toLowerCase() === prefix),
     );
     return match
       ? {
@@ -105,6 +120,25 @@ function mergeAuthAccountAnimateurs(
       : f;
   });
   return enriched;
+}
+
+/**
+ * Retire des comptes auth toute personne déjà présente côté enseignants
+ * (mail identique ou préfixe mail identique — même logique que
+ * mergeAuthAccountAnimateurs) afin d'éviter les doublons id compte / id
+ * enseignant dans les options d'animateurs.
+ */
+function dedupeAnimAccounts(authList: EditPerson[], enseignantsData: EditPerson[]): EditPerson[] {
+  const key = (mail?: string): string => {
+    const v = (mail || '').trim().toLowerCase();
+    return v ? `${v.split('@')[0]}@` : '';
+  };
+  const ensKeys = new Set(enseignantsData.map((e) => key(e.mail)).filter(Boolean));
+  const filtered = authList.filter((a) => {
+    const k = key(a.mail);
+    return !k || !ensKeys.has(k);
+  });
+  return filtered.length === authList.length ? authList : filtered;
 }
 
 function toMinutes(timeValue: unknown): number | null {
@@ -229,6 +263,11 @@ export function useFormationWorkflowEdit(
   const [customPeriodLabel, setCustomPeriodLabel] = useState('');
   const [animSel, setAnimSel] = useState<EditPerson[]>([]);
   const [partSel, setPartSel] = useState<EditPerson[]>([]);
+  // Liste des animateurs telle que chargée depuis le serveur : sert à repérer
+  // les ajouts / retraits pour les répercuter sur les séances.
+  const [initialAnimIds, setInitialAnimIds] = useState<string[]>([]);
+  const [animEmail, setAnimEmail] = useState('');
+  const [partEmail, setPartEmail] = useState('');
   const [overlapWarnings, setOverlapWarnings] = useState<string[]>([]);
   const [animFilterUp, setAnimFilterUp] = useState<EditLookup | null>(null);
   const [animFilterDept, setAnimFilterDept] = useState<EditLookup | null>(null);
@@ -242,6 +281,9 @@ export function useFormationWorkflowEdit(
   const [lastReloadAt, setLastReloadAt] = useState<Date | null>(null);
   const [isReloading, setIsReloading] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Choix de l'écran de modification : prévenir (ou non) les animateurs et les
+  // participants par e-mail après l'enregistrement.
+  const [notifierActeurs, setNotifierActeurs] = useState(true);
   const [salle, setSalle] = useState('');
 
   const upsQuery = useUps();
@@ -333,14 +375,14 @@ export function useFormationWorkflowEdit(
       );
   }, [accountsData, animateurMailSet, enseignantMails]);
 
-  // Union par id : les acteurs déjà affectés à la formation doivent toujours
-  // figurer parmi les options (même s'ils sont absents de la liste enseignants,
-  // ex. enseignant supprimé/soft-deleted) — sinon ils ne s'affichent pas en édition.
-  const unionById = (base: EditPerson[], selected: EditPerson[]): EditPerson[] => {
-    const seen = new Set(base.map((x) => String(x.id)));
-    const extra = selected.filter((s) => s.id != null && !seen.has(String(s.id)));
-    return extra.length > 0 ? [...base, ...extra] : base;
-  };
+  // Options d'une liste à choix multiple : base (filtrée) + personnes déjà
+  // sélectionnées, sans doublon d'identifiant. Deux raisons :
+  // - une personne déjà affectée doit rester visible même si les filtres
+  //   (UP / département / recherche) la masquent, ou si elle n'est plus dans
+  //   la liste enseignants (fiche supprimée) ;
+  // - un id en double (compte auth + fiche enseignant) produirait deux tags
+  //   pour une seule personne et un onChange incohérent.
+  const unionById = mergeOptionById;
   const matchSearch = (x: EditPerson, q: string): boolean => {
     if (!q.trim()) return true;
     const needle = q.trim().toLowerCase();
@@ -353,8 +395,13 @@ export function useFormationWorkflowEdit(
       (((x as Record<string, unknown>).userName as string) || '').toLowerCase().includes(needle)
     );
   };
+  // Annuaires utilisés à la fois pour les listes déroulantes et pour l'ajout
+  // par e-mail : une personne ajoutée par e-mail doit exister dans les options,
+  // sinon antd n'afficherait que son identifiant brut comme étiquette.
+  const animPool = [...dedupeAnimAccounts(formateursList, ens), ...ens];
+  const partPool = [...ens, ...accountsFallbackForParticipants];
   const optionsAnim = unionById(
-    [...formateursList, ...ens].filter(
+    animPool.filter(
       (x) =>
         (!animFilterUp ||
           x.upLibelle === (animFilterUp as EditLookup & { libelle?: string }).libelle) &&
@@ -365,7 +412,7 @@ export function useFormationWorkflowEdit(
     animSel,
   );
   const optionsPart = unionById(
-    [...ens, ...accountsFallbackForParticipants].filter(
+    partPool.filter(
       (x) =>
         (!partFilterUp ||
           x.upLibelle === (partFilterUp as EditLookup & { libelle?: string }).libelle) &&
@@ -455,7 +502,9 @@ export function useFormationWorkflowEdit(
         if (p?.id != null) pmap[String(p.id)] = p;
       });
     });
-    setAnimSel(Object.values(amap));
+    const initialAnimateurs = Object.values(amap);
+    setAnimSel(initialAnimateurs);
+    setInitialAnimIds(uniqueIds(initialAnimateurs.map((a) => a.id)));
     setPartSel(Object.values(pmap));
   }, [formation]);
 
@@ -473,9 +522,10 @@ export function useFormationWorkflowEdit(
       heureDebut: s.heureDebut,
       heureFin: s.heureFin,
       salle: s.salle,
-      animateurIds: (Array.isArray(s.animateurs) ? s.animateurs : [])
-        .map((a) => a?.id)
-        .filter(Boolean),
+      // Mêmes animateurs que ceux envoyés au serveur (report des animateurs de
+      // la formation sur chaque séance) : sinon un conflit détecté côté back
+      // n'aurait pas été signalé ici.
+      animateurIds: synchronizeSeanceAnimateurs(s.animateurs, initialAnimIds, animSel, (a) => a.id),
     }));
   }
 
@@ -616,7 +666,7 @@ export function useFormationWorkflowEdit(
 
   useEffect(() => {
     setOverlapWarnings(buildConflictMessages());
-  }, [seances, partSel, existingFormations]);
+  }, [seances, partSel, animSel, initialAnimIds, existingFormations]);
 
   const addSeance = () =>
     setSeances((s) => [
@@ -667,18 +717,81 @@ export function useFormationWorkflowEdit(
       e.target.value = '';
       return;
     }
+    const norm = (v: unknown): string =>
+      String(v ?? '')
+        .trim()
+        .toLowerCase();
     const mailsSet = new Set(
       rows
         .slice(1)
-        .map((r) => r[idx])
+        .map((r) => norm(r[idx]))
         .filter(Boolean),
     );
-    const matched = ens.filter((x) => mailsSet.has(x.mail));
-    setPartSel(matched);
-    message.success(
-      `${matched.length} participant${matched.length > 1 ? 's' : ''} importé${matched.length > 1 ? 's' : ''}`,
-    );
+    // Pool élargi : enseignants + comptes auth participants (fallback).
+    const pool = [...ens, ...accountsFallbackForParticipants];
+    const matched = pool.filter((x) => mailsSet.has(norm(x.mail)));
+    // Fusion avec la sélection existante au lieu de la remplacer : en édition,
+    // importer un fichier ne doit pas écraser les participants déjà affectés.
+    setPartSel((prev) => mergeActors(prev, matched));
+    const matchedMails = new Set(matched.map((m) => norm(m.mail)));
+    const withoutMatch = [...mailsSet].filter((m) => !matchedMails.has(m));
+    if (matched.length > 0)
+      message.success(
+        `${matched.length} participant${matched.length > 1 ? 's' : ''} importé${matched.length > 1 ? 's' : ''}`,
+      );
+    if (withoutMatch.length > 0)
+      message.warning(
+        `${withoutMatch.length} adresse${withoutMatch.length > 1 ? 's' : ''} ignorée${withoutMatch.length > 1 ? 's' : ''} (aucune fiche / compte correspondant) : ${withoutMatch.join(', ')}`,
+      );
     e.target.value = '';
+  };
+
+  /** Messages communs aux deux saisies d'e-mails (animateurs / participants). */
+  const notifyActorEmails = (
+    kind: 'animateur' | 'participant',
+    resolution: ReturnType<typeof resolveActorsByEmails>,
+  ): void => {
+    const { toAdd, already, unknown, invalid } = resolution;
+    if (toAdd.length > 0)
+      message.success(
+        `${toAdd.length} ${kind}${toAdd.length > 1 ? 's' : ''} ajouté${toAdd.length > 1 ? 's' : ''} : ${toAdd
+          .map(actorLabel)
+          .join(', ')}`,
+      );
+    if (already.length > 0)
+      message.info(`${already.join(', ')} : déjà sélectionné${already.length > 1 ? 's' : ''}.`);
+    if (invalid.length > 0)
+      message.warning(
+        `Adresse${invalid.length > 1 ? 's' : ''} invalide${invalid.length > 1 ? 's' : ''} : ${invalid.join(', ')}`,
+      );
+    if (unknown.length > 0)
+      message.warning(
+        `Aucun ${kind} trouvé pour : ${unknown.join(', ')}. Vérifiez l'annuaire (ou « Recharger les données »), le compte doit déjà exister.`,
+      );
+  };
+
+  const addAnimByEmails = () => {
+    const saisie = parseEmails(animEmail);
+    if (saisie.length === 0) {
+      message.warning('Saisissez au moins une adresse e-mail.');
+      return;
+    }
+    const resolution = resolveActorsByEmails(animEmail, animPool, animSel);
+    setAnimSel((prev) => mergeActors(prev, resolution.toAdd));
+    notifyActorEmails('animateur', resolution);
+    setAnimEmail('');
+  };
+
+  const addPartByEmails = () => {
+    const saisie = parseEmails(partEmail);
+    if (saisie.length === 0) {
+      message.warning('Saisissez au moins une adresse e-mail.');
+      return;
+    }
+    const resolution = resolveActorsByEmails(partEmail, partPool, partSel);
+    setPartSel((prev) => mergeActors(prev, resolution.toAdd));
+    notifyActorEmails('participant', resolution);
+    setPartEmail('');
   };
 
   const getEnseignantLabel = (opt: EditPerson | null): string => {
@@ -693,7 +806,7 @@ export function useFormationWorkflowEdit(
     return `${opt.nom} ${opt.prenom} (${opt.mail})${roleStr}`;
   };
 
-  function buildEditPayload() {
+  function buildEditPayload(resolveAnimId: (a: EditPerson) => unknown = (a) => a.id) {
     return {
       titreFormation: titre,
       dateDebut,
@@ -710,8 +823,12 @@ export function useFormationWorkflowEdit(
       chargeHoraireGlobal: Number.parseInt(String(chargeH), 10),
       upId: selectedUp?.id,
       departementId: selectedDept?.id,
-      participantsIds: partSel.map((p) => p.id),
-      animateursIds: animSel.map((a) => a.id),
+      participantsIds: partSel.map((p) => p.id).filter(Boolean),
+      animateursIds: animSel.map(resolveAnimId).filter(Boolean).map(String),
+      // true = un seul e-mail « Formation modifiée » à tous les animateurs et
+      // participants (le back ne le double pas si l'état change : la notification
+      // de transition s'en charge), false = aucun e-mail.
+      notifierActeurs,
       domaine,
       populationCible,
       objectifs,
@@ -731,7 +848,17 @@ export function useFormationWorkflowEdit(
         heureDebut: s.heureDebut,
         heureFin: s.heureFin,
         salle: s.salle,
-        animateursIds: s.animateurs.map((a) => a.id),
+        // Les animateurs sont modifiables seulement au niveau formation dans cet
+        // écran : on reporte donc ajouts / retraits sur chaque séance. Sans cela,
+        // le back ne propage que vers les séances SANS animateur explicite et un
+        // animateur ajouté ne verrait pas la formation dans « Mes formations à
+        // animer » (résolution par seance_animateur).
+        animateursIds: synchronizeSeanceAnimateurs(
+          s.animateurs,
+          initialAnimIds,
+          animSel,
+          resolveAnimId,
+        ),
         typeSeance: s.typeSeance,
         contenus: s.contenus,
         methodes: s.methodes,
@@ -765,11 +892,29 @@ export function useFormationWorkflowEdit(
       return;
     }
     try {
+      // Les animateurs issus des comptes auth (isAuthUser) doivent être créés ou
+      // récupérés côté service formation pour obtenir un vrai id enseignant,
+      // comme à la création (cf. useFormationWorkflow.handleSubmit).
+      const authAnimIdMap = new Map<string, string>();
+      await Promise.all(
+        animSel
+          .filter((a) => a.isAuthUser)
+          .map(async (a) => {
+            const realId = await createOrFindEnseignant(a as unknown as PersonItem);
+            if (realId) authAnimIdMap.set(String(a.id ?? a.mail ?? ''), realId);
+          }),
+      );
+      const resolveAnimId = (a: EditPerson): unknown =>
+        a.isAuthUser
+          ? (authAnimIdMap.get(String(a.id ?? a.mail ?? '')) ??
+            getAnimateurStableId(a as unknown as PersonItem))
+          : a.id;
+
       const res = await updateMut.mutateAsync({
         id: formation.idFormation as Id,
-        data: buildEditPayload(),
+        data: buildEditPayload(resolveAnimId),
       });
-      message.success('Formation mise à jour !');
+      message.success(saveSuccessMessage(notifierActeurs));
       onFormationUpdated(res);
     } catch (err: unknown) {
       handleUpdateError(err);
@@ -860,6 +1005,12 @@ export function useFormationWorkflowEdit(
     setAnimSel,
     partSel,
     setPartSel,
+    animEmail,
+    setAnimEmail,
+    partEmail,
+    setPartEmail,
+    addAnimByEmails,
+    addPartByEmails,
     overlapWarnings,
     animFilterUp,
     setAnimFilterUp,
@@ -879,6 +1030,8 @@ export function useFormationWorkflowEdit(
     clearPartSel,
     salle,
     setSalle,
+    notifierActeurs,
+    setNotifierActeurs,
     refetchAll,
     lastReloadAt,
     isReloading,

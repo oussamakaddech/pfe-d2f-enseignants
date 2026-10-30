@@ -1,3 +1,5 @@
+import pytest
+
 from app.domain.entities.risk_profile import RiskProfile
 from app.domain.services.risk_calculator import RiskInputs, compute_risk, risk_level
 from app.domain.value_objects.enums import RiskLevel
@@ -43,6 +45,23 @@ def test_risk_levels_boundaries():
     assert risk_level(85.0) is RiskLevel.CRITICAL
 
 
+def test_configured_thresholds_are_applied():
+    """Les bornes viennent de la configuration (CDC DSI 1.1). Avant ce cablage,
+    compute_risk appelait risk_level() sans arguments : RISK_THRESHOLD_MEDIUM
+    etait declare dans .env.example mais totalement ignore."""
+    from app.domain.services.risk_calculator import RiskThresholds
+
+    strict = RiskThresholds(medium=10.0, high=20.0, critical=30.0)
+    inputs = _inputs(stagnation_months=12.0, declined=False, attendance_rate=0.5)
+
+    default_profile = compute_risk(inputs, WEIGHTS)
+    strict_profile = compute_risk(inputs, WEIGHTS, strict)
+    # Memes entrees, meme score : seules les bornes changent le classement.
+    assert default_profile.risk_score == strict_profile.risk_score == 22.5
+    assert default_profile.risk_level is RiskLevel.LOW      # 22.5 < 30
+    assert strict_profile.risk_level is RiskLevel.HIGH      # 20 <= 22.5 < 30
+
+
 def test_factors_sorted_by_contribution_desc():
     profile = compute_risk(_inputs(stagnation_months=24.0, declined=False, attendance_rate=0.0), WEIGHTS)
     contributions = [f.contribution for f in profile.factors]
@@ -55,3 +74,26 @@ def test_avg_eval_none_is_neutral():
     mid = compute_risk(_inputs(avg_eval_score=5.0), WEIGHTS).risk_score
     none_profile = compute_risk(_inputs(avg_eval_score=None, stagnation_months=24.0), WEIGHTS)
     assert none_profile.risk_score > low
+
+
+def test_facteur_decline_plafonne_le_score_a_80():
+    """Invariant documente : le facteur "decline" n'est jamais alimente.
+
+    competence.enseignant_competences porte UNIQUE (enseignant_id, savoir_id) :
+    la source ne peut produire qu'UN evenement par savoir, donc _has_decline
+    renvoie toujours False. Le poids 0.20 reste pourtant au denominateur, ce
+    qui plafonne le score de risque a 80/100.
+
+    Ce test epingle la consequence chiffree pour qu'elle reste visible tant que
+    le metier n'a pas tranche (historiser les niveaux, ou retirer le facteur).
+    """
+    pire_cas = _inputs(
+        stagnation_months=240.0, declined=False, attendance_rate=0.0,
+        avg_eval_score=0.0, repeated_need_count=99.0, days_since_last_activity=9999.0,
+    )
+    profile = compute_risk(pire_cas, WEIGHTS)
+    poids_decline = WEIGHTS["decline"] / sum(WEIGHTS.values())
+    assert profile.risk_score == pytest.approx(100.0 * (1.0 - poids_decline))
+    assert profile.risk_score < 100.0
+    # Aucun facteur "decline" n'apparait dans l'explication servie a l'utilisateur.
+    assert all(f.feature != "decline" for f in profile.factors)

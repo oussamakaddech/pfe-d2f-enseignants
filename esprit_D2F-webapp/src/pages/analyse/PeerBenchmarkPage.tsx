@@ -87,7 +87,7 @@ export default function PeerBenchmarkPage() {
           <Card title={`Cohorte : ${data.pairs} pairs (${data.scope})`} icon={<TeamOutlined />}>
             <MetricRow label="Niveau moyen de compétence" metric={data.niveau_moyen} />
             <MetricRow label="Taux de complétion" metric={data.taux_completion} suffix="%" />
-            <MetricRow label="Score de risque" metric={data.score_risque} higherIsBetter={false} />
+            <MetricRow label="Indice de risque" metric={data.score_risque} higherIsBetter={false} />
             <MetricRow label="Gaps critiques" metric={data.gaps_critiques} />
           </Card>
         )}

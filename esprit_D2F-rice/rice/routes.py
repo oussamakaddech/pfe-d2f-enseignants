@@ -53,6 +53,9 @@ from rice.validate_helpers import (
 logger = logging.getLogger("rice_analyzer")
 
 
+# Prépare les entrées de /analyze : vérifie les fichiers, parse le JSON des
+# enseignants, nettoie/sécurise les noms de fichiers (upload_security), lit
+# les contenus et détecte automatiquement le département si "auto".
 async def _prepare_analyze_inputs(files: List[UploadFile], enseignants: str, departement: str):
     if not files:
         raise HTTPException(400, "Au moins un fichier est requis")
@@ -78,6 +81,7 @@ async def _prepare_analyze_inputs(files: List[UploadFile], enseignants: str, dep
         departement = dept_key
 
     return filenames, contents, ens_list, departement
+# Compteurs initiaux de la transaction /validate (tous à zéro).
 def _empty_validate_counts():
     return {
         "upserted_domaines": 0,
@@ -88,17 +92,22 @@ def _empty_validate_counts():
         "inserted_links": 0,
     }
 
+# Ajoute les compteurs (savoirs insérés/mis à jour, liens) au total courant.
 def _accumulate_savoir_counts(counts, inserted: int, updated: int, links: int):
     counts["inserted_savoirs"] += inserted
     counts["updated_savoirs"] += updated
     counts["inserted_links"] += links
 
+# Wrapper : upsert d'un savoir rattaché à une COMPÉTENCE (délègue à validate_helpers).
 def _upsert_savoir(cur, savoir, parent_code: str, overwrite: bool, errors: List[str], conn):
     return _upsert_savoir_row(cur, savoir, parent_code, overwrite, errors, conn)
 
+# Wrapper : upsert d'un savoir rattaché à une SOUS-COMPÉTENCE.
 def _upsert_savoir_sous_competence(cur, savoir, competence_code: str, overwrite: bool, errors: List[str], conn):
     return _upsert_savoir_row(cur, savoir, competence_code, overwrite, errors, conn, parent_type="sous_competence")
 
+# Upsert une sous-compétence + upsert de tous ses savoirs ;
+# renvoie (upserted, inserted, updated, links).
 def _upsert_sous_competence(cur, sc, competence_code: str, overwrite: bool, errors: List[str], conn):
     upserted = 1 if _upsert_sous_competence_db(cur, sc, competence_code, errors, conn) else 0
     if not upserted:
@@ -112,17 +121,21 @@ def _upsert_sous_competence(cur, sc, competence_code: str, overwrite: bool, erro
         links += lnk
     return (upserted, inserted, updated, links)
 
+# Persiste tous les savoirs directs d'une compétence et accumule les compteurs.
 def _process_competence_savoirs(cur, competence, overwrite: bool, errors: List[str], conn, counts) -> None:
     for savoir in (competence.savoirs or []):
         ins, upd, lnk = _upsert_savoir(cur, savoir, competence.code, overwrite, errors, conn)
         _accumulate_savoir_counts(counts, ins, upd, lnk)
 
+# Persiste toutes les sous-compétences d'une compétence (et leurs savoirs).
 def _process_competence_subcompetences(cur, competence, overwrite: bool, errors: List[str], conn, counts) -> None:
     for sc in competence.sousCompetences:
         upserted, ins, upd, lnk = _upsert_sous_competence(cur, sc, competence.code, overwrite, errors, conn)
         counts["upserted_sous_competences"] += upserted
         _accumulate_savoir_counts(counts, ins, upd, lnk)
 
+# Persiste un domaine validé : upsert domaine → pour chaque compétence :
+# upsert compétence → savoirs directs → sous-compétences.
 def _process_validate_domaine(cur, domaine, overwrite: bool, counts, errors, conn) -> None:
     if not _upsert_domaine(cur, domaine, errors, conn):
         return
@@ -135,12 +148,14 @@ def _process_validate_domaine(cur, domaine, overwrite: bool, counts, errors, con
         _process_competence_savoirs(cur, competence, overwrite, errors, conn, counts)
         _process_competence_subcompetences(cur, competence, overwrite, errors, conn, counts)
 
+# Parcourt toutes les propositions validées et renvoie les compteurs totaux.
 def _process_validate_propositions(cur, request: ValidateRequest, errors: List[str], conn):
     counts = _empty_validate_counts()
     for domaine in request.propositions:
         _process_validate_domaine(cur, domaine, request.overwrite, counts, errors, conn)
     return counts
 
+# Ouvre une connexion + curseur pour /validate (RuntimeError si DB injoignable).
 def _open_validate_connection():
     import rice.db as _db_mod
 
@@ -151,6 +166,7 @@ def _open_validate_connection():
     cur = conn.cursor()
     return conn, cur
 
+# Referme proprement le curseur et rend la connexion au pool (silencieux en cas d'erreur).
 def _close_validate_connection(conn, cur):
     try:
         cur.close()
@@ -160,12 +176,14 @@ def _close_validate_connection(conn, cur):
     except Exception:
         pass
 
+# Exécute la transaction complète de /validate : traitement + COMMIT final.
 def _run_validate_transaction(request: ValidateRequest, errors: List[str], conn, cur):
     counts = _process_validate_propositions(cur, request, errors, conn)
     conn.commit()
     return counts
 
 
+# En-têtes CSV de l'export (colonnes domaine → savoir + enseignants + refCodes).
 def _csv_header():
     return [
         "domaine_code", "domaine_nom",
@@ -176,6 +194,7 @@ def _csv_header():
     ]
 
 
+# Construit une ligne CSV d'export pour un savoir donné (avec son parent).
 def _build_export_row(domaine_code, domaine_nom, comp_code, comp_nom, sav, sc_code, sc_nom):
     return [
         domaine_code, domaine_nom, comp_code, comp_nom,
@@ -186,6 +205,7 @@ def _build_export_row(domaine_code, domaine_nom, comp_code, comp_nom, sav, sc_co
     ]
 
 
+# Itère sur tous les domaines du résultat d'analyse pour produire les lignes CSV d'export.
 def _iter_export_rows(result: RiceAnalysisResult):
     for domaine in result.propositions:
         domaine_code = domaine.code or ""
@@ -194,6 +214,7 @@ def _iter_export_rows(result: RiceAnalysisResult):
             yield from _iter_competence_export_rows(domaine_code, domaine_nom, comp)
 
 
+# Itère sur les savoirs d'une compétence (directs + sous-compétences) pour l'export CSV.
 def _iter_competence_export_rows(domaine_code, domaine_nom, comp):
     comp_code = comp.code or ""
     comp_nom = comp.nom or ""
@@ -262,6 +283,10 @@ rice_router = APIRouter(
                       200: {"description": "RiceAnalysisResult JSON (arbre validé)"},
                       400: {"description": "Fichier manquant ou JSON enseignants invalide"}
                   })
+# ── POST /rice/analyze : point d'entrée principal de l'IA RICE ──────────────
+# Reçoit les fiches PDF/DOCX + liste d'enseignants, détecte le département
+# puis lance l'analyse (dans un thread pool car CPU-bound) et renvoie
+# l'arbre de compétences proposé (Domaine → Compétence → Savoir).
 async def rice_analyze(
     files: Annotated[List[UploadFile], File(description="Fiches UE et modules (PDF/DOCX)")],
     enseignants: Annotated[str, Form(description='JSON array: [{id, nom, prenom, modules:[...]}]')] = "[]",

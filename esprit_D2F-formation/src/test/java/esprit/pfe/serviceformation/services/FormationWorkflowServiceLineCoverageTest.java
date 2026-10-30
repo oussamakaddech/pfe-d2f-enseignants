@@ -50,6 +50,10 @@ class FormationWorkflowServiceLineCoverageTest {
     private AnimateurParticipantResolver animateurParticipantResolver;
     private FormationWorkflowService service;
 
+    /** Utilisateur à portée globale : contourne le contrôle row-level présences. */
+    private static final CurrentUser ADMIN_USER =
+            new CurrentUser("admin", "1", "admin@esprit.tn", Set.of("ADMIN"));
+
     @BeforeEach
     void setUp() {
         helper = new FormationWorkflowServiceHelper(
@@ -67,6 +71,7 @@ class FormationWorkflowServiceLineCoverageTest {
                 emailAuditLogRepository, outlookCalendarService, outlookMailService);
 
         ReflectionTestUtils.setField(service, "organizerEmail", "admin@esprit.tn");
+        ReflectionTestUtils.setField(service, "d2fNotificationEmail", "d2f@esprit.tn");
         ReflectionTestUtils.setField(service, "platformUrl", "https://d2f.esprit.tn");
         ReflectionTestUtils.setField(service, "formationsPath", "/formations/");
     }
@@ -80,6 +85,7 @@ class FormationWorkflowServiceLineCoverageTest {
                 helper, formationMapper, animateurParticipantResolver,
                 emailAuditLogRepository, outlookCalendarService, null);
         ReflectionTestUtils.setField(s, "organizerEmail", "admin@esprit.tn");
+        ReflectionTestUtils.setField(s, "d2fNotificationEmail", "d2f@esprit.tn");
         ReflectionTestUtils.setField(s, "platformUrl", "https://d2f.esprit.tn");
         ReflectionTestUtils.setField(s, "formationsPath", "/formations/");
         return s;
@@ -94,6 +100,7 @@ class FormationWorkflowServiceLineCoverageTest {
                 helper, formationMapper, animateurParticipantResolver,
                 emailAuditLogRepository, null, outlookMailService);
         ReflectionTestUtils.setField(s, "organizerEmail", "admin@esprit.tn");
+        ReflectionTestUtils.setField(s, "d2fNotificationEmail", "d2f@esprit.tn");
         ReflectionTestUtils.setField(s, "platformUrl", "https://d2f.esprit.tn");
         ReflectionTestUtils.setField(s, "formationsPath", "/formations/");
         return s;
@@ -159,6 +166,7 @@ class FormationWorkflowServiceLineCoverageTest {
     private FormationWorkflowRequest buildRequest() {
         FormationWorkflowRequest r = new FormationWorkflowRequest();
         r.setTitreFormation("Formation Test");
+        r.setChargeHoraireGlobal(24); // durée obligatoire à la création
         r.setDateDebut(LocalDate.of(2026, Month.JANUARY, 1));
         r.setDateFin(LocalDate.of(2026, Month.DECEMBER, 31));
         r.setTypeFormation(TypeFormation.INTERNE);
@@ -216,7 +224,9 @@ class FormationWorkflowServiceLineCoverageTest {
     void handleEtat_planifie() {
         Formation f = buildFormation(1L, EtatFormation.PLANIFIE);
         SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
-        sf.setSalle("B201"); f.setSeances(new ArrayList<>(List.of(sf)));
+        sf.setSalle("B201");
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
+        f.setSeances(new ArrayList<>(List.of(sf)));
         when(formationRepository.findById(1L)).thenReturn(Optional.of(f));
         when(seanceFormationRepository.findById(10L)).thenReturn(Optional.of(sf));
         when(outlookCalendarService.addEventToCalendarAndReturnIdWithTeamsUrl(any()))
@@ -243,6 +253,7 @@ class FormationWorkflowServiceLineCoverageTest {
         Formation f = buildFormation(1L, EtatFormation.EN_COURS);
         SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
         sf.setOnlineMeetingUrl("https://teams.microsoft.com/meeting1");
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
         f.setSeances(new ArrayList<>(List.of(sf)));
         service.handleEtatTransitions(f, EtatFormation.PLANIFIE);
         verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
@@ -253,6 +264,7 @@ class FormationWorkflowServiceLineCoverageTest {
         Formation f = buildFormation(1L, EtatFormation.EN_COURS);
         SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
         sf.setOnlineMeetingUrl(null);
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
         f.setSeances(new ArrayList<>(List.of(sf)));
         service.handleEtatTransitions(f, EtatFormation.PLANIFIE);
         verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
@@ -261,6 +273,9 @@ class FormationWorkflowServiceLineCoverageTest {
     @Test @DisplayName("handleEtatTransitions - ACHEVE")
     void handleEtat_acheve() {
         Formation f = buildFormation(1L, EtatFormation.ACHEVE);
+        SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
+        f.setSeances(new ArrayList<>(List.of(sf)));
         service.handleEtatTransitions(f, EtatFormation.EN_COURS);
         verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
     }
@@ -269,10 +284,43 @@ class FormationWorkflowServiceLineCoverageTest {
     void handleEtat_annule() {
         Formation f = buildFormation(1L, EtatFormation.ANNULE);
         SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
-        sf.setCalendarEventId("EVT_001"); f.setSeances(new ArrayList<>(List.of(sf)));
+        sf.setCalendarEventId("EVT_001");
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
+        f.setSeances(new ArrayList<>(List.of(sf)));
         service.handleEtatTransitions(f, EtatFormation.PLANIFIE);
         verify(outlookMailService, atLeast(1)).sendMail(anyString(), contains("Annulation"), anyString());
         verify(outlookCalendarService).deleteEventInCalendar("admin@esprit.tn", "EVT_001");
+    }
+
+    @Test @DisplayName("handleEtatTransitions - ENREGISTRE -> ANNULE : personne n'avait été prévenu, aucun e-mail")
+    void handleEtat_annule_depuisEnregistre_aucunMail() {
+        Formation f = buildFormation(1L, EtatFormation.ANNULE);
+        SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
+        f.setSeances(new ArrayList<>(List.of(sf)));
+        service.handleEtatTransitions(f, EtatFormation.ENREGISTRE);
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
+    }
+
+    @Test @DisplayName("ANNULE - un événement personnel introuvable dans Outlook n'empêche pas de retirer les autres")
+    void handleEtat_annule_evenementPersonnelEnEchec() {
+        Formation f = buildFormation(1L, EtatFormation.ANNULE);
+        SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
+        f.setSeances(new ArrayList<>(List.of(sf)));
+        esprit.pfe.serviceformation.repositories.SeanceCalendarEventRepository repo =
+                mock(esprit.pfe.serviceformation.repositories.SeanceCalendarEventRepository.class);
+        service.setSeanceCalendarEventRepository(repo);
+        var supprimeParLaPersonne = new esprit.pfe.serviceformation.entities.SeanceCalendarEvent(10L, "a@esprit.tn", "EV_A");
+        var autre = new esprit.pfe.serviceformation.entities.SeanceCalendarEvent(10L, "b@esprit.tn", "EV_B");
+        when(repo.findBySeanceId(10L)).thenReturn(List.of(supprimeParLaPersonne, autre));
+        doThrow(new RuntimeException("404 ErrorItemNotFound")).when(outlookCalendarService)
+                .deleteEventInCalendar("a@esprit.tn", "EV_A");
+
+        service.handleEtatTransitions(f, EtatFormation.PLANIFIE);
+
+        verify(outlookCalendarService).deleteEventInCalendar("b@esprit.tn", "EV_B");
+        verify(repo).delete(supprimeParLaPersonne);
+        verify(repo).delete(autre);
     }
 
     @Test @DisplayName("handleEtatTransitions - ANNULE with calendar cleanup exception")
@@ -573,15 +621,15 @@ class FormationWorkflowServiceLineCoverageTest {
         assertDoesNotThrow(() -> service.updateFormationWorkflow(1L, r));
     }
 
-    @Test @DisplayName("updateFormation - same state + Outlook events => resync calendar")
+    @Test @DisplayName("updateFormation - same state + Outlook events + séance modifiée => resync calendar")
     void update_sameStateResync() {
         Formation ex = buildFormation(1L, EtatFormation.PLANIFIE);
         SeanceFormation sf = buildSeance(10L, ex, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
         sf.setCalendarEventId("EVT_1"); sf.setSalle("A100");
         ex.setSeances(new ArrayList<>(List.of(sf)));
         FormationWorkflowRequest r = buildRequest(); r.setEtatFormation(EtatFormation.PLANIFIE);
-        FormationWorkflowRequest.SeanceRequest sr = buildSeanceRequest(LocalDate.of(2026, Month.OCTOBER, 10), "09:00", "11:00", "A100");
-        sr.setIdSeance(10L); r.setSeances(List.of(sr));
+        FormationWorkflowRequest.SeanceRequest sr = buildSeanceRequest(LocalDate.of(2026, Month.OCTOBER, 10), "09:00", "11:00", "B200");
+        sr.setIdSeance(10L); r.setSeances(List.of(sr)); // salle modifiée → resynchronisation
         when(formationRepository.findById(1L)).thenReturn(Optional.of(ex));
         when(formationRepository.save(any())).thenReturn(ex);
         when(seanceFormationRepository.findById(10L)).thenReturn(Optional.of(sf));
@@ -689,13 +737,31 @@ class FormationWorkflowServiceLineCoverageTest {
 
     @Test @DisplayName("removeFormationCalendar - with events")
     void removeCal_withEvents() {
-        Formation f = buildFormation(1L, EtatFormation.ANNULE);
+        Formation f = buildFormation(1L, EtatFormation.PLANIFIE);
         SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
-        sf.setCalendarEventId("EVT_1"); f.setSeances(new ArrayList<>(List.of(sf)));
+        sf.setCalendarEventId("EVT_1");
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
+        f.setSeances(new ArrayList<>(List.of(sf)));
         when(formationRepository.findById(1L)).thenReturn(Optional.of(f));
         service.removeFormationCalendar(f);
         verify(outlookCalendarService).deleteEventInCalendar("admin@esprit.tn", "EVT_1");
         verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
+    }
+
+    @Test @DisplayName("removeFormationCalendar - formation déjà annulée, achevée ou jamais planifiée : événements supprimés, aucun e-mail")
+    void removeCal_personneNonInformee_aucunMail() {
+        for (EtatFormation etat : List.of(EtatFormation.ANNULE, EtatFormation.ACHEVE, EtatFormation.ENREGISTRE)) {
+            org.mockito.Mockito.clearInvocations(outlookMailService, outlookCalendarService);
+            Formation f = buildFormation(1L, etat);
+            SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
+            sf.setCalendarEventId("EVT_1");
+            sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
+            f.setSeances(new ArrayList<>(List.of(sf)));
+            when(formationRepository.findById(1L)).thenReturn(Optional.of(f));
+            service.removeFormationCalendar(f);
+            verify(outlookCalendarService).deleteEventInCalendar("admin@esprit.tn", "EVT_1");
+            verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
+        }
     }
 
     @Test @DisplayName("removeFormationCalendar - null calendar service")
@@ -817,6 +883,7 @@ class FormationWorkflowServiceLineCoverageTest {
         Formation f = buildFormation(1L, EtatFormation.ANNULE);
         SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
         sf.setCalendarEventId("EVT_1");
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
         doThrow(new RuntimeException("Mail")).when(outlookMailService).sendMail(anyString(), anyString(), anyString());
         assertDoesNotThrow(() -> service.removeSeanceFromCalendar(sf));
     }
@@ -1008,7 +1075,7 @@ class FormationWorkflowServiceLineCoverageTest {
     void updatePres_ok() {
         Presence p = new Presence(); p.setIdParticipation(1L);
         when(presenceRepository.findById(1L)).thenReturn(Optional.of(p));
-        service.updatePresence(1L, true, "Present");
+        service.updatePresence(1L, true, "Present", ADMIN_USER);
         assertTrue(p.isPresent());
         assertThat(p.getCommentaire()).isEqualTo("Present");
         verify(presenceRepository).save(p);
@@ -1017,7 +1084,7 @@ class FormationWorkflowServiceLineCoverageTest {
     @Test @DisplayName("updatePresence - not found throws")
     void updatePres_notFound() {
         when(presenceRepository.findById(99L)).thenReturn(Optional.empty());
-        assertThrows(IllegalArgumentException.class, () -> service.updatePresence(99L, true, "OK"));
+        assertThrows(IllegalArgumentException.class, () -> service.updatePresence(99L, true, "OK", ADMIN_USER));
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1086,7 +1153,7 @@ class FormationWorkflowServiceLineCoverageTest {
         p.setEnseignant(buildEnseignant("E1", "N", "P", "e@e.tn", "E"));
         SeanceFormation sf = new SeanceFormation(); sf.setIdSeance(1L); sf.setPresences(new ArrayList<>(List.of(p)));
         when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(sf));
-        assertThat(service.batchUpdatePresences(1L, null)).isNotEmpty();
+        assertThat(service.batchUpdatePresences(1L, null, ADMIN_USER)).isNotEmpty();
     }
 
     @Test @DisplayName("batchUpdate - empty updates")
@@ -1094,16 +1161,17 @@ class FormationWorkflowServiceLineCoverageTest {
         SeanceFormation sf = new SeanceFormation(); sf.setIdSeance(1L); sf.setPresences(new ArrayList<>());
         when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(sf));
         BatchPresenceUpdateRequest req = new BatchPresenceUpdateRequest(new ArrayList<>());
-        assertThat(service.batchUpdatePresences(1L, req)).isEmpty();
+        assertThat(service.batchUpdatePresences(1L, req, ADMIN_USER)).isEmpty();
     }
 
     @Test @DisplayName("batchUpdate - valid update")
     void batch_valid() {
         Presence p = new Presence(); p.setIdParticipation(1L); p.setPresent(false);
         p.setEnseignant(buildEnseignant("E1", "N", "P", "e@e.tn", "E"));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>(List.of(p)));
         BatchPresenceUpdateRequest req = new BatchPresenceUpdateRequest(List.of(new BatchPresenceUpdateRequest.Item(1L, true, "OK")));
-        service.batchUpdatePresences(1L, req);
+        service.batchUpdatePresences(1L, req, ADMIN_USER);
         assertTrue(p.isPresent());
         assertThat(p.getCommentaire()).isEqualTo("OK");
         verify(presenceRepository).saveAll(anyList());
@@ -1111,30 +1179,33 @@ class FormationWorkflowServiceLineCoverageTest {
 
     @Test @DisplayName("batchUpdate - null item and null idParticipation")
     void batch_nullItem() {
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>());
         List<BatchPresenceUpdateRequest.Item> items = new ArrayList<>();
         items.add(new BatchPresenceUpdateRequest.Item(null, true, null));
         items.add(null);
         BatchPresenceUpdateRequest req = new BatchPresenceUpdateRequest(items);
-        assertThat(service.batchUpdatePresences(1L, req)).isEmpty();
+        assertThat(service.batchUpdatePresences(1L, req, ADMIN_USER)).isEmpty();
     }
 
     @Test @DisplayName("batchUpdate - item not found in seance")
     void batch_itemNotFound() {
         Presence p = new Presence(); p.setIdParticipation(1L);
         p.setEnseignant(buildEnseignant("E1", "N", "P", "e@e.tn", "E"));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>(List.of(p)));
         BatchPresenceUpdateRequest req = new BatchPresenceUpdateRequest(List.of(new BatchPresenceUpdateRequest.Item(999L, true, "X")));
-        assertThat(service.batchUpdatePresences(1L, req)).hasSize(1);
+        assertThat(service.batchUpdatePresences(1L, req, ADMIN_USER)).hasSize(1);
     }
 
     @Test @DisplayName("batchUpdate - null commentaire keeps existing")
     void batch_nullCommentaire() {
         Presence p = new Presence(); p.setIdParticipation(1L); p.setCommentaire("Old");
         p.setEnseignant(buildEnseignant("E1", "N", "P", "e@e.tn", "E"));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>(List.of(p)));
         BatchPresenceUpdateRequest req = new BatchPresenceUpdateRequest(List.of(new BatchPresenceUpdateRequest.Item(1L, true, null)));
-        service.batchUpdatePresences(1L, req);
+        service.batchUpdatePresences(1L, req, ADMIN_USER);
         assertThat(p.getCommentaire()).isEqualTo("Old");
     }
 
@@ -1146,8 +1217,9 @@ class FormationWorkflowServiceLineCoverageTest {
     void markAll_present_default() {
         Presence p = new Presence(); p.setPresent(false); p.setCommentaire("Presence a valider");
         p.setEnseignant(buildEnseignant("E1", "N", "P", "e@e.tn", "E"));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>(List.of(p)));
-        service.markAllPresences(1L, true);
+        service.markAllPresences(1L, true, ADMIN_USER);
         assertTrue(p.isPresent());
         assertThat(p.getCommentaire()).isEqualTo("Presence confirmee");
     }
@@ -1156,8 +1228,9 @@ class FormationWorkflowServiceLineCoverageTest {
     void markAll_present_custom() {
         Presence p = new Presence(); p.setPresent(false); p.setCommentaire("Custom");
         p.setEnseignant(buildEnseignant("E1", "N", "P", "e@e.tn", "E"));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>(List.of(p)));
-        service.markAllPresences(1L, true);
+        service.markAllPresences(1L, true, ADMIN_USER);
         assertThat(p.getCommentaire()).isEqualTo("Custom");
     }
 
@@ -1165,15 +1238,17 @@ class FormationWorkflowServiceLineCoverageTest {
     void markAll_absent() {
         Presence p = new Presence(); p.setPresent(true);
         p.setEnseignant(buildEnseignant("E1", "N", "P", "e@e.tn", "E"));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>(List.of(p)));
-        service.markAllPresences(1L, false);
+        service.markAllPresences(1L, false, ADMIN_USER);
         assertFalse(p.isPresent());
     }
 
     @Test @DisplayName("markAll - empty list")
     void markAll_empty() {
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>());
-        assertThat(service.markAllPresences(1L, true)).isEmpty();
+        assertThat(service.markAllPresences(1L, true, ADMIN_USER)).isEmpty();
         verify(presenceRepository).saveAll(anyList());
     }
 
@@ -1181,8 +1256,9 @@ class FormationWorkflowServiceLineCoverageTest {
     void markAll_nullComment() {
         Presence p = new Presence(); p.setPresent(false); p.setCommentaire(null);
         p.setEnseignant(buildEnseignant("E1", "N", "P", "e@e.tn", "E"));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>(List.of(p)));
-        service.markAllPresences(1L, true);
+        service.markAllPresences(1L, true, ADMIN_USER);
         assertThat(p.getCommentaire()).isEqualTo("Presence confirmee");
     }
 
@@ -1190,8 +1266,9 @@ class FormationWorkflowServiceLineCoverageTest {
     void markAll_blankComment() {
         Presence p = new Presence(); p.setPresent(false); p.setCommentaire("   ");
         p.setEnseignant(buildEnseignant("E1", "N", "P", "e@e.tn", "E"));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(new SeanceFormation()));
         when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(new ArrayList<>(List.of(p)));
-        service.markAllPresences(1L, true);
+        service.markAllPresences(1L, true, ADMIN_USER);
         assertThat(p.getCommentaire()).isEqualTo("Presence confirmee");
     }
 
@@ -1266,6 +1343,26 @@ class FormationWorkflowServiceLineCoverageTest {
         List<MesPresenceDTO> result = service.getMesPresences("e@e.tn");
         assertThat(result.get(0).getHeureDebut()).isNull();
         assertThat(result.get(0).getEtatFormation()).isNull();
+    }
+
+    @Test @DisplayName("getMesPresences - formation archivée : présence gardée sans détail")
+    void mesPres_archivedFormation() {
+        Enseignant ens = buildEnseignant("E1", "N", "P", "e@e.tn", "E");
+        Presence p = new Presence(); p.setIdParticipation(1L); p.setPresent(true);
+        SeanceFormation sf = new SeanceFormation(); sf.setIdSeance(10L);
+        // Proxy Hibernate vers une formation soft-deleted : l'accès lève
+        // EntityNotFoundException (@SQLRestriction).
+        Formation archived = mock(Formation.class);
+        when(archived.getIdFormation()).thenThrow(new jakarta.persistence.EntityNotFoundException(
+                "Unable to find Formation with id 29"));
+        sf.setFormation(archived); p.setSeanceFormation(sf);
+        when(enseignantRepository.findByMailIgnoreCase("e@e.tn")).thenReturn(Optional.of(ens));
+        when(presenceRepository.findByEnseignant_Id("E1")).thenReturn(List.of(p));
+        List<MesPresenceDTO> result = service.getMesPresences("e@e.tn");
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getSeanceId()).isEqualTo(10L);
+        assertThat(result.get(0).getFormationId()).isNull();
+        assertThat(result.get(0).getTitreFormation()).isNull();
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1423,15 +1520,15 @@ class FormationWorkflowServiceLineCoverageTest {
     @Test @DisplayName("byEmail - success EN_COURS")
     void byEmail_ok() {
         Formation f = buildFormation(1L, EtatFormation.EN_COURS);
-        when(formationRepository.findDistinctBySeancesAnimateursMail("a@e.tn")).thenReturn(List.of(f));
+        when(formationRepository.findDistinctBySeancesAnimateursMailIgnoreCase("a@e.tn")).thenReturn(List.of(f));
         assertThat(service.getFormationsByAnimateurEmail("a@e.tn")).hasSize(1);
     }
 
-    @Test @DisplayName("byEmail - filters out non-EN_COURS")
+    @Test @DisplayName("byEmail - returns all statuses (ANNULE/ACHEVE inclus)")
     void byEmail_filtered() {
         Formation f = buildFormation(1L, EtatFormation.ANNULE);
-        when(formationRepository.findDistinctBySeancesAnimateursMail("a@e.tn")).thenReturn(List.of(f));
-        assertThat(service.getFormationsByAnimateurEmail("a@e.tn")).isEmpty();
+        when(formationRepository.findDistinctBySeancesAnimateursMailIgnoreCase("a@e.tn")).thenReturn(List.of(f));
+        assertThat(service.getFormationsByAnimateurEmail("a@e.tn")).hasSize(1);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1561,6 +1658,9 @@ class FormationWorkflowServiceLineCoverageTest {
     void acheve_blankExterne() {
         Formation f = buildFormation(1L, EtatFormation.ACHEVE);
         f.setExterneFormateurNom("  "); f.setExterneFormateurPrenom(null);
+        SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026,10,10), LocalTime.of(9,0), LocalTime.of(11,0));
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
+        f.setSeances(new ArrayList<>(List.of(sf)));
         service.handleEtatTransitions(f, EtatFormation.EN_COURS);
         verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
     }
@@ -1569,7 +1669,9 @@ class FormationWorkflowServiceLineCoverageTest {
     void acheve_nullSalleSeance() {
         Formation f = buildFormation(1L, EtatFormation.ACHEVE);
         SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026,10,10), LocalTime.of(9,0), LocalTime.of(11,0));
-        sf.setSalle(null); f.setSeances(new ArrayList<>(List.of(sf)));
+        sf.setSalle(null);
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
+        f.setSeances(new ArrayList<>(List.of(sf)));
         service.handleEtatTransitions(f, EtatFormation.EN_COURS);
         verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
     }
@@ -1612,6 +1714,9 @@ class FormationWorkflowServiceLineCoverageTest {
     @Test @DisplayName("stateNotif - mail failure caught")
     void stateNotif_mailFail() {
         Formation f = buildFormation(1L, EtatFormation.ACHEVE);
+        SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026,10,10), LocalTime.of(9,0), LocalTime.of(11,0));
+        sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
+        f.setSeances(new ArrayList<>(List.of(sf)));
         doThrow(new RuntimeException("Mail")).when(outlookMailService).sendMail(anyString(), anyString(), anyString());
         assertDoesNotThrow(() -> service.handleEtatTransitions(f, EtatFormation.PLANIFIE));
     }

@@ -13,6 +13,7 @@ import {
   Tooltip,
   Avatar,
   Badge,
+  DatePicker,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -34,11 +35,18 @@ import {
   DashboardOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
 import 'dayjs/locale/fr';
 import { useAuth } from '@/hooks/auth/useAuth';
-import { useCupDashboard } from '@/hooks/dashboard/useCupDashboard';
+import {
+  useCupDashboard,
+  customRangeLabel,
+  type DashboardPeriod,
+  type KpiDateRange,
+} from '@/hooks/dashboard/useCupDashboard';
 import FormationService from '@/services/formation/FormationService';
 import InscriptionService from '@/services/formation/InscriptionService';
+import { hasAnyRole } from '@/utils/constants/roles';
 import type { Formation } from '@/models/formation';
 import { brand } from '@/styles/themes/tokens';
 import { Card } from '@/redesign/components/Section';
@@ -50,7 +58,7 @@ const ACCENT = brand[500];
 
 const pct = (v: number | null) => Math.max(0, Math.min(100, Math.round(v ?? 0)));
 
-type PeriodKey = '30j' | 'trimestre' | 'semestre' | 'annee';
+type PeriodKey = DashboardPeriod;
 
 /** Formation à venir (données réelles depuis le backend). */
 interface FormationAVenir {
@@ -66,8 +74,45 @@ export default function CupDashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Les appels analytics prédictifs (overview) sont réservés au pilotage
+  // ADMIN/CUP (DASHBOARD_ADMIN_FULL) : pour le chef de département et
+  // RESPONSABLE_DOSSIER ils renvoient 403 — on ne les déclenche donc pas.
+  // Les KPI (DASHBOARD_ADMIN_LIMITED) sont autorisés pour ADMIN/CUP/
+  // CHEF_DEPARTEMENT/ANIMATEUR/RESPONSABLE_DOSSIER ; les besoins globaux
+  // (READ_ALL) pour ADMIN/CUP/CHEF_DEPARTEMENT/RESPONSABLE_DOSSIER — on les
+  // garde pour éviter les 403 sur /home.
+  const isPilotage = hasAnyRole(user?.role, ['admin', 'CUP', 'CHEF_DEPARTEMENT']);
+  const canReadKpis = hasAnyRole(user?.role, [
+    'admin',
+    'CUP',
+    'CHEF_DEPARTEMENT',
+    'Animateur',
+    'ResponsableDossier',
+  ]);
+  // Parité BESOIN_FORMATION_READ_ALL : l'animateur ne lit que ses propres besoins.
+  const canReadBesoins = hasAnyRole(user?.role, [
+    'admin',
+    'CUP',
+    'CHEF_DEPARTEMENT',
+    'ResponsableDossier',
+  ]);
+  // L'overview (tuiles d'en-tête prédictives) est scopé côté serveur :
+  // CUP → son UP, CHEF_DEPARTEMENT → son département (deny-by-default).
+  const canReadOverview = hasAnyRole(user?.role, ['admin', 'CUP', 'CHEF_DEPARTEMENT']);
+  // L'endpoint legacy in-demand est ouvert à ADMIN/CUP/CHEF_DEPARTEMENT (200 testé).
+  const canReadInDemand = hasAnyRole(user?.role, ['admin', 'CUP', 'CHEF_DEPARTEMENT']);
+  // Cibles de navigation sûres : /home/Formation (écriture) est réservé à
+  // ADMIN/CUP/CHEF et /home/animateur-formations à ANIMATEUR/ENSEIGNANT/ADMIN/CUP.
+  // Le responsable de dossier voit ces tuiles depuis /home mais tomberait sur le
+  // RoleGuard : on l'envoie vers le catalogue (lecture), ouvert aux 4 rôles.
+  const catalogueHref = '/home/Formation/Consulter';
+  const canOpenPresences = hasAnyRole(user?.role, ['admin', 'CUP', 'Animateur', 'Enseignant']);
+
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<PeriodKey>('annee');
+  // Plage choisie à la main : elle prime sur le préréglage, l'effacer (ou
+  // cliquer un préréglage) ramène à la fenêtre glissante.
+  const [customRange, setCustomRange] = useState<KpiDateRange | null>(null);
   const [besoinSearch, setBesoinSearch] = useState('');
 
   const {
@@ -83,7 +128,17 @@ export default function CupDashboardPage() {
     formationsByDomaineLoading,
     formationsByCompetence,
     formationsByCompetenceLoading,
-  } = useCupDashboard();
+  } = useCupDashboard(
+    isPilotage,
+    {
+      readKpis: canReadKpis,
+      readBesoins: canReadBesoins,
+      readOverview: canReadOverview,
+      readInDemand: canReadInDemand,
+    },
+    period,
+    customRange,
+  );
 
   // Formations à venir (données réelles, filtrées depuis le référentiel formations).
   const { data: formationsRaw, isLoading: formationsLoading } = useQuery({
@@ -105,10 +160,15 @@ export default function CupDashboardPage() {
     }
     return [];
   }, [formationsRaw]);
+  // Compteur inscriptions : GET /inscription/inscriptions exige INSCRIPTION_APPROVE
+  // (ADMIN/CUP/CHEF_DEPARTEMENT, périmètre appliqué côté serveur) — on ne déclenche
+  // pas la requête pour les autres rôles afin d'éviter les 403 sur /home.
+  const canReadInscriptions = hasAnyRole(user?.role, ['admin', 'CUP', 'CHEF_DEPARTEMENT']);
   const { data: inscriptionsRaw } = useQuery({
     queryKey: ['cup', 'inscriptions'],
     queryFn: () => InscriptionService.getAllInscriptions(500),
     staleTime: 5 * 60 * 1000,
+    enabled: canReadInscriptions,
   });
   const inscriptions = useMemo(() => {
     if (!inscriptionsRaw) return [];
@@ -234,10 +294,16 @@ export default function CupDashboardPage() {
   };
   const periodLabel: Record<PeriodKey, string> = {
     '30j': '30 derniers jours',
-    trimestre: 'ce trimestre',
-    semestre: 'ce semestre',
+    trimestre: '3 derniers mois',
+    semestre: '6 derniers mois',
     annee: '12 derniers mois',
   };
+  // Libellé commun aux KPI « de période » : la plage personnalisée quand elle
+  // est renseignée, sinon le préréglage.
+  const kpiPeriodLabel = customRange ? customRangeLabel(customRange) : periodLabel[period];
+  const rangePickerValue: [Dayjs, Dayjs] | null = customRange
+    ? [dayjs(customRange.start), dayjs(customRange.end)]
+    : null;
   const chartData = useMemo(() => {
     const all = (timeline?.periodes ?? []).map((p) => ({
       label: p.label,
@@ -297,17 +363,23 @@ export default function CupDashboardPage() {
       detail: { label: 'Voir les formations', onClick: () => navigate('/home/Formation') },
       spark: [kpis.enCours ?? 0],
     },
-    {
-      id: 'insc',
-      label: 'Inscriptions en attente',
-      value: nbInscriptionsAttente,
-      suffix: '',
-      caption: `${nbInscriptionsAttente} à valider`,
-      tone: 'orange' as const,
-      icon: <TeamOutlined />,
-      detail: { label: 'Gérer les inscriptions', onClick: () => scrollTo('cd-suivi') },
-      spark: [nbInscriptionsAttente],
-    },
+    // KPI « Inscriptions en attente » : nécessite l'accès à la liste des
+    // inscriptions (INSCRIPTION_APPROVE = ADMIN/CUP) — masqué pour les autres rôles.
+    ...(canReadInscriptions
+      ? [
+          {
+            id: 'insc',
+            label: 'Inscriptions en attente',
+            value: nbInscriptionsAttente,
+            suffix: '',
+            caption: `${nbInscriptionsAttente} à valider`,
+            tone: 'orange' as const,
+            icon: <TeamOutlined />,
+            detail: { label: 'Gérer les inscriptions', onClick: () => scrollTo('cd-suivi') },
+            spark: [nbInscriptionsAttente],
+          },
+        ]
+      : []),
     {
       id: 'completion',
       label: 'Taux de complétion moyen',
@@ -319,18 +391,70 @@ export default function CupDashboardPage() {
       detail: { label: 'Détail complétion', onClick: () => scrollTo('cd-couverture') },
       spark: [pct(kpis.tauxReussiteGlobal)],
     },
+    // Couverture (analytics prédictif) : réservé au pilotage.
+    ...(isPilotage
+      ? [
+          {
+            id: 'couv',
+            label: 'Taux de couverture des compétences',
+            value: pct(kpis.couverture),
+            suffix: '%',
+            delta: deltaLabel,
+            up: deltaUp,
+            caption: kpis.couvertureDelta == null ? `${kpis.couverture ?? 0}% couverts` : undefined,
+            tone: 'blue' as const,
+            icon: <SafetyCertificateOutlined />,
+            detail: { label: 'Voir le référentiel', onClick: () => scrollTo('cd-couverture') },
+            spark: [pct(kpis.couverture)],
+          },
+        ]
+      : []),
+    // ── Indicateurs de la période sélectionnée (préréglage ou plage choisie) ──
     {
-      id: 'couv',
-      label: 'Taux de couverture des compétences',
-      value: pct(kpis.couverture),
-      suffix: '%',
-      delta: deltaLabel,
-      up: deltaUp,
-      caption: kpis.couvertureDelta == null ? `${kpis.couverture ?? 0}% couverts` : undefined,
+      id: 'heures',
+      label: 'Heures de formation',
+      value: kpis.totalHeures ?? 0,
+      suffix: 'h',
+      caption: kpiPeriodLabel,
       tone: 'blue' as const,
-      icon: <SafetyCertificateOutlined />,
-      detail: { label: 'Voir le référentiel', onClick: () => scrollTo('cd-couverture') },
-      spark: [pct(kpis.couverture)],
+      icon: <ClockCircleOutlined />,
+      detail: { label: 'Voir le catalogue', onClick: () => navigate(catalogueHref) },
+      spark: [kpis.totalHeures ?? 0],
+    },
+    {
+      id: 'formateurs',
+      label: 'Formateurs mobilisés',
+      value: kpis.formateurs?.total ?? 0,
+      suffix: '',
+      caption: `${kpis.formateurs?.internes ?? 0} internes · ${kpis.formateurs?.externes ?? 0} externes`,
+      tone: 'navy' as const,
+      icon: <TeamOutlined />,
+      detail: { label: 'Voir le catalogue', onClick: () => navigate(catalogueHref) },
+      spark: [kpis.formateurs?.total ?? 0],
+    },
+    {
+      id: 'participants-periode',
+      label: 'Participants formés',
+      value: kpis.participants ?? 0,
+      suffix: '',
+      caption: `participants de séance · ${kpiPeriodLabel}`,
+      tone: 'green' as const,
+      icon: <TeamOutlined />,
+      detail: canOpenPresences
+        ? { label: 'Suivi des présences', onClick: () => navigate('/home/animateur-formations') }
+        : { label: 'Voir le catalogue', onClick: () => navigate(catalogueHref) },
+      spark: [kpis.participants ?? 0],
+    },
+    {
+      id: 'formations-competence',
+      label: 'Compétences couvertes',
+      value: kpis.competencesCouvertes ?? 0,
+      suffix: '',
+      caption: `${kpis.liensCompetences ?? 0} rattachements formation · 12 derniers mois`,
+      tone: 'orange' as const,
+      icon: <ThunderboltOutlined />,
+      detail: { label: 'Voir la répartition', onClick: () => scrollTo('cd-domaines') },
+      spark: [kpis.competencesCouvertes ?? 0],
     },
   ];
 
@@ -425,7 +549,7 @@ export default function CupDashboardPage() {
               <span>Tableau de bord</span>
             </span>
             <div className="cd-header-title-row">
-              <h1 className="cd-header-title">Tableau de bord CUP</h1>
+              <h1 className="cd-header-title">Tableau de bord</h1>
               {actionCount > 0 && <span className="cd-header-badge">{actionCount}</span>}
             </div>
             <span className="cd-header-sub">Vue consolidée de votre unité pédagogique</span>
@@ -492,6 +616,49 @@ export default function CupDashboardPage() {
       </section>
 
       {/* ── KPI principaux ──────────────────────────────────── */}
+      <div className="cd-kpi-toolbar">
+        <div className="cd-kpi-toolbar-titles">
+          <span className="cd-kpi-toolbar-label">Indicateurs clés</span>
+          <span className="cd-kpi-toolbar-hint">
+            Heures, formateurs et participants comptés sur {kpiPeriodLabel}
+          </span>
+        </div>
+        <div className="cd-kpi-toolbar-actions">
+          <DatePicker.RangePicker
+            size="small"
+            format="DD/MM/YYYY"
+            placeholder={['Du', 'Au']}
+            value={rangePickerValue}
+            allowClear
+            onChange={(dates) => {
+              if (!dates || !dates[0] || !dates[1]) {
+                // Plage effacée : retour à la fenêtre glissante du préréglage.
+                setCustomRange(null);
+                return;
+              }
+              setCustomRange({
+                start: dates[0].format('YYYY-MM-DD'),
+                end: dates[1].format('YYYY-MM-DD'),
+              });
+            }}
+          />
+          <Segmented
+            size="small"
+            value={period}
+            onChange={(v) => {
+              // Choisir un préréglage efface la plage personnalisée.
+              setPeriod(v as PeriodKey);
+              setCustomRange(null);
+            }}
+            options={[
+              { label: '30 j', value: '30j' },
+              { label: '3 mois', value: 'trimestre' },
+              { label: '6 mois', value: 'semestre' },
+              { label: '12 mois', value: 'annee' },
+            ]}
+          />
+        </div>
+      </div>
       <section className="cd-kpis">
         {kpiList.map((k) => (
           <KpiTile key={k.id} {...k} />
@@ -531,9 +698,9 @@ export default function CupDashboardPage() {
               onChange={(v) => setPeriod(v as PeriodKey)}
               options={[
                 { label: '30 j', value: '30j' },
-                { label: 'Trimestre', value: 'trimestre' },
-                { label: 'Semestre', value: 'semestre' },
-                { label: 'Année', value: 'annee' },
+                { label: '3 mois', value: 'trimestre' },
+                { label: '6 mois', value: 'semestre' },
+                { label: '12 mois', value: 'annee' },
               ]}
             />
           }
@@ -627,90 +794,94 @@ export default function CupDashboardPage() {
         </Card>
       </Section>
 
-      {/* ── Couverture et compétences ──────────────────────── */}
-      <Section
-        index={4}
-        id="cd-couverture"
-        title="Couverture et compétences"
-        subtitle="Niveau de couverture de l'UP et compétences à renforcer"
-      >
-        <Card
-          className="cd-span-5"
-          title="Couverture globale"
-          subtitle="Part des compétences au niveau requis"
-          icon={<SafetyCertificateOutlined />}
-          iconColor="#16a34a"
-          iconBg="rgba(22,163,74,.12)"
+      {/* ── Couverture et compétences (réservé au pilotage) ───── */}
+      {isPilotage && (
+        <Section
+          index={4}
+          id="cd-couverture"
+          title="Couverture et compétences"
+          subtitle="Niveau de couverture de l'UP et compétences à renforcer"
         >
-          <div className="cd-coverage-global">
-            <Progress type="dashboard" percent={pct(kpis.couverture)} strokeColor="#16a34a" />
-            <div className="cd-coverage-global-note">
-              <div className="cd-coverage-global-val">{pct(kpis.couverture)} %</div>
-              <div className="cd-coverage-global-lbl">
-                des compétences de l'UP sont couvertes au niveau requis.
-              </div>
-              <Button
-                size="small"
-                type="link"
-                icon={<RightOutlined />}
-                onClick={() => navigate('/home/competences')}
-              >
-                Voir le référentiel
-              </Button>
-            </div>
-          </div>
-        </Card>
-        <Card
-          className="cd-span-7"
-          title="Top 5 compétences à renforcer"
-          subtitle="Les plus demandées et les moins couvertes"
-          icon={<ThunderboltOutlined />}
-          iconColor="#ea580c"
-          iconBg="rgba(234,88,12,.12)"
-        >
-          <ol className="cd-coverage-list">
-            {top5.map((c, i) => (
-              <li key={`${c.name}-${i}`} className="cd-coverage-item">
-                <span className="cd-coverage-rank">{i + 1}</span>
-                <div className="cd-coverage-main">
-                  <div className="cd-coverage-name">{c.name}</div>
-                  <div className="cd-coverage-meta">
-                    <Tag color={topPrioriteTag(c).color}>{topPrioriteTag(c).label}</Tag>
-                    <span>
-                      {c.count} enseignant{c.count > 1 ? 's' : ''} impacté{c.count > 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <Progress percent={densityFor(c.count)} size="small" strokeColor="#ea580c" />
+          <Card
+            className="cd-span-5"
+            title="Couverture globale"
+            subtitle="Part des compétences au niveau requis"
+            icon={<SafetyCertificateOutlined />}
+            iconColor="#16a34a"
+            iconBg="rgba(22,163,74,.12)"
+          >
+            <div className="cd-coverage-global">
+              <Progress type="dashboard" percent={pct(kpis.couverture)} strokeColor="#16a34a" />
+              <div className="cd-coverage-global-note">
+                <div className="cd-coverage-global-val">{pct(kpis.couverture)} %</div>
+                <div className="cd-coverage-global-lbl">
+                  des compétences de l'UP sont couvertes au niveau requis.
                 </div>
-                <Button size="small" onClick={() => navigate('/home/Formation')}>
-                  Planifier
+                <Button
+                  size="small"
+                  type="link"
+                  icon={<RightOutlined />}
+                  onClick={() => navigate('/home/competences')}
+                >
+                  Voir le référentiel
                 </Button>
-              </li>
-            ))}
-          </ol>
-        </Card>
-      </Section>
+              </div>
+            </div>
+          </Card>
+          <Card
+            className="cd-span-7"
+            title="Top 5 compétences à renforcer"
+            subtitle="Les plus demandées et les moins couvertes"
+            icon={<ThunderboltOutlined />}
+            iconColor="#ea580c"
+            iconBg="rgba(234,88,12,.12)"
+          >
+            <ol className="cd-coverage-list">
+              {top5.map((c, i) => (
+                <li key={`${c.name}-${i}`} className="cd-coverage-item">
+                  <span className="cd-coverage-rank">{i + 1}</span>
+                  <div className="cd-coverage-main">
+                    <div className="cd-coverage-name">{c.name}</div>
+                    <div className="cd-coverage-meta">
+                      <Tag color={topPrioriteTag(c).color}>{topPrioriteTag(c).label}</Tag>
+                      <span>
+                        {c.count} enseignant{c.count > 1 ? 's' : ''} impacté{c.count > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <Progress percent={densityFor(c.count)} size="small" strokeColor="#ea580c" />
+                  </div>
+                  <Button size="small" onClick={() => navigate('/home/Formation')}>
+                    Planifier
+                  </Button>
+                </li>
+              ))}
+            </ol>
+          </Card>
+        </Section>
+      )}
 
-      {/* ── Analyse prédictive ─────────────────────────────── */}
-      <Section title="Analyse prédictive">
-        <Card className="cd-span-12" title={undefined}>
-          <Alert
-            type="info"
-            showIcon
-            message="Analyse prédictive détaillée"
-            description="Pour la liste nominative des enseignants à risque, l'historique des alertes et les recommandations IA, consultez l'Analyse Prédictive."
-            action={
-              <Button
-                type="primary"
-                size="small"
-                onClick={() => navigate('/home/AnalysePredictive')}
-              >
-                Ouvrir <RightOutlined />
-              </Button>
-            }
-          />
-        </Card>
-      </Section>
+      {/* ── Analyse prédictive (réservé au pilotage) ─────────── */}
+      {isPilotage && (
+        <Section title="Analyse prédictive">
+          <Card className="cd-span-12" title={undefined}>
+            <Alert
+              type="info"
+              showIcon
+              message="Analyse prédictive détaillée"
+              description="Pour la liste nominative des enseignants à risque, l'historique des alertes et les recommandations IA, consultez l'Analyse Prédictive."
+              action={
+                <Button
+                  type="primary"
+                  size="small"
+                  onClick={() => navigate('/home/AnalysePredictive')}
+                >
+                  Ouvrir <RightOutlined />
+                </Button>
+              }
+            />
+          </Card>
+        </Section>
+      )}
     </div>
   );
 }

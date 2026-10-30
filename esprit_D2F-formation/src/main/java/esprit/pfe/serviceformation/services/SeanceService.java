@@ -264,6 +264,8 @@ public class SeanceService {
         dto.setHeureFin(entity.getHeureFin());
         dto.setSalle(entity.getSalle());
         dto.setOnlineMeetingUrl(entity.getOnlineMeetingUrl());
+        dto.setNumeroSeance(entity.getNumeroSeance());
+        dto.setTotalSeances(entity.getTotalSeances());
 
         // Convertir animateurs
         List<EnseignantDTO> animDtos = new ArrayList<>();

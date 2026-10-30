@@ -14,6 +14,7 @@ import tn.esprit.d2f.competence.entity.enumerations.TypeSavoir;
 import tn.esprit.d2f.competence.repository.*;
 
 import java.util.*;
+import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -57,29 +58,40 @@ public class StructureServiceImpl implements IStructureService {
     @Override
     @Transactional(readOnly = true)
     public StructureArbreDTO getStructureComplete(String upId, String departementId) {
-        List<Domaine> domaines = domaineRepository.findByUpIdAndDepartementId(upId, departementId);
-        List<Savoir> allSavoirs = domaines.isEmpty()
-                ? List.of()
-                : savoirRepository.findAll().stream()
-                    .filter(s -> domaines.stream().anyMatch(d ->
-                        d.getCompetences().stream().anyMatch(c ->
-                            (s.getCompetence() != null && c.getId().equals(s.getCompetence().getId())) ||
-                            (s.getSousCompetence() != null && c.getSousCompetences().stream().anyMatch(sc -> sc.getId().equals(s.getSousCompetence().getId())))
-                        )
-                    )).toList();
+        List<StructureArbreDTO.DomaineArbreDTO> domaineArbreDTOs = domaineRepository.findAll().stream()
+                .map(d -> buildDomaineArbre(d, upId, departementId))
+                // Un domaine dont aucune compétence n'entre dans le périmètre est
+                // masqué : le filtre porte désormais sur les compétences (V24).
+                .filter(d -> d.getCompetences() != null && !d.getCompetences().isEmpty())
+                .toList();
 
-        List<StructureArbreDTO.DomaineArbreDTO> domaineArbreDTOs = domaines.stream()
-                .map(this::buildDomaineArbre).toList();
+        Set<Long> competenceIds = domaineArbreDTOs.stream()
+                .flatMap(d -> d.getCompetences().stream())
+                .map(StructureArbreDTO.CompetenceArbreDTO::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        List<Savoir> allSavoirs = savoirRepository.findAll().stream()
+                .filter(s -> {
+                    if (s.getCompetence() != null) {
+                        return competenceIds.contains(s.getCompetence().getId());
+                    }
+                    return s.getSousCompetence() != null
+                            && s.getSousCompetence().getCompetence() != null
+                            && competenceIds.contains(s.getSousCompetence().getCompetence().getId());
+                })
+                .toList();
 
         long savoirsTheoriques = allSavoirs.stream().filter(s -> s.getType() == TypeSavoir.THEORIQUE).count();
         long savoirsPratiques  = allSavoirs.stream().filter(s -> s.getType() == TypeSavoir.PRATIQUE).count();
 
         StructureArbreDTO.StatistiquesDTO stats = StructureArbreDTO.StatistiquesDTO.builder()
-                .totalDomaines(domaines.size())
-                .totalCompetences((int) domaines.stream().mapToLong(d -> d.getCompetences().size()).sum())
-                .totalSousCompetences((int) domaines.stream()
+                .totalDomaines(domaineArbreDTOs.size())
+                .totalCompetences(domaineArbreDTOs.stream()
+                        .mapToInt(StructureArbreDTO.DomaineArbreDTO::getNombreCompetences).sum())
+                .totalSousCompetences(domaineArbreDTOs.stream()
                         .flatMap(d -> d.getCompetences().stream())
-                        .mapToLong(c -> c.getSousCompetences().size()).sum())
+                        .mapToInt(StructureArbreDTO.CompetenceArbreDTO::getNombreSousCompetences).sum())
                 .totalSavoirs(allSavoirs.size())
                 .totalSavoirsTheoriques((int) savoirsTheoriques)
                 .totalSavoirsPratiques((int) savoirsPratiques)
@@ -142,7 +154,20 @@ public class StructureServiceImpl implements IStructureService {
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private StructureArbreDTO.DomaineArbreDTO buildDomaineArbre(Domaine domaine) {
-        List<Competence> competences = domaine.getCompetences();
+        return buildDomaineArbre(domaine, null, null);
+    }
+
+    /**
+     * Construit l'arbre d'un domaine en ne gardant que les compétences qui
+     * entrent dans le périmètre UP / département demandé (null = aucun filtre).
+     */
+    private StructureArbreDTO.DomaineArbreDTO buildDomaineArbre(
+            Domaine domaine, String upId, String departementId) {
+        List<Competence> competences = domaine.getCompetences() == null
+                ? Collections.emptyList()
+                : domaine.getCompetences().stream()
+                        .filter(c -> matchesScope(c, upId, departementId))
+                        .toList();
 
         List<StructureArbreDTO.CompetenceArbreDTO> compArbreDTOs = competences.stream()
                 .map(this::buildCompetenceArbre)
@@ -165,6 +190,27 @@ public class StructureServiceImpl implements IStructureService {
                 .nombreEnseignants(nbEnseignants)
                 .competences(compArbreDTOs)
                 .build();
+    }
+
+    /**
+     * Une compétence entre dans le périmètre si elle porte la valeur demandée.
+     * Sans rattachement explicite, on retombe sur les colonnes historiques du
+     * domaine (référentiels créés avant la V24).
+     */
+    private boolean matchesScope(Competence c, String upId, String departementId) {
+        if (upId == null && departementId == null) {
+            return true;
+        }
+        Domaine d = c.getDomaine();
+        boolean upOk = upId == null
+                || (c.getUpIds() != null && c.getUpIds().contains(upId))
+                || ((c.getUpIds() == null || c.getUpIds().isEmpty())
+                        && d != null && upId.equals(d.getUpId()));
+        boolean deptOk = departementId == null
+                || (c.getDepartementIds() != null && c.getDepartementIds().contains(departementId))
+                || ((c.getDepartementIds() == null || c.getDepartementIds().isEmpty())
+                        && d != null && departementId.equals(d.getDepartementId()));
+        return upOk && deptOk;
     }
 
     private StructureArbreDTO.CompetenceArbreDTO buildCompetenceArbre(Competence competence) {

@@ -104,7 +104,7 @@ export interface CalendarParticipant {
   matchedEnseignant: boolean;
 }
 
-export type SendInvitationsStatus = 'DISPATCHED' | 'NO_RECIPIENT';
+export type SendInvitationsStatus = 'DISPATCHED' | 'NO_RECIPIENT' | 'FORMATION_PASSEE';
 
 export interface SendInvitationsResult {
   formationId?: number;

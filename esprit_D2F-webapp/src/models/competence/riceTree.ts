@@ -25,6 +25,10 @@ export interface RiceSousCompetence {
 export interface RiceCompetence {
   code?: string;
   nom: string;
+  /** UP sélectionnées pour cette compétence dans la revue RICE (facultatif, plusieurs). */
+  upIds?: string[];
+  /** Départements sélectionnés pour cette compétence dans la revue RICE (facultatif, plusieurs). */
+  departementIds?: string[];
   savoirs?: RiceSavoir[];
   sousCompetences?: RiceSousCompetence[];
   [key: string]: unknown;
@@ -33,6 +37,8 @@ export interface RiceCompetence {
 export interface RiceDomaine {
   code?: string;
   nom: string;
+  /** Domaine du référentiel auquel rattacher l'import (choisi dans le panneau de revue). */
+  domaineExistantId?: string | null;
   competences?: RiceCompetence[];
   [key: string]: unknown;
 }

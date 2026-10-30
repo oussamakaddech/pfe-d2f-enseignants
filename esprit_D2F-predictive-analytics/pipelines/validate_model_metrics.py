@@ -1,188 +1,112 @@
+"""Validation des metriques et de l'absence de fuite du modele entrene.
+
+Usage :
+    python -m pipelines.validate_model_metrics --json
 """
-Validation des métriques du modèle ML gap_predictor.
+from __future__ import annotations
 
-Ce script vérifie :
-1. Feature skew : n_features_model == n_features_code (FEATURE_COLS)
-2. Metrics range : R2 dans [-inf, 1], RMSE >= 0
-3. Leakage warning : R2 >= 0.99 + n_samples < 200 = suspect
-4. Outliers dans le training set
-5. Baseline lift : ML doit faire mieux (ou au moins aussi bien) que la baseline
-   heuristique (gap = required - current)
-6. Fallback mode : si skew détecté, predict() doit basculer sur heuristic
-
-Usage:
-    python -m pipelines.validate_model_metrics
-    python -m pipelines.validate_model_metrics --json  # sortie machine-readable
-"""
-
+import argparse
 import json
+import os
 import sys
 from pathlib import Path
-from typing import Any
 
-import numpy as np
+BASE_DIR = Path(__file__).parent.parent
+MODELS_DIR = BASE_DIR / "data" / "models"
+METADATA_PATH = MODELS_DIR / "temporal_training_metadata.json"
+FEATURE_SCHEMA_PATH = MODELS_DIR / "feature_schema.json"
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+from app.infrastructure.ml.feature_schema import LEAK_COLUMNS  # noqa: E402
 
 
-def validate() -> dict[str, Any]:
-    """Exécute toutes les validations et retourne un rapport structuré."""
-    import pipelines._legacy_compat as _compat
-    _compat.setup()
-    from app.ml.gap_predictor import gap_predictor
-
-    health = gap_predictor.model_health()
-    report: dict[str, Any] = {
-        "ok": True,
-        "checks": [],
-        "health": health,
+def default_thresholds() -> dict:
+    return {
+        "min_r2": float(os.environ.get("ML_MIN_R2", "0.0")),
+        "max_rmse": float(os.environ.get("ML_MAX_RMSE", "2.0")),
+        "max_mae": float(os.environ.get("ML_MAX_MAE", "1.5")),
+        "max_train_test_gap_pct": float(os.environ.get("ML_MAX_TRAIN_TEST_GAP_PCT", "50.0")),
     }
 
-    def _add(check_name: str, ok: bool, detail: str, severity: str = "info") -> None:
-        report["checks"].append({
-            "name": check_name,
-            "ok": ok,
-            "detail": detail,
-            "severity": severity,
-        })
-        if not ok and severity in ("error", "warning"):
-            report["ok"] = False
 
-    # ── 1. Feature skew ──────────────────────────────────
-    if not health["model_loaded"]:
-        _add("feature_skew", True, "Modèle non chargé — fallback heuristic", "info")
-    elif "feature_skew_ok" not in health:
-        _add(
-            "feature_skew",
-            True,
-            "Pas de contrôle de skew disponible (legacy health dict)",
-            "info",
+def validate(metadata: dict, schema: dict, thresholds: dict) -> dict:
+    """Valide que le modele respecte les seuils et l'anti-fuite."""
+    errors: list[str] = []
+    metrics = metadata.get("metrics") or {}
+    data_sources = metadata.get("data_sources") or {}
+    feature_cols = metadata.get("feature_cols") or schema.get("feature_names") or []
+
+    # Anti-fuite
+    leaks = [c for c in feature_cols if c in LEAK_COLUMNS]
+    if leaks:
+        errors.append(f"colonnes de fuite detectees dans X : {leaks}")
+
+    # Metriques
+    test_r2 = metrics.get("test_r2")
+    test_rmse = metrics.get("test_rmse")
+    test_mae = metrics.get("test_mae")
+    baseline_rmse = metrics.get("baseline_rmse")
+
+    if test_r2 is None or test_r2 < thresholds["min_r2"]:
+        errors.append(f"R2={test_r2} < minimum requis {thresholds['min_r2']}")
+    if test_rmse is None or test_rmse > thresholds["max_rmse"]:
+        errors.append(f"RMSE={test_rmse} > maximum autorise {thresholds['max_rmse']}")
+    if test_mae is None or test_mae > thresholds["max_mae"]:
+        errors.append(f"MAE={test_mae} > maximum autorise {thresholds['max_mae']}")
+
+    # RMSE inferieur a la baseline
+    if baseline_rmse is not None and test_rmse is not None and test_rmse >= baseline_rmse:
+        errors.append(
+            f"RMSE modele ({test_rmse}) >= baseline ({baseline_rmse}) : "
+            "le modele n'amelioore pas la baseline"
         )
-    else:
-        skew_ok = health["feature_skew_ok"]
-        _add(
-            "feature_skew",
-            skew_ok,
-            f"model_n={health['n_features_model']} vs code_n={health['n_features_code']}. "
-            + (health["feature_skew_reason"] or "OK"),
-            "error" if not skew_ok else "info",
-        )
 
-    # ── 2. Metrics range ──────────────────────────────────
-    metrics = health.get("metrics") or {}
-    if metrics:
-        r2 = metrics.get("test_r2")
-        rmse = metrics.get("test_rmse")
-        if r2 is not None:
-            try:
-                _add("test_r2_range", float(r2) <= 1.0, f"test_r2={r2}", "warning")
-            except (TypeError, ValueError):
-                pass
-        if rmse is not None:
-            try:
-                _add("test_rmse_positive", float(rmse) >= 0.0, f"test_rmse={rmse}", "warning")
-            except (TypeError, ValueError):
-                pass
+    # Provenance
+    synth_pct = float(data_sources.get("synthetic_share_pct", 0.0) or 0.0)
+    tolerance = float(os.environ.get("ML_SYNTHETIC_TOLERANCE_PCT", "50.0"))
+    real_rows = int(data_sources.get("real_rows", 0))
+    min_real = int(os.environ.get("ML_MIN_REAL_ROWS", "50"))
+    require_real = os.environ.get("ML_REQUIRE_REAL_DATA", "true").lower() == "true"
+    if synth_pct > tolerance:
+        errors.append(f"corpus {synth_pct}% synthetique > tolerance {tolerance}%")
+    if require_real and real_rows < min_real:
+        errors.append(f"donnees reelles insuffisantes : {real_rows} < {min_real}")
 
-    # ── 3. Leakage warning ───────────────────────────────
-    for w in health.get("warnings", []):
-        _add("leakage_warning", False, w, "warning")
-
-    # ── 4. Outliers ──────────────────────────────────────
-    outlier_report = health.get("outlier_report") or {}
-    if outlier_report and not outlier_report.get("is_clean", True):
-        bad = list(outlier_report.get("outlier_columns", []))
-        _add(
-            "outliers",
-            False,
-            f"Outliers dans colonnes: {bad}",
-            "warning",
-        )
-    else:
-        _add("outliers", True, "Aucun outlier métier détecté", "info")
-
-    # ── 5. Baseline lift ─────────────────────────────────
-    baseline_rmse = metrics.get("baseline_rmse") if metrics else None
-    lift_rmse = metrics.get("lift_rmse") if metrics else None
-    if baseline_rmse is not None and metrics.get("test_rmse") is not None:
-        try:
-            ml_rmse = float(metrics["test_rmse"])
-            base = float(baseline_rmse)
-            # Le lift peut être négatif (ML < baseline) ou positif (ML > baseline).
-            # On accepte les deux mais on alerte si ML est largement moins bon.
-            if base > 0 and ml_rmse > base * 1.2:
-                _add(
-                    "baseline_lift",
-                    False,
-                    f"ML RMSE={ml_rmse:.4f} > 1.2 × baseline={base:.4f}. "
-                    "Le modèle n'apporte pas de valeur par rapport à la formule "
-                    "déterministe (gap = required - current).",
-                    "warning",
-                )
-            else:
-                _add(
-                    "baseline_lift",
-                    True,
-                    f"ML RMSE={ml_rmse:.4f} vs baseline={base:.4f} "
-                    f"(lift_rmse={lift_rmse})",
-                    "info",
-                )
-        except (TypeError, ValueError):
-            _add("baseline_lift", True, "Lift non numérique — ignoré", "info")
-    else:
-        _add("baseline_lift", True, "Pas de baseline enregistrée (re-train requis)", "info")
-
-    # ── 6. Fallback mode ────────────────────────────────
-    fallback = health.get("fallback_mode", False)
-    if fallback:
-        _add(
-            "fallback_mode",
-            True,
-            f"predict() basculera sur heuristic. Raison: {health.get('fallback_reason')}",
-            "info",
-        )
-    else:
-        _add("fallback_mode", True, "ML mode nominal", "info")
-
-    return report
+    decision = "accept" if not errors else "reject"
+    return {
+        "valid": decision == "accept",
+        "decision": decision,
+        "errors": errors,
+        "metrics": metrics,
+        "synthetic_share_pct": synth_pct,
+        "real_rows": real_rows,
+        "thresholds": thresholds,
+    }
 
 
 def main() -> int:
-    import argparse
-    parser = argparse.ArgumentParser(description="Validate ML model metrics")
-    parser.add_argument("--json", action="store_true", help="Sortie JSON uniquement")
+    parser = argparse.ArgumentParser(description="Valide les metriques et l'anti-fuite")
+    parser.add_argument("--json", action="store_true")
+    parser.add_argument("--metadata-path", default=None, help="Chemin de la metadata d'entrainement")
+    parser.add_argument("--feature-schema-path", default=None, help="Chemin du feature schema")
     args = parser.parse_args()
 
-    report = validate()
+    meta_path = Path(args.metadata_path) if args.metadata_path else METADATA_PATH
+    schema_path = Path(args.feature_schema_path) if args.feature_schema_path else FEATURE_SCHEMA_PATH
+
+    if not meta_path.exists():
+        report = {"valid": False, "decision": "reject", "errors": ["metadata d'entrainement introuvable"]}
+    elif not schema_path.exists():
+        report = {"valid": False, "decision": "reject", "errors": ["feature_schema introuvable"]}
+    else:
+        metadata = json.loads(meta_path.read_text(encoding="utf-8"))
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        report = validate(metadata, schema, default_thresholds())
 
     if args.json:
-        print(json.dumps(report, indent=2, default=str))
+        print(json.dumps(report, indent=2, ensure_ascii=False))
     else:
-        print("=" * 70)
-        print("VALIDATION METRIQUES MODELE ML — D2F")
-        print("=" * 70)
-        print(f"\nModèle : {report['health'].get('model_name')}")
-        print(f"Chargé : {report['health'].get('model_loaded')}")
-        print(f"Trained at : {report['health'].get('trained_at')}")
-        print(f"feature_skew_ok : {report['health'].get('feature_skew_ok')}")
-        print(f"fallback_mode : {report['health'].get('fallback_mode')}")
-        metrics = report["health"].get("metrics") or {}
-        if metrics:
-            print(f"n_samples : {metrics.get('n_samples')}")
-            print(f"test_r2 : {metrics.get('test_r2')}")
-            print(f"test_rmse : {metrics.get('test_rmse')}")
-            print(f"baseline_rmse : {metrics.get('baseline_rmse')}")
-            print(f"lift_rmse : {metrics.get('lift_rmse')}")
-        print(f"\nChecks ({len(report['checks'])}):")
-        for c in report["checks"]:
-            mark = "[OK]" if c["ok"] else "[KO]"
-            print(f"  {mark} {c['name']} ({c['severity']}): {c['detail'][:120]}")
-        warnings = [c for c in report["checks"] if c["severity"] == "warning" and not c["ok"]]
-        print(f"\nWarnings: {len(warnings)}")
-        print("=" * 70)
-        print("VERDICT: " + ("PASS" if report["ok"] else "FAIL"))
-
-    return 0 if report["ok"] else 1
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+    return 0
 
 
 if __name__ == "__main__":

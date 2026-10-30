@@ -16,11 +16,17 @@ APScheduler==3.10.4
 # RabbitMQ messaging (optional - disabled by default)
 pika==1.3.2
 
-# Core ML - feature engineering only (used in production for deterministic features)
-scikit-learn==1.5.2
+# Core ML — versions IDENTIQUES a l'environnement d'entrainement (requirements.txt).
+# Le modele servi (registre, entree ACTIVE v1.3.0-xgb) est un XGBRegressor pickle
+# avec scikit-learn 1.8.0 / xgboost 2.1.3 : sans xgboost, l'artefact ne se
+# charge pas et le service bascule en repli heuristique ; une autre version de
+# scikit-learn declenche InconsistentVersionWarning (reproduction non garantie).
+# Garde : tests/unit/test_requirements_alignment.py.
+scikit-learn==1.8.0
 pandas==2.2.3
 numpy==2.1.3
 joblib==1.4.2
+xgboost==2.1.3
 
 # Logging & Monitoring
 structlog==24.4.0

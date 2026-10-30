@@ -7,16 +7,19 @@
 
 name: D2F CI Pipeline
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
       - main
       - develop
+      - oussama
       - 'feature/**'
       - 'hotfix/**'
       - 'release/**'
-  pull_request:
-    branches: [ main, develop ]
   workflow_dispatch:
     inputs:
       skip_sonar:
@@ -33,6 +36,10 @@ env:
   NODE_VERSION: '20'
   PYTHON_VERSION: '3.11'
   MAVEN_OPTS: '-Xmx3072m'
+  # Version epinglee du plugin OWASP : sans elle, Maven resout
+  # maven-metadata.xml a chaque job et se fait jeter par Central (429).
+  # Elle doit rester IDENTIQUE entre le seed NVD et les controles (schema de base).
+  DC_VERSION: '13.0.0'
 
 jobs:
   # -- Tests Backend Java -------------------------------------------------------
@@ -169,21 +176,19 @@ jobs:
         run: |
           # Perimetre = code embarque dans l'image Docker (voir Dockerfile :
           # app/, app_legacy/, data/). Les outils dev/CLI (pipelines/, scripts/,
-          # reports/, scripts racine de diagnostic) ne sont PAS copies dans
-          # l'image : leur sortie console (print) est legitime.
+          # reports/, colab/, scripts racine de diagnostic) ne sont PAS copies
+          # dans l'image : leur sortie console (print) est legitime.
           FOUND=$(grep -rn --include="*.py" -E "^\s*print\(" \
             ${{ matrix.service }} \
             --exclude-dir tests \
-            --exclude-dir tests_legacy \
             --exclude-dir __pycache__ \
             --exclude-dir .venv \
             --exclude-dir .deps310 \
             --exclude-dir pipelines \
             --exclude-dir scripts \
             --exclude-dir reports \
-            --exclude=diagnose_same_results.py \
-            --exclude=check_gaps.py \
-            --exclude=fix_persist_gaps.py || true)
+            --exclude-dir colab \
+            --exclude=validate_catalogue.py || true)
           if [ -n "$FOUND" ]; then
             echo "PII risk - print() trouve dans le code de production :"
             echo "$FOUND"
@@ -226,11 +231,76 @@ jobs:
         working-directory: esprit_D2F-webapp
         run: npm run build
 
+  # -- Base NVD : une seule mise a jour partagee par les 8 services -------------
+  # Avant, les 8 jobs OWASP telechargeaient CHACUN la base NVD (cache vide, ou
+  # evince apres 7 jours sans usage) : 8 telechargements complets en parallele
+  # + rate-limit NVD. La base est desormais mise a jour UNE fois ici, puis
+  # restituee aux jobs de controle via le cache de ce run.
+  security-nvd:
+    name: OWASP - base NVD (partagee)
+    runs-on: ubuntu-latest
+    needs: test-backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { java-version: '17', distribution: 'temurin', cache: 'maven' }
+
+      - name: Restore NVD database
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          # Deltas : on repart de la derniere base connue, quel que soit le run.
+          key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: owasp-nvd-${{ runner.os }}-
+
+      # Un cache peut contenir une base « fraiche » mais vide (mise a jour NVD
+      # interrompue ou refusee) : nvdValidForHours la ferait alors juger a jour,
+      # l'update serait saute et le defaut se propagerait a chaque run. On
+      # valide donc la taille avant de faire confiance au cache.
+      - name: Validate restored NVD database
+        run: |
+          DB=~/.m2/repository/org/owasp/dependency-check-data
+          SIZE=$(du -sm "$DB" 2>/dev/null | cut -f1 || echo 0)
+          echo "Base NVD restauree : ${SIZE:-0} Mo"
+          if [ "${SIZE:-0}" -lt 100 ]; then
+            echo "::warning::Base NVD inutilisable (${SIZE:-0} Mo < 100 Mo) - suppression pour forcer un telechargement complet."
+            rm -rf "$DB"
+          fi
+
+      - name: Update NVD database
+        working-directory: esprit_D2F-common-security
+        run: |
+          if [ -z "${{ secrets.NVD_API_KEY }}" ]; then
+            echo "::error::Secret NVD_API_KEY manquant - OWASP dependency-check (DSI 12.12) ne peut pas mettre a jour la base NVD. Configurez le secret dans Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          mvn -B org.owasp:dependency-check-maven:${DC_VERSION}:update-only \
+            -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
+            -DnvdValidForHours=24
+
+      # Jamais de sauvegarde d'une base inutilisable : sinon le cache empoisonne
+      # tous les runs suivants (base recente, donc jugee « a jour »).
+      - name: Verify NVD database
+        run: |
+          DB=~/.m2/repository/org/owasp/dependency-check-data
+          SIZE=$(du -sm "$DB" 2>/dev/null | cut -f1 || echo 0)
+          if [ "${SIZE:-0}" -lt 100 ]; then
+            echo "::error::Base NVD absente ou vide (${SIZE:-0} Mo) apres mise a jour - verifiez le secret NVD_API_KEY et l'etat de l'API NVD."
+            exit 1
+          fi
+          echo "Base NVD prete : ${SIZE} Mo"
+
+      - name: Save NVD database
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
+
   # -- OWASP Dependency Check (DSI 12.12 - CVSS >= 7 bloquant) -----------------
   security-backend:
     name: OWASP - ${{ matrix.service }}
     runs-on: ubuntu-latest
-    needs: test-backend
+    needs: [test-backend, security-nvd]
     strategy:
       fail-fast: false
       matrix:
@@ -252,8 +322,11 @@ jobs:
         working-directory: esprit_D2F-common-security
         run: mvn -B clean install -DskipTests
 
-      - name: Cache NVD database
-        uses: actions/cache@v4
+      # Lecture seule : la base vient du job security-nvd de CE run (aucun appel
+      # NVD ici, donc aucun rate-limit 429 avec 8 jobs en parallele).
+      - name: Restore NVD database
+        id: nvd-cache
+        uses: actions/cache/restore@v4
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
           key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
@@ -269,12 +342,57 @@ jobs:
           SUPPRESSION=""
           curl -sL https://raw.githubusercontent.com/oussamakaddech/pfe-d2f-enseignants/oussama/owasp-suppressions.xml -o owasp-suppressions.xml 2>/dev/null || true
           [ -f owasp-suppressions.xml ] && SUPPRESSION="-DsuppressionFile=owasp-suppressions.xml"
-          mvn -B org.owasp:dependency-check-maven:check \
+          # Base deja a jour (job security-nvd) : aucune mise a jour ici, sinon
+          # 8 jobs telechargeraient la base en parallele (rate-limit NVD).
+          # Repli fail-safe si aucun cache n'a pu etre restitue OU si la base
+          # restauree est inutilisable (cache empoisonne par une base vide).
+          AUTOUPDATE=false
+          DB=~/.m2/repository/org/owasp/dependency-check-data
+          SIZE=$(du -sm "$DB" 2>/dev/null | cut -f1 || echo 0)
+          if [ -z "${{ steps.nvd-cache.outputs.cache-matched-key }}" ] || [ "${SIZE:-0}" -lt 100 ]; then
+            echo "::warning::Base NVD inutilisable (${SIZE:-0} Mo) - mise a jour locale (plus lent)."
+            AUTOUPDATE=true
+          fi
+          set +e
+          mvn -B org.owasp:dependency-check-maven:${DC_VERSION}:check \
             -DfailBuildOnCVSS=7 \
+            -DautoUpdate=$AUTOUPDATE \
             -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
+            -DnvdValidForHours=24 \
+            -DskipTestScope=true \
             -DassemblyAnalyzerEnabled=false \
+            -DnodeAnalyzerEnabled=false \
+            -DossIndexAnalyzerEnabled=false \
+            -DretirejsAnalyzerEnabled=false \
+            -DartifactoryAnalyzerEnabled=false \
+            -DnexusAnalyzerEnabled=false \
             $SUPPRESSION \
-            -Dformats=HTML,JSON
+            -Dformats=HTML,JSON > /tmp/dc.log 2>&1
+          STATUS=$?
+          set -e
+          tail -n 40 /tmp/dc.log
+          # Le motif reel de l'echec n'est lisible que dans le log (compte
+          # GitHub requis) : les lignes utiles sont republiees en annotations.
+          if [ $STATUS -ne 0 ]; then
+            grep -E "^\[ERROR\]|Unable to|Exception|NVD|uppress" /tmp/dc.log | tail -n 12 | sed "s/^/::error::/"
+          fi
+          exit $STATUS
+
+      # Un echec OWASP n'est exploitable que si les CVE bloquantes sont lisibles
+      # sans ouvrir les logs (qui exigent un compte GitHub). Elles sont donc
+      # publiees en annotations, visibles dans l'onglet Summary du run.
+      - name: List blocking vulnerabilities
+        if: failure()
+        working-directory: ${{ matrix.service }}
+        run: |
+          R=target/dependency-check-report.json
+          if [ ! -f "$R" ]; then
+            echo "::error::Rapport dependency-check absent : le scan n'a pas abouti (base NVD inutilisable ?)."
+            exit 0
+          fi
+          DB=~/.m2/repository/org/owasp/dependency-check-data
+          SIZE=$(du -sm "$DB" 2>/dev/null | cut -f1)
+          python3 -c "import json,sys;r=json.load(open(sys.argv[1]));deps=r.get('dependencies',[]);v=[(x.get('cvssv3',{}).get('baseScore') or x.get('cvssv2',{}).get('score') or 0,d.get('fileName','?'),x.get('name','?')) for d in deps for x in d.get('vulnerabilities',[])];hi=[z for z in v if z[0]>=7];print('::error::base NVD='+sys.argv[2]+' Mo | dependances analysees=%d | vulnerabilites=%d | dont CVSS>=7=%d'%(len(deps),len(v),len(hi)));print(chr(10).join('::error file=%s::CVSS %s - %s'%(f,s,n) for s,f,n in sorted(hi,reverse=True)[:8]))" "$R" "${SIZE:-0}"
 
       - name: Upload OWASP report
         if: always()
@@ -305,12 +423,18 @@ jobs:
 
   # -- SonarQube Dashboard Refresh (cleanup doublons + projets obsoletes) --------
   # DSI S3.7 - Nettoyage automatique avant analyse pour un dashboard propre.
+  # Ce job exige un runner self-hosted (acces reseau au SonarQube interne) : sans
+  # runner enregistre il restait « queued » indefiniment, si bien que le run ne
+  # pouvait jamais conclure malgre tous les autres jobs verts. Il est donc
+  # conditionne a une variable dediee : l'enregistrer puis la passer a true
+  # (Settings > Secrets and variables > Actions > Variables) le reactive.
   sonar-dashboard-refresh:
     name: SonarQube Dashboard Refresh
     runs-on: self-hosted
     needs: [security-backend, security-frontend, test-python]
     if: >-
       vars.SONAR_ENABLED == 'true' &&
+      vars.SONAR_SELF_HOSTED_ENABLED == 'true' &&
       !inputs.skip_sonar &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     steps:
@@ -355,8 +479,11 @@ jobs:
 
           foreach ($project in $projects) {
             $key = $project.key
-            # Supprimer les doublons connus
-            if ($key -eq "d2f_formation" -or $key -eq "coded2f_formation" -or $key -eq "service-formation") {
+            # Supprimer les doublons connus. ATTENTION : "d2f_formation" est la
+            # cle LEGITIME du service formation (elle figure dans $projectsToKeep)
+            # — l'inclure ici la supprimait a chaque rafraichissement, si bien que
+            # le projet disparaissait du tableau de bord jusqu'a sa prochaine analyse.
+            if ($key -eq "coded2f_formation" -or $key -eq "service-formation") {
               Write-Host "  [DELETE] Doublon: $key" -ForegroundColor Red
               Invoke-WebRequest -Uri "$env:SONAR_HOST_URL/api/projects/delete?project=$key" -Method Post -Headers $headers -UseBasicParsing
             }
@@ -383,13 +510,20 @@ jobs:
           } catch { Write-Host "Token cleanup skipped" }
 
   # -- SonarQube Quality Gate (runner self-hosted -> SonarQube localhost:9000) --
-  # Active si SONAR_ENABLED=true dans Actions Variables.
+  # Cette porte interroge le SonarQube interne : elle exige un runner
+  # self-hosted. Sans runner enregistre, le job restait « queued » pour
+  # toujours et, comme build-docker en depend, aucune image n'etait publiee et
+  # aucun run ne pouvait conclure. Elle est donc doublee par un interrupteur
+  # explicite (SONAR_SELF_HOSTED_ENABLED), a activer en meme temps que le
+  # runner ; sinon elle est ignoree et l'analyse SonarCloud (sonarcloud.yml,
+  # runners GitHub) reste la reference. Aucune dependance vers
+  # sonar-dashboard-refresh, qui n'est qu'un nettoyage de dashboard.
   sonar:
     name: SonarQube - ${{ matrix.module }}
     runs-on: self-hosted
-    needs: [sonar-dashboard-refresh]
     if: >-
       vars.SONAR_ENABLED == 'true' &&
+      vars.SONAR_SELF_HOSTED_ENABLED == 'true' &&
       !inputs.skip_sonar &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     strategy:
@@ -496,17 +630,23 @@ jobs:
   build-docker:
     name: Docker Build & Push - ${{ matrix.image }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     needs: [lint-backend, security-backend, security-frontend, test-python, sonar]
+    # La porte SonarQube locale n'existe que sur le runner self-hosted : quand
+    # elle n'est pas active (job « skipped »), la publication des images reste
+    # due, sinon aucune image n'est jamais poussee. Un echec Sonar bloque
+    # toujours ; l'analyse SonarCloud (sonarcloud.yml) tourne sur chaque push.
     if: >-
       always() &&
       needs.lint-backend.result == 'success' &&
       needs.security-backend.result == 'success' &&
       needs.security-frontend.result == 'success' &&
       needs.test-python.result == 'success' &&
-      needs.sonar.result == 'success' &&
+      (needs.sonar.result == 'success' || needs.sonar.result == 'skipped') &&
       !inputs.skip_docker &&
-      github.event_name == 'push' &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+      github.event_name == 'push'
     strategy:
       fail-fast: false
       matrix:
@@ -527,18 +667,18 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
-      - name: Login to container registry (${{ secrets.REGISTRY_URL }})
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.REGISTRY_URL }}
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.REGISTRY_URL }}/${{ matrix.image }}
+          images: ghcr.io/${{ github.repository }}/${{ matrix.image }}
           tags: |
             type=sha,prefix=sha-,format=short
             type=ref,event=branch

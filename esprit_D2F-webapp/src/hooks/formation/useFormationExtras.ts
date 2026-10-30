@@ -1,6 +1,8 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
-import FormationCustomService from '@/services/formation/FormationCustomService';
+import FormationCustomService, {
+  type DocumentType,
+} from '@/services/formation/FormationCustomService';
 import FormationReportService from '@/services/formation/FormationReportService';
 import FormationWorkflowService from '@/services/formation/FormationWorkflowService';
 import MailService from '@/services/besoin/MailService';
@@ -22,7 +24,7 @@ export function useGenerateFormationCertificates() {
       typeCertif = 'CERTIF',
     }: {
       formationId: Id;
-      typeCertif?: string;
+      typeCertif?: DocumentType;
     }) => FormationCustomService.generateCertificates(formationId as number, typeCertif),
   });
 }

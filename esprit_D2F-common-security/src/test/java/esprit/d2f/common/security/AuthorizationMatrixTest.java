@@ -115,14 +115,71 @@ class AuthorizationMatrixTest {
     }
 
     @Test
-    void formation_read_does_not_include_basic_users_only() {
-        // Snapshot regression : formation read must include at least
-        // ROLE_ADMIN, ROLE_CUP, ROLE_FORMATEUR, ROLE_ENSEIGNANT.
+    void formation_read_does_not_include_basic_users_only() {        // Snapshot regression : formation read must include at least
+        // ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_ANIMATEUR.
         String fr = AuthorizationMatrix.FORMATION_READ;
         for (String required : List.of(
-                "ROLE_ADMIN", "ROLE_CUP", "ROLE_ENSEIGNANT", "ROLE_FORMATEUR")) {
+                "ROLE_ADMIN", "ROLE_CUP", "ROLE_ENSEIGNANT", "ROLE_ANIMATEUR")) {
             assertTrue(fr.contains(required),
                     "FORMATION_READ must include " + required + " but was " + fr);
+        }
+        assertFalse(fr.contains("ROLE_FORMATEUR"),
+                "FORMATION_READ must NOT include deprecated ROLE_FORMATEUR");
+    }
+
+    @Test
+    void formation_animateur_check_allows_service_token_and_humans() {
+        String expr = AuthorizationMatrix.FORMATION_ANIMATEUR_CHECK;
+        for (String required : List.of(
+                "ROLE_SVC_EVALUATION", "ROLE_ADMIN", "ROLE_CUP", "ROLE_ENSEIGNANT",
+                "ROLE_ANIMATEUR", "ROLE_RESPONSABLE_DOSSIER", "ROLE_CHEF_DEPARTEMENT")) {
+            assertTrue(expr.contains(required),
+                    "FORMATION_ANIMATEUR_CHECK must include " + required + " but was " + expr);
+        }
+        assertFalse(expr.contains("ROLE_FORMATEUR"),
+                "FORMATION_ANIMATEUR_CHECK must NOT include deprecated ROLE_FORMATEUR");
+    }
+
+    // ── Audit des rôles du 07/10/2026 : moindre privilège ────────────────────
+
+    @Test
+    void structure_of_the_school_is_admin_only() {
+        assertEquals("hasAnyRole('ROLE_ADMIN')", AuthorizationMatrix.STRUCTURE_WRITE);
+        assertFalse(AuthorizationMatrix.REFERENTIEL_WRITE.contains("ROLE_CHEF_DEPARTEMENT"));
+    }
+
+    @Test
+    void responsable_dossier_manages_documents_not_formations() {
+        for (String expr : List.of(
+                AuthorizationMatrix.FORMATION_UPDATE,
+                AuthorizationMatrix.PRESENCE_MARK,
+                AuthorizationMatrix.FORMATION_COMPETENCE_UPDATE,
+                AuthorizationMatrix.UNIFIED_PROFILE_READ,
+                AuthorizationMatrix.UNIFIED_PROFILE_EXPORT)) {
+            assertFalse(expr.contains("ROLE_RESPONSABLE_DOSSIER"), expr);
+        }
+        assertTrue(AuthorizationMatrix.DOCUMENT_CREATE.contains("ROLE_RESPONSABLE_DOSSIER"));
+    }
+
+    @Test
+    void animateur_reads_only_own_data() {
+        assertFalse(AuthorizationMatrix.ACCOUNT_READ.contains("ROLE_ANIMATEUR"));
+        assertFalse(AuthorizationMatrix.BESOIN_FORMATION_READ_ALL.contains("ROLE_ANIMATEUR"));
+    }
+
+    @Test
+    void certificates_are_generated_by_admin_only() {
+        assertEquals("hasAnyRole('ROLE_ADMIN')", AuthorizationMatrix.FORMATION_APPROVE);
+        assertEquals("hasAnyRole('ROLE_ADMIN')", AuthorizationMatrix.CERTIFICAT_CREATE);
+    }
+
+    @Test
+    void cup_has_at_least_the_rights_of_the_chef() {
+        for (String expr : List.of(
+                AuthorizationMatrix.EVALUATION_READ_FORMATION,
+                AuthorizationMatrix.INSCRIPTION_APPROVE,
+                AuthorizationMatrix.FORMATION_COMPETENCE_CREATE)) {
+            assertTrue(expr.contains("ROLE_CUP") && expr.contains("ROLE_CHEF_DEPARTEMENT"), expr);
         }
     }
 

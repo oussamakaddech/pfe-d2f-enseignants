@@ -37,6 +37,21 @@ public class CertificatePdfGenerator {
                                                      CertificateBatchMessage msg,
                                                      CertificateBatchMessage.EnseignantPresenceInfo teacher,
                                                      byte[] backgroundBytes) throws Exception {
+        generateCertificateForTeacher(outputPath, msg, teacher, backgroundBytes, null, null);
+    }
+
+    /**
+     * Génère un certificat PDF avec QR code de vérification intégré (étape 5).
+     *
+     * @param verificationUrl URL publique encodée dans le QR code (peut être null)
+     * @param qrBytes         image PNG du QR code (peut être null)
+     */
+    public static void generateCertificateForTeacher(String outputPath,
+                                                     CertificateBatchMessage msg,
+                                                     CertificateBatchMessage.EnseignantPresenceInfo teacher,
+                                                     byte[] backgroundBytes,
+                                                     String verificationUrl,
+                                                     byte[] qrBytes) throws Exception {
 
         try (PdfWriter writer = new PdfWriter(outputPath);
              PdfDocument pdf = new PdfDocument(writer);
@@ -92,6 +107,24 @@ public class CertificatePdfGenerator {
                     .setFontColor(ColorConstants.DARK_GRAY)
                     .setTextAlignment(TextAlignment.RIGHT);
             document.add(issuedDate);
+
+            // QR code de vérification (étape 5) — encode uniquement l'URL publique
+            // de vérification ; aucune donnée personnelle n'est encodée.
+            if (qrBytes != null && qrBytes.length > 0) {
+                ImageData qrData = ImageDataFactory.create(qrBytes);
+                Image qrImage = new Image(qrData);
+                qrImage.scaleToFit(90, 90);
+                qrImage.setFixedPosition(pdf.getDefaultPageSize().getWidth() - 110, 40);
+                document.add(qrImage);
+                if (verificationUrl != null && !verificationUrl.isBlank()) {
+                    Paragraph verify = new Paragraph("Vérifier ce certificat : " + verificationUrl)
+                            .setFont(font)
+                            .setFontSize(7)
+                            .setFontColor(ColorConstants.DARK_GRAY)
+                            .setTextAlignment(TextAlignment.RIGHT);
+                    document.add(verify);
+                }
+            }
         }
     }
 
@@ -108,12 +141,28 @@ public class CertificatePdfGenerator {
     }
 
     public static List<String> generateCertificatesForAllTeachers(CertificateBatchMessage msg, byte[] backgroundBytes, String outputDir) throws Exception {
+        return generateCertificatesForAllTeachers(msg, backgroundBytes, outputDir, null, null);
+    }
+
+    /**
+     * Génère les certificats PDF avec QR code de vérification intégré.
+     *
+     * @param qrByEnseignant  image PNG du QR code par enseignant (optionnel)
+     * @param urlByEnseignant URL de vérification par enseignant (optionnel)
+     */
+    public static List<String> generateCertificatesForAllTeachers(CertificateBatchMessage msg,
+                                                                  byte[] backgroundBytes,
+                                                                  String outputDir,
+                                                                  java.util.Map<String, byte[]> qrByEnseignant,
+                                                                  java.util.Map<String, String> urlByEnseignant) throws Exception {
         List<String> outputPaths = new ArrayList<>();
         if (msg.getEnseignants() != null) {
             for (CertificateBatchMessage.EnseignantPresenceInfo teacher : msg.getEnseignants()) {
                 if (teacher.isPresent()) {
                     String outputPath = outputDir + "certificate_" + msg.getFormationId() + "_" + teacher.getEnseignantId() + ".pdf";
-                    generateCertificateForTeacher(outputPath, msg, teacher, backgroundBytes);
+                    byte[] qrBytes = qrByEnseignant != null ? qrByEnseignant.get(teacher.getEnseignantId()) : null;
+                    String verificationUrl = urlByEnseignant != null ? urlByEnseignant.get(teacher.getEnseignantId()) : null;
+                    generateCertificateForTeacher(outputPath, msg, teacher, backgroundBytes, verificationUrl, qrBytes);
                     outputPaths.add(outputPath);
                 }
             }

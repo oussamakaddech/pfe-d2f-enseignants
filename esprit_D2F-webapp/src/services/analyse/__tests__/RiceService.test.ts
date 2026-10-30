@@ -62,17 +62,19 @@ describe('RiceService', () => {
     );
   });
 
-  it('getEnseignants tries formation then fallback to competence', async () => {
-    // Try formation first
+  it("getEnseignants lit l'annuaire formation, sans repli vers un endpoint inexistant", async () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 'E1', departement: 'INFO' }] });
     const result = await RiceService.getEnseignants('info');
     expect(result).toEqual([{ id: 'E1', departement: 'INFO' }]);
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('/formation/enseignants'),
+    );
 
-    // Fallback if formation fails
-    httpMocks.mockGet.mockRejectedValueOnce(new Error('fail'));
-    httpMocks.mockGet.mockResolvedValueOnce({ data: { content: [{ id: 'E2' }], totalPages: 1 } });
-    const result2 = await RiceService.getEnseignants();
-    expect(result2).toEqual([{ id: 'E2' }]);
+    httpMocks.mockGet.mockRejectedValueOnce(new Error('formation fail'));
+    await expect(RiceService.getEnseignants()).rejects.toThrow('formation fail');
+    expect(httpMocks.mockGet).not.toHaveBeenCalledWith(
+      expect.stringContaining('/competence/enseignants'),
+    );
   });
 
   it('saveAssignments handles add and remove', async () => {
@@ -106,8 +108,19 @@ describe('RiceService', () => {
       nom: 'Y',
     });
 
-    httpMocks.mockPatch.mockResolvedValueOnce({ data: { id: 'E1', etat: 'I' } });
+    httpMocks.mockPut.mockResolvedValueOnce({ data: { id: 'E1', etat: 'I' } });
     await expect(RiceService.deactivateEnseignant('E1')).resolves.toEqual({ id: 'E1', etat: 'I' });
+
+    // Écritures sur l'annuaire formation (le service compétence n'a pas /enseignants).
+    expect(httpMocks.mockPost).toHaveBeenCalledWith(
+      expect.stringMatching(/\/formation\/enseignants$/),
+      { nom: 'X' },
+    );
+    expect(httpMocks.mockPut).toHaveBeenCalledWith(
+      expect.stringMatching(/\/formation\/enseignants\/E1$/),
+      { etat: 'I' },
+    );
+    expect(httpMocks.mockPatch).not.toHaveBeenCalled();
   });
 
   it('getEnseignantAffectations returns assignments', async () => {
@@ -156,16 +169,10 @@ describe('RiceService', () => {
     await expect(RiceService.getSavoirs()).resolves.toEqual([{ id: 3 }]);
   });
 
-  it('getSavoirs falls back to rice referential on error', async () => {
+  it("getSavoirs propage l'erreur du référentiel (pas de repli sur une URL RICE inexistante)", async () => {
     httpMocks.mockGet.mockRejectedValueOnce(new Error('competence fail'));
-    httpMocks.mockGet.mockResolvedValueOnce({ data: { savoirs: [{ id: 4 }] } });
-    await expect(RiceService.getSavoirs()).resolves.toEqual([{ id: 4 }]);
-  });
-
-  it('getSavoirs rethrows if fallback also fails', async () => {
-    httpMocks.mockGet.mockRejectedValueOnce(new Error('competence fail'));
-    httpMocks.mockGet.mockRejectedValueOnce(new Error('rice fail'));
     await expect(RiceService.getSavoirs()).rejects.toThrow('competence fail');
+    expect(httpMocks.mockGet).toHaveBeenCalledTimes(1);
   });
 
   it('saveAssignments returns immediately for empty add and remove', async () => {
@@ -174,8 +181,7 @@ describe('RiceService', () => {
     expect(httpMocks.mockGet).not.toHaveBeenCalled();
   });
 
-  it('getEnseignants handles multi-page via fallback', async () => {
-    httpMocks.mockGet.mockRejectedValueOnce(new Error('formation fail'));
+  it('getEnseignants handles multi-page', async () => {
     httpMocks.mockGet
       .mockResolvedValueOnce({ data: { content: [{ id: 'E1' }], totalPages: 2 } })
       .mockResolvedValueOnce({ data: { content: [{ id: 'E2' }], totalPages: 2 } });
@@ -184,7 +190,6 @@ describe('RiceService', () => {
   });
 
   it('getEnseignants normalizes data-keyed payload', async () => {
-    httpMocks.mockGet.mockRejectedValueOnce(new Error('fail'));
     httpMocks.mockGet.mockResolvedValueOnce({ data: { data: [{ id: 'E3' }], totalPages: 1 } });
     const result = await RiceService.getEnseignants();
     expect(result).toEqual([{ id: 'E3' }]);

@@ -37,7 +37,9 @@ export default function InscriptionsPage() {
   const { data: profile, isLoading: profileLoading } = useProfile();
 
   const role = normalizeRole(profile?.role);
-  const isAdminLike = role === 'admin' || role === 'cup';
+  // Onglet « Suivi & Gestion » (validation des inscriptions) : parité
+  // INSCRIPTION_APPROVE — le CUP voit son UP, le chef son département (serveur).
+  const isAdminLike = role === 'admin' || role === 'cup' || role === 'chefdepartement';
   const isTeacher = role === 'enseignant' || role === 'animateur';
 
   const activeTab = searchParams.get('tab') || 'catalogue';

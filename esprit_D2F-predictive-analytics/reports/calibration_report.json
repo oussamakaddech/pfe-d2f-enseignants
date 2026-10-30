@@ -1,0 +1,157 @@
+{
+  "status": "OK",
+  "task": "risk_index_calibration",
+  "score_type": "WEIGHTED_HEURISTIC_INDEX",
+  "calibration_status_before": "NOT_CALIBRATED",
+  "n_samples": 2202,
+  "n_events": 397,
+  "min_events_required": 30,
+  "methods": {
+    "platt_scaling": {
+      "coefficients": {
+        "a": 22.1697,
+        "b": -6.6362
+      },
+      "brier_score": 0.0428,
+      "brier_ci": {
+        "brier_ci95": [
+          0.037,
+          0.0487
+        ]
+      },
+      "calibration_curve": [
+        {
+          "bin": "[0.0,0.1]",
+          "mean_predicted_proba": 0.0105,
+          "observed_event_rate": 0.0075,
+          "n": 1605
+        },
+        {
+          "bin": "[0.1,0.2]",
+          "mean_predicted_proba": 0.1427,
+          "observed_event_rate": 0.1429,
+          "n": 98
+        },
+        {
+          "bin": "[0.2,0.3]",
+          "mean_predicted_proba": 0.2445,
+          "observed_event_rate": 0.2766,
+          "n": 47
+        },
+        {
+          "bin": "[0.3,0.4]",
+          "mean_predicted_proba": 0.3558,
+          "observed_event_rate": 0.4773,
+          "n": 44
+        },
+        {
+          "bin": "[0.4,0.5]",
+          "mean_predicted_proba": 0.4518,
+          "observed_event_rate": 0.5263,
+          "n": 38
+        },
+        {
+          "bin": "[0.5,0.6]",
+          "mean_predicted_proba": 0.5477,
+          "observed_event_rate": 0.6667,
+          "n": 30
+        },
+        {
+          "bin": "[0.6,0.7]",
+          "mean_predicted_proba": 0.6542,
+          "observed_event_rate": 0.6452,
+          "n": 31
+        },
+        {
+          "bin": "[0.7,0.8]",
+          "mean_predicted_proba": 0.7566,
+          "observed_event_rate": 0.7949,
+          "n": 39
+        },
+        {
+          "bin": "[0.8,0.9]",
+          "mean_predicted_proba": 0.8487,
+          "observed_event_rate": 0.7458,
+          "n": 59
+        },
+        {
+          "bin": "[0.9,1.0]",
+          "mean_predicted_proba": 0.9739,
+          "observed_event_rate": 0.9573,
+          "n": 211
+        }
+      ]
+    },
+    "isotonic_regression": {
+      "brier_score": 0.0406,
+      "brier_ci": {
+        "brier_ci95": [
+          0.0355,
+          0.046
+        ]
+      },
+      "calibration_curve": [
+        {
+          "bin": "[0.0,0.1]",
+          "mean_predicted_proba": 0.0091,
+          "observed_event_rate": 0.0091,
+          "n": 1655
+        },
+        {
+          "bin": "[0.2,0.3]",
+          "mean_predicted_proba": 0.2037,
+          "observed_event_rate": 0.2037,
+          "n": 54
+        },
+        {
+          "bin": "[0.3,0.4]",
+          "mean_predicted_proba": 0.3235,
+          "observed_event_rate": 0.3235,
+          "n": 68
+        },
+        {
+          "bin": "[0.5,0.6]",
+          "mean_predicted_proba": 0.5435,
+          "observed_event_rate": 0.5435,
+          "n": 46
+        },
+        {
+          "bin": "[0.6,0.7]",
+          "mean_predicted_proba": 0.6667,
+          "observed_event_rate": 0.6667,
+          "n": 81
+        },
+        {
+          "bin": "[0.7,0.8]",
+          "mean_predicted_proba": 0.7536,
+          "observed_event_rate": 0.7536,
+          "n": 69
+        },
+        {
+          "bin": "[0.8,0.9]",
+          "mean_predicted_proba": 0.8545,
+          "observed_event_rate": 0.8545,
+          "n": 55
+        },
+        {
+          "bin": "[0.9,1.0]",
+          "mean_predicted_proba": 0.9828,
+          "observed_event_rate": 0.9828,
+          "n": 174
+        }
+      ]
+    },
+    "uncalibrated_index_baseline": {
+      "brier_score": 0.0762,
+      "brier_ci": {
+        "brier_ci95": [
+          0.07,
+          0.0824
+        ]
+      }
+    }
+  },
+  "best_method": "isotonic_regression",
+  "calibration_status_after_study": "CALIBRATION_CANDIDATE_FOUND",
+  "note": "Indice pondéré conservé : calibration transforme echelle en proba d'evenement observe SIMULE (is_extrapolated=false), sans masquer facteurs."
+}

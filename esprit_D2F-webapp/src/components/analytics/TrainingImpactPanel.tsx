@@ -30,8 +30,8 @@ export default function TrainingImpactPanel() {
           suffix="pts"
         />
         <Statistic
-          title="Réduction risque moyenne"
-          value={`${Math.round(d.reduction_risque_moyenne * 100)}%`}
+          title="Réduction de l'indice de risque"
+          value={`${Math.round(d.reduction_risque_moyenne * 100)} pts`}
           valueStyle={{ color: '#52c41a' }}
         />
         <Statistic

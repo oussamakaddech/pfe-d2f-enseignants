@@ -56,6 +56,20 @@ export function useReplaceAllFormationCompetences() {
   });
 }
 
+/**
+ * Toutes les liaisons formation ↔ compétence (formations actives) : filtre
+ * « par compétence » du catalogue. Désactivable pour les rôles qui n'ont pas
+ * la permission de lecture (`FORMATION_COMPETENCE_READ`).
+ */
+export function useAllFormationCompetenceLinks(enabled = true) {
+  return useQuery({
+    queryKey: ['formation-competences', 'all'] as const,
+    queryFn: () => FormationCompetenceService.getAllLinks(),
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useFormationCompetencesByCompetence(competenceId: Id | undefined) {
   return useQuery({
     queryKey: KEYS.byCompetence(competenceId ?? 0),

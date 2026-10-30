@@ -4,12 +4,17 @@ import { ApartmentOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx-js-style';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 import { AppPageHeader } from '@/components/common';
+import { useHasPermission } from '@/routes/guards';
 import '@/styles/pages/competence-page.css';
 import CompetenceModals from './components/CompetenceModals';
 import ConsultationTab from './components/ConsultationTab';
 import CrudTab from './components/CrudTab';
 import CompetenceExpandedRow from './components/CompetenceExpandedRow';
 import useCompetenceCrud from '@/hooks/competence/useCompetenceCrud';
+import { useAllUps } from '@/hooks/formation/useUpCrud';
+import { useAllDepts } from '@/hooks/formation/useDeptCrud';
+import { filterCompetences, hasActiveFilters, type CompetenceFilters } from './competenceFilters';
+import type { LookupItem } from '@/models/common';
 import useCompetencePageState from '@/hooks/competence/useCompetencePageState';
 import useStructureData from '@/hooks/competence/useStructureData';
 import { buildExportFileName, buildMatrixRows } from '@/utils/helpers/consultationUtils';
@@ -24,6 +29,12 @@ const niveauMeta = (niveau: string | undefined) =>
     color: 'default',
   };
 
+const toFilterOptions = (items: LookupItem[] | undefined) =>
+  (items ?? []).map((item) => ({
+    value: String(item.id),
+    label: item.name ?? item.libelle ?? String(item.id),
+  }));
+
 const extractLegacyPrerequisiteManual = (description = '') => {
   const marker = 'Prerequis (manuel):';
   const idx = description.indexOf(marker);
@@ -33,6 +44,9 @@ const extractLegacyPrerequisiteManual = (description = '') => {
 
 export default function CompetencePage() {
   const { message, modal } = useAppNotification();
+  const canCreate = useHasPermission('COMPETENCE', 'CREATE');
+  const canEdit = useHasPermission('COMPETENCE', 'UPDATE');
+  const canDelete = useHasPermission('COMPETENCE', 'DELETE');
   const [domaineForm] = Form.useForm();
   const [compForm] = Form.useForm();
   const [scForm] = Form.useForm();
@@ -53,6 +67,11 @@ export default function CompetencePage() {
   const [prerequisites, setPrerequisites] = useState<PrerequisiteRecord[]>([]);
   const [prerequisiteLoading, setPrerequisiteLoading] = useState(false);
 
+  /* ── Filtres de l'onglet « Compétences » (domaine / UP / département) ── */
+  const [compFilters, setCompFilters] = useState<CompetenceFilters>({});
+  const upsLookup = useAllUps();
+  const deptsLookup = useAllDepts();
+
   const structure = useStructureData();
   const crud = useCompetenceCrud();
   const prerequisiteApi = crud.prerequisite;
@@ -61,6 +80,68 @@ export default function CompetencePage() {
     crud,
     loadStructure: () => void structure.loadStructure(),
   });
+
+  const filteredCompetences = useMemo(
+    () => filterCompetences(crud.competences || [], crud.domaines || [], compFilters),
+    [crud.competences, crud.domaines, compFilters],
+  );
+
+  const domaineFilterOptions = useMemo(
+    () =>
+      (crud.domaines || []).map((d) => ({
+        value: String(d.id),
+        label: [d.code, d.nom].filter(Boolean).join(' · ') || String(d.id),
+      })),
+    [crud.domaines],
+  );
+
+  const upFilterOptions = useMemo(() => toFilterOptions(upsLookup.data), [upsLookup.data]);
+  const deptFilterOptions = useMemo(() => toFilterOptions(deptsLookup.data), [deptsLookup.data]);
+
+  const competenceFiltersNode = (
+    <>
+      <Select
+        allowClear
+        showSearch
+        optionFilterProp="label"
+        placeholder="Domaine"
+        style={{ width: 220 }}
+        value={compFilters.domaineId ?? undefined}
+        options={domaineFilterOptions}
+        onChange={(value) => setCompFilters((prev) => ({ ...prev, domaineId: value ?? null }))}
+      />
+      <Select
+        allowClear
+        showSearch
+        optionFilterProp="label"
+        placeholder="UP"
+        style={{ width: 180 }}
+        value={compFilters.upId ?? undefined}
+        options={upFilterOptions}
+        onChange={(value) => setCompFilters((prev) => ({ ...prev, upId: value ?? null }))}
+      />
+      <Select
+        allowClear
+        showSearch
+        optionFilterProp="label"
+        placeholder="Département"
+        style={{ width: 180 }}
+        value={compFilters.departementId ?? undefined}
+        options={deptFilterOptions}
+        onChange={(value) => setCompFilters((prev) => ({ ...prev, departementId: value ?? null }))}
+      />
+      {hasActiveFilters(compFilters) && (
+        <>
+          <Tag color="blue">
+            {filteredCompetences.length} / {crud.competences.length} compétence(s)
+          </Tag>
+          <Button size="small" onClick={() => setCompFilters({})}>
+            Réinitialiser
+          </Button>
+        </>
+      )}
+    </>
+  );
 
   const consultationCrud = useMemo(
     () => ({
@@ -313,6 +394,7 @@ export default function CompetencePage() {
       <CompetenceExpandedRow
         competence={record}
         sousComps={crud.sousComps}
+        savoirs={crud.savoirs}
         loading={crud.scLoading}
         onAddRoot={(parent: Competence) =>
           crud.openScModal(
@@ -337,6 +419,9 @@ export default function CompetencePage() {
         onAddSavoir={(leafSc: SousCompetence) => crud.openSavoirModal(savoirForm, null, leafSc)}
         onEdit={(row: SousCompetence) => crud.openScModal(scForm, null, row)}
         onDelete={crud.handleScDelete}
+        canCreate={canCreate}
+        canEdit={canEdit}
+        canDelete={canDelete}
       />
     ),
     [crud, scForm, savoirForm],
@@ -360,6 +445,9 @@ export default function CompetencePage() {
           onDelete={crud.handleDomaineDelete}
           addLabel="Ajouter un domaine"
           searchPlaceholder="Rechercher un domaine (nom, code…)"
+          canCreate={canCreate}
+          canEdit={canEdit}
+          canDelete={canDelete}
         />
       ),
     },
@@ -370,20 +458,22 @@ export default function CompetencePage() {
       label: 'Compétences',
       children: (
         <CrudTab
-          {...{
-            columns: compColumnsWithPrerequisite,
-            data: crud.competences,
-            loading: crud.compLoading,
-            onAdd: () => crud.openCompModal(compForm),
-            onEdit: (record: Competence) => crud.openCompModal(compForm, record),
-            onDelete: crud.handleCompDelete,
-            addLabel: 'Ajouter une compétence',
-            searchPlaceholder: 'Rechercher une compétence (nom, code, domaine…)',
-            tableProps: {
-              expandable: {
-                expandedRowRender: renderExpandedCompRow,
-                rowExpandable: () => true,
-              },
+          columns={compColumnsWithPrerequisite}
+          data={filteredCompetences}
+          loading={crud.compLoading}
+          onAdd={() => crud.openCompModal(compForm)}
+          onEdit={(record: Competence) => crud.openCompModal(compForm, record)}
+          onDelete={crud.handleCompDelete}
+          addLabel="Ajouter une compétence"
+          searchPlaceholder="Rechercher une compétence (nom, code, domaine…)"
+          filters={competenceFiltersNode}
+          canCreate={canCreate}
+          canEdit={canEdit}
+          canDelete={canDelete}
+          tableProps={{
+            expandable: {
+              expandedRowRender: renderExpandedCompRow,
+              rowExpandable: () => true,
             },
           }}
         />
@@ -404,6 +494,9 @@ export default function CompetencePage() {
           onDelete={crud.handleSavoirDelete}
           addLabel="Ajouter un savoir"
           searchPlaceholder="Rechercher un savoir (nom, code, type…)"
+          canCreate={canCreate}
+          canEdit={canEdit}
+          canDelete={canDelete}
         />
       ),
     },
@@ -434,7 +527,11 @@ export default function CompetencePage() {
       <AppPageHeader
         icon={<ApartmentOutlined />}
         title="Référentiel des Compétences"
-        subtitle="Gérer les domaines, compétences, sous-compétences et savoirs"
+        subtitle={
+          canCreate || canEdit || canDelete
+            ? 'Gérer les domaines, compétences, sous-compétences et savoirs'
+            : 'Consultation des domaines, compétences, sous-compétences et savoirs'
+        }
       />
 
       <Tabs

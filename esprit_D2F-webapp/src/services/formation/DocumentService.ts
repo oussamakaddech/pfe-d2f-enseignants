@@ -59,7 +59,9 @@ const DocumentService = {
       formData.append('file', file);
     }
 
-    const { data } = await axios.put(`${API_URL}/${id}`, formData);
+    // Le backend expose la mise à jour en POST multipart (/documents/{id}) :
+    // un PUT recevait 405 et la modification n'était jamais enregistrée.
+    const { data } = await axios.post(`${API_URL}/${id}`, formData);
     return data;
   },
 

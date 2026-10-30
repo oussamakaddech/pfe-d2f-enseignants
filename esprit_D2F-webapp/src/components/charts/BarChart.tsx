@@ -16,6 +16,8 @@ interface BarChartProps {
   readonly color?: string;
   readonly valueSuffix?: string;
   readonly datasetLabel?: string;
+  /** Borne haute de l'axe des valeurs (ex. 5 pour une note sur 5). */
+  readonly max?: number;
 }
 
 /**
@@ -32,6 +34,7 @@ const BarChart = memo(function BarChart({
   color,
   valueSuffix = '',
   datasetLabel = 'Valeur',
+  max: axisMax,
 }: BarChartProps) {
   const max = useMemo(() => Math.max(...values, 0), [values]);
 
@@ -79,15 +82,15 @@ const BarChart = memo(function BarChart({
       },
       scales: horizontal
         ? {
-            x: { beginAtZero: true, grid: subtleGrid, ticks: axisTicks },
+            x: { beginAtZero: true, max: axisMax, grid: subtleGrid, ticks: axisTicks },
             y: { grid: { display: false }, ticks: axisTicks },
           }
         : {
             x: { grid: { display: false }, ticks: axisTicks },
-            y: { beginAtZero: true, grid: subtleGrid, ticks: axisTicks },
+            y: { beginAtZero: true, max: axisMax, grid: subtleGrid, ticks: axisTicks },
           },
     }),
-    [horizontal, valueSuffix],
+    [horizontal, valueSuffix, axisMax],
   );
 
   return (
