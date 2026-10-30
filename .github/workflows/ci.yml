@@ -510,16 +510,20 @@ jobs:
           } catch { Write-Host "Token cleanup skipped" }
 
   # -- SonarQube Quality Gate (runner self-hosted -> SonarQube localhost:9000) --
-  # Active si SONAR_ENABLED=true dans Actions Variables.
-  # Aucune dependance vers sonar-dashboard-refresh : ce dernier n'est qu'un
-  # nettoyage de dashboard, desormais conditionne a SONAR_SELF_HOSTED_ENABLED.
-  # Le garder ici rendait la porte qualite « skipped » des que le nettoyage
-  # l'etait, donc inatteignable meme avec SONAR_ENABLED=true.
+  # Cette porte interroge le SonarQube interne : elle exige un runner
+  # self-hosted. Sans runner enregistre, le job restait « queued » pour
+  # toujours et, comme build-docker en depend, aucune image n'etait publiee et
+  # aucun run ne pouvait conclure. Elle est donc doublee par un interrupteur
+  # explicite (SONAR_SELF_HOSTED_ENABLED), a activer en meme temps que le
+  # runner ; sinon elle est ignoree et l'analyse SonarCloud (sonarcloud.yml,
+  # runners GitHub) reste la reference. Aucune dependance vers
+  # sonar-dashboard-refresh, qui n'est qu'un nettoyage de dashboard.
   sonar:
     name: SonarQube - ${{ matrix.module }}
     runs-on: self-hosted
     if: >-
       vars.SONAR_ENABLED == 'true' &&
+      vars.SONAR_SELF_HOSTED_ENABLED == 'true' &&
       !inputs.skip_sonar &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     strategy:
