@@ -511,10 +511,13 @@ jobs:
 
   # -- SonarQube Quality Gate (runner self-hosted -> SonarQube localhost:9000) --
   # Active si SONAR_ENABLED=true dans Actions Variables.
+  # Aucune dependance vers sonar-dashboard-refresh : ce dernier n'est qu'un
+  # nettoyage de dashboard, desormais conditionne a SONAR_SELF_HOSTED_ENABLED.
+  # Le garder ici rendait la porte qualite « skipped » des que le nettoyage
+  # l'etait, donc inatteignable meme avec SONAR_ENABLED=true.
   sonar:
     name: SonarQube - ${{ matrix.module }}
     runs-on: self-hosted
-    needs: [sonar-dashboard-refresh]
     if: >-
       vars.SONAR_ENABLED == 'true' &&
       !inputs.skip_sonar &&
@@ -627,13 +630,17 @@ jobs:
       contents: read
       packages: write
     needs: [lint-backend, security-backend, security-frontend, test-python, sonar]
+    # La porte SonarQube locale n'existe que sur le runner self-hosted : quand
+    # elle n'est pas active (job « skipped »), la publication des images reste
+    # due, sinon aucune image n'est jamais poussee. Un echec Sonar bloque
+    # toujours ; l'analyse SonarCloud (sonarcloud.yml) tourne sur chaque push.
     if: >-
       always() &&
       needs.lint-backend.result == 'success' &&
       needs.security-backend.result == 'success' &&
       needs.security-frontend.result == 'success' &&
       needs.test-python.result == 'success' &&
-      needs.sonar.result == 'success' &&
+      (needs.sonar.result == 'success' || needs.sonar.result == 'skipped') &&
       !inputs.skip_docker &&
       github.event_name == 'push'
     strategy:
