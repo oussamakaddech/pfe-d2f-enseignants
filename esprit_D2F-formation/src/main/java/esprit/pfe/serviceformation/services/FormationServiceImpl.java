@@ -96,7 +96,7 @@ public class FormationServiceImpl implements FormationService {
         String salle      = f.getSalle() != null && !f.getSalle().isBlank() ? f.getSalle() : "Salle-TBD";
         String titre      = f.getTitreFormation() != null ? f.getTitreFormation() : "Formation";
         String animateur  = resolveAnimateur(f);
-        String subject    = "D2f-" + salle + "-" + titre + "-" + animateur;
+        String subject    = "D2F-" + salle + "-" + titre + "-" + animateur;
 
         var start = f.getDateDebut().atStartOfDay(TZ).withHour(8).withMinute(0).toOffsetDateTime();
         var end   = f.getDateFin().atStartOfDay(TZ).withHour(17).withMinute(0).toOffsetDateTime();

@@ -410,7 +410,7 @@ public class FormationWorkflowService {
         // événements Outlook existent), propager les modifications de séances (salle,
         // horaires, animateurs) vers le calendrier. Sinon, une salle ajoutée/corrigée
         // après la planification reste invisible dans Outlook (l'événement garde son
-        // ancien titre « D2f-Salle-TBD-... »), car handleEtatTransitions ne resynchronise
+        // ancien titre « D2F-Salle-TBD-... »), car handleEtatTransitions ne resynchronise
         // que lors d'un changement d'état.
         // Seules les séances réellement modifiées ou ajoutées sont resynchronisées.
         // Changement de date, d'horaire, de salle, séance ajoutée ou supprimée : mise à
@@ -1558,10 +1558,10 @@ public class FormationWorkflowService {
     }
 
     /**
-     * Titre de l'événement Outlook au format demandé : {@code D2f-Salle-Formation-Animateur}.
+     * Titre de l'événement Outlook au format demandé : {@code D2F-Salle-Formation-Animateur}.
      * Format à 4 champs, cohérent avec {@code FormationServiceImpl.createOutlookEvent} :
      * des placeholders sont utilisés quand une valeur manque (ex.
-     * {@code D2f-B201-Formation Java-Karim TRABELSI} ou {@code D2f-Salle-TBD-formation-Animateur-TBD}).
+     * {@code D2F-B201-Formation Java-Karim TRABELSI} ou {@code D2F-Salle-TBD-formation-Animateur-TBD}).
      */
     private String buildEventSubject(SeanceFormation freshSeance, Formation freshFormation, String animateursStr) {
         String salle;
@@ -1576,7 +1576,7 @@ public class FormationWorkflowService {
                 ? freshFormation.getTitreFormation().trim() : DETAIL_FORMATION;
         String animateur = (animateursStr != null && !animateursStr.isBlank())
                 ? animateursStr.trim() : "Animateur-TBD";
-        return "D2f-" + salle + "-" + titre + "-" + animateur;
+        return "D2F-" + salle + "-" + titre + "-" + animateur;
     }
 
     private Set<String> buildEmailsSet(SeanceFormation freshSeance, Formation freshFormation) {

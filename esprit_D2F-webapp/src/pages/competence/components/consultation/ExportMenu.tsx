@@ -9,6 +9,8 @@ import {
   doExportSynthesisExcel,
 } from '@/utils/helpers/exportUtils';
 import { getFilteredCrud } from '@/utils/helpers/consultationViewUtils';
+import { useAllUps } from '@/hooks/formation/useUpCrud';
+import { useAllDepts } from '@/hooks/formation/useDeptCrud';
 import type { TreeNode } from '@/models/competence';
 
 type CrudParam = Parameters<typeof getFilteredCrud>[0];
@@ -33,6 +35,10 @@ export default function ExportMenu({
 }: Readonly<ExportMenuProps>) {
   const [loading, setLoading] = useState(false);
   const { message: messageApi } = useAppNotification();
+  // Mêmes clés react-query que la page : aucun appel réseau supplémentaire.
+  const { data: ups = [] } = useAllUps();
+  const { data: depts = [] } = useAllDepts();
+  const lookups = useMemo(() => ({ ups, depts }), [ups, depts]);
 
   const domaineId = structure.selectedDomaine;
   const domaineName = useMemo(
@@ -55,8 +61,8 @@ export default function ExportMenu({
       setLoading(true);
       try {
         localStorage.setItem('ctp-export-format', key);
-        if (key === 'excel-full') doExportStructureExcel(crud, domaineId);
-        else if (key === 'excel-savoirs') doExportSavoirsExcel(crud, domaineId);
+        if (key === 'excel-full') doExportStructureExcel(crud, domaineId, lookups);
+        else if (key === 'excel-savoirs') doExportSavoirsExcel(crud, domaineId, lookups);
         else if (key === 'excel-synthesis') doExportSynthesisExcel(crud, stats);
         else if (key === 'excel-matrix') handleExportExcel();
         messageApi.success('Export genere');
@@ -67,7 +73,7 @@ export default function ExportMenu({
         setLoading(false);
       }
     },
-    [crud, domaineId, handleExportExcel, messageApi, stats],
+    [crud, domaineId, handleExportExcel, lookups, messageApi, stats],
   );
 
   const filterSuffix = domaineName ? ` — ${domaineName}` : '';

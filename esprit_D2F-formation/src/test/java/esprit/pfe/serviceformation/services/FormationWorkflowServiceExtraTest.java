@@ -340,7 +340,7 @@ class FormationWorkflowServiceExtraTest {
         m.setAccessible(true);
         String result = (String) m.invoke(service, sf, f, "Jean Dupont");
 
-        assertThat(result).isEqualTo("D2f-B201-Java-Jean Dupont");
+        assertThat(result).isEqualTo("D2F-B201-Java-Jean Dupont");
     }
 
     @Test
@@ -358,7 +358,7 @@ class FormationWorkflowServiceExtraTest {
         m.setAccessible(true);
         String result = (String) m.invoke(service, sf, f, "Marie Durand");
 
-        assertThat(result).isEqualTo("D2f-A100-Spring-Marie Durand");
+        assertThat(result).isEqualTo("D2F-A100-Spring-Marie Durand");
     }
 
     @Test
@@ -376,7 +376,7 @@ class FormationWorkflowServiceExtraTest {
         m.setAccessible(true);
         String result = (String) m.invoke(service, sf, f, null);
 
-        assertThat(result).isEqualTo("D2f-Salle-TBD-Formation-Animateur-TBD");
+        assertThat(result).isEqualTo("D2F-Salle-TBD-Formation-Animateur-TBD");
     }
 
     // ─── buildEmailsSet ───────────────────────────────────────────────────
@@ -896,7 +896,7 @@ class FormationWorkflowServiceExtraTest {
                 java.time.OffsetDateTime.class, java.time.OffsetDateTime.class,
                 Set.class, Formation.class);
 
-        assertDoesNotThrow(() -> m.invoke(service, sf, "D2f-B201-Java", "<html></html>",
+        assertDoesNotThrow(() -> m.invoke(service, sf, "D2F-B201-Java", "<html></html>",
                 java.time.OffsetDateTime.now(), java.time.OffsetDateTime.now(), emails, f));
 
         assertThat(sf.getCalendarEventId()).isEqualTo("NEW-EVT");
@@ -926,7 +926,7 @@ class FormationWorkflowServiceExtraTest {
                 java.time.OffsetDateTime.class, java.time.OffsetDateTime.class,
                 Set.class, Formation.class);
 
-        assertDoesNotThrow(() -> m.invoke(service, sf, "D2f-B201-Java", "<html></html>",
+        assertDoesNotThrow(() -> m.invoke(service, sf, "D2F-B201-Java", "<html></html>",
                 java.time.OffsetDateTime.now(), java.time.OffsetDateTime.now(), emails, f));
 
         verify(outlookCalendarService).updateEventInCalendarWithTeamsUrl(any());

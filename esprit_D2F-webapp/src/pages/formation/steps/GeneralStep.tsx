@@ -307,7 +307,7 @@ export default function GeneralStep({
                 prefix={<EnvironmentOutlined style={{ color: '#a0aec0' }} />}
               />
               <span className="creation-field-help">
-                Utilisé comme titre de l'événement Outlook : D2f‑{salle || 'Salle'}‑
+                Utilisé comme titre de l'événement Outlook : D2F‑{salle || 'Salle'}‑
                 {titre || 'Formation'}‑Animateur
               </span>
             </div>

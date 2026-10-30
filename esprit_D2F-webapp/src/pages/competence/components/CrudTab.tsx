@@ -24,6 +24,8 @@ interface CrudTabProps<T extends object = Record<string, unknown>> {
   tableProps?: Partial<TableProps<T>>;
   searchable?: boolean;
   searchPlaceholder?: string;
+  /** Filtres complémentaires (sélecteurs…) affichés dans la barre d'outils. */
+  filters?: React.ReactNode;
   canCreate?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
@@ -41,6 +43,7 @@ export default function CrudTab<T extends object = Record<string, unknown>>({
   tableProps = undefined,
   searchable = true,
   searchPlaceholder = 'Rechercher...',
+  filters = undefined,
   canCreate = true,
   canEdit = true,
   canDelete = true,
@@ -151,6 +154,8 @@ export default function CrudTab<T extends object = Record<string, unknown>>({
             style={{ width: 280 }}
           />
         )}
+
+        {filters}
       </Space>
 
       {/* ── Résumé sélection ──────────────────────────────────────────── */}
