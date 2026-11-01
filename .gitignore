@@ -218,3 +218,9 @@ esprit_D2F-predictive-analytics/init_db/test_*.sh
 # par pipelines.train_risk_model (graine 2026, 400 enseignants, hash dans la metadata).
 esprit_D2F-predictive-analytics/data/simulation/simulation_dataset_risk_n*_seed*.csv
 esprit_D2F-predictive-analytics/data/simulation/simulation_dataset_risk_n*_seed*_manifest.json
+
+# Local workspace / temporary files
+Temp/
+.agents/
+.cloud-attachments/
+skills-lock.json

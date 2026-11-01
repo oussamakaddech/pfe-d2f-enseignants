@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { App } from 'antd';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CalendrierGestionPage from '../CalendrierGestionPage';
 import * as cal from '@/hooks/formation/useCalendar';
 
@@ -77,12 +78,17 @@ const PREVIEW = {
 };
 
 function renderPage() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return render(
-    <MemoryRouter>
-      <App>
-        <CalendrierGestionPage />
-      </App>
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <App>
+          <CalendrierGestionPage />
+        </App>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -94,10 +100,14 @@ function analyserFichier() {
 
 describe('CalendrierGestionPage', () => {
   let importMutate: ReturnType<typeof vi.fn>;
+  let formationsRefetch: ReturnType<typeof vi.fn>;
+  let conflictsRefetch: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     importMutate = vi.fn();
+    formationsRefetch = vi.fn();
+    conflictsRefetch = vi.fn();
     vi.mocked(cal.usePreviewImport).mockReturnValue({
       mutate: vi.fn((_f: File, opts: { onSuccess: (d: unknown) => void }) =>
         opts.onSuccess(PREVIEW),
@@ -112,12 +122,13 @@ describe('CalendrierGestionPage', () => {
       data: { totalConflicts: 3 },
       isFetching: false,
       isLoading: false,
-      refetch: vi.fn(),
+      refetch: conflictsRefetch,
     } as never);
     vi.mocked(cal.useCalendarFormations).mockReturnValue({
       data: { totalElements: 12 },
       isLoading: false,
-      refetch: vi.fn(),
+      isFetching: false,
+      refetch: formationsRefetch,
     } as never);
   });
 
@@ -190,14 +201,42 @@ describe('CalendrierGestionPage', () => {
     expect(screen.queryByText(/resume-/)).not.toBeInTheDocument();
   });
 
-  it('onglets Formations et Conflits', () => {
+  it('onglets Formations et Conflits et boutons Actualiser', () => {
     renderPage();
+    // Bouton Actualiser du Hero
+    const heroRefresh = screen.getAllByRole('button', { name: /Actualiser/ })[0];
+    expect(heroRefresh).toBeInTheDocument();
+    fireEvent.click(heroRefresh);
+    expect(formationsRefetch).toHaveBeenCalled();
+    expect(conflictsRefetch).toHaveBeenCalled();
+
     fireEvent.click(screen.getByText(/Formations et export/));
     expect(screen.getByText('table-formations')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Exporter tout/ })).not.toBeInTheDocument();
     expect(screen.getByText(/Seules les formations extraites/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Nouvelle formation/ })).not.toBeInTheDocument();
+
+    // Bouton Actualiser de la section Formations
+    const sectionRefresh = screen.getAllByRole('button', { name: /Actualiser/ })[1];
+    expect(sectionRefresh).toBeInTheDocument();
+    fireEvent.click(sectionRefresh);
+    expect(formationsRefetch).toHaveBeenCalledTimes(2);
+
     fireEvent.click(screen.getByText(/^Conflits$/));
     expect(screen.getByText('conflits-oui')).toBeInTheDocument();
+  });
+
+  it('bouton « Supprimer l’aperçu » réinitialise l’étape et vide le fichier', () => {
+    renderPage();
+    analyserFichier();
+    expect(screen.getByText('2 formation(s)')).toBeInTheDocument();
+
+    const deletePreviewBtn = screen.getByRole('button', { name: /Supprimer l'aperçu/ });
+    expect(deletePreviewBtn).toBeInTheDocument();
+    fireEvent.click(deletePreviewBtn);
+
+    // Retour à l'étape Fichier
+    expect(screen.getByTestId('upload')).toBeInTheDocument();
+    expect(screen.queryByText('2 formation(s)')).not.toBeInTheDocument();
   });
 });

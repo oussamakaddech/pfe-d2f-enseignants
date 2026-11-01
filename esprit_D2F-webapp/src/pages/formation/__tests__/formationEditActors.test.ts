@@ -199,7 +199,7 @@ describe('synchronizeSeanceAnimateurs', () => {
 
 describe('saveSuccessMessage', () => {
   it('annonce l’envoi de l’e-mail quand l’interrupteur est actif', () => {
-    expect(saveSuccessMessage(true)).toContain('Un e-mail a été envoyé');
+    expect(saveSuccessMessage(true)).toContain('ont été prévenus par e-mail');
   });
 
   it('annonce l’absence d’e-mail quand l’interrupteur est désactivé', () => {

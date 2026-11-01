@@ -922,7 +922,7 @@ class FormationWorkflowServiceTest {
     }
 
     @Test
-    @DisplayName("updateFormationWorkflow - notifierActeurs=true : un seul « Formation modifiée » à tous les acteurs, aucun e-mail d'ajout")
+    @DisplayName("updateFormationWorkflow - notifierActeurs=true : ajout -> « Ajout à la formation », existant -> « Formation modifiée »")
     void shouldMailAllActorsOnceWhenRequested() {
         Formation existing = createFullFormation();
         existing.setIdFormation(1L);
@@ -952,11 +952,10 @@ class FormationWorkflowServiceTest {
 
         formationWorkflowService.updateFormationWorkflow(1L, request);
 
-        // Les deux acteurs reçoivent le même message de modification, y compris celui
-        // qui n'a pas changé : plus d'e-mail « Ajout à la formation » dans ce mode.
-        verify(outlookMailService).sendMail(eq("p1@esprit.tn"), contains("Formation modifiée"), anyString());
-        verify(outlookMailService).sendMail(eq("p2@esprit.tn"), contains("Formation modifiée"), anyString());
-        verify(outlookMailService, never()).sendMail(anyString(), contains("Ajout à la formation"), anyString());
+        // P1 était déjà présent → « Formation modifiée »
+        // P2 est nouvellement ajouté → « Ajout à la formation »
+        verify(outlookMailService).sendMail(eq("p1@esprit.tn"), contains("Formation modifi"), anyString());
+        verify(outlookMailService).sendMail(eq("p2@esprit.tn"), contains("Ajout"), anyString());
         verify(outlookMailService, times(2)).sendMail(anyString(), anyString(), anyString());
     }
 

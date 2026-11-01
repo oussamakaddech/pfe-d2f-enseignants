@@ -1,4 +1,4 @@
-﻿/* ═══════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════════
  * CalendrierGestionPage — Modern Gestion Calendar styles
  * ═══════════════════════════════════════════════════════════════════════ */
 
@@ -98,6 +98,19 @@
 
 .cal-hero-badge {
   flex-shrink: 0;
+}
+
+.cal-hero-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cal-hero-actions .ant-btn {
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
 }
 
 /* ─── Stats Row ─────────────────────────────────────────────────────────── */
@@ -647,6 +660,11 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
+  }
+
+  .cal-hero-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .cal-hero-title {

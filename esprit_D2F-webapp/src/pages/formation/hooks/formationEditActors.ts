@@ -31,7 +31,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
  */
 export function saveSuccessMessage(notifierActeurs: boolean): string {
   return notifierActeurs
-    ? 'Formation mise à jour ! Un e-mail a été envoyé aux animateurs et participants.'
+    ? 'Formation mise à jour ! Les personnes ajoutées/retirées et les acteurs existants ont été prévenus par e-mail.'
     : 'Formation mise à jour ! Aucun e-mail envoyé aux animateurs et participants.';
 }
 

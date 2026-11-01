@@ -1,16 +1,19 @@
 import { useState } from 'react';
-import { Table, Tag, Button, Space, Input, Select, Tooltip } from 'antd';
+import { Table, Tag, Button, Space, Input, Select, Tooltip, Popconfirm } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import {
   SearchOutlined,
   CheckCircleOutlined,
   ExportOutlined,
   MailOutlined,
+  DeleteOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
+import { useQueryClient } from '@tanstack/react-query';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 import { useCalendarFormations, useSendInvitations } from '@/hooks/formation/useCalendar';
 import CalendarService from '@/services/formation/CalendarService';
-import { useUpdateInscriptionsOuvertes } from '@/hooks/formation/useFormations';
+import { useUpdateInscriptionsOuvertes, useDeleteFormation } from '@/hooks/formation/useFormations';
 import type { CalendarFormation, CalendarFormationFilters } from '@/models/calendar';
 import { ETAT_FORMATION_OPTIONS, etatFormationAffichage } from './formationEtat';
 
@@ -22,7 +25,19 @@ const estTerminee = (f: CalendarFormation) =>
 export default function CalendarFormationsTable() {
   const { message, modal } = useAppNotification();
   const sendInvitations = useSendInvitations();
+  const deleteFormation = useDeleteFormation();
+  const queryClient = useQueryClient();
+
   const [exportId, setExportId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [isDeletingBulk, setIsDeletingBulk] = useState(false);
+
+  const [filters, setFilters] = useState<CalendarFormationFilters>({ page: 0, size: 10 });
+  const [searchInput, setSearchInput] = useState('');
+
+  const { data, isLoading, isFetching, refetch } = useCalendarFormations(filters);
+  const updateInscriptions = useUpdateInscriptionsOuvertes();
 
   const exporterIcs = async (formation: CalendarFormation) => {
     setExportId(formation.idFormation);
@@ -52,11 +67,6 @@ export default function CalendarFormationsTable() {
         ),
     });
   };
-  const [filters, setFilters] = useState<CalendarFormationFilters>({ page: 0, size: 10 });
-  const [searchInput, setSearchInput] = useState('');
-
-  const { data, isLoading } = useCalendarFormations(filters);
-  const updateInscriptions = useUpdateInscriptionsOuvertes();
 
   const handleRegister = (formation: CalendarFormation) => {
     updateInscriptions.mutate(
@@ -70,6 +80,50 @@ export default function CalendarFormationsTable() {
         },
       },
     );
+  };
+
+  const handleDelete = async (formation: CalendarFormation) => {
+    setDeletingId(formation.idFormation);
+    try {
+      await deleteFormation.mutateAsync(formation.idFormation);
+      message.success(`Formation « ${formation.titre} » supprimée.`);
+      setSelectedRowKeys((prev) => prev.filter((k) => k !== formation.idFormation));
+      queryClient.invalidateQueries({ queryKey: ['calendar'] });
+    } catch {
+      message.error(`Échec de la suppression de « ${formation.titre} ».`);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedRowKeys.length === 0) return;
+    setIsDeletingBulk(true);
+    const count = selectedRowKeys.length;
+    try {
+      await Promise.all(
+        selectedRowKeys.map((key) => deleteFormation.mutateAsync(Number(key))),
+      );
+      message.success(`${count} formation(s) supprimée(s).`);
+      setSelectedRowKeys([]);
+      queryClient.invalidateQueries({ queryKey: ['calendar'] });
+    } catch {
+      message.error('Erreur lors de la suppression groupée.');
+      queryClient.invalidateQueries({ queryKey: ['calendar'] });
+    } finally {
+      setIsDeletingBulk(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    await refetch();
+    queryClient.invalidateQueries({ queryKey: ['calendar'] });
+    message.success('Données actualisées.');
+  };
+
+  const resetFilters = () => {
+    setSearchInput('');
+    setFilters({ page: 0, size: filters.size ?? 10 });
   };
 
   const columns: ColumnsType<CalendarFormation> = [
@@ -90,7 +144,7 @@ export default function CalendarFormationsTable() {
     { title: 'Participants', dataIndex: 'participantsCount', width: 110, align: 'center' },
     {
       title: 'Actions',
-      width: 140,
+      width: 175,
       render: (_, formation) => (
         <Space size={4}>
           <Tooltip title="Exporter les séances (.ics)">
@@ -130,6 +184,24 @@ export default function CalendarFormationsTable() {
               aria-label={`Enregistrer ${formation.titre} dans le catalogue`}
             />
           </Tooltip>
+          <Tooltip title="Supprimer la formation">
+            <Popconfirm
+              title={`Supprimer « ${formation.titre} » ?`}
+              description="Cette action supprimera la formation ainsi que ses séances associées."
+              okText="Supprimer"
+              cancelText="Annuler"
+              okButtonProps={{ danger: true, loading: deletingId === formation.idFormation }}
+              onConfirm={() => handleDelete(formation)}
+            >
+              <Button
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                loading={deletingId === formation.idFormation}
+                aria-label={`Supprimer ${formation.titre}`}
+              />
+            </Popconfirm>
+          </Tooltip>
         </Space>
       ),
     },
@@ -146,29 +218,74 @@ export default function CalendarFormationsTable() {
   const applySearch = () =>
     setFilters((f) => ({ ...f, titre: searchInput.trim() || undefined, page: 0 }));
 
+  const hasActiveFilters = Boolean(searchInput.trim() || filters.etat);
+
   return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-      <Space wrap>
-        <Input
-          allowClear
-          placeholder="Rechercher une formation…"
-          prefix={<SearchOutlined />}
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          onPressEnter={applySearch}
-          style={{ width: 280 }}
-        />
-        <Select
-          allowClear
-          placeholder="État"
-          options={ETAT_FORMATION_OPTIONS}
-          style={{ width: 180 }}
-          onChange={(etat?: string) => setFilters((f) => ({ ...f, etat, page: 0 }))}
-        />
-        <Button type="primary" onClick={applySearch}>
-          Filtrer
-        </Button>
-      </Space>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}
+      >
+        <Space wrap>
+          <Input
+            allowClear
+            placeholder="Rechercher une formation…"
+            prefix={<SearchOutlined />}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onPressEnter={applySearch}
+            style={{ width: 280 }}
+          />
+          <Select
+            allowClear
+            placeholder="État"
+            options={ETAT_FORMATION_OPTIONS}
+            value={filters.etat}
+            style={{ width: 180 }}
+            onChange={(etat?: string) => setFilters((f) => ({ ...f, etat, page: 0 }))}
+          />
+          <Button type="primary" onClick={applySearch}>
+            Filtrer
+          </Button>
+          {hasActiveFilters && (
+            <Button onClick={resetFilters}>Réinitialiser</Button>
+          )}
+        </Space>
+
+        <Space wrap>
+          {selectedRowKeys.length > 0 && (
+            <Popconfirm
+              title={`Supprimer les ${selectedRowKeys.length} formation(s) sélectionnée(s) ?`}
+              description="Cette action supprimera les formations ainsi que leurs séances associées."
+              okText="Supprimer"
+              cancelText="Annuler"
+              okButtonProps={{ danger: true, loading: isDeletingBulk }}
+              onConfirm={handleDeleteSelected}
+            >
+              <Button
+                danger
+                type="primary"
+                icon={<DeleteOutlined />}
+                loading={isDeletingBulk}
+              >
+                Supprimer ({selectedRowKeys.length})
+              </Button>
+            </Popconfirm>
+          )}
+          <Button
+            icon={<ReloadOutlined />}
+            loading={isLoading || isFetching}
+            onClick={handleRefresh}
+          >
+            Actualiser
+          </Button>
+        </Space>
+      </div>
 
       <Table<CalendarFormation>
         size="small"
@@ -177,6 +294,10 @@ export default function CalendarFormationsTable() {
         columns={columns}
         dataSource={data?.content ?? []}
         pagination={pagination}
+        rowSelection={{
+          selectedRowKeys,
+          onChange: (keys) => setSelectedRowKeys(keys),
+        }}
         locale={{ emptyText: 'Aucune formation importée depuis un fichier .xlsx' }}
         scroll={{ x: 'max-content' }}
       />

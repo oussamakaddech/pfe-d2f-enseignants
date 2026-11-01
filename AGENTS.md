@@ -1,6 +1,50 @@
 # AGENTS.md — pfe-d2f-enseignants
 
-## Context & State (updated 2026-08-09)
+## Context & State (updated 2026-11-01)
+
+### Modification formation : e-mail d'ajout distinct pour nouveaux participants / animateurs (2026-11-01)
+- **Demande** : « lorsque j'ai ajoute participants ou animateurs il faut recevoir mail Vous avez été ajouté(e) à une formation pas Formation modifiée ».
+- **Serveur** (`esprit_D2F-formation`) : `FormationWorkflowService.appliquerChoixNotification(...)`.
+  - Auparavant, lorsque `notifierActeurs=true` était envoyé (défaut de l'écran de modification), la méthode envoyait `notifierModification(...)` (« Formation modifiée ») à l'ensemble des `personnesApres`, de sorte que les nouveaux participants et animateurs ajoutés recevaient le sujet et titre « Formation modifiée ».
+  - Désormais, les personnes nouvellement ajoutées (`ajoutees`) reçoivent exclusivement `notifyPersonnesAjoutees(...)` (sujet `[D2F] Ajout à la formation : ...`, titre `Vous avez été ajouté(e) à une formation`, icône `➕`). Les personnes retirées (`retirees`) reçoivent `notifyPersonnesRetirees(...)` (`Vous avez été retiré(e) d'une formation`). Seuls les acteurs déjà présents (`personnesApres` sans `ajoutees`) reçoivent `notifierModification(...)` (`Formation modifiée`).
+- **Front** (`esprit_D2F-webapp`) :
+  - `FormationWorkflowEditForm.tsx` : infobulle de l'interrupteur « E-mail aux animateurs et participants » mise à jour pour préciser que les personnes ajoutées recevront « Vous avez été ajouté(e) à une formation » et les acteurs déjà présents « Formation modifiée ».
+  - `formationEditActors.ts` : message de succès `saveSuccessMessage` mis à jour pour refléter que les personnes ajoutées/retirées et les acteurs existants sont prévenus.
+  - `formationEditActors.test.ts` : tests alignés (24/24 passing).
+- **Tests serveur** :
+  - `FormationWorkflowServiceTest.java` : `shouldMailAllActorsOnceWhenRequested` vérifie que pour un acteur déjà présent et un acteur nouvellement ajouté, le nouvel arrivant reçoit « Ajout à la formation » et jamais « Formation modifiée », tandis que l'acteur existant reçoit « Formation modifiée ».
+  - Vérifié : `mvn -o test "-Dtest=FormationWorkflowServiceTest"` (45/45 passing) ; `mvn -o test "-Dtest=FormationWorkflowServiceLineCoverageTest,FormationWorkflowServiceCoverageTest,FormationWorkflowServiceExtraTest"` (231/231 passing).
+  - Images `formation-service` et `webapp` reconstruites et conteneurs redéployés.
+
+### Formation achevée : notification envoyée uniquement à l'administrateur (2026-11-01)
+- **Demande** : « lorsque une formation est achevée ne pas envoyer un mail à participants et animateur juste pour admin ».
+- **Serveur** (`esprit_D2F-formation`) : `FormationWorkflowService.notifyAcheve(Formation formation)`. Auparavant, la méthode appelait `sendStateNotification(formation, ...)` qui collectait tous les destinataires (`collectAllRecipientEmails` : animateurs de la formation, animateurs et participants de toutes les séances, formateur externe éventuel) en plus d'envoyer un mail récapitulatif à `d2fNotificationEmail`.
+- **Règle appliquée** : suppression de l'appel à `sendStateNotification` dans `notifyAcheve`. Désormais, seul `d2fNotificationEmail` (`d2f@esprit.tn` / configuré dans `d2f.notification.email`) reçoit le mail HTML avec le récapitulatif de la formation achevée (`baseFormationEmailBuilder` + `appendFormationSeances`). Aucun e-mail n'est envoyé aux participants, ni aux animateurs internes ou externes lors de l'achèvement.
+- **Tests** :
+  - `FormationWorkflowServiceLineCoverageTest` : `handleEtat_acheve` vérifie que `d2fNotificationEmail` est notifié avec l'objet contenant `Formation achevée`, et vérifie explicitement avec `verify(..., never())` qu'aucun mail n'est envoyé à `anim@esprit.tn` ni `part@esprit.tn`.
+  - `notifyAcheve_externeFormateurNotEmailed` vérifie que le formateur externe n'est jamais notifié pour `ACHEVE`.
+  - `stateNotif_externeName` et `stateNotif_mailFail` alignés sur l'état `EN_COURS` pour continuer de tester `sendStateNotification`.
+- **Vérifié** : `mvn -o test "-Dtest=FormationWorkflowServiceLineCoverageTest,FormationWorkflowServiceCoverageTest,FormationWorkflowServiceTest,FormationStateSchedulerTest"` → **238/238**, 0 échec ; `mvn -o test "-Dtest=FormationWorkflowServiceExtraTest,FormationServiceImplTest"` → **67/67**, 0 échec. Image `formation-service` reconstruite et conteneur redéployé.
+
+### Gestion Calendrier : boutons Supprimer et Actualiser (2026-11-01)
+- **Demande** : « http://localhost:3000/home/Formation/CalendrierGestion dans cette page ajouter des boutons supprimer et refresh ».
+- **Front** (`esprit_D2F-webapp`) :
+  - `useFormations.ts` : la mutation `useDeleteFormation` invalide désormais à la fois `KEYS.all` et `['calendar']` pour rafraîchir instantanément les listes de calendrier.
+  - `CalendarFormationsTable.tsx` :
+    - Bouton **« Supprimer »** par ligne (`Popconfirm` de confirmation avec bouton danger et icône `DeleteOutlined`).
+    - Sélection multiple via cases à cocher (`rowSelection`) et bouton groupé **« Supprimer (N) »** dans la barre d'outils avec confirmation `Popconfirm`.
+    - Bouton **« Actualiser »** (`ReloadOutlined`) dans la barre d'outils pour forcer le refetch de la requête `useCalendarFormations`.
+    - Bouton **« Réinitialiser »** dans la barre d'outils quand des filtres sont actifs.
+  - `CalendrierGestionPage.tsx` :
+    - Bouton global **« Actualiser »** dans l'en-tête hero (`.cal-hero-actions`).
+    - Bouton **« Actualiser »** dans l'en-tête de la section formations pour recharger le tableau.
+    - Bouton **« Supprimer l'aperçu »** (`DeleteOutlined`) dans l'étape d'aperçu d'import pour effacer et recommencer.
+  - `CalendarFileUpload.tsx` : bouton « Retirer » renommé en **« Supprimer »** pour harmonisation.
+  - `calendrier-gestion.css` : classes `.cal-hero-actions` pour aligner les actions du header.
+- **Tests** :
+  - `CalendarFormationsTable.test.tsx` (5/5) : rendu des formations, bouton actualiser appelant refetch, bouton supprimer unitaire, suppression groupée, bouton réinitialiser les filtres.
+  - `CalendrierGestionPage.test.tsx` (7/7) : boutons actualiser, suppression d'aperçu, intégration table.
+- **Vérifié** : `npm test -- CalendarFormationsTable CalendrierGestionPage` (12/12 passing) ; `npx tsc --noEmit` 0 erreur ; `npm run lint` 0 erreur ; `npm run build` OK (30.39s) ; image `d2f-webapp` reconstruite, conteneur healthy, `curl.exe -I http://localhost:3000/` → 200 OK.
 
 ### « D2f » → « D2F » dans les mails et événements Outlook (2026-10-30)
 - **Demande** : « dans tous les mails changer D2f à D2F ».

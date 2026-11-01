@@ -115,7 +115,10 @@ export function useDeleteFormation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: Id) => FormationWorkflowService.deleteFormationWorkflow(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEYS.all });
+      qc.invalidateQueries({ queryKey: ['calendar'] });
+    },
   });
 }
 

@@ -16,6 +16,7 @@ import type { ColumnsType } from 'antd/es/table';
 import {
   CalendarOutlined,
   CheckCircleOutlined,
+  DeleteOutlined,
   FileExcelOutlined,
   ImportOutlined,
   ReloadOutlined,
@@ -23,6 +24,7 @@ import {
   TeamOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
+import { useQueryClient } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 import {
@@ -68,6 +70,7 @@ function horaire(s: ParsedSession): string {
  */
 export default function CalendrierGestionPage() {
   const { message, notification, modal } = useAppNotification();
+  const queryClient = useQueryClient();
 
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<ParsedCalendar | null>(null);
@@ -86,6 +89,15 @@ export default function CalendrierGestionPage() {
 
   const totalFormations = formations.data?.totalElements ?? 0;
   const totalConflicts = conflicts.data?.totalConflicts ?? 0;
+
+  const rafraichirTout = async () => {
+    await Promise.all([
+      formations.refetch(),
+      conflicts.refetch(),
+      queryClient.invalidateQueries({ queryKey: ['calendar'] }),
+    ]);
+    message.success('Données actualisées.');
+  };
 
   // ── Synthèse de l'aperçu ─────────────────────────────────────────────
   const apercu = useMemo(() => {
@@ -330,7 +342,9 @@ export default function CalendrierGestionPage() {
               Ignorer les doublons (fichier déjà importé)
             </Checkbox>
             <Space>
-              <Button onClick={reinitialiser}>Annuler</Button>
+              <Button danger icon={<DeleteOutlined />} onClick={reinitialiser}>
+                Supprimer l&apos;aperçu
+              </Button>
               <Button
                 type="primary"
                 size="large"
@@ -399,6 +413,19 @@ export default function CalendrierGestionPage() {
         <div className="cal-formations-section">
           <div className="cal-section-header">
             <Title level={4}>Formations du calendrier</Title>
+            <div className="cal-section-actions">
+              <Button
+                icon={<ReloadOutlined />}
+                loading={formations.isFetching}
+                onClick={() => {
+                  formations.refetch();
+                  queryClient.invalidateQueries({ queryKey: ['calendar'] });
+                  message.success('Formations actualisées.');
+                }}
+              >
+                Actualiser
+              </Button>
+            </div>
           </div>
           <Paragraph type="secondary" className="cal-hint">
             Seules les formations extraites d&apos;un fichier .xlsx importé sont listées ; les
@@ -453,6 +480,15 @@ export default function CalendrierGestionPage() {
               Importez le calendrier Excel, vérifiez l'aperçu, enregistrez-le, puis exportez les
               séances au format iCalendar (.ics).
             </Paragraph>
+          </div>
+          <div className="cal-hero-actions">
+            <Button
+              icon={<ReloadOutlined />}
+              loading={formations.isFetching || conflicts.isFetching}
+              onClick={rafraichirTout}
+            >
+              Actualiser
+            </Button>
           </div>
         </div>
       </div>

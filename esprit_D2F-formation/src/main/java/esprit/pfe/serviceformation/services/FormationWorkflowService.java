@@ -461,9 +461,11 @@ public class FormationWorkflowService {
     }
 
     /**
-     * Choix de l'écran de modification : {@code false} = aucun e-mail, {@code true} = un
-     * seul « Formation modifiée » à tous les animateurs et participants, {@code null} =
-     * comportement historique (seule la personne ajoutée / retirée est prévenue).
+     * Choix de l'écran de modification : {@code false} = aucun e-mail, {@code true} =
+     * les personnes nouvellement ajoutées reçoivent « Vous avez été ajouté(e) à une formation »,
+     * les personnes retirées « Vous avez été retiré(e) d'une formation », et les acteurs
+     * déjà présents « Formation modifiée ». {@code null} = comportement historique
+     * (seule la personne ajoutée / retirée est prévenue).
      */
     private void appliquerChoixNotification(Formation formation, Boolean notifierActeurs,
             Map<String, Personne> personnesApres, Map<String, Personne> ajoutees,
@@ -474,7 +476,11 @@ public class FormationWorkflowService {
             return;
         }
         if (Boolean.TRUE.equals(notifierActeurs)) {
-            notifierModification(formation, personnesApres);
+            notifyPersonnesAjoutees(formation, ajoutees);
+            notifyPersonnesRetirees(formation, retirees);
+            Map<String, Personne> existantes = new LinkedHashMap<>(personnesApres);
+            ajoutees.keySet().forEach(existantes::remove);
+            notifierModification(formation, existantes);
             return;
         }
         notifyPersonnesAjoutees(formation, ajoutees);
@@ -985,20 +991,31 @@ public class FormationWorkflowService {
                 ctaNote);
     }
 
-    // ── ACHEVE : Notification de fin de formation + demande évaluation ──
+    // ── ACHEVE : Notification de fin de formation (admin uniquement — pas de mail aux participants ni animateurs) ──
     private void notifyAcheve(Formation formation) {
-        // FIX-S5 + FIX-C3: add clickable evaluation link
-        String evalCta = LINK_START + platformUrl + "/home/Evaluations\" "
-                + "style=\"background:#00695c;color:#fff;padding:10px 20px;border-radius:6px;"
-                + "text-decoration:none;font-weight:bold;display:inline-block;margin-top:8px;\">"
-                + "📝 Évaluer la formation maintenant</a>";
-        sendStateNotification(formation,
-                "[D2F] Formation achevée : " + formation.getTitreFormation(),
-                "Formation achevée", "🎓",
-                "La formation est désormais terminée. Merci d'y avoir participé.",
-                "#00695c",
-                "Dernière étape : merci de remplir l'évaluation et de vérifier que les présences "
+        if (outlookMailService != null && d2fNotificationEmail != null && !d2fNotificationEmail.isBlank()) {
+            try {
+                String subject = "[D2F] Formation achevée : " + formation.getTitreFormation();
+                String evalCta = LINK_START + platformUrl + "/home/Evaluations\" "
+                        + "style=\"background:#00695c;color:#fff;padding:10px 20px;border-radius:6px;"
+                        + "text-decoration:none;font-weight:bold;display:inline-block;margin-top:8px;\">"
+                        + "📝 Consulter les évaluations</a>";
+                EmailTemplateBuilder adminBuilder = baseFormationEmailBuilder("#00695c", "🎓",
+                        "Formation achevée",
+                        "La formation est désormais terminée. Aucun e-mail n'a été envoyé aux participants ni aux animateurs.",
+                        formation);
+                appendFormationSeances(adminBuilder, formation);
+                adminBuilder.note("Dernière étape : vous pouvez consulter les évaluations et vérifier que les présences "
                         + "ont bien été confirmées dans D2F.<br><br>" + evalCta);
+                buildActorAuditDetail(adminBuilder);
+                String html = adminBuilder.build();
+                outlookMailService.sendMail(d2fNotificationEmail, subject, html);
+            } catch (Exception ex) {
+                log.warn("Echec notification admin formation achevee : {}", ex.getMessage());
+            }
+        } else {
+            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) ou boîte D2F non configurée — notification admin formation achevée ignorée.");
+        }
     }
 
     // ── ANNULE : Notification d'annulation + suppression calendrier ──

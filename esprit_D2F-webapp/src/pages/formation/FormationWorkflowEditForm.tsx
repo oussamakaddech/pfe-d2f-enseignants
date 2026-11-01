@@ -1526,7 +1526,7 @@ export default function FormationWorkflowEditForm({
                       <Tooltip
                         title={
                           h.notifierActeurs
-                            ? 'Un seul e-mail « Formation modifiée » sera envoyé à tous les animateurs et participants. Si l’état de la formation change, la notification de changement d’état remplace cet envoi.'
+                            ? "Les personnes ajoutées recevront « Vous avez été ajouté(e) à une formation », les personnes retirées « Vous avez été retiré(e) d'une formation », et les acteurs déjà présents « Formation modifiée »."
                             : 'Aucun e-mail ne sera envoyé pour cette modification : même une personne ajoutée ou retirée ne sera pas prévenue. Les calendriers Outlook restent à jour ; un changement d’état déclenche toujours sa propre notification.'
                         }
                       >

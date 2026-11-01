@@ -270,14 +270,17 @@ class FormationWorkflowServiceLineCoverageTest {
         verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
     }
 
-    @Test @DisplayName("handleEtatTransitions - ACHEVE")
+    @Test @DisplayName("handleEtatTransitions - ACHEVE (admin uniquement, aucun mail animateur/participant)")
     void handleEtat_acheve() {
         Formation f = buildFormation(1L, EtatFormation.ACHEVE);
         SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026, Month.OCTOBER, 10), LocalTime.of(9, 0), LocalTime.of(11, 0));
         sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
+        sf.setParticipants(new ArrayList<>(List.of(buildEnseignant("P1", "Part", "P", "part@esprit.tn", "E"))));
         f.setSeances(new ArrayList<>(List.of(sf)));
         service.handleEtatTransitions(f, EtatFormation.EN_COURS);
-        verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
+        verify(outlookMailService).sendMail(eq("d2f@esprit.tn"), contains("Formation achevée"), anyString());
+        verify(outlookMailService, never()).sendMail(eq("anim@esprit.tn"), anyString(), anyString());
+        verify(outlookMailService, never()).sendMail(eq("part@esprit.tn"), anyString(), anyString());
     }
 
     @Test @DisplayName("handleEtatTransitions - ANNULE deletes calendar events")
@@ -1713,7 +1716,7 @@ class FormationWorkflowServiceLineCoverageTest {
 
     @Test @DisplayName("stateNotif - mail failure caught")
     void stateNotif_mailFail() {
-        Formation f = buildFormation(1L, EtatFormation.ACHEVE);
+        Formation f = buildFormation(1L, EtatFormation.EN_COURS);
         SeanceFormation sf = buildSeance(10L, f, LocalDate.of(2026,10,10), LocalTime.of(9,0), LocalTime.of(11,0));
         sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
         f.setSeances(new ArrayList<>(List.of(sf)));
@@ -1723,11 +1726,21 @@ class FormationWorkflowServiceLineCoverageTest {
 
     @Test @DisplayName("stateNotif - externe formateur name in email")
     void stateNotif_externeName() {
+        Formation f = buildFormation(1L, EtatFormation.EN_COURS);
+        f.setExterneFormateurNom("Durand"); f.setExterneFormateurPrenom("Marie");
+        f.setExterneFormateurEmail("marie@ext.com");
+        service.handleEtatTransitions(f, EtatFormation.PLANIFIE);
+        verify(outlookMailService).sendMail(eq("marie@ext.com"), anyString(), anyString());
+    }
+
+    @Test @DisplayName("notifyAcheve - externe formateur not emailed")
+    void notifyAcheve_externeFormateurNotEmailed() {
         Formation f = buildFormation(1L, EtatFormation.ACHEVE);
         f.setExterneFormateurNom("Durand"); f.setExterneFormateurPrenom("Marie");
         f.setExterneFormateurEmail("marie@ext.com");
         service.handleEtatTransitions(f, EtatFormation.EN_COURS);
-        verify(outlookMailService).sendMail(eq("marie@ext.com"), anyString(), anyString());
+        verify(outlookMailService, never()).sendMail(eq("marie@ext.com"), anyString(), anyString());
+        verify(outlookMailService).sendMail(eq("d2f@esprit.tn"), contains("Formation achevée"), anyString());
     }
 
     // ═══════════════════════════════════════════════════════════════════════
