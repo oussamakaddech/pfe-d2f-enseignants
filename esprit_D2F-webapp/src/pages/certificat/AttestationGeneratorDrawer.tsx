@@ -426,8 +426,8 @@ export default function AttestationGeneratorDrawer({
                 }}
               />
               <Text type="secondary" className="gcert-attestation-hint">
-                Chaque sélection ajoute une ligne préremplie (formateur(s), date, heures, public cible
-                et objectifs) à partir de la formation choisie.
+                Chaque sélection ajoute une ligne préremplie (formateur(s), date, heures et objectifs)
+                à partir de la formation choisie ; le public cible est repris de la formation.
               </Text>
             </label>
 
@@ -509,14 +509,6 @@ export default function AttestationGeneratorDrawer({
                               onChange={(e) => patchRow(row.key, { heures: e.target.value })}
                               placeholder="21"
                               suffix="h"
-                            />
-                          </label>
-                          <label className="gcert-attestation-field">
-                            <Text type="secondary">Public cible</Text>
-                            <Input
-                              value={row.publicCible}
-                              onChange={(e) => patchRow(row.key, { publicCible: e.target.value })}
-                              placeholder="Enseignants"
                             />
                           </label>
                           <label className="gcert-attestation-field gcert-attestation-field-wide">
