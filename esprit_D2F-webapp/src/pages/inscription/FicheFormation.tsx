@@ -26,6 +26,7 @@ import {
   BarChartOutlined,
   AimOutlined,
   UserAddOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import AnimatorProposalsPanel from '@/pages/formation/components/AnimatorProposalsPanel';
@@ -37,7 +38,7 @@ import {
   useDemanderInscription,
 } from '@/hooks/formation/useFormationExtras';
 import { useEnseignantById } from '@/hooks/enseignant/useEnseignants';
-import { ROLES } from '@/utils/constants/roles';
+import { ROLES, extractRoles } from '@/utils/constants/roles';
 import { PageLoader } from '@/components/common';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 import FormationParticipantsPanel from './FormationParticipantsPanel';
@@ -95,6 +96,11 @@ export default function FicheFormation() {
   const { data: formation, isLoading: loading, error } = useFormationById(id);
   const { data: profile } = useProfile();
   const role = String(profile?.role ?? '').toLowerCase();
+  const userRoles = useMemo(() => extractRoles(profile?.role), [profile?.role]);
+  const canEditFormation = useMemo(
+    () => ['admin', 'cup', 'chefdepartement'].some((r) => userRoles.includes(r)),
+    [userRoles],
+  );
   // Workflow d'animation (se proposer, proposer, valider) : le serveur revalide tout.
   const animatorPermissions = useAnimatorPermissions(profile?.role);
   // Admin / CUP : accès à la liste des participants + statistiques.
@@ -213,6 +219,16 @@ export default function FicheFormation() {
                 </Tag>
               }
             />
+            {canEditFormation && (
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={() => navigate(`/home/Formation/Modifier/${id}`)}
+                className="fiche-edit-btn"
+              >
+                Modifier la formation
+              </Button>
+            )}
             {isTeacher && inscriptionsOuvertes && !myInscriptionForThis && (
               <Button
                 type="primary"
