@@ -8,6 +8,16 @@ import * as cupMod from '@/hooks/dashboard/useCupDashboard';
 
 const cup = () => cupMod.useCupDashboard;
 
+vi.mock('@/services/formation/FormationService', () => ({
+  default: {
+    getAllFormations: vi.fn().mockResolvedValue([
+      { id: '1', titre: 'Formation 1', inscriptionsOuvertes: true },
+      { id: '2', titre: 'Formation 2', inscriptionsOuvertes: false },
+      { id: '3', titre: 'Formation 3', inscriptionsOuvertes: true },
+    ]),
+  },
+}));
+
 const navigate = vi.fn();
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -294,5 +304,41 @@ describe('CupDashboardPage', () => {
     // Le sélecteur du graphique et celui des KPI pilotent la même période.
     await userEvent.click(screen.getAllByText('3 mois').at(-1)!);
     await waitFor(() => expect(screen.getAllByText(/3 derniers mois/).length).toBeGreaterThan(0));
+  });
+
+  it('shows ouvertes and fermées pill counts from formations data', async () => {
+    renderWith(queryClient);
+    // The pills display open/closed counts from mocked FormationService (2 ouvertes, 1 fermée).
+    await waitFor(() => {
+      expect(screen.getByText('Ouvertes')).toBeInTheDocument();
+      expect(screen.getByText('Fermées')).toBeInTheDocument();
+    });
+  });
+
+  it('shows Répartition par type subhead by default (mode=all)', () => {
+    renderWith(queryClient);
+    // In default "Tout" mode, both type subhead and statut subhead are visible.
+    expect(screen.getByText('Répartition par type')).toBeInTheDocument();
+    expect(screen.getByText('Statut des inscriptions')).toBeInTheDocument();
+  });
+
+  it('toggles repartition mode to Ouvertes/Fermées only', async () => {
+    renderWith(queryClient);
+    const btn = screen.getByText('Ouvertes / Fermées');
+    fireEvent.click(btn);
+    await waitFor(() => {
+      expect(screen.getByText('Statut des inscriptions')).toBeInTheDocument();
+      expect(screen.queryByText('Répartition par type')).not.toBeInTheDocument();
+    });
+  });
+
+  it('toggles repartition mode to Par type only', async () => {
+    renderWith(queryClient);
+    const btn = screen.getByText('Par type');
+    fireEvent.click(btn);
+    await waitFor(() => {
+      expect(screen.getByText('Répartition par type')).toBeInTheDocument();
+      expect(screen.queryByText('Statut des inscriptions')).not.toBeInTheDocument();
+    });
   });
 });

@@ -256,6 +256,30 @@ export default function CupDashboardPage() {
     [formationsByType],
   );
 
+  const [repartitionMode, setRepartitionMode] = useState<'all' | 'type' | 'statut'>('all');
+
+  const inscriptionStats = useMemo(() => {
+    const list = Array.isArray(formations) ? formations : [];
+    const ouvertes = list.filter((f) => Boolean(f?.inscriptionsOuvertes)).length;
+    const fermees = list.filter((f) => !f?.inscriptionsOuvertes).length;
+    const total = list.length;
+    return {
+      ouvertes,
+      fermees,
+      total,
+      pctOuvertes: total > 0 ? Math.round((ouvertes / total) * 100) : 0,
+      pctFermees: total > 0 ? Math.round((fermees / total) * 100) : 0,
+    };
+  }, [formations]);
+
+  const inscriptionItems = useMemo(
+    () => [
+      { label: 'Formations ouvertes', value: inscriptionStats.ouvertes, color: '#16a34a' },
+      { label: 'Formations fermées', value: inscriptionStats.fermees, color: '#64748b' },
+    ],
+    [inscriptionStats],
+  );
+
   const domaineColors = [
     '#2563eb',
     '#c1121f',
@@ -674,14 +698,54 @@ export default function CupDashboardPage() {
       >
         <Card
           className="cd-span-5"
-          title="Répartition par type"
-          subtitle="Interne · Externe · En ligne"
+          title="Répartition des formations"
+          subtitle="Types de session · Inscriptions ouvertes et fermées"
           icon={<ApartmentOutlined />}
           iconColor="#2563eb"
           iconBg="rgba(37,99,235,.12)"
           loading={formationsByTypeLoading}
+          extra={
+            <Segmented
+              size="small"
+              value={repartitionMode}
+              onChange={(v) => setRepartitionMode(v as 'all' | 'type' | 'statut')}
+              options={[
+                { label: 'Tout', value: 'all' },
+                { label: 'Par type', value: 'type' },
+                { label: 'Ouvertes / Fermées', value: 'statut' },
+              ]}
+            />
+          }
         >
-          <SegBars items={typeItems} />
+          {/* Résumé rapide ouvertes vs fermées */}
+          <div className="cd-rep-summary-pills">
+            <div className="cd-rep-pill cd-rep-pill-open">
+              <span className="cd-rep-pill-dot" />
+              <span className="cd-rep-pill-label">Ouvertes</span>
+              <span className="cd-rep-pill-val">{inscriptionStats.ouvertes}</span>
+              <span className="cd-rep-pill-pct">({inscriptionStats.pctOuvertes}%)</span>
+            </div>
+            <div className="cd-rep-pill cd-rep-pill-closed">
+              <span className="cd-rep-pill-dot" />
+              <span className="cd-rep-pill-label">Fermées</span>
+              <span className="cd-rep-pill-val">{inscriptionStats.fermees}</span>
+              <span className="cd-rep-pill-pct">({inscriptionStats.pctFermees}%)</span>
+            </div>
+          </div>
+
+          {(repartitionMode === 'all' || repartitionMode === 'type') && (
+            <div className="cd-rep-group">
+              <div className="cd-bar-subhead">Répartition par type</div>
+              <SegBars items={typeItems} emptyLabel="Aucune donnée de typage" />
+            </div>
+          )}
+
+          {(repartitionMode === 'all' || repartitionMode === 'statut') && (
+            <div className="cd-rep-group" style={{ marginTop: repartitionMode === 'all' ? 14 : 0 }}>
+              <div className="cd-bar-subhead">Statut des inscriptions</div>
+              <SegBars items={inscriptionItems} emptyLabel="Aucune formation enregistrée" />
+            </div>
+          )}
         </Card>
         <Card
           className="cd-span-7"
@@ -1033,16 +1097,18 @@ function Sparkline({ data, tone }: { readonly data: number[]; readonly tone: str
 /* ── SegBars (rounded gradient + %) ──────────────────────────── */
 function SegBars({
   items,
+  emptyLabel = 'Aucune donnée de typage',
 }: {
   readonly items: Array<{ readonly label: string; readonly value: number; readonly color: string }>;
+  readonly emptyLabel?: string;
 }) {
   const sum = items.reduce((s, t) => s + t.value, 0);
-  if (sum === 0) return <div className="cup-empty">Aucune donnée de typage</div>;
+  if (sum === 0) return <div className="cup-empty">{emptyLabel}</div>;
   const max = Math.max(1, ...items.map((t) => t.value));
   return (
     <div className="cd-bars">
       {items.map((t) => {
-        const pct = (t.value / sum) * 100;
+        const pct = sum > 0 ? (t.value / sum) * 100 : 0;
         return (
           <div key={t.label} className="cd-bar-row">
             <div className="cd-bar-head">
@@ -1062,7 +1128,7 @@ function SegBars({
                   background: `linear-gradient(90deg, ${t.color}, ${t.color}aa)`,
                 }}
               >
-                <span className="cd-bar-fill-pct">{Math.round(pct)}%</span>
+                <span className="cd-bar-fill-pct">{pct >= 10 ? `${Math.round(pct)}%` : ''}</span>
               </span>
             </div>
           </div>
