@@ -120,7 +120,7 @@ describe('exportUtilsEnhanced', () => {
     ];
     const competences = [{ id: 10, code: 'C1', nom: 'Comp 1', domaineId: 1 }];
 
-    it('savoir porté directement par une compétence : compétence seule, autres colonnes « - »', () => {
+    it('savoir porté directement par une compétence : compétence renseignée et parent « RACINE »', () => {
       const savoir = {
         id: 2,
         code: 'S2',
@@ -132,11 +132,11 @@ describe('exportUtilsEnhanced', () => {
       expect(savoirRattachement(savoir, sousComps, competences)).toEqual({
         competence: '[C1] Comp 1',
         sousCompetence: '-',
-        parent: '-',
+        parent: 'RACINE',
       });
     });
 
-    it('savoir d’une sous-compétence racine : compétence « - » et racine signalée', () => {
+    it('savoir d’une sous-compétence racine : compétence « - », sous-compétence et parent « FEUILLE »', () => {
       const savoir = {
         id: 1,
         code: 'S1',
@@ -148,11 +148,11 @@ describe('exportUtilsEnhanced', () => {
       expect(savoirRattachement(savoir, sousComps, competences)).toEqual({
         competence: '-',
         sousCompetence: '[SC1] SousComp 1',
-        parent: 'RACINE',
+        parent: 'FEUILLE',
       });
     });
 
-    it('savoir d’une sous-compétence descendante : parent = sous-compétence parente', () => {
+    it('savoir d’une sous-compétence descendante : parent « FEUILLE »', () => {
       const savoir = {
         id: 3,
         code: 'S3',
@@ -164,11 +164,11 @@ describe('exportUtilsEnhanced', () => {
       expect(savoirRattachement(savoir, sousComps, competences)).toEqual({
         competence: '-',
         sousCompetence: '[SC2] SousComp 2',
-        parent: '[SC1] SousComp 1',
+        parent: 'FEUILLE',
       });
     });
 
-    it('remonte à la racine de la branche, même imbriquée', () => {
+    it('savoir d’une branche imbriquée : parent « FEUILLE »', () => {
       const profondes = [
         ...sousComps,
         { id: 102, code: 'SC3', nom: 'SousComp 3', competenceId: 10, parentId: 101 },
@@ -182,7 +182,7 @@ describe('exportUtilsEnhanced', () => {
       ).toEqual({
         competence: '-',
         sousCompetence: '[SC3] SousComp 3',
-        parent: '[SC1] SousComp 1',
+        parent: 'FEUILLE',
       });
     });
 
@@ -214,7 +214,7 @@ describe('exportUtilsEnhanced', () => {
       ).toEqual({
         competence: '-',
         sousCompetence: 'Sous-compétence #999 (hors liste)',
-        parent: 'RACINE',
+        parent: 'FEUILLE',
       });
       expect(
         savoirRattachement(
@@ -225,6 +225,17 @@ describe('exportUtilsEnhanced', () => {
       ).toEqual({
         competence: '-',
         sousCompetence: 'Sous-compétence #999 (hors liste)',
+        parent: 'FEUILLE',
+      });
+      expect(
+        savoirRattachement(
+          { id: 8, code: 'S8', nom: 'S8', type: 'PRATIQUE', niveau: 'N1', competenceId: 888 },
+          sousComps,
+          competences,
+        ),
+      ).toEqual({
+        competence: 'Compétence #888 (hors liste)',
+        sousCompetence: '-',
         parent: 'RACINE',
       });
     });
@@ -259,12 +270,12 @@ describe('exportUtilsEnhanced', () => {
       expect(rows[0]).toMatchObject({
         COMPÉTENCE: '-',
         'SOUS-COMPÉTENCE': '[SC1] SousComp 1',
-        'PARENT / RACINE': 'RACINE',
+        'PARENT / RACINE': 'FEUILLE',
       });
       expect(rows[1]).toMatchObject({
         COMPÉTENCE: '[C1] Comp 1',
         'SOUS-COMPÉTENCE': '-',
-        'PARENT / RACINE': '-',
+        'PARENT / RACINE': 'RACINE',
       });
     });
 

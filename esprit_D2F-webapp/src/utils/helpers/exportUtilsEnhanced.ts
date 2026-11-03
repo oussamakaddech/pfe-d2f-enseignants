@@ -102,8 +102,7 @@ const createStyledSheet = (
     if (cell) {
       (cell as CellWithStyle).s = {
         fill: {
-          fgColor: { rgb: headerColors.fg },
-          bgColor: { rgb: headerColors.bg },
+          fgColor: { rgb: headerColors.bg },
         },
         font: {
           bold: true,
@@ -111,16 +110,16 @@ const createStyledSheet = (
           color: { rgb: headerColors.fg },
         },
         border: {
-          top: { style: 'thin', color: { auto: 1 } },
-          right: { style: 'thin', color: { auto: 1 } },
-          bottom: { style: 'thin', color: { auto: 1 } },
-          left: { style: 'thin', color: { auto: 1 } },
+          top: { style: 'thin', color: { rgb: 'D0D7DE' } },
+          right: { style: 'thin', color: { rgb: 'D0D7DE' } },
+          bottom: { style: 'thin', color: { rgb: 'D0D7DE' } },
+          left: { style: 'thin', color: { rgb: 'D0D7DE' } },
         },
       };
     }
   }
 
-  // Style pour les données
+  // Style pour les données (fond blanc)
   for (let R = range.s.r + 1; R <= range.e.r; ++R) {
     for (let C = range.s.c; C <= range.e.c; ++C) {
       const address = XLSX.utils.encode_cell({ r: R, c: C });
@@ -128,8 +127,7 @@ const createStyledSheet = (
       if (cell) {
         (cell as CellWithStyle).s = {
           fill: {
-            fgColor: { rgb: '000000' },
-            bgColor: { rgb: R % 2 === 0 ? 'FFFFFF' : 'F5F7FA' },
+            fgColor: { rgb: 'FFFFFF' },
           },
           font: {
             sz: 11,
@@ -173,28 +171,12 @@ export interface SavoirRattachement {
   parent: string;
 }
 
-/** Sous-compétence racine de la branche qui porte `sc` (garde anti-cycle). */
-function racineDe(
-  sc: SousCompetence,
-  sousComps: SousCompetence[],
-): { racine: SousCompetence | null; parentIdHorsListe: boolean } {
-  let courant = sc;
-  const vus = new Set<string>([String(sc.id)]);
-  for (;;) {
-    if (courant.parentId == null) return { racine: courant, parentIdHorsListe: false };
-    const parent = sousComps.find((item) => String(item.id) === String(courant.parentId));
-    if (!parent) return { racine: null, parentIdHorsListe: true };
-    if (vus.has(String(parent.id))) return { racine: courant, parentIdHorsListe: false };
-    vus.add(String(parent.id));
-    courant = parent;
-  }
-}
-
 /**
  * Rattachement d'un savoir, sans redondance :
- * - savoir porté directement par une compétence → COMPÉTENCE remplie, le reste « - » ;
+ * - savoir porté directement par une compétence → COMPÉTENCE remplie, SOUS-COMPÉTENCE « - »,
+ *   PARENT / RACINE = « RACINE » ;
  * - savoir rangé sous une sous-compétence → COMPÉTENCE « - », SOUS-COMPÉTENCE remplie,
- *   PARENT / RACINE = racine de la branche (ou « RACINE » si c'est elle la racine) ;
+ *   PARENT / RACINE = « FEUILLE » ;
  * - savoir rattaché à rien → « - » partout.
  */
 export function savoirRattachement(
@@ -208,18 +190,10 @@ export function savoirRattachement(
       : (sousComps.find((item) => String(item.id) === String(savoir.sousCompetenceId)) ?? null);
 
   if (sc) {
-    const { racine, parentIdHorsListe } = racineDe(sc, sousComps);
     return {
       competence: LIEN_ABSENT,
       sousCompetence: referentielLabel(sc.code, sc.nom),
-      parent:
-        sc.parentId == null
-          ? 'RACINE'
-          : racine && String(racine.id) !== String(sc.id)
-            ? referentielLabel(racine.code, racine.nom)
-            : parentIdHorsListe
-              ? `Sous-compétence #${sc.parentId} (hors liste)`
-              : 'RACINE',
+      parent: 'FEUILLE',
     };
   }
 
@@ -227,7 +201,7 @@ export function savoirRattachement(
     return {
       competence: LIEN_ABSENT,
       sousCompetence: `Sous-compétence #${savoir.sousCompetenceId} (hors liste)`,
-      parent: 'RACINE',
+      parent: 'FEUILLE',
     };
   }
 
@@ -238,12 +212,24 @@ export function savoirRattachement(
       ? null
       : (competences.find((c) => String(c.id) === String(savoir.competenceId)) ?? null);
 
+  if (competence) {
+    return {
+      competence: referentielLabel(competence.code, competence.nom),
+      sousCompetence: LIEN_ABSENT,
+      parent: 'RACINE',
+    };
+  }
+
+  if (savoir.competenceId != null) {
+    return {
+      competence: `Compétence #${savoir.competenceId} (hors liste)`,
+      sousCompetence: LIEN_ABSENT,
+      parent: 'RACINE',
+    };
+  }
+
   return {
-    competence: competence
-      ? referentielLabel(competence.code, competence.nom)
-      : savoir.competenceId != null
-        ? `Compétence #${savoir.competenceId} (hors liste)`
-        : LIEN_ABSENT,
+    competence: LIEN_ABSENT,
     sousCompetence: LIEN_ABSENT,
     parent: LIEN_ABSENT,
   };
