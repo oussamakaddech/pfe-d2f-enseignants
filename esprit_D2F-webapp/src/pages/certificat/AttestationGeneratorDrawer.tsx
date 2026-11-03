@@ -16,7 +16,7 @@ import { DeleteOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons'
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import useAppNotification from '@/hooks/ui/useAppNotification';
-import { useFormationReportFetch } from '@/hooks/formation';
+import { useAllFormations, useFormationReportFetch } from '@/hooks/formation';
 import type { Enseignant } from '@/hooks/enseignant';
 import {
   ATTESTATION_HEADERS,
@@ -53,7 +53,8 @@ const TYPE_HINTS: Record<AttestationType, string> = {
 interface EditableRow {
   key: string;
   titreFormation: string;
-  formateursLibelle: string;
+  /** Formateurs sélectionnés (libellés « Prénom NOM », modifiables et multiples). */
+  formateurs: string[];
   dateDebut: Dayjs | null;
   heures: string;
   publicCible: string;
@@ -64,24 +65,26 @@ let rowSeq = 0;
 const newRow = (): EditableRow => ({
   key: `row-${++rowSeq}`,
   titreFormation: '',
-  formateursLibelle: '',
+  formateurs: [],
   dateDebut: null,
   heures: '',
   publicCible: '',
   objectifs: '',
 });
 
-const formateursText = (row: AttestationRow): string =>
-  (row.formateurs ?? [])
+const formateursLabels = (row: AttestationRow): string[] => {
+  const libre = (row.formateursLibelle ?? '').trim();
+  if (libre) return libre.split(/\s*,\s*/).filter(Boolean);
+  return (row.formateurs ?? [])
     .map((f) => `${(f.prenom ?? '').trim()} ${(f.nom ?? '').trim().toUpperCase()}`.trim())
-    .filter(Boolean)
-    .join(', ');
+    .filter(Boolean);
+};
 
 /** Ligne renvoyée par `FormationReportService` → ligne éditable. */
 const toEditableRow = (raw: AttestationRow): EditableRow => ({
   key: `row-${++rowSeq}`,
   titreFormation: raw.titreFormation ?? '',
-  formateursLibelle: (raw.formateursLibelle ?? '').trim() || formateursText(raw),
+  formateurs: formateursLabels(raw),
   dateDebut: raw.dateDebut && dayjs(raw.dateDebut).isValid() ? dayjs(raw.dateDebut) : null,
   heures:
     raw.chargeHoraireGlobal == null || raw.chargeHoraireGlobal === ''
@@ -93,7 +96,7 @@ const toEditableRow = (raw: AttestationRow): EditableRow => ({
 
 const toPdfRow = (row: EditableRow): AttestationRow => ({
   titreFormation: row.titreFormation.trim(),
-  formateursLibelle: row.formateursLibelle.trim(),
+  formateursLibelle: row.formateurs.join(', ').trim(),
   dateDebut: row.dateDebut ? row.dateDebut.format('YYYY-MM-DD') : undefined,
   chargeHoraireGlobal: row.heures.trim() || undefined,
   populationCible: row.publicCible.trim() || undefined,
@@ -109,6 +112,7 @@ export default function AttestationGeneratorDrawer({
 }: Readonly<AttestationGeneratorDrawerProps>) {
   const { message } = useAppNotification();
   const reportFetch = useFormationReportFetch();
+  const formationsQuery = useAllFormations();
   const [type, setType] = useState<AttestationType>(initialType ?? 'PARTICIPATION');
   const [enseignantId, setEnseignantId] = useState<string | undefined>();
   const [departement, setDepartement] = useState('');
@@ -141,6 +145,37 @@ export default function AttestationGeneratorDrawer({
         return { value: String(e.id), label };
       }),
     [enseignants],
+  );
+
+  /** Liste roulante des formateurs disponibles : « Prénom NOM ». */
+  const formateurOptions = useMemo(() => {
+    const names = new Set<string>();
+    enseignants.forEach((e) => {
+      const name = teacherFullName({ nom: e.nom, prenom: e.prenom });
+      if (name) names.add(name);
+    });
+    rows.forEach((row) => row.formateurs.forEach((name) => names.add(name)));
+    return [...names].sort((a, b) => a.localeCompare(b, 'fr')).map((name) => ({
+      value: name,
+      label: name,
+    }));
+  }, [enseignants, rows]);
+
+  /** Liste roulante des formations (titres) : toutes les formations + titres déjà saisis. */
+  const formationTitles = useMemo(() => {
+    const titles = new Set<string>();
+    (formationsQuery.data ?? []).forEach((f) => {
+      if (f.titreFormation) titles.add(f.titreFormation);
+    });
+    rows.forEach((row) => {
+      if (row.titreFormation) titles.add(row.titreFormation);
+    });
+    return [...titles].sort((a, b) => a.localeCompare(b, 'fr'));
+  }, [formationsQuery.data, rows]);
+
+  const formationOptions = useMemo(
+    () => formationTitles.map((title) => ({ value: title, label: title })),
+    [formationTitles],
   );
 
   /** Le département est prérempli depuis la fiche, mais reste modifiable (modèle Word). */
@@ -225,6 +260,36 @@ export default function AttestationGeneratorDrawer({
 
   const patchRow = (key: string, patch: Partial<EditableRow>) =>
     setRows((prev) => prev.map((row) => (row.key === key ? { ...row, ...patch } : row)));
+
+  /** Crée une ligne préremplie depuis une formation du catalogue. */
+  const rowFromFormation = (titre: string): EditableRow => {
+    const f = (formationsQuery.data ?? []).find((item) => item.titreFormation === titre);
+    const animateurs = (f?.animateurs ?? [])
+      .map((p) => teacherFullName({ nom: p.nom, prenom: p.prenom }))
+      .filter(Boolean);
+    return {
+      ...newRow(),
+      titreFormation: titre,
+      formateurs: animateurs,
+      dateDebut: f?.dateDebut && dayjs(f.dateDebut).isValid() ? dayjs(f.dateDebut) : null,
+      heures: f?.chargeHoraireGlobal == null ? '' : String(f.chargeHoraireGlobal),
+      publicCible: f?.populationCible ?? '',
+      objectifs: f?.objectifs ?? '',
+    };
+  };
+
+  /** Le choix d'une formation dans la liste roulante récupère ses informations. */
+  const applyFormation = (key: string, titre: string) => {
+    const filled = rowFromFormation(titre);
+    patchRow(key, {
+      titreFormation: titre,
+      ...(filled.formateurs.length > 0 ? { formateurs: filled.formateurs } : {}),
+      ...(filled.dateDebut ? { dateDebut: filled.dateDebut } : {}),
+      ...(filled.heures ? { heures: filled.heures } : {}),
+      ...(filled.publicCible ? { publicCible: filled.publicCible } : {}),
+      ...(filled.objectifs ? { objectifs: filled.objectifs } : {}),
+    });
+  };
 
   const removeRow = (key: string) => setRows((prev) => prev.filter((row) => row.key !== key));
 
@@ -340,6 +405,32 @@ export default function AttestationGeneratorDrawer({
               dans le modèle Word.
             </Text>
 
+            <label className="gcert-attestation-field">
+              <Text strong>Formations à attester</Text>
+              <Select
+                mode="multiple"
+                showSearch
+                allowClear
+                optionFilterProp="label"
+                placeholder="Choisir une ou plusieurs formations…"
+                listHeight={260}
+                maxTagCount="responsive"
+                value={[]}
+                options={formationOptions}
+                loading={formationsQuery.isLoading}
+                onChange={(titles: string[]) => {
+                  const added = titles
+                    .filter((title) => !rows.some((row) => row.titreFormation === title))
+                    .map(rowFromFormation);
+                  if (added.length > 0) setRows((prev) => [...prev, ...added]);
+                }}
+              />
+              <Text type="secondary" className="gcert-attestation-hint">
+                Chaque sélection ajoute une ligne préremplie (formateur(s), date, heures, public cible
+                et objectifs) à partir de la formation choisie.
+              </Text>
+            </label>
+
             <div className="gcert-attestation-columns">
               {ATTESTATION_HEADERS[type].map((header) => (
                 <Tag key={header}>{header}</Tag>
@@ -372,20 +463,32 @@ export default function AttestationGeneratorDrawer({
                     <div className="gcert-attestation-row-grid">
                       <label className="gcert-attestation-field">
                         <Text type="secondary">Formation</Text>
-                        <Input
-                          value={row.titreFormation}
-                          onChange={(e) => patchRow(row.key, { titreFormation: e.target.value })}
-                          placeholder="Titre de la formation"
+                        <Select
+                          showSearch
+                          allowClear
+                          optionFilterProp="label"
+                          placeholder="Choisir une formation…"
+                          listHeight={240}
+                          value={row.titreFormation || undefined}
+                          options={formationOptions}
+                          onChange={(title: string) => applyFormation(row.key, title)}
                         />
                       </label>
                       <label className="gcert-attestation-field">
                         <Text type="secondary">
                           {type === 'ANIMATION' ? 'Formateur(s)' : 'Formateur'}
                         </Text>
-                        <Input
-                          value={row.formateursLibelle}
-                          onChange={(e) => patchRow(row.key, { formateursLibelle: e.target.value })}
-                          placeholder="Prénom NOM"
+                        <Select
+                          mode="multiple"
+                          showSearch
+                          allowClear
+                          optionFilterProp="label"
+                          placeholder="Choisir un ou plusieurs formateurs…"
+                          listHeight={240}
+                          maxTagCount="responsive"
+                          value={row.formateurs}
+                          options={formateurOptions}
+                          onChange={(names: string[]) => patchRow(row.key, { formateurs: names })}
                         />
                       </label>
                       <label className="gcert-attestation-field">
