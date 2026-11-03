@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Génère un PDF "Passeport de Compétences" professionnel via iText 7.
+ * Génère un PDF "Fiche compétence enseignant" professionnel via iText 7.
  *
  * Palette couleurs :
  *   - Bleu principal  #1A3A6B  (institution)
@@ -93,7 +93,7 @@ public class SkillPassportPdfGenerator {
                 .setPadding(20);
         leftCell.add(new Paragraph("ESPRIT – École Supérieure Privée d'Ingénierie")
                 .setFont(regular).setFontSize(9).setFontColor(new DeviceRgb(180, 200, 230)));
-        leftCell.add(new Paragraph("Passeport de Compétences")
+        leftCell.add(new Paragraph("Fiche compétence enseignant")
                 .setFont(bold).setFontSize(22).setFontColor(WHITE).setMarginTop(4));
         leftCell.add(new Paragraph("Développement Professionnel des Enseignants — D2F")
                 .setFont(regular).setFontSize(10).setFontColor(new DeviceRgb(180, 200, 230)));

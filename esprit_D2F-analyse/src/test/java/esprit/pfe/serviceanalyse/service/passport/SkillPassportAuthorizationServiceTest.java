@@ -51,7 +51,7 @@ class SkillPassportAuthorizationServiceTest {
         Authentication ens = auth("jdoe", "ROLE_ENSEIGNANT");
         assertThatThrownBy(() -> service.checkAccess(ens, "otheruser"))
                 .isInstanceOf(PassportAccessDeniedException.class)
-                .hasMessageContaining("propre passeport");
+                .hasMessageContaining("votre propre fiche compétence enseignant");
     }
 
     // ── Parité : animateur accède à LEUR propre passeport ──────

@@ -86,15 +86,21 @@ export const adminMenu: MenuItem[] = [
     label: 'COMPÉTENCES & IA',
     children: [
       { label: 'Référentiel Compétences', key: '/home/competences', icon: BookOutlined },
+      { label: 'Fiche compétence enseignant', key: '/home/skill-passport', icon: IdcardOutlined },
       { label: 'Besoins de Formation', key: '/home/besoins', icon: ReadOutlined },
-      { label: 'Affectations', key: '/home/affectations', icon: SolutionOutlined },
       {
-        label: 'RICE & IA',
-        key: 'rice_ia_group',
-        icon: RobotOutlined,
+        label: 'Gestion Affectation',
+        key: 'gestion_affectation',
+        icon: SolutionOutlined,
         children: [
           { label: 'Vue RICE', key: '/home/rice', icon: ClusterOutlined },
           { label: 'Matchmaking IA', key: '/home/rice/matchmaking', icon: ApiOutlined },
+          {
+            label: 'Correspondance',
+            key: '/home/rice/competence-matching',
+            icon: RobotOutlined,
+          },
+          { label: 'Affectations', key: '/home/affectations', icon: SolutionOutlined },
         ],
       },
     ],
@@ -110,7 +116,7 @@ export const cupMenu: MenuItem[] = [
     label: 'COMPÉTENCES & BESOINS',
     children: [
       { label: 'Référentiel Compétences', key: '/home/competences', icon: BookOutlined },
-      { label: 'Fiche enseignant', key: '/home/skill-passport', icon: IdcardOutlined },
+      { label: 'Fiche compétence enseignant', key: '/home/skill-passport', icon: IdcardOutlined },
       // Affectations bornées à l'UP du CUP (périmètre résolu côté serveur).
       { label: 'Affectations', key: '/home/affectations', icon: SolutionOutlined },
       {
@@ -141,7 +147,7 @@ export const enseignantMenu: MenuItem[] = [
   // Pas d'entrée « Tableau de bord » pour ce rôle (demande métier) : la page
   // /home reste accessible par URL mais n'est plus exposée dans la navigation.
   { label: 'Mon espace', key: '/home/personal-dashboard', icon: HomeOutlined },
-  { label: 'Fiche enseignant', key: '/home/skill-passport', icon: IdcardOutlined },
+  { label: 'Fiche compétence enseignant', key: '/home/skill-passport', icon: IdcardOutlined },
   {
     label: 'Besoins de Formation',
     key: 'besoin_formation_menu',
@@ -163,7 +169,7 @@ export const animateurMenu: MenuItem[] = [
   // Pas d'entrée « Tableau de bord » pour ce rôle (demande métier) : la page
   // /home reste accessible par URL mais n'est plus exposée dans la navigation.
   { label: 'Mon espace', key: '/home/personal-dashboard', icon: HomeOutlined },
-  { label: 'Fiche enseignant', key: '/home/skill-passport', icon: IdcardOutlined },
+  { label: 'Fiche compétence enseignant', key: '/home/skill-passport', icon: IdcardOutlined },
   { label: "Sessions d'Animation", key: '/home/animateur-formations', icon: ReadOutlined },
   { label: 'Calendrier Global', key: '/home/Calendrier', icon: CalendarOutlined },
   { label: 'Mes Présences', key: '/home/mes-presences', icon: EyeOutlined },
@@ -199,7 +205,7 @@ export const chefDepartementMenu: MenuItem[] = [
     label: 'COMPÉTENCES & BESOINS',
     children: [
       { label: 'Référentiel Compétences', key: '/home/competences', icon: BookOutlined },
-      { label: 'Fiche enseignant', key: '/home/skill-passport', icon: IdcardOutlined },
+      { label: 'Fiche compétence enseignant', key: '/home/skill-passport', icon: IdcardOutlined },
       // Affectations bornées au département du chef (périmètre résolu côté serveur).
       { label: 'Affectations', key: '/home/affectations', icon: SolutionOutlined },
       // Parité BESOIN_FORMATION_CREATE/READ_ALL : le chef consulte les besoins de

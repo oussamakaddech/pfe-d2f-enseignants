@@ -105,7 +105,11 @@ function AppLayout() {
   const avatarMenu = useMemo(
     () => [
       { key: 'profile', label: 'Mon profil', onClick: () => navigate('/home/profile') },
-      { key: 'passport', label: 'Skill Passport', onClick: () => navigate('/home/skill-passport') },
+      {
+        key: 'passport',
+        label: 'Fiche compétence enseignant',
+        onClick: () => navigate('/home/skill-passport'),
+      },
       { type: 'divider' as const },
       {
         key: 'logout',

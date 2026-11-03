@@ -28,7 +28,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 /**
- * API REST du Passeport de Compétences.
+ * API REST de la fiche compétence enseignant.
  *
  * Règles RBAC :
  *   ADMIN / CUP                              → accès à tous les passeports
@@ -40,7 +40,7 @@ import java.time.format.DateTimeFormatter;
  *   GET /api/v1/skill-passports/teacher/{username}          → PDF d'un enseignant (admin/CUP)
  *   GET /api/v1/skill-passports/teacher/{username}/json     → JSON (debug / intégration)
  */
-@Tag(name = "Passeport de Compétences", description = "Génération et consultation du Skill Passport enseignant")
+@Tag(name = "Fiche compétence enseignant", description = "Génération et consultation de la fiche compétence enseignant")
 @SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/v1/skill-passports")
@@ -59,8 +59,8 @@ public class SkillPassportController {
     //  GET /me → PDF de l'enseignant connecté
     // ────────────────────────────────────────────────────────────────────
     @Operation(
-        summary = "Télécharger mon passeport PDF",
-        description = "Génère et retourne le Passeport de Compétences de l'utilisateur authentifié au format PDF. "
+        summary = "Télécharger ma fiche compétence PDF",
+        description = "Génère et retourne la fiche compétence de l'utilisateur authentifié au format PDF. "
             + "Accessible à tout utilisateur authentifié (ENSEIGNANT, ANIMATEUR, CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER, ADMIN, CUP)."
     )
     @ApiResponse(responseCode = "200", description = "PDF généré avec succès",
@@ -97,9 +97,9 @@ public class SkillPassportController {
     //  GET /teacher/{username} → PDF d'un enseignant cible
     // ────────────────────────────────────────────────────────────────────
     @Operation(
-        summary = "Télécharger le passeport PDF d'un enseignant",
-        description = "Génère le Passeport de Compétences d'un enseignant cible. "
-            + "ADMIN et CUP peuvent accéder à n'importe quel passeport. "
+        summary = "Télécharger la fiche compétence PDF d'un enseignant",
+        description = "Génère la fiche compétence d'un enseignant cible. "
+            + "ADMIN et CUP peuvent accéder à la fiche de n'importe quel enseignant. "
             + "Tout autre rôle ne peut accéder qu'au sien (username doit correspondre au sub JWT)."
     )
     @ApiResponse(responseCode = "200", description = "PDF généré",

@@ -113,9 +113,9 @@ const initiales = (prenom?: string, nom?: string): string =>
 const fmtDate = (iso?: string): string => (iso ? iso.replace('T', ' ').slice(0, 16) : '—');
 
 /**
- * Page Passeport de Compétences — design credential moderne.
+ * Page Fiche compétence enseignant — design credential moderne.
  * Usage enseignant  : <SkillPassportPage />
- * Usage admin/CUP   : <SkillPassportPage targetUsername="jdoe" downloadLabel="Télécharger le passeport" />
+ * Usage admin/CUP   : <SkillPassportPage targetUsername="jdoe" downloadLabel="Télécharger la fiche" />
  */
 export default function SkillPassportPage({ targetUsername, downloadLabel }: Props) {
   const myQuery = useMyPassportData();
@@ -231,7 +231,7 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
     <div className={s.pageWrapper}>
       <AppPageHeader
         icon={<SafetyCertificateOutlined />}
-        title="Fiche enseignant"
+        title="Fiche compétence enseignant"
         subtitle="Synthèse certifiée des compétences, formations et certifications"
         actions={
           <Button
