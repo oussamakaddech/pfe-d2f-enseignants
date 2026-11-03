@@ -146,3 +146,9 @@
 .gcert-empty {
   padding: 48px 0;
 }
+
+.gcert-attestation-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}

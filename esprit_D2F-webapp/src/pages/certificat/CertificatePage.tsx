@@ -35,6 +35,7 @@ import {
   AppstoreOutlined,
   StopOutlined,
   ClockCircleOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import { D2FPageHeader, StatCard } from '@/components/common';
 import { brand, neutral, semantic } from '@/styles/themes/tokens';
@@ -48,12 +49,14 @@ import {
   useGenerateCertificates,
 } from '@/hooks/certificat/useCertificats';
 import { useFormationsAchevees } from '@/hooks/formation/useFormations';
+import { useEnseignants } from '@/hooks/enseignant';
 import type { DocumentType } from '@/services/formation/FormationCustomService';
 import type { Certificate } from '@/models/certificat';
 import type { Formation } from '@/models/formation';
 import type { Id } from '@/models/common';
 import CertificatePdfViewer from './CertificatePdfViewer';
 import CertificateEditorViewerItem from './CertificateEditorViewerItem';
+import AttestationGeneratorDrawer from './AttestationGeneratorDrawer';
 import '@/styles/pages/gestion-certifications.css';
 
 const AVATAR_COLORS = ['#2563eb', '#7c3aed', '#059669', '#d97706', '#0891b2', '#db2777'];
@@ -117,6 +120,8 @@ export default function CertificatePage() {
   const [preview, setPreview] = useState<Certificate | null>(null);
   const [editing, setEditing] = useState<Certificate | null>(null);
   const [genOpen, setGenOpen] = useState(false);
+  const [attestationOpen, setAttestationOpen] = useState(false);
+  const enseignantsQuery = useEnseignants();
   const [revokeTarget, setRevokeTarget] = useState<Certificate | null>(null);
   const [revokeReason, setRevokeReason] = useState('');
 
@@ -457,6 +462,9 @@ export default function CertificatePage() {
             <Button icon={<ReloadOutlined />} onClick={() => void refetch()}>
               Rafraîchir
             </Button>
+            <Button icon={<FileTextOutlined />} onClick={() => setAttestationOpen(true)}>
+              Attestations
+            </Button>
             {isScoped ? (
               <Button
                 type="primary"
@@ -659,6 +667,14 @@ export default function CertificatePage() {
           />
         )}
       </Drawer>
+
+      {/* Attestations de participation / d'animation (modèles officiels D2F) */}
+      <AttestationGeneratorDrawer
+        open={attestationOpen}
+        onClose={() => setAttestationOpen(false)}
+        enseignants={enseignantsQuery.data ?? []}
+        loadingEnseignants={enseignantsQuery.isLoading}
+      />
 
       {/* Génération globale : choix d'une formation achevée */}
       <GenerateModal
