@@ -38,6 +38,20 @@ public interface SeanceFormationRepository extends JpaRepository<SeanceFormation
             @Param("end")   LocalDate end
     );
 
+    /** Formations où l'enseignant est participant d'une séance, même sans présence enregistrée. */
+    @Query("""
+      SELECT DISTINCT sf.formation
+      FROM SeanceFormation sf
+      JOIN sf.participants p
+      WHERE p.id = :ensId
+        AND sf.dateSeance BETWEEN :start AND :end
+      """)
+    List<Formation> findFormationsBySeanceParticipantAndPeriod(
+            @Param("ensId") String ensId,
+            @Param("start") LocalDate start,
+            @Param("end")   LocalDate end
+    );
+
 
 
     @Query("""

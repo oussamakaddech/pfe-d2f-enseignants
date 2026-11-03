@@ -202,6 +202,49 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
 
   List<Formation> findDistinctBySeances_Participants_Id(String enseignantId);
 
+  /**
+   * Formations (hors annulées) dont l'enseignant est animateur <b>au niveau de la
+   * formation</b>, chevauchant la période. Indispensable aux formations encore
+   * à l'état ENREGISTRE, qui n'ont pas encore de séances.
+   */
+  @Query("""
+      SELECT DISTINCT f FROM Formation f JOIN f.animateurs a
+      WHERE a.id = :ensId
+        AND f.dateDebut <= :end AND f.dateFin >= :start
+        AND f.etatFormation <> :annule
+      """)
+  List<Formation> findFormationsByAnimateurAndPeriod(
+      @Param("ensId") String ensId,
+      @Param("start") LocalDate start,
+      @Param("end") LocalDate end,
+      @Param("annule") EtatFormation annule);
+
+  /** Formations (hors annulées) dont l'enseignant a une inscription acceptée sur la période. */
+  @Query("""
+      SELECT DISTINCT f FROM Formation f, Inscription i
+      WHERE i.formation = f AND i.enseignant.id = :ensId
+        AND f.dateDebut <= :end AND f.dateFin >= :start
+        AND f.etatFormation <> :annule
+      """)
+  List<Formation> findFormationsByInscriptionAndPeriod(
+      @Param("ensId") String ensId,
+      @Param("start") LocalDate start,
+      @Param("end") LocalDate end,
+      @Param("annule") EtatFormation annule);
+
+  /** Formations (hors annulées) où l'e-mail de l'enseignant figure parmi les participants. */
+  @Query("""
+      SELECT DISTINCT f FROM Formation f, FormationParticipantEmail p
+      WHERE p.formationId = f.idFormation AND LOWER(p.email) = LOWER(:email)
+        AND f.dateDebut <= :end AND f.dateFin >= :start
+        AND f.etatFormation <> :annule
+      """)
+  List<Formation> findFormationsByParticipantEmailAndPeriod(
+      @Param("email") String email,
+      @Param("start") LocalDate start,
+      @Param("end") LocalDate end,
+      @Param("annule") EtatFormation annule);
+
   // L'appelant inter-service (évaluation) transmet l'identité JWT de
   // l'évaluateur (email le plus souvent, parfois id fiche) : on accepte les
   // deux formes, comparaison mail insensible à la casse.
