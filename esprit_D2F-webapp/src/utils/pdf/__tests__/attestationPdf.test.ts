@@ -77,6 +77,22 @@ describe('attestationPdf', () => {
     expect(text).toContain('ESPRIT');
   });
 
+  it('accepte un libellé de formateur saisi à la main', () => {
+    const doc = buildAttestationPdf({
+      type: 'PARTICIPATION',
+      teacher: { nom: 'Ben Ali', prenom: 'Samia', departement: 'Informatique' },
+      rows: [
+        {
+          titreFormation: 'Spring Boot avancé',
+          formateursLibelle: 'K. MAALEJ',
+          dateDebut: '2026-03-02',
+        },
+      ],
+      issuedOn: '2026-11-03',
+    });
+    expect(doc.output()).toContain('K. MAALEJ');
+  });
+
   it('génère le tableau d’animation avec les six colonnes', () => {
     const doc = buildAttestationPdf({
       type: 'ANIMATION',

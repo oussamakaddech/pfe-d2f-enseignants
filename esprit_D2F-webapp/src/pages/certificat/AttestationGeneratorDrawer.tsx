@@ -1,6 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Button, DatePicker, Drawer, Empty, Segmented, Select, Space, Typography } from 'antd';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Button,
+  DatePicker,
+  Divider,
+  Drawer,
+  Empty,
+  Input,
+  Segmented,
+  Select,
+  Space,
+  Tag,
+  Typography,
+} from 'antd';
+import { DeleteOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 import { useFormationReportFetch } from '@/hooks/formation';
 import type { Enseignant } from '@/hooks/enseignant';
@@ -14,7 +28,7 @@ import {
   type AttestationType,
 } from '@/utils/pdf/attestationPdf';
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
 
 export interface AttestationGeneratorDrawerProps {
   open: boolean;
@@ -30,6 +44,62 @@ const TYPE_OPTIONS = [
   { label: 'Animation', value: 'ANIMATION' as AttestationType },
 ];
 
+const TYPE_HINTS: Record<AttestationType, string> = {
+  PARTICIPATION: "Attestation de participation à des formations — l'enseignant a suivi les formations listées.",
+  ANIMATION: "Attestation d'animation d'une formation — l'enseignant a animé les formations listées.",
+};
+
+/** Ligne éditable du tableau, calquée sur les colonnes du modèle Word. */
+interface EditableRow {
+  key: string;
+  titreFormation: string;
+  formateursLibelle: string;
+  dateDebut: Dayjs | null;
+  heures: string;
+  publicCible: string;
+  objectifs: string;
+}
+
+let rowSeq = 0;
+const newRow = (): EditableRow => ({
+  key: `row-${++rowSeq}`,
+  titreFormation: '',
+  formateursLibelle: '',
+  dateDebut: null,
+  heures: '',
+  publicCible: '',
+  objectifs: '',
+});
+
+const formateursText = (row: AttestationRow): string =>
+  (row.formateurs ?? [])
+    .map((f) => `${(f.prenom ?? '').trim()} ${(f.nom ?? '').trim().toUpperCase()}`.trim())
+    .filter(Boolean)
+    .join(', ');
+
+/** Ligne renvoyée par `FormationReportService` → ligne éditable. */
+const toEditableRow = (raw: AttestationRow): EditableRow => ({
+  key: `row-${++rowSeq}`,
+  titreFormation: raw.titreFormation ?? '',
+  formateursLibelle: (raw.formateursLibelle ?? '').trim() || formateursText(raw),
+  dateDebut: raw.dateDebut && dayjs(raw.dateDebut).isValid() ? dayjs(raw.dateDebut) : null,
+  heures:
+    raw.chargeHoraireGlobal == null || raw.chargeHoraireGlobal === ''
+      ? ''
+      : String(raw.chargeHoraireGlobal),
+  publicCible: raw.populationCible ?? '',
+  objectifs: raw.objectifs ?? '',
+});
+
+const toPdfRow = (row: EditableRow): AttestationRow => ({
+  titreFormation: row.titreFormation.trim(),
+  formateursLibelle: row.formateursLibelle.trim(),
+  dateDebut: row.dateDebut ? row.dateDebut.format('YYYY-MM-DD') : undefined,
+  chargeHoraireGlobal: row.heures.trim() || undefined,
+  populationCible: row.publicCible.trim() || undefined,
+  objectifs: row.objectifs.trim() || undefined,
+});
+
 export default function AttestationGeneratorDrawer({
   open,
   onClose,
@@ -41,17 +111,21 @@ export default function AttestationGeneratorDrawer({
   const reportFetch = useFormationReportFetch();
   const [type, setType] = useState<AttestationType>(initialType ?? 'PARTICIPATION');
   const [enseignantId, setEnseignantId] = useState<string | undefined>();
+  const [departement, setDepartement] = useState('');
   const [period, setPeriod] = useState<Dayjs[]>([]);
+  const [rows, setRows] = useState<EditableRow[]>([]);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [lastDoc, setLastDoc] = useState<{ save: (name: string) => void } | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [loadingRows, setLoadingRows] = useState(false);
+  const docRef = useRef<{ save: (name: string) => void } | null>(null);
+  const urlRef = useRef<string | null>(null);
 
   // Chaque ouverture repart du modèle choisi dans l'en-tête, sans aperçu résiduel.
   useEffect(() => {
     if (!open) return;
     if (initialType) setType(initialType);
+    setRows([]);
     setPdfUrl(null);
-    setLastDoc(null);
+    docRef.current = null;
   }, [open, initialType]);
 
   const selected = useMemo(
@@ -69,22 +143,61 @@ export default function AttestationGeneratorDrawer({
     [enseignants],
   );
 
-  const reset = () => {
-    setPdfUrl(null);
-    setLastDoc(null);
-  };
+  /** Le département est prérempli depuis la fiche, mais reste modifiable (modèle Word). */
+  useEffect(() => {
+    if (selected) setDepartement((selected.deptLibelle as string | undefined) ?? '');
+  }, [selected]);
+
+  const teacher = useMemo(
+    () => ({
+      nom: selected?.nom,
+      prenom: selected?.prenom,
+      departement: departement.trim(),
+    }),
+    [selected, departement],
+  );
+
+  /** Aperçu PDF en direct (débattu pour ne pas régénérer à chaque frappe). */
+  useEffect(() => {
+    if (!open || !selected || rows.length === 0) {
+      setPdfUrl(null);
+      docRef.current = null;
+      return;
+    }
+    const timer = setTimeout(() => {
+      const doc = buildAttestationPdf({
+        type,
+        teacher,
+        rows: rows.map(toPdfRow),
+      });
+      const url = doc.output('bloburl') as unknown as string;
+      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+      urlRef.current = url;
+      docRef.current = doc;
+      setPdfUrl(url);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [open, selected, teacher, rows, type]);
+
+  useEffect(
+    () => () => {
+      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+    },
+    [],
+  );
 
   const close = () => {
-    reset();
+    setPdfUrl(null);
+    docRef.current = null;
     onClose();
   };
 
-  const generate = async () => {
+  const loadRows = async () => {
     if (!selected || period.length !== 2) {
       message.warning('Sélectionnez un enseignant et une période.');
       return;
     }
-    setBusy(true);
+    setLoadingRows(true);
     try {
       const [start, end] = period.map((d) => d.format('YYYY-MM-DD'));
       const raw = await reportFetch.mutateAsync({
@@ -93,123 +206,261 @@ export default function AttestationGeneratorDrawer({
         start,
         end,
       });
-      const rows = (Array.isArray(raw) ? raw : []) as AttestationRow[];
-      if (rows.length === 0) {
+      const loaded = (Array.isArray(raw) ? raw : []).map((r) =>
+        toEditableRow(r as AttestationRow),
+      );
+      if (loaded.length === 0) {
         message.warning(
           `Aucune formation ${type === 'ANIMATION' ? 'animée' : 'suivie'} sur cette période.`,
         );
         return;
       }
-      const teacher = {
-        nom: selected.nom,
-        prenom: selected.prenom,
-        departement: (selected.deptLibelle as string | undefined) ?? '',
-      };
-      const doc = buildAttestationPdf({ type, teacher, rows });
-      setLastDoc(doc);
-      setPdfUrl(doc.output('bloburl') as unknown as string);
+      setRows(loaded);
     } catch {
-      message.error("Échec de la génération de l'attestation.");
+      message.error('Échec du chargement des formations.');
     } finally {
-      setBusy(false);
+      setLoadingRows(false);
     }
   };
 
+  const patchRow = (key: string, patch: Partial<EditableRow>) =>
+    setRows((prev) => prev.map((row) => (row.key === key ? { ...row, ...patch } : row)));
+
+  const removeRow = (key: string) => setRows((prev) => prev.filter((row) => row.key !== key));
+
   const download = () => {
-    if (!lastDoc || !selected) return;
-    lastDoc.save(
-      attestationFileName(
-        type,
-        { nom: selected.nom, prenom: selected.prenom },
-        new Date(),
-      ),
+    if (!docRef.current || !selected) return;
+    docRef.current.save(
+      attestationFileName(type, { nom: selected.nom, prenom: selected.prenom }, new Date()),
     );
   };
+
+  const ready = Boolean(selected) && rows.length > 0;
 
   return (
     <Drawer
       title={<span style={{ fontWeight: 600 }}>{attestationTitle(type)}</span>}
-      width={pdfUrl ? 820 : 520}
+      width={1120}
       open={open}
       onClose={close}
+      destroyOnClose
       footer={
         <div className="gcert-attestation-footer">
           <Button onClick={close}>Fermer</Button>
-          {pdfUrl ? (
-            <Space>
-              <Button onClick={reset}>Nouvelle attestation</Button>
-              <Button type="primary" onClick={download}>
-                Télécharger
-              </Button>
-            </Space>
-          ) : (
-            <Button
-              type="primary"
-              loading={busy}
-              disabled={!selected || period.length !== 2}
-              onClick={generate}
-            >
-              Générer l'attestation
+          <Space>
+            <Button onClick={() => setRows([newRow()])}>Réinitialiser</Button>
+            <Button type="primary" disabled={!pdfUrl} onClick={download}>
+              Télécharger le PDF
             </Button>
-          )}
+          </Space>
         </div>
       }
     >
-      {pdfUrl ? (
-        <iframe
-          src={pdfUrl}
-          title="Attestation PDF"
-          style={{ width: '100%', height: '78vh', border: 'none' }}
-        />
-      ) : (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          <div>
-            <Text strong>Modèle</Text>
+      <div className="gcert-attestation-layout">
+        {/* ── Colonne formulaire : structure du document Word ─────────────── */}
+        <div className="gcert-attestation-form">
+          <section className="gcert-attestation-section">
+            <Title level={5} className="gcert-attestation-section-title">
+              1. Modèle du document
+            </Title>
             <Segmented
               block
               value={type}
-              onChange={(v) => setType(v as AttestationType)}
+              onChange={(v) => {
+                setType(v as AttestationType);
+                setRows([]);
+              }}
               options={TYPE_OPTIONS}
-              style={{ marginTop: 8 }}
             />
-            <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
-              Colonnes du tableau : {ATTESTATION_HEADERS[type].join(' · ')}
+            <Text type="secondary" className="gcert-attestation-hint">
+              {TYPE_HINTS[type]}
             </Text>
-          </div>
+          </section>
 
-          <div>
-            <Text strong>Enseignant</Text>
-            <Select
-              showSearch
-              allowClear
-              optionFilterProp="label"
-              placeholder="Rechercher un enseignant…"
-              style={{ width: '100%', marginTop: 8 }}
-              loading={loadingEnseignants}
-              value={enseignantId}
-              onChange={setEnseignantId}
-              options={options}
+          <section className="gcert-attestation-section">
+            <Title level={5} className="gcert-attestation-section-title">
+              2. Enseignant concerné
+            </Title>
+            <label className="gcert-attestation-field">
+              <Text strong>Enseignant</Text>
+              <Select
+                showSearch
+                allowClear
+                optionFilterProp="label"
+                placeholder="Rechercher un enseignant…"
+                style={{ width: '100%' }}
+                loading={loadingEnseignants}
+                value={enseignantId}
+                onChange={(value) => {
+                  setEnseignantId(value);
+                  setRows([]);
+                }}
+                options={options}
+              />
+            </label>
+            <label className="gcert-attestation-field">
+              <Text strong>Département</Text>
+              <Input
+                placeholder="Département mentionné dans l'attestation"
+                value={departement}
+                onChange={(e) => setDepartement(e.target.value)}
+                allowClear
+              />
+            </label>
+            <Text type="secondary" className="gcert-attestation-hint">
+              Phrase du modèle : « … enseignante titulaire
+              {departement.trim() ? ` au sein du département ${departement.trim()}` : ''} à ESPRIT, … »
+            </Text>
+          </section>
+
+          <section className="gcert-attestation-section">
+            <Title level={5} className="gcert-attestation-section-title">
+              3. Formations {type === 'ANIMATION' ? 'animées' : 'suivies'}
+            </Title>
+            <Space.Compact style={{ width: '100%' }}>
+              <DatePicker.RangePicker
+                style={{ flex: 1 }}
+                format="DD/MM/YYYY"
+                value={period.length === 2 ? (period as [Dayjs, Dayjs]) : null}
+                onChange={(dates) =>
+                  setPeriod(((dates ?? []) as (Dayjs | null)[]).filter((d): d is Dayjs => d !== null))
+                }
+              />
+              <Button
+                icon={<ReloadOutlined />}
+                loading={loadingRows}
+                disabled={!selected || period.length !== 2}
+                onClick={() => void loadRows()}
+              >
+                Charger
+              </Button>
+            </Space.Compact>
+            <Text type="secondary" className="gcert-attestation-hint">
+              Les formations de la période sont préremplies ; chaque cellule reste modifiable, comme
+              dans le modèle Word.
+            </Text>
+
+            <div className="gcert-attestation-columns">
+              {ATTESTATION_HEADERS[type].map((header) => (
+                <Tag key={header}>{header}</Tag>
+              ))}
+            </div>
+
+            {rows.length === 0 ? (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Chargez les formations de la période ou ajoutez une ligne manuellement."
+              >
+                <Button icon={<PlusOutlined />} onClick={() => setRows([newRow()])}>
+                  Ajouter une formation
+                </Button>
+              </Empty>
+            ) : (
+              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                {rows.map((row, index) => (
+                  <div key={row.key} className="gcert-attestation-row">
+                    <div className="gcert-attestation-row-head">
+                      <Text strong>Formation {index + 1}</Text>
+                      <Button
+                        type="text"
+                        danger
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        onClick={() => removeRow(row.key)}
+                      />
+                    </div>
+                    <div className="gcert-attestation-row-grid">
+                      <label className="gcert-attestation-field">
+                        <Text type="secondary">Formation</Text>
+                        <Input
+                          value={row.titreFormation}
+                          onChange={(e) => patchRow(row.key, { titreFormation: e.target.value })}
+                          placeholder="Titre de la formation"
+                        />
+                      </label>
+                      <label className="gcert-attestation-field">
+                        <Text type="secondary">
+                          {type === 'ANIMATION' ? 'Formateur(s)' : 'Formateur'}
+                        </Text>
+                        <Input
+                          value={row.formateursLibelle}
+                          onChange={(e) => patchRow(row.key, { formateursLibelle: e.target.value })}
+                          placeholder="Prénom NOM"
+                        />
+                      </label>
+                      <label className="gcert-attestation-field">
+                        <Text type="secondary">Date</Text>
+                        <DatePicker
+                          style={{ width: '100%' }}
+                          format="DD/MM/YYYY"
+                          value={row.dateDebut}
+                          onChange={(date) => patchRow(row.key, { dateDebut: date })}
+                        />
+                      </label>
+                      {type === 'ANIMATION' && (
+                        <>
+                          <label className="gcert-attestation-field">
+                            <Text type="secondary">Nb. d&apos;heures</Text>
+                            <Input
+                              value={row.heures}
+                              onChange={(e) => patchRow(row.key, { heures: e.target.value })}
+                              placeholder="21"
+                              suffix="h"
+                            />
+                          </label>
+                          <label className="gcert-attestation-field">
+                            <Text type="secondary">Public cible</Text>
+                            <Input
+                              value={row.publicCible}
+                              onChange={(e) => patchRow(row.key, { publicCible: e.target.value })}
+                              placeholder="Enseignants"
+                            />
+                          </label>
+                          <label className="gcert-attestation-field gcert-attestation-field-wide">
+                            <Text type="secondary">Objectifs</Text>
+                            <Input.TextArea
+                              autoSize={{ minRows: 2, maxRows: 4 }}
+                              value={row.objectifs}
+                              onChange={(e) => patchRow(row.key, { objectifs: e.target.value })}
+                              placeholder="Objectifs de la formation"
+                            />
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <Button block icon={<PlusOutlined />} onClick={() => setRows((p) => [...p, newRow()])}>
+                  Ajouter une formation
+                </Button>
+              </Space>
+            )}
+          </section>
+
+          <Divider style={{ margin: '4px 0' }} />
+          <Text type="secondary" className="gcert-attestation-hint">
+            Le PDF reprend le texte des modèles : paragraphe signé par Mme. Hajer BERHOUMA, tableau,
+            formule « Cette attestation est délivrée pour servir et valoir ce que de droit. », « Fait
+            à Tunis, le … » et zone de signature.
+          </Text>
+        </div>
+
+        {/* ── Colonne aperçu : rendu du document ──────────────────────────── */}
+        <div className="gcert-attestation-preview">
+          <div className="gcert-attestation-preview-head">
+            <Text strong>Aperçu du document</Text>
+            <Tag color={ready ? 'green' : 'default'}>{ready ? 'À jour' : 'En attente'}</Tag>
+          </div>
+          {pdfUrl ? (
+            <iframe src={pdfUrl} title="Aperçu de l'attestation" className="gcert-attestation-iframe" />
+          ) : (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="Sélectionnez un enseignant puis au moins une formation pour afficher l'attestation."
             />
-          </div>
-
-          <div>
-            <Text strong>Période des formations</Text>
-            <DatePicker.RangePicker
-              style={{ width: '100%', marginTop: 8 }}
-              format="DD/MM/YYYY"
-              value={period.length === 2 ? (period as [Dayjs, Dayjs]) : null}
-              onChange={(dates) =>
-                setPeriod(((dates ?? []) as (Dayjs | null)[]).filter((d): d is Dayjs => d !== null))
-              }
-            />
-          </div>
-
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="Sélectionnez un enseignant et une période pour prévisualiser l'attestation."
-          />
-        </Space>
-      )}
+          )}
+        </div>
+      </div>
     </Drawer>
   );
 }

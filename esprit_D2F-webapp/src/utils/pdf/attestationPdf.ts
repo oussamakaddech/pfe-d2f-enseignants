@@ -19,6 +19,8 @@ export interface AttestationTeacher {
 export interface AttestationRow {
   titreFormation?: string;
   formateurs?: { nom?: string; prenom?: string }[];
+  /** Libellé libre des formateurs, prioritaire sur {@link formateurs} (saisie manuelle). */
+  formateursLibelle?: string;
   dateDebut?: string;
   chargeHoraireGlobal?: string | number;
   populationCible?: string;
@@ -60,6 +62,8 @@ export function teacherFullName(teacher: AttestationTeacher): string {
 }
 
 function formateursLabel(row: AttestationRow): string {
+  const libre = (row.formateursLibelle ?? '').trim();
+  if (libre) return libre;
   if (row.formateurs == null || row.formateurs.length === 0) return '';
   return row.formateurs
     .map((f) => `${(f.prenom ?? '').trim()} ${(f.nom ?? '').trim().toUpperCase()}`.trim())
