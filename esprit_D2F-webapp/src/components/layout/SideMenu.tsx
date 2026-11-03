@@ -39,9 +39,9 @@ function processItems(items: MenuItem[]): AntdMenuItem[] {
 
 function getDefaultOpenKeys(pathname: string): string[] {
   if (pathname.startsWith('/home/besoins')) return ['besoin_formation_menu'];
-  // Vue RICE, Matchmaking IA, Correspondance et Affectations partagent le
-  // même sous-menu « Gestion Affectation ».
-  if (pathname.startsWith('/home/rice') || pathname.startsWith('/home/affectations'))
+  // Vue RICE est une entrée autonome ; seuls Affectations et Matchmaking IA
+  // vivent dans le sous-menu « Gestion Affectation ».
+  if (pathname.startsWith('/home/affectations') || pathname.startsWith('/home/rice/matchmaking'))
     return ['gestion_affectation'];
   return [];
 }
