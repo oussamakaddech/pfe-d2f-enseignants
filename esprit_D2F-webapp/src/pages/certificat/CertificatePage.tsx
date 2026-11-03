@@ -1,4 +1,4 @@
-﻿import { useMemo, useState, useEffect, useCallback } from 'react';
+﻿import { useMemo, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   Layout,
@@ -36,6 +36,7 @@ import {
   StopOutlined,
   ClockCircleOutlined,
   FileTextOutlined,
+  PlayCircleOutlined,
 } from '@ant-design/icons';
 import { D2FPageHeader, StatCard } from '@/components/common';
 import { brand, neutral, semantic } from '@/styles/themes/tokens';
@@ -57,7 +58,29 @@ import type { Id } from '@/models/common';
 import CertificatePdfViewer from './CertificatePdfViewer';
 import CertificateEditorViewerItem from './CertificateEditorViewerItem';
 import AttestationGeneratorDrawer from './AttestationGeneratorDrawer';
+import type { AttestationType } from '@/utils/pdf/attestationPdf';
 import '@/styles/pages/gestion-certifications.css';
+
+/** Modèles d'attestation officiels D2F, accessibles depuis l'en-tête de la page. */
+const ATTESTATION_ACTIONS: {
+  type: AttestationType;
+  label: string;
+  title: string;
+  icon: ReactNode;
+}[] = [
+  {
+    type: 'PARTICIPATION',
+    label: 'Attestation de participation',
+    title: 'Attestation de participation à des formations',
+    icon: <FileTextOutlined />,
+  },
+  {
+    type: 'ANIMATION',
+    label: "Attestation d'animation",
+    title: "Attestation d'animation d'une formation",
+    icon: <PlayCircleOutlined />,
+  },
+];
 
 const AVATAR_COLORS = ['#2563eb', '#7c3aed', '#059669', '#d97706', '#0891b2', '#db2777'];
 const colorFor = (s: string) =>
@@ -121,6 +144,7 @@ export default function CertificatePage() {
   const [editing, setEditing] = useState<Certificate | null>(null);
   const [genOpen, setGenOpen] = useState(false);
   const [attestationOpen, setAttestationOpen] = useState(false);
+  const [attestationType, setAttestationType] = useState<AttestationType>('PARTICIPATION');
   const enseignantsQuery = useEnseignants();
   const [revokeTarget, setRevokeTarget] = useState<Certificate | null>(null);
   const [revokeReason, setRevokeReason] = useState('');
@@ -462,9 +486,19 @@ export default function CertificatePage() {
             <Button icon={<ReloadOutlined />} onClick={() => void refetch()}>
               Rafraîchir
             </Button>
-            <Button icon={<FileTextOutlined />} onClick={() => setAttestationOpen(true)}>
-              Attestations
-            </Button>
+            {ATTESTATION_ACTIONS.map((action) => (
+              <Tooltip key={action.type} title={action.title}>
+                <Button
+                  icon={action.icon}
+                  onClick={() => {
+                    setAttestationType(action.type);
+                    setAttestationOpen(true);
+                  }}
+                >
+                  {action.label}
+                </Button>
+              </Tooltip>
+            ))}
             {isScoped ? (
               <Button
                 type="primary"
@@ -671,6 +705,7 @@ export default function CertificatePage() {
       {/* Attestations de participation / d'animation (modèles officiels D2F) */}
       <AttestationGeneratorDrawer
         open={attestationOpen}
+        initialType={attestationType}
         onClose={() => setAttestationOpen(false)}
         enseignants={enseignantsQuery.data ?? []}
         loadingEnseignants={enseignantsQuery.isLoading}

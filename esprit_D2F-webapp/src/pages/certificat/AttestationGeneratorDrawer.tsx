@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button, DatePicker, Drawer, Empty, Segmented, Select, Space, Typography } from 'antd';
 import type { Dayjs } from 'dayjs';
 import useAppNotification from '@/hooks/ui/useAppNotification';
@@ -21,6 +21,8 @@ export interface AttestationGeneratorDrawerProps {
   onClose: () => void;
   enseignants: Enseignant[];
   loadingEnseignants: boolean;
+  /** Modèle sélectionné depuis l'en-tête de la page (Participation par défaut). */
+  initialType?: AttestationType;
 }
 
 const TYPE_OPTIONS = [
@@ -33,15 +35,24 @@ export default function AttestationGeneratorDrawer({
   onClose,
   enseignants,
   loadingEnseignants,
+  initialType,
 }: Readonly<AttestationGeneratorDrawerProps>) {
   const { message } = useAppNotification();
   const reportFetch = useFormationReportFetch();
-  const [type, setType] = useState<AttestationType>('PARTICIPATION');
+  const [type, setType] = useState<AttestationType>(initialType ?? 'PARTICIPATION');
   const [enseignantId, setEnseignantId] = useState<string | undefined>();
   const [period, setPeriod] = useState<Dayjs[]>([]);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [lastDoc, setLastDoc] = useState<{ save: (name: string) => void } | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Chaque ouverture repart du modèle choisi dans l'en-tête, sans aperçu résiduel.
+  useEffect(() => {
+    if (!open) return;
+    if (initialType) setType(initialType);
+    setPdfUrl(null);
+    setLastDoc(null);
+  }, [open, initialType]);
 
   const selected = useMemo(
     () => enseignants.find((e) => String(e.id) === String(enseignantId)),
