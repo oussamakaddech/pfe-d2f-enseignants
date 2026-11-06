@@ -42,6 +42,14 @@
   color: #059669 !important;
 }
 
+.formation-btn-export-row {
+  color: #059669 !important;
+}
+.formation-btn-export-row:hover {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+}
+
 .formation-btn-create {
   background: linear-gradient(135deg, #b51200 0%, #9a0f00 100%) !important;
   border: none !important;

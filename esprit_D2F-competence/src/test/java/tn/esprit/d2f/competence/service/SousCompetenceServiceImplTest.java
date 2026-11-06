@@ -175,6 +175,23 @@ class SousCompetenceServiceImplTest {
             assertThatThrownBy(() -> sousCompetenceService.createSousCompetence(99L, req))
                     .isInstanceOf(RuntimeException.class);
         }
+
+        @Test
+        @DisplayName("refuse la creation d une sous-competence si la competence contient des savoirs directs")
+        void shouldRejectRootCreationWhenCompetenceHasDirectSavoirs() {
+            SousCompetenceRequest req = SousCompetenceRequest.builder()
+                    .code("GC-C1.SC_01").nom("Essais géotechniques").description("desc").build();
+
+            when(competenceRepository.findById(2L)).thenReturn(Optional.of(competence));
+            when(savoirRepository.existsByCompetenceId(2L)).thenReturn(true);
+
+            assertThatThrownBy(() -> sousCompetenceService.createSousCompetence(2L, req))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("contient déjà des savoirs directs");
+
+            verify(sousCompetenceRepository, org.mockito.Mockito.never())
+                    .save(any(SousCompetence.class));
+        }
     }
 
     @Nested

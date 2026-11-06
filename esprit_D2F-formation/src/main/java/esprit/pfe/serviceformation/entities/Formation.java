@@ -113,6 +113,11 @@ public class Formation extends BaseAuditEntity {
     @Column(name="certif_generated", nullable=false)
     private boolean certifGenerated = false;
 
+    // Créée par l'import du calendrier des ateliers (.xlsx) : seules ces formations
+    // sont listées dans la page « Gestion du calendrier ».
+    @Column(name = "source_calendrier", nullable = false)
+    private boolean sourceCalendrier = false;
+
     // Liste de séances
     @OneToMany(mappedBy = "formation", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @com.fasterxml.jackson.annotation.JsonIgnore

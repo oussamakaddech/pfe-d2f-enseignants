@@ -20,7 +20,7 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
 
   // ==================== BASIC QUERIES ====================
   
-  List<Formation> findDistinctBySeancesAnimateursMail(String email);
+  List<Formation> findDistinctBySeancesAnimateursMailIgnoreCase(String email);
 
   List<Formation> findByEtatFormation(EtatFormation etatFormation);
 
@@ -99,11 +99,157 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
   @Query("SELECT COALESCE(f.competence, 'Non défini'), COUNT(f) FROM Formation f WHERE f.dateDebut BETWEEN :start AND :end GROUP BY f.competence ORDER BY COUNT(f) DESC")
   List<Object[]> countFormationsByCompetence(@Param("start") LocalDate start, @Param("end") LocalDate end);
 
+  // ==================== STATISTICS QUERIES (PÉRIMÈTRE) ====================
+  // Variants scopés (CUP → UP, chef → département) : upId/deptId null = vue
+  // globale (comportement identique aux variantes non scopées).
+
+  @Query("""
+      SELECT COUNT(f) FROM Formation f
+      WHERE f.dateDebut BETWEEN :start AND :end
+        AND (:upId IS NULL OR f.up.id = :upId)
+        AND (:deptId IS NULL OR f.departement.id = :deptId)
+      """)
+  int countTotalFormationsScoped(@Param("start") LocalDate start, @Param("end") LocalDate end,
+      @Param("upId") String upId, @Param("deptId") String deptId);
+
+  @Query("""
+      SELECT COALESCE(SUM(f.chargeHoraireGlobal), 0) FROM Formation f
+      WHERE f.dateDebut BETWEEN :start AND :end
+        AND (:upId IS NULL OR f.up.id = :upId)
+        AND (:deptId IS NULL OR f.departement.id = :deptId)
+      """)
+  int sumTotalHeuresScoped(@Param("start") LocalDate start, @Param("end") LocalDate end,
+      @Param("upId") String upId, @Param("deptId") String deptId);
+
+  @Query("""
+      SELECT COUNT(DISTINCT p.id) FROM Formation f
+      JOIN f.seances s JOIN s.participants p
+      WHERE f.dateDebut BETWEEN :start AND :end
+        AND (:upId IS NULL OR f.up.id = :upId)
+        AND (:deptId IS NULL OR f.departement.id = :deptId)
+      """)
+  int countUniqueParticipantsScoped(@Param("start") LocalDate start, @Param("end") LocalDate end,
+      @Param("upId") String upId, @Param("deptId") String deptId);
+
+  @Query("""
+      SELECT f.etatFormation, COUNT(f) FROM Formation f
+      WHERE f.dateDebut BETWEEN :start AND :end
+        AND (:upId IS NULL OR f.up.id = :upId)
+        AND (:deptId IS NULL OR f.departement.id = :deptId)
+      GROUP BY f.etatFormation
+      """)
+  List<Object[]> countFormationsByEtatScoped(@Param("start") LocalDate start, @Param("end") LocalDate end,
+      @Param("upId") String upId, @Param("deptId") String deptId);
+
+  @Query("""
+      SELECT COALESCE(f.domaine, 'Non défini'), COUNT(f) FROM Formation f
+      WHERE f.dateDebut BETWEEN :start AND :end
+        AND (:upId IS NULL OR f.up.id = :upId)
+        AND (:deptId IS NULL OR f.departement.id = :deptId)
+      GROUP BY f.domaine ORDER BY COUNT(f) DESC
+      """)
+  List<Object[]> countFormationsByDomaineScoped(@Param("start") LocalDate start, @Param("end") LocalDate end,
+      @Param("upId") String upId, @Param("deptId") String deptId);
+
+  @Query("""
+      SELECT COALESCE(f.competence, 'Non défini'), COUNT(f) FROM Formation f
+      WHERE f.dateDebut BETWEEN :start AND :end
+        AND (:upId IS NULL OR f.up.id = :upId)
+        AND (:deptId IS NULL OR f.departement.id = :deptId)
+      GROUP BY f.competence ORDER BY COUNT(f) DESC
+      """)
+  List<Object[]> countFormationsByCompetenceScoped(@Param("start") LocalDate start, @Param("end") LocalDate end,
+      @Param("upId") String upId, @Param("deptId") String deptId);
+
+  // ==================== FORMATEURS (KPI) ====================
+  // Trois listes d'identifiants DISTINCTS à réunir côté service : un animateur
+  // de formation est recopié dans les séances qui n'ont pas d'animateur explicite
+  // (cf. FormationWorkflowServiceHelper), donc les additionner compterait deux
+  // fois la même personne. Les ids ne sont pas de même type : Enseignant.id est
+  // une chaîne (« E00007 »), AnimateurExterne.id un entier.
+
+  @Query("""
+      SELECT DISTINCT a.id FROM Formation f JOIN f.animateurs a
+      WHERE f.dateDebut BETWEEN :start AND :end
+        AND (:upId IS NULL OR f.up.id = :upId)
+        AND (:deptId IS NULL OR f.departement.id = :deptId)
+      """)
+  List<String> findDistinctAnimateurIdsScoped(@Param("start") LocalDate start, @Param("end") LocalDate end,
+      @Param("upId") String upId, @Param("deptId") String deptId);
+
+  @Query("""
+      SELECT DISTINCT a.id FROM Formation f
+      JOIN f.seances s JOIN s.animateurs a
+      WHERE f.dateDebut BETWEEN :start AND :end
+        AND (:upId IS NULL OR f.up.id = :upId)
+        AND (:deptId IS NULL OR f.departement.id = :deptId)
+      """)
+  List<String> findDistinctSeanceAnimateurIdsScoped(@Param("start") LocalDate start, @Param("end") LocalDate end,
+      @Param("upId") String upId, @Param("deptId") String deptId);
+
+  @Query("""
+      SELECT DISTINCT ae.id FROM Formation f JOIN f.animateursExternes ae
+      WHERE f.dateDebut BETWEEN :start AND :end
+        AND (:upId IS NULL OR f.up.id = :upId)
+        AND (:deptId IS NULL OR f.departement.id = :deptId)
+      """)
+  List<Long> findDistinctAnimateurExterneIdsScoped(@Param("start") LocalDate start, @Param("end") LocalDate end,
+      @Param("upId") String upId, @Param("deptId") String deptId);
+
   // ==================== TEACHER QUERIES ====================
   
   List<Formation> findDistinctBySeances_Animateurs_Id(String enseignantId);
 
   List<Formation> findDistinctBySeances_Participants_Id(String enseignantId);
+
+  /**
+   * Formations (hors annulées) dont l'enseignant est animateur <b>au niveau de la
+   * formation</b>, chevauchant la période. Indispensable aux formations encore
+   * à l'état ENREGISTRE, qui n'ont pas encore de séances.
+   */
+  @Query("""
+      SELECT DISTINCT f FROM Formation f JOIN f.animateurs a
+      WHERE a.id = :ensId
+        AND f.dateDebut <= :end AND f.dateFin >= :start
+        AND f.etatFormation <> :annule
+      """)
+  List<Formation> findFormationsByAnimateurAndPeriod(
+      @Param("ensId") String ensId,
+      @Param("start") LocalDate start,
+      @Param("end") LocalDate end,
+      @Param("annule") EtatFormation annule);
+
+  /** Formations (hors annulées) dont l'enseignant a une inscription acceptée sur la période. */
+  @Query("""
+      SELECT DISTINCT f FROM Formation f, Inscription i
+      WHERE i.formation = f AND i.enseignant.id = :ensId
+        AND f.dateDebut <= :end AND f.dateFin >= :start
+        AND f.etatFormation <> :annule
+      """)
+  List<Formation> findFormationsByInscriptionAndPeriod(
+      @Param("ensId") String ensId,
+      @Param("start") LocalDate start,
+      @Param("end") LocalDate end,
+      @Param("annule") EtatFormation annule);
+
+  /** Formations (hors annulées) où l'e-mail de l'enseignant figure parmi les participants. */
+  @Query("""
+      SELECT DISTINCT f FROM Formation f, FormationParticipantEmail p
+      WHERE p.formationId = f.idFormation AND LOWER(p.email) = LOWER(:email)
+        AND f.dateDebut <= :end AND f.dateFin >= :start
+        AND f.etatFormation <> :annule
+      """)
+  List<Formation> findFormationsByParticipantEmailAndPeriod(
+      @Param("email") String email,
+      @Param("start") LocalDate start,
+      @Param("end") LocalDate end,
+      @Param("annule") EtatFormation annule);
+
+  // L'appelant inter-service (évaluation) transmet l'identité JWT de
+  // l'évaluateur (email le plus souvent, parfois id fiche) : on accepte les
+  // deux formes, comparaison mail insensible à la casse.
+  @Query("SELECT COUNT(f) > 0 FROM Formation f JOIN f.animateurs a WHERE f.idFormation = :formationId AND (a.id = :enseignantId OR LOWER(a.mail) = LOWER(:enseignantId))")
+  boolean existsAnimateurInFormation(@Param("formationId") Long formationId, @Param("enseignantId") String enseignantId);
 
   List<Formation> findByUp_Id(String upId);
 
@@ -218,7 +364,7 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
   // ==================== CALENDRIER (formations planifiées en séances) ====================
 
   /**
-   * Formations possédant au moins une séance planifiée, avec filtres optionnels
+   * Formations issues de l'import du calendrier (.xlsx) possédant au moins une séance, avec filtres optionnels
    * (titre insensible à la casse, état). Utilisé par l'API calendrier paginée.
    */
   // CAST(:titre AS string) : sans cast, un :titre null est inféré « bytea » par
@@ -226,7 +372,8 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
   @Query("""
         SELECT DISTINCT f FROM Formation f
         JOIN f.seances s
-        WHERE (:titre IS NULL OR LOWER(f.titreFormation) LIKE LOWER(CONCAT('%', CAST(:titre AS string), '%')))
+        WHERE f.sourceCalendrier = true
+          AND (:titre IS NULL OR LOWER(f.titreFormation) LIKE LOWER(CONCAT('%', CAST(:titre AS string), '%')))
           AND (:etat IS NULL OR f.etatFormation = :etat)
         """)
   org.springframework.data.domain.Page<Formation> findCalendarFormations(

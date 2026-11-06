@@ -185,4 +185,71 @@ class EnseignantCompetenceRepositoryTest {
             assertThat(count).isEqualTo(2L);
         }
     }
+
+    // ─── deleteByDomaineId – régression 409 ─────────────────────────────────
+    @Nested
+    @DisplayName("deleteByDomaineId (régression suppression domaine avec savoirs directs)")
+    class DeleteByDomaineId {
+
+        @Test
+        @DisplayName("supprime les affectations des deux chemins (via SC et direct)")
+        void shouldDeleteBothPaths() {
+            ecRepo.deleteByDomaineIdDirectSavoirs(domaineId);
+            ecRepo.deleteByDomaineIdViaSousCompetence(domaineId);
+            em.flush();
+            em.clear();
+
+            assertThat(ecRepo.count()).isZero();
+        }
+
+        @Test
+        @DisplayName("supprime les affectations d'un domaine sans sous-compétences (savoirs directs uniquement)")
+        void shouldDeleteDirectOnlyDomaine() {
+            // Reproduit le cas du domaine 6 (Génie Civil) : savoirs directs uniquement.
+            // Avec un OR sur navigations implicites (INNER JOIN), 0 ligne était
+            // supprimée et la suppression du domaine échouait en 409 (FK savoir).
+            Domaine domaineDirect = em.persist(Domaine.builder()
+                    .code("DOM-DIRECT").nom("Domaine Direct").actif(true).build());
+            Competence comp = em.persist(Competence.builder()
+                    .code("COMP-DIR").nom("Compétence directe").domaine(domaineDirect).ordre(1).build());
+            Savoir savoir = em.persist(Savoir.builder()
+                    .code("SAV-DIR-ONLY").nom("Savoir direct only").type(TypeSavoir.PRATIQUE)
+                    .niveau(NiveauMaitrise.N2_ELEMENTAIRE).competence(comp).build());
+            em.persist(EnseignantCompetence.builder()
+                    .enseignantId("ens-direct").savoir(savoir).niveau(NiveauMaitrise.N1_DEBUTANT).build());
+            em.flush();
+
+            ecRepo.deleteByDomaineIdDirectSavoirs(domaineDirect.getId());
+            ecRepo.deleteByDomaineIdViaSousCompetence(domaineDirect.getId());
+            em.flush();
+            em.clear();
+
+            assertThat(ecRepo.findSavoirIdsByDomaineId(domaineDirect.getId())).isEmpty();
+            // Les affectations des autres domaines sont intactes
+            assertThat(ecRepo.count()).isEqualTo(3L);
+        }
+
+        @Test
+        @DisplayName("ne touche pas les affectations des autres domaines")
+        void shouldNotDeleteOtherDomaines() {
+            Domaine autre = em.persist(Domaine.builder()
+                    .code("DOM-AUTRE").nom("Autre domaine").actif(true).build());
+            Competence comp = em.persist(Competence.builder()
+                    .code("COMP-AUTRE").nom("Comp autre").domaine(autre).ordre(1).build());
+            Savoir savoir = em.persist(Savoir.builder()
+                    .code("SAV-AUTRE").nom("Savoir autre").type(TypeSavoir.THEORIQUE)
+                    .niveau(NiveauMaitrise.N1_DEBUTANT).competence(comp).build());
+            em.persist(EnseignantCompetence.builder()
+                    .enseignantId("ens-autre").savoir(savoir).niveau(NiveauMaitrise.N1_DEBUTANT).build());
+            em.flush();
+
+            ecRepo.deleteByDomaineIdDirectSavoirs(domaineId);
+            ecRepo.deleteByDomaineIdViaSousCompetence(domaineId);
+            em.flush();
+            em.clear();
+
+            assertThat(ecRepo.count()).isEqualTo(1L);
+            assertThat(ecRepo.findSavoirIdsByDomaineId(autre.getId())).hasSize(1);
+        }
+    }
 }

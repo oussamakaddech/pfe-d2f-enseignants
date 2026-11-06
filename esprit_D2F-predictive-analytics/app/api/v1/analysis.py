@@ -8,7 +8,8 @@ from app.api.deps import ContainerDependency, resolve_user_teacher
 from app.core.envelope import ok
 from app.core.scope import enforce_teacher_access, resolve_teacher_or_404
 from app.core.security import CurrentUser, require_roles
-from app.schemas.analytics import AnalysisAcceptedOut, AnalysisOut, GapOut, RecommendationOut, RiskOut
+from app.domain.entities.risk_profile import RISK_LEVEL_LABELS
+from app.schemas.analytics import AnalysisAcceptedOut, AnalysisOut, GapOut, RecommendationOut, RiskFactorOut, RiskOut
 
 router = APIRouter(tags=["analysis"])
 
@@ -47,7 +48,7 @@ def get_analysis(
     enforce_teacher_access(user, teacher, user_teacher)
 
     gaps, model_mode, model_version = container.compute_gaps.execute(teacher_id)
-    profile, _, _ = container.compute_risk.execute(teacher_id)
+    profile, _, _, model_name = container.compute_risk.execute(teacher_id)
     payload = AnalysisOut(
         teacher_id=teacher_id,
         gaps=[GapOut(**gap.to_dict()) for gap in gaps],
@@ -55,11 +56,17 @@ def get_analysis(
             teacher_id=profile.teacher_id,
             risk_score=round(profile.risk_score, 2),
             risk_level=profile.risk_level.value,
-            factors=[f.__dict__ for f in profile.factors],
+            score=profile.score_01,
+            score_percent=round(profile.score_01 * 100.0, 2),
+            level=profile.risk_level.value,
+            level_label=RISK_LEVEL_LABELS.get(profile.risk_level.value, profile.risk_level.value),
+            is_capped=profile.is_capped,
+            uncapped_score=profile.uncapped,
+            factors=[RiskFactorOut(**f.to_dict()) for f in profile.factors],
             computed_at=profile.computed_at,
         ),
         recommendations=[],
         model_mode=model_mode,
         computed_at=datetime.now(timezone.utc),
     )
-    return ok(payload.model_dump(mode="json"), {"model_mode": model_mode, "model_version": model_version})
+    return ok(payload.model_dump(mode="json"), {"model_mode": model_mode, "model_version": model_version, "model_name": model_name})

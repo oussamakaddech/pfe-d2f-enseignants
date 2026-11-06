@@ -6,18 +6,14 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.domain.value_objects.enums import LEVEL_INT_MAP
 from app.models.db_models import FeatureSnapshot
 
 logger = logging.getLogger(__name__)
 
-# Mapping NiveauMaitrise (enum Java) → entier
-NIVEAU_MAP = {
-    "N1_DEBUTANT": 1,
-    "N2_ELEMENTAIRE": 2,
-    "N3_INTERMEDIAIRE": 3,
-    "N4_AVANCE": 4,
-    "N5_EXPERT": 5,
-}
+# Mapping niveau → entier : table unique du domaine (les deux vocabulaires
+# présents en base, N1_DEBUTANT… et DEBUTANT/INITIE/CONFIRME/AVANCE/EXPERT).
+NIVEAU_MAP = LEVEL_INT_MAP
 
 PRIORITE_ORDER = {"BASSE": 1, "MOYENNE": 2, "HAUTE": 3, "CRITIQUE": 4}
 

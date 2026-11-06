@@ -17,6 +17,7 @@ import {
 } from 'antd';
 import type { FormInstance } from 'antd';
 import type useStructureData from '@/hooks/competence/useStructureData';
+import { useHasPermission } from '@/routes/guards';
 import type { Id } from '@/models/common';
 import { NIVEAU_LABELS, NIVEAU_OPTIONS } from '@/utils/constants/competenceOptions';
 
@@ -32,6 +33,9 @@ export default function NiveauDefinitionModal({
   structure,
   addNiveauForm,
 }: Readonly<NiveauDefinitionModalProps>) {
+  // CUP / chef : consultation seule des savoirs requis par niveau.
+  const canCreate = useHasPermission('COMPETENCE', 'CREATE');
+  const canDelete = useHasPermission('COMPETENCE', 'DELETE');
   return (
     <Modal
       forceRender
@@ -90,20 +94,25 @@ export default function NiveauDefinitionModal({
                             </span>
                           ),
                         },
-                        {
-                          title: '',
-                          width: 50,
-                          render: (_: unknown, record: { id?: Id }) => (
-                            <Popconfirm
-                              title="Supprimer ce savoir requis ?"
-                              onConfirm={() =>
-                                record.id != null && structure.handleRemoveNiveauSavoir(record.id)
-                              }
-                            >
-                              <Button size="small" danger icon={<DeleteOutlined />} />
-                            </Popconfirm>
-                          ),
-                        },
+                        ...(canDelete
+                          ? [
+                              {
+                                title: '',
+                                width: 50,
+                                render: (_: unknown, record: { id?: Id }) => (
+                                  <Popconfirm
+                                    title="Supprimer ce savoir requis ?"
+                                    onConfirm={() =>
+                                      record.id != null &&
+                                      structure.handleRemoveNiveauSavoir(record.id)
+                                    }
+                                  >
+                                    <Button size="small" danger icon={<DeleteOutlined />} />
+                                  </Popconfirm>
+                                ),
+                              },
+                            ]
+                          : []),
                       ]}
                     />
                   ) : (
@@ -112,48 +121,50 @@ export default function NiveauDefinitionModal({
               };
             })}
           />
-          <Card size="small" title="Ajouter un savoir requis" style={{ marginTop: 16 }}>
-            <Form
-              form={addNiveauForm}
-              layout="inline"
-              onFinish={async (values) => {
-                await structure.handleAddNiveauSavoir(values);
-                addNiveauForm.resetFields();
-              }}
-            >
-              <Form.Item name="niveau" rules={[{ required: true, message: 'Requis' }]}>
-                <Select placeholder="Niveau" style={{ width: 180 }}>
-                  {NIVEAU_OPTIONS.map((opt) => (
-                    <Option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-              <Form.Item name="savoirId" rules={[{ required: true, message: 'Requis' }]}>
-                <Select
-                  placeholder="Savoir"
-                  showSearch
-                  optionFilterProp="children"
-                  style={{ width: 250 }}
-                >
-                  {structure.allSavoirsHierarchie.map((s) => (
-                    <Option key={s.id} value={s.id}>
-                      {s.code} - {s.nom}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-              <Form.Item name="description">
-                <Input placeholder="Description (optionnel)" style={{ width: 200 }} />
-              </Form.Item>
-              <Form.Item>
-                <Button type="primary" htmlType="submit" icon={<PlusOutlined />}>
-                  Ajouter
-                </Button>
-              </Form.Item>
-            </Form>
-          </Card>
+          {canCreate && (
+            <Card size="small" title="Ajouter un savoir requis" style={{ marginTop: 16 }}>
+              <Form
+                form={addNiveauForm}
+                layout="inline"
+                onFinish={async (values) => {
+                  await structure.handleAddNiveauSavoir(values);
+                  addNiveauForm.resetFields();
+                }}
+              >
+                <Form.Item name="niveau" rules={[{ required: true, message: 'Requis' }]}>
+                  <Select placeholder="Niveau" style={{ width: 180 }}>
+                    {NIVEAU_OPTIONS.map((opt) => (
+                      <Option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+                <Form.Item name="savoirId" rules={[{ required: true, message: 'Requis' }]}>
+                  <Select
+                    placeholder="Savoir"
+                    showSearch
+                    optionFilterProp="children"
+                    style={{ width: 250 }}
+                  >
+                    {structure.allSavoirsHierarchie.map((s) => (
+                      <Option key={s.id} value={s.id}>
+                        {s.code} - {s.nom}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+                <Form.Item name="description">
+                  <Input placeholder="Description (optionnel)" style={{ width: 200 }} />
+                </Form.Item>
+                <Form.Item>
+                  <Button type="primary" htmlType="submit" icon={<PlusOutlined />}>
+                    Ajouter
+                  </Button>
+                </Form.Item>
+              </Form>
+            </Card>
+          )}
         </div>
       )}
     </Modal>

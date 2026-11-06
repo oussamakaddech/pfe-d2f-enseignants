@@ -1,0 +1,54 @@
+Démonstration jury — Nettoyage des données (Google Colab)
+Service d'analyse prédictive D2F
+============================================================
+
+CONTENU (2 datasets)
+--------------------
+- nettoyage_donnees_jury.ipynb : notebook Colab (à ouvrir et exécuter de haut en bas)
+- data/corpus_reel_200.csv     : Dataset 1 — RÉEL, corpus servi en production (v1.3.0)
+                                  200 observations · 38 enseignants · 18 compétences,
+                                  extrait de la vraie base PostgreSQL ESPRIT.
+                                  Cible extrapolée à 100 % (aucune re-mesure à 3 mois).
+- data/simulation_dataset_11k.csv : Dataset 2 — SIMULATION, grand dataset de validation
+                                  11 010 lignes · 45 enseignants · 30 mois (graine 2026).
+                                  Cible 100 % OBSERVÉE : mesure la capacité d'apprentissage
+                                  des modèles.
+- data/comparaison_modeles.json: résultats de la comparaison des modèles (partie 4 du
+                                  notebook), produits par les pipelines du projet
+                                  (compare_four_models.py + promotion v1.3.1) — le notebook
+                                  les lit, aucun chiffre n'est écrit en dur.
+- export_corpus_colab.py       : script de régénération depuis la base (sur votre machine,
+                                 lecture seule) — à NE PAS téléverser dans Colab.
+
+UTILISATION DANS GOOGLE COLAB
+-----------------------------
+1. Ouvrir https://colab.research.google.com puis « Fichier > Importer le notebook »
+   et choisir nettoyage_donnees_jury.ipynb.
+2. Déposer les deux CSV + le JSON dans l'espace de fichiers Colab :
+   icône « Fichiers » (colonne de gauche) > « Téléverser » > les 3 fichiers,
+   OU simplement exécuter les cellules de chargement : elles demandent l'upload
+   automatiquement (fichiers directement dans /content/).
+3. Exécution > « Tout exécuter ». Aucune configuration : uniquement pandas + matplotlib
+   (déjà présents dans Colab). Aucune connexion à une base : tout est local au notebook.
+
+CE QUE LE JURY VOIT
+-------------------
+Dataset 1 — Réel (base PostgreSQL ESPRIT) :
+   aperçu 200 × 41 → 7 familles de contrôles qualité miroir de clean_dataset.py
+   (types, doublons, manquantes + gouvernance de la cible extrapolée à 100 %,
+   plages [21 colonnes bornées], dates, identifiants, granularité) → 0 défaut ;
+   bilan : 0 doublon, 0 hors plage, 0 imputation — la cible extrapolée est une
+   LIMITATION DÉCLARÉE, pas un défaut.
+Dataset 2 — Simulation (11 010 lignes) :
+   provenance 100 % étiquetée SIMULATED (graine 2026, générateur versionné),
+   cible OBSERVÉE (0 extrapolée), mêmes contrôles rejoués → 0 défaut ;
+   histogramme comparé des cibles (réel 0,76 vs simulation 0,85).
+Partie 4 — Résultats (comparaison des modèles) :
+   2 tableaux (réel ESPRIT test 40 / simulation test 2 202) + graphiques RMSE —
+   chiffres lus dans comparaison_modeles.json (compare_four_models.json + promotion v1.3.1) :
+   réel : règle 0,342 devant XGBoost v1.3.1 servi 0,370 (écart NON significatif) ;
+   simulation : tous les modèles battent la règle (0,50-0,52 vs 0,614) → XGBoost confirmé.
+Conclusion : tableau à deux colonnes (rôle de chaque dataset) + 4 points jury.
+
+Traceabilité : chaque règle est celle du dépôt (pipelines/clean_dataset.py).
+Le notebook ne réinvente rien, il rejoue.

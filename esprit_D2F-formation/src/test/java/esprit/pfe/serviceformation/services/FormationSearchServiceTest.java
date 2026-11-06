@@ -156,11 +156,11 @@ class FormationSearchServiceTest {
         }
 
         @Test
-        @DisplayName("filtre par upId (ne match rien car up.id est String vs Long)")
+        @DisplayName("filtre par upId (aligné sur Up.id de type String)")
         void shouldFilterByUpId() {
             when(formationRepository.findAll()).thenReturn(List.of(f1, f2, f3));
 
-            FormationFilter filter = FormationFilter.builder().upId(999L).build();
+            FormationFilter filter = FormationFilter.builder().upId("999").build();
             Page<FormationResponseDTO> result = searchService.searchFormations(filter, Pageable.ofSize(10));
 
             assertThat(result).isEmpty();

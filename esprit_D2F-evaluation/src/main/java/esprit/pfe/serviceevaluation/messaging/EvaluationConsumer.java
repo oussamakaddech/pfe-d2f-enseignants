@@ -45,7 +45,7 @@ public class EvaluationConsumer {
                 })
                 .collect(Collectors.toList());
 
-        evalService.createEvaluationsBulk(dtos);
+        evalService.createEvaluationsBulk(dtos, "system@internal", "ROLE_ADMIN");
     }
 
     @org.springframework.retry.annotation.Recover
@@ -78,6 +78,6 @@ public class EvaluationConsumer {
                 })
                 .collect(Collectors.toList());
 
-        evalService.updateEvaluationsBulkByFormation(msg.getFormationId(), dtos);
+        evalService.updateEvaluationsBulkByFormation(msg.getFormationId(), dtos, "system@internal", "ROLE_ADMIN");
     }
 }

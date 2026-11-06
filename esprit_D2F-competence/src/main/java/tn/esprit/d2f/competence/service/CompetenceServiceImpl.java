@@ -22,7 +22,10 @@ import tn.esprit.d2f.competence.repository.SavoirRepository;
 import tn.esprit.d2f.competence.repository.SousCompetenceRepository;
 
 import org.springframework.data.domain.PageImpl;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -109,6 +112,8 @@ public class CompetenceServiceImpl implements ICompetenceService {
             .prerequisiteManual(request.getPrerequisiteManual())
                 .ordre(request.getOrdre() != null ? request.getOrdre() : 1)
                 .domaine(domaine)
+                .upIds(toSet(request.getUpIds()))
+                .departementIds(toSet(request.getDepartementIds()))
                 .build();
         Competence saved = competenceRepository.save(competence);
         log.info("Compétence créée: {} dans domaine {}", saved.getNom(), domaine.getNom());
@@ -127,6 +132,14 @@ public class CompetenceServiceImpl implements ICompetenceService {
         existing.setPrerequisiteManual(request.getPrerequisiteManual());
         if (request.getOrdre() != null) {
             existing.setOrdre(request.getOrdre());
+        }
+        // null = champ non transmis → on conserve l'existant (une simple
+        // modification de libellé n'efface pas les rattachements).
+        if (request.getUpIds() != null) {
+            existing.setUpIds(toSet(request.getUpIds()));
+        }
+        if (request.getDepartementIds() != null) {
+            existing.setDepartementIds(toSet(request.getDepartementIds()));
         }
         Competence saved = competenceRepository.save(existing);
         log.info("Compétence mise à jour: {}", saved.getId());
@@ -181,5 +194,19 @@ public class CompetenceServiceImpl implements ICompetenceService {
 
         competenceRepository.delete(competence);
         log.info("Compétence supprimée: {}", id);
+    }
+
+    /** Convertit la liste demandée en ensemble non nul, en ignorant les valeurs vides. */
+    private static Set<String> toSet(List<String> values) {
+        Set<String> result = new LinkedHashSet<>();
+        if (values == null) {
+            return result;
+        }
+        values.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(v -> !v.isEmpty())
+                .forEach(result::add);
+        return result;
     }
 }

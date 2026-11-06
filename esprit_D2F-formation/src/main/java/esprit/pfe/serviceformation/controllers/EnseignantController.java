@@ -44,7 +44,7 @@ public class EnseignantController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_READ)
+    @PreAuthorize(AuthorizationMatrix.FORMATION_ANIMATEUR_CHECK)
     public ResponseEntity<EnseignantDTO> getEnseignantById(@PathVariable String id) {
         return ResponseEntity.ok(enseignantService.toDTO(enseignantService.getEnseignantById(id)));
     }
@@ -74,13 +74,13 @@ public class EnseignantController {
 
     // Mise à jour partielle (null-safe) : DTO sans @Valid pour autoriser un PUT partiel.
     @PutMapping("/{id}")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.STRUCTURE_WRITE)
     public ResponseEntity<EnseignantDTO> updateEnseignant(@PathVariable String id, @RequestBody EnseignantRequest request) {
         return ResponseEntity.ok(enseignantService.toDTO(enseignantService.updateEnseignant(id, request.toEntity())));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.STRUCTURE_WRITE)
     public ResponseEntity<Void> deleteEnseignant(@PathVariable String id) {
         enseignantService.deleteEnseignant(id);
         return ResponseEntity.noContent().build();

@@ -345,6 +345,21 @@ class TestNlpAABranches:
         assert len(result) == 2
         assert result[0]["type"] == "marker"
 
+    @pytest.mark.parametrize("sep", [" : ", ": ", ". ", ") ", " - ", " – ", " "])
+    def test_parse_aa_lines_drops_separator_after_number(self, sep):
+        result = nlp._parse_aa_lines(f"AA1{sep}Identifier et classer un sol")
+        assert result[0]["rest"] == "Identifier et classer un sol"
+
+    def test_extract_acquis_names_do_not_start_with_separator(self):
+        text = (
+            "Acquis d'apprentissage :\n"
+            "AA1 : Identifier et classer un sol à partir des essais.\n"
+            "AA2 : Calculer le tassement d'une couche compressible.\n"
+            "Contenu détaillé\n"
+        )
+        acquis = nlp._extract_acquis_apprentissage(text)
+        assert [a["text"][:10] for a in acquis] == ["Identifier", "Calculer l"]
+
     def test_parse_aa_lines_with_text(self):
         result = nlp._parse_aa_lines("Some text\nwithout markers")
         assert all(t["type"] == "text" for t in result)

@@ -1,4 +1,5 @@
 import '@/styles/pages/mail-form.css';
+import { useEffect, useRef } from 'react';
 import { Form, Input, Button } from 'antd';
 import dayjs from 'dayjs';
 import useAppNotification from '@/hooks/ui/useAppNotification';
@@ -98,8 +99,29 @@ export default function MailForm({ formation, onSendSuccess }: Readonly<MailForm
   const participantsBlock = participantsStr
     ? `<p>${participantsStr.replaceAll('\n', '<br/>')}</p>`
     : '';
-  const defaultContent = formation
-    ? `<p>Bonjour ${formation.responsableName || 'à tous'},</p>` +
+
+  /**
+   * La salutation suit le destinataire :
+   * - envoi au responsable de la formation (e-mail unique correspondant à
+   *   responsableEmail) → « Bonjour {responsableName}, » ;
+   * - envoi à plusieurs destinataires ou à un autre destinataire
+   *   (« à tous ») → « Bonjour à tous, » (jamais le nom de l'expéditeur).
+   */
+  const isResponsableRecipient = (to?: string): boolean => {
+    if (!to || !formation?.responsableEmail) return false;
+    const parts = to
+      .split(/[;,]/)
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    return parts.length === 1 && parts[0] === formation.responsableEmail.trim().toLowerCase();
+  };
+
+  const buildContent = (to?: string): string => {
+    if (!formation) return '';
+    const personalize = isResponsableRecipient(to) && !!formation.responsableName;
+    const greeting = personalize ? `Bonjour ${formation.responsableName},` : 'Bonjour à tous,';
+    return (
+      `<p>${greeting}</p>` +
       objectifBlock +
       `<p>Votre formation <strong>"${formation.titreFormation}"</strong> se déroulera du ${dayjs(
         formation.dateDebut,
@@ -108,10 +130,28 @@ export default function MailForm({ formation, onSendSuccess }: Readonly<MailForm
       animateursBlock +
       participantsBlock +
       "<p>Cordialement,<br/><strong>L'équipe de formation</strong></p>"
-    : '';
+    );
+  };
+
+  const defaultContent = formation ? buildContent(defaultTo) : '';
 
   // 2) Envoi
   const { mutateAsync: sendEmail } = useSendEmail();
+
+  // Le gabarit suit le destinataire tant que l'utilisateur n'a pas édité le
+  // contenu lui-même (on ne réécrit jamais un contenu personnalisé).
+  const toValue = Form.useWatch('to', form);
+  const lastTemplateRef = useRef<string>(defaultContent);
+  useEffect(() => {
+    const current = form.getFieldValue('content');
+    if (current === lastTemplateRef.current) {
+      const next = buildContent(toValue);
+      lastTemplateRef.current = next;
+      form.setFieldValue('content', next);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toValue]);
+
   const handleFinish = async (values: { to: string; subject: string; content: string }) => {
     try {
       const result = await sendEmail({

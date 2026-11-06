@@ -26,8 +26,12 @@ public class FeignServiceAuthInterceptor implements RequestInterceptor {
     private String generateServiceToken() {
         String header = base64Url("{\"alg\":\"HS512\",\"typ\":\"JWT\"}");
         long now = Instant.now().getEpochSecond();
+        // Convention inter-services SVC_* (parité formation→auth SVC_FORMATION) :
+        // côté formation, le scope devient l'autorité telle quelle (convertisseur
+        // JWT sans préfixe) — voir AuthorizationMatrix.FORMATION_ANIMATEUR_CHECK.
+        // (ROLE_FORMATEUR supprimé du référentiel des rôles — ne plus l'émettre.)
         String payload = base64Url(
-                "{\"sub\":\"evaluation-service\",\"iat\":" + now + ",\"exp\":" + (now + 300) + ",\"scope\":\"SERVICE_EVALUATION ROLE_FORMATEUR\"}"
+                "{\"sub\":\"evaluation-service\",\"iat\":" + now + ",\"exp\":" + (now + 300) + ",\"scope\":\"ROLE_SVC_EVALUATION\"}"
         );
         String signatureInput = header + "." + payload;
         String signature = sign(signatureInput);

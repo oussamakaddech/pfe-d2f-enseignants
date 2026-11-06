@@ -17,10 +17,10 @@ COMPETENCY = Competency(
     nom="Pedagogie",
     domaine_id=None,
     domaine_nom=None,
-    savoirs=(Savoir(id=101, code="S101", nom="S1", required_level=4), Savoir(id=102, code="S102", nom="S2", required_level=3)),
+    savoirs=(Savoir(id=101, code="S101", nom="S1", knowledge_difficulty_level=4), Savoir(id=102, code="S102", nom="S2", knowledge_difficulty_level=3)),
 )
 
-STATE = TeacherCompetencyState(teacher_id="T001", competency=COMPETENCY, current_level=1.5, previous_level=None, savoir_levels={101: 1, 102: 2})
+STATE = TeacherCompetencyState(teacher_id="T001", competency=COMPETENCY, observed_result=1.5, previous_observed_result=None, savoir_levels={101: 1, 102: 2})
 
 
 def _candidate(savoir_ids: set[int], completed: bool = False, avg_eval: float | None = 4.0) -> TrainingCandidate:
@@ -85,3 +85,77 @@ def test_ranking_order_by_score():
 def test_limit_respected():
     results = rank_candidates([_candidate({101, 102}), _candidate({102})], STATE, date.today(), 1)
     assert len(results) == 1
+
+
+def test_reason_never_claims_coverage_without_savoir_links():
+    """Audit d'autorité Point 8 — une formation SANS savoirs référencés
+    (prior domaine 0.3) ne doit JAMais revendiquer une couverture des savoirs
+    manquants : le libellé est « Justification indisponible » (lien
+    formation↔savoir absent) et matched_savoirs est vide."""
+    from app.domain.services.ranking_service import rank_score
+
+    no_links = _candidate(set())
+    results = rank_candidates([no_links], STATE, date.today(), 5)
+    assert len(results) == 1
+    rec = results[0]
+    assert "Couvre" not in (rec.reason or ""), "le libellé ne doit pas revendiquer une couverture"
+    assert "Justification indisponible" in (rec.reason or "")
+    assert rec.matched_savoirs == ()
+    # Le score conserve le prior domaine 0.3 documenté (0.7*0.3 + 0.2*qualité + 0.1*récence).
+    expected = 0.7 * 0.3 + 0.2 * quality_score(no_links) + 0.1 * recency_score(no_links, date.today())
+    assert abs(rec.rank_score - round(rank_score(no_links, STATE, date.today()), 4)) < 0.01
+    assert abs(rec.rank_score - round(expected, 4)) < 0.01
+
+
+def test_reason_claims_coverage_only_with_real_missing_savoirs():
+    """Une formation AVEC savoirs référencés couvrant les savoirs manquants
+    affiche « Couvre... » ET des matched_savoirs non vides (justification réelle)."""
+    partial = _candidate({101})
+    results = rank_candidates([partial], STATE, date.today(), 5)
+    rec = results[0]
+    assert "Couvre" in (rec.reason or "")
+    assert list(rec.matched_savoirs) == ["S1"], "matched_savoirs = savoir manquant réellement couvert"
+
+
+def test_ranking_weights_are_configurable():
+    """Les ponderations pilotent reellement le classement (CDC DSI 1.1).
+
+    Deux formations : l'une couvre tous les savoirs manquants mais est mal
+    notee, l'autre ne couvre rien mais est excellente. Basculer la ponderation
+    de "contenu" vers "qualite" doit inverser le classement.
+    """
+    from app.domain.services.ranking_service import RankingWeights, rank_candidates
+
+    pertinente = TrainingCandidate(
+        formation_id=1, titre="Couvre les savoirs manquants",
+        savoir_ids=frozenset({101, 102}), start_date=None, end_date=None,
+        avg_eval_score=0.0,
+    )
+    bien_notee = TrainingCandidate(
+        formation_id=2, titre="Hors sujet mais excellente",
+        savoir_ids=frozenset({999}), start_date=None, end_date=None,
+        avg_eval_score=5.0,
+    )
+    candidates = [pertinente, bien_notee]
+    today = date(2026, 1, 1)
+
+    contenu_prioritaire = rank_candidates(candidates, STATE, today, 2, RankingWeights(content=1.0, quality=0.0, recency=0.0))
+    assert [r.formation_id for r in contenu_prioritaire] == [1, 2]
+
+    qualite_prioritaire = rank_candidates(candidates, STATE, today, 2, RankingWeights(content=0.0, quality=1.0, recency=0.0))
+    assert [r.formation_id for r in qualite_prioritaire] == [2, 1]
+
+
+def test_recency_lookback_is_configurable():
+    """La fenetre de decroissance de la recence vient de la configuration."""
+    from app.domain.services.ranking_service import recency_score
+
+    terminee = TrainingCandidate(
+        formation_id=10, titre="F", savoir_ids=frozenset({101}),
+        start_date=date(2025, 1, 1), end_date=date(2025, 7, 1), avg_eval_score=4.0,
+    )
+    today = date(2026, 1, 1)  # 184 jours apres la fin
+    # Fenetre 365 j : il reste environ la moitie de la fraicheur.
+    assert recency_score(terminee, today, 365) > 0.4
+    # Fenetre 90 j : la formation est consideree perimee.
+    assert recency_score(terminee, today, 90) == 0.0

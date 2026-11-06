@@ -26,8 +26,11 @@ import {
   BarChartOutlined,
   AimOutlined,
   UserAddOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import AnimatorProposalsPanel from '@/pages/formation/components/AnimatorProposalsPanel';
+import { useAnimatorPermissions } from '@/pages/formation/hooks/useAnimatorPermissions';
 import { useFormationById } from '@/hooks/formation/useFormations';
 import {
   useProfile,
@@ -35,7 +38,7 @@ import {
   useDemanderInscription,
 } from '@/hooks/formation/useFormationExtras';
 import { useEnseignantById } from '@/hooks/enseignant/useEnseignants';
-import { ROLES } from '@/utils/constants/roles';
+import { ROLES, extractRoles } from '@/utils/constants/roles';
 import { PageLoader } from '@/components/common';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 import FormationParticipantsPanel from './FormationParticipantsPanel';
@@ -43,15 +46,46 @@ import type { Formation } from '@/models/formation';
 import type { Id } from '@/models/common';
 import '@/styles/pages/fiche-formation.css';
 
+/* Aligné sur l'enum backend PeriodCode (+ formulaires) : P3/P4 n'existent pas,
+ * SPRINT/WORKSHOP si (ex. « SPRINT » affichait « — »). */
 const PERIOD_OPTIONS = [
   { value: 'P1', label: 'Période 1' },
   { value: 'P2', label: 'Période 2' },
-  { value: 'P3', label: 'Période 3' },
-  { value: 'P4', label: 'Période 4' },
-  { value: 'SUMMER', label: "Session d'Été" },
   { value: 'WINTER', label: "Session d'Hiver" },
+  { value: 'SUMMER', label: "Session d'Été" },
+  { value: 'SPRINT', label: 'Sprint' },
+  { value: 'WORKSHOP', label: 'Atelier' },
   { value: 'OTHER', label: 'Autre' },
 ];
+
+/** Libellé de période : code connu, libellé personnalisé, ou ancien champ. */
+export function resolvePeriodLabel(
+  periodCode?: string,
+  customPeriodLabel?: string,
+  periodeFormation?: string,
+): string {
+  if (periodCode === 'OTHER') return customPeriodLabel || 'Autre';
+  return (
+    PERIOD_OPTIONS.find((o) => o.value === periodCode)?.label ||
+    customPeriodLabel ||
+    periodeFormation ||
+    '—'
+  );
+}
+
+/** Libellé de structure : le détail renvoie `up`/`departement`, les listes
+ *  `up1`/`departement1` (même forme id/libelle). */
+export function resolveStructureLabel(
+  primary?: { libelle?: string; nom?: string } | null,
+  fallback?: { libelle?: string; nom?: string } | null,
+): string {
+  return primary?.libelle || primary?.nom || fallback?.libelle || fallback?.nom || '—';
+}
+
+/** Pastille colorée, ou simple tiret quand vide (pas de tag vide). */
+function InfoTag({ color, value }: { readonly color: string; readonly value: string }) {
+  return value === '—' ? <>{value}</> : <Tag color={color}>{value}</Tag>;
+}
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -62,6 +96,13 @@ export default function FicheFormation() {
   const { data: formation, isLoading: loading, error } = useFormationById(id);
   const { data: profile } = useProfile();
   const role = String(profile?.role ?? '').toLowerCase();
+  const userRoles = useMemo(() => extractRoles(profile?.role), [profile?.role]);
+  const canEditFormation = useMemo(
+    () => ['admin', 'cup', 'chefdepartement'].some((r) => userRoles.includes(r)),
+    [userRoles],
+  );
+  // Workflow d'animation (se proposer, proposer, valider) : le serveur revalide tout.
+  const animatorPermissions = useAnimatorPermissions(profile?.role);
   // Admin / CUP : accès à la liste des participants + statistiques.
   const canViewParticipants =
     role === ROLES.ADMIN.toLowerCase() || role === ROLES.CUP.toLowerCase();
@@ -125,6 +166,8 @@ export default function FicheFormation() {
     chargeHoraireGlobal,
     departement1,
     up1,
+    departement,
+    up,
     seances = [],
     inscriptionsOuvertes,
     objectifs,
@@ -176,6 +219,16 @@ export default function FicheFormation() {
                 </Tag>
               }
             />
+            {canEditFormation && (
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={() => navigate(`/home/Formation/Modifier/${id}`)}
+                className="fiche-edit-btn"
+              >
+                Modifier la formation
+              </Button>
+            )}
             {isTeacher && inscriptionsOuvertes && !myInscriptionForThis && (
               <Button
                 type="primary"
@@ -237,11 +290,7 @@ export default function FicheFormation() {
                   </Space>
                 }
               >
-                {periodCode === 'OTHER'
-                  ? customPeriodLabel || 'Autre'
-                  : PERIOD_OPTIONS.find((o) => o.value === periodCode)?.label ||
-                    periodeFormation ||
-                    '—'}
+                {resolvePeriodLabel(periodCode, customPeriodLabel, periodeFormation)}
               </Descriptions.Item>
               <Descriptions.Item
                 label={
@@ -259,7 +308,7 @@ export default function FicheFormation() {
                   </Space>
                 }
               >
-                {departement1?.libelle || '—'}
+                <InfoTag color="blue" value={resolveStructureLabel(departement1, departement)} />
               </Descriptions.Item>
               <Descriptions.Item
                 label={
@@ -268,7 +317,7 @@ export default function FicheFormation() {
                   </Space>
                 }
               >
-                {up1?.libelle || '—'}
+                <InfoTag color="cyan" value={resolveStructureLabel(up1, up)} />
               </Descriptions.Item>
               <Descriptions.Item
                 label={
@@ -277,7 +326,7 @@ export default function FicheFormation() {
                   </Space>
                 }
               >
-                {domaine || '—'}
+                <InfoTag color="purple" value={domaine || '—'} />
               </Descriptions.Item>
               <Descriptions.Item
                 label={
@@ -408,6 +457,9 @@ export default function FicheFormation() {
           />
         </Card>
       )}
+
+      {/* Propositions d'animateurs : API ANIMATOR_PROPOSAL_* (formation-service). */}
+      {id && <AnimatorProposalsPanel formationId={Number(id)} {...animatorPermissions} />}
     </div>
   );
 }

@@ -58,3 +58,10 @@ export interface CountByLabel {
   label: string;
   count: number;
 }
+
+/** Formateurs distincts d'une période (internes dédoublonnés + externes). */
+export interface FormateursKpi {
+  total: number;
+  internes: number;
+  externes: number;
+}

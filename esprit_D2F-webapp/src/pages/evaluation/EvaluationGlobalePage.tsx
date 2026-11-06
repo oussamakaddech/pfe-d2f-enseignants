@@ -38,8 +38,8 @@ import {
   useDeleteEvaluationGlobale,
 } from '@/hooks/evaluation/useEvaluations';
 import { useAllFormations } from '@/hooks/formation/useFormations';
-import { useProfile } from '@/hooks/formation/useFormationExtras';
-import { normalizeRole } from '@/utils/constants/roles';
+import { useEnseignants } from '@/hooks/enseignant';
+import { useHasPermission } from '@/routes/guards';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -68,6 +68,7 @@ const RECO_COLORS: Record<string, RecoColor> = {
 
 interface EvalRecord {
   idEvalGlobale?: number;
+  enseignantId?: string;
   recommandation?: string;
   commentaireGeneral?: string;
   dateEvaluation?: string;
@@ -80,20 +81,29 @@ interface FormationRecord {
   [key: string]: unknown;
 }
 
+interface EnseignantRecord {
+  id?: string | number;
+  nom?: string;
+  prenom?: string;
+  mail?: string;
+}
+
 export default function EvaluationGlobalePage() {
   const { message: msgApi } = useAppNotification();
   const { data: evaluationsData = [], isLoading: loading } = useEvaluationsGlobales();
   const { data: formationsData = [] } = useAllFormations();
+  const { data: enseignantsData = [] } = useEnseignants();
   const createMut = useCreateEvaluationGlobale();
   const updateMut = useUpdateEvaluationGlobale();
   const deleteMut = useDeleteEvaluationGlobale();
-  const { data: profile } = useProfile();
 
   const evaluations = evaluationsData as EvalRecord[];
   const formations = formationsData as FormationRecord[];
+  const enseignants = enseignantsData as EnseignantRecord[];
 
-  const role = normalizeRole(profile?.role ?? '');
-  const isReadOnly = role === 'enseignant';
+  const canCreate = useHasPermission('EVALUATION', 'CREATE');
+  const canEdit = useHasPermission('EVALUATION', 'UPDATE');
+  const canDelete = useHasPermission('EVALUATION', 'DELETE');
 
   const [openForm, setOpenForm] = useState(false);
   const [editingEval, setEditingEval] = useState<EvalRecord | null>(null);
@@ -110,9 +120,6 @@ export default function EvaluationGlobalePage() {
 
   const filtered = useMemo(() => {
     let res = [...evaluations];
-    if (isReadOnly && profile?.idUtilisateur) {
-      res = res.filter((e) => e.utilisateurId === profile.idUtilisateur);
-    }
     if (filterText) {
       res = res.filter(
         (e) =>
@@ -128,7 +135,7 @@ export default function EvaluationGlobalePage() {
     if (formationFilter) res = res.filter((e) => e.formationId === formationFilter);
     return res;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [evaluations, filterText, recoFilter, formationFilter, formations, isReadOnly, profile]);
+  }, [evaluations, filterText, recoFilter, formationFilter, formations]);
 
   function openCreate() {
     setEditingEval(null);
@@ -140,10 +147,16 @@ export default function EvaluationGlobalePage() {
     setEditingEval(record);
     form.setFieldsValue({
       formationId: record.formationId,
+      enseignantId: record.enseignantId,
       commentaireGeneral: record.commentaireGeneral,
       dateEvaluation: record.dateEvaluation ? dayjs(record.dateEvaluation) : null,
       noteGlobale: record.noteGlobale,
       recommandation: record.recommandation,
+      pertinenceContenu: record.pertinenceContenu,
+      organisation: record.organisation,
+      qualiteSupports: record.qualiteSupports,
+      dureeAdaptee: record.dureeAdaptee,
+      satisfactionGlobale: record.satisfactionGlobale,
     });
     setOpenForm(true);
   }
@@ -289,36 +302,42 @@ export default function EvaluationGlobalePage() {
       render: (d) => (d ? dayjs(d).format('DD/MM/YYYY') : '\u2014'),
       sorter: (a, b) => dayjs(a.dateEvaluation).valueOf() - dayjs(b.dateEvaluation).valueOf(),
     },
-    ...(!isReadOnly
+    ...(canEdit || canDelete
       ? [
           {
             title: 'Actions',
             key: 'actions',
             width: 90,
             align: 'center' as const,
-            render: (_: unknown, r: EvalRecord) => (
-              <Space size={4}>
-                <Button
-                  type="text"
-                  shape="circle"
-                  icon={<EditOutlined />}
-                  onClick={() => openEdit(r)}
-                  className="evaluation-btn-edit"
-                />
-                <Popconfirm
-                  title="Supprimer cette évaluation ?"
-                  onConfirm={() => handleDelete(r.idEvalGlobale!)}
-                >
-                  <Button
-                    type="text"
-                    shape="circle"
-                    icon={<DeleteOutlined />}
-                    danger
-                    className="evaluation-btn-delete"
-                  />
-                </Popconfirm>
-              </Space>
-            ),
+            render: (_: unknown, r: EvalRecord) => {
+              return (
+                <Space size={4}>
+                  {canEdit && (
+                    <Button
+                      type="text"
+                      shape="circle"
+                      icon={<EditOutlined />}
+                      onClick={() => openEdit(r)}
+                      className="evaluation-btn-edit"
+                    />
+                  )}
+                  {canDelete && (
+                    <Popconfirm
+                      title="Supprimer cette évaluation ?"
+                      onConfirm={() => handleDelete(r.idEvalGlobale!)}
+                    >
+                      <Button
+                        type="text"
+                        shape="circle"
+                        icon={<DeleteOutlined />}
+                        danger
+                        className="evaluation-btn-delete"
+                      />
+                    </Popconfirm>
+                  )}
+                </Space>
+              );
+            },
           },
         ]
       : []),
@@ -328,10 +347,10 @@ export default function EvaluationGlobalePage() {
     <div className="evaluation-page">
       <AppPageHeader
         icon={<TrophyOutlined />}
-        title={isReadOnly ? 'Mes Évaluations' : 'Évaluation Globale des Formations'}
+        title="Évaluation Globale des Formations"
         subtitle={`${filtered.length} évaluation${filtered.length === 1 ? '' : 's'}${hasActiveFilters ? ' (filtrées)' : ''}`}
         actions={
-          !isReadOnly ? (
+          canCreate ? (
             <Button
               type="primary"
               icon={<PlusOutlined />}
@@ -440,12 +459,8 @@ export default function EvaluationGlobalePage() {
       </div>
 
       <Alert
-        message={
-          isReadOnly
-            ? 'Vous consultez uniquement vos propres évaluations.'
-            : 'Une seule évaluation globale est autorisée par formation.'
-        }
-        type={isReadOnly ? 'warning' : 'info'}
+        message="Une seule évaluation globale est autorisée par formation."
+        type="info"
         showIcon
         className="evaluation-info-alert"
       />
@@ -517,13 +532,60 @@ export default function EvaluationGlobalePage() {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item name="noteGlobale" label="Note Globale (/20)">
+          <Form.Item name="enseignantId" label="Enseignant évalué (formateur)">
+            <Select
+              placeholder="Sélectionner l'enseignant à évaluer"
+              allowClear
+              showSearch
+              optionFilterProp="children"
+            >
+              {enseignants.map((e) => (
+                <Option key={e.id} value={String(e.id)}>
+                  {`${e.prenom || ''} ${e.nom || ''}`.trim() || String(e.id)}
+                  {e.mail ? ` (${e.mail})` : ''}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name="noteGlobale"
+            label="Note Globale (/20)"
+            rules={[{ required: true, message: 'Note obligatoire' }]}
+          >
             <InputNumber min={0} max={20} step={0.5} className="w-full" />
           </Form.Item>
-          <Form.Item name="commentaireGeneral" label="Commentaire Général">
-            <TextArea rows={4} placeholder="Commentaire général sur la formation" />
+          <Form.Item
+            name="commentaireGeneral"
+            label="Commentaire Général"
+            rules={[{ max: 500, message: 'Max 500 caractères' }]}
+          >
+            <TextArea
+              rows={4}
+              placeholder="Commentaire général sur la formation"
+              maxLength={500}
+              showCount
+            />
           </Form.Item>
-          <Form.Item name="dateEvaluation" label="Date d'Évaluation">
+          <Form.Item name="pertinenceContenu" label="Pertinence du contenu (0-5)">
+            <InputNumber min={0} max={5} step={0.5} className="w-full" />
+          </Form.Item>
+          <Form.Item name="organisation" label="Organisation (0-5)">
+            <InputNumber min={0} max={5} step={0.5} className="w-full" />
+          </Form.Item>
+          <Form.Item name="qualiteSupports" label="Qualité des supports (0-5)">
+            <InputNumber min={0} max={5} step={0.5} className="w-full" />
+          </Form.Item>
+          <Form.Item name="dureeAdaptee" label="Durée adaptée (0-5)">
+            <InputNumber min={0} max={5} step={0.5} className="w-full" />
+          </Form.Item>
+          <Form.Item name="satisfactionGlobale" label="Satisfaction globale (0-5)">
+            <InputNumber min={0} max={5} step={0.5} className="w-full" />
+          </Form.Item>
+          <Form.Item
+            name="dateEvaluation"
+            label="Date d'Évaluation"
+            rules={[{ required: true, message: 'Date obligatoire' }]}
+          >
             <DatePicker className="w-full" />
           </Form.Item>
           <Form.Item name="recommandation" label="Recommandation">

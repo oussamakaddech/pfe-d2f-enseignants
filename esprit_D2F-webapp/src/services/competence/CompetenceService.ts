@@ -2,6 +2,9 @@ import { defaultApi as axios } from '@/services/httpClient';
 import { config } from '@/config/env';
 import type { ApiListOrPage, Id } from '@/models/common';
 import type {
+  AffectationGroupeeRequest,
+  AffectationGroupeeResult,
+  AffectationPerimetre,
   Competence,
   Domaine,
   Savoir,
@@ -197,11 +200,22 @@ const SavoirAPI = {
 };
 
 const EnseignantCompetenceAPI = {
+  // Taille de page explicite : sans elle le serveur ne renvoie que 20 lignes
+  // (PageableDefault) et le tableau paraissait tronqué.
   getAll: async (): Promise<EnseignantCompetence[]> => {
     const res = await axios.get<ApiListOrPage<EnseignantCompetence>>(
-      `${BASE}/enseignant-competences`,
+      `${BASE}/enseignant-competences?size=2000`,
     );
     return toList(res.data);
+  },
+
+  /**
+   * Périmètre d'écriture de l'utilisateur connecté (global / UP / département).
+   * Filtrage d'affichage uniquement : le serveur revalide chaque écriture.
+   */
+  getPerimetre: async (): Promise<AffectationPerimetre> => {
+    const res = await axios.get<AffectationPerimetre>(`${BASE}/enseignant-competences/perimetre`);
+    return res.data;
   },
 
   getByEnseignant: async (enseignantId: Id): Promise<EnseignantCompetence[]> => {
@@ -232,14 +246,29 @@ const EnseignantCompetenceAPI = {
   },
 
   countByEnseignant: async (enseignantId: Id): Promise<number> => {
-    const res = await axios.get<number>(
+    const res = await axios.get<number | { count?: number }>(
       `${BASE}/enseignant-competences/enseignant/${enseignantId}/count`,
     );
-    return res.data;
+    // Le back renvoie une enveloppe {enseignantId, count} : extraire le nombre.
+    if (typeof res.data === 'number') return res.data;
+    return Number(res.data?.count ?? 0);
   },
 
   assign: async (request: AssignRequest): Promise<EnseignantCompetence> => {
     const res = await axios.post<EnseignantCompetence>(`${BASE}/enseignant-competences`, request);
+    return res.data;
+  },
+
+  /**
+   * Affecte en une seule requête tous les savoirs d'une compétence, d'une
+   * sous-compétence (et ses descendantes) ou d'une liste explicite de savoirs.
+   * Les savoirs déjà affectés sont conservés : l'appel est idempotent.
+   */
+  assignGroupee: async (request: AffectationGroupeeRequest): Promise<AffectationGroupeeResult> => {
+    const res = await axios.post<AffectationGroupeeResult>(
+      `${BASE}/enseignant-competences/groupee`,
+      request,
+    );
     return res.data;
   },
 

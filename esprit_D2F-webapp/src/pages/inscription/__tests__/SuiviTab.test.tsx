@@ -102,9 +102,6 @@ vi.mock('@/hooks/formation/useFormationExtras', () => ({
 vi.mock('@/hooks/formation/useFormations', () => ({
   useAllFormations: vi.fn(() => ({ data: formations })),
   useFormationsVisibles: vi.fn(() => ({ data: [] })),
-  useUpdateInscriptionsOuvertes: vi.fn(() => ({
-    mutateAsync: vi.fn().mockResolvedValue(undefined),
-  })),
   useFormationById: vi.fn(() => ({ data: undefined })),
 }));
 
@@ -131,7 +128,7 @@ describe('SuiviTab', () => {
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   });
 
-  it('renders sections and stats', () => {
+  it('renders stats and the per-formation demandes section', () => {
     vi.mocked(extras.useAllInscriptions).mockReturnValue({
       data: allInscriptions,
       isLoading: false,
@@ -140,14 +137,14 @@ describe('SuiviTab', () => {
     } as never);
     vi.mocked(forms.useAllFormations).mockReturnValue({ data: formations } as never);
     renderWith(queryClient);
-    expect(screen.getByText('État des inscriptions par formation')).toBeInTheDocument();
+    expect(screen.queryByText('État des inscriptions par formation')).not.toBeInTheDocument();
     expect(screen.getByText('Gestion des demandes par formation')).toBeInTheDocument();
     expect(screen.getAllByText('Python').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Java').length).toBeGreaterThan(0);
     expect(screen.getByText('3 résultats')).toBeInTheDocument();
   });
 
-  it('shows empty formation message when no formations', () => {
+  it('renders without the formation toggle grid even when no formations exist', () => {
     vi.mocked(extras.useAllInscriptions).mockReturnValue({
       data: allInscriptions,
       isLoading: false,
@@ -157,7 +154,9 @@ describe('SuiviTab', () => {
     vi.mocked(forms.useAllFormations).mockReturnValue({ data: [] } as never);
     vi.mocked(forms.useFormationsVisibles).mockReturnValue({ data: [] } as never);
     renderWith(queryClient);
-    expect(screen.getByText('Aucune formation trouvée.')).toBeInTheDocument();
+    expect(screen.queryByText('État des inscriptions par formation')).not.toBeInTheDocument();
+    expect(document.querySelector('.suv-formations-grid')).toBeNull();
+    expect(screen.getByText('Gestion des demandes par formation')).toBeInTheDocument();
   });
 
   it('shows loading state', () => {
@@ -217,28 +216,5 @@ describe('SuiviTab', () => {
     expect(btn).toBeTruthy();
     fireEvent.click(btn!);
     expect(refetch).toHaveBeenCalled();
-  });
-
-  it('toggles inscriptions open/closed on a formation', async () => {
-    const update = vi.fn().mockResolvedValue(undefined);
-    vi.mocked(forms.useUpdateInscriptionsOuvertes).mockReturnValue({
-      mutateAsync: update,
-    } as never);
-    const success = vi.fn();
-    vi.mocked(useAppNotification).mockReturnValue({
-      message: { success, error: vi.fn() },
-      modal: { confirm: vi.fn((opts: { onOk?: () => void }) => opts.onOk && opts.onOk()) },
-    } as never);
-    vi.mocked(extras.useAllInscriptions).mockReturnValue({
-      data: allInscriptions,
-      isLoading: false,
-      refetch: vi.fn(),
-      isFetching: false,
-    } as never);
-    vi.mocked(forms.useAllFormations).mockReturnValue({ data: formations } as never);
-    renderWith(queryClient);
-    const toggles = screen.getAllByText('Python');
-    fireEvent.click(toggles[0]);
-    await waitFor(() => expect(update).toHaveBeenCalledWith({ id: 'F1', ouvert: false }));
   });
 });

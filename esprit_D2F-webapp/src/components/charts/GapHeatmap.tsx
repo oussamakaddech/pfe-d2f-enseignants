@@ -162,7 +162,7 @@ const GapHeatmap = memo(function GapHeatmap({
         ),
       },
       {
-        title: 'Niveau Actuel',
+        title: 'Niveau couvert',
         dataIndex: 'niveau_actuel',
         key: 'niveau_actuel',
         width: 100,
@@ -180,7 +180,7 @@ const GapHeatmap = memo(function GapHeatmap({
         },
       },
       {
-        title: 'Niveau Requis',
+        title: 'Niveau exigé',
         dataIndex: 'niveau_requis',
         key: 'niveau_requis',
         width: 100,
@@ -188,7 +188,7 @@ const GapHeatmap = memo(function GapHeatmap({
         render: (v: number) => <Tag>{v}/5</Tag>,
       },
       {
-        title: 'Gap Score',
+        title: 'Écart de couverture',
         dataIndex: 'gap_score',
         key: 'gap_score',
         width: 100,
@@ -272,7 +272,7 @@ const GapHeatmap = memo(function GapHeatmap({
   );
 
   if (!data.length) {
-    return <Empty description="Aucune donnée de gap par département" />;
+    return <Empty description="Aucun écart de couverture par département" />;
   }
 
   return (
@@ -310,7 +310,9 @@ const GapHeatmap = memo(function GapHeatmap({
             <>
               <Space style={{ marginBottom: 16 }} size={16}>
                 <Tag color="blue">{drilldownData.nb_enseignants} enseignant(s)</Tag>
-                <Tag color="orange">Gap moyen: {(drilldownData.avg_gap * 100).toFixed(1)}%</Tag>
+                <Tag color="orange">
+                  Écart de couverture moyen : {(drilldownData.avg_gap * 100).toFixed(1)}%
+                </Tag>
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   Cliquez sur 👁 pour lancer une analyse individuelle
                 </Text>

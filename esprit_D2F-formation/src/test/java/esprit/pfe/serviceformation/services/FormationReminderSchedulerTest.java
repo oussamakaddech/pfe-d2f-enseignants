@@ -82,4 +82,23 @@ class FormationReminderSchedulerTest {
 
         verify(outlookMailService, atLeastOnce()).sendMail(eq("externe@test.tn"), anyString(), anyString());
     }
+
+    @Test
+    @DisplayName("sendDailyReminders - Pas de rappel pour une séance qui n'est pas la première")
+    void shouldNotRemindForLaterSeance() {
+        LocalDate today = LocalDate.now(ZoneId.of("Africa/Tunis"));
+        SeanceFormation premiere = new SeanceFormation();
+        premiere.setIdSeance(9L);
+        premiere.setFormation(formation);
+        premiere.setDateSeance(today);
+        premiere.setHeureDebut(LocalTime.of(9, 0));
+
+        when(seanceFormationRepository.findByDateSeance(any())).thenReturn(new ArrayList<>());
+        when(seanceFormationRepository.findByDateSeance(today.plusDays(1))).thenReturn(List.of(seance));
+        when(seanceFormationRepository.findByFormation_IdFormation(1L)).thenReturn(List.of(seance, premiere));
+
+        scheduler.sendDailyReminders();
+
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
+    }
 }

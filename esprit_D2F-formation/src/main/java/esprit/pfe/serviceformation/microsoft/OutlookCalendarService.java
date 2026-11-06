@@ -95,13 +95,9 @@ public class OutlookCalendarService {
 
         Event updatedEvent = new Event();
         updatedEvent.subject = params.getSubject();
-        updatedEvent.isOnlineMeeting = true;
-        updatedEvent.onlineMeetingProvider = OnlineMeetingProviderType.TEAMS_FOR_BUSINESS;
-
-        ItemBody body = new ItemBody();
-        body.contentType = BodyType.HTML;
-        body.content = params.getHtmlContent();
-        updatedEvent.body = body;
+        // Ni isOnlineMeeting ni body dans le PATCH : le corps contient le bloc de la
+        // réunion Teams ; le remplacer faisait perdre la réunion (isOnlineMeeting=false).
+        // Titre, horaires et lieu suffisent à refléter la modification.
 
         DateTimeTimeZone startTime = new DateTimeTimeZone();
         startTime.dateTime = params.getStart().toString();
@@ -140,6 +136,45 @@ public class OutlookCalendarService {
         
         String joinUrl = (patchedEvent.onlineMeeting != null) ? patchedEvent.onlineMeeting.joinUrl : null;
         return new EventCreationResult(params.getEventId(), joinUrl);
+    }
+
+    /**
+     * Crée (eventId null) ou met à jour l'événement d'une séance directement dans le
+     * calendrier de {@code params.organizerEmail} (la personne elle-même). Sans
+     * invités ni réunion Teams propre : Outlook n'envoie aucun e-mail.
+     *
+     * @return l'identifiant de l'événement (nouveau ou inchangé)
+     */
+    public String upsertPersonalEvent(OutlookEventParameters params) {
+        GraphServiceClient<Request> graphClient = graphProvider.getGraphClient();
+
+        Event event = new Event();
+        event.subject = params.getSubject();
+        ItemBody body = new ItemBody();
+        body.contentType = BodyType.HTML;
+        body.content = params.getHtmlContent();
+        event.body = body;
+        DateTimeTimeZone startTime = new DateTimeTimeZone();
+        startTime.dateTime = params.getStart().toString();
+        startTime.timeZone = TIMEZONE;
+        event.start = startTime;
+        DateTimeTimeZone endTime = new DateTimeTimeZone();
+        endTime.dateTime = params.getEnd().toString();
+        endTime.timeZone = TIMEZONE;
+        event.end = endTime;
+        Location location = new Location();
+        location.displayName = params.getSalle();
+        event.location = location;
+
+        try {
+            if (params.getEventId() == null) {
+                return graphClient.users(params.getOrganizerEmail()).events().buildRequest().post(event).id;
+            }
+            graphClient.users(params.getOrganizerEmail()).events(params.getEventId()).buildRequest().patch(event);
+            return params.getEventId();
+        } catch (Exception e) {
+            throw new IllegalStateException("Erreur calendrier personnel Outlook : " + e.getMessage(), e);
+        }
     }
 
     public void deleteEventInCalendar(String organizerEmail, String eventId) {

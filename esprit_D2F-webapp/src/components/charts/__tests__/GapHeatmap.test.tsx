@@ -64,7 +64,7 @@ describe('GapHeatmap', () => {
 
   it('renders empty state when no data', () => {
     render(<GapHeatmap data={[]} />);
-    expect(screen.getByText(/Aucune donnée de gap par département/i)).toBeInTheDocument();
+    expect(screen.getByText(/Aucun écart de couverture par département/i)).toBeInTheDocument();
   });
 
   it('renders department rows and competency columns', () => {

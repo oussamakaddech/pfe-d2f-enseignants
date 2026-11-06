@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({
   useHeatmap: vi.fn(),
 }));
 
-vi.mock('../hooks/useAnalyticsQueries', () => ({
+vi.mock('@/hooks/analytics/useAnalyticsQueries', () => ({
   useHeatmap: mocks.useHeatmap,
 }));
 

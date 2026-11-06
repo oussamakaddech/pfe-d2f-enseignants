@@ -28,7 +28,7 @@ import {
   SearchOutlined,
 } from '@ant-design/icons';
 import { useFormationsByAnimateur } from '@/hooks/presence/usePresence';
-import { ROLES } from '@/utils/constants/roles';
+import { hasAnyRole, ROLES } from '@/utils/constants/roles';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { AppPageHeader } from '@/components/common';
 import '@/styles/pages/formation-list.css';
@@ -78,12 +78,18 @@ const FormationList = () => {
   const [titleFilter, setTitleFilter] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
   const [upFilter, setUpFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  // Par défaut : seules les formations PLANIFIEES sont affichées (les ENREGISTRE
+  // ne sont pas encore prêtes à animer ; EN_COURS/ACHEVE restent accessibles
+  // en effaçant le filtre — l'animateur doit pouvoir finaliser les présences).
+  const [statusFilter, setStatusFilter] = useState('PLANIFIE');
   const [startDate, setStartDate] = useState<Dayjs | null>(null);
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
   const navigate = useNavigate();
 
-  const isFormateurLike = user?.role === ROLES.ENSEIGNANT || user?.role === ROLES.ANIMATEUR;
+  // Le scope JWT peut être composé/préfixé (ex. "ROLE_ANIMATEUR") : comparer via
+  // hasAnyRole (token-aware) et non une égalité stricte, sinon la requête reste
+  // désactivée et la page affiche une liste vide.
+  const isFormateurLike = hasAnyRole(user?.role, [ROLES.ENSEIGNANT, ROLES.ANIMATEUR]);
   const { data: parAnimateur = [], isLoading: loading } = useFormationsByAnimateur(isFormateurLike);
   const formations = parAnimateur as FormationItem[];
 
@@ -124,7 +130,7 @@ const FormationList = () => {
     setTitleFilter('');
     setDeptFilter('');
     setUpFilter('');
-    setStatusFilter('');
+    setStatusFilter('PLANIFIE');
     setStartDate(null);
     setEndDate(null);
   };

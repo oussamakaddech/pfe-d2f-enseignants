@@ -97,6 +97,22 @@ public class FormationWorkflowRequest {
     private String responsableEmail;
     private String responsableName;
 
+    /**
+     * Choix de l'écran de modification : faut-il prévenir les animateurs et les
+     * participants par e-mail après l'enregistrement ?
+     * <ul>
+     *   <li>{@code true} — un seul e-mail « Formation modifiée » à tous les
+     *       animateurs et participants ;</li>
+     *   <li>{@code false} — aucun e-mail (même pour une personne ajoutée ou
+     *       retirée) ;</li>
+     *   <li>{@code null} — comportement historique : seule la personne ajoutée
+     *       ou retirée est prévenue.</li>
+     * </ul>
+     * Sans effet lorsque l'état de la formation change : la notification de
+     * transition s'en charge déjà.
+     */
+    private Boolean notifierActeurs;
+
     @Data
     public static class SeanceRequest {
         private Long idSeance;

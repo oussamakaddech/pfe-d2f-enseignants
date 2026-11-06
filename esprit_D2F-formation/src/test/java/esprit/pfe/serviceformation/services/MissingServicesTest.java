@@ -1,6 +1,8 @@
 package esprit.pfe.serviceformation.services;
 
 import esprit.pfe.serviceformation.repositories.DeptRepository;
+import esprit.pfe.serviceformation.repositories.EnseignantRepository;
+import esprit.pfe.serviceformation.repositories.FormationRepository;
 import esprit.pfe.serviceformation.repositories.PresenceRepository;
 import esprit.pfe.serviceformation.repositories.SeanceFormationRepository;
 import esprit.pfe.serviceformation.repositories.UpRepository;
@@ -35,6 +37,8 @@ class MissingServicesTest {
 
     @Mock private SeanceFormationRepository seanceRepo;
     @Mock private PresenceRepository presenceRepo;
+    @Mock private FormationRepository formationRepo;
+    @Mock private EnseignantRepository enseignantRepo;
     @InjectMocks private FormationReportService formationReportService;
 
     @Test
@@ -91,6 +95,8 @@ class MissingServicesTest {
         LocalDate start = LocalDate.now();
         LocalDate end = LocalDate.now();
         when(seanceRepo.findFormationsByAnimateurAndPeriod(anyString(), any(), any())).thenReturn(Collections.emptyList());
+        when(formationRepo.findFormationsByAnimateurAndPeriod(anyString(), any(), any(), any()))
+                .thenReturn(Collections.emptyList());
 
         List<Object> results = formationReportService.getFormationsParRoleEtPeriode("animateur", "E1", start, end);
         
@@ -104,6 +110,11 @@ class MissingServicesTest {
         LocalDate start = LocalDate.now();
         LocalDate end = LocalDate.now();
         when(presenceRepo.findFormationsByParticipantAndPeriod(anyString(), any(), any())).thenReturn(Collections.emptyList());
+        when(seanceRepo.findFormationsBySeanceParticipantAndPeriod(anyString(), any(), any()))
+                .thenReturn(Collections.emptyList());
+        when(formationRepo.findFormationsByInscriptionAndPeriod(anyString(), any(), any(), any()))
+                .thenReturn(Collections.emptyList());
+        when(enseignantRepo.findById(anyString())).thenReturn(java.util.Optional.empty());
 
         List<Object> results = formationReportService.getFormationsParRoleEtPeriode("participant", "E1", start, end);
         

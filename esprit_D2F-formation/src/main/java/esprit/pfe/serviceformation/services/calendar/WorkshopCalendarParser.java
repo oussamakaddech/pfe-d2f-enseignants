@@ -129,7 +129,7 @@ public class WorkshopCalendarParser {
         }
 
         LocalTime[] slot = readTimeSlot(row, columns.timeSlot);
-        if (slot == null) {
+        if (slot.length < 2) {
             result.getErrors().add(ImportRowErrorDTO.error(humanRow, "créneau",
                     "Créneau horaire manquant ou mal formé : « " + text(row, columns.timeSlot) + " »."));
             return lastDate;

@@ -90,6 +90,11 @@ public class SousCompetenceServiceImpl implements ISousCompetenceService {
         Competence competence = competenceRepository.findById(competenceId)
                 .orElseThrow(() -> new EntityNotFoundException("Compétence non trouvée avec l'id: " + competenceId));
 
+        if (savoirRepository.existsByCompetenceId(competenceId)) {
+            throw new IllegalArgumentException(
+                    "Impossible d'ajouter une sous-compétence: cette compétence contient déjà des savoirs directs.");
+        }
+
         validateCodePrefix(request.getCode(), competence.getCode());
         validateUniqueCode(request.getCode(), null);
 

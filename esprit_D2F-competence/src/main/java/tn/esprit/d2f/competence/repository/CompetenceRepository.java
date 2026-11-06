@@ -45,12 +45,25 @@ public interface CompetenceRepository extends JpaRepository<Competence, Long> {
     @Query("SELECT c FROM Competence c WHERE c.domaine.id = :domaineId AND (LOWER(c.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(c.code) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     List<Competence> searchByDomaineIdAndKeyword(@Param("domaineId") Long domaineId, @Param("keyword") String keyword);
 
-    // ─── Filtres UP / Département (via Domaine) ───────────────────────────────
+    // ─── Filtres UP / Département (portés par la compétence, V24) ─────────────
+    //
+    // Un filtre est satisfait si la compétence porte la valeur demandée. Une
+    // compétence encore sans rattachement explicite retombe sur les colonnes
+    // historiques de son domaine (`domaines.up_id` / `departement_id`), ce qui
+    // préserve le comportement des référentiels créés avant la V24.
 
-    @Query("SELECT c FROM Competence c JOIN FETCH c.domaine d WHERE (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)")
+    String FILTER_UP = "(:upId IS NULL OR :upId MEMBER OF c.upIds"
+            + " OR (c.upIds IS EMPTY AND d.upId = :upId))";
+    String FILTER_DEPT = "(:departementId IS NULL OR :departementId MEMBER OF c.departementIds"
+            + " OR (c.departementIds IS EMPTY AND d.departementId = :departementId))";
+
+    @Query("SELECT c FROM Competence c JOIN FETCH c.domaine d WHERE "
+            + FILTER_UP + " AND " + FILTER_DEPT)
     List<Competence> findByDomaine_UpIdAndDomaine_DepartementId(@Param("upId") String upId, @Param("departementId") String departementId);
 
-    @Query(value = "SELECT c FROM Competence c JOIN FETCH c.domaine d WHERE (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)",
-           countQuery = "SELECT COUNT(c) FROM Competence c JOIN c.domaine d WHERE (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)")
+    @Query(value = "SELECT c FROM Competence c JOIN FETCH c.domaine d WHERE "
+            + FILTER_UP + " AND " + FILTER_DEPT,
+           countQuery = "SELECT COUNT(c) FROM Competence c JOIN c.domaine d WHERE "
+            + FILTER_UP + " AND " + FILTER_DEPT)
     Page<Competence> findByDomaine_UpIdAndDomaine_DepartementId(@Param("upId") String upId, @Param("departementId") String departementId, Pageable pageable);
 }

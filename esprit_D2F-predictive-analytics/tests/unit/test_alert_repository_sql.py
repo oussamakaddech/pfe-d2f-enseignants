@@ -159,6 +159,57 @@ def test_count_open_by_severity_defaults_zeros():
     assert repo.count_open_by_severity() == {"CRITICAL": 0, "WARNING": 0, "INFO": 0}
 
 
+def test_list_alerts_with_since_days_filters_recency():
+    db = _ScriptedDb([
+        _Result(rows=[{"total": 1}]),
+        _Result(rows=[ROW]),
+    ])
+    repo = SqlAlertRepository(db)
+    alerts, total = repo.list_alerts(page=1, size=10, since_days=7)
+    assert total == 1
+    assert len(alerts) == 1
+    assert any("make_interval(days => :since_days)" in stmt for stmt in db.executed)
+
+
+def test_list_alerts_without_since_days_has_no_recency_filter():
+    db = _ScriptedDb([
+        _Result(rows=[{"total": 0}]),
+        _Result(rows=[]),
+    ])
+    repo = SqlAlertRepository(db)
+    repo.list_alerts(page=1, size=5)
+    assert all("since_days" not in stmt for stmt in db.executed)
+
+
+def test_count_open_by_severity_with_since_days():
+    repo = _repo([_Result(rows=[{"bucket": "CRITICAL", "n": 2}])])
+    assert repo.count_open_by_severity(since_days=30) == {"CRITICAL": 2, "WARNING": 0, "INFO": 0}
+
+
+def test_list_alerts_with_type_and_bucket_filters():
+    db = _ScriptedDb([
+        _Result(rows=[{"total": 1}]),
+        _Result(rows=[ROW]),
+    ])
+    repo = SqlAlertRepository(db)
+    alerts, total = repo.list_alerts(page=1, size=10, alert_type="gap_critique", severity_bucket="critical")
+    assert total == 1
+    assert len(alerts) == 1
+    assert "type_alerte = :type_alerte" in db.executed[-1]
+    assert "UPPER(severite) IN ('CRITIQUE', 'CRITICAL')" in db.executed[-1]
+
+
+def test_list_alerts_with_unknown_bucket_ignores_bucket():
+    db = _ScriptedDb([
+        _Result(rows=[{"total": 0}]),
+        _Result(rows=[]),
+    ])
+    repo = SqlAlertRepository(db)
+    alerts, total = repo.list_alerts(page=1, size=5, severity_bucket="UNKNOWN")
+    assert total == 0
+    assert all("UPPER(severite)" not in stmt for stmt in db.executed)
+
+
 def test_list_open_since_returns_alerts():
     repo = _repo([_Result(rows=[ROW])])
     alerts = repo.list_open_since(cutoff_days=30)
@@ -185,3 +236,55 @@ def test_map_row_with_null_details():
     repo = _repo([])
     alert = repo._map_row(dict(ROW, details_json=None))
     assert alert.details is None
+
+
+class _CapturingDb:
+    """Capture les paramètres liés : les doublures scriptées ne les voyaient pas."""
+
+    def __init__(self, returning):
+        self.calls: list[tuple[str, dict]] = []
+        self._returning = returning
+
+    @contextmanager
+    def session(self):
+        db = self
+
+        class _Conn:
+            def execute(self, stmt, params=None):
+                db.calls.append((str(stmt), params or {}))
+                return _Result(rows=[db._returning])
+
+        yield _Conn()
+
+
+def _assert_psycopg2_can_bind(params):
+    from psycopg2.extensions import adapt
+
+    for value in params.values():
+        adapt(value)  # lève « can't adapt type 'dict' » sur un dict brut
+
+
+def test_jsonb_columns_are_serialized_for_psycopg2():
+    from app.domain.entities.training_need import TrainingNeed
+    from app.infrastructure.repositories.analyse.dashboard_repository import SqlDashboardRepository
+    from app.infrastructure.repositories.analyse.training_need_repository import (
+        SqlTrainingNeedRepository,
+    )
+
+    db = _CapturingDb({"id": 1, "created_at": datetime(2026, 1, 1), "detected_at": datetime(2026, 1, 1)})
+    SqlAlertRepository(db).save(
+        Alert(alert_type="GAP_CRITIQUE", target_type="ENSEIGNANT", severity="CRITIQUE",
+              title="t", message="m", teacher_id="ENS900", details={"gap_score": 1.0})
+    )
+    SqlTrainingNeedRepository(db).save(
+        TrainingNeed(need_type="INDIVIDUAL", competence_id=16, competence_code="INFO.PROG",
+                     competence_nom="Prog", scope_type="ENSEIGNANT", scope_id="ENS900",
+                     teachers_count=1, evidence={"gap_score": 1.0})
+    )
+    SqlDashboardRepository(db).save_snapshot("GLOBAL", None, {"coverage_rate": 0.5})
+
+    assert len(db.calls) == 3
+    for sql, params in db.calls:
+        _assert_psycopg2_can_bind(params)
+        assert "AS jsonb" in sql
+    assert db.calls[0][1]["details_json"] == '{"gap_score": 1.0}'

@@ -359,6 +359,8 @@ class TestReferentialManager:
 class TestLoadRefFromDbNonGC:
     def test_load_ref_from_db_non_gc(self, monkeypatch):
         ref._REF_DB_CACHE.clear()
+        # Chemin historique public.ref_* : le référentiel officiel est absent.
+        monkeypatch.setattr(ref, "_load_ref_from_competence_schema", lambda d: None)
         cur = MagicMock()
         cur.fetchone.side_effect = [(True,), (True,), (True,), (True,)]
         cur.fetchall.side_effect = [

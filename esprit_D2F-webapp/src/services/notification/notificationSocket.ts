@@ -137,7 +137,8 @@ const MOCK_POOL: NotificationSocketMessage[] = [
     type: 'COMPETENCE',
     severity: 'success',
     title: 'Compétence acquise',
-    message: 'La compétence « Gestion de projet agile » a été ajoutée à votre Skill Passport.',
+    message:
+      'La compétence « Gestion de projet agile » a été ajoutée à votre fiche compétence enseignant.',
     link: '/home/skill-passport',
     actor: 'Système',
   },

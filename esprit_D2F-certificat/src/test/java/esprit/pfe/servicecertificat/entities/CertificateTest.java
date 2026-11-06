@@ -56,10 +56,23 @@ class CertificateTest {
 
     @Test
     void certificate_AllArgsConstructor() {
-        Certificate cert = new Certificate(1L, 10L, "Java Training", "ATTESTATION",
-                LocalDate.of(2025, Month.JANUARY, 1), LocalDate.of(2025, Month.JANUARY, 5), 40,
-                "E001", "Doe", "John", "john@esprit.tn", "Informatique", "ANIMATEUR",
-                false, "/certs/cert.pdf", null);
+        Certificate cert = Certificate.builder()
+                .idCertificate(1L)
+                .formationId(10L)
+                .titreFormation("Java Training")
+                .typeCertif("ATTESTATION")
+                .dateDebutFormation(LocalDate.of(2025, Month.JANUARY, 1))
+                .dateFinFormation(LocalDate.of(2025, Month.JANUARY, 5))
+                .chargeHoraireGlobal(40)
+                .enseignantId("E001")
+                .nomEnseignant("Doe")
+                .prenomEnseignant("John")
+                .mailEnseignant("john@esprit.tn")
+                .deptEnseignant("Informatique")
+                .roleEnFormation("ANIMATEUR")
+                .delivered(false)
+                .pdfFilePath("/certs/cert.pdf")
+                .build();
 
         assertEquals(1L, cert.getIdCertificate());
         assertEquals("Java Training", cert.getTitreFormation());

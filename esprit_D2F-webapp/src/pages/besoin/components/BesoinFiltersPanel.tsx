@@ -18,8 +18,10 @@ const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 const STATUS_OPTIONS = [
+  { value: 'a_valider', label: 'À valider par moi' },
   { value: 'approuve', label: 'Approuvé' },
   { value: 'en_attente', label: 'En attente' },
+  { value: 'rejete', label: 'Refusé' },
 ];
 
 const PRIORITY_OPTIONS = [

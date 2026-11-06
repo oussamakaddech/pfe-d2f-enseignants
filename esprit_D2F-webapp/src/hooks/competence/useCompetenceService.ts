@@ -1,10 +1,13 @@
 import CompetenceService from '@/services/competence/CompetenceService';
 export type {
-  TreeNode,
-  NiveauDefinition,
-  EnseignantCompetence,
+  AffectationGroupeeRequest,
+  AffectationGroupeeResult,
   AssignRequest,
+  EnseignantCompetence,
+  NiveauDefinition,
+  PerimetreAffectation,
   PrerequisiteRequest,
+  TreeNode,
 } from '@/models/competence';
 
 export function useCompetenceDomaineApi() {

@@ -43,7 +43,11 @@ class FormationWorkflowControllerEnhancedTest {
     @BeforeEach
     void setup() {
         lenient().when(formationMapper.toResponseDTO(any())).thenReturn(new FormationResponseDTO());
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).setCustomArgumentResolvers(new org.springframework.data.web.PageableHandlerMethodArgumentResolver()).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setCustomArgumentResolvers(
+                        new org.springframework.data.web.PageableHandlerMethodArgumentResolver(),
+                        new org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver())
+                .build();
     }
 
     @Test
@@ -215,7 +219,7 @@ class FormationWorkflowControllerEnhancedTest {
     @Test
     @DisplayName("updatePresence - Devrait mettre à jour une présence")
     void testUpdatePresence_Success() throws Exception {
-        doNothing().when(formationWorkflowService).updatePresence(1L, true, "OK");
+        doNothing().when(formationWorkflowService).updatePresence(eq(1L), eq(true), eq("OK"), any());
 
         mockMvc.perform(put("/api/v1/formations-workflow/presence/1")
                 .param("present", "true")
@@ -223,14 +227,14 @@ class FormationWorkflowControllerEnhancedTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string("Presence mise a jour avec succes !"));
 
-        verify(formationWorkflowService).updatePresence(1L, true, "OK");
+        verify(formationWorkflowService).updatePresence(eq(1L), eq(true), eq("OK"), any());
     }
 
     @Test
     @DisplayName("updatePresence - Devrait gérer l'erreur")
     void testUpdatePresence_Error() throws Exception {
         doThrow(new RuntimeException("Erreur de mise à jour"))
-                .when(formationWorkflowService).updatePresence(1L, true, "OK");
+                .when(formationWorkflowService).updatePresence(eq(1L), eq(true), eq("OK"), any());
 
         mockMvc.perform(put("/api/v1/formations-workflow/presence/1")
                 .param("present", "true")

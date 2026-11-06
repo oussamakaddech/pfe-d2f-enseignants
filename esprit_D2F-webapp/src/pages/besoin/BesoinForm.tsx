@@ -47,7 +47,7 @@ const STEPS_META = [
   {
     key: 'competences',
     title: 'Compétences',
-    subtitle: 'Référentiel RICE',
+    subtitle: 'Liste des compétences',
     icon: <NodeIndexOutlined />,
   },
   {
@@ -114,6 +114,7 @@ export default function BesoinForm() {
                   onClick={() => {
                     ctx.setSubmitted(false);
                     ctx.form.resetFields();
+                    ctx.applyCreationLocks();
                     ctx.setCurrentStep(0);
                   }}
                 >
@@ -143,12 +144,15 @@ export default function BesoinForm() {
       key="contexte"
       ups={ctx.ups}
       departements={ctx.departements}
-      canManageParticipants={ctx.canManageParticipants}
       participantsCount={ctx.participantsCount}
       lastImportCount={ctx.lastImportCount}
       participantsFileInputRef={ctx.participantsFileInputRef}
       onImportExcel={ctx.importParticipantsFromExcel}
       onClearParticipants={ctx.clearParticipants}
+      lockedType={ctx.lockedType}
+      lockedUp={ctx.lockedUp}
+      lockedDepartement={ctx.lockedDepartement}
+      scopeMissing={(ctx.isCupCreator || ctx.isChefCreator) && !ctx.scopeLoading && !ctx.myScope}
     />,
     <BesoinFormationStep key="formation" />,
     <BesoinDetailsStep
@@ -163,11 +167,14 @@ export default function BesoinForm() {
       compCompetences={ctx.compCompetences}
       selectedCompLinks={ctx.selectedCompLinks}
       setSelectedCompLinks={ctx.setSelectedCompLinks}
+      rowSousCompetences={ctx.rowSousCompetences}
       rowSavoirs={ctx.rowSavoirs}
       setRowSavoirs={ctx.setRowSavoirs}
       compSearch={ctx.compSearch}
       setCompSearch={ctx.setCompSearch}
       onCompetenceChange={ctx.handleCompetenceChange}
+      onSousCompetencesChange={ctx.handleSousCompetencesChange}
+      onSavoirsChange={ctx.handleSavoirsChange}
     />,
     <BesoinParametresStep key="parametres" />,
   ];
@@ -256,7 +263,15 @@ export default function BesoinForm() {
         <Form
           form={ctx.form}
           layout="vertical"
-          onFinish={ctx.handleSubmit}
+          // Pas d'onFinish : l'enregistrement ne part que du bouton du récapitulatif.
+          // Entrée dans un champ = « Suivant » (sinon le besoin était enregistré à
+          // n'importe quelle étape).
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
+              e.preventDefault();
+              if (!isSummary) void ctx.next();
+            }
+          }}
           autoComplete="off"
           preserve={true}
           className="bf-form"
@@ -342,7 +357,6 @@ export default function BesoinForm() {
             <Button
               type="primary"
               size="large"
-              htmlType="submit"
               icon={<SaveOutlined />}
               loading={ctx.submitting}
               onClick={ctx.handleSubmit}

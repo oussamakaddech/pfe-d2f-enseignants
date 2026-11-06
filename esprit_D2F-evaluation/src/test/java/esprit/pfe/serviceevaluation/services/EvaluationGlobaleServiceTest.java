@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -16,9 +17,13 @@ import org.mockito.quality.Strictness;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -32,6 +37,9 @@ class EvaluationGlobaleServiceTest {
 
     @Mock
     private EvaluationGlobaleRepository evaluationGlobaleRepository;
+
+    @Mock
+    private esprit.pfe.serviceevaluation.client.FormationClient formationClient;
 
     @InjectMocks
     private EvaluationGlobaleService evaluationGlobaleService;
@@ -70,7 +78,7 @@ class EvaluationGlobaleServiceTest {
             when(evaluationGlobaleRepository.existsByFormationId(1L)).thenReturn(false);
             when(evaluationGlobaleRepository.save(any(EvaluationGlobale.class))).thenReturn(evaluationGlobale);
 
-            EvaluationGlobaleDTO result = evaluationGlobaleService.createEvaluationGlobale(evaluationGlobaleDTO);
+            EvaluationGlobaleDTO result = evaluationGlobaleService.createEvaluationGlobale(evaluationGlobaleDTO, "admin@test.com", "ROLE_ADMIN");
 
             assertThat(result)
                     .isNotNull()
@@ -87,7 +95,7 @@ class EvaluationGlobaleServiceTest {
         void shouldThrowExceptionWhenDuplicateEvaluation() {
             when(evaluationGlobaleRepository.existsByFormationId(1L)).thenReturn(true);
 
-            assertThatThrownBy(() -> evaluationGlobaleService.createEvaluationGlobale(evaluationGlobaleDTO))
+            assertThatThrownBy(() -> evaluationGlobaleService.createEvaluationGlobale(evaluationGlobaleDTO, "admin@test.com", "ROLE_ADMIN"))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("évaluation globale existe déjà");
         }
@@ -119,7 +127,7 @@ class EvaluationGlobaleServiceTest {
             when(evaluationGlobaleRepository.findById(1L)).thenReturn(Optional.of(evaluationGlobale));
             when(evaluationGlobaleRepository.save(any(EvaluationGlobale.class))).thenReturn(updatedEntity);
 
-            EvaluationGlobaleDTO result = evaluationGlobaleService.updateEvaluationGlobale(1L, updateRequest);
+            EvaluationGlobaleDTO result = evaluationGlobaleService.updateEvaluationGlobale(1L, updateRequest, "admin@test.com", "ROLE_ADMIN");
 
             assertThat(result)
                     .isNotNull()
@@ -170,12 +178,77 @@ class EvaluationGlobaleServiceTest {
     }
 
     @Nested
+    @DisplayName("createEvaluationGlobale() — règles par rôle")
+    class CreateRoles {
+
+        @Test
+        @DisplayName("CUP évalue sans participation (pilotage)")
+        void cupBypassParticipation() {
+            when(evaluationGlobaleRepository.existsByFormationId(1L)).thenReturn(false);
+            when(evaluationGlobaleRepository.save(any(EvaluationGlobale.class))).thenReturn(evaluationGlobale);
+
+            EvaluationGlobaleDTO result = evaluationGlobaleService.createEvaluationGlobale(
+                    evaluationGlobaleDTO, "cup@test.com", "ROLE_CUP");
+
+            assertThat(result).isNotNull();
+            verify(formationClient, never()).isParticipantOfFormation(anyLong(), anyString());
+        }
+
+        @Test
+        @DisplayName("CHEF_DEPARTEMENT évalue sans participation (pilotage)")
+        void chefBypassParticipation() {
+            when(evaluationGlobaleRepository.existsByFormationId(1L)).thenReturn(false);
+            when(evaluationGlobaleRepository.save(any(EvaluationGlobale.class))).thenReturn(evaluationGlobale);
+
+            EvaluationGlobaleDTO result = evaluationGlobaleService.createEvaluationGlobale(
+                    evaluationGlobaleDTO, "chef@test.com", "ROLE_CHEF_DEPARTEMENT");
+
+            assertThat(result).isNotNull();
+            verify(formationClient, never()).isParticipantOfFormation(anyLong(), anyString());
+        }
+
+        @Test
+        @DisplayName("enseignant inscrit évalue (participant)")
+        void inscritCanEvaluate() {
+            when(evaluationGlobaleRepository.existsByFormationId(1L)).thenReturn(false);
+            when(formationClient.isParticipantOfFormation(1L, "ens@test.com")).thenReturn(true);
+            when(evaluationGlobaleRepository.save(any(EvaluationGlobale.class))).thenReturn(evaluationGlobale);
+
+            EvaluationGlobaleDTO result = evaluationGlobaleService.createEvaluationGlobale(
+                    evaluationGlobaleDTO, "ens@test.com", "ROLE_ENSEIGNANT");
+
+            assertThat(result).isNotNull();
+        }
+
+        @Test
+        @DisplayName("outsider refusé avec message métier")
+        void outsiderDenied() {
+            when(formationClient.isParticipantOfFormation(1L, "out@test.com")).thenReturn(false);
+
+            assertThatThrownBy(() -> evaluationGlobaleService.createEvaluationGlobale(
+                    evaluationGlobaleDTO, "out@test.com", "ROLE_ENSEIGNANT"))
+                    .isInstanceOf(SecurityException.class)
+                    .hasMessageContaining("participer");
+        }
+
+        @Test
+        @DisplayName("responsable dossier exclu")
+        void responsableExcluded() {
+            assertThatThrownBy(() -> evaluationGlobaleService.createEvaluationGlobale(
+                    evaluationGlobaleDTO, "rd@test.com", "ROLE_RESPONSABLE_DOSSIER"))
+                    .isInstanceOf(SecurityException.class)
+                    .hasMessageContaining("responsable dossier");
+        }
+    }
+
+    @Nested
     @DisplayName("getAllEvaluationGlobales()")
     class GetAll {
 
         @Test
         @DisplayName("retourne toutes les évaluations globales")
         void shouldGetAllEvaluations() {
+            asRole("admin", "ROLE_ADMIN");
             Page<EvaluationGlobale> evaluations = new PageImpl<>(List.of(evaluationGlobale));
             when(evaluationGlobaleRepository.findAll(any(Pageable.class))).thenReturn(evaluations);
 
@@ -186,5 +259,61 @@ class EvaluationGlobaleServiceTest {
                     .hasSize(1);
             verify(evaluationGlobaleRepository, times(1)).findAll(any(Pageable.class));
         }
+    }
+
+    @Nested
+    @DisplayName("getAllEvaluationGlobales() — périmètre par rôle")
+    class GetAllScope {
+
+        @Test
+        @DisplayName("animateur voit tout")
+        void animateurSeesAll() {
+            asRole("anim", "ROLE_ANIMATEUR");
+            Page<EvaluationGlobale> evaluations = new PageImpl<>(List.of(evaluationGlobale));
+            when(evaluationGlobaleRepository.findAll(any(Pageable.class))).thenReturn(evaluations);
+
+            Page<EvaluationGlobaleDTO> result = evaluationGlobaleService.getAllEvaluationGlobales(Pageable.ofSize(10));
+
+            assertThat(result).hasSize(1);
+            verify(evaluationGlobaleRepository, never()).findByEnseignantId(anyString(), any(Pageable.class));
+        }
+
+        @Test
+        @DisplayName("enseignant ne voit que ses évaluations")
+        void enseignantSeesOwn() {
+            asRole("e@t.tn", "ROLE_ENSEIGNANT");
+            when(formationClient.getEnseignantById("e@t.tn")).thenReturn(Map.of("id", "ENS001"));
+            when(evaluationGlobaleRepository.findByEnseignantId(eq("ENS001"), any(Pageable.class)))
+                    .thenReturn(new PageImpl<>(List.of(evaluationGlobale)));
+
+            Page<EvaluationGlobaleDTO> result = evaluationGlobaleService.getAllEvaluationGlobales(Pageable.ofSize(10));
+
+            assertThat(result).hasSize(1);
+            verify(evaluationGlobaleRepository, never()).findAll(any(Pageable.class));
+        }
+
+        @Test
+        @DisplayName("sans fiche : liste vide (deny-by-default)")
+        void unknownSeesNothing() {
+            asRole("ghost@t.tn", "ROLE_ENSEIGNANT");
+            when(formationClient.getEnseignantById("ghost@t.tn")).thenReturn(null);
+
+            Page<EvaluationGlobaleDTO> result = evaluationGlobaleService.getAllEvaluationGlobales(Pageable.ofSize(10));
+
+            assertThat(result).isEmpty();
+            verify(evaluationGlobaleRepository, never()).findAll(any(Pageable.class));
+            verify(evaluationGlobaleRepository, never()).findByEnseignantId(anyString(), any(Pageable.class));
+        }
+    }
+
+    private static void asRole(String username, String role) {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(username, null,
+                        List.of(new SimpleGrantedAuthority(role))));
+    }
+
+    @AfterEach
+    void clearSecurity() {
+        SecurityContextHolder.clearContext();
     }
 }

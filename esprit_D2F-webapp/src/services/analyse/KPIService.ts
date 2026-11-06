@@ -7,6 +7,7 @@ import type {
   FormationsByType,
   CountByTrainerTypeWithIds,
   CountByLabel,
+  FormateursKpi,
 } from '@/models/analyse/kpi';
 import type { Enseignant } from '@/models/enseignant';
 
@@ -75,6 +76,25 @@ const KPIService = {
     } catch (error: unknown) {
       if (isNotFoundError(error)) {
         return 0;
+      }
+      throw error;
+    }
+  },
+
+  async getFormateurs(start: string, end: string): Promise<FormateursKpi> {
+    try {
+      const response = await axios.get(`${API_URL}/formateurs`, {
+        params: { start, end },
+      });
+      const data = response.data ?? {};
+      return {
+        total: data.total ?? 0,
+        internes: data.internes ?? 0,
+        externes: data.externes ?? 0,
+      };
+    } catch (error: unknown) {
+      if (isNotFoundError(error)) {
+        return { total: 0, internes: 0, externes: 0 };
       }
       throw error;
     }

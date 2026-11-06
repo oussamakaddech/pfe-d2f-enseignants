@@ -1,0 +1,150 @@
+/* Questionnaire de satisfaction des formations (présentation proche de Microsoft Forms). */
+.qe-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0 32px;
+}
+
+.qe-page--center {
+  min-height: 320px;
+  justify-content: center;
+}
+
+.qe-form {
+  width: 100%;
+  max-width: 920px;
+  border-top: 6px solid var(--color-primary, #b51200);
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgb(15 23 42 / 8%);
+}
+
+.qe-form__title {
+  margin: 0 0 4px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.qe-form__subtitle {
+  margin: 0 0 24px;
+  color: var(--color-text-secondary, #64748b);
+}
+
+.qe-question {
+  margin-bottom: 28px;
+}
+
+.qe-question__label {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.qe-required {
+  color: var(--color-primary, #b51200);
+}
+
+.qe-matrix-wrapper {
+  overflow-x: auto;
+}
+
+.qe-matrix {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: separate;
+  border-spacing: 0 6px;
+}
+
+.qe-matrix thead th {
+  padding: 6px 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary, #475569);
+  text-align: center;
+  vertical-align: bottom;
+}
+
+.qe-matrix tbody th {
+  padding: 12px 16px;
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.qe-matrix tbody tr {
+  background: #f8fafc;
+}
+
+.qe-matrix tbody tr:nth-child(even) {
+  background: #f1f5f9;
+}
+
+.qe-matrix tbody th:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.qe-matrix tbody td {
+  text-align: center;
+}
+
+.qe-matrix tbody td:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.qe-matrix .ant-radio-wrapper {
+  margin-inline-end: 0;
+}
+
+.qe-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.qe-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.qe-hint {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--color-text-secondary, #64748b);
+}
+
+.qe-result {
+  width: 100%;
+  max-width: 920px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 10px;
+}
+
+.qe-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.qe-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 4px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.qe-list__item:last-child {
+  border-bottom: none;
+}
+
+.qe-list__title {
+  font-weight: 500;
+}
+
+.qe-list__meta {
+  font-size: 13px;
+  color: var(--color-text-secondary, #64748b);
+}

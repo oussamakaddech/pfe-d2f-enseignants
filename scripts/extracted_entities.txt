@@ -1,0 +1,665 @@
+
+======================================================================
+SERVICE: esprit_D2F-analyse
+======================================================================
+Entities count: 0
+
+  Enums (7):
+    - ActionStatus: OPEN, IN_PROGRESS, DONE, DISMISSED
+    - AlertSeverity: INFO, WARNING, CRITICAL
+    - AlertStatus: NEW, ACKNOWLEDGED, IN_PROGRESS, RESOLVED
+    - DataQualityStatus: CALCULATED, INSUFFICIENT_DATA, NO_DATA
+    - RecommendationStatus: PROPOSED, ACCEPTED, REJECTED, COMPLETED
+    - RiskLevel: LOW, MODERATE, HIGH, CRITICAL
+    - RiskTrend: IMPROVING, STABLE, WORSENING
+
+======================================================================
+SERVICE: esprit_D2F-api-gateway
+======================================================================
+Entities count: 0
+
+======================================================================
+SERVICE: esprit_D2F-authentification
+======================================================================
+Entities count: 5
+
+  >>> Class: AuditLog
+      - id : Long  [@Id]
+      - username : String  [@Column(nullable = false)]
+      - action : String  [@Column(nullable = false)]
+      - resource : String  [@Column(nullable = false)]
+      - status : String  [@Column(nullable = false)]
+      - details : String  [@Column(length = 500)]
+      - ipAddress : String  [@Column(name = "ip_address")]
+      - timestamp : LocalDateTime  [@Column(nullable = false)]
+
+  >>> Class: BaseAuditEntity [MappedSuperclass]
+      - createdAt : LocalDateTime  [@Column(name = "created_at", updatable = false)]
+      - updatedAt : LocalDateTime  [@Column(name = "updated_at")]
+      - createdBy : String  [@Column(name = "created_by", updatable = false, length = 150)]
+      - updatedBy : String  [@Column(name = "updated_by", length = 150)]
+      - version : Long
+
+  >>> Class: ConfirmationKey extends BaseAuditEntity
+      - id : Long  [@Id]
+      - token : String
+      - emailAddress : String
+      - expiresAt : LocalDateTime  [@Column(nullable = false)]
+
+  >>> Class: Role extends BaseAuditEntity
+      - id : Integer  [@Id]
+      - name : ERole  [@Enumerated(EnumType.STRING) @Column(length = 20, nullable = false, unique = true)]
+
+  >>> Class: User extends BaseAuditEntity
+      - id : String  [@Id @Column(length = 36)]
+      - username : String
+      - firstName : String
+      - lastName : String
+      - phoneNumber : String
+      - disabled : Boolean
+      - discount : String
+      - hasSubscription : Boolean
+      - email : String
+      - password : String
+      - roles : Set<Role>
+      - deviceIds : Set<String>  [@Column(name = "device_id")]
+      - failedLoginAttempts : Integer  [@Column(name = "failed_login_attempts", nullable = false)]
+      - lockUntil : LocalDateTime  [@Column(name = "lock_until")]
+      - deletedAt : LocalDateTime  [@Column(name = "deleted_at")]
+
+  Enums (1):
+    - ERole: ADMIN, CUP, ENSEIGNANT, ANIMATEUR, CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER
+
+======================================================================
+SERVICE: esprit_D2F-besoin-formation
+======================================================================
+Entities count: 7
+
+  >>> Class: PersistenceConfig
+
+  >>> Class: BaseAuditEntity [MappedSuperclass]
+      - createdAt : LocalDateTime  [@Column(name = "created_at", updatable = false)]
+      - updatedAt : LocalDateTime  [@Column(name = "updated_at")]
+      - createdBy : String  [@Column(name = "created_by", updatable = false, length = 150)]
+      - updatedBy : String  [@Column(name = "updated_by", length = 150)]
+      - version : Long
+
+  >>> Class: BesoinApprovalHistory
+      - id : Long  [@Id]
+      - besoinId : Long  [@Column(name = "besoin_id", nullable = false) @JsonProperty("besoinId")]
+      - actorUsername : String  [@Column(nullable = false, length = 150)]
+      - actorRole : String  [@Column(nullable = false, length = 30)]
+      - action : WorkflowAction  [@Enumerated(EnumType.STRING) @Column(nullable = false, length = 20)]
+      - fromStep : ApprovalStep  [@Enumerated(EnumType.STRING) @Column(name = "from_step", length = 20)]
+      - toStep : ApprovalStep  [@Enumerated(EnumType.STRING) @Column(name = "to_step", length = 20)]
+      - reason : String  [@Column(columnDefinition = "TEXT")]
+      - createdAt : Instant  [@Column(nullable = false, updatable = false)]
+
+  >>> Class: BesoinCompetence extends BaseAuditEntity
+      - id : Long  [@Id]
+      - besoinId : Long  [@Column(name = "besoin_id", nullable = false)]
+      - domaineId : Long  [@Column(name = "domaine_id")]
+      - competenceId : Long  [@Column(name = "competence_id")]
+      - competenceNom : String  [@Column(name = "competence_nom")]
+      - savoirId : Long  [@Column(name = "savoir_id")]
+      - savoirNom : String  [@Column(name = "savoir_nom")]
+      - sousCompetenceId : Long  [@Column(name = "sous_competence_id")]
+      - sousCompetenceNom : String  [@Column(name = "sous_competence_nom")]
+
+  >>> Class: BesoinFormation extends BaseAuditEntity
+      - deletedAt : Instant  [@Column(name = "deleted_at")]
+
+  >>> Class: Notification extends BaseAuditEntity
+      - commentaire : String
+
+  >>> Class: ReviewerScope
+      - username : String  [@Id @Column(length = 150)]
+      - role : String  [@Column(nullable = false, length = 30)]
+      - upCode : String  [@Column(name = "up_code")]
+      - departmentCode : String  [@Column(name = "department_code")]
+
+  Enums (7):
+    - ApprovalStep: CUP, CHEF_DEPARTEMENT, ADMIN, COMPLETED, REJECTED
+    - BesoinStatus: SUBMITTED, CUP_APPROVED, DEPARTMENT_APPROVED, ADMIN_APPROVED, FORMATION_CREATED, REJECTED, CANCELLED
+    - CreatorRole: ENSEIGNANT, CUP, CHEF_DEPARTEMENT, ADMIN
+    - PeriodCode: WINTER, SUMMER, SPRINT, WORKSHOP, OTHER
+    - Priorite: BASSE, MOYENNE, HAUTE, CRITIQUE
+    - TypeBesoin: INDIVIDUEL, COLLECTIF, ANIMER_UNE_FORMATION
+    - WorkflowAction: CREATE, APPROVE, REJECT, CANCEL
+
+======================================================================
+SERVICE: esprit_D2F-certificat
+======================================================================
+Entities count: 2
+
+  >>> Class: BaseAuditEntity [MappedSuperclass]
+      - createdAt : LocalDateTime  [@Column(name = "created_at", updatable = false)]
+      - updatedAt : LocalDateTime  [@Column(name = "updated_at")]
+      - createdBy : String  [@Column(name = "created_by", updatable = false, length = 150)]
+      - updatedBy : String  [@Column(name = "updated_by", length = 150)]
+      - version : Long
+
+  >>> Class: Certificate extends BaseAuditEntity
+      - idCertificate : Long  [@Id]
+      - certificateNumber : String  [@Column(name = "certificate_number", nullable = false, unique = true, length = 40)]
+      - verificationToken : String  [@Column(name = "verification_token", nullable = false, unique = true, length = 100)]
+      - verificationHash : String  [@Column(name = "verification_hash", nullable = false, length = 128)]
+      - issuedAt : OffsetDateTime  [@Column(name = "issued_at", nullable = false)]
+      - certificateStatus : String  [@Column(name = "certificate_status", nullable = false, length = 20)]
+      - formationId : Long
+      - titreFormation : String
+      - typeCertif : String
+      - dateDebutFormation : LocalDate
+      - dateFinFormation : LocalDate
+      - chargeHoraireGlobal : Integer
+      - enseignantId : String
+      - nomEnseignant : String
+      - prenomEnseignant : String
+      - mailEnseignant : String
+      - deptEnseignant : String
+      - roleEnFormation : String
+      - delivered : boolean
+      - pdfFilePath : String
+      - revokedAt : OffsetDateTime  [@Column(name = "revoked_at")]
+      - revokedBy : String  [@Column(name = "revoked_by", length = 150)]
+      - revocationReason : String  [@Column(name = "revocation_reason", length = 500)]
+      - competencesValidees : String  [@Column(name = "competences_validees", length = 1000)]
+      - deletedAt : LocalDateTime  [@Column(name = "deleted_at")]
+
+  Enums (1):
+    - CertificateStatus: PENDING, ISSUED, REVOKED
+
+======================================================================
+SERVICE: esprit_D2F-common-security
+======================================================================
+Entities count: 0
+
+======================================================================
+SERVICE: esprit_D2F-competence
+======================================================================
+Entities count: 10
+
+  >>> Class: CompetenceServiceApplication
+
+  >>> Class: BaseAuditEntity [MappedSuperclass]
+      - createdAt : LocalDateTime  [@Column(name = "created_at", updatable = false)]
+      - updatedAt : LocalDateTime  [@Column(name = "updated_at")]
+      - createdBy : String  [@Column(name = "created_by", updatable = false, length = 150)]
+      - updatedBy : String  [@Column(name = "updated_by", length = 150)]
+      - version : Long
+
+  >>> Class: Competence extends BaseAuditEntity
+      - id : Long  [@Id]
+      - code : String  [@Column(unique = true, nullable = false)]
+      - nom : String  [@Column(nullable = false)]
+      - description : String  [@Column(columnDefinition = "TEXT")]
+      - prerequisiteManual : String  [@Column(name = "prerequisite_manual", columnDefinition = "TEXT")]
+      - ordre : Integer
+      - domaine : Domaine  [@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "domaine_id", nullable = false)]
+      - upIds : Set<String>
+      - departementIds : Set<String>
+      - sousCompetences : List<SousCompetence>
+      - savoirs : List<Savoir>
+      - prerequisite : List<CompetencePrerequisite>
+
+  >>> Class: CompetencePrerequisite
+      - id : Long  [@Id]
+      - competence : Competence  [@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "competence_id", nullable = false)]
+      - prerequisite : Competence  [@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "prerequisite_id", nullable = false)]
+      - niveauMinimum : NiveauMaitrise  [@Column(name = "niveau_minimum", nullable = false)]
+      - description : String  [@Column(columnDefinition = "TEXT")]
+      - createdAt : LocalDateTime  [@Column(name = "created_at", updatable = false)]
+
+  >>> Class: Domaine extends BaseAuditEntity
+      - id : Long  [@Id]
+      - code : String  [@Column(unique = true, nullable = false)]
+      - nom : String  [@Column(nullable = false)]
+      - description : String  [@Column(columnDefinition = "TEXT")]
+      - actif : Boolean
+      - upId : String  [@Column(name = "up_id", length = 255)]
+      - departementId : String  [@Column(name = "departement_id", length = 255)]
+      - competences : List<Competence>
+
+  >>> Class: EnseignantCompetence extends BaseAuditEntity
+      - id : Long  [@Id]
+      - enseignantId : String  [@Column(name = "enseignant_id", nullable = false)]
+      - savoir : Savoir  [@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "savoir_id", nullable = false)]
+      - niveau : NiveauMaitrise  [@Column(nullable = false)]
+      - dateAcquisition : LocalDate
+      - commentaire : String  [@Column(columnDefinition = "TEXT")]
+
+  >>> Class: NiveauSavoirRequis extends BaseAuditEntity
+      - id : Long  [@Id]
+      - competence : Competence  [@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "competence_id")]
+      - sousCompetence : SousCompetence  [@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "sous_competence_id")]
+      - niveau : NiveauMaitrise  [@Column(nullable = false)]
+      - savoir : Savoir  [@ManyToOne(fetch = FetchType.EAGER) @JoinColumn(name = "savoir_id", nullable = false)]
+      - description : String  [@Column(columnDefinition = "TEXT")]
+
+  >>> Class: RiceImportLog extends BaseAuditEntity
+      - id : Long  [@Id]
+      - generatedAt : LocalDateTime  [@Column(nullable = false)]
+      - domainesCreated : int
+      - competencesCreated : int
+      - sousCompetencesCreated : int
+      - savoirsCreated : int
+      - affectationsCreated : int
+      - enseignantsCovered : int
+      - message : String  [@Column(columnDefinition = "TEXT")]
+      - tauxJson : String  [@Column(name = "taux_json", columnDefinition = "TEXT")]
+
+  >>> Class: Savoir extends BaseAuditEntity
+      - id : Long  [@Id]
+      - code : String  [@Column(unique = true, nullable = false)]
+      - nom : String  [@Column(nullable = false)]
+      - description : String  [@Column(columnDefinition = "TEXT")]
+      - type : TypeSavoir  [@Enumerated(EnumType.STRING) @Column(nullable = false)]
+      - niveau : NiveauMaitrise
+      - sousCompetence : SousCompetence  [@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "sous_competence_id")]
+      - competence : Competence  [@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "competence_id")]
+
+  >>> Class: SousCompetence extends BaseAuditEntity
+      - id : Long  [@Id]
+      - code : String  [@Column(unique = true, nullable = false)]
+      - nom : String  [@Column(nullable = false)]
+      - description : String  [@Column(columnDefinition = "TEXT")]
+      - competence : Competence  [@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "competence_id", nullable = false)]
+      - parent : SousCompetence  [@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "parent_id")]
+      - enfants : List<SousCompetence>
+      - niveau : Integer
+      - savoirs : List<Savoir>
+
+  Enums (2):
+    - NiveauMaitrise: N1_DEBUTANT, N2_ELEMENTAIRE, N3_INTERMEDIAIRE, N4_AVANCE, N5_EXPERT
+    - TypeSavoir: THEORIQUE, PRATIQUE
+
+======================================================================
+SERVICE: esprit_D2F-evaluation
+======================================================================
+Entities count: 5
+
+  >>> Class: BaseAuditEntity [MappedSuperclass]
+      - createdAt : LocalDateTime  [@Column(name = "created_at", updatable = false)]
+      - updatedAt : LocalDateTime  [@Column(name = "updated_at")]
+      - createdBy : String  [@Column(name = "created_by", updatable = false, length = 150)]
+      - updatedBy : String  [@Column(name = "updated_by", length = 150)]
+      - version : Long
+
+  >>> Class: EvaluationFormateur extends BaseAuditEntity
+      - idEvalParticipant : Long  [@Id]
+      - note : float
+      - satisfaisant : boolean
+      - commentaire : String
+      - maitriseSujet : Float  [@Column(name = "maitrise_sujet")]
+      - clarte : Float  [@Column(name = "clarte")]
+      - pedagogie : Float  [@Column(name = "pedagogie")]
+      - interaction : Float  [@Column(name = "interaction")]
+      - gestionTemps : Float  [@Column(name = "gestion_temps")]
+      - enseignantId : String
+      - formationId : Long
+
+  >>> Class: EvaluationGlobale extends BaseAuditEntity
+      - idEvalGlobale : Long  [@Id]
+      - formationId : Long  [@Column(nullable = false)]
+      - enseignantId : String  [@Column(name = "enseignant_id")]
+      - commentaireGeneral : String  [@Column(length = 3000, nullable = true)]
+      - dateEvaluation : LocalDate  [@Column(nullable = true)]
+      - noteGlobale : Float  [@Column(nullable = true)]
+      - recommandation : String  [@Column(length = 100, nullable = true)]
+      - pertinenceContenu : Float  [@Column(name = "pertinence_contenu")]
+      - organisation : Float
+      - qualiteSupports : Float  [@Column(name = "qualite_supports")]
+      - dureeAdaptee : Float  [@Column(name = "duree_adaptee")]
+      - satisfactionGlobale : Float  [@Column(name = "satisfaction_globale")]
+      - deletedAt : LocalDateTime  [@Column(name = "deleted_at")]
+
+  >>> Class: FormationFeedback
+      - id : Long  [@Id]
+      - formationId : Long  [@Column(name = "formation_id", nullable = false)]
+      - enseignantId : String  [@Column(name = "enseignant_id", nullable = false, length = 64)]
+      - participantEmail : String  [@Column(name = "participant_email")]
+      - up : String  [@Column(name = "up")]
+      - aspectOrganisationnel : Integer  [@Column(name = "aspect_organisationnel", nullable = false)]
+      - aspectTechnique : Integer  [@Column(name = "aspect_technique", nullable = false)]
+      - aspectPedagogique : Integer  [@Column(name = "aspect_pedagogique", nullable = false)]
+      - besoinComplementaire : Boolean  [@Column(name = "besoin_complementaire", nullable = false)]
+      - autresInformations : String  [@Column(name = "autres_informations", length = 2000)]
+      - autresBesoins : String  [@Column(name = "autres_besoins", length = 2000)]
+      - createdAt : LocalDateTime  [@Column(name = "created_at", nullable = false)]
+
+  >>> Class: LearningAssessment extends BaseAuditEntity
+      - id : Long  [@Id]
+      - trainingId : Long  [@Column(name = "training_id", nullable = false)]
+      - sessionId : Long  [@Column(name = "session_id")]
+      - participantId : String  [@Column(name = "participant_id", nullable = false, length = 150)]
+      - type : LearningAssessmentType  [@Enumerated(EnumType.STRING) @Column(name = "assessment_type", nullable = false, length = 10)]
+      - score : Float  [@Column(nullable = false)]
+      - maxScore : Float  [@Column(name = "max_score", nullable = false)]
+      - levelBefore : String  [@Column(name = "level_before", length = 50)]
+      - levelAfter : String  [@Column(name = "level_after", length = 50)]
+      - evaluatedBy : String  [@Column(name = "evaluated_by", length = 150)]
+      - evaluatedAt : LocalDateTime  [@Column(name = "evaluated_at", nullable = false)]
+      - attemptNumber : Integer  [@Column(name = "attempt_number", nullable = false)]
+      - competenceId : Long  [@Column(name = "competence_id")]
+      - targetLevel : String  [@Column(name = "target_level", length = 50)]
+      - autoEvaluation : Float  [@Column(name = "auto_evaluation")]
+      - objectifsPersonnels : String  [@Column(name = "objectifs_personnels", length = 1000)]
+      - practicalScore : Float  [@Column(name = "practical_score")]
+      - trainerComment : String  [@Column(name = "trainer_comment", length = 1000)]
+      - competencesAcquises : String  [@Column(name = "competences_acquises", length = 1000)]
+      - targetReached : Boolean  [@Column(name = "target_reached")]
+
+  Enums (1):
+    - LearningAssessmentType: PRE, POST
+
+======================================================================
+SERVICE: esprit_D2F-formation
+======================================================================
+Entities count: 20
+
+  >>> Class: AnimateurExterne extends BaseAuditEntity
+      - id : Long
+      - nom : String  [@Column(nullable = false, length = 100)]
+      - prenom : String  [@Column(nullable = false, length = 100)]
+      - email : String  [@Column(length = 255)]
+      - bureau : Bureau
+
+  >>> Class: BaseAuditEntity [MappedSuperclass]
+      - createdAt : LocalDateTime  [@Column(name = "created_at", updatable = false)]
+      - updatedAt : LocalDateTime  [@Column(name = "updated_at")]
+      - createdBy : String  [@Column(name = "created_by", updatable = false, length = 150)]
+      - updatedBy : String  [@Column(name = "updated_by", length = 150)]
+      - version : Long
+
+  >>> Class: Bureau extends BaseAuditEntity
+      - id : Long  [@Id]
+      - nom : String  [@Column(nullable = false)]
+      - email : String  [@Column(nullable = false)]
+      - numeroTelephone : String  [@Column(name = "numero_telephone", nullable = false, length = 50)]
+
+  >>> Class: Dept extends BaseAuditEntity
+      - id : String  [@Id]
+      - libelle : String
+
+  >>> Class: Document extends BaseAuditEntity
+      - idDocument : Long  [@Id]
+      - nomDocument : String
+      - filePath : String
+      - date : LocalDate
+      - obligation : boolean
+      - pathType : String  [@Column(nullable = false)]
+      - formation : Formation  [@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "formation_id")]
+
+  >>> Class: EmailAuditLog
+      - id : Long  [@Id]
+      - formationId : Long  [@Column(name = "formation_id", nullable = false)]
+      - recipientEmail : String  [@Column(name = "recipient_email", nullable = false, length = 255)]
+      - emailType : String  [@Column(name = "email_type", nullable = false, length = 50)]
+      - sentAt : LocalDateTime  [@Column(name = "sent_at", nullable = false)]
+      - success : boolean  [@Column(name = "success", nullable = false)]
+      - errorMessage : String  [@Column(name = "error_message", columnDefinition = "TEXT")]
+
+  >>> Class: Enseignant extends BaseAuditEntity
+      - id : String  [@Id @Column(length = 10, nullable = false, unique = true)]
+      - nom : String  [@Column(length = 100, nullable = false)]
+      - prenom : String  [@Column(length = 30, nullable = false)]
+      - mail : String  [@Column(nullable = false)]
+      - type : String  [@Column(length = 1, nullable = false)]
+      - etat : String  [@Column(length = 1, nullable = false)]
+      - cup : String  [@Column(length = 1, nullable = false)]
+      - chefDepartement : String  [@Column(name = "chef_departement", length = 1, nullable = false)]
+      - grade : String  [@Column(length = 100)]
+      - telephone : String  [@Column(length = 30)]
+      - photoUrl : String  [@Column(name = "photo_url", length = 500)]
+      - specialite : String  [@Column(length = 150)]
+      - dateRecrutement : LocalDate  [@Column(name = "date_recrutement")]
+      - dossierStatus : String  [@Column(name = "dossier_status", length = 30)]
+      - dossierLastUpdate : LocalDateTime  [@Column(name = "dossier_last_update")]
+      - dossierNotes : String  [@Column(name = "dossier_notes", columnDefinition = "TEXT")]
+      - userId : String  [@Column(name = "user_id", length = 36, unique = true)]
+      - up : Up  [@ManyToOne(fetch = FetchType.EAGER) @JoinColumn(name = "up_id", referencedColumnName = "id", nullable = true)]
+      - dept : Dept  [@ManyToOne(fetch = FetchType.EAGER) @JoinColumn(name = "dept_id", referencedColumnName = "id", nullable = true)]
+      - presences : List<Presence>  [@OneToMany(mappedBy = "enseignant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)]
+      - inscriptions : List<Inscription>  [@OneToMany(mappedBy = "enseignant", cascade = CascadeType.ALL, orphanRemoval = true)]
+      - deletedAt : LocalDateTime  [@Column(name = "deleted_at")]
+
+  >>> Class: Formation extends BaseAuditEntity
+      - idFormation : Long  [@Id]
+      - idBesoinFormation : Long  [@Column(nullable = true)]
+      - typeBesoin : String  [@Column(nullable = true)]
+      - titreFormation : String  [@Column(nullable = false, length = 255)]
+      - domaine : String  [@Column(nullable = true)]
+      - competence : String  [@Column(name = "competence", nullable = true)]
+      - populationCible : String  [@Column(nullable = true)]
+      - objectifs : String  [@Column(length = 2000,nullable = true)]
+      - objectifsPedago : String  [@Column(length = 2000,nullable = true)]
+      - evalMethods : String  [@Column(length = 2000,nullable = true)]
+      - typeFormation : TypeFormation  [@Enumerated(EnumType.STRING) @Column(nullable = true)]
+      - externeFormateurNom : String  [@Column(length = 100, nullable = true)]
+      - externeFormateurPrenom : String  [@Column(length = 100, nullable = true)]
+      - externeFormateurEmail : String  [@Column(length = 255, nullable = true)]
+      - organismeRefExterne : String  [@Column(length = 255 ,nullable = true)]
+      - bureauFormationNom : String  [@Column(length = 255, nullable = true)]
+      - bureauFormationMail : String  [@Column(length = 255, nullable = true)]
+      - bureauFormationTelephone : String  [@Column(length = 50, nullable = true)]
+      - dateDebut : LocalDate  [@Column(nullable = false)]
+      - dateFin : LocalDate  [@Column(nullable = false)]
+      - etatFormation : EtatFormation  [@Enumerated(EnumType.STRING) @Column(nullable = false)]
+      - coutTransport : Float  [@Column(nullable = true)]
+      - coutHebergement : Float  [@Column(nullable = true)]
+      - coutRepas : Float  [@Column(nullable = true)]
+      - coutFormation : Float  [@Column(nullable = true)]
+      - prerequis : String  [@Column(length = 2000,nullable = true)]
+      - acquis : String  [@Column(length = 2000,nullable = true)]
+      - indicateurs : String  [@Column(length = 2000,nullable = true)]
+      - chargeHoraireGlobal : Integer  [@Column(nullable = true)]
+      - certifGenerated : boolean  [@Column(name="certif_generated", nullable=false)]
+      - sourceCalendrier : boolean  [@Column(name = "source_calendrier", nullable = false)]
+      - seances : List<SeanceFormation>
+      - animateurs : List<Enseignant>
+      - animateursExternes : List<AnimateurExterne>
+      - up : Up  [@ManyToOne @JoinColumn(name = "up_id", nullable = true)]
+      - departement : Dept  [@ManyToOne @JoinColumn(name = "departement_id", nullable = true)]
+      - documents : List<Document>
+      - inscriptions : List<Inscription>
+      - formationCompetences : List<FormationCompetence>
+      - inscriptionsOuvertes : boolean  [@Column(name = "inscriptions_ouvertes", nullable = false)]
+      - ouverte : boolean  [@Column(name = "ouverte", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")]
+      - periodCode : PeriodCode  [@Column(nullable = true) @Enumerated(EnumType.STRING)]
+      - customPeriodLabel : String
+      - salle : String  [@Column(length = 255, nullable = true)]
+      - calendarEventId : String  [@Column(name = "calendar_event_id", length = 512, nullable = true)]
+      - responsableEmail : String  [@Column(name = "responsable_email", length = 255, nullable = true)]
+      - responsableName : String  [@Column(name = "responsable_name", length = 255, nullable = true)]
+      - deletedAt : LocalDateTime  [@Column(name = "deleted_at")]
+
+  >>> Class: FormationAnimator extends BaseAuditEntity
+      - id : Long  [@Id]
+      - formationId : Long  [@Column(name = "formation_id", nullable = false)]
+      - teacherId : String  [@Column(name = "teacher_id", length = 50)]
+      - animateurId : String  [@Column(name = "animateur_id", length = 50)]
+      - role : AnimatorRole  [@Enumerated(EnumType.STRING) @Column(nullable = false, length = 30)]
+      - assignedBy : String  [@Column(name = "assigned_by", nullable = false, length = 150)]
+      - assignedAt : LocalDateTime  [@Column(name = "assigned_at", nullable = false)]
+      - status : AssignmentStatus  [@Enumerated(EnumType.STRING) @Column(nullable = false, length = 30)]
+      - proposalId : Long  [@Column(name = "proposal_id")]
+      - deletedAt : LocalDateTime  [@Column(name = "deleted_at")]
+
+  >>> Class: FormationAnimatorProposal extends BaseAuditEntity
+      - id : Long  [@Id]
+      - formationId : Long  [@Column(name = "formation_id", nullable = false)]
+      - proposerId : String  [@Column(name = "proposer_id", nullable = false, length = 50)]
+      - proposerType : ProposerType  [@Enumerated(EnumType.STRING) @Column(name = "proposer_type", nullable = false, length = 30)]
+      - proposalType : ProposalType  [@Enumerated(EnumType.STRING) @Column(name = "proposal_type", nullable = false, length = 30)]
+      - role : AnimatorRole  [@Enumerated(EnumType.STRING) @Column(nullable = false, length = 30)]
+      - status : ProposalStatus  [@Enumerated(EnumType.STRING) @Column(nullable = false, length = 30)]
+      - motivation : String  [@Column(length = 2000)]
+      - proposedBy : String  [@Column(name = "proposed_by", length = 150)]
+      - proposedAt : LocalDateTime  [@Column(name = "proposed_at", nullable = false)]
+      - respondedAt : LocalDateTime  [@Column(name = "responded_at")]
+      - validatedBy : String  [@Column(name = "validated_by", length = 150)]
+      - validatedAt : LocalDateTime  [@Column(name = "validated_at")]
+      - rejectionReason : String  [@Column(name = "rejection_reason", length = 1000)]
+      - responseComment : String  [@Column(name = "response_comment", length = 1000)]
+      - calendarEventId : String  [@Column(name = "calendar_event_id", length = 512)]
+      - deletedAt : LocalDateTime  [@Column(name = "deleted_at")]
+
+  >>> Class: FormationCompetence extends BaseAuditEntity
+      - id : Long  [@Id]
+      - formation : Formation  [@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "formation_id", nullable = false)]
+      - domaineId : Long  [@Column(name = "domaine_id", nullable = true)]
+      - competenceId : Long  [@Column(name = "competence_id", nullable = false)]
+      - competenceNom : String  [@Column(name = "competence_nom", length = 255, nullable = true)]
+      - sousCompetenceId : Long  [@Column(name = "sous_competence_id", nullable = true)]
+      - sousCompetenceNom : String  [@Column(name = "sous_competence_nom", length = 255, nullable = true)]
+      - savoirId : Long  [@Column(name = "savoir_id", nullable = true)]
+      - savoirNom : String  [@Column(name = "savoir_nom", length = 255, nullable = true)]
+      - savoirType : String  [@Column(name = "savoir_type", length = 20, nullable = true)]
+      - niveauPrerequis : Integer  [@Column(name = "niveau_prerequis", nullable = true)]
+      - niveauVise : Integer  [@Column(name = "niveau_vise", nullable = true)]
+
+  >>> Class: FormationParticipantEmail
+      - id : Long  [@Id]
+      - formationId : Long  [@Column(name = "formation_id", nullable = false)]
+      - email : String  [@Column(name = "email", nullable = false, length = 255)]
+      - matchedEnseignant : boolean  [@Column(name = "matched_enseignant", nullable = false)]
+      - createdAt : LocalDateTime  [@Column(name = "created_at", nullable = false)]
+
+  >>> Class: ImportLog
+      - id : Long  [@Id]
+      - fileName : String  [@Column(name = "file_name", length = 255)]
+      - fileSizeBytes : Long  [@Column(name = "file_size_bytes")]
+      - fileHash : String  [@Column(name = "file_hash", length = 64)]
+      - importedBy : String  [@Column(name = "imported_by", length = 150)]
+      - importedAt : LocalDateTime  [@Column(name = "imported_at", nullable = false)]
+      - formationsCreated : int  [@Column(name = "formations_created", nullable = false)]
+      - sessionsCreated : int  [@Column(name = "sessions_created", nullable = false)]
+      - participantsImported : int  [@Column(name = "participants_imported", nullable = false)]
+      - rowsSkipped : int  [@Column(name = "rows_skipped", nullable = false)]
+      - conflictsDetected : int  [@Column(name = "conflicts_detected", nullable = false)]
+      - status : String  [@Column(name = "status", length = 20, nullable = false)]
+
+  >>> Class: Inscription extends BaseAuditEntity
+      - id : Long  [@Id]
+      - formation : Formation  [@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "formation_id", nullable = false)]
+      - enseignant : Enseignant  [@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "enseignant_id", nullable = false)]
+      - etat : EtatInscription  [@Enumerated(EnumType.STRING) @Column(nullable = false)]
+      - dateDemande : OffsetDateTime  [@Column(nullable = false)]
+      - dateTraitement : OffsetDateTime  [@Column]
+      - motif : String  [@Column(length = 500)]
+
+  >>> Class: Presence extends BaseAuditEntity
+      - idParticipation : Long  [@Id]
+      - present : boolean  [@Column(name = "presence")]
+      - status : PresenceStatus  [@Enumerated(EnumType.STRING) @Column(name = "status", length = 20)]
+      - arrivalTime : LocalTime  [@Column(name = "arrival_time")]
+      - departureTime : LocalTime  [@Column(name = "departure_time")]
+      - justification : String  [@Column(length = 500)]
+      - commentaire : String
+      - recordedBy : String  [@Column(name = "recorded_by", length = 150)]
+      - recordedAt : LocalDateTime  [@Column(name = "recorded_at")]
+      - seanceFormation : SeanceFormation  [@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "seance_id")]
+      - enseignant : Enseignant  [@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "enseignant_id")]
+
+  >>> Class: ReminderSentLog
+      - id : Long  [@Id]
+      - seanceId : Long  [@Column(name = "seance_id", nullable = false)]
+      - recipientEmail : String  [@Column(name = "recipient_email", nullable = false, length = 255)]
+      - reminderType : String  [@Column(name = "reminder_type", nullable = false, length = 10)]
+      - sentAt : LocalDateTime  [@Column(name = "sent_at", nullable = false)]
+
+  >>> Class: RoomConflictLog
+      - id : Long  [@Id]
+      - conflictType : String  [@Column(name = "conflict_type", length = 40, nullable = false)]
+      - salle : String  [@Column(name = "salle", length = 255)]
+      - heureDebut : String  [@Column(name = "heure_debut", length = 10)]
+      - heureFin : String  [@Column(name = "heure_fin", length = 10)]
+      - seanceId : Long  [@Column(name = "seance_id")]
+      - otherSeanceId : Long  [@Column(name = "other_seance_id")]
+      - detail : String  [@Column(name = "detail", length = 1000)]
+      - detectedAt : LocalDateTime  [@Column(name = "detected_at", nullable = false)]
+      - importLogId : Long  [@Column(name = "import_log_id")]
+
+  >>> Class: SeanceCalendarEvent
+      - id : Long  [@Id]
+      - seanceId : Long  [@Column(name = "seance_id", nullable = false)]
+      - email : String  [@Column(name = "email", nullable = false, length = 255)]
+      - eventId : String  [@Column(name = "event_id", nullable = false, length = 512)]
+      - createdAt : LocalDateTime  [@Column(name = "created_at", nullable = false)]
+
+  >>> Class: SeanceFormation extends BaseAuditEntity
+      - idSeance : Long  [@Id]
+      - dateSeance : LocalDate
+      - heureDebut : LocalTime
+      - heureFin : LocalTime
+      - typeSeance : TypeSeanceEnum  [@Enumerated(EnumType.STRING) @Column(nullable = true)]
+      - numeroSeance : Integer  [@Column(name = "session_number", nullable = true)]
+      - totalSeances : Integer  [@Column(name = "total_sessions", nullable = true)]
+      - sessionStatus : String  [@Column(name = "session_status", length = 30, nullable = true)]
+      - contenus : String  [@Column(length = 2000, nullable = true)]
+      - methodes : String  [@Column(length = 2000, nullable = true)]
+      - dureeTheorique : Float  [@Column(nullable = true)]
+      - dureePratique : Float  [@Column(nullable = true)]
+      - salle : String  [@Column(length = 255, nullable = true)]
+      - calendarEventId : String  [@Column(name = "calendar_event_id")]
+      - onlineMeetingUrl : String  [@Column(name = "online_meeting_url", length = 500, nullable = true)]
+      - formation : Formation  [@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "formation_id")]
+      - animateurs : List<Enseignant>
+      - participants : List<Enseignant>
+      - presences : List<Presence>  [@OneToMany(mappedBy = "seanceFormation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)]
+
+  >>> Class: Up extends BaseAuditEntity
+      - id : String  [@Id]
+      - libelle : String
+
+  Enums (13):
+    - AdditionMode: MANUAL, AUTO_BY_DEPT, AUTO_BY_UP
+    - AnimatorRole: LEAD_TRAINER, CO_TRAINER, FACILITATOR
+    - AssignmentStatus: ACTIVE, REPLACED, CANCELLED
+    - DriveSubPath: DOCUMENT, PAYEMENT, CNFCPP
+    - EtatFormation: NOUVEAU, ENREGISTRE, PLANIFIE, EN_COURS, ACHEVE, ANNULE, VISIBLE
+    - EtatInscription: PENDING, APPROVED, REJECTED
+    - PeriodCode: P1, P2, WINTER, SUMMER, SPRINT, WORKSHOP, OTHER
+    - PresenceStatus: PRESENT, LATE, ABSENT, EXCUSED
+    - ProposalStatus: PROPOSED, PENDING_VALIDATION, ACCEPTED_BY_TRAINER, REJECTED_BY_TRAINER, APPROVED, REJECTED, CANCELLED, EXPIRED
+    - ProposalType: MANAGER_PROPOSAL, SELF_PROPOSAL
+    - ProposerType: TEACHER, ANIMATEUR, EXTERNAL_TRAINER
+    - TypeFormation: INTERNE, EXTERNE, EN_LIGNE
+    - TypeSeanceEnum: THEORIQUE, PRATIQUE, MIXTE
+
+======================================================================
+SERVICE: esprit_D2F-notification
+======================================================================
+Entities count: 2
+
+  >>> Class: BaseAuditEntity [MappedSuperclass]
+      - createdAt : LocalDateTime  [@Column(name = "created_at", updatable = false)]
+      - updatedAt : LocalDateTime  [@Column(name = "updated_at")]
+      - createdBy : String  [@Column(name = "created_by", updatable = false, length = 150)]
+      - updatedBy : String  [@Column(name = "updated_by", length = 150)]
+      - version : Long
+
+  >>> Class: Notification extends BaseAuditEntity
+      - idNotification : Long  [@Id]
+      - recipient : String  [@Column(nullable = false, length = 150)]
+      - type : NotificationType  [@Enumerated(EnumType.STRING) @Column(nullable = false, length = 30)]
+      - severity : NotificationSeverity  [@Enumerated(EnumType.STRING) @Column(nullable = false, length = 15)]
+      - title : String  [@Column(nullable = false, length = 200)]
+      - message : String  [@Column(nullable = false, columnDefinition = "TEXT")]
+      - read : boolean  [@Column(nullable = false)]
+      - link : String  [@Column(length = 255)]
+      - actor : String  [@Column(length = 150)]
+
+  Enums (2):
+    - NotificationSeverity: INFO, SUCCESS, WARNING, ERROR
+    - NotificationType: FORMATION, EVALUATION, CERTIFICAT, BESOIN, COMPETENCE, SYSTEM, MESSAGE
+
+======================================================================
+SERVICE: esprit_D2F-predictive-analytics
+======================================================================
+Entities count: 0
+
+======================================================================
+SERVICE: esprit_D2F-rice
+======================================================================
+Entities count: 0

@@ -37,16 +37,16 @@ const TILES: readonly TileDef[] = [
   },
   {
     key: 'score_risque_moyen',
-    label: 'Risque moyen',
+    label: 'Indice de risque moyen',
     icon: <FireOutlined />,
     higherBetter: false,
-    fmt: (v) => `${Math.round(v * 100)}%`,
+    fmt: (v) => `${Math.round(v * 100)}/100`,
     fmtDelta: (d) => `${Math.abs(d * 100).toFixed(0)} pts`,
-    hint: "Score d'attrition moyen de tous les enseignants suivis (0 = aucun risque, 100 = risque maximal).",
+    hint: "Indice de risque moyen (non calibré) de tous les enseignants suivis (0 = aucun risque signalé, 100 = risque maximal). Indice d'aide au classement — pas une probabilité.",
   },
   {
     key: 'nb_gaps_critiques',
-    label: 'Gaps critiques',
+    label: 'Écarts de couverture critiques',
     icon: <FallOutlined />,
     higherBetter: false,
     fmt: (v) => String(Math.round(v)),
@@ -67,7 +67,7 @@ const TILES: readonly TileDef[] = [
     higherBetter: true,
     fmt: (v) => `${v.toFixed(0)}%`,
     fmtDelta: (d) => `${Math.abs(d).toFixed(1)} pts`,
-    hint: 'Pourcentage de compétences dont le niveau actuel atteint le niveau requis.',
+    hint: 'Pourcentage de compétences dont le niveau de difficulté couvert atteint le niveau exigé par le périmètre.',
   },
   {
     key: 'precision_modele',
@@ -75,7 +75,7 @@ const TILES: readonly TileDef[] = [
     icon: <ExperimentOutlined />,
     higherBetter: true,
     fmt: (v) => v.toFixed(2),
-    hint: "Qualité du modèle de prédiction des gaps (R² entre 0 et 1, plus c'est élevé mieux c'est).",
+    hint: "Qualité du modèle de prédiction des écarts de couverture (R² entre 0 et 1, plus c'est élevé mieux c'est).",
   },
 ];
 

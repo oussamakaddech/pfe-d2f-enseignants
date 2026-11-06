@@ -4,9 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "besoin_competences", uniqueConstraints = @UniqueConstraint(
-        name = "uq_besoin_competences_besoin_competence",
-        columnNames = {"besoin_id", "competence_id"}))
+@Table(name = "besoin_competences")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -38,4 +36,13 @@ public class BesoinCompetence extends BaseAuditEntity {
 
     @Column(name = "sous_competence_id")
     private Long sousCompetenceId;
+
+    /**
+     * V27 — nom dénormalisé de la sous-compétence (parité competence_nom / savoir_nom).
+     * Une ligne par savoir : une même compétence peut générer plusieurs lignes
+     * (multi-sélection de sous-compétences / savoirs dans le formulaire de besoin).
+     * Déduplication assurée par l'index unique uq_besoin_comp_besoin_comp_souscomp_savoir.
+     */
+    @Column(name = "sous_competence_nom")
+    private String sousCompetenceNom;
 }

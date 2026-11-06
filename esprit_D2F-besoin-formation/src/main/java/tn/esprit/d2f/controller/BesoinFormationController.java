@@ -158,6 +158,95 @@ public class BesoinFormationController {
         return ResponseEntity.ok(besoinFormationService.approuverBesoin(id));
     }
 
+    @Operation(
+        summary = "Refuser un besoin (workflow)",
+        description = """
+            Refuse le besoin à l'étape courante selon le rôle de l'appelant
+            (CUP → étape CUP, CHEF_DEPARTEMENT → étape département, ADMIN → étape finale).
+            Le motif est obligatoire et notifié au demandeur. Le créateur ne peut
+            jamais refuser son propre besoin. Périmètre UP/département contrôlé.
+            """
+    )
+    @ApiResponse(responseCode = "200", description = "Refus enregistré (statut REJECTED)")
+    @ApiResponse(responseCode = "400", description = "Motif manquant")
+    @ApiResponse(responseCode = "401", description = "Non authentifié")
+    @ApiResponse(responseCode = "403", description = "Rôle/périmètre insuffisant ou propre besoin")
+    @ApiResponse(responseCode = "404", description = "Besoin introuvable")
+    @ApiResponse(responseCode = "409", description = "Besoin déjà traité")
+    @PutMapping("/{id}/reject")
+    @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_REJECT)
+    public ResponseEntity<BesoinFormationResponse> rejectBesoin(
+            @Parameter(description = "Identifiant du besoin à refuser") @PathVariable Long id,
+            @Valid @RequestBody tn.esprit.d2f.dto.RejectBesoinRequest request) {
+        return ResponseEntity.ok(besoinFormationService.refuserBesoin(id, request.getReason()));
+    }
+
+    @Operation(
+        summary = "Annuler son propre besoin (avant toute approbation)",
+        description = "Le créateur (ou l'administrateur) annule un besoin au statut SUBMITTED."
+    )
+    @ApiResponse(responseCode = "200", description = "Besoin annulé (statut CANCELLED)")
+    @ApiResponse(responseCode = "401", description = "Non authentifié")
+    @ApiResponse(responseCode = "403", description = "Ni créateur ni administrateur")
+    @ApiResponse(responseCode = "404", description = "Besoin introuvable")
+    @ApiResponse(responseCode = "409", description = "Besoin déjà en cours de traitement")
+    @PutMapping("/{id}/cancel")
+    @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_CANCEL)
+    public ResponseEntity<BesoinFormationResponse> cancelBesoin(
+            @Parameter(description = "Identifiant du besoin à annuler") @PathVariable Long id) {
+        return ResponseEntity.ok(besoinFormationService.annulerBesoin(id));
+    }
+
+    @Operation(
+        summary = "Lister les besoins en attente pour l'utilisateur connecté",
+        description = "Périmètre calculé côté serveur : CUP → besoins de son UP à l'étape CUP, "
+                + "CHEF_DEPARTEMENT → besoins de son département à l'étape département, "
+                + "ADMIN → tous les besoins en attente."
+    )
+    @ApiResponse(responseCode = "200", description = "Besoins en attente du périmètre")
+    @ApiResponse(responseCode = "401", description = "Non authentifié")
+    @ApiResponse(responseCode = "403", description = "Réservé aux valideurs / périmètre non configuré")
+    @GetMapping("/pending-approval")
+    @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_PENDING)
+    public ResponseEntity<PageResponse<BesoinFormationResponse>> getPendingApproval(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(SORT_FIELD).descending());
+        return ResponseEntity.ok(PageResponse.of(besoinFormationService.retrievePendingApproval(pageable)));
+    }
+
+    @Operation(
+        summary = "Lister les besoins du périmètre de l'utilisateur connecté",
+        description = "Périmètre calculé côté serveur : CUP → besoins de son UP, "
+                + "CHEF_DEPARTEMENT → besoins de son département, ADMIN → tous."
+    )
+    @ApiResponse(responseCode = "200", description = "Besoins du périmètre")
+    @ApiResponse(responseCode = "401", description = "Non authentifié")
+    @ApiResponse(responseCode = "403", description = "Périmètre non configuré")
+    @GetMapping("/scope")
+    @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_SCOPE)
+    public ResponseEntity<PageResponse<BesoinFormationResponse>> getScope(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(SORT_FIELD).descending());
+        return ResponseEntity.ok(PageResponse.of(besoinFormationService.retrieveScope(pageable)));
+    }
+
+    @Operation(
+        summary = "Historique d'audit des transitions d'un besoin",
+        description = "Créations, approbations, refus et annulations avec acteur, rôles et motifs. Réservé à l'administrateur."
+    )
+    @ApiResponse(responseCode = "200", description = "Historique du besoin")
+    @ApiResponse(responseCode = "401", description = "Non authentifié")
+    @ApiResponse(responseCode = "403", description = "Réservé à l'administrateur")
+    @ApiResponse(responseCode = "404", description = "Besoin introuvable")
+    @GetMapping("/{id}/history")
+    @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_HISTORY)
+    public ResponseEntity<java.util.List<tn.esprit.d2f.entity.BesoinApprovalHistory>> getHistory(
+            @Parameter(description = "Identifiant du besoin") @PathVariable Long id) {
+        return ResponseEntity.ok(besoinFormationService.getApprovalHistory(id));
+    }
+
     // ── Requêtes filtrées ─────────────────────────────────────────────────────
 
     @Operation(summary = "Lister les besoins intégralement approuvés (paginé)")

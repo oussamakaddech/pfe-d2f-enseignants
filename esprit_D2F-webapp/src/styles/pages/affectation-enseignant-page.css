@@ -6,6 +6,36 @@
 }
 
 /* ── Stats row ─────────────────────────────────────────────────────────── */
+/* ── Bandeau de périmètre (CUP / chef de département) ───────────────────── */
+.affectation-perimetre-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: 12px 18px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-info-border, var(--border-color));
+  background: var(--color-info-bg);
+  color: var(--text-primary, inherit);
+  font-size: var(--font-size-sm, 13px);
+  line-height: 1.5;
+}
+
+.affectation-perimetre-banner--vide {
+  border-color: var(--color-warning-border, var(--border-color));
+  background: var(--color-warning-bg, var(--color-info-bg));
+}
+
+.affectation-perimetre-banner-icon {
+  margin-top: 2px;
+  color: var(--color-info);
+  flex-shrink: 0;
+}
+
+.affectation-perimetre-banner--vide .affectation-perimetre-banner-icon {
+  color: var(--color-warning, var(--color-info));
+}
+
 .affectation-stats-row {
   margin-bottom: var(--space-5);
 }
@@ -164,6 +194,18 @@
 .affectation-modal .ant-input,
 .affectation-modal .ant-select-selector {
   border-radius: var(--radius-sm);
+}
+
+/* Aperçu du périmètre : combien de savoirs seront affectés. */
+.affectation-perimetre-apercu {
+  margin: -4px 0 16px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--color-info);
+  background: var(--color-info-bg);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.45;
 }
 
 /* ── Responsive ────────────────────────────────────────────────────────── */

@@ -1,5 +1,9 @@
 package tn.esprit.d2f.competence.controller;
 
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.http.HttpMethod;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -15,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -93,6 +98,29 @@ public class GlobalExceptionHandler {
                 request.getRequestURI());
     }
 
+    // Paramètre absent ou mal typé : erreur du client (400), pas une panne serveur.
+    @ExceptionHandler({MissingServletRequestParameterException.class, MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<Map<String, Object>> handleBadRequestParameter(Exception ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, badParameterMessage(ex), MODULE_PREFIX + "-400", request.getRequestURI());
+    }
+
+    // Méthode HTTP non prise en charge par la route (ex. GET sur une route POST) :
+    // 405 avec l'en-tête Allow, et non 500 via le catch-all.
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+        ResponseEntity<Map<String, Object>> response = buildResponse(HttpStatus.METHOD_NOT_ALLOWED,
+                "Méthode " + ex.getMethod() + " non prise en charge pour cette ressource",
+                MODULE_PREFIX + "-405", request.getRequestURI());
+        Set<HttpMethod> allowed = ex.getSupportedHttpMethods();
+        if (allowed == null || allowed.isEmpty()) {
+            return response;
+        }
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .allow(allowed.toArray(HttpMethod[]::new))
+                .body(response.getBody());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex,
                                                                 HttpServletRequest request) {
@@ -114,5 +142,16 @@ public class GlobalExceptionHandler {
         body.put("path", path);
         body.put("traceId", UUID.randomUUID().toString());
         return new ResponseEntity<>(body, status);
+    }
+
+    /** Message client pour un paramètre de requête absent ou mal typé (sans nom de classe Java). */
+    private static String badParameterMessage(Exception ex) {
+        if (ex instanceof MissingServletRequestParameterException missing) {
+            return "Paramètre obligatoire manquant : " + missing.getParameterName();
+        }
+        if (ex instanceof MethodArgumentTypeMismatchException mismatch) {
+            return "Valeur invalide pour le paramètre '" + mismatch.getName() + "'";
+        }
+        return "Paramètre de requête invalide.";
     }
 }

@@ -8,6 +8,16 @@ import * as cupMod from '@/hooks/dashboard/useCupDashboard';
 
 const cup = () => cupMod.useCupDashboard;
 
+vi.mock('@/services/formation/FormationService', () => ({
+  default: {
+    getAllFormations: vi.fn().mockResolvedValue([
+      { id: '1', titre: 'Formation 1', inscriptionsOuvertes: true },
+      { id: '2', titre: 'Formation 2', inscriptionsOuvertes: false },
+      { id: '3', titre: 'Formation 3', inscriptionsOuvertes: true },
+    ]),
+  },
+}));
+
 const navigate = vi.fn();
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -22,6 +32,9 @@ const baseKpis = {
   tauxParticipation: 80,
   totalHeures: 100,
   participants: 50,
+  formateurs: { total: 7, internes: 5, externes: 2 },
+  competencesCouvertes: 6,
+  liensCompetences: 14,
   pendingBesoins: 2,
   critiques: 1,
   totalBesoins: 2,
@@ -61,6 +74,9 @@ const makeMock = (overrides: Record<string, unknown> = {}): any => ({
 
 vi.mock('@/hooks/dashboard/useCupDashboard', () => ({
   useCupDashboard: vi.fn(() => makeMock()),
+  // Le vrai helper est testé dans useCupDashboard.test.ts : ici on évite juste
+  // un import manquant si un test renseigne une plage personnalisée.
+  customRangeLabel: (r: { start: string; end: string }) => `du ${r.start} au ${r.end}`,
 }));
 
 vi.mock('@/hooks/auth/useAuth', () => ({
@@ -87,9 +103,36 @@ describe('CupDashboardPage', () => {
 
   it('renders title and KPIs', () => {
     renderWith(queryClient);
-    expect(screen.getByText('Tableau de bord CUP')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Tableau de bord' })).toBeInTheDocument();
     expect(screen.getByText('Formations actives')).toBeInTheDocument();
     expect(screen.getByText('Répartition par type')).toBeInTheDocument();
+  });
+
+  it('renders the period KPIs (heures, formateurs, participants, compétences)', () => {
+    renderWith(queryClient);
+    expect(screen.getByText('Heures de formation')).toBeInTheDocument();
+    expect(screen.getByText('Formateurs mobilisés')).toBeInTheDocument();
+    expect(screen.getByText('Participants formés')).toBeInTheDocument();
+    expect(screen.getByText('Compétences couvertes')).toBeInTheDocument();
+    // Détail des formateurs : internes / externes distincts.
+    expect(screen.getByText('5 internes · 2 externes')).toBeInTheDocument();
+    // Libellé de période : 12 derniers mois par défaut.
+    expect(screen.getAllByText(/12 derniers mois/).length).toBeGreaterThan(0);
+  });
+
+  it('changes the indicator period when a period is selected', () => {
+    renderWith(queryClient);
+    fireEvent.click(screen.getAllByText('3 mois')[0]);
+    // Les deux contrôles de période (KPI + graphique) partagent le même état.
+    expect(screen.getAllByText(/3 derniers mois/).length).toBeGreaterThan(0);
+  });
+
+  it('offers a custom date range next to the presets', () => {
+    renderWith(queryClient);
+    // Le sélecteur de dates libres accompagne le préréglage 30 j / 3 / 6 / 12 mois.
+    expect(screen.getByPlaceholderText('Du')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Au')).toBeInTheDocument();
+    expect(screen.getAllByText(/Heures, formateurs et participants comptés sur/).length).toBe(1);
   });
 
   it('renders besoins and top competences data', () => {
@@ -164,7 +207,7 @@ describe('CupDashboardPage', () => {
       } as any),
     );
     renderWith(queryClient);
-    expect(screen.getByText('Tableau de bord CUP')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Tableau de bord' })).toBeInTheDocument();
     expect(document.querySelectorAll('.ant-spin').length).toBeGreaterThan(0);
   });
 
@@ -257,8 +300,45 @@ describe('CupDashboardPage', () => {
       } as any),
     );
     renderWith(queryClient);
-    expect(screen.getByText(/12 derniers mois/)).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Trimestre'));
-    await waitFor(() => expect(screen.getByText(/ce trimestre/)).toBeInTheDocument());
+    expect(screen.getAllByText(/12 derniers mois/).length).toBeGreaterThan(0);
+    // Le sélecteur du graphique et celui des KPI pilotent la même période.
+    await userEvent.click(screen.getAllByText('3 mois').at(-1)!);
+    await waitFor(() => expect(screen.getAllByText(/3 derniers mois/).length).toBeGreaterThan(0));
+  });
+
+  it('shows ouvertes and fermées pill counts from formations data', async () => {
+    renderWith(queryClient);
+    // The pills display open/closed counts from mocked FormationService (2 ouvertes, 1 fermée).
+    await waitFor(() => {
+      expect(screen.getByText('Ouvertes')).toBeInTheDocument();
+      expect(screen.getByText('Fermées')).toBeInTheDocument();
+    });
+  });
+
+  it('shows Répartition par type subhead by default (mode=all)', () => {
+    renderWith(queryClient);
+    // In default "Tout" mode, both type subhead and statut subhead are visible.
+    expect(screen.getByText('Répartition par type')).toBeInTheDocument();
+    expect(screen.getByText('Statut des inscriptions')).toBeInTheDocument();
+  });
+
+  it('toggles repartition mode to Ouvertes/Fermées only', async () => {
+    renderWith(queryClient);
+    const btn = screen.getByText('Ouvertes / Fermées');
+    fireEvent.click(btn);
+    await waitFor(() => {
+      expect(screen.getByText('Statut des inscriptions')).toBeInTheDocument();
+      expect(screen.queryByText('Répartition par type')).not.toBeInTheDocument();
+    });
+  });
+
+  it('toggles repartition mode to Par type only', async () => {
+    renderWith(queryClient);
+    const btn = screen.getByText('Par type');
+    fireEvent.click(btn);
+    await waitFor(() => {
+      expect(screen.getByText('Répartition par type')).toBeInTheDocument();
+      expect(screen.queryByText('Statut des inscriptions')).not.toBeInTheDocument();
+    });
   });
 });

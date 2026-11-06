@@ -215,13 +215,22 @@ def get_legacy_analytics_router():
     ``insights`` carries ``/dashboard/supply-demand`` and ``analytics`` carries
     ``/dashboard/training-impact`` (+ ``/formations``), still consumed by the
     webapp while the new ``app.api.v1`` only exposes ``/dashboard``.
+    ``ab_testing`` carries ``/ab/{assign,event,results,winner}`` (page A/B
+    testing) : it was mounted by the legacy ``main.py`` only, so the page got
+    404 after the switch to ``app.main``. Restricted to the roles the page is
+    routed for (the legacy router had no role check of its own).
     """
     ensure_legacy_aliases()
-    from fastapi import APIRouter
+    from fastapi import APIRouter, Depends
 
-    from app_legacy.routers import analytics, insights
+    from app.core.security import require_roles
+    from app_legacy.routers import ab_testing, analytics, insights
 
     router = APIRouter()
     router.include_router(insights.router)
     router.include_router(analytics.router)
+    router.include_router(
+        ab_testing.router,
+        dependencies=[Depends(require_roles("ADMIN", "CUP", "CHEF_DEPARTEMENT"))],
+    )
     return router

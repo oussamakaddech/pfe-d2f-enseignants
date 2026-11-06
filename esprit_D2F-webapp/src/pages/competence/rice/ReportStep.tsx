@@ -13,6 +13,7 @@ import {
   Space,
   Spin,
   Statistic,
+  Table,
   Typography,
 } from 'antd';
 import {
@@ -28,6 +29,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMemo } from 'react';
 import ImportBanner from './report/ImportBanner';
 import ImportSummaryCard from './report/ImportSummaryCard';
+import DomaineRattachementSelect from './report/DomaineRattachementSelect';
 import EnseignantCompTable, {
   buildEnseignantSavoirsMap,
   buildEnseignantRows,
@@ -62,6 +64,8 @@ interface ReportStepProps {
   extractedEnseignants: Record<string, unknown>[];
   setCurrentStep: (step: number) => void;
   resetAll: () => void;
+  domaineCibleId?: string | null;
+  setDomaineCibleId: (value: string | null) => void;
 }
 
 export default function ReportStep({
@@ -77,6 +81,8 @@ export default function ReportStep({
   extractedEnseignants,
   setCurrentStep,
   resetAll,
+  domaineCibleId,
+  setDomaineCibleId,
 }: Readonly<ReportStepProps>) {
   const navigate = useNavigate();
 
@@ -160,7 +166,6 @@ export default function ReportStep({
       );
     if (!importHistory || importHistory.length === 0)
       return <Empty description="Aucun import précédent" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
-    const { Table } = require('antd') as typeof import('antd');
     return (
       <Table
         dataSource={importHistory.map((r, i) => ({ ...r, key: i }))}
@@ -215,6 +220,7 @@ export default function ReportStep({
 
   return (
     <>
+      {!report && <DomaineRattachementSelect value={domaineCibleId} onChange={setDomaineCibleId} />}
       <ImportBanner
         report={report}
         importing={importing}

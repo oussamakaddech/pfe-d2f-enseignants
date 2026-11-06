@@ -41,7 +41,7 @@ export const ROUTE_LABELS: Record<string, string> = {
   MyCertificate: 'Mes certificats',
   register: 'Inscription',
   test: 'Tests',
-  'skill-passport': 'Skill Passport',
+  'skill-passport': 'Fiche compétence enseignant',
 };
 
 export function getBackTarget(currentPath: string): string {

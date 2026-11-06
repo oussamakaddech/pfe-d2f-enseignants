@@ -10,9 +10,9 @@ import org.springframework.stereotype.Service;
 import java.util.Collection;
 
 /**
- * Règles RBAC du Passeport de Compétences :
+ * Règles RBAC de la fiche compétence enseignant :
  *  - ROLE_ADMIN / ROLE_CUP → accès à TOUS les passeports (périmètre PFE global)
- *  - Tout autre utilisateur authentifié (ENSEIGNANT, ANIMATEUR, FORMATEUR,
+ *  - Tout autre utilisateur authentifié (ENSEIGNANT, ANIMATEUR,
  *    CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER) → accès uniquement à SON propre
  *    passeport. Cohérent avec l'endpoint /me et avec la parité
  *    ANIMATEUR ≡ ENSEIGNANT appliquée dans le reste de la matrice.
@@ -45,7 +45,7 @@ public class SkillPassportAuthorizationService {
         }
 
         // Accès self : tout utilisateur authentifié peut consulter SON propre
-        // passeport, quel que soit son rôle (enseignant, animateur, formateur,
+        // passeport, quel que soit son rôle (enseignant, animateur,
         // chef de département, responsable de dossier).
         String currentUsername = extractUsername(authentication);
         if (currentUsername != null && currentUsername.equals(targetUsername)) {
@@ -53,7 +53,7 @@ public class SkillPassportAuthorizationService {
         }
 
         throw new PassportAccessDeniedException(
-                "Accès refusé : vous ne pouvez consulter que votre propre passeport de compétences.");
+                "Accès refusé : vous ne pouvez consulter que votre propre fiche compétence enseignant.");
     }
 
     /**

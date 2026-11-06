@@ -1,4 +1,4 @@
-﻿"""Modele de pertinence appris pour le scoring des recommandations.
+"""Modele de pertinence appris pour le scoring des recommandations.
 
 Objectif : remplacer la formule fixe `0.7*content + 0.2*quality + 0.1*recency`
 par un modele appris sur les vraies interactions enseignant-formation.

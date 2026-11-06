@@ -33,6 +33,7 @@ class IntegrationControllersTest {
     @Autowired private MockMvc mockMvc;
     @MockitoBean private OneDriveService oneDriveService;
     @MockitoBean private OutlookMailService mailService;
+    @MockitoBean private esprit.pfe.serviceformation.microsoft.MailSendPolicy mailSendPolicy;
     @MockitoBean private FormationWorkflowService formationWorkflowService;
 
     // Required: @EnableJpaAuditing on the main class causes @WebMvcTest to need these beans

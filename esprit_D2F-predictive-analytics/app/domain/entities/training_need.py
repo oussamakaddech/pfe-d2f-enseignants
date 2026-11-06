@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from app.domain.value_objects.time_format import iso_utc
+
 NeedTypeIndividual = "INDIVIDUAL"
 NeedTypeCollective = "COLLECTIVE"
 NeedStatusOpen = "OPEN"
@@ -33,5 +35,5 @@ class TrainingNeed:
             "teachers_count": self.teachers_count,
             "evidence": self.evidence,
             "status": self.status,
-            "detected_at": self.detected_at.isoformat() + "Z",
+            "detected_at": iso_utc(self.detected_at),
         }

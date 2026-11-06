@@ -47,7 +47,8 @@ public class SeanceController {
     @GetMapping
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<Page<SeanceDTO>> getAllSeances(
-            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
+            // Le champ de l'entité est idSeance : un tri sur "id" faisait échouer TOUT appel (500).
+            @PageableDefault(size = 20, sort = "idSeance") Pageable pageable) {
         try {
             return ResponseEntity.ok(seanceService.getAllSeances(pageable));
         } catch (Exception e) {

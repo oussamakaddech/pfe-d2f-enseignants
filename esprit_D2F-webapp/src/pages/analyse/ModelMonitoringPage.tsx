@@ -15,7 +15,19 @@ import { ModelStatusPanel } from '@/components/analytics';
 import { AppPageHeader } from '@/components/common';
 
 /**
- * Page de monitoring modèle (ADMIN) : drift, statut, retraining, rollback.
+ * Étiquette du statut de dérive.
+ *
+ * `null` = contrôle non exécuté : affiché comme tel, jamais en « Stable ».
+ * Le panneau présentait auparavant un vert rassurant alors qu'aucun test
+ * n'avait tourné.
+ */
+function driftTag(detected: boolean | null) {
+  if (detected === null || detected === undefined) return <Tag>NON CONTRÔLÉE</Tag>;
+  return detected ? <Tag color="red">DÉRIVE</Tag> : <Tag color="green">AUCUNE</Tag>;
+}
+
+/**
+ * Page de monitoring modèle (ADMIN) : dérive, statut, retraining, rollback.
  */
 export default function ModelMonitoringPage() {
   const { message } = App.useApp();
@@ -61,7 +73,7 @@ export default function ModelMonitoringPage() {
         }
       />
 
-      {drift.data?.drift_detected && (
+      {drift.data?.drift_detected === true && (
         <Alert
           type="warning"
           showIcon
@@ -94,11 +106,10 @@ export default function ModelMonitoringPage() {
                       {drift.data.jours_depuis_entrainement}
                     </Descriptions.Item>
                     <Descriptions.Item label="Statut">
-                      {drift.data.drift_detected ? (
-                        <Tag color="red">DRIFT</Tag>
-                      ) : (
-                        <Tag color="green">Stable</Tag>
-                      )}
+                      {driftTag(drift.data.drift_detected)}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Interprétation">
+                      {drift.data.message}
                     </Descriptions.Item>
                   </Descriptions>
                 );

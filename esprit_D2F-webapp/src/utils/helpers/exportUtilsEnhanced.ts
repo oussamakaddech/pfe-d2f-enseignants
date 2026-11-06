@@ -9,6 +9,8 @@ interface Domaine {
   id: string | number;
   code: string;
   nom: string;
+  upId?: NullableId;
+  departementId?: NullableId;
 }
 
 interface Competence {
@@ -16,6 +18,20 @@ interface Competence {
   code: string;
   nom: string;
   domaineId: string | number;
+  upIds?: NullableId[];
+  departementIds?: NullableId[];
+}
+
+/** Item de référentiel UP / département (id + libellé). */
+export interface ScopeLookupItem {
+  id?: string | number;
+  name?: string | null;
+  libelle?: string | null;
+}
+
+export interface ScopeLookups {
+  ups?: ScopeLookupItem[];
+  depts?: ScopeLookupItem[];
 }
 
 interface SousCompetence {
@@ -86,8 +102,7 @@ const createStyledSheet = (
     if (cell) {
       (cell as CellWithStyle).s = {
         fill: {
-          fgColor: { rgb: headerColors.fg },
-          bgColor: { rgb: headerColors.bg },
+          fgColor: { rgb: headerColors.bg },
         },
         font: {
           bold: true,
@@ -95,16 +110,16 @@ const createStyledSheet = (
           color: { rgb: headerColors.fg },
         },
         border: {
-          top: { style: 'thin', color: { auto: 1 } },
-          right: { style: 'thin', color: { auto: 1 } },
-          bottom: { style: 'thin', color: { auto: 1 } },
-          left: { style: 'thin', color: { auto: 1 } },
+          top: { style: 'thin', color: { rgb: 'D0D7DE' } },
+          right: { style: 'thin', color: { rgb: 'D0D7DE' } },
+          bottom: { style: 'thin', color: { rgb: 'D0D7DE' } },
+          left: { style: 'thin', color: { rgb: 'D0D7DE' } },
         },
       };
     }
   }
 
-  // Style pour les données
+  // Style pour les données (fond blanc)
   for (let R = range.s.r + 1; R <= range.e.r; ++R) {
     for (let C = range.s.c; C <= range.e.c; ++C) {
       const address = XLSX.utils.encode_cell({ r: R, c: C });
@@ -112,8 +127,7 @@ const createStyledSheet = (
       if (cell) {
         (cell as CellWithStyle).s = {
           fill: {
-            fgColor: { rgb: '000000' },
-            bgColor: { rgb: R % 2 === 0 ? 'FFFFFF' : 'F5F7FA' },
+            fgColor: { rgb: 'FFFFFF' },
           },
           font: {
             sz: 11,
@@ -139,10 +153,148 @@ const createStyledSheet = (
   return ws;
 };
 
-export function doExportStructureExcel(crud: unknown, domaineId?: unknown): void {
+function referentielLabel(code?: string | null, nom?: string | null): string {
+  return (
+    [code ? `[${code}]` : '', nom ?? '']
+      .filter((part) => part !== '')
+      .join(' ')
+      .trim() || '—'
+  );
+}
+
+/** Valeur affichée quand le savoir n'est rattaché à rien. */
+export const LIEN_ABSENT = '-';
+
+export interface SavoirRattachement {
+  competence: string;
+  sousCompetence: string;
+  parent: string;
+}
+
+/**
+ * Rattachement d'un savoir, sans redondance :
+ * - savoir porté directement par une compétence → COMPÉTENCE remplie, SOUS-COMPÉTENCE « - »,
+ *   PARENT / RACINE = « RACINE » ;
+ * - savoir rangé sous une sous-compétence → COMPÉTENCE « - », SOUS-COMPÉTENCE remplie,
+ *   PARENT / RACINE = « FEUILLE » ;
+ * - savoir rattaché à rien → « - » partout.
+ */
+export function savoirRattachement(
+  savoir: Savoir,
+  sousComps: SousCompetence[],
+  competences: Competence[],
+): SavoirRattachement {
+  const sc =
+    savoir.sousCompetenceId == null
+      ? null
+      : (sousComps.find((item) => String(item.id) === String(savoir.sousCompetenceId)) ?? null);
+
+  if (sc) {
+    return {
+      competence: LIEN_ABSENT,
+      sousCompetence: referentielLabel(sc.code, sc.nom),
+      parent: 'FEUILLE',
+    };
+  }
+
+  if (savoir.sousCompetenceId != null) {
+    return {
+      competence: LIEN_ABSENT,
+      sousCompetence: `Sous-compétence #${savoir.sousCompetenceId} (hors liste)`,
+      parent: 'FEUILLE',
+    };
+  }
+
+  // `savoirs.competence_id` n'est pas renseigné pour un savoir rangé sous une
+  // sous-compétence : ici le savoir est bien direct sur une compétence.
+  const competence =
+    savoir.competenceId == null
+      ? null
+      : (competences.find((c) => String(c.id) === String(savoir.competenceId)) ?? null);
+
+  if (competence) {
+    return {
+      competence: referentielLabel(competence.code, competence.nom),
+      sousCompetence: LIEN_ABSENT,
+      parent: 'RACINE',
+    };
+  }
+
+  if (savoir.competenceId != null) {
+    return {
+      competence: `Compétence #${savoir.competenceId} (hors liste)`,
+      sousCompetence: LIEN_ABSENT,
+      parent: 'RACINE',
+    };
+  }
+
+  return {
+    competence: LIEN_ABSENT,
+    sousCompetence: LIEN_ABSENT,
+    parent: LIEN_ABSENT,
+  };
+}
+
+/** Compétence porteuse d'un savoir (remontée par sa sous-compétence si besoin). */
+export function competenceDuSavoir(
+  savoir: Savoir,
+  sousComps: SousCompetence[],
+  competences: Competence[],
+): Competence | null {
+  const sc =
+    savoir.sousCompetenceId == null
+      ? null
+      : (sousComps.find((item) => String(item.id) === String(savoir.sousCompetenceId)) ?? null);
+  const competenceId = sc ? sc.competenceId : savoir.competenceId;
+  if (competenceId == null) return null;
+  return competences.find((c) => String(c.id) === String(competenceId)) ?? null;
+}
+
+function scopeLabel(items: ScopeLookupItem[], id: NullableId): string {
+  const found = items.find((item) => String(item.id) === String(id));
+  return found?.name ?? found?.libelle ?? String(id);
+}
+
+/**
+ * UP et département d'une compétence : le rattachement explicite de la
+ * compétence prime, sinon elle hérite de son domaine (comme la colonne
+ * « UP / Départements » de l'écran).
+ */
+export function competenceScope(
+  competence: Competence | null,
+  domaine: Domaine | null | undefined,
+  lookups?: ScopeLookups,
+): { up: string; departement: string } {
+  const ups = lookups?.ups ?? [];
+  const depts = lookups?.depts ?? [];
+  const labels = (
+    ids: NullableId[] | undefined,
+    items: ScopeLookupItem[],
+    heritage: NullableId | undefined,
+  ): string => {
+    const list = (ids ?? []).filter((id) => id != null);
+    if (list.length > 0) return list.map((id) => scopeLabel(items, id)).join(', ');
+    return heritage != null ? scopeLabel(items, heritage) : LIEN_ABSENT;
+  };
+
+  return {
+    up: labels(competence?.upIds, ups, domaine?.upId),
+    departement: labels(competence?.departementIds, depts, domaine?.departementId),
+  };
+}
+
+export function doExportStructureExcel(
+  crud: unknown,
+  domaineId?: unknown,
+  lookups?: ScopeLookups,
+): void {
   const f = getFilteredCrud(crud as FilteredCrudParam, domaineId) as unknown as ReferentielCrud;
   const wb = XLSX.utils.book_new();
   const sfx = domaineId ? '_domaine' : '_complet';
+  const domaineDe = (competence: Competence | null) =>
+    competence
+      ? (f.domaines.find((d) => String(d.id) === String(competence.domaineId)) ?? null)
+      : null;
 
   // Feuille Domaines
   XLSX.utils.book_append_sheet(
@@ -163,13 +315,19 @@ export function doExportStructureExcel(crud: unknown, domaineId?: unknown): void
   XLSX.utils.book_append_sheet(
     wb,
     createStyledSheet(
-      f.competences.map((c) => ({
-        CODE: c.code,
-        NOM: c.nom,
-        DOMAINE: f.domaines.find((d) => String(d.id) === String(c.domaineId))?.nom || '',
-        'NB SOUS-COMPÉTENCES': f.sousComps.filter((sc) => String(sc.competenceId) === String(c.id))
-          .length,
-      })),
+      f.competences.map((c) => {
+        const scope = competenceScope(c, domaineDe(c), lookups);
+        return {
+          CODE: c.code,
+          NOM: c.nom,
+          DOMAINE: f.domaines.find((d) => String(d.id) === String(c.domaineId))?.nom || '',
+          UP: scope.up,
+          DÉPARTEMENT: scope.departement,
+          'NB SOUS-COMPÉTENCES': f.sousComps.filter(
+            (sc) => String(sc.competenceId) === String(c.id),
+          ).length,
+        };
+      }),
       '02-COMPÉTENCES',
       { fg: 'FFFFFF', bg: '059669' },
     ),
@@ -184,9 +342,6 @@ export function doExportStructureExcel(crud: unknown, domaineId?: unknown): void
         CODE: sc.code,
         NOM: sc.nom,
         COMPÉTENCE: f.competences.find((c) => String(c.id) === String(sc.competenceId))?.nom || '',
-        PARENT: sc.parentId
-          ? f.sousComps.find((p) => String(p.id) === String(sc.parentId))?.nom || ''
-          : 'RACINE',
       })),
       '03-SOUS-COMPÉTENCES',
       { fg: 'FFFFFF', bg: '7C3AED' },
@@ -199,19 +354,19 @@ export function doExportStructureExcel(crud: unknown, domaineId?: unknown): void
     wb,
     createStyledSheet(
       f.savoirs.map((s) => {
-        const fsc = f.sousComps.find((sc) => String(sc.id) === String(s.sousCompetenceId));
-        let comp: Competence | null = null;
-        if (fsc)
-          comp = f.competences.find((c) => String(c.id) === String(fsc.competenceId)) ?? null;
-        else if (s.competenceId != null)
-          comp = f.competences.find((c) => String(c.id) === String(s.competenceId)) ?? null;
+        const lien = savoirRattachement(s, f.sousComps, f.competences);
+        const competence = competenceDuSavoir(s, f.sousComps, f.competences);
+        const scope = competenceScope(competence, domaineDe(competence), lookups);
         return {
           CODE: s.code,
           NOM: s.nom,
           TYPE: s.type,
           NIVEAU: s.niveau,
-          'SOUS-COMPÉTENCE': fsc?.nom || 'DIRECT',
-          COMPÉTENCE: comp?.nom || '',
+          COMPÉTENCE: lien.competence,
+          'SOUS-COMPÉTENCE': lien.sousCompetence,
+          'PARENT / RACINE': lien.parent,
+          UP: scope.up,
+          DÉPARTEMENT: scope.departement,
         };
       }),
       '04-SAVOIRS',
@@ -223,7 +378,11 @@ export function doExportStructureExcel(crud: unknown, domaineId?: unknown): void
   XLSX.writeFile(wb, `structure${sfx}_${getExportDateSuffix()}.xlsx`);
 }
 
-export function doExportSavoirsExcel(crud: unknown, domaineId?: unknown): void {
+export function doExportSavoirsExcel(
+  crud: unknown,
+  domaineId?: unknown,
+  lookups?: ScopeLookups,
+): void {
   const f = getFilteredCrud(crud as FilteredCrudParam, domaineId) as unknown as ReferentielCrud;
   const sfx = domaineId ? '_domaine' : '';
   const wb = XLSX.utils.book_new();
@@ -232,21 +391,21 @@ export function doExportSavoirsExcel(crud: unknown, domaineId?: unknown): void {
     wb,
     createStyledSheet(
       f.savoirs.map((s) => {
-        const fsc = f.sousComps.find((sc) => String(sc.id) === String(s.sousCompetenceId));
-        let comp: Competence | null = null;
-        if (fsc)
-          comp = f.competences.find((c) => String(c.id) === String(fsc.competenceId)) ?? null;
-        else if (s.competenceId != null)
-          comp = f.competences.find((c) => String(c.id) === String(s.competenceId)) ?? null;
+        const comp = competenceDuSavoir(s, f.sousComps, f.competences);
         const dom = comp ? f.domaines.find((d) => String(d.id) === String(comp.domaineId)) : null;
+        const lien = savoirRattachement(s, f.sousComps, f.competences);
+        const scope = competenceScope(comp, dom, lookups);
         return {
           CODE: s.code,
           NOM: s.nom,
           TYPE: s.type,
           NIVEAU: s.niveau,
-          'SOUS-COMPÉTENCE': fsc?.nom || 'DIRECT',
-          COMPÉTENCE: comp?.nom || '',
+          COMPÉTENCE: lien.competence,
+          'SOUS-COMPÉTENCE': lien.sousCompetence,
+          'PARENT / RACINE': lien.parent,
           DOMAINE: dom?.nom || '',
+          UP: scope.up,
+          DÉPARTEMENT: scope.departement,
         };
       }),
       'SAVOIRS',
