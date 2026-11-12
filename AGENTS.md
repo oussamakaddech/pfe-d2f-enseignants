@@ -2,6 +2,18 @@
 
 ## Context & State (updated 2026-11-12)
 
+### Désactivation des e-mails pour les formations enregistrées et achevées (2026-11-12)
+- **Demande** : « svp dans formation n'envoie pas mail lorsque formation est enregistré ou achevé, puis faire push à branche oussama puis dsi puis verifier et valider que tous images docker sont à jour et corrects ».
+- **Comportement modifié (`esprit_D2F-formation`)** :
+  - `FormationWorkflowService.notifyEnregistrement` : désactivation de l'envoi d'e-mails (admin D2F et CUPs) lors de l'enregistrement d'une formation (`ENREGISTRE`). La méthode consigne désormais un simple `log.info` sans solliciter `outlookMailService`.
+  - `FormationWorkflowService.notifyAcheve` : désactivation de l'envoi d'e-mail à l'admin D2F lors de l'achèvement d'une formation (`ACHEVE`). La méthode consigne désormais un simple `log.info` sans solliciter `outlookMailService`.
+  - `FormationWorkflowService.notifyCUPOfNewFormation` : désactivation de l'e-mail de planification vers les CUPs de l'UP (signature et garde-fous conservés pour la compatibilité avec les tests par réflexion).
+- **Tests unitaires et de couverture alignés** :
+  - `FormationWorkflowServiceTest` : vérifie `never().sendMail(...)` à la création d'une formation (45/45 passants).
+  - `FormationWorkflowServiceEnhancedTest` : vérifie `never().sendMail(...)` sur `createFormationWorkflow` (12/12 passants).
+  - `FormationWorkflowServiceLineCoverageTest` : vérifie `never().sendMail(...)` sur toutes les transitions vers `ENREGISTRE` et `ACHEVE` (316/316 passants sur la suite `LineCoverage` + `Coverage` + `Extra` + `Enhanced` + `WorkflowServiceTest`).
+- **Validation** : compilation sans erreur (`mvn -o test-compile`), tests ciblés validés à 100%.
+
 ### Export Excel du calendrier restauré + parcours Approuver/Refuser vérifié + images alignées (2026-11-12)
 - **Demande** : « instabilité au niveau de fonctionnalités validées : génération du fichier excel du calendrier, approuver ou refuser un besoin en formation — vérifier et vérifier que les images Docker et containers sont à jour ».
 - **Excel du calendrier — cause** : le classeur `ExportExcelService` (feuilles « Résumé », « Calendrier », une par formation) était **orphelin côté interface** : le bouton de l'ancienne page catalogue utilisait `useExportFormations` (commit `70de28d4`), puis l'export du catalogue a été remplacé par un classeur client (`writeExcel`) et le hook est resté sans appelant → plus aucun écran ne générait le fichier du calendrier. L'endpoint `GET /api/v1/formations-workflow/export/excel?start&end` répondait pourtant **200** avec un classeur valide (14 feuilles, 336 lignes « Calendrier » via la passerelle).

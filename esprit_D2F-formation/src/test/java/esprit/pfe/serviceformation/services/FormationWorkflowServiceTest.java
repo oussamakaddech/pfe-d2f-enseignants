@@ -107,7 +107,7 @@ class FormationWorkflowServiceTest {
         verify(seanceFormationRepository).saveAll(anyList());
         verify(presenceRepository).saveAll(anyList());
         verify(evaluationPublisher).sendCreate(any());
-        verify(outlookMailService, atLeastOnce()).sendMail(any(), anyString(), anyString());
+        verify(outlookMailService, never()).sendMail(any(), anyString(), anyString());
     }
 
     @Test

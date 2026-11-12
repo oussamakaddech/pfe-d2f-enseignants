@@ -800,31 +800,10 @@ public class FormationWorkflowService {
         }
     }
 
-    // ── ENREGISTRE : Notification admin + CUPs qu'une formation est enregistrée ──
+    // ── ENREGISTRE : Aucun e-mail envoyé (notification désactivée) ──
     private void notifyEnregistrement(Formation formation) {
-        // Notification admin (boîte applicative D2F — jamais l'organizer
-        // technique noreply, domaine inexistant → NDR).
-        // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
-        if (outlookMailService != null && d2fNotificationEmail != null && !d2fNotificationEmail.isBlank()) {
-            try {
-                String subject = "[D2F] Nouvelle formation enregistrée : " + formation.getTitreFormation();
-                // FIX-S8: include actor identity in admin email
-                EmailTemplateBuilder adminBuilder = baseFormationEmailBuilder(APPROVAL_ACCENT_COLOR, "📝",
-                        "Nouvelle formation enregistrée",
-                        "Une nouvelle formation vient d'être enregistrée et attend d'être planifiée. "
-                                + "Vous trouverez ci-dessous le récapitulatif.", formation);
-                buildActorAuditDetail(adminBuilder);
-                String html = adminBuilder.build();
-                outlookMailService.sendMail(d2fNotificationEmail, subject, html);
-            } catch (Exception ex) {
-                log.warn("Echec notification admin enregistrement : {}", ex.getMessage());
-            }
-        } else {
-            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) ou boîte D2F non configurée — notification admin enregistrement ignorée.");
-        }
-
-        // Notification CUPs pour planifier
-        notifyCUPOfNewFormation(formation);
+        log.info("[Formation] Aucun e-mail envoyé pour l'état ENREGISTRE (formation {})",
+                formation != null ? formation.getIdFormation() : null);
     }
 
     // ── PLANIFIE : Création événements calendrier + notification participants ──
@@ -991,31 +970,10 @@ public class FormationWorkflowService {
                 ctaNote);
     }
 
-    // ── ACHEVE : Notification de fin de formation (admin uniquement — pas de mail aux participants ni animateurs) ──
+    // ── ACHEVE : Aucun e-mail envoyé (notification désactivée) ──
     private void notifyAcheve(Formation formation) {
-        if (outlookMailService != null && d2fNotificationEmail != null && !d2fNotificationEmail.isBlank()) {
-            try {
-                String subject = "[D2F] Formation achevée : " + formation.getTitreFormation();
-                String evalCta = LINK_START + platformUrl + "/home/Evaluations\" "
-                        + "style=\"background:#00695c;color:#fff;padding:10px 20px;border-radius:6px;"
-                        + "text-decoration:none;font-weight:bold;display:inline-block;margin-top:8px;\">"
-                        + "📝 Consulter les évaluations</a>";
-                EmailTemplateBuilder adminBuilder = baseFormationEmailBuilder("#00695c", "🎓",
-                        "Formation achevée",
-                        "La formation est désormais terminée. Aucun e-mail n'a été envoyé aux participants ni aux animateurs.",
-                        formation);
-                appendFormationSeances(adminBuilder, formation);
-                adminBuilder.note("Dernière étape : vous pouvez consulter les évaluations et vérifier que les présences "
-                        + "ont bien été confirmées dans D2F.<br><br>" + evalCta);
-                buildActorAuditDetail(adminBuilder);
-                String html = adminBuilder.build();
-                outlookMailService.sendMail(d2fNotificationEmail, subject, html);
-            } catch (Exception ex) {
-                log.warn("Echec notification admin formation achevee : {}", ex.getMessage());
-            }
-        } else {
-            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) ou boîte D2F non configurée — notification admin formation achevée ignorée.");
-        }
+        log.info("[Formation] Aucun e-mail envoyé pour l'état ACHEVE (formation {})",
+                formation != null ? formation.getIdFormation() : null);
     }
 
     // ── ANNULE : Notification d'annulation + suppression calendrier ──
@@ -1044,43 +1002,17 @@ public class FormationWorkflowService {
         }
     }
 
-    // ── Notification CUP d'une nouvelle formation à planifier ──
+    // ── Notification CUP d'une nouvelle formation à planifier (désactivée) ──
     private void notifyCUPOfNewFormation(Formation formation) {
         if (outlookMailService == null) return;
-        // FIX-S7: explicit warnings instead of silent returns
+        if (formation == null) return;
         if (formation.getUp() == null) {
             log.warn("[EMAIL] notifyCUPOfNewFormation: UP null pour formation={} — notification CUP ignorée.",
                     formation.getIdFormation());
             return;
         }
-        List<Enseignant> cups = enseignantRepository.findByUpAndCup(formation.getUp(), "O");
-        if (cups.isEmpty()) {
-            log.warn("[EMAIL] notifyCUPOfNewFormation: Aucun CUP trouvé pour UP={}, formation={} — notification ignorée.",
-                    formation.getUp().getId(), formation.getIdFormation());
-            return;
-        }
-        String subject = "[D2F] Formation à planifier : " + formation.getTitreFormation();
-        for (Enseignant cup : cups) {
-            if (cup.getMail() == null || cup.getMail().isBlank()) continue;
-            try {
-                String html = baseFormationEmailBuilder(APPROVAL_ACCENT_COLOR, "⚙️",
-                    "Action requise — planification",
-                    "Une nouvelle formation a été enregistrée pour votre unité pédagogique "
-                        + "et requiert votre intervention.", formation)
-                        .greetingName(fullName(cup))
-                        .detail("Unité Pédagogique", formation.getUp().getLibelle())
-                        .note("📌 <strong>Action requise :</strong> merci de procéder à la planification des "
-                                + "séances de cette formation depuis la plateforme D2F.<br><br>"
-                                + LINK_START + platformUrl + formationsPath + formation.getIdFormation() + "\" "
-                                + "style=\"background:" + APPROVAL_ACCENT_COLOR + ";color:#fff;padding:10px 20px;"
-                                + "border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;\">"
-                                + "Ouvrir la formation</a>")
-                        .build();
-                outlookMailService.sendMail(cup.getMail(), subject, html);
-            } catch (Exception ex) {
-                log.warn("Echec notification CUP : {}", ex.getMessage());
-            }
-        }
+        log.info("[Formation] notifyCUPOfNewFormation ignorée — aucun e-mail envoyé à l'enregistrement (formation {})",
+                formation.getIdFormation());
     }
 
     // ── Collecter tous les emails des personnes concernées par une formation ──

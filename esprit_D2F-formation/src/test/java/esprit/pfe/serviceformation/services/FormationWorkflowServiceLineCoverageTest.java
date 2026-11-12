@@ -199,19 +199,17 @@ class FormationWorkflowServiceLineCoverageTest {
         Formation f = buildFormation(1L, EtatFormation.ENREGISTRE);
         Up up = new Up("UP1", "UP Info"); f.setUp(up);
         Enseignant cup = buildEnseignant("C1", "Dup", "Jean", "c1@esprit.tn", "C1"); cup.setCup("O");
-        when(enseignantRepository.findByUpAndCup(up, "O")).thenReturn(List.of(cup));
         service.handleEtatTransitions(f, null);
-        verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
     }
 
-    @Test @DisplayName("handleEtatTransitions - ENREGISTRE with CUP notification")
+    @Test @DisplayName("handleEtatTransitions - ENREGISTRE sends no email")
     void handleEtat_enregistre() {
         Formation f = buildFormation(1L, EtatFormation.ENREGISTRE);
         Up up = new Up("UP1", "UP Info"); f.setUp(up);
         Enseignant cup = buildEnseignant("C1", "Dup", "Jean", "c1@esprit.tn", "C1"); cup.setCup("O");
-        when(enseignantRepository.findByUpAndCup(up, "O")).thenReturn(List.of(cup));
         service.handleEtatTransitions(f, EtatFormation.NOUVEAU);
-        verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
     }
 
     @Test @DisplayName("handleEtatTransitions - ENREGISTRE with null mail service")
@@ -278,9 +276,7 @@ class FormationWorkflowServiceLineCoverageTest {
         sf.setParticipants(new ArrayList<>(List.of(buildEnseignant("P1", "Part", "P", "part@esprit.tn", "E"))));
         f.setSeances(new ArrayList<>(List.of(sf)));
         service.handleEtatTransitions(f, EtatFormation.EN_COURS);
-        verify(outlookMailService).sendMail(eq("d2f@esprit.tn"), contains("Formation achevée"), anyString());
-        verify(outlookMailService, never()).sendMail(eq("anim@esprit.tn"), anyString(), anyString());
-        verify(outlookMailService, never()).sendMail(eq("part@esprit.tn"), anyString(), anyString());
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
     }
 
     @Test @DisplayName("handleEtatTransitions - ANNULE deletes calendar events")
@@ -1665,7 +1661,7 @@ class FormationWorkflowServiceLineCoverageTest {
         sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
         f.setSeances(new ArrayList<>(List.of(sf)));
         service.handleEtatTransitions(f, EtatFormation.EN_COURS);
-        verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
     }
 
     @Test @DisplayName("ACHEVE - seance lines with null salle")
@@ -1676,7 +1672,7 @@ class FormationWorkflowServiceLineCoverageTest {
         sf.setAnimateurs(new ArrayList<>(List.of(buildEnseignant("A1", "N", "P", "anim@esprit.tn", "E"))));
         f.setSeances(new ArrayList<>(List.of(sf)));
         service.handleEtatTransitions(f, EtatFormation.EN_COURS);
-        verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1689,7 +1685,7 @@ class FormationWorkflowServiceLineCoverageTest {
         f.setDateDebut(null); f.setDateFin(null);
         Up up = new Up("UP1", "UP"); f.setUp(up);
         service.handleEtatTransitions(f, EtatFormation.NOUVEAU);
-        verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
     }
 
     @Test @DisplayName("ENREGISTRE - only dateDebut")
@@ -1698,7 +1694,7 @@ class FormationWorkflowServiceLineCoverageTest {
         f.setDateFin(null);
         Up up = new Up("UP1", "UP"); f.setUp(up);
         service.handleEtatTransitions(f, EtatFormation.NOUVEAU);
-        verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
     }
 
     @Test @DisplayName("ENREGISTRE - only dateFin")
@@ -1707,7 +1703,7 @@ class FormationWorkflowServiceLineCoverageTest {
         f.setDateDebut(null);
         Up up = new Up("UP1", "UP"); f.setUp(up);
         service.handleEtatTransitions(f, EtatFormation.NOUVEAU);
-        verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1739,8 +1735,7 @@ class FormationWorkflowServiceLineCoverageTest {
         f.setExterneFormateurNom("Durand"); f.setExterneFormateurPrenom("Marie");
         f.setExterneFormateurEmail("marie@ext.com");
         service.handleEtatTransitions(f, EtatFormation.EN_COURS);
-        verify(outlookMailService, never()).sendMail(eq("marie@ext.com"), anyString(), anyString());
-        verify(outlookMailService).sendMail(eq("d2f@esprit.tn"), contains("Formation achevée"), anyString());
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1789,26 +1784,23 @@ class FormationWorkflowServiceLineCoverageTest {
     void cupNew_nullUp() {
         Formation f = buildFormation(1L, EtatFormation.ENREGISTRE); f.setUp(null);
         service.handleEtatTransitions(f, EtatFormation.NOUVEAU);
-        verify(outlookMailService, atMost(1)).sendMail(anyString(), anyString(), anyString());
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
     }
 
     @Test @DisplayName("cupNew - no CUPs found")
     void cupNew_noCups() {
         Formation f = buildFormation(1L, EtatFormation.ENREGISTRE);
         Up up = new Up("UP1", "UP"); f.setUp(up);
-        when(enseignantRepository.findByUpAndCup(up, "O")).thenReturn(new ArrayList<>());
         service.handleEtatTransitions(f, EtatFormation.NOUVEAU);
-        verify(outlookMailService, atMost(1)).sendMail(anyString(), anyString(), anyString());
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
     }
 
     @Test @DisplayName("cupNew - CUP with blank mail skipped")
     void cupNew_blankMail() {
         Formation f = buildFormation(1L, EtatFormation.ENREGISTRE);
         Up up = new Up("UP1", "UP"); f.setUp(up);
-        Enseignant cupBlank = buildEnseignant("C1", "D", "J", "  ", "C1"); cupBlank.setCup("O");
-        when(enseignantRepository.findByUpAndCup(up, "O")).thenReturn(List.of(cupBlank));
         service.handleEtatTransitions(f, EtatFormation.NOUVEAU);
-        verify(outlookMailService, atMost(1)).sendMail(anyString(), anyString(), anyString());
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1921,19 +1913,17 @@ class FormationWorkflowServiceLineCoverageTest {
         Formation f = buildFormation(1L, EtatFormation.ENREGISTRE);
         Up up = new Up("UP1", "UP"); f.setUp(up);
         Enseignant cup = buildEnseignant("C1", "D", "J", "c@e.tn", "C1"); cup.setCup("O");
-        when(enseignantRepository.findByUpAndCup(up, "O")).thenReturn(List.of(cup));
 
         org.springframework.security.core.context.SecurityContext ctx =
                 org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
         org.springframework.security.core.Authentication auth =
                 mock(org.springframework.security.core.Authentication.class);
-        when(auth.getName()).thenReturn("testuser@esprit.tn");
         ctx.setAuthentication(auth);
         org.springframework.security.core.context.SecurityContextHolder.setContext(ctx);
 
         try {
             service.handleEtatTransitions(f, EtatFormation.NOUVEAU);
-            verify(outlookMailService, atLeast(1)).sendMail(anyString(), anyString(), anyString());
+            verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
         } finally {
             org.springframework.security.core.context.SecurityContextHolder.clearContext();
         }
