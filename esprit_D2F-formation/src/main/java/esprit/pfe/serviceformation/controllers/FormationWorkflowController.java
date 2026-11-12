@@ -201,15 +201,21 @@ public class FormationWorkflowController {
     @GetMapping("/export/excel")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<Object> exportExcel(
-            @RequestParam("start") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
-            @RequestParam("end") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate
+            @RequestParam(value = "start", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @RequestParam(value = "end", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate
     ) {
         try {
-            ByteArrayOutputStream out = exportExcelService.exportFormationsAvance(startDate, endDate);
+            LocalDate effectiveStart = startDate != null ? startDate : LocalDate.of(2000, 1, 1);
+            LocalDate effectiveEnd = endDate != null ? endDate : LocalDate.of(2100, 12, 31);
+            ByteArrayOutputStream out = exportExcelService.exportFormationsAvance(effectiveStart, effectiveEnd);
             byte[] content = out.toByteArray();
 
+            String filename = (startDate != null && endDate != null)
+                    ? String.format("formations_%tF_%tF.xlsx", startDate, endDate)
+                    : String.format("formations_%tF.xlsx", LocalDate.now());
+
             HttpHeaders headers = new HttpHeaders();
-            headers.setContentDisposition(ContentDisposition.attachment().filename(String.format("formations_%tF_%tF.xlsx", startDate, endDate)).build());
+            headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
             headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
 
             return ResponseEntity.ok().headers(headers).body(content);

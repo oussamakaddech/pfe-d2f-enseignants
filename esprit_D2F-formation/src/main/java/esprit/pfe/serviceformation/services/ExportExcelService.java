@@ -9,6 +9,7 @@ import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFPrintSetup;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import java.io.ByteArrayOutputStream;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ExportExcelService {
     private final FormationWorkflowService formationWorkflowService;
 
@@ -58,8 +60,13 @@ public class ExportExcelService {
     }
 
     public ByteArrayOutputStream exportFormationsAvance(LocalDate startDate, LocalDate endDate) throws IOException {
+        LocalDate effectiveStart = startDate != null ? startDate : LocalDate.of(2000, 1, 1);
+        LocalDate effectiveEnd = endDate != null ? endDate : LocalDate.of(2100, 12, 31);
         List<FormationResponseDTO> formations = formationWorkflowService.getAllFormationWorkflows();
-        List<SeanceExport> allSeances = extractFilteredSeances(formations, startDate, endDate);
+        if (formations == null) {
+            formations = Collections.emptyList();
+        }
+        List<SeanceExport> allSeances = extractFilteredSeances(formations, effectiveStart, effectiveEnd);
 
         Workbook workbook = new XSSFWorkbook();
         createSummarySheet(workbook, formations, allSeances, startDate, endDate);
@@ -236,7 +243,9 @@ public class ExportExcelService {
             sheet.setColumnWidth(i, columnWidths[i]);
         }
 
-        sheet.setAutoFilter(new CellRangeAddress(2, sheet.getLastRowNum(), 0, 6));
+        if (sheet.getLastRowNum() > 2) {
+            sheet.setAutoFilter(new CellRangeAddress(2, sheet.getLastRowNum(), 0, 6));
+        }
         sheet.createFreezePane(0, 3);
 
         setupPageSetup(sheet);
@@ -255,10 +264,11 @@ public class ExportExcelService {
         c3.setCellValue(s.equipe);
         c3.setCellStyle(style);
 
-        String hd = s.heureDebut != null ? s.heureDebut.toString().substring(0, 5) : "";
-        String hf = s.heureFin != null ? s.heureFin.toString().substring(0, 5) : "";
+        DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
+        String hd = s.heureDebut != null ? s.heureDebut.format(timeFmt) : "";
+        String hf = s.heureFin != null ? s.heureFin.format(timeFmt) : "";
         Cell c4 = r.createCell(4);
-        c4.setCellValue(hd + " - " + hf);
+        c4.setCellValue(!hd.isEmpty() || !hf.isEmpty() ? hd + " - " + hf : "—");
         c4.setCellStyle(style);
 
         Cell c5 = r.createCell(5);
@@ -423,8 +433,8 @@ public class ExportExcelService {
                 addFilteredSeances(allSeances, formation, startDate, endDate);
             }
         }
-        allSeances.sort(Comparator.comparing((SeanceExport s) -> s.dateSeance)
-                .thenComparing(s -> s.heureDebut));
+        allSeances.sort(Comparator.comparing((SeanceExport s) -> s.dateSeance, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(s -> s.heureDebut, Comparator.nullsLast(Comparator.naturalOrder())));
         return allSeances;
     }
 
@@ -482,7 +492,13 @@ public class ExportExcelService {
         return Optional.ofNullable(seance.getAnimateurs())
                 .orElse(Collections.emptyList())
                 .stream()
-                .map(a -> a.getNom() + " " + a.getPrenom())
+                .filter(Objects::nonNull)
+                .map(a -> {
+                    String nom = a.getNom() != null ? a.getNom().trim() : "";
+                    String prenom = a.getPrenom() != null ? a.getPrenom().trim() : "";
+                    return (nom + " " + prenom).trim();
+                })
+                .filter(s -> !s.isEmpty())
                 .collect(Collectors.joining(", "));
     }
 
@@ -491,7 +507,13 @@ public class ExportExcelService {
         return Optional.ofNullable(formation.getAnimateurs())
                 .orElse(Collections.emptyList())
                 .stream()
-                .map(a -> a.getNom() + " " + a.getPrenom())
+                .filter(Objects::nonNull)
+                .map(a -> {
+                    String nom = a.getNom() != null ? a.getNom().trim() : "";
+                    String prenom = a.getPrenom() != null ? a.getPrenom().trim() : "";
+                    return (nom + " " + prenom).trim();
+                })
+                .filter(s -> !s.isEmpty())
                 .collect(Collectors.joining(", "));
     }
 
@@ -534,11 +556,20 @@ public class ExportExcelService {
     }
 
     private String formatDateRange(LocalDate startDate, LocalDate endDate, DateTimeFormatter df) {
+        if (startDate == null && endDate == null) {
+            return "Période: Toutes les dates";
+        }
+        if (startDate == null) {
+            return "Période: jusqu'au " + formatDate(endDate, df);
+        }
+        if (endDate == null) {
+            return "Période: à partir du " + formatDate(startDate, df);
+        }
         return "Période: " + formatDate(startDate, df) + " au " + formatDate(endDate, df);
     }
 
     private String formatDate(LocalDate date, DateTimeFormatter df) {
-        return date.format(df);
+        return date != null ? date.format(df) : "—";
     }
 
     private CellStyle createCalendarTitleStyle(Workbook workbook) {

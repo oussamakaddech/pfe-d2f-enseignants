@@ -2,6 +2,27 @@
 
 ## Context & State (updated 2026-11-12)
 
+### Stabilisation et fiabilisation de l'export Excel du calendrier (2026-11-12)
+- **Demande** : « En exécutant la dernière version, j'ai constaté une instabilité au niveau de fonctionnalités qui étaient validées: - la génération du fichier excel du calendrier ».
+- **Diagnostic et correctifs apportés** :
+  - **Backend (`esprit_D2F-formation`)** :
+    - `ExportExcelService.java` :
+      - Sécurisation du tri chronologique des séances : `thenComparing(s -> s.heureDebut, Comparator.nullsLast(...))` pour éviter tout `NullPointerException` (HTTP 500) lorsque des séances ont une heure non renseignée (`null`).
+      - Formatage robuste des heures de début et fin via `DateTimeFormatter.ofPattern("HH:mm")` au lieu de `substring(0, 5)` (évite `StringIndexOutOfBoundsException`).
+      - Gestion null-safe des dates de période dans `formatDateRange` et `formatDate`.
+      - Ajout de `@Transactional(readOnly = true)` sur `ExportExcelService` pour garantir l'accès aux collections paresseuses (`seances`, `animateurs`, `participants`).
+      - Filtrage null-safe dans `formatFormateurs` pour éviter l'affichage de valeurs `"null null"`.
+      - Protection de `sheet.setAutoFilter` pour ne s'appliquer que si des lignes de données existent (`sheet.getLastRowNum() > 2`).
+    - `FormationWorkflowController.java` :
+      - Paramètres `start` et `end` passés en `required = false` avec valeurs par défaut (2000-01-01 à 2100-12-31) pour ne plus renvoyer 400 Bad Request si les paramètres sont omis.
+  - **Frontend (`esprit_D2F-webapp`)** :
+    - `CalendrierPage.tsx` : ajout du bouton **« Exporter en Excel »** directement dans le bandeau supérieur de la page principale *Calendrier Global* (`/home/Calendrier`), accessible à tous les rôles sans devoir naviguer dans le sous-menu d'administration.
+    - `CalendrierGestionPage.tsx` : fiabilisation de la capture d'erreur avec affichage du message serveur si disponible.
+- **Tests** :
+  - Backend : 28/28 tests validés (`ExportExcelServiceLineCoverageTest`, `ExportExcelServiceTest`, `ExportExcelSheetNameTest`, `ReportingControllersTest`).
+  - Frontend : `CalendrierGestionPage.test.tsx` (8/8) + `CalendrierPageExport.test.tsx` (1/1).
+  - Validation TypeScript `tsc --noEmit` : 0 erreur.
+
 ### Masquage du bouton « Créer la formation » si formation déjà créée (2026-11-12)
 - **Demande** : « bouton creer formation rendre apparu si besoin pas cree en formation sinon pas visible ».
 - **Comportement modifié (`esprit_D2F-webapp`)** :

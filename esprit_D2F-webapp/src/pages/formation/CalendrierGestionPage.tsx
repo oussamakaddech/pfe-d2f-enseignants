@@ -134,8 +134,9 @@ export default function CalendrierGestionPage() {
         globalThis.URL.revokeObjectURL(url);
       }
       message.success('Export Excel du calendrier téléchargé.');
-    } catch {
-      message.error("Échec de l'export Excel du calendrier.");
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      message.error(msg ? `Échec de l'export Excel : ${msg}` : "Échec de l'export Excel du calendrier.");
     }
   };
 

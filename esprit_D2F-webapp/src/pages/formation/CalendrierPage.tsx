@@ -15,6 +15,7 @@ import {
   TeamOutlined,
   CalendarOutlined,
   EnvironmentOutlined,
+  FileExcelOutlined,
 } from '@ant-design/icons';
 import useAppNotification from '@/hooks/ui/useAppNotification';
 import '@/styles/pages/calendrier.css';
@@ -22,7 +23,8 @@ import type { Formation, Seance } from '@/models/formation';
 
 import FormationWorkflowForm from '@/pages/formation/FormationWorkflowForm';
 import { useAllFormations, useFormationsForCalendar } from '@/hooks/formation';
-import { useProfile } from '@/hooks/formation/useFormationExtras';
+import { useProfile, useExportFormations } from '@/hooks/formation/useFormationExtras';
+import { isoDate } from '@/utils/helpers/excelExport';
 import { useEnseignantById } from '@/hooks/enseignant/useEnseignants';
 import { normalizeRole } from '@/utils/constants/roles';
 import EventDetails from '@/pages/presence/EventDetails';
@@ -153,6 +155,34 @@ export default function CalendrierPage() {
   const { data: profile } = useProfile();
   const role = normalizeRole(profile?.role);
   const isAdmin = role === 'admin';
+
+  const exportMutation = useExportFormations();
+
+  const handleExportExcel = async () => {
+    try {
+      const response = await exportMutation.mutateAsync({
+        start: '2000-01-01',
+        end: '2100-12-31',
+      });
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = globalThis.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      try {
+        link.href = url;
+        link.setAttribute('download', `calendrier_formations_${isoDate()}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+      } finally {
+        link.remove();
+        globalThis.URL.revokeObjectURL(url);
+      }
+      message.success('Export Excel du calendrier téléchargé.');
+    } catch {
+      message.error("Échec de l'export Excel du calendrier.");
+    }
+  };
   const isInscritOnly = role === 'cup' || role === 'chefdepartement';
   const identifier = profile?.emailAddress || profile?.email || profile?.id;
   const { data: enseignantSelf } = useEnseignantById(!isAdmin ? identifier : undefined);
@@ -335,8 +365,15 @@ export default function CalendrierPage() {
                 : 'Vos formations animées et vos participations'}
             </div>
           </div>
-          {isAdmin && (
-            <div className="d-flex-c gap-8">
+          <div className="d-flex-c gap-8">
+            <Button
+              icon={<FileExcelOutlined />}
+              loading={exportMutation.isPending}
+              onClick={() => void handleExportExcel()}
+            >
+              Exporter en Excel
+            </Button>
+            {isAdmin && (
               <Tooltip title="Créer une nouvelle formation en cliquant sur une date du calendrier">
                 <Button
                   type="primary"
@@ -355,8 +392,8 @@ export default function CalendrierPage() {
                   Nouvelle Formation
                 </Button>
               </Tooltip>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
