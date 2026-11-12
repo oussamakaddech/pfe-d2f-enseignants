@@ -1412,3 +1412,41 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Onglets « Besoins en cours / Approuvés » : accent rouge demandé par le
+   métier pour rendre les compteurs immédiatement visibles. ─────────────── */
+.bf-tabs .ant-tabs-tab .ant-tabs-tab-btn {
+  color: #cf1322;
+  font-weight: 600;
+}
+.bf-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #a8071a !important;
+}
+.bf-tabs .ant-tabs-ink-bar {
+  background: #cf1322;
+}
+.bf-tabs .bf-tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.bf-tabs .bf-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: #fff1f0;
+  border: 1px solid #ffa39e;
+  color: #cf1322;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+.bf-tabs .ant-tabs-tab-active .bf-tab-count {
+  background: #cf1322;
+  border-color: #cf1322;
+  color: #fff;
+}

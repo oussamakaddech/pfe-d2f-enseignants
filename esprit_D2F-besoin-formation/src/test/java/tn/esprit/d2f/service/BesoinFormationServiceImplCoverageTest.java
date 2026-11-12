@@ -329,7 +329,9 @@ class BesoinFormationServiceImplCoverageTest {
 
         assertNotNull(result);
         assertTrue(result.getApprouveAdmin());
-        verify(eventPublisher).publish(any());
+        // D2F : validation admin = « approuvé » ; la formation est créée manuellement.
+        assertEquals(tn.esprit.d2f.entity.enumerations.BesoinStatus.ADMIN_APPROVED, besoin.getStatus());
+        verify(eventPublisher, never()).publish(any());
     }
 
     // ──────────────────────────────────────────────
@@ -359,7 +361,9 @@ class BesoinFormationServiceImplCoverageTest {
 
         assertNotNull(result);
         assertTrue(result.getApprouveAdmin());
-        verify(eventPublisher).publish(any());
+        // D2F : validation admin = « approuvé » ; la formation est créée manuellement.
+        assertEquals(tn.esprit.d2f.entity.enumerations.BesoinStatus.ADMIN_APPROVED, besoin.getStatus());
+        verify(eventPublisher, never()).publish(any());
     }
 
     // ──────────────────────────────────────────────
@@ -387,7 +391,9 @@ class BesoinFormationServiceImplCoverageTest {
 
         assertNotNull(result);
         assertTrue(result.getApprouveAdmin());
-        verify(eventPublisher).publish(any());
+        // D2F : validation admin = « approuvé » ; la formation est créée manuellement.
+        assertEquals(tn.esprit.d2f.entity.enumerations.BesoinStatus.ADMIN_APPROVED, besoin.getStatus());
+        verify(eventPublisher, never()).publish(any());
     }
 
     // ──────────────────────────────────────────────

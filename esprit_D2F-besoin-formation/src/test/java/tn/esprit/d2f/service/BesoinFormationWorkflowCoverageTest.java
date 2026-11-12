@@ -127,6 +127,8 @@ class BesoinFormationWorkflowCoverageTest {
     }
 
     // ── addBesoinFormation : branches CUP / CHEF / ENSEIGNANT ────────────────
+    // D2F : le circuit CUP → chef → admin reste facultatif. L'étape initiale suit
+    // le créateur, et l'administrateur peut clore le besoin à n'importe quelle étape.
 
     @Test
     void addBesoinFormation_cupCollectif_etapeChef() {
@@ -264,39 +266,40 @@ class BesoinFormationWorkflowCoverageTest {
     }
 
     @Test
-    void approuverBesoin_etapeAdmin_publieEtComplete() {
+    void approuverBesoin_etapeAdmin_clotureSansCreerLaFormation() {
         BesoinFormation b = besoin(7L, "ens-user", BesoinStatus.DEPARTMENT_APPROVED, ApprovalStep.ADMIN);
         when(besoinFormationRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(b));
         when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
-        when(besoinCompetenceRepository.findByBesoinId(7L)).thenReturn(List.of());
         when(besoinFormationRepository.save(any(BesoinFormation.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
 
         BesoinFormationResponse response = service.approuverBesoin(7L);
-        assertEquals(BesoinStatus.FORMATION_CREATED, response.getStatus());
+        // D2F : la validation admin enregistre le besoin « approuvé » ; la formation
+        // est créée ensuite, explicitement, depuis l'interface.
+        assertEquals(BesoinStatus.ADMIN_APPROVED, response.getStatus());
         assertEquals(ApprovalStep.COMPLETED, response.getCurrentApprovalStep());
         assertTrue(b.getEventPublished());
-        verify(eventPublisher).publish(any());
+        verify(eventPublisher, never()).publish(any());
         verify(notificationRepository).save(any());
     }
 
     @Test
-    void approuverBesoin_etapeAdmin_publicationEchoue_resteAdminApproved() {
-        BesoinFormation b = besoin(8L, "ens-user", BesoinStatus.DEPARTMENT_APPROVED, ApprovalStep.ADMIN);
-        when(besoinFormationRepository.findByIdForUpdate(8L)).thenReturn(Optional.of(b));
-        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
-        when(besoinCompetenceRepository.findByBesoinId(8L)).thenReturn(List.of());
-        doThrow(new RuntimeException("broker down"))
-                .doThrow(new RuntimeException("broker down"))
-                .doThrow(new RuntimeException("broker down"))
-                .when(eventPublisher).publish(any());
+    void republishPendingEvents_publieEtPasseEnFormationCreated() {
+        // Chemin conservé pour les besoins approuvés avant la règle « approuvé seul » :
+        // la republication différée crée encore la formation.
+        BesoinFormation b = besoin(8L, "ens-user", BesoinStatus.ADMIN_APPROVED, ApprovalStep.COMPLETED);
+        b.setEventPublished(false);
+        b.setApprouveAdmin(true);
+        b.setApprovedByAdmin("admin");
+        when(besoinFormationRepository.findByStatusAndEventPublishedFalse(BesoinStatus.ADMIN_APPROVED))
+                .thenReturn(List.of(b));
         when(besoinFormationRepository.save(any(BesoinFormation.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
 
-        BesoinFormationResponse response = service.approuverBesoin(8L);
-        assertEquals(BesoinStatus.ADMIN_APPROVED, response.getStatus());
-        assertFalse(b.getEventPublished());
-        verify(eventPublisher, times(3)).publish(any());
+        assertEquals(1, service.republishPendingEvents());
+        assertTrue(b.getEventPublished());
+        assertEquals(BesoinStatus.FORMATION_CREATED, b.getStatus());
+        verify(eventPublisher).publish(any());
     }
 
     @Test

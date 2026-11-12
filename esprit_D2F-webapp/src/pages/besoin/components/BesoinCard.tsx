@@ -12,6 +12,7 @@ import {
   ReadOutlined,
   ClockCircleOutlined,
   UserOutlined,
+  RocketOutlined,
 } from '@ant-design/icons';
 import BesoinPriorityBadge from './BesoinPriorityBadge';
 import BesoinStatusBadge from './BesoinStatusBadge';
@@ -70,6 +71,8 @@ interface BesoinCardProps {
   onEdit: (besoin: Record<string, unknown>) => void;
   onDelete: (id: string | number) => void;
   onOpen: () => void;
+  /** Besoin approuvé : ouvre la création de la formation correspondante. */
+  onCreateFormation?: (besoin: Record<string, unknown>) => void;
 }
 
 const initialsOf = (name: string) => {
@@ -134,6 +137,7 @@ export default function BesoinCard({
   onEdit,
   onDelete,
   onOpen,
+  onCreateFormation,
 }: Readonly<BesoinCardProps>) {
   const id = besoin.idBesoinFormation ?? besoin.idBesionFormation ?? besoin.id;
   const priorite = besoin.priorite || 'BASSE';
@@ -307,6 +311,19 @@ export default function BesoinCard({
               aria-label="Refuser"
             >
               Refuser
+            </Button>
+          </Tooltip>
+        )}
+        {onCreateFormation && (
+          <Tooltip title="Créer la formation correspondant à ce besoin approuvé">
+            <Button
+              type="primary"
+              size="small"
+              icon={<RocketOutlined />}
+              className="bf-btn bf-btn--primary bf-card__cta"
+              onClick={stopProp(() => onCreateFormation(bRecord))}
+            >
+              Créer la formation
             </Button>
           </Tooltip>
         )}

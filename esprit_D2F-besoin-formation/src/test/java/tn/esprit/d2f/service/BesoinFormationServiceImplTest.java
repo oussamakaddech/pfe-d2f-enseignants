@@ -303,7 +303,7 @@ class BesoinFormationServiceImplTest {
     }
 
     @Test
-    void approuverBesoin_shouldSetAdminApprovedAndPublishEvent() {
+    void approuverBesoin_shouldSetAdminApprovedWithoutPublishing() {
         long id = 1L;
         BesoinFormation besoin = new BesoinFormation();
         besoin.setIdBesoinFormation(id);
@@ -322,12 +322,15 @@ class BesoinFormationServiceImplTest {
         BesoinFormationResponse result = service.approuverBesoin(id);
 
         assertTrue(result.getApprouveAdmin());
-        verify(eventPublisher).publish(any(BesoinFormationApprovedEvent.class));
+        assertEquals(BesoinStatus.ADMIN_APPROVED, besoin.getStatus());
+        assertEquals(ApprovalStep.COMPLETED, besoin.getCurrentApprovalStep());
+        // D2F : la formation est créée manuellement → la validation n'émet plus d'événement.
+        verify(eventPublisher, never()).publish(any(BesoinFormationApprovedEvent.class));
         verify(besoinFormationRepository).save(any(BesoinFormation.class));
     }
 
     @Test
-    void approuverBesoin_shouldPopulateAllFieldsInEvent() {
+    void republishPendingEvents_shouldPublishPendingApprovalEvent() {
         long id = 1L;
         BesoinFormation b = new BesoinFormation();
         b.setIdBesoinFormation(id);
@@ -353,17 +356,22 @@ class BesoinFormationServiceImplTest {
         b.setDepartement("DEP");
         b.setApprouveCUP(true);
         b.setApprouveChefDep(true);
-        b.setApprouveAdmin(false);
+        b.setApprouveAdmin(true);
         b.setEventPublished(false);
+        b.setStatus(BesoinStatus.ADMIN_APPROVED);
+        b.setCurrentApprovalStep(ApprovalStep.COMPLETED);
+        b.setApprovedByAdmin("admin");
 
-        when(besoinFormationRepository.findByIdForUpdate(id)).thenReturn(Optional.of(b));
-        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
-        when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(b);
+        when(besoinFormationRepository.findByStatusAndEventPublishedFalse(BesoinStatus.ADMIN_APPROVED))
+                .thenReturn(List.of(b));
+        when(besoinFormationRepository.save(any(BesoinFormation.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
 
-        service.approuverBesoin(id);
+        assertEquals(1, service.republishPendingEvents());
 
         verify(eventPublisher).publish(any(BesoinFormationApprovedEvent.class));
-        verify(besoinFormationRepository).save(b);
+        assertTrue(b.getEventPublished());
+        assertEquals(BesoinStatus.FORMATION_CREATED, b.getStatus());
     }
 
     @Test
@@ -388,7 +396,7 @@ class BesoinFormationServiceImplTest {
     }
 
     @Test
-    void approuverBesoin_whenPublisherFails_shouldStillReturnResponse() {
+    void approuverBesoin_shouldNotCallPublisher() {
         long id = 1L;
         BesoinFormation besoin = new BesoinFormation();
         besoin.setIdBesoinFormation(id);
@@ -403,16 +411,15 @@ class BesoinFormationServiceImplTest {
         when(besoinFormationRepository.findByIdForUpdate(id)).thenReturn(Optional.of(besoin));
         when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
         when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(besoin);
-        doThrow(new RuntimeException("MQ Error")).when(eventPublisher).publish(any());
 
-        // publishApprovalEvent has a bounded retry (3 attempts) — publisher failure
-        // must NOT roll back the approval, and the scheduler will republish later.
+        // D2F : la validation admin clôt le besoin sans publier d'événement, donc
+        // aucun appel au broker — même si celui-ci est indisponible.
         BesoinFormationResponse result = service.approuverBesoin(id);
 
         assertNotNull(result);
         assertTrue(result.getApprouveAdmin());
-        assertEquals(tn.esprit.d2f.entity.enumerations.BesoinStatus.ADMIN_APPROVED, besoin.getStatus());
-        verify(eventPublisher, times(3)).publish(any());
+        assertEquals(BesoinStatus.ADMIN_APPROVED, besoin.getStatus());
+        verify(eventPublisher, never()).publish(any());
     }
 
     @Test

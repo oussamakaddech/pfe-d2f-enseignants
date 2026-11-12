@@ -98,8 +98,8 @@ const STATUS_LABELS: Record<string, string> = {
   SUBMITTED: 'Soumis',
   CUP_APPROVED: 'Validé CUP',
   DEPARTMENT_APPROVED: 'Validé département',
-  ADMIN_APPROVED: 'Validé admin',
-  FORMATION_CREATED: 'Formation créée',
+  ADMIN_APPROVED: 'Validé',
+  FORMATION_CREATED: 'Validé',
   REJECTED: 'Refusé',
   CANCELLED: 'Annulé',
 };

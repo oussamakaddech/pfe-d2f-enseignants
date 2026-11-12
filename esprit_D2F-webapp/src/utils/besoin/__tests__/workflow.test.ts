@@ -82,6 +82,7 @@ describe('workflow decision helpers', () => {
 
   it('labels FR', () => {
     expect(stepLabel('CHEF_DEPARTEMENT')).toBe('Validation chef de département');
-    expect(statusLabel('FORMATION_CREATED')).toBe('Formation créée');
+    // D2F : la formation est créée par la même décision admin → libellé « Validé ».
+    expect(statusLabel('FORMATION_CREATED')).toBe('Validé');
   });
 });

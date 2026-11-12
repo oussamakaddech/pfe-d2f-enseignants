@@ -56,6 +56,9 @@ export default function BesoinList() {
   const canEdit = useHasPermission('BESOIN_FORMATION', 'UPDATE');
   const canDelete = useHasPermission('BESOIN_FORMATION', 'DELETE');
   const canManageScopes = useHasPermission('BESOIN_FORMATION', 'MANAGE_SCOPES');
+  // Parité FORMATION_CREATE (ADMIN, CUP, CHEF_DEPARTEMENT) : depuis un besoin
+  // approuvé, les valideurs créent la formation correspondante.
+  const canCreateFormation = useHasPermission('FORMATION', 'CREATE');
   // Parité backend BESOIN_FORMATION_READ_ALL : l'ENSEIGNANT en est exclu —
   // ne pas appeler /approved pour ce rôle (403 sinon).
   const canReadAll = useHasPermission('BESOIN_FORMATION', 'READ_ALL');
@@ -119,6 +122,10 @@ export default function BesoinList() {
   const typedUps = ups as unknown as BfRefItem[];
   const typedDepts = departements as unknown as BfRefItem[];
 
+  // Onglet « Approuvés » : l'export Excel porte sur cette liste, pas sur celle
+  // des besoins en cours (qui peut être vide).
+  const exportRows = activeTab === 'approved' ? approvedBesoins : filtered;
+
   const hasActiveFilters =
     !!searchText ||
     !!filters.deptId ||
@@ -167,11 +174,11 @@ export default function BesoinList() {
           total={stats.total}
           filteredCount={filtered.length}
           loading={loading}
-          exportDisabled={filtered.length === 0}
+          exportDisabled={exportRows.length === 0}
           canAdd={canAdd}
           addLabel={addLabel}
           onRefresh={() => refetchBesoins()}
-          onExport={exportToExcel}
+          onExport={() => exportToExcel(activeTab === 'approved' ? approvedBesoins : undefined)}
           onAdd={() => navigate('/home/besoins/ajouter')}
         />
       </div>
@@ -179,13 +186,18 @@ export default function BesoinList() {
       <BesoinStatsRow total={stats.total} approved={stats.approved} pending={stats.pending} />
 
       <Tabs
+        className="bf-tabs"
         activeKey={activeTab}
         onChange={setActiveTab}
         style={{ marginBottom: 16 }}
         items={[
           {
             key: 'active',
-            label: `Besoins en cours (${filtered.length})`,
+            label: (
+              <span className="bf-tab-label">
+                Besoins en cours <span className="bf-tab-count">{filtered.length}</span>
+              </span>
+            ),
             children: null,
           },
           // Onglet réservé aux rôles READ_ALL (parité backend) : masqué pour
@@ -194,7 +206,11 @@ export default function BesoinList() {
             ? [
                 {
                   key: 'approved',
-                  label: `Approuvés (${approvedBesoins.length})`,
+                  label: (
+                    <span className="bf-tab-label">
+                      Approuvés <span className="bf-tab-count">{approvedBesoins.length}</span>
+                    </span>
+                  ),
                   children: null,
                 },
               ]
@@ -387,6 +403,14 @@ export default function BesoinList() {
                       onEdit={() => {}}
                       onDelete={() => {}}
                       onOpen={() => openEdit(br)}
+                      onCreateFormation={
+                        canCreateFormation
+                          ? (record) =>
+                              navigate('/home/Formation/Creer', {
+                                state: { besoinInfo: record },
+                              })
+                          : undefined
+                      }
                     />
                   </Col>
                 );

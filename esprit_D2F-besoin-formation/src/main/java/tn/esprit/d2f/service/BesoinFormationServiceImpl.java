@@ -207,6 +207,9 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
                 }
             }
         }
+        // D2F : le circuit CUP → chef de département → admin reste **facultatif** —
+        // un administrateur peut valider définitivement à n'importe quelle étape
+        // (cf. approuverBesoin), sans attendre les étapes intermédiaires.
 
         BesoinFormation saved = besoinFormationRepository.save(b);
         recordHistory(saved, scope.username(), scope.actorRole().name(),
@@ -282,6 +285,11 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         BesoinFormation b = decision.besoin();
         ResolvedScope scope = decision.scope();
         ApprovalStep step = decision.step();
+        // D2F : décision unique de l'administrateur — sur un besoin hérité encore
+        // au stade CUP / chef de département, sa validation est définitive.
+        if (scope.actorRole() == CreatorRole.ADMIN) {
+            step = ApprovalStep.ADMIN;
+        }
 
         switch (step) {
             case CUP -> {
@@ -299,14 +307,14 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
             case ADMIN -> {
                 b.setApprouveAdmin(true);
                 b.setApprovedByAdmin(scope.username());
+                // D2F : la validation de l'administrateur clôt le besoin en
+                // « approuvé ». Aucun événement de création de formation n'est plus
+                // émis : la formation est créée explicitement depuis l'interface.
+                // `eventPublished` reste donc vrai pour que la republication
+                // différée (scheduler §7) ne recrée pas la formation d'elle-même.
+                b.setEventPublished(true);
                 b.setStatus(BesoinStatus.ADMIN_APPROVED);
-                if (publishApprovalEventWithRetry(b, scope.username())) {
-                    b.setEventPublished(true);
-                    b.setStatus(BesoinStatus.FORMATION_CREATED);
-                    b.setCurrentApprovalStep(ApprovalStep.COMPLETED);
-                }
-                // En cas d'échec de publication : le besoin reste ADMIN_APPROVED,
-                // non publié — le scheduler republie (retry différé, §7).
+                b.setCurrentApprovalStep(ApprovalStep.COMPLETED);
             }
             default -> throw new InvalidWorkflowTransitionException(
                     "Transition invalide : étape " + step + " non traitable.");
@@ -317,7 +325,9 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
                 WorkflowAction.APPROVE, step, saved.getCurrentApprovalStep(), null);
         log.info("Besoin {} approuvé à l'étape {} par '{}' ({})", id, step,
                 scope.username(), scope.actorRole());
-        if (saved.getStatus() == BesoinStatus.FORMATION_CREATED && saved.getUsername() != null) {
+        if ((saved.getStatus() == BesoinStatus.ADMIN_APPROVED
+                || saved.getStatus() == BesoinStatus.FORMATION_CREATED)
+                && saved.getUsername() != null) {
             createNotification(saved.getUsername(),
                     "Votre demande de formation a été acceptée. Veuillez contacter les formateurs.", null);
         }

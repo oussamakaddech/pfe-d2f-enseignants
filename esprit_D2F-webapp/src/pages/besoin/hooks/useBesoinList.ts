@@ -6,6 +6,7 @@ import { Form } from 'antd';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import type { Id } from '@/models/common';
+import type { BesoinFormation } from '@/models/besoin';
 
 import { writeExcel, exportDateLabel, isoDate } from '@/utils/helpers/excelExport';
 import { useSendEmail } from '@/hooks/formation';
@@ -22,7 +23,7 @@ import {
   useRejectBesoin,
   useCancelBesoin,
 } from '@/hooks/besoin/useBesoins';
-import { getDecisionState } from '@/utils/besoin/workflow';
+import { getDecisionState, statusLabel } from '@/utils/besoin/workflow';
 import { useDepartements, useUps, useAllAccounts } from '@/hooks/formation/useFormations';
 import { useEnseignants } from '@/hooks/enseignant/useEnseignants';
 import { buildFormationNeedHtmlEmail } from '@/pages/besoin/components/BesoinMailCupModal';
@@ -82,6 +83,7 @@ function getBackendMessage(err: unknown): string | null {
   };
   return e?.response?.data?.message ?? e?.response?.data?.error ?? e?.message ?? null;
 }
+
 
 const SELF_SERVICE_ROLES = new Set([
   normalizeRole(ROLES.ENSEIGNANT),
@@ -267,11 +269,23 @@ export function useBesoinList() {
     }
     setApprovingId(id as string | number);
     try {
-      await approveMut.mutateAsync(id as Id);
-      msgApi.success('Besoin approuvé');
-      // Parité FORMATION_CREATE (ADMIN, CUP, CHEF_DEPARTEMENT) : tous les valideurs
-      // ont désormais accès à la création de formation depuis le besoin approuvé.
-      setTimeout(() => navigate('/home/Formation/Creer', { state: { besoinInfo: record } }), 800);
+      const updated = await approveMut.mutateAsync(id as Id);
+      // Validation par étapes (CUP → chef de département → administrateur) : une
+      // approbation intermédiaire laisse le besoin en attente de l'étape
+      // suivante. On ne propose donc la création de la formation que lorsque le
+      // besoin est réellement traité (statut FORMATION_CREATED).
+      const finalise =
+        updated?.status === 'FORMATION_CREATED' || updated?.approuveAdmin === true;
+      if (finalise) {
+        msgApi.success('Besoin approuvé — la formation peut être créée');
+        // Parité FORMATION_CREATE (ADMIN, CUP, CHEF_DEPARTEMENT) : les valideurs
+        // ont accès à la création de formation depuis le besoin approuvé.
+        setTimeout(() => navigate('/home/Formation/Creer', { state: { besoinInfo: record } }), 800);
+      } else if (updated?.status) {
+        msgApi.success(`Étape validée — ${statusLabel(updated.status)}`);
+      } else {
+        msgApi.success('Besoin approuvé');
+      }
     } catch (err: unknown) {
       msgApi.error(
         `Erreur lors de l'approbation — ${getBackendMessage(err) ?? 'vérifiez vos droits et le statut du besoin'}`,
@@ -415,9 +429,11 @@ export function useBesoinList() {
     }
   };
 
-  const exportToExcel = () => {
+  /** Exporte la liste courante, ou une liste fournie (onglet « Approuvés »). */
+  const exportToExcel = (source?: BesoinFormation[]) => {
     try {
-      const rows = filtered.map((b) => ({
+      const data = source ?? filtered;
+      const rows = data.map((b) => ({
         'Titre / Objectif': b.titre || b.objectifFormation || '—',
         Demandeur: b.username || '—',
         Type: b.typeBesoin || '—',
@@ -443,7 +459,7 @@ export function useBesoinList() {
         ],
         `Liste_Besoins_Formation_${isoDate()}.xlsx`,
       );
-      msgApi.success('Export Excel réussi');
+      msgApi.success(`Export Excel réussi (${data.length} besoin(s))`);
     } catch {
       msgApi.error("Erreur lors de l'exportation Excel");
     }
