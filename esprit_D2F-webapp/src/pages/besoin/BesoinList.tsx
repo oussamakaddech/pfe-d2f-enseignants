@@ -404,7 +404,7 @@ export default function BesoinList() {
                       onDelete={() => {}}
                       onOpen={() => openEdit(br)}
                       onCreateFormation={
-                        canCreateFormation
+                        canCreateFormation && b.status !== 'FORMATION_CREATED'
                           ? (record) =>
                               navigate('/home/Formation/Creer', {
                                 state: { besoinInfo: record },

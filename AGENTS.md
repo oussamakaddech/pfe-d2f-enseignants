@@ -2,6 +2,32 @@
 
 ## Context & State (updated 2026-11-12)
 
+### Masquage du bouton « Créer la formation » si formation déjà créée (2026-11-12)
+- **Demande** : « bouton creer formation rendre apparu si besoin pas cree en formation sinon pas visible ».
+- **Comportement modifié (`esprit_D2F-webapp`)** :
+  - `BesoinList.tsx` : condition d'affichage du bouton « Créer la formation » sur chaque carte de l'onglet Approuvés restreinte avec `canCreateFormation && b.status !== 'FORMATION_CREATED'`.
+  - Si le besoin est `ADMIN_APPROVED`, le bouton est visible (permet de créer la formation associée).
+  - Dès que la formation est créée (`FORMATION_CREATED`), le bouton est masqué.
+- **Tests** :
+  - Nouveau fichier de test : `src/pages/besoin/components/__tests__/BesoinCardCreateButton.test.tsx` (4/4 passants).
+  - Validation TypeScript `tsc --noEmit` : 0 erreur.
+- **Déploiement** : image `webapp` reconstruite (`BesoinList-CH3eqjfJ.js`), conteneur `d2f-webapp` recréé et `healthy`.
+
+### Validation images Docker — tous services à jour (2026-11-12)
+- **Demande** : vérifier et valider que toutes les images Docker sont à jour et correctes (suite de la désactivation des e-mails formations).
+- **Git** : commit `fef06ba3` poussé sur `oussama` ✅ et fusionné (fast-forward) sur `dsi` ✅ (`git merge oussama --no-edit` + `git push origin dsi`).
+- **Audit images vs derniers commits `src/`** :
+  - `d2f-formation` : image 12/11 16:03 UTC / commit src 12/11 17:14 UTC → **EN RETARD → reconstruite** ✅
+  - `d2f-webapp` : image 12/11 16:03 UTC / commit src 12/11 14:38 UTC → **EN RETARD → reconstruite** ✅ (cache Docker utilisé, bundle inchangé, vérifié)
+  - `d2f-besoin-formation` : image 12/11 16:03 UTC / commit src 12/11 14:38 UTC → **EN RETARD → reconstruite** ✅
+  - `d2f-analyse`, `d2f-gateway`, `d2f-auth`, `d2f-competence`, `d2f-predictive-analytics`, `d2f-evaluation`, `d2f-notification`, `d2f-certificat`, `d2f-rice` → **À jour** ✅ (image plus récente que dernier commit src)
+- **Redéploiement** : `docker compose unpause` puis `docker compose up -d formation-service besoin-formation-service webapp` → conteneurs recréés.
+- **Health checks finaux** :
+  - `d2f-formation` : `healthy`, `/actuator/health` → `{"status":"UP"}` ✅
+  - `d2f-besoin-formation` : `healthy` ✅
+  - `d2f-webapp` : `healthy`, `GET /` → 200 HTML ✅
+- **Bundle webapp vérifié** : `BesoinList-JLMCCYvh.js` contient « Créer la formation » et `bf-tab-count` ; `CalendrierGestionPage-CDV5wXsb.js` contient « Exporter en Excel » et `calendrier_formations_`.
+
 ### Désactivation des e-mails pour les formations enregistrées et achevées (2026-11-12)
 - **Demande** : « svp dans formation n'envoie pas mail lorsque formation est enregistré ou achevé, puis faire push à branche oussama puis dsi puis verifier et valider que tous images docker sont à jour et corrects ».
 - **Comportement modifié (`esprit_D2F-formation`)** :
