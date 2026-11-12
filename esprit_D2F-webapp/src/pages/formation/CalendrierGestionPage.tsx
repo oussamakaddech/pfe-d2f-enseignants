@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   Checkbox,
+  DatePicker,
   Space,
   Statistic,
   Steps,
@@ -12,6 +13,7 @@ import {
   Tag,
   Typography,
 } from 'antd';
+import type { Dayjs } from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
 import {
   CalendarOutlined,
@@ -33,6 +35,8 @@ import {
   useImportCalendar,
   usePreviewImport,
 } from '@/hooks/formation/useCalendar';
+import { useExportFormations } from '@/hooks/formation/useFormationExtras';
+import { isoDate } from '@/utils/helpers/excelExport';
 import {
   CalendarFileUpload,
   CalendarFormationsTable,
@@ -50,6 +54,11 @@ const STEP_APERCU = 1;
 const STEP_RESULTAT = 2;
 
 const normaliser = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+/** Bornes larges utilisées quand aucune période n'est choisie : tout le calendrier. */
+const EXPORT_MIN_DATE = '2000-01-01';
+const EXPORT_MAX_DATE = '2100-12-31';
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 function formatDate(d?: string): string {
   if (!d) return '—';
@@ -81,9 +90,12 @@ export default function CalendrierGestionPage() {
   const [ignorerDoublons, setIgnorerDoublons] = useState(false);
   const [doublonDetecte, setDoublonDetecte] = useState(false);
   const [activeTab, setActiveTab] = useState('import');
+  // Période facultative de l'export Excel (vide = tout le calendrier).
+  const [exportRange, setExportRange] = useState<[Dayjs, Dayjs] | null>(null);
 
   const previewMutation = usePreviewImport();
   const importMutation = useImportCalendar();
+  const exportMutation = useExportFormations();
   const conflicts = useCalendarConflicts();
   const formations = useCalendarFormations({ page: 0, size: 1 });
 
@@ -97,6 +109,34 @@ export default function CalendrierGestionPage() {
       queryClient.invalidateQueries({ queryKey: ['calendar'] }),
     ]);
     message.success('Données actualisées.');
+  };
+
+  /**
+   * Export Excel du calendrier (`ExportExcelService` côté service-formation) :
+   * feuilles « Résumé », « Calendrier » puis une feuille de participants par
+   * formation. Sans période choisie, toutes les séances sont exportées.
+   */
+  const exporterExcel = async () => {
+    const start = exportRange ? exportRange[0].format('YYYY-MM-DD') : EXPORT_MIN_DATE;
+    const end = exportRange ? exportRange[1].format('YYYY-MM-DD') : EXPORT_MAX_DATE;
+    try {
+      const response = await exportMutation.mutateAsync({ start, end });
+      const blob = new Blob([response.data], { type: XLSX_MIME });
+      const url = globalThis.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      try {
+        link.href = url;
+        link.setAttribute('download', `calendrier_formations_${isoDate()}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+      } finally {
+        link.remove();
+        globalThis.URL.revokeObjectURL(url);
+      }
+      message.success('Export Excel du calendrier téléchargé.');
+    } catch {
+      message.error("Échec de l'export Excel du calendrier.");
+    }
   };
 
   // ── Synthèse de l'aperçu ─────────────────────────────────────────────
@@ -414,6 +454,21 @@ export default function CalendrierGestionPage() {
           <div className="cal-section-header">
             <Title level={4}>Formations du calendrier</Title>
             <div className="cal-section-actions">
+              <DatePicker.RangePicker
+                value={exportRange}
+                onChange={(value) => setExportRange(value as [Dayjs, Dayjs] | null)}
+                format="DD/MM/YYYY"
+                allowClear
+                placeholder={['Début (toutes dates)', 'Fin (toutes dates)']}
+                aria-label="Période de l'export Excel"
+              />
+              <Button
+                icon={<FileExcelOutlined />}
+                loading={exportMutation.isPending}
+                onClick={() => void exporterExcel()}
+              >
+                Exporter en Excel
+              </Button>
               <Button
                 icon={<ReloadOutlined />}
                 loading={formations.isFetching}

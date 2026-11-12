@@ -5,6 +5,7 @@ import { App } from 'antd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CalendrierGestionPage from '../CalendrierGestionPage';
 import * as cal from '@/hooks/formation/useCalendar';
+import * as extras from '@/hooks/formation/useFormationExtras';
 
 const confirm = vi.fn();
 
@@ -25,6 +26,10 @@ vi.mock('@/hooks/formation/useCalendar', () => ({
 
 vi.mock('@/services/formation/CalendarService', () => ({
   default: { downloadIcsAll: vi.fn(() => Promise.resolve()) },
+}));
+
+vi.mock('@/hooks/formation/useFormationExtras', () => ({
+  useExportFormations: vi.fn(),
 }));
 
 vi.mock('@/components/calendar', () => ({
@@ -100,14 +105,20 @@ function analyserFichier() {
 
 describe('CalendrierGestionPage', () => {
   let importMutate: ReturnType<typeof vi.fn>;
+  let exportMutate: ReturnType<typeof vi.fn>;
   let formationsRefetch: ReturnType<typeof vi.fn>;
   let conflictsRefetch: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     importMutate = vi.fn();
+    exportMutate = vi.fn();
     formationsRefetch = vi.fn();
     conflictsRefetch = vi.fn();
+    vi.mocked(extras.useExportFormations).mockReturnValue({
+      mutateAsync: exportMutate,
+      isPending: false,
+    } as never);
     vi.mocked(cal.usePreviewImport).mockReturnValue({
       mutate: vi.fn((_f: File, opts: { onSuccess: (d: unknown) => void }) =>
         opts.onSuccess(PREVIEW),
@@ -224,6 +235,24 @@ describe('CalendrierGestionPage', () => {
 
     fireEvent.click(screen.getByText(/^Conflits$/));
     expect(screen.getByText('conflits-oui')).toBeInTheDocument();
+  });
+
+  it('« Exporter en Excel » télécharge le classeur du calendrier (toutes dates par défaut)', async () => {
+    const createObjectURL = vi.fn(() => 'blob:calendrier');
+    const revokeObjectURL = vi.fn();
+    (globalThis.URL as unknown as { createObjectURL: unknown }).createObjectURL = createObjectURL;
+    (globalThis.URL as unknown as { revokeObjectURL: unknown }).revokeObjectURL = revokeObjectURL;
+    exportMutate.mockResolvedValue({ data: new Blob(['x']) });
+
+    renderPage();
+    fireEvent.click(screen.getByText(/Formations et export/));
+    fireEvent.click(screen.getByRole('button', { name: /Exporter en Excel/ }));
+
+    await waitFor(() =>
+      expect(exportMutate).toHaveBeenCalledWith({ start: '2000-01-01', end: '2100-12-31' }),
+    );
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:calendrier');
   });
 
   it('bouton « Supprimer l’aperçu » réinitialise l’étape et vide le fichier', () => {

@@ -34,7 +34,13 @@ const EvaluationFormateurService = {
     formationId: number | string,
   ): Promise<EvaluationEnseignant[]> {
     const response = await axios.get(`${EVALUATION_API_URL}/formation/${formationId}/enriched`);
-    return response.data;
+    // Parité listAll : le service renvoie une Page Spring ({ content: [...] })
+    // quand la liste est paginée — sans ce déballage l'onglet « Évaluations »
+    // plantait sur « data.map is not a function ».
+    const body = response.data;
+    if (Array.isArray(body)) return body;
+    if (body && Array.isArray(body.content)) return body.content;
+    return [];
   },
 
   async updateEvaluationsBulkByFormation(

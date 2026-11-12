@@ -170,17 +170,15 @@ export default function CompetencePage() {
     const matrixRows = buildMatrixRows(structure.matrixData);
 
     const workbook = XLSX.utils.book_new();
-    const sheet = XLSX.utils.json_to_sheet(matrixRows);
-
-    XLSX.utils.sheet_add_aoa(
-      sheet,
-      [
-        ['Affectation des savoirs par niveau de compétence'],
-        ['Compétence', competence?.nom || '-'],
-        ['Code', competence?.code || '-'],
-      ],
-      { origin: 'A1' },
-    );
+    // En-tête (3 lignes) PUIS la matrice à partir de A4 : `json_to_sheet` posait
+    // la matrice dès A1 et le bloc de titre l'écrasait (en-tête « N 1 » et les
+    // deux premières valeurs perdues dans le fichier exporté).
+    const sheet = XLSX.utils.aoa_to_sheet([
+      ['Affectation des savoirs par niveau de compétence'],
+      ['Compétence', competence?.nom || '-'],
+      ['Code', competence?.code || '-'],
+    ]);
+    XLSX.utils.sheet_add_json(sheet, matrixRows, { origin: 'A4' });
 
     XLSX.utils.book_append_sheet(workbook, sheet, 'Affectation Niveaux');
 

@@ -29,6 +29,22 @@ describe('EvaluationFormateurService', () => {
     expect(result).toEqual([{ id: 1, note: 4 }]);
   });
 
+  it('déballe la Page Spring des évaluations enrichies', async () => {
+    // Le service répond { content: [...] } : sans déballage l'onglet
+    // « Évaluations » plantait sur « data.map is not a function ».
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: { content: [{ idEvalParticipant: 14, note: 3 }], totalElements: 1 },
+    });
+    await expect(EvaluationFormateurService.listEvaluationsEnrichedByFormation(56)).resolves.toEqual(
+      [{ idEvalParticipant: 14, note: 3 }],
+    );
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: null });
+    await expect(EvaluationFormateurService.listEvaluationsEnrichedByFormation(56)).resolves.toEqual(
+      [],
+    );
+  });
+
   it('updates evaluations in bulk', async () => {
     httpMocks.mockPost.mockResolvedValueOnce({ data: { updated: 3 } });
     const result = await EvaluationFormateurService.updateEvaluationsBulkByFormation(1, [
