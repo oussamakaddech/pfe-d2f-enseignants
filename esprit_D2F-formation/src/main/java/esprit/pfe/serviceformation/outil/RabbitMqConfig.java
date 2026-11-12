@@ -44,6 +44,15 @@ public class RabbitMqConfig {
     // services qui déclarent une même queue (sinon PRECONDITION_FAILED 406).
     private static final String DLX_EXCHANGE = "d2f.dlx";
 
+    /**
+     * Durée de rétention de la DLQ « besoin-formation.approved.dlq » : elle est
+     * déclarée par le service besoin avec {@code x-message-ttl=86400000}. Une
+     * re-déclaration sans cet argument provoquait en boucle un
+     * PRECONDITION_FAILED 406 (canal fermé toutes les ~5 s, écoute de
+     * l'événement d'approbation interrompue).
+     */
+    private static final long BESOIN_DLQ_TTL_MS = 86_400_000L;
+
     // NB : ce service est PRODUCTEUR pour certificateQueue et evaluation.*.queues.
     // Il ne les déclare PAS — la déclaration appartient au service consommateur
     // (certificat / evaluation) avec ses propres arguments dead-letter.
@@ -60,7 +69,9 @@ public class RabbitMqConfig {
 
     @Bean
     public Queue besoinDlq() {
-        return QueueBuilder.durable(BESOIN_DLQ).build();
+        return QueueBuilder.durable(BESOIN_DLQ)
+                .withArgument("x-message-ttl", BESOIN_DLQ_TTL_MS)
+                .build();
     }
 
     // ── Analytics queue (for predictive-analytics consumer) ──
