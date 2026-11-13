@@ -60,17 +60,31 @@ public class ExportExcelService {
     }
 
     public ByteArrayOutputStream exportFormationsAvance(LocalDate startDate, LocalDate endDate) throws IOException {
+        return exportFormationsAvance(startDate, endDate, null, null);
+    }
+
+    /**
+     * Export du calendrier filtré par période, UP et département.
+     *
+     * @param up           code ou libellé de l'UP (null = toutes les UP)
+     * @param departement  code ou libellé du département (null = tous)
+     */
+    public ByteArrayOutputStream exportFormationsAvance(LocalDate startDate, LocalDate endDate,
+                                                        String up, String departement) throws IOException {
         LocalDate effectiveStart = startDate != null ? startDate : LocalDate.of(2000, 1, 1);
         LocalDate effectiveEnd = endDate != null ? endDate : LocalDate.of(2100, 12, 31);
-        List<FormationResponseDTO> formations = formationWorkflowService.getAllFormationWorkflows();
-        if (formations == null) {
-            formations = Collections.emptyList();
+        List<FormationResponseDTO> allFormations = formationWorkflowService.getAllFormationWorkflows();
+        if (allFormations == null) {
+            allFormations = Collections.emptyList();
         }
+        // Filtre UP / département : appliqué sur les formations, donc sur toutes
+        // les feuilles (Résumé, Calendrier et les feuilles par formation).
+        List<FormationResponseDTO> formations = filterByScope(allFormations, up, departement);
         List<SeanceExport> allSeances = extractFilteredSeances(formations, effectiveStart, effectiveEnd);
 
         Workbook workbook = new XSSFWorkbook();
-        createSummarySheet(workbook, formations, allSeances, startDate, endDate);
-        createCalendarSheet(workbook, allSeances, startDate, endDate);
+        createSummarySheet(workbook, formations, allSeances, startDate, endDate, up, departement);
+        createCalendarSheet(workbook, allSeances, startDate, endDate, up, departement);
         createParticipantSheets(workbook, formations);
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -80,8 +94,47 @@ public class ExportExcelService {
         return out;
     }
 
+    /** Filtre les formations par UP et département (comparaison code OU libellé). */
+    private List<FormationResponseDTO> filterByScope(List<FormationResponseDTO> formations,
+                                                      String up, String departement) {
+        boolean filterUp = up != null && !up.isBlank();
+        boolean filterDept = departement != null && !departement.isBlank();
+        if (!filterUp && !filterDept) {
+            return formations;
+        }
+        return formations.stream()
+                .filter(f -> !filterUp || matchesScopeValue(up,
+                        Optional.ofNullable(f.getUp()).map(UpDTO::getId).orElse(null),
+                        Optional.ofNullable(f.getUp()).map(UpDTO::getLibelle).orElse(null)))
+                .filter(f -> !filterDept || matchesScopeValue(departement,
+                        Optional.ofNullable(f.getDepartement()).map(DeptDTO::getId).orElse(null),
+                        Optional.ofNullable(f.getDepartement()).map(DeptDTO::getLibelle).orElse(null)))
+                .collect(Collectors.toList());
+    }
+
+    /** Le critère correspond si le code ou le libellé correspond (insensible à la casse). */
+    private boolean matchesScopeValue(String expected, String code, String libelle) {
+        if (code != null && code.trim().equalsIgnoreCase(expected.trim())) {
+            return true;
+        }
+        return libelle != null && libelle.trim().equalsIgnoreCase(expected.trim());
+    }
+
+    /** Libellé des filtres de périmètre affiché dans les sous-titres du classeur. */
+    private String formatScope(String up, String departement) {
+        List<String> parts = new ArrayList<>();
+        if (up != null && !up.isBlank()) {
+            parts.add("UP: " + up.trim());
+        }
+        if (departement != null && !departement.isBlank()) {
+            parts.add("Département: " + departement.trim());
+        }
+        return parts.isEmpty() ? "" : " | " + String.join(" | ", parts);
+    }
+
     private void createSummarySheet(Workbook workbook, List<FormationResponseDTO> formations,
-                                     List<SeanceExport> allSeances, LocalDate startDate, LocalDate endDate) {
+                                     List<SeanceExport> allSeances, LocalDate startDate, LocalDate endDate,
+                                     String up, String departement) {
         Sheet sheet = workbook.createSheet("Résumé");
 
         CellStyle titleStyle = createSummaryTitleStyle(workbook);
@@ -97,7 +150,7 @@ public class ExportExcelService {
         sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 1));
 
         DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        String dateRange = formatDateRange(startDate, endDate, df);
+        String dateRange = formatDateRange(startDate, endDate, df) + formatScope(up, departement);
         Row subtitleRow = sheet.createRow(1);
         Cell subtitleCell = subtitleRow.createCell(0);
         subtitleCell.setCellValue(dateRange);
@@ -110,7 +163,9 @@ public class ExportExcelService {
             "Total Participants",
             "Date Début",
             "Date Fin",
-            "Date Génération"
+            "Date Génération",
+            "Filtre UP",
+            "Filtre Département"
         };
 
         int totalParticipants = countUniqueParticipants(formations);
@@ -120,7 +175,9 @@ public class ExportExcelService {
             String.valueOf(totalParticipants),
             formatDate(startDate, df),
             formatDate(endDate, df),
-            java.time.LocalDate.now(ZoneId.systemDefault()).format(df)
+            java.time.LocalDate.now(ZoneId.systemDefault()).format(df),
+            up != null && !up.isBlank() ? up.trim() : "Toutes les UP",
+            departement != null && !departement.isBlank() ? departement.trim() : "Tous les départements"
         };
 
         Row headerRow = sheet.createRow(3);
@@ -170,12 +227,12 @@ public class ExportExcelService {
     }
 
     private void createCalendarSheet(Workbook workbook, List<SeanceExport> allSeances,
-                                      LocalDate startDate, LocalDate endDate) {
+                                      LocalDate startDate, LocalDate endDate, String up, String departement) {
         Sheet sheet = workbook.createSheet("Calendrier");
 
         Map<LocalDate, List<SeanceExport>> mapByDate = groupSeancesByDate(allSeances);
         DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        String dateRange = formatDateRange(startDate, endDate, df);
+        String dateRange = formatDateRange(startDate, endDate, df) + formatScope(up, departement);
 
         CellStyle titleStyle = createCalendarTitleStyle(workbook);
         CellStyle subtitleStyle = createCalendarSubtitleStyle(workbook);

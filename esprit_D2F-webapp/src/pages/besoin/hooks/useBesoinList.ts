@@ -29,22 +29,22 @@ import { useEnseignants } from '@/hooks/enseignant/useEnseignants';
 import { buildFormationNeedHtmlEmail } from '@/pages/besoin/components/BesoinMailCupModal';
 import { buildActeurOptions, serializeActeurs, parseActeurs } from '@/utils/besoin/acteurs';
 
+// Codes de période alignés sur l'énumération backend `PeriodCode`
+// (WINTER, SUMMER, SPRINT, WORKSHOP, OTHER).
 const PERIOD_OPTIONS = [
-  { value: 'P1', label: 'Période 1' },
-  { value: 'P2', label: 'Période 2' },
-  { value: 'P3', label: 'Période 3' },
-  { value: 'P4', label: 'Période 4' },
-  { value: 'SUMMER', label: "Session d'Été" },
+  { value: 'SPRINT', label: 'Sprint' },
   { value: 'WINTER', label: "Session d'Hiver" },
+  { value: 'SUMMER', label: "Session d'Été" },
+  { value: 'WORKSHOP', label: 'Atelier' },
   { value: 'OTHER', label: 'Autre' },
 ];
 
 export const INITIAL_FILTERS = {
   deptId: null as string | null,
   upId: null as string | null,
-  type: null as string | null,
   statut: null as string | null,
   priorite: null as string | null,
+  periodCode: null as string | null,
   dateRange: null as [dayjs.Dayjs, dayjs.Dayjs] | null,
 };
 
@@ -130,11 +130,6 @@ export function useBesoinList() {
 
   const besoins = besoinsData;
 
-  const types = useMemo(
-    () => [...new Set(besoins.map((b) => b.typeBesoin).filter(Boolean))],
-    [besoins],
-  );
-
   const cupAccounts = useMemo(
     () =>
       accountsData.filter(
@@ -148,7 +143,10 @@ export function useBesoinList() {
   // ── ui state ──
   const [searchText, setSearchText] = useState('');
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  // Vue tableau par défaut : les deux onglets de la page « Besoins de
+  // formation » s'affichent sous forme de tableau (la vue cartes reste
+  // accessible via le sélecteur d'affichage).
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
 
@@ -193,8 +191,12 @@ export function useBesoinList() {
     let res = Array.isArray(besoins) ? [...besoins] : [];
     if (filters.deptId) res = res.filter((b) => String(b.departement) === String(filters.deptId));
     if (filters.upId) res = res.filter((b) => String(b.up) === String(filters.upId));
-    if (filters.type) res = res.filter((b) => b.typeBesoin === filters.type);
     if (filters.priorite) res = res.filter((b) => b.priorite === filters.priorite);
+    if (filters.periodCode)
+      res = res.filter(
+        (b) =>
+          String(b.periodCode ?? '').toUpperCase() === String(filters.periodCode).toUpperCase(),
+      );
     if (filters.statut === 'approuve')
       res = res.filter((b) => b.approuveAdmin || b.status === 'FORMATION_CREATED');
     if (filters.statut === 'en_attente') res = res.filter((b) => !isTerminalStatus(b));
@@ -474,7 +476,6 @@ export function useBesoinList() {
     departements,
     ups,
     cupAccounts,
-    types,
     acteurOptions,
     searchText,
     setSearchText,

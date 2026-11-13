@@ -11,6 +11,8 @@ export interface WorkflowUser {
 export interface DecisionState {
   /** L'utilisateur est le créateur du besoin (ne peut ni approuver ni refuser). */
   isCreator: boolean;
+  /** Le demandeur est bloqué pour décider (l'admin, lui, peut valider). */
+  creatorBlocked: boolean;
   /** Étape effective (repli flags legacy si currentApprovalStep absent). */
   step: 'CUP' | 'CHEF_DEPARTEMENT' | 'ADMIN' | 'COMPLETED' | 'REJECTED' | '';
   /** Le besoin est dans un état terminal (aucune décision possible). */
@@ -68,7 +70,12 @@ export function getDecisionState(
   const isAdminStep = step === 'ADMIN' && role === 'admin';
   const isMyStep = !isTerminal && (isCupStep || isChefStep || isAdminStep);
 
-  const canDecide = isMyStep && !isCreator;
+  // L'auto-approbation est interdite, SAUF pour l'administrateur (D2F) : il est
+  // l'unique décideur du circuit et doit pouvoir valider un besoin qu'il a
+  // lui-même déposé (parité `BesoinFormationServiceImpl.checkDecision`).
+  const isAdmin = role === 'admin';
+  const creatorBlocked = isCreator && !isAdmin;
+  const canDecide = isMyStep && !creatorBlocked;
   const canCancel =
     !isTerminal &&
     !!username &&
@@ -77,6 +84,7 @@ export function getDecisionState(
 
   return {
     isCreator,
+    creatorBlocked,
     step,
     isTerminal,
     isMyStep,

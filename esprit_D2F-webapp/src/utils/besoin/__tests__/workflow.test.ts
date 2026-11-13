@@ -21,8 +21,21 @@ describe('workflow decision helpers', () => {
   it('le créateur ne peut ni approuver ni refuser', () => {
     const d = getDecisionState(base, { username: 'enseignant1', role: 'Enseignant' });
     expect(d.isCreator).toBe(true);
+    expect(d.creatorBlocked).toBe(true);
     expect(d.canApprove).toBe(false);
     expect(d.canReject).toBe(false);
+  });
+
+  it("l'admin peut valider un besoin qu'il a lui-même déposé", () => {
+    const b: BesoinFormation = {
+      ...base,
+      username: 'admin',
+    };
+    const d = getDecisionState(b, { username: 'admin', role: 'admin' });
+    expect(d.isCreator).toBe(true);
+    expect(d.creatorBlocked).toBe(false);
+    expect(d.canApprove).toBe(true);
+    expect(d.canReject).toBe(true);
   });
 
   it('le chef ne décide pas au stade CUP', () => {

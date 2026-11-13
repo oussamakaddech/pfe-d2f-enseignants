@@ -81,6 +81,13 @@ export interface BesoinFormation {
   dateCreation?: string;
   /** §2.2.2 — Priorité du besoin (urgence) */
   priorite?: Priorite;
+  /** Période pédagogique — énumération backend `PeriodCode`
+   *  (SPRINT, WINTER, SUMMER, WORKSHOP, OTHER). */
+  periodCode?: string;
+  /** Libellé personnalisé utilisé quand `periodCode` vaut OTHER. */
+  customPeriodLabel?: string;
+  /** Ancien champ texte (données historiques). */
+  periodeFormation?: string;
   /** §2.2.2 — Impact stratégique du besoin */
   impactStrategique?: string;
 }

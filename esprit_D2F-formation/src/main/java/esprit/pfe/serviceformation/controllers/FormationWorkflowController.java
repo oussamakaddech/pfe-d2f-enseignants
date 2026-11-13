@@ -39,6 +39,11 @@ public class FormationWorkflowController {
     private static final String KEY_MESSAGE = "message";
     private static final String MSG_ERREUR_INTERNE = "Erreur interne";
 
+    /** Neutralise les caractères interdits dans un nom de fichier. */
+    private static String sanitizeForFileName(String value) {
+        return value.trim().replaceAll("[^A-Za-z0-9_-]+", "_");
+    }
+
     private final ExportExcelService exportExcelService;
     private final FormationWorkflowService formationWorkflowService;
     private final FormationService formationService;
@@ -202,17 +207,29 @@ public class FormationWorkflowController {
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<Object> exportExcel(
             @RequestParam(value = "start", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
-            @RequestParam(value = "end", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate
+            @RequestParam(value = "end", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+            @RequestParam(value = "up", required = false) String up,
+            @RequestParam(value = "departement", required = false) String departement
     ) {
         try {
             LocalDate effectiveStart = startDate != null ? startDate : LocalDate.of(2000, 1, 1);
             LocalDate effectiveEnd = endDate != null ? endDate : LocalDate.of(2100, 12, 31);
-            ByteArrayOutputStream out = exportExcelService.exportFormationsAvance(effectiveStart, effectiveEnd);
+            ByteArrayOutputStream out = exportExcelService.exportFormationsAvance(
+                    effectiveStart, effectiveEnd, up, departement);
             byte[] content = out.toByteArray();
 
-            String filename = (startDate != null && endDate != null)
-                    ? String.format("formations_%tF_%tF.xlsx", startDate, endDate)
-                    : String.format("formations_%tF.xlsx", LocalDate.now());
+            String filename;
+            if (startDate != null && endDate != null) {
+                filename = String.format("formations_%tF_%tF.xlsx", startDate, endDate);
+            } else {
+                filename = String.format("formations_%tF.xlsx", LocalDate.now());
+            }
+            if (up != null && !up.isBlank()) {
+                filename = filename.replace(".xlsx", "_UP_" + sanitizeForFileName(up) + ".xlsx");
+            }
+            if (departement != null && !departement.isBlank()) {
+                filename = filename.replace(".xlsx", "_DEPT_" + sanitizeForFileName(departement) + ".xlsx");
+            }
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());

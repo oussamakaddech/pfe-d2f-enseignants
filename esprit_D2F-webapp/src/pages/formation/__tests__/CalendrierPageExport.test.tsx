@@ -24,6 +24,23 @@ vi.mock('@/hooks/formation', () => ({
   useFormationsForCalendar: vi.fn(() => ({ data: [], isLoading: false })),
 }));
 
+vi.mock('@/hooks/formation/useUpCrud', () => ({
+  useAllUps: vi.fn(() => ({
+    data: [
+      { id: 'UP_GC', name: 'Génie Civil' },
+      { id: 'UP_GL', name: 'Génie Logiciel' },
+    ],
+    isLoading: false,
+  })),
+}));
+
+vi.mock('@/hooks/formation/useDeptCrud', () => ({
+  useAllDepts: vi.fn(() => ({
+    data: [{ id: 'DEPT_GC', name: 'Génie Civil' }],
+    isLoading: false,
+  })),
+}));
+
 vi.mock('@/hooks/enseignant/useEnseignants', () => ({
   useEnseignantById: vi.fn(() => ({ data: null })),
 }));
@@ -73,5 +90,25 @@ describe('CalendrierPage — Export Excel', () => {
     );
     expect(createObjectURL).toHaveBeenCalledTimes(1);
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:calendrier-export');
+  });
+
+  it('affiche le sélecteur de période (date de début et date de fin) à côté du bouton', () => {
+    renderPage();
+
+    const rangePicker = document.querySelector('.cal-export-range');
+    expect(rangePicker).toBeInTheDocument();
+    const inputs = rangePicker!.querySelectorAll('input');
+    expect(inputs).toHaveLength(2);
+    expect(inputs[0]).toHaveAttribute('placeholder', 'Début (toutes dates)');
+    expect(inputs[1]).toHaveAttribute('placeholder', 'Fin (toutes dates)');
+  });
+
+  it('affiche aussi les filtres UP et département (accessibles à tous les rôles)', () => {
+    renderPage();
+
+    const selects = document.querySelectorAll('.cal-export-select');
+    expect(selects).toHaveLength(2);
+    expect(screen.getByText('UP (toutes)')).toBeInTheDocument();
+    expect(screen.getByText('Département (tous)')).toBeInTheDocument();
   });
 });

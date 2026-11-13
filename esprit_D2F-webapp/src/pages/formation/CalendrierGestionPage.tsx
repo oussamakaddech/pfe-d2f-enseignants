@@ -5,6 +5,7 @@ import {
   Card,
   Checkbox,
   DatePicker,
+  Select,
   Space,
   Statistic,
   Steps,
@@ -36,7 +37,10 @@ import {
   usePreviewImport,
 } from '@/hooks/formation/useCalendar';
 import { useExportFormations } from '@/hooks/formation/useFormationExtras';
+import { useAllUps } from '@/hooks/formation/useUpCrud';
+import { useAllDepts } from '@/hooks/formation/useDeptCrud';
 import { isoDate } from '@/utils/helpers/excelExport';
+import { exportPayload, exportFileName, exportPeriodLabel } from './calendarExportPeriod';
 import {
   CalendarFileUpload,
   CalendarFormationsTable,
@@ -56,8 +60,6 @@ const STEP_RESULTAT = 2;
 const normaliser = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
 /** Bornes larges utilisées quand aucune période n'est choisie : tout le calendrier. */
-const EXPORT_MIN_DATE = '2000-01-01';
-const EXPORT_MAX_DATE = '2100-12-31';
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 function formatDate(d?: string): string {
@@ -92,6 +94,11 @@ export default function CalendrierGestionPage() {
   const [activeTab, setActiveTab] = useState('import');
   // Période facultative de l'export Excel (vide = tout le calendrier).
   const [exportRange, setExportRange] = useState<[Dayjs, Dayjs] | null>(null);
+  // Filtres UP / département de l'export Excel (vides = toutes les UP / tous les départements).
+  const [exportUp, setExportUp] = useState<string | undefined>(undefined);
+  const [exportDept, setExportDept] = useState<string | undefined>(undefined);
+  const { data: upOptions = [] } = useAllUps();
+  const { data: deptOptions = [] } = useAllDepts();
 
   const previewMutation = usePreviewImport();
   const importMutation = useImportCalendar();
@@ -117,23 +124,24 @@ export default function CalendrierGestionPage() {
    * formation. Sans période choisie, toutes les séances sont exportées.
    */
   const exporterExcel = async () => {
-    const start = exportRange ? exportRange[0].format('YYYY-MM-DD') : EXPORT_MIN_DATE;
-    const end = exportRange ? exportRange[1].format('YYYY-MM-DD') : EXPORT_MAX_DATE;
+    const scope = { up: exportUp ?? null, departement: exportDept ?? null };
+    const payload = exportPayload(exportRange, scope);
+    const { start, end } = payload;
     try {
-      const response = await exportMutation.mutateAsync({ start, end });
+      const response = await exportMutation.mutateAsync(payload);
       const blob = new Blob([response.data], { type: XLSX_MIME });
       const url = globalThis.URL.createObjectURL(blob);
       const link = document.createElement('a');
       try {
         link.href = url;
-        link.setAttribute('download', `calendrier_formations_${isoDate()}.xlsx`);
+        link.setAttribute('download', exportFileName(exportRange, isoDate(), scope));
         document.body.appendChild(link);
         link.click();
       } finally {
         link.remove();
         globalThis.URL.revokeObjectURL(url);
       }
-      message.success('Export Excel du calendrier téléchargé.');
+      message.success(`Export Excel du calendrier téléchargé${exportPeriodLabel(exportRange, scope)}.`);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       message.error(msg ? `Échec de l'export Excel : ${msg}` : "Échec de l'export Excel du calendrier.");
@@ -462,6 +470,34 @@ export default function CalendrierGestionPage() {
                 allowClear
                 placeholder={['Début (toutes dates)', 'Fin (toutes dates)']}
                 aria-label="Période de l'export Excel"
+              />
+              <Select
+                value={exportUp}
+                onChange={(value) => setExportUp(value as string | undefined)}
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                placeholder="UP (toutes)"
+                aria-label="Filtre UP de l'export Excel"
+                className="cal-export-select"
+                options={upOptions.map((u) => {
+                  const id = u.id != null ? String(u.id) : '';
+                  return { value: id, label: u.name || u.libelle || id };
+                })}
+              />
+              <Select
+                value={exportDept}
+                onChange={(value) => setExportDept(value as string | undefined)}
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                placeholder="Département (tous)"
+                aria-label="Filtre département de l'export Excel"
+                className="cal-export-select"
+                options={deptOptions.map((d) => {
+                  const id = d.id != null ? String(d.id) : '';
+                  return { value: id, label: d.name || d.libelle || id };
+                })}
               />
               <Button
                 icon={<FileExcelOutlined />}

@@ -13,6 +13,7 @@ import {
   ClockCircleOutlined,
   UserOutlined,
   RocketOutlined,
+  InfoCircleOutlined,
 } from '@ant-design/icons';
 import BesoinPriorityBadge from './BesoinPriorityBadge';
 import BesoinStatusBadge from './BesoinStatusBadge';
@@ -325,6 +326,15 @@ export default function BesoinCard({
             >
               Créer la formation
             </Button>
+          </Tooltip>
+        )}
+        {/* Le demandeur ne peut pas valider son propre besoin (règle serveur) :
+            on l'explique au lieu d'afficher des boutons muets. */}
+        {!showApprove && !showReject && decision.creatorBlocked && !decision.isTerminal && (
+          <Tooltip title="Le demandeur ne peut pas valider son propre besoin : la décision revient au D2F (un autre administrateur).">
+            <span className="bf-card__hint">
+              <InfoCircleOutlined /> Vous êtes le demandeur — validation par le D2F
+            </span>
           </Tooltip>
         )}
         <Tooltip title="Demander des informations au CUP">

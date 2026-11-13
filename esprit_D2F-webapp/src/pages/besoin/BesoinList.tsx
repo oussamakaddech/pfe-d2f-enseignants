@@ -82,7 +82,6 @@ export default function BesoinList() {
     departements,
     ups,
     cupAccounts,
-    types,
     acteurOptions,
     searchText,
     setSearchText,
@@ -130,9 +129,9 @@ export default function BesoinList() {
     !!searchText ||
     !!filters.deptId ||
     !!filters.upId ||
-    !!filters.type ||
     !!filters.statut ||
     !!filters.priorite ||
+    !!filters.periodCode ||
     !!(filters.dateRange?.[0] && filters.dateRange?.[1]);
 
   if (loading && besoins.length === 0) {
@@ -223,7 +222,6 @@ export default function BesoinList() {
           <BesoinFiltersPanel
             searchText={searchText}
             filters={filters}
-            types={types.filter(Boolean) as string[]}
             ups={typedUps}
             departements={typedDepts}
             onSearchChange={setSearchText}
@@ -358,6 +356,22 @@ export default function BesoinList() {
               onOpenMail={openMailModal}
               onEdit={openEdit}
               onDelete={handleDelete}
+              onOpen={openEdit}
+              resolveUp={(r) => getLabel(findById(typedUps, r.up))}
+              resolveDept={(r) => getLabel(findById(typedDepts, r.departement))}
+              resolvePeriod={(r) => periodLabelOf(r)}
+              pagination={{
+                current: page,
+                pageSize,
+                total: filtered.length,
+                showSizeChanger: true,
+                pageSizeOptions: [8, 12, 16, 24, 48],
+                showTotal: (t: number, range: number[]) => `${range[0]}-${range[1]} sur ${t} besoins`,
+                onChange: (p: number, ps: number) => {
+                  setPage(p);
+                  setPageSize(ps);
+                },
+              }}
             />
           )}
         </>
@@ -378,44 +392,47 @@ export default function BesoinList() {
             </output>
           )}
           {!loadingApproved && approvedBesoins.length > 0 && (
-            <Row gutter={[16, 16]} className="bf-grid">
-              {approvedBesoins.map((b) => {
-                const br = b as unknown as Record<string, unknown>;
-                const id = getBesoinId(br);
-                return (
-                  <Col xs={24} sm={12} lg={8} xxl={6} key={String(id)}>
-                    <BesoinCard
-                      besoin={b}
-                      upLabel={getLabel(findById(typedUps, b.up))}
-                      deptLabel={getLabel(findById(typedDepts, b.departement))}
-                      periodLabel={periodLabelOf(br)}
-                      approvingId={null}
-                      canApprove={false}
-                      canReject={false}
-                      canEdit={false}
-                      canDelete={false}
-                      userRole={userRole}
-                      currentUsername={currentUsername}
-                      currentUserId={currentUserId}
-                      onApprove={() => {}}
-                      onReject={() => {}}
-                      onOpenMail={() => {}}
-                      onEdit={() => {}}
-                      onDelete={() => {}}
-                      onOpen={() => openEdit(br)}
-                      onCreateFormation={
-                        canCreateFormation && b.status !== 'FORMATION_CREATED'
-                          ? (record) =>
-                              navigate('/home/Formation/Creer', {
-                                state: { besoinInfo: record },
-                              })
-                          : undefined
-                      }
-                    />
-                  </Col>
-                );
-              })}
-            </Row>
+            <>
+              <div className="bf-viewmode">
+                <div className="bf-viewmode__count">
+                  <span className="bf-viewmode__count-value">{approvedBesoins.length}</span>
+                  <span className="bf-viewmode__count-label">besoin(s) approuvé(s)</span>
+                </div>
+              </div>
+              <BesoinTable
+              data={approvedBesoins as unknown as Record<string, unknown>[]}
+              loading={false}
+              approvingId={null}
+              canApprove={false}
+              canReject={false}
+              canEdit={false}
+              canDelete={canDelete}
+              userRole={userRole}
+              currentUsername={currentUsername}
+              currentUserId={currentUserId}
+              getBesoinId={getBesoinId}
+              onApprove={() => {}}
+              onReject={() => {}}
+              onOpenMail={openMailModal}
+              onEdit={openEdit}
+              onDelete={handleDelete}
+              onOpen={openEdit}
+              resolveUp={(r) => getLabel(findById(typedUps, r.up))}
+              resolveDept={(r) => getLabel(findById(typedDepts, r.departement))}
+              resolvePeriod={(r) => periodLabelOf(r)}
+              onCreateFormation={
+                canCreateFormation
+                  ? (r) => navigate('/home/Formation/Creer', { state: { besoinInfo: r } })
+                  : undefined
+              }
+              pagination={{
+                pageSize: 10,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 20, 50],
+                showTotal: (t: number) => `${t} besoin(s) approuvé(s)`,
+              }}
+            />
+            </>
           )}
         </>
       )}

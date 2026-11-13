@@ -31,10 +31,14 @@ const PRIORITY_OPTIONS = [
   { value: 'BASSE', label: 'Basse' },
 ];
 
-const TYPE_LABELS = {
-  INDIVIDUEL: 'Individuel',
-  COLLECTIF: 'Collectif',
-};
+// Codes alignés sur l'énumération backend `PeriodCode`.
+const PERIOD_OPTIONS = [
+  { value: 'SPRINT', label: 'Sprint' },
+  { value: 'WINTER', label: "Session d'Hiver" },
+  { value: 'SUMMER', label: "Session d'Été" },
+  { value: 'WORKSHOP', label: 'Atelier' },
+  { value: 'OTHER', label: 'Autre' },
+];
 
 /**
  * Panneau de filtres premium.
@@ -51,14 +55,13 @@ interface BesoinFilters {
   dateRange?: [dayjs.Dayjs, dayjs.Dayjs] | null;
   statut?: string | null;
   priorite?: string | null;
-  type?: string | null;
+  periodCode?: string | null;
   upId?: number | string | null;
   deptId?: number | string | null;
 }
 interface BesoinFiltersPanelProps {
   searchText: string;
   filters: BesoinFilters;
-  types: string[];
   ups: NamedItem[];
   departements: NamedItem[];
   onSearchChange: (value: string) => void;
@@ -69,7 +72,6 @@ interface BesoinFiltersPanelProps {
 export default function BesoinFiltersPanel({
   searchText,
   filters,
-  types,
   ups,
   departements,
   onSearchChange,
@@ -109,11 +111,12 @@ export default function BesoinFiltersPanel({
         label: `Priorité : ${filters.priorite}`,
         clear: () => setFilter('priorite', null),
       });
-    if (filters.type) {
+    if (filters.periodCode) {
+      const lbl = PERIOD_OPTIONS.find((o) => o.value === filters.periodCode)?.label;
       chips.push({
-        key: 'type',
-        label: `Type : ${(TYPE_LABELS as Record<string, string>)[filters.type] || filters.type}`,
-        clear: () => setFilter('type', null),
+        key: 'periodCode',
+        label: `Période : ${lbl}`,
+        clear: () => setFilter('periodCode', null),
       });
     }
     if (filters.upId) {
@@ -256,17 +259,11 @@ export default function BesoinFiltersPanel({
         />
         <Select
           allowClear
-          placeholder="Type"
-          value={filters.type}
-          onChange={(v) => setFilter('type', v)}
-        >
-          {types.map((t) => (
-            <Option key={t} value={t}>
-              {' '}
-              {(TYPE_LABELS as Record<string, string>)[t] || t?.replaceAll('_', ' ')}
-            </Option>
-          ))}
-        </Select>
+          placeholder="Période"
+          value={filters.periodCode}
+          onChange={(v) => setFilter('periodCode', v)}
+          options={PERIOD_OPTIONS}
+        />
         <Select
           allowClear
           placeholder="Unité Pédagogique"

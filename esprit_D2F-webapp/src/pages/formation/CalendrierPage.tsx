@@ -3,7 +3,8 @@ import { Calendar, dateFnsLocalizer, type View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { fr } from 'date-fns/locale/fr';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { Modal, Button, Steps, Spin, Space, Tooltip, Segmented } from 'antd';
+import { Modal, Button, Steps, Spin, Space, Tooltip, Segmented, DatePicker, Select } from 'antd';
+import type { Dayjs } from 'dayjs';
 import {
   LeftOutlined,
   RightOutlined,
@@ -23,8 +24,11 @@ import type { Formation, Seance } from '@/models/formation';
 
 import FormationWorkflowForm from '@/pages/formation/FormationWorkflowForm';
 import { useAllFormations, useFormationsForCalendar } from '@/hooks/formation';
+import { useAllUps } from '@/hooks/formation/useUpCrud';
+import { useAllDepts } from '@/hooks/formation/useDeptCrud';
 import { useProfile, useExportFormations } from '@/hooks/formation/useFormationExtras';
 import { isoDate } from '@/utils/helpers/excelExport';
+import { exportPayload, exportFileName, exportPeriodLabel } from './calendarExportPeriod';
 import { useEnseignantById } from '@/hooks/enseignant/useEnseignants';
 import { normalizeRole } from '@/utils/constants/roles';
 import EventDetails from '@/pages/presence/EventDetails';
@@ -157,13 +161,18 @@ export default function CalendrierPage() {
   const isAdmin = role === 'admin';
 
   const exportMutation = useExportFormations();
+  // Filtres de l'export Excel du calendrier : période, UP et département.
+  const [exportRange, setExportRange] = useState<[Dayjs, Dayjs] | null>(null);
+  const [exportUp, setExportUp] = useState<string | undefined>(undefined);
+  const [exportDept, setExportDept] = useState<string | undefined>(undefined);
+  const { data: upOptions = [] } = useAllUps();
+  const { data: deptOptions = [] } = useAllDepts();
+
+  const exportScope = { up: exportUp ?? null, departement: exportDept ?? null };
 
   const handleExportExcel = async () => {
     try {
-      const response = await exportMutation.mutateAsync({
-        start: '2000-01-01',
-        end: '2100-12-31',
-      });
+      const response = await exportMutation.mutateAsync(exportPayload(exportRange, exportScope));
       const blob = new Blob([response.data], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       });
@@ -171,14 +180,16 @@ export default function CalendrierPage() {
       const link = document.createElement('a');
       try {
         link.href = url;
-        link.setAttribute('download', `calendrier_formations_${isoDate()}.xlsx`);
+        link.setAttribute('download', exportFileName(exportRange, isoDate(), exportScope));
         document.body.appendChild(link);
         link.click();
       } finally {
         link.remove();
         globalThis.URL.revokeObjectURL(url);
       }
-      message.success('Export Excel du calendrier téléchargé.');
+      message.success(
+        `Export Excel du calendrier téléchargé${exportPeriodLabel(exportRange, exportScope)}.`,
+      );
     } catch {
       message.error("Échec de l'export Excel du calendrier.");
     }
@@ -366,6 +377,45 @@ export default function CalendrierPage() {
             </div>
           </div>
           <div className="d-flex-c gap-8">
+            <DatePicker.RangePicker
+              value={exportRange}
+              onChange={(value) => setExportRange(value as [Dayjs, Dayjs] | null)}
+              format="DD/MM/YYYY"
+              allowClear
+              placeholder={['Début (toutes dates)', 'Fin (toutes dates)']}
+              aria-label="Période de l'export Excel du calendrier"
+              className="cal-export-range"
+            />
+            <Select
+              value={exportUp}
+              onChange={(value) => setExportUp(value as string | undefined)}
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="UP (toutes)"
+              aria-label="Filtre UP de l'export Excel du calendrier"
+              className="cal-export-select"
+              options={upOptions.map((u) => {
+                const id = u.id != null ? String(u.id) : '';
+                const label = u.name || u.libelle || id;
+                return { value: id, label };
+              })}
+            />
+            <Select
+              value={exportDept}
+              onChange={(value) => setExportDept(value as string | undefined)}
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="Département (tous)"
+              aria-label="Filtre département de l'export Excel du calendrier"
+              className="cal-export-select"
+              options={deptOptions.map((d) => {
+                const id = d.id != null ? String(d.id) : '';
+                const label = d.name || d.libelle || id;
+                return { value: id, label };
+              })}
+            />
             <Button
               icon={<FileExcelOutlined />}
               loading={exportMutation.isPending}

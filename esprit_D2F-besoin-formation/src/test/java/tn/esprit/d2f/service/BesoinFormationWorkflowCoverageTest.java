@@ -323,6 +323,35 @@ class BesoinFormationWorkflowCoverageTest {
     }
 
     @Test
+    void approuverBesoin_adminCreateurPeutValiderSonBesoin() {
+        // L'admin (D2F) est l'unique décideur : il peut valider un besoin qu'il
+        // a lui-même déposé (la décision reste unique et tracée).
+        BesoinFormation b = besoin(14L, "test-admin", BesoinStatus.SUBMITTED, ApprovalStep.CUP);
+        when(besoinFormationRepository.findByIdForUpdate(14L)).thenReturn(Optional.of(b));
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
+        when(besoinFormationRepository.save(any(BesoinFormation.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        BesoinFormationResponse response = service.approuverBesoin(14L);
+        assertEquals(BesoinStatus.ADMIN_APPROVED, response.getStatus());
+        assertEquals(ApprovalStep.COMPLETED, response.getCurrentApprovalStep());
+        assertTrue(b.getApprouveAdmin());
+    }
+
+    @Test
+    void refuserBesoin_adminCreateurPeutRefuserSonBesoin() {
+        BesoinFormation b = besoin(15L, "test-admin", BesoinStatus.SUBMITTED, ApprovalStep.CUP);
+        when(besoinFormationRepository.findByIdForUpdate(15L)).thenReturn(Optional.of(b));
+        when(reviewerScopeService.resolveCurrentUser()).thenReturn(ADMIN_SCOPE);
+        when(besoinFormationRepository.save(any(BesoinFormation.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        BesoinFormationResponse response = service.refuserBesoin(15L, "Pas pertinent");
+        assertEquals(BesoinStatus.REJECTED, response.getStatus());
+        assertEquals("Pas pertinent", response.getRejectionReason());
+    }
+
+    @Test
     void approuverBesoin_mauvaiseEtapePourRole_doitLever409() {
         BesoinFormation b = besoin(11L, "ens-user", BesoinStatus.SUBMITTED, ApprovalStep.CUP);
         when(besoinFormationRepository.findByIdForUpdate(11L)).thenReturn(Optional.of(b));

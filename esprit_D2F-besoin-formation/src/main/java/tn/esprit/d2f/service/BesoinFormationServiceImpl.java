@@ -425,7 +425,10 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
 
         // 8. Le créateur ne décide jamais sur son propre besoin (403) — contrôle
         // AVANT l'étape : même à la « bonne » étape, l'auto-approbation est interdite.
-        if (isCreator(b, scope)) {
+        // EXCEPTION : l'administrateur (D2F) peut valider un besoin qu'il a lui-même
+        // déposé — il est l'unique décideur du circuit, et l'auto-approbation le
+        // laisserait sans aucun moyen de clore sa propre demande.
+        if (isCreator(b, scope) && scope.actorRole() != CreatorRole.ADMIN) {
             throw new AccessDeniedException(
                     "Le créateur d'un besoin ne peut pas " + verbe + " son propre besoin (n°" + id + ").");
         }

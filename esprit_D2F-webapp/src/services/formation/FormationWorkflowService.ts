@@ -198,10 +198,19 @@ const FormationWorkflowService = {
     return normalizeListResponse(response.data);
   },
 
-  async exportFormations(start: string, end: string): Promise<AxiosResponse<Blob>> {
+  async exportFormations(
+    start: string,
+    end: string,
+    filters?: { up?: string | null; departement?: string | null },
+  ): Promise<AxiosResponse<Blob>> {
     return axios.get<Blob>(`${API_URL}/export/excel`, {
       responseType: 'blob',
-      params: { start, end },
+      params: {
+        start,
+        end,
+        ...(filters?.up ? { up: filters.up } : {}),
+        ...(filters?.departement ? { departement: filters.departement } : {}),
+      },
     });
   },
   async getFormationsParDepartement(deptId: Id): Promise<Formation[]> {

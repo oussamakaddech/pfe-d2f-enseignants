@@ -701,6 +701,25 @@
 
 /* ─── Responsive ───────────────────────────────────────────────────────── */
 
+/* Sélecteur de période de l'export Excel (Calendrier Global) */
+.cal-export-range {
+  width: 260px;
+  max-width: 100%;
+}
+
+/* Filtres UP / département de l'export Excel (Calendrier Global) */
+.cal-export-select {
+  width: 190px;
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .cal-export-range,
+  .cal-export-select {
+    width: 100%;
+  }
+}
+
 @media (max-width: 768px) {
   .cal-wrapper {
     height: 500px;

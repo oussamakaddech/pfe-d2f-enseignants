@@ -1068,6 +1068,18 @@
   font-size: var(--bf-text-sm);
 }
 
+/* Indication affichée quand les boutons de décision sont masqués parce que
+   l'utilisateur est le demandeur du besoin (auto-validation interdite). */
+.bf-card__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--bf-text-xs);
+  color: var(--bf-text-muted);
+  font-style: italic;
+  cursor: help;
+}
+
 /* ╔═══════════════════════════════════════════════════════════════════╗
    ║                          PAGINATION                                ║
    ╚═══════════════════════════════════════════════════════════════════╝ */
@@ -1274,6 +1286,166 @@
   margin-top: 2px;
 }
 
+/* ─── Tableau des besoins (onglets « en cours » et « approuvés ») ────────── */
+
+.bf-table-wrap {
+  border-radius: var(--bf-r-lg);
+}
+.bf-table .ant-table-tbody > tr > td {
+  vertical-align: middle;
+}
+.bf-table__row--clickable {
+  cursor: pointer;
+}
+.bf-table__title-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+}
+.bf-table__sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.bf-table__type.ant-tag {
+  margin: 0;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 18px;
+  padding: 0 8px;
+  background: var(--bf-brand-50);
+  border-color: var(--bf-brand-200);
+  color: var(--bf-brand-500);
+}
+.bf-table__theme {
+  font-size: var(--bf-text-xs);
+  color: var(--bf-text-faint);
+}
+.bf-table__requester {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bf-table__avatar.ant-avatar {
+  background: var(--bf-brand-100);
+  color: var(--bf-brand-600);
+  font-size: 11px;
+  font-weight: var(--bf-fw-semibold);
+}
+.bf-table__requester-name {
+  font-weight: var(--bf-fw-medium);
+  color: var(--bf-text);
+}
+.bf-table__scope {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+}
+.bf-table__scope-line {
+  font-size: var(--bf-text-sm);
+  color: var(--bf-text-body);
+}
+.bf-table__scope-line--muted {
+  color: var(--bf-text-faint);
+  font-size: var(--bf-text-xs);
+}
+.bf-table__period {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--bf-text-sm);
+  color: var(--bf-text-body);
+}
+.bf-table__status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+.bf-table__step {
+  font-size: 11px;
+  color: var(--bf-text-faint);
+  white-space: nowrap;
+}
+.bf-table__blocked .ant-badge-status-text {
+  font-size: 11px;
+  color: var(--bf-text-muted);
+  font-style: italic;
+}
+
+/* Actions du tableau : boutons explicites + actions secondaires en icônes */
+.bf-table__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.bf-table__secondary {
+  margin-left: auto;
+}
+
+.bf-action.ant-btn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--bf-r-sm);
+  font-weight: var(--bf-fw-semibold);
+  font-size: var(--bf-text-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--bf-dur) var(--bf-ease);
+  box-shadow: none;
+}
+.bf-action.ant-btn:hover {
+  transform: translateY(-1px);
+}
+.bf-action.ant-btn:active {
+  transform: translateY(0);
+}
+.bf-action.ant-btn:focus-visible {
+  outline: 2px solid var(--bf-brand-400);
+  outline-offset: 2px;
+}
+
+/* Approuver : vert validant */
+.bf-action.bf-action--approve.ant-btn,
+.bf-action.bf-action--approve.ant-btn-primary {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  border: 0 !important;
+  color: #fff !important;
+  box-shadow: 0 6px 16px -8px rgba(16, 185, 129, 0.75) !important;
+}
+.bf-action.bf-action--approve.ant-btn:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 10px 22px -8px rgba(16, 185, 129, 0.85) !important;
+}
+
+/* Refuser : rouge contour */
+.bf-action.bf-action--reject.ant-btn {
+  border-color: #fca5a5 !important;
+  color: #dc2626 !important;
+  background: #fef2f2 !important;
+}
+.bf-action.bf-action--reject.ant-btn:hover {
+  background: #fee2e2 !important;
+  border-color: #f87171 !important;
+  color: #b91c1c !important;
+}
+
+/* Créer la formation : dégradé de marque */
+.bf-action.bf-action--formation.ant-btn {
+  background: var(--bf-brand-grad) !important;
+  border: 0 !important;
+  color: #fff !important;
+  box-shadow: var(--bf-shadow-brand) !important;
+}
+.bf-action.bf-action--formation.ant-btn:hover {
+  background: var(--bf-brand-grad-hover) !important;
+  transform: translateY(-1px);
+}
+
 /* ╔═══════════════════════════════════════════════════════════════════╗
    ║                          MODALS                                    ║
    ╚═══════════════════════════════════════════════════════════════════╝ */
@@ -1379,7 +1551,7 @@
 
 @media (max-width: 1024px) {
   .bf-stats {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
   .bf-filters__primary {
     grid-template-columns: 1fr;
@@ -1392,6 +1564,44 @@
     align-items: stretch;
     gap: 10px;
   }
+  /* Actions du tableau : boutons plus compacts, colonne non figée */
+  .bf-action.ant-btn {
+    padding: 0 9px;
+    font-size: var(--bf-text-xs);
+  }
+  .bf-table__actions {
+    gap: 4px;
+  }
+}
+
+@media (max-width: 768px) {
+  .bf-hero {
+    padding: var(--bf-sp-4) var(--bf-sp-4) var(--bf-sp-5);
+    margin-bottom: var(--bf-sp-4);
+  }
+  .bf-hero .bf-header__title {
+    font-size: 22px;
+  }
+  .bf-table__title-cell {
+    min-width: 160px;
+  }
+  .bf-table .ant-table-tbody > tr > td {
+    padding: 10px 8px !important;
+  }
+  .bf-table .ant-table-thead > tr > th {
+    padding: 10px 8px !important;
+  }
+  .bf-iconbtn.ant-btn {
+    width: 28px;
+    height: 28px;
+  }
+  .bf-pagination {
+    flex-wrap: wrap;
+    gap: var(--bf-sp-2);
+  }
+  .bf-pagination .ant-pagination-options {
+    margin-left: 0;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1402,14 +1612,45 @@
     flex-direction: column;
     align-items: stretch;
   }
+  /* Les boutons de l'en-tête passent à la ligne : aucun ne doit être coupé. */
   .bf-header__actions {
     width: 100%;
+    display: flex;
+    flex-wrap: wrap;
   }
   .bf-header__actions .ant-btn {
-    flex: 1;
+    flex: 1 1 46%;
   }
   .bf-filters__secondary {
     grid-template-columns: 1fr;
+  }
+  .bf-stat {
+    padding: var(--bf-sp-3) var(--bf-sp-3);
+    gap: var(--bf-sp-2);
+    align-items: center;
+  }
+  .bf-stat__icon {
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+    border-radius: var(--bf-r-sm);
+  }
+  .bf-stat__label {
+    font-size: 10px;
+    letter-spacing: 0.02em;
+    line-height: 1.25;
+  }
+  .bf-stat__value {
+    font-size: var(--bf-text-lg);
+  }
+  .bf-stat__hint {
+    display: none;
+  }
+  /* Les libellés des boutons d'action passent sous l'icône pour gagner de la
+     place : le sens reste porté par l'icône + l'infobulle. */
+  .bf-action.ant-btn {
+    padding: 0 8px;
+    gap: 4px;
   }
 }
 
@@ -1418,12 +1659,18 @@
 .bf-tabs .ant-tabs-tab .ant-tabs-tab-btn {
   color: #cf1322;
   font-weight: 600;
+  transition: color var(--bf-dur) var(--bf-ease);
+}
+.bf-tabs .ant-tabs-tab:hover .ant-tabs-tab-btn {
+  color: #a8071a;
 }
 .bf-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
   color: #a8071a !important;
 }
 .bf-tabs .ant-tabs-ink-bar {
   background: #cf1322;
+  height: 3px;
+  border-radius: 3px;
 }
 .bf-tabs .bf-tab-label {
   display: inline-flex;

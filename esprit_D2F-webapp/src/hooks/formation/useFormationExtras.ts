@@ -144,8 +144,17 @@ export function useFormationsAccessibles(enseignantId: Id | undefined) {
 
 export function useExportFormations() {
   return useMutation({
-    mutationFn: ({ start, end }: { start: string; end: string }) =>
-      FormationWorkflowService.exportFormations(start, end),
+    mutationFn: ({
+      start,
+      end,
+      up,
+      departement,
+    }: {
+      start: string;
+      end: string;
+      up?: string | null;
+      departement?: string | null;
+    }) => FormationWorkflowService.exportFormations(start, end, { up, departement }),
   });
 }
 
