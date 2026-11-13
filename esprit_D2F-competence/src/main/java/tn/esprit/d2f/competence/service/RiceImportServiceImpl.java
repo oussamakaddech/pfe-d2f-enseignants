@@ -27,6 +27,8 @@ import java.util.*;
 public class RiceImportServiceImpl implements IRiceImportService {
 
     private static final int LEGACY_TEXT_LIMIT = 255;
+    /** Profondeur maximale d'une sous-compétence (aligné sur le CRUD). */
+    private static final int MAX_NIVEAU_SOUS_COMPETENCE = 3;
 
     private final DomaineRepository                domaineRepository;
     private final CompetenceRepository             competenceRepository;
@@ -81,12 +83,150 @@ public class RiceImportServiceImpl implements IRiceImportService {
     public RiceImportResult importRice(RiceImportRequest request) {
         ImportCounters counters = new ImportCounters();
         String deptPrefix = buildDeptPrefix(request.getDepartement());
+        Domaine domaineParDefaut = resolveDomaineCible(request.getDomaineCibleId());
 
         for (RiceDomaineRequest domReq : request.getDomaines()) {
-            processDomaine(domReq, deptPrefix, counters);
+            // Rattachement porté par le domaine RICE (panneau de revue) sinon
+            // domaine par défaut de la requête (étape Rapport).
+            Domaine domaineCible = domReq.getDomaineCibleId() == null
+                    || domReq.getDomaineCibleId().isBlank()
+                    ? domaineParDefaut
+                    : resolveDomaineCible(domReq.getDomaineCibleId());
+            if (domaineCible == null) {
+                processDomaine(domReq, deptPrefix, counters);
+            } else {
+                processDomaineAsCompetence(domReq, domaineCible, deptPrefix, counters);
+            }
         }
 
         return buildResult(counters);
+    }
+
+    /**
+     * Domaine de rattachement choisi dans l'écran RICE. {@code null} = import
+     * historique (création d'un domaine par domaine RICE).
+     */
+    private Domaine resolveDomaineCible(String domaineCibleId) {
+        if (domaineCibleId == null || domaineCibleId.isBlank()) return null;
+        Long id;
+        try {
+            id = Long.valueOf(domaineCibleId.trim());
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("Domaine de rattachement invalide : " + domaineCibleId);
+        }
+        return domaineRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Domaine de rattachement introuvable : " + domaineCibleId));
+    }
+
+    // ── Domaine RICE rattaché à un domaine existant ───────────────────────────
+    // Le domaine RICE (module type MT-34 · Web Sémantique) ne crée plus de
+    // domaine : il devient une COMPÉTENCE du domaine choisi, portant le nom de
+    // ce domaine RICE ; ses compétences deviennent des sous-compétences et
+    // leurs éventuelles sous-compétences des sous-compétences enfants.
+
+    private void processDomaineAsCompetence(RiceDomaineRequest domReq, Domaine domaineCible,
+                                            String deptPrefix, ImportCounters c) {
+        String code = normalizeCode(domReq.getCode(), deptPrefix);
+        PersistedEntity<Competence> persisted = findOrCreateCompetenceFromDomaine(code, domReq, domaineCible);
+        Competence competence = persisted.entity;
+        if (persisted.created) c.competencesCreated++;
+
+        List<RiceCompetenceRequest> competences =
+                domReq.getCompetences() != null ? domReq.getCompetences() : List.of();
+        applyAggregatedRattachements(competence, competences);
+
+        int[] savoirStats = {0, 0};
+        c.domainSavoirStats.put(domReq.getNom(), savoirStats);
+
+        for (RiceCompetenceRequest compReq : competences) {
+            processCompetenceAsSousCompetence(compReq, competence, deptPrefix, savoirStats, c);
+        }
+    }
+
+    private void processCompetenceAsSousCompetence(RiceCompetenceRequest compReq, Competence competence,
+                                                   String deptPrefix, int[] savoirStats, ImportCounters c) {
+        String code = normalizeCode(compReq.getCode(), deptPrefix);
+        PersistedEntity<SousCompetence> persisted = findOrCreateSousCompetence(
+                code, compReq.getNom(), compReq.getDescription(), competence, null);
+        SousCompetence sousCompetence = persisted.entity;
+        if (persisted.created) c.sousCompetencesCreated++;
+
+        if (compReq.getSavoirs() != null) {
+            for (RiceSavoirRequest savReq : compReq.getSavoirs()) {
+                processSavoirOnSousCompetence(savReq, sousCompetence, deptPrefix, savoirStats, c);
+            }
+        }
+        if (compReq.getSousCompetences() != null) {
+            for (RiceSousCompetenceRequest enfantReq : compReq.getSousCompetences()) {
+                processSousCompetenceEnfant(enfantReq, competence, sousCompetence, deptPrefix, savoirStats, c);
+            }
+        }
+    }
+
+    private void processSousCompetenceEnfant(RiceSousCompetenceRequest enfantReq, Competence competence,
+                                             SousCompetence parent, String deptPrefix,
+                                             int[] savoirStats, ImportCounters c) {
+        String code = normalizeCode(enfantReq.getCode(), deptPrefix);
+        PersistedEntity<SousCompetence> persisted = findOrCreateSousCompetence(
+                code, enfantReq.getNom(), enfantReq.getDescription(), competence, parent);
+        SousCompetence sousCompetence = persisted.entity;
+        if (persisted.created) c.sousCompetencesCreated++;
+
+        if (enfantReq.getSavoirs() == null) return;
+        for (RiceSavoirRequest savReq : enfantReq.getSavoirs()) {
+            processSavoirOnSousCompetence(savReq, sousCompetence, deptPrefix, savoirStats, c);
+        }
+    }
+
+    /**
+     * La compétence créée remplace les domaines RICE : les UP / départements
+     * portés par les compétences RICE sont donc réunis sur elle. Une valeur
+     * jamais renseignée dans la requête laisse le rattachement inchangé.
+     */
+    private static void applyAggregatedRattachements(Competence competence,
+                                                     List<RiceCompetenceRequest> competences) {
+        Set<String> upIds = new LinkedHashSet<>();
+        Set<String> departementIds = new LinkedHashSet<>();
+        boolean anyUp = false;
+        boolean anyDepartement = false;
+        for (RiceCompetenceRequest compReq : competences) {
+            if (compReq.getUpIds() != null) {
+                anyUp = true;
+                upIds.addAll(toSet(compReq.getUpIds()));
+            }
+            if (compReq.getDepartementIds() != null) {
+                anyDepartement = true;
+                departementIds.addAll(toSet(compReq.getDepartementIds()));
+            }
+        }
+        if (anyUp) competence.setUpIds(upIds);
+        if (anyDepartement) competence.setDepartementIds(departementIds);
+    }
+
+    private PersistedEntity<Competence> findOrCreateCompetenceFromDomaine(String code, RiceDomaineRequest domReq,
+                                                                          Domaine domaine) {
+        return competenceRepository.findByCodeIgnoreCase(code)
+                .map(existing -> new PersistedEntity<>(existing, false))
+                .orElseGet(() -> saveOrReloadCompetenceFromDomaine(code, domReq, domaine));
+    }
+
+    private PersistedEntity<Competence> saveOrReloadCompetenceFromDomaine(String code, RiceDomaineRequest domReq,
+                                                                          Domaine domaine) {
+        try {
+            Competence created = competenceRepository.save(Competence.builder()
+                    .code(code)
+                    .nom(domReq.getNom())
+                    .description(limitLegacyText(domReq.getDescription()))
+                    .ordre(1)
+                    .domaine(domaine)
+                    .build());
+            return new PersistedEntity<>(created, true);
+        } catch (DataIntegrityViolationException ex) {
+            return competenceRepository.findByCodeIgnoreCase(code)
+                    .map(existing -> new PersistedEntity<>(existing, false))
+                    .orElseThrow(() -> ex);
+        }
     }
 
     private String buildDeptPrefix(String departement) {
@@ -120,6 +260,7 @@ public class RiceImportServiceImpl implements IRiceImportService {
         PersistedEntity<Competence> persisted = findOrCreateCompetence(compReq, domaine, deptPrefix);
         Competence competence = persisted.entity;
         if (persisted.created) c.competencesCreated++;
+        applyOptionalRattachements(competence, compReq);
 
         // Direct savoirs on competence
         if (compReq.getSavoirs() != null) {
@@ -367,20 +508,47 @@ public class RiceImportServiceImpl implements IRiceImportService {
         }
     }
 
-    private PersistedEntity<SousCompetence> findOrCreateSousCompetence(RiceSousCompetenceRequest scReq, Competence competence, String deptPrefix) {
-        String code = normalizeCode(scReq.getCode(), deptPrefix);
-        return sousCompetenceRepository.findByCodeIgnoreCase(code)
-                .map(existing -> new PersistedEntity<>(existing, false))
-                .orElseGet(() -> saveOrReloadSousCompetence(code, scReq, competence));
+    private static void applyOptionalRattachements(Competence competence, RiceCompetenceRequest request) {
+        if (request.getUpIds() != null) {
+            competence.setUpIds(toSet(request.getUpIds()));
+        }
+        if (request.getDepartementIds() != null) {
+            competence.setDepartementIds(toSet(request.getDepartementIds()));
+        }
     }
 
-    private PersistedEntity<SousCompetence> saveOrReloadSousCompetence(String code, RiceSousCompetenceRequest scReq, Competence competence) {
+    private static Set<String> toSet(List<String> values) {
+        Set<String> result = new LinkedHashSet<>();
+        values.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(value -> !value.isEmpty())
+                .forEach(result::add);
+        return result;
+    }
+
+    private PersistedEntity<SousCompetence> findOrCreateSousCompetence(RiceSousCompetenceRequest scReq, Competence competence, String deptPrefix) {
+        String code = normalizeCode(scReq.getCode(), deptPrefix);
+        return findOrCreateSousCompetence(code, scReq.getNom(), scReq.getDescription(), competence, null);
+    }
+
+    private PersistedEntity<SousCompetence> findOrCreateSousCompetence(String code, String nom, String description,
+                                                                       Competence competence, SousCompetence parent) {
+        return sousCompetenceRepository.findByCodeIgnoreCase(code)
+                .map(existing -> new PersistedEntity<>(existing, false))
+                .orElseGet(() -> saveOrReloadSousCompetence(code, nom, description, competence, parent));
+    }
+
+    private PersistedEntity<SousCompetence> saveOrReloadSousCompetence(String code, String nom, String description,
+                                                                       Competence competence, SousCompetence parent) {
         try {
             SousCompetence created = sousCompetenceRepository.save(SousCompetence.builder()
                     .code(code)
-                    .nom(scReq.getNom())
-                    .description(limitLegacyText(scReq.getDescription()))
+                    .nom(nom)
+                    .description(limitLegacyText(description))
                     .competence(competence)
+                    .parent(parent)
+                    .niveau(niveauEnfant(parent))
                     .build());
             return new PersistedEntity<>(created, true);
         } catch (DataIntegrityViolationException ex) {
@@ -388,6 +556,13 @@ public class RiceImportServiceImpl implements IRiceImportService {
                     .map(existing -> new PersistedEntity<>(existing, false))
                     .orElseThrow(() -> ex);
         }
+    }
+
+    /** Niveau racine = 1, niveau d'un enfant = niveau du parent + 1 (max 3, comme le CRUD). */
+    private static int niveauEnfant(SousCompetence parent) {
+        if (parent == null) return 1;
+        int niveauParent = parent.getNiveau() == null ? 1 : parent.getNiveau();
+        return Math.min(MAX_NIVEAU_SOUS_COMPETENCE, niveauParent + 1);
     }
 
     private PersistedEntity<Savoir> findOrCreateSavoirOnCompetence(RiceSavoirRequest savReq, Competence competence, String deptPrefix) {

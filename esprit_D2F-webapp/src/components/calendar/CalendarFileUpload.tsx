@@ -82,7 +82,7 @@ export default function CalendarFileUpload({ file, onFileChange, disabled }: Rea
           disabled={disabled}
           onClick={() => onFileChange(null)}
         >
-          Retirer
+          Supprimer
         </Button>
       </Space>
     );

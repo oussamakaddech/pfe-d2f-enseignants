@@ -77,10 +77,6 @@ export const roleColors: Record<string, { color: string; bg: string; label: stri
   ENSEIGNANT: { color: '#2563eb', bg: '#eff6ff', label: 'Enseignant' },
   animateur: { color: '#059669', bg: '#ecfdf5', label: 'Animateur' },
   ANIMATEUR: { color: '#059669', bg: '#ecfdf5', label: 'Animateur' },
-  // Animateur / Formateur : rôle consolidé, on accepte les deux casses
-  // (cf. migration V19 — FORMATEUR fusionné dans ANIMATEUR).
-  Formateur: { color: '#059669', bg: '#ecfdf5', label: 'Animateur' },
-  FORMATEUR: { color: '#059669', bg: '#ecfdf5', label: 'Animateur' },
 
   chefdepartement: { color: '#0891b2', bg: '#ecfeff', label: 'Chef de Dépt.' },
   CHEF_DEPARTEMENT: { color: '#0891b2', bg: '#ecfeff', label: 'Chef de Dépt.' },
@@ -203,7 +199,9 @@ export const antdComponentTokens = {
   },
   Steps: {
     iconSize: 32,
-    titleLineHeight: 1.4,
+    // En PIXELS pour Steps (≠ Modal, ratio) : 1.4 donnait une hauteur de ligne de
+    // 1,4 px → titres d'étapes écrasés et rognés dans tous les assistants.
+    titleLineHeight: 32,
   },
   Badge: {
     borderRadius: radius.full,

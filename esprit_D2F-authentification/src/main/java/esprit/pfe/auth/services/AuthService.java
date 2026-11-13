@@ -85,6 +85,9 @@ public class AuthService {
     @Value("${app.mail.from:noreply@d2f.local}")
     private String mailFrom;
 
+    @Value("${app.frontend.base-url:http://localhost:3000}")
+    private String frontendBaseUrl;
+
     @Value("${app.admin.email:admin@d2f.local}")
     private String adminEmail;
 
@@ -184,11 +187,15 @@ public class AuthService {
             return;
         }
         final var key = UUID.randomUUID().toString();
+        String resetLink = frontendBaseUrl + "/reset-password?token=" + key;
         SimpleMailMessage simpleMailMessage = new SimpleMailMessage();
         simpleMailMessage.setTo(emailAddress);
-        simpleMailMessage.setSubject("Password reset");
+        simpleMailMessage.setSubject("Réinitialisation de votre mot de passe");
         simpleMailMessage.setFrom(mailFrom);
-        simpleMailMessage.setText("To change your password add this confirmation token: " + key);
+        simpleMailMessage.setText("Bonjour,\n\n"
+                + "Pour réinitialiser votre mot de passe, cliquez sur ce lien (valide 15 minutes) :\n"
+                + resetLink + "\n\n"
+                + "Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.");
         emailService.send(simpleMailMessage);
 
         PiiSafeLogger.info(AuthService.class, String.format(LOG_MESSAGE_RESET_REQUEST, emailAddress, ip));
@@ -211,12 +218,17 @@ public class AuthService {
     public JwtSession login(String username, String password, String ip) {
         PiiSafeLogger.info(AuthService.class, String.format(LOG_MESSAGE_LOGIN_ATTEMPT, username, ip));
 
+        // L'identifiant peut être le username, l'id technique ou l'email.
         User user = userRepository.findByUsername(username)
                 .or(() -> userRepository.findById(username))
+                .or(() -> userRepository.findByEmail(username))
                 .orElseThrow(() -> {
                     auditService.logFailedLogin(username, ip, "User not found");
                     return new LoginException("User not found.");
                 });
+        // Le principal authentifié est TOUJOURS le username canonique :
+        // les services aval (scopes, /mine, JWT subject) en dépendent.
+        String canonicalUsername = user.getUsername();
 
         if (user.getLockUntil() != null && user.getLockUntil().isAfter(LocalDateTime.now(ZoneId.systemDefault()))) {
             auditService.logFailedLogin(username, ip, "Account locked");
@@ -228,12 +240,12 @@ public class AuthService {
 
         try {
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(username, password));
+                    new UsernamePasswordAuthenticationToken(canonicalUsername, password));
 
             String scope = authentication.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority).collect(Collectors.joining(" "));
 
-            String jwt = generateJwt(username, scope, user.getEmail(), user.getId());
+            String jwt = generateJwt(canonicalUsername, scope, user.getEmail(), user.getId());
 
             if (user.getFailedLoginAttempts() != null && user.getFailedLoginAttempts() > 0) {
                 user.setFailedLoginAttempts(0);
@@ -376,6 +388,9 @@ public class AuthService {
                 .claim("scope", scope)
                 .claim(EMAIL_KEY, email)
                 .claim(USER_ID_KEY, userId != null ? userId : "")
+                // Claim OIDC standard lu par les AuditorAwareConfig et le
+                // CertificateController (revokedBy) des services aval.
+                .claim("preferred_username", username)
                 .build();
 
         JwtEncoderParameters jwtEncoderParameters = JwtEncoderParameters.from(

@@ -84,10 +84,26 @@ class GlobalExceptionHandlerCoverageTest {
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getBody().getMessage().contains("Accès refusé"));
+        // Le handler fait passer les messages métier du workflow (périmètre,
+        // créateur, étape) — "Forbidden" n'est pas un message Spring par défaut
+        // filtré, il est donc transmis tel quel.
+        assertEquals("Forbidden", response.getBody().getMessage());
         assertEquals("BESOIN_ACCESS_DENIED", response.getBody().getErrorCode());
         assertNotNull(response.getBody().getTimestamp());
         assertEquals(403, response.getBody().getStatus());
+    }
+
+    @Test
+    void handleAccessDenied_defaultSpringMessage_shouldFallBackToGeneric() {
+        org.springframework.security.access.AccessDeniedException ex =
+                new org.springframework.security.access.AccessDeniedException("Access Denied");
+        ResponseEntity<ErrorResponse> response = handler.handleAccessDenied(ex, request);
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertNotNull(response.getBody());
+        // Les refus Spring génériques sont remplacés par un message explicite.
+        assertTrue(response.getBody().getMessage().contains("Accès refusé"));
+        assertEquals("BESOIN_ACCESS_DENIED", response.getBody().getErrorCode());
     }
 
     @Test

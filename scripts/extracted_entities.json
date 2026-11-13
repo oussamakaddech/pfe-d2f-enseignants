@@ -1,0 +1,4938 @@
+{
+  "esprit_D2F-analyse": {
+    "entities": [],
+    "enums": {
+      "ActionStatus": [
+        "OPEN",
+        "IN_PROGRESS",
+        "DONE",
+        "DISMISSED"
+      ],
+      "AlertSeverity": [
+        "INFO",
+        "WARNING",
+        "CRITICAL"
+      ],
+      "AlertStatus": [
+        "NEW",
+        "ACKNOWLEDGED",
+        "IN_PROGRESS",
+        "RESOLVED"
+      ],
+      "DataQualityStatus": [
+        "CALCULATED",
+        "INSUFFICIENT_DATA",
+        "NO_DATA"
+      ],
+      "RecommendationStatus": [
+        "PROPOSED",
+        "ACCEPTED",
+        "REJECTED",
+        "COMPLETED"
+      ],
+      "RiskLevel": [
+        "LOW",
+        "MODERATE",
+        "HIGH",
+        "CRITICAL"
+      ],
+      "RiskTrend": [
+        "IMPROVING",
+        "STABLE",
+        "WORSENING"
+      ]
+    }
+  },
+  "esprit_D2F-api-gateway": {
+    "entities": [],
+    "enums": {}
+  },
+  "esprit_D2F-authentification": {
+    "entities": [
+      {
+        "class": "AuditLog",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-authentification\\src\\main\\java\\esprit\\pfe\\auth\\entities\\AuditLog.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "username",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "action",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "resource",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "status",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "details",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 500)"
+            ]
+          },
+          {
+            "name": "ipAddress",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"ip_address\")"
+            ]
+          },
+          {
+            "name": "timestamp",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "out\"",
+            "type": "case \"LOGOUT\" -> \"User logged",
+            "visibility": "package-private",
+            "annotations": []
+          },
+          {
+            "name": "failed\"",
+            "type": "case \"LOGIN_FAILED\" -> \"Login",
+            "visibility": "package-private",
+            "annotations": []
+          },
+          {
+            "name": "created\"",
+            "type": "case \"CREATE\" -> \"Resource",
+            "visibility": "package-private",
+            "annotations": []
+          },
+          {
+            "name": "updated\"",
+            "type": "case \"UPDATE\" -> \"Resource",
+            "visibility": "package-private",
+            "annotations": []
+          },
+          {
+            "name": "deleted\"",
+            "type": "case \"DELETE\" -> \"Resource",
+            "visibility": "package-private",
+            "annotations": []
+          },
+          {
+            "name": "attempt\"",
+            "type": "case \"UNAUTHORIZED_ACCESS\" -> \"Unauthorized access",
+            "visibility": "package-private",
+            "annotations": []
+          },
+          {
+            "name": "action",
+            "type": "default ->",
+            "visibility": "package-private",
+            "annotations": []
+          }
+        ]
+      },
+      {
+        "class": "BaseAuditEntity",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": true,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-authentification\\src\\main\\java\\esprit\\pfe\\auth\\entities\\BaseAuditEntity.java",
+        "fields": [
+          {
+            "name": "createdAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@CreatedDate",
+              "@Column(name = \"created_at\", updatable = false)"
+            ]
+          },
+          {
+            "name": "updatedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@LastModifiedDate",
+              "@Column(name = \"updated_at\")"
+            ]
+          },
+          {
+            "name": "createdBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@CreatedBy",
+              "@Column(name = \"created_by\", updatable = false, length = 150)"
+            ]
+          },
+          {
+            "name": "updatedBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@LastModifiedBy",
+              "@Column(name = \"updated_by\", length = 150)"
+            ]
+          },
+          {
+            "name": "version",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Version"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "ConfirmationKey",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-authentification\\src\\main\\java\\esprit\\pfe\\auth\\entities\\ConfirmationKey.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "token",
+            "type": "String",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "emailAddress",
+            "type": "String",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "expiresAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false)"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "Role",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-authentification\\src\\main\\java\\esprit\\pfe\\auth\\entities\\Role.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Integer",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "name",
+            "type": "ERole",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(length = 20, nullable = false, unique = true)"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "User",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-authentification\\src\\main\\java\\esprit\\pfe\\auth\\entities\\User.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@Column(length = 36)"
+            ]
+          },
+          {
+            "name": "username",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@NotBlank",
+              "@Size(max = 20)"
+            ]
+          },
+          {
+            "name": "firstName",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@NotBlank"
+            ]
+          },
+          {
+            "name": "lastName",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@NotBlank"
+            ]
+          },
+          {
+            "name": "phoneNumber",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@NotBlank"
+            ]
+          },
+          {
+            "name": "disabled",
+            "type": "Boolean",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "discount",
+            "type": "String",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "hasSubscription",
+            "type": "Boolean",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "email",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@NotBlank",
+              "@Size(max = 50)",
+              "@Email"
+            ]
+          },
+          {
+            "name": "password",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@NotBlank",
+              "@Size(max = 120)"
+            ]
+          },
+          {
+            "name": "roles",
+            "type": "Set<Role>",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToMany(fetch = FetchType.LAZY)",
+              "@JoinTable(name = \"user_roles\",\n            joinColumns = @JoinColumn(name = \"user_id\"),\n            inverseJoinColumns = @JoinColumn(name = \"role_id\"))"
+            ]
+          },
+          {
+            "name": "deviceIds",
+            "type": "Set<String>",
+            "visibility": "private",
+            "annotations": [
+              "@ElementCollection(fetch = FetchType.EAGER)",
+              "@CollectionTable(name = \"user_devices\", joinColumns = @JoinColumn(name = \"user_id\"))",
+              "@Column(name = \"device_id\")"
+            ]
+          },
+          {
+            "name": "failedLoginAttempts",
+            "type": "Integer",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"failed_login_attempts\", nullable = false)"
+            ]
+          },
+          {
+            "name": "lockUntil",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"lock_until\")"
+            ]
+          },
+          {
+            "name": "deletedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"deleted_at\")"
+            ]
+          }
+        ]
+      }
+    ],
+    "enums": {
+      "ERole": [
+        "ADMIN",
+        "CUP",
+        "ENSEIGNANT",
+        "ANIMATEUR",
+        "CHEF_DEPARTEMENT",
+        "RESPONSABLE_DOSSIER"
+      ]
+    }
+  },
+  "esprit_D2F-besoin-formation": {
+    "entities": [
+      {
+        "class": "PersistenceConfig",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-besoin-formation\\src\\main\\java\\tn\\esprit\\d2f\\config\\PersistenceConfig.java",
+        "fields": []
+      },
+      {
+        "class": "BaseAuditEntity",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": true,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-besoin-formation\\src\\main\\java\\tn\\esprit\\d2f\\entity\\BaseAuditEntity.java",
+        "fields": [
+          {
+            "name": "createdAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@CreatedDate",
+              "@Column(name = \"created_at\", updatable = false)"
+            ]
+          },
+          {
+            "name": "updatedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@LastModifiedDate",
+              "@Column(name = \"updated_at\")"
+            ]
+          },
+          {
+            "name": "createdBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@CreatedBy",
+              "@Column(name = \"created_by\", updatable = false, length = 150)"
+            ]
+          },
+          {
+            "name": "updatedBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@LastModifiedBy",
+              "@Column(name = \"updated_by\", length = 150)"
+            ]
+          },
+          {
+            "name": "version",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Version"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "BesoinApprovalHistory",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-besoin-formation\\src\\main\\java\\tn\\esprit\\d2f\\entity\\BesoinApprovalHistory.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "besoinId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"besoin_id\", nullable = false)",
+              "@JsonProperty(\"besoinId\")"
+            ]
+          },
+          {
+            "name": "actorUsername",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false, length = 150)",
+              "@JsonProperty(\"actorUsername\")"
+            ]
+          },
+          {
+            "name": "actorRole",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false, length = 30)",
+              "@JsonProperty(\"actorRole\")"
+            ]
+          },
+          {
+            "name": "action",
+            "type": "WorkflowAction",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(nullable = false, length = 20)",
+              "@JsonProperty(\"action\")"
+            ]
+          },
+          {
+            "name": "fromStep",
+            "type": "ApprovalStep",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(name = \"from_step\", length = 20)",
+              "@JsonProperty(\"fromStep\")"
+            ]
+          },
+          {
+            "name": "toStep",
+            "type": "ApprovalStep",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(name = \"to_step\", length = 20)",
+              "@JsonProperty(\"toStep\")"
+            ]
+          },
+          {
+            "name": "reason",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(columnDefinition = \"TEXT\")",
+              "@JsonProperty(\"reason\")"
+            ]
+          },
+          {
+            "name": "createdAt",
+            "type": "Instant",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false, updatable = false)",
+              "@JsonProperty(\"createdAt\")"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "BesoinCompetence",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-besoin-formation\\src\\main\\java\\tn\\esprit\\d2f\\entity\\BesoinCompetence.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "besoinId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"besoin_id\", nullable = false)"
+            ]
+          },
+          {
+            "name": "domaineId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"domaine_id\")"
+            ]
+          },
+          {
+            "name": "competenceId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"competence_id\")"
+            ]
+          },
+          {
+            "name": "competenceNom",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"competence_nom\")"
+            ]
+          },
+          {
+            "name": "savoirId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"savoir_id\")"
+            ]
+          },
+          {
+            "name": "savoirNom",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"savoir_nom\")"
+            ]
+          },
+          {
+            "name": "sousCompetenceId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"sous_competence_id\")"
+            ]
+          },
+          {
+            "name": "sousCompetenceNom",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"sous_competence_nom\")"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "BesoinFormation",
+        "extends": "BaseAuditEntity",
+        "implements": "Serializable ",
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-besoin-formation\\src\\main\\java\\tn\\esprit\\d2f\\entity\\BesoinFormation.java",
+        "fields": [
+          {
+            "name": "idBesoinFormation",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)",
+              "@JsonProperty(\"idBesoinFormation\")"
+            ]
+          },
+          {
+            "name": "username",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"username\")"
+            ]
+          },
+          {
+            "name": "typeBesoin",
+            "type": "TypeBesoin",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@JsonProperty(\"typeBesoin\")"
+            ]
+          },
+          {
+            "name": "objectifFormation",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"objectifFormation\")"
+            ]
+          },
+          {
+            "name": "propositionAnimateur",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"propositionAnimateur\")"
+            ]
+          },
+          {
+            "name": "prerequis",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"prerequis\")"
+            ]
+          },
+          {
+            "name": "publicCible",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"publicCible\")"
+            ]
+          },
+          {
+            "name": "nbMaxParticipants",
+            "type": "Integer",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"nbMaxParticipants\")"
+            ]
+          },
+          {
+            "name": "programmeFormation",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"programmeFormation\")"
+            ]
+          },
+          {
+            "name": "dureeFormation",
+            "type": "Integer",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"dureeFormation\")"
+            ]
+          },
+          {
+            "name": "titre",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"titre\")"
+            ]
+          },
+          {
+            "name": "theme",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"theme\")"
+            ]
+          },
+          {
+            "name": "objectifsOperationnels",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"objectifsOperationnels\")"
+            ]
+          },
+          {
+            "name": "objectifsPedagogiques",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"objectifsPedagogiques\")"
+            ]
+          },
+          {
+            "name": "methodesPedagogiques",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"methodesPedagogiques\")"
+            ]
+          },
+          {
+            "name": "moyensPedagogiques",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"moyensPedagogiques\")"
+            ]
+          },
+          {
+            "name": "methodesEvaluationAcquis",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"methodesEvaluationAcquis\")"
+            ]
+          },
+          {
+            "name": "profilFormateur",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"profilFormateur\")"
+            ]
+          },
+          {
+            "name": "horaireSouhaite",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"horaireSouhaite\")"
+            ]
+          },
+          {
+            "name": "up",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"up\")"
+            ]
+          },
+          {
+            "name": "departement",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"departement\")"
+            ]
+          },
+          {
+            "name": "approuveCUP",
+            "type": "Boolean",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"approuve_cup\", nullable = true)",
+              "@JsonProperty(\"approuveCUP\")"
+            ]
+          },
+          {
+            "name": "approuveChefDep",
+            "type": "Boolean",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"approuve_chef_dep\", nullable = true)",
+              "@JsonProperty(\"approuveChefDep\")"
+            ]
+          },
+          {
+            "name": "approuveAdmin",
+            "type": "Boolean",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"approuve_admin\", nullable = true)",
+              "@JsonProperty(\"approuveAdmin\")"
+            ]
+          },
+          {
+            "name": "notificationMessage",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"notificationMessage\")"
+            ]
+          },
+          {
+            "name": "eventPublished",
+            "type": "Boolean",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"event_published\", nullable = false)",
+              "@JsonProperty(\"eventPublished\")"
+            ]
+          },
+          {
+            "name": "createdByUserId",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"created_by_user_id\")",
+              "@JsonProperty(\"createdByUserId\")"
+            ]
+          },
+          {
+            "name": "createdByRole",
+            "type": "CreatorRole",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(name = \"created_by_role\", length = 20)",
+              "@JsonProperty(\"createdByRole\")"
+            ]
+          },
+          {
+            "name": "currentApprovalStep",
+            "type": "ApprovalStep",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(name = \"current_approval_step\", length = 20)",
+              "@JsonProperty(\"currentApprovalStep\")"
+            ]
+          },
+          {
+            "name": "status",
+            "type": "BesoinStatus",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(length = 25)",
+              "@JsonProperty(\"status\")"
+            ]
+          },
+          {
+            "name": "rejectionReason",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"rejection_reason\", columnDefinition = \"TEXT\")",
+              "@JsonProperty(\"rejectionReason\")"
+            ]
+          },
+          {
+            "name": "rejectedBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"rejected_by\", length = 150)",
+              "@JsonProperty(\"rejectedBy\")"
+            ]
+          },
+          {
+            "name": "rejectedAt",
+            "type": "Instant",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"rejected_at\")",
+              "@JsonProperty(\"rejectedAt\")"
+            ]
+          },
+          {
+            "name": "approvedByCup",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"approved_by_cup\", length = 150)",
+              "@JsonProperty(\"approvedByCup\")"
+            ]
+          },
+          {
+            "name": "approvedByChefDepartement",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"approved_by_chef_dep\", length = 150)",
+              "@JsonProperty(\"approvedByChefDepartement\")"
+            ]
+          },
+          {
+            "name": "approvedByAdmin",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"approved_by_admin\", length = 150)",
+              "@JsonProperty(\"approvedByAdmin\")"
+            ]
+          },
+          {
+            "name": "priorite",
+            "type": "Priorite",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(nullable = true)",
+              "@JsonProperty(\"priorite\")"
+            ]
+          },
+          {
+            "name": "impactStrategique",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = true)",
+              "@JsonProperty(\"impactStrategique\")"
+            ]
+          },
+          {
+            "name": "estOuverte",
+            "type": "Boolean",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = true)",
+              "@JsonProperty(\"estOuverte\")"
+            ]
+          },
+          {
+            "name": "autresInformations",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(columnDefinition = \"TEXT\", nullable = true)",
+              "@JsonProperty(\"autresInformations\")"
+            ]
+          },
+          {
+            "name": "animateurs",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(columnDefinition = \"TEXT\", nullable = true)",
+              "@JsonProperty(\"animateurs\")"
+            ]
+          },
+          {
+            "name": "enseignants",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(columnDefinition = \"TEXT\", nullable = true)",
+              "@JsonProperty(\"enseignants\")"
+            ]
+          },
+          {
+            "name": "periodCode",
+            "type": "PeriodCode",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(nullable = true)",
+              "@JsonProperty(\"periodCode\")"
+            ]
+          },
+          {
+            "name": "customPeriodLabel",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = true)",
+              "@JsonProperty(\"customPeriodLabel\")"
+            ]
+          },
+          {
+            "name": "dateDebut",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = true)",
+              "@JsonProperty(\"dateDebut\")"
+            ]
+          },
+          {
+            "name": "dateFin",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"date_fin\", nullable = true)",
+              "@JsonProperty(\"dateFin\")"
+            ]
+          },
+          {
+            "name": "deletedAt",
+            "type": "Instant",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"deleted_at\")"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "Notification",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-besoin-formation\\src\\main\\java\\tn\\esprit\\d2f\\entity\\Notification.java",
+        "fields": [
+          {
+            "name": "idNotification",
+            "type": "Long",
+            "visibility": "package-private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)",
+              "@JsonProperty(\"idNotification\")"
+            ]
+          },
+          {
+            "name": "message",
+            "type": "String",
+            "visibility": "package-private",
+            "annotations": [
+              "@JsonProperty(\"message\")"
+            ]
+          },
+          {
+            "name": "username",
+            "type": "String",
+            "visibility": "package-private",
+            "annotations": [
+              "@JsonProperty(\"username\")"
+            ]
+          },
+          {
+            "name": "commentaire",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@JsonProperty(\"commentaire\")"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "ReviewerScope",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-besoin-formation\\src\\main\\java\\tn\\esprit\\d2f\\entity\\ReviewerScope.java",
+        "fields": [
+          {
+            "name": "username",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@Column(length = 150)",
+              "@JsonProperty(\"username\")"
+            ]
+          },
+          {
+            "name": "role",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false, length = 30)",
+              "@JsonProperty(\"role\")"
+            ]
+          },
+          {
+            "name": "upCode",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"up_code\")",
+              "@JsonProperty(\"upCode\")"
+            ]
+          },
+          {
+            "name": "departmentCode",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"department_code\")",
+              "@JsonProperty(\"departmentCode\")"
+            ]
+          }
+        ]
+      }
+    ],
+    "enums": {
+      "ApprovalStep": [
+        "CUP",
+        "CHEF_DEPARTEMENT",
+        "ADMIN",
+        "COMPLETED",
+        "REJECTED"
+      ],
+      "BesoinStatus": [
+        "SUBMITTED",
+        "CUP_APPROVED",
+        "DEPARTMENT_APPROVED",
+        "ADMIN_APPROVED",
+        "FORMATION_CREATED",
+        "REJECTED",
+        "CANCELLED"
+      ],
+      "CreatorRole": [
+        "ENSEIGNANT",
+        "CUP",
+        "CHEF_DEPARTEMENT",
+        "ADMIN"
+      ],
+      "PeriodCode": [
+        "WINTER",
+        "SUMMER",
+        "SPRINT",
+        "WORKSHOP",
+        "OTHER"
+      ],
+      "Priorite": [
+        "BASSE",
+        "MOYENNE",
+        "HAUTE",
+        "CRITIQUE"
+      ],
+      "TypeBesoin": [
+        "INDIVIDUEL",
+        "COLLECTIF",
+        "ANIMER_UNE_FORMATION"
+      ],
+      "WorkflowAction": [
+        "CREATE",
+        "APPROVE",
+        "REJECT",
+        "CANCEL"
+      ]
+    }
+  },
+  "esprit_D2F-certificat": {
+    "entities": [
+      {
+        "class": "BaseAuditEntity",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": true,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-certificat\\src\\main\\java\\esprit\\pfe\\servicecertificat\\entities\\BaseAuditEntity.java",
+        "fields": [
+          {
+            "name": "createdAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@CreatedDate",
+              "@Column(name = \"created_at\", updatable = false)"
+            ]
+          },
+          {
+            "name": "updatedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@LastModifiedDate",
+              "@Column(name = \"updated_at\")"
+            ]
+          },
+          {
+            "name": "createdBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@CreatedBy",
+              "@Column(name = \"created_by\", updatable = false, length = 150)"
+            ]
+          },
+          {
+            "name": "updatedBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@LastModifiedBy",
+              "@Column(name = \"updated_by\", length = 150)"
+            ]
+          },
+          {
+            "name": "version",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Version"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "Certificate",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-certificat\\src\\main\\java\\esprit\\pfe\\servicecertificat\\entities\\Certificate.java",
+        "fields": [
+          {
+            "name": "idCertificate",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "certificateNumber",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"certificate_number\", nullable = false, unique = true, length = 40)"
+            ]
+          },
+          {
+            "name": "verificationToken",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"verification_token\", nullable = false, unique = true, length = 100)"
+            ]
+          },
+          {
+            "name": "verificationHash",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"verification_hash\", nullable = false, length = 128)"
+            ]
+          },
+          {
+            "name": "issuedAt",
+            "type": "OffsetDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"issued_at\", nullable = false)"
+            ]
+          },
+          {
+            "name": "certificateStatus",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"certificate_status\", nullable = false, length = 20)"
+            ]
+          },
+          {
+            "name": "formationId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "titreFormation",
+            "type": "String",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "typeCertif",
+            "type": "String",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "dateDebutFormation",
+            "type": "LocalDate",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "dateFinFormation",
+            "type": "LocalDate",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "chargeHoraireGlobal",
+            "type": "Integer",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "enseignantId",
+            "type": "String",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "nomEnseignant",
+            "type": "String",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "prenomEnseignant",
+            "type": "String",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "mailEnseignant",
+            "type": "String",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "deptEnseignant",
+            "type": "String",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "roleEnFormation",
+            "type": "String",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "delivered",
+            "type": "boolean",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "pdfFilePath",
+            "type": "String",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "revokedAt",
+            "type": "OffsetDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"revoked_at\")"
+            ]
+          },
+          {
+            "name": "revokedBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"revoked_by\", length = 150)"
+            ]
+          },
+          {
+            "name": "revocationReason",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"revocation_reason\", length = 500)"
+            ]
+          },
+          {
+            "name": "competencesValidees",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"competences_validees\", length = 1000)"
+            ]
+          },
+          {
+            "name": "deletedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"deleted_at\")"
+            ]
+          }
+        ]
+      }
+    ],
+    "enums": {
+      "CertificateStatus": [
+        "PENDING",
+        "ISSUED",
+        "REVOKED"
+      ]
+    }
+  },
+  "esprit_D2F-common-security": {
+    "entities": [],
+    "enums": {}
+  },
+  "esprit_D2F-competence": {
+    "entities": [
+      {
+        "class": "CompetenceServiceApplication",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-competence\\src\\main\\java\\tn\\esprit\\d2f\\competence\\CompetenceServiceApplication.java",
+        "fields": []
+      },
+      {
+        "class": "BaseAuditEntity",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": true,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-competence\\src\\main\\java\\tn\\esprit\\d2f\\competence\\entity\\BaseAuditEntity.java",
+        "fields": [
+          {
+            "name": "createdAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@CreatedDate",
+              "@Column(name = \"created_at\", updatable = false)"
+            ]
+          },
+          {
+            "name": "updatedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@LastModifiedDate",
+              "@Column(name = \"updated_at\")"
+            ]
+          },
+          {
+            "name": "createdBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@CreatedBy",
+              "@Column(name = \"created_by\", updatable = false, length = 150)"
+            ]
+          },
+          {
+            "name": "updatedBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@LastModifiedBy",
+              "@Column(name = \"updated_by\", length = 150)"
+            ]
+          },
+          {
+            "name": "version",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Version"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "Competence",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-competence\\src\\main\\java\\tn\\esprit\\d2f\\competence\\entity\\Competence.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "code",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(unique = true, nullable = false)"
+            ]
+          },
+          {
+            "name": "nom",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "description",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(columnDefinition = \"TEXT\")"
+            ]
+          },
+          {
+            "name": "prerequisiteManual",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"prerequisite_manual\", columnDefinition = \"TEXT\")"
+            ]
+          },
+          {
+            "name": "ordre",
+            "type": "Integer",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "domaine",
+            "type": "Domaine",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.LAZY)",
+              "@JoinColumn(name = \"domaine_id\", nullable = false)",
+              "@JsonBackReference(\"domaine-competence\")"
+            ]
+          },
+          {
+            "name": "upIds",
+            "type": ".Default private Set<String>",
+            "visibility": "package-private",
+            "annotations": [
+              "@ElementCollection(fetch = FetchType.EAGER)",
+              "@CollectionTable(\n            name = \"competence_ups\",\n            joinColumns = @JoinColumn(name = \"competence_id\"))",
+              "@Column(name = \"up_id\", nullable = false, length = 255)",
+              "@Builder"
+            ]
+          },
+          {
+            "name": "departementIds",
+            "type": ".Default private Set<String>",
+            "visibility": "package-private",
+            "annotations": [
+              "@ElementCollection(fetch = FetchType.EAGER)",
+              "@CollectionTable(\n            name = \"competence_departements\",\n            joinColumns = @JoinColumn(name = \"competence_id\"))",
+              "@Column(name = \"departement_id\", nullable = false, length = 255)",
+              "@Builder"
+            ]
+          },
+          {
+            "name": "sousCompetences",
+            "type": ".Default private List<SousCompetence>",
+            "visibility": "package-private",
+            "annotations": [
+              "@OneToMany(mappedBy = \"competence\", cascade = CascadeType.ALL, orphanRemoval = true)",
+              "@JsonManagedReference(\"competence-souscompetence\")",
+              "@Builder"
+            ]
+          },
+          {
+            "name": "savoirs",
+            "type": ".Default private List<Savoir>",
+            "visibility": "package-private",
+            "annotations": [
+              "@OneToMany(mappedBy = \"competence\", cascade = CascadeType.ALL, orphanRemoval = true)",
+              "@JsonManagedReference(\"competence-savoir\")",
+              "@Builder"
+            ]
+          },
+          {
+            "name": "prerequisite",
+            "type": ".Default private List<CompetencePrerequisite>",
+            "visibility": "package-private",
+            "annotations": [
+              "@OneToMany(mappedBy = \"competence\", cascade = CascadeType.ALL, orphanRemoval = true)",
+              "@Builder"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "CompetencePrerequisite",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-competence\\src\\main\\java\\tn\\esprit\\d2f\\competence\\entity\\CompetencePrerequisite.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "competence",
+            "type": "Competence",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.LAZY)",
+              "@JoinColumn(name = \"competence_id\", nullable = false)"
+            ]
+          },
+          {
+            "name": "prerequisite",
+            "type": "Competence",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.LAZY)",
+              "@JoinColumn(name = \"prerequisite_id\", nullable = false)"
+            ]
+          },
+          {
+            "name": "niveauMinimum",
+            "type": "NiveauMaitrise",
+            "visibility": "private",
+            "annotations": [
+              "@Convert(converter = NiveauMaitriseConverter.class)",
+              "@Column(name = \"niveau_minimum\", nullable = false)"
+            ]
+          },
+          {
+            "name": "description",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(columnDefinition = \"TEXT\")"
+            ]
+          },
+          {
+            "name": "createdAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@CreatedDate",
+              "@Column(name = \"created_at\", updatable = false)"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "Domaine",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-competence\\src\\main\\java\\tn\\esprit\\d2f\\competence\\entity\\Domaine.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "code",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(unique = true, nullable = false)"
+            ]
+          },
+          {
+            "name": "nom",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "description",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(columnDefinition = \"TEXT\")"
+            ]
+          },
+          {
+            "name": "actif",
+            "type": ".Default private Boolean",
+            "visibility": "package-private",
+            "annotations": [
+              "@Column(nullable = false)",
+              "@Builder"
+            ]
+          },
+          {
+            "name": "upId",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"up_id\", length = 255)"
+            ]
+          },
+          {
+            "name": "departementId",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"departement_id\", length = 255)"
+            ]
+          },
+          {
+            "name": "competences",
+            "type": ".Default private List<Competence>",
+            "visibility": "package-private",
+            "annotations": [
+              "@OneToMany(mappedBy = \"domaine\", cascade = CascadeType.ALL, orphanRemoval = true)",
+              "@JsonManagedReference(\"domaine-competence\")",
+              "@Builder"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "EnseignantCompetence",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-competence\\src\\main\\java\\tn\\esprit\\d2f\\competence\\entity\\EnseignantCompetence.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "enseignantId",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"enseignant_id\", nullable = false)"
+            ]
+          },
+          {
+            "name": "savoir",
+            "type": "Savoir",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.LAZY)",
+              "@JoinColumn(name = \"savoir_id\", nullable = false)"
+            ]
+          },
+          {
+            "name": "niveau",
+            "type": "NiveauMaitrise",
+            "visibility": "private",
+            "annotations": [
+              "@Convert(converter = NiveauMaitriseConverter.class)",
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "dateAcquisition",
+            "type": "LocalDate",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "commentaire",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(columnDefinition = \"TEXT\")"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "NiveauSavoirRequis",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-competence\\src\\main\\java\\tn\\esprit\\d2f\\competence\\entity\\NiveauSavoirRequis.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "competence",
+            "type": "Competence",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.LAZY)",
+              "@JoinColumn(name = \"competence_id\")"
+            ]
+          },
+          {
+            "name": "sousCompetence",
+            "type": "SousCompetence",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.LAZY)",
+              "@JoinColumn(name = \"sous_competence_id\")"
+            ]
+          },
+          {
+            "name": "niveau",
+            "type": "NiveauMaitrise",
+            "visibility": "private",
+            "annotations": [
+              "@Convert(converter = NiveauMaitriseConverter.class)",
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "savoir",
+            "type": "Savoir",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.EAGER)",
+              "@JoinColumn(name = \"savoir_id\", nullable = false)"
+            ]
+          },
+          {
+            "name": "description",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(columnDefinition = \"TEXT\")"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "RiceImportLog",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-competence\\src\\main\\java\\tn\\esprit\\d2f\\competence\\entity\\RiceImportLog.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "generatedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "domainesCreated",
+            "type": "int",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "competencesCreated",
+            "type": "int",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "sousCompetencesCreated",
+            "type": "int",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "savoirsCreated",
+            "type": "int",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "affectationsCreated",
+            "type": "int",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "enseignantsCovered",
+            "type": "int",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "message",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(columnDefinition = \"TEXT\")"
+            ]
+          },
+          {
+            "name": "tauxJson",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"taux_json\", columnDefinition = \"TEXT\")"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "Savoir",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-competence\\src\\main\\java\\tn\\esprit\\d2f\\competence\\entity\\Savoir.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "code",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(unique = true, nullable = false)"
+            ]
+          },
+          {
+            "name": "nom",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "description",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(columnDefinition = \"TEXT\")"
+            ]
+          },
+          {
+            "name": "type",
+            "type": "TypeSavoir",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "niveau",
+            "type": ".Default private NiveauMaitrise",
+            "visibility": "package-private",
+            "annotations": [
+              "@Convert(converter = NiveauMaitriseConverter.class)",
+              "@Column(columnDefinition = \"VARCHAR(255) DEFAULT 'N2_ELEMENTAIRE'\")",
+              "@Builder"
+            ]
+          },
+          {
+            "name": "sousCompetence",
+            "type": "SousCompetence",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.LAZY)",
+              "@JoinColumn(name = \"sous_competence_id\")",
+              "@JsonBackReference(\"souscompetence-savoir\")"
+            ]
+          },
+          {
+            "name": "competence",
+            "type": "Competence",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.LAZY)",
+              "@JoinColumn(name = \"competence_id\")",
+              "@JsonBackReference(\"competence-savoir\")"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "SousCompetence",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-competence\\src\\main\\java\\tn\\esprit\\d2f\\competence\\entity\\SousCompetence.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "code",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(unique = true, nullable = false)"
+            ]
+          },
+          {
+            "name": "nom",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "description",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(columnDefinition = \"TEXT\")"
+            ]
+          },
+          {
+            "name": "competence",
+            "type": "Competence",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.LAZY)",
+              "@JoinColumn(name = \"competence_id\", nullable = false)",
+              "@JsonBackReference(\"competence-souscompetence\")"
+            ]
+          },
+          {
+            "name": "parent",
+            "type": "SousCompetence",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.LAZY)",
+              "@JoinColumn(name = \"parent_id\")",
+              "@JsonBackReference(\"souscompetence-parent\")"
+            ]
+          },
+          {
+            "name": "enfants",
+            "type": ".Default private List<SousCompetence>",
+            "visibility": "package-private",
+            "annotations": [
+              "@OneToMany(mappedBy = \"parent\", cascade = CascadeType.ALL, orphanRemoval = true)",
+              "@JsonManagedReference(\"souscompetence-parent\")",
+              "@Builder"
+            ]
+          },
+          {
+            "name": "niveau",
+            "type": ".Default private Integer",
+            "visibility": "package-private",
+            "annotations": [
+              "@Column(nullable = false)",
+              "@Builder"
+            ]
+          },
+          {
+            "name": "savoirs",
+            "type": ".Default private List<Savoir>",
+            "visibility": "package-private",
+            "annotations": [
+              "@OneToMany(mappedBy = \"sousCompetence\", cascade = CascadeType.ALL, orphanRemoval = true)",
+              "@JsonManagedReference(\"souscompetence-savoir\")",
+              "@Builder"
+            ]
+          }
+        ]
+      }
+    ],
+    "enums": {
+      "NiveauMaitrise": [
+        "N1_DEBUTANT",
+        "N2_ELEMENTAIRE",
+        "N3_INTERMEDIAIRE",
+        "N4_AVANCE",
+        "N5_EXPERT"
+      ],
+      "TypeSavoir": [
+        "THEORIQUE",
+        "PRATIQUE"
+      ]
+    }
+  },
+  "esprit_D2F-evaluation": {
+    "entities": [
+      {
+        "class": "BaseAuditEntity",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": true,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-evaluation\\src\\main\\java\\esprit\\pfe\\serviceevaluation\\entities\\BaseAuditEntity.java",
+        "fields": [
+          {
+            "name": "createdAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@CreatedDate",
+              "@Column(name = \"created_at\", updatable = false)"
+            ]
+          },
+          {
+            "name": "updatedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@LastModifiedDate",
+              "@Column(name = \"updated_at\")"
+            ]
+          },
+          {
+            "name": "createdBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@CreatedBy",
+              "@Column(name = \"created_by\", updatable = false, length = 150)"
+            ]
+          },
+          {
+            "name": "updatedBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@LastModifiedBy",
+              "@Column(name = \"updated_by\", length = 150)"
+            ]
+          },
+          {
+            "name": "version",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Version"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "EvaluationFormateur",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-evaluation\\src\\main\\java\\esprit\\pfe\\serviceevaluation\\entities\\EvaluationFormateur.java",
+        "fields": [
+          {
+            "name": "idEvalParticipant",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "note",
+            "type": "float",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "satisfaisant",
+            "type": "boolean",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "commentaire",
+            "type": "String",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "maitriseSujet",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"maitrise_sujet\")"
+            ]
+          },
+          {
+            "name": "clarte",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"clarte\")"
+            ]
+          },
+          {
+            "name": "pedagogie",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"pedagogie\")"
+            ]
+          },
+          {
+            "name": "interaction",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"interaction\")"
+            ]
+          },
+          {
+            "name": "gestionTemps",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"gestion_temps\")"
+            ]
+          },
+          {
+            "name": "enseignantId",
+            "type": "String",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "formationId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": []
+          }
+        ]
+      },
+      {
+        "class": "EvaluationGlobale",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-evaluation\\src\\main\\java\\esprit\\pfe\\serviceevaluation\\entities\\EvaluationGlobale.java",
+        "fields": [
+          {
+            "name": "idEvalGlobale",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "formationId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "enseignantId",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"enseignant_id\")"
+            ]
+          },
+          {
+            "name": "commentaireGeneral",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 3000, nullable = true)"
+            ]
+          },
+          {
+            "name": "dateEvaluation",
+            "type": "LocalDate",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = true)"
+            ]
+          },
+          {
+            "name": "noteGlobale",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = true)"
+            ]
+          },
+          {
+            "name": "recommandation",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 100, nullable = true)"
+            ]
+          },
+          {
+            "name": "pertinenceContenu",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"pertinence_contenu\")"
+            ]
+          },
+          {
+            "name": "organisation",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "qualiteSupports",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"qualite_supports\")"
+            ]
+          },
+          {
+            "name": "dureeAdaptee",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"duree_adaptee\")"
+            ]
+          },
+          {
+            "name": "satisfactionGlobale",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"satisfaction_globale\")"
+            ]
+          },
+          {
+            "name": "lastRefreshDate",
+            "type": "java.time.OffsetDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"last_refresh_date\")"
+            ]
+          },
+          {
+            "name": "deletedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"deleted_at\")"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "FormationFeedback",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-evaluation\\src\\main\\java\\esprit\\pfe\\serviceevaluation\\entities\\FormationFeedback.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "formationId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"formation_id\", nullable = false)"
+            ]
+          },
+          {
+            "name": "enseignantId",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"enseignant_id\", nullable = false, length = 64)"
+            ]
+          },
+          {
+            "name": "participantEmail",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"participant_email\")"
+            ]
+          },
+          {
+            "name": "up",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"up\")"
+            ]
+          },
+          {
+            "name": "aspectOrganisationnel",
+            "type": "Integer",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"aspect_organisationnel\", nullable = false)"
+            ]
+          },
+          {
+            "name": "aspectTechnique",
+            "type": "Integer",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"aspect_technique\", nullable = false)"
+            ]
+          },
+          {
+            "name": "aspectPedagogique",
+            "type": "Integer",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"aspect_pedagogique\", nullable = false)"
+            ]
+          },
+          {
+            "name": "besoinComplementaire",
+            "type": "Boolean",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"besoin_complementaire\", nullable = false)"
+            ]
+          },
+          {
+            "name": "autresInformations",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"autres_informations\", length = 2000)"
+            ]
+          },
+          {
+            "name": "autresBesoins",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"autres_besoins\", length = 2000)"
+            ]
+          },
+          {
+            "name": "createdAt",
+            "type": ".Default private LocalDateTime",
+            "visibility": "package-private",
+            "annotations": [
+              "@Builder",
+              "@Column(name = \"created_at\", nullable = false)"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "LearningAssessment",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-evaluation\\src\\main\\java\\esprit\\pfe\\serviceevaluation\\entities\\LearningAssessment.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "trainingId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"training_id\", nullable = false)"
+            ]
+          },
+          {
+            "name": "sessionId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"session_id\")"
+            ]
+          },
+          {
+            "name": "participantId",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"participant_id\", nullable = false, length = 150)"
+            ]
+          },
+          {
+            "name": "type",
+            "type": "LearningAssessmentType",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(name = \"assessment_type\", nullable = false, length = 10)"
+            ]
+          },
+          {
+            "name": "score",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "maxScore",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"max_score\", nullable = false)"
+            ]
+          },
+          {
+            "name": "levelBefore",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"level_before\", length = 50)"
+            ]
+          },
+          {
+            "name": "levelAfter",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"level_after\", length = 50)"
+            ]
+          },
+          {
+            "name": "evaluatedBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"evaluated_by\", length = 150)"
+            ]
+          },
+          {
+            "name": "evaluatedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"evaluated_at\", nullable = false)"
+            ]
+          },
+          {
+            "name": "attemptNumber",
+            "type": "Integer",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"attempt_number\", nullable = false)"
+            ]
+          },
+          {
+            "name": "competenceId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"competence_id\")"
+            ]
+          },
+          {
+            "name": "targetLevel",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"target_level\", length = 50)"
+            ]
+          },
+          {
+            "name": "autoEvaluation",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"auto_evaluation\")"
+            ]
+          },
+          {
+            "name": "objectifsPersonnels",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"objectifs_personnels\", length = 1000)"
+            ]
+          },
+          {
+            "name": "practicalScore",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"practical_score\")"
+            ]
+          },
+          {
+            "name": "trainerComment",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"trainer_comment\", length = 1000)"
+            ]
+          },
+          {
+            "name": "competencesAcquises",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"competences_acquises\", length = 1000)"
+            ]
+          },
+          {
+            "name": "targetReached",
+            "type": "Boolean",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"target_reached\")"
+            ]
+          }
+        ]
+      }
+    ],
+    "enums": {
+      "LearningAssessmentType": [
+        "PRE",
+        "POST"
+      ]
+    }
+  },
+  "esprit_D2F-formation": {
+    "entities": [
+      {
+        "class": "AnimateurExterne",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\AnimateurExterne.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": ".Include private Long",
+            "visibility": "package-private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)",
+              "@EqualsAndHashCode"
+            ]
+          },
+          {
+            "name": "nom",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@NotBlank",
+              "@Size(max = 100)",
+              "@Column(nullable = false, length = 100)"
+            ]
+          },
+          {
+            "name": "prenom",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@NotBlank",
+              "@Size(max = 100)",
+              "@Column(nullable = false, length = 100)"
+            ]
+          },
+          {
+            "name": "email",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Email",
+              "@Size(max = 255)",
+              "@Column(length = 255)"
+            ]
+          },
+          {
+            "name": "bureau",
+            "type": ".Exclude .fasterxml.jackson.annotation.JsonIgnore private Bureau",
+            "visibility": "package-private",
+            "annotations": [
+              "@ManyToOne(optional = false, fetch = FetchType.LAZY)",
+              "@JoinColumn(name = \"bureau_id\", nullable = false)",
+              "@ToString",
+              "@com"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "BaseAuditEntity",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": true,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\BaseAuditEntity.java",
+        "fields": [
+          {
+            "name": "createdAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@CreatedDate",
+              "@Column(name = \"created_at\", updatable = false)"
+            ]
+          },
+          {
+            "name": "updatedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@LastModifiedDate",
+              "@Column(name = \"updated_at\")"
+            ]
+          },
+          {
+            "name": "createdBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@CreatedBy",
+              "@Column(name = \"created_by\", updatable = false, length = 150)"
+            ]
+          },
+          {
+            "name": "updatedBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@LastModifiedBy",
+              "@Column(name = \"updated_by\", length = 150)"
+            ]
+          },
+          {
+            "name": "version",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Version"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "Bureau",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\Bureau.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "nom",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@NotBlank",
+              "@Size(max = 255)",
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "email",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@NotBlank",
+              "@Email",
+              "@Size(max = 255)",
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "numeroTelephone",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@NotBlank",
+              "@Size(max = 50)",
+              "@Column(name = \"numero_telephone\", nullable = false, length = 50)"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "Dept",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\Dept.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Id"
+            ]
+          },
+          {
+            "name": "libelle",
+            "type": "String",
+            "visibility": "private",
+            "annotations": []
+          }
+        ]
+      },
+      {
+        "class": "Document",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\Document.java",
+        "fields": [
+          {
+            "name": "idDocument",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "filePath",
+            "type": "String",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "date",
+            "type": "LocalDate",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "obligation",
+            "type": "boolean",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "pathType",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "formation",
+            "type": "Formation",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.LAZY)",
+              "@JoinColumn(name = \"formation_id\")"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "EmailAuditLog",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\EmailAuditLog.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "formationId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"formation_id\", nullable = false)"
+            ]
+          },
+          {
+            "name": "recipientEmail",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"recipient_email\", nullable = false, length = 255)"
+            ]
+          },
+          {
+            "name": "emailType",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"email_type\", nullable = false, length = 50)"
+            ]
+          },
+          {
+            "name": "sentAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"sent_at\", nullable = false)"
+            ]
+          },
+          {
+            "name": "success",
+            "type": "boolean",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"success\", nullable = false)"
+            ]
+          },
+          {
+            "name": "errorMessage",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"error_message\", columnDefinition = \"TEXT\")"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "Enseignant",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\Enseignant.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@Column(length = 10, nullable = false, unique = true)"
+            ]
+          },
+          {
+            "name": "nom",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 100, nullable = false)"
+            ]
+          },
+          {
+            "name": "prenom",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 30, nullable = false)"
+            ]
+          },
+          {
+            "name": "mail",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "type",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 1, nullable = false)"
+            ]
+          },
+          {
+            "name": "etat",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 1, nullable = false)"
+            ]
+          },
+          {
+            "name": "cup",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 1, nullable = false)"
+            ]
+          },
+          {
+            "name": "chefDepartement",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"chef_departement\", length = 1, nullable = false)"
+            ]
+          },
+          {
+            "name": "grade",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 100)"
+            ]
+          },
+          {
+            "name": "telephone",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 30)"
+            ]
+          },
+          {
+            "name": "photoUrl",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"photo_url\", length = 500)"
+            ]
+          },
+          {
+            "name": "specialite",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 150)"
+            ]
+          },
+          {
+            "name": "dateRecrutement",
+            "type": "LocalDate",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"date_recrutement\")"
+            ]
+          },
+          {
+            "name": "dossierStatus",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"dossier_status\", length = 30)"
+            ]
+          },
+          {
+            "name": "dossierLastUpdate",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"dossier_last_update\")"
+            ]
+          },
+          {
+            "name": "dossierNotes",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"dossier_notes\", columnDefinition = \"TEXT\")"
+            ]
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"user_id\", length = 36, unique = true)"
+            ]
+          },
+          {
+            "name": "up",
+            "type": "Up",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.EAGER)",
+              "@JoinColumn(name = \"up_id\", referencedColumnName = \"id\", nullable = true)"
+            ]
+          },
+          {
+            "name": "dept",
+            "type": "Dept",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.EAGER)",
+              "@JoinColumn(name = \"dept_id\", referencedColumnName = \"id\", nullable = true)"
+            ]
+          },
+          {
+            "name": "presences",
+            "type": "List<Presence>",
+            "visibility": "private",
+            "annotations": [
+              "@JsonIgnore",
+              "@OneToMany(mappedBy = \"enseignant\", cascade = CascadeType.ALL, fetch = FetchType.LAZY)"
+            ]
+          },
+          {
+            "name": "inscriptions",
+            "type": "List<Inscription>",
+            "visibility": "private",
+            "annotations": [
+              "@JsonIgnore",
+              "@OneToMany(mappedBy = \"enseignant\", cascade = CascadeType.ALL, orphanRemoval = true)"
+            ]
+          },
+          {
+            "name": "deletedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"deleted_at\")"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "Formation",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\Formation.java",
+        "fields": [
+          {
+            "name": "idFormation",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "idBesoinFormation",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = true)"
+            ]
+          },
+          {
+            "name": "typeBesoin",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = true)"
+            ]
+          },
+          {
+            "name": "titreFormation",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false, length = 255)"
+            ]
+          },
+          {
+            "name": "domaine",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = true)"
+            ]
+          },
+          {
+            "name": "competence",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"competence\", nullable = true)"
+            ]
+          },
+          {
+            "name": "populationCible",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = true)"
+            ]
+          },
+          {
+            "name": "objectifs",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 2000,nullable = true)"
+            ]
+          },
+          {
+            "name": "objectifsPedago",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 2000,nullable = true)"
+            ]
+          },
+          {
+            "name": "evalMethods",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 2000,nullable = true)"
+            ]
+          },
+          {
+            "name": "typeFormation",
+            "type": "TypeFormation",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(nullable = true)"
+            ]
+          },
+          {
+            "name": "externeFormateurNom",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 100, nullable = true)"
+            ]
+          },
+          {
+            "name": "externeFormateurPrenom",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 100, nullable = true)"
+            ]
+          },
+          {
+            "name": "externeFormateurEmail",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 255, nullable = true)"
+            ]
+          },
+          {
+            "name": "organismeRefExterne",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 255 ,nullable = true)"
+            ]
+          },
+          {
+            "name": "bureauFormationNom",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 255, nullable = true)"
+            ]
+          },
+          {
+            "name": "bureauFormationMail",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 255, nullable = true)"
+            ]
+          },
+          {
+            "name": "bureauFormationTelephone",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 50, nullable = true)"
+            ]
+          },
+          {
+            "name": "dateDebut",
+            "type": "LocalDate",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "dateFin",
+            "type": "LocalDate",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "etatFormation",
+            "type": "EtatFormation",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "coutTransport",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = true)"
+            ]
+          },
+          {
+            "name": "coutHebergement",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = true)"
+            ]
+          },
+          {
+            "name": "coutRepas",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = true)"
+            ]
+          },
+          {
+            "name": "coutFormation",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = true)"
+            ]
+          },
+          {
+            "name": "prerequis",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 2000,nullable = true)"
+            ]
+          },
+          {
+            "name": "acquis",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 2000,nullable = true)"
+            ]
+          },
+          {
+            "name": "indicateurs",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 2000,nullable = true)"
+            ]
+          },
+          {
+            "name": "chargeHoraireGlobal",
+            "type": "Integer",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = true)"
+            ]
+          },
+          {
+            "name": "certifGenerated",
+            "type": "boolean",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name=\"certif_generated\", nullable=false)"
+            ]
+          },
+          {
+            "name": "sourceCalendrier",
+            "type": "boolean",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"source_calendrier\", nullable = false)"
+            ]
+          },
+          {
+            "name": "seances",
+            "type": ".fasterxml.jackson.annotation.JsonIgnore private List<SeanceFormation>",
+            "visibility": "package-private",
+            "annotations": [
+              "@OneToMany(mappedBy = \"formation\", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)",
+              "@com"
+            ]
+          },
+          {
+            "name": "animateurs",
+            "type": ".fasterxml.jackson.annotation.JsonIgnore private List<Enseignant>",
+            "visibility": "package-private",
+            "annotations": [
+              "@ManyToMany",
+              "@JoinTable(name = \"formation_animateur\",\n            joinColumns = @JoinColumn(name = \"formation_id\"),\n            inverseJoinColumns = @JoinColumn(name = \"enseignant_id\"))",
+              "@com"
+            ]
+          },
+          {
+            "name": "animateursExternes",
+            "type": ".fasterxml.jackson.annotation.JsonIgnore private List<AnimateurExterne>",
+            "visibility": "package-private",
+            "annotations": [
+              "@ManyToMany",
+              "@JoinTable(name = \"formation_animateur_externe\", schema = \"formation\",\n            joinColumns = @JoinColumn(name = \"formation_id\"),\n            inverseJoinColumns = @JoinColumn(name = \"animateur_externe_id\"))",
+              "@com"
+            ]
+          },
+          {
+            "name": "up",
+            "type": "Up",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne",
+              "@JoinColumn(name = \"up_id\", nullable = true)"
+            ]
+          },
+          {
+            "name": "departement",
+            "type": "Dept",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne",
+              "@JoinColumn(name = \"departement_id\", nullable = true)"
+            ]
+          },
+          {
+            "name": "documents",
+            "type": ".fasterxml.jackson.annotation.JsonIgnore private List<Document>",
+            "visibility": "package-private",
+            "annotations": [
+              "@OneToMany(mappedBy = \"formation\", cascade = CascadeType.ALL, fetch = FetchType.LAZY)",
+              "@com"
+            ]
+          },
+          {
+            "name": "inscriptions",
+            "type": ".fasterxml.jackson.annotation.JsonIgnore private List<Inscription>",
+            "visibility": "package-private",
+            "annotations": [
+              "@OneToMany(\n            mappedBy = \"formation\",\n            cascade = CascadeType.ALL,\n            orphanRemoval = true\n    )",
+              "@com"
+            ]
+          },
+          {
+            "name": "formationCompetences",
+            "type": ".fasterxml.jackson.annotation.JsonIgnore private List<FormationCompetence>",
+            "visibility": "package-private",
+            "annotations": [
+              "@OneToMany(mappedBy = \"formation\", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)",
+              "@com"
+            ]
+          },
+          {
+            "name": "inscriptionsOuvertes",
+            "type": "boolean",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"inscriptions_ouvertes\", nullable = false)"
+            ]
+          },
+          {
+            "name": "ouverte",
+            "type": "boolean",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"ouverte\", nullable = false, columnDefinition = \"BOOLEAN DEFAULT FALSE\")"
+            ]
+          },
+          {
+            "name": "periodCode",
+            "type": "PeriodCode",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = true)",
+              "@Enumerated(EnumType.STRING)"
+            ]
+          },
+          {
+            "name": "customPeriodLabel",
+            "type": "String",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "lastRefreshDate",
+            "type": "java.time.OffsetDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"last_refresh_date\")"
+            ]
+          },
+          {
+            "name": "salle",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 255, nullable = true)"
+            ]
+          },
+          {
+            "name": "calendarEventId",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"calendar_event_id\", length = 512, nullable = true)"
+            ]
+          },
+          {
+            "name": "responsableEmail",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"responsable_email\", length = 255, nullable = true)"
+            ]
+          },
+          {
+            "name": "responsableName",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"responsable_name\", length = 255, nullable = true)"
+            ]
+          },
+          {
+            "name": "deletedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"deleted_at\")"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "FormationAnimator",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\FormationAnimator.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "formationId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"formation_id\", nullable = false)"
+            ]
+          },
+          {
+            "name": "teacherId",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"teacher_id\", length = 50)"
+            ]
+          },
+          {
+            "name": "animateurId",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"animateur_id\", length = 50)"
+            ]
+          },
+          {
+            "name": "role",
+            "type": "AnimatorRole",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(nullable = false, length = 30)"
+            ]
+          },
+          {
+            "name": "assignedBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"assigned_by\", nullable = false, length = 150)"
+            ]
+          },
+          {
+            "name": "assignedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"assigned_at\", nullable = false)"
+            ]
+          },
+          {
+            "name": "status",
+            "type": "AssignmentStatus",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(nullable = false, length = 30)"
+            ]
+          },
+          {
+            "name": "proposalId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"proposal_id\")"
+            ]
+          },
+          {
+            "name": "deletedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"deleted_at\")"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "FormationAnimatorProposal",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\FormationAnimatorProposal.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "formationId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"formation_id\", nullable = false)"
+            ]
+          },
+          {
+            "name": "proposerId",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"proposer_id\", nullable = false, length = 50)"
+            ]
+          },
+          {
+            "name": "proposerType",
+            "type": "ProposerType",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(name = \"proposer_type\", nullable = false, length = 30)"
+            ]
+          },
+          {
+            "name": "proposalType",
+            "type": "ProposalType",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(name = \"proposal_type\", nullable = false, length = 30)"
+            ]
+          },
+          {
+            "name": "role",
+            "type": "AnimatorRole",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(nullable = false, length = 30)"
+            ]
+          },
+          {
+            "name": "status",
+            "type": "ProposalStatus",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(nullable = false, length = 30)"
+            ]
+          },
+          {
+            "name": "motivation",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 2000)"
+            ]
+          },
+          {
+            "name": "proposedBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"proposed_by\", length = 150)"
+            ]
+          },
+          {
+            "name": "proposedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"proposed_at\", nullable = false)"
+            ]
+          },
+          {
+            "name": "respondedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"responded_at\")"
+            ]
+          },
+          {
+            "name": "validatedBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"validated_by\", length = 150)"
+            ]
+          },
+          {
+            "name": "validatedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"validated_at\")"
+            ]
+          },
+          {
+            "name": "rejectionReason",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"rejection_reason\", length = 1000)"
+            ]
+          },
+          {
+            "name": "responseComment",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"response_comment\", length = 1000)"
+            ]
+          },
+          {
+            "name": "calendarEventId",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"calendar_event_id\", length = 512)"
+            ]
+          },
+          {
+            "name": "deletedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"deleted_at\")"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "FormationCompetence",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\FormationCompetence.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "formation",
+            "type": "Formation",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.LAZY)",
+              "@JoinColumn(name = \"formation_id\", nullable = false)"
+            ]
+          },
+          {
+            "name": "domaineId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"domaine_id\", nullable = true)"
+            ]
+          },
+          {
+            "name": "competenceId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"competence_id\", nullable = false)"
+            ]
+          },
+          {
+            "name": "competenceNom",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"competence_nom\", length = 255, nullable = true)"
+            ]
+          },
+          {
+            "name": "sousCompetenceId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"sous_competence_id\", nullable = true)"
+            ]
+          },
+          {
+            "name": "sousCompetenceNom",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"sous_competence_nom\", length = 255, nullable = true)"
+            ]
+          },
+          {
+            "name": "savoirId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"savoir_id\", nullable = true)"
+            ]
+          },
+          {
+            "name": "savoirNom",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"savoir_nom\", length = 255, nullable = true)"
+            ]
+          },
+          {
+            "name": "savoirType",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"savoir_type\", length = 20, nullable = true)"
+            ]
+          },
+          {
+            "name": "niveauPrerequis",
+            "type": "Integer",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"niveau_prerequis\", nullable = true)"
+            ]
+          },
+          {
+            "name": "niveauVise",
+            "type": "Integer",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"niveau_vise\", nullable = true)"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "FormationParticipantEmail",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\FormationParticipantEmail.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "formationId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"formation_id\", nullable = false)"
+            ]
+          },
+          {
+            "name": "email",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"email\", nullable = false, length = 255)"
+            ]
+          },
+          {
+            "name": "matchedEnseignant",
+            "type": "boolean",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"matched_enseignant\", nullable = false)"
+            ]
+          },
+          {
+            "name": "createdAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"created_at\", nullable = false)"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "ImportLog",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\ImportLog.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "fileName",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"file_name\", length = 255)"
+            ]
+          },
+          {
+            "name": "fileSizeBytes",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"file_size_bytes\")"
+            ]
+          },
+          {
+            "name": "fileHash",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"file_hash\", length = 64)"
+            ]
+          },
+          {
+            "name": "importedBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"imported_by\", length = 150)"
+            ]
+          },
+          {
+            "name": "importedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"imported_at\", nullable = false)"
+            ]
+          },
+          {
+            "name": "formationsCreated",
+            "type": "int",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"formations_created\", nullable = false)"
+            ]
+          },
+          {
+            "name": "sessionsCreated",
+            "type": "int",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"sessions_created\", nullable = false)"
+            ]
+          },
+          {
+            "name": "participantsImported",
+            "type": "int",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"participants_imported\", nullable = false)"
+            ]
+          },
+          {
+            "name": "rowsSkipped",
+            "type": "int",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"rows_skipped\", nullable = false)"
+            ]
+          },
+          {
+            "name": "conflictsDetected",
+            "type": "int",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"conflicts_detected\", nullable = false)"
+            ]
+          },
+          {
+            "name": "status",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"status\", length = 20, nullable = false)"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "Inscription",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\Inscription.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "formation",
+            "type": "Formation",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.LAZY)",
+              "@JoinColumn(name = \"formation_id\", nullable = false)"
+            ]
+          },
+          {
+            "name": "enseignant",
+            "type": "Enseignant",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.LAZY)",
+              "@JoinColumn(name = \"enseignant_id\", nullable = false)"
+            ]
+          },
+          {
+            "name": "etat",
+            "type": "EtatInscription",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "dateDemande",
+            "type": "OffsetDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "dateTraitement",
+            "type": "OffsetDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column"
+            ]
+          },
+          {
+            "name": "motif",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 500)"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "Presence",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\Presence.java",
+        "fields": [
+          {
+            "name": "idParticipation",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "present",
+            "type": "boolean",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"presence\")"
+            ]
+          },
+          {
+            "name": "status",
+            "type": "PresenceStatus",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(name = \"status\", length = 20)"
+            ]
+          },
+          {
+            "name": "arrivalTime",
+            "type": "LocalTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"arrival_time\")"
+            ]
+          },
+          {
+            "name": "departureTime",
+            "type": "LocalTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"departure_time\")"
+            ]
+          },
+          {
+            "name": "justification",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 500)"
+            ]
+          },
+          {
+            "name": "commentaire",
+            "type": "String",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "recordedBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"recorded_by\", length = 150)"
+            ]
+          },
+          {
+            "name": "recordedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"recorded_at\")"
+            ]
+          },
+          {
+            "name": "seanceFormation",
+            "type": "SeanceFormation",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.LAZY)",
+              "@JoinColumn(name = \"seance_id\")"
+            ]
+          },
+          {
+            "name": "enseignant",
+            "type": "Enseignant",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.LAZY)",
+              "@JoinColumn(name = \"enseignant_id\")"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "ReminderSentLog",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\ReminderSentLog.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "seanceId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"seance_id\", nullable = false)"
+            ]
+          },
+          {
+            "name": "recipientEmail",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"recipient_email\", nullable = false, length = 255)"
+            ]
+          },
+          {
+            "name": "reminderType",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"reminder_type\", nullable = false, length = 10)"
+            ]
+          },
+          {
+            "name": "sentAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"sent_at\", nullable = false)"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "RoomConflictLog",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\RoomConflictLog.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "conflictType",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"conflict_type\", length = 40, nullable = false)"
+            ]
+          },
+          {
+            "name": "salle",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"salle\", length = 255)"
+            ]
+          },
+          {
+            "name": "dateSeance",
+            "type": "java.time.LocalDate",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"date_seance\")"
+            ]
+          },
+          {
+            "name": "heureDebut",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"heure_debut\", length = 10)"
+            ]
+          },
+          {
+            "name": "heureFin",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"heure_fin\", length = 10)"
+            ]
+          },
+          {
+            "name": "seanceId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"seance_id\")"
+            ]
+          },
+          {
+            "name": "otherSeanceId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"other_seance_id\")"
+            ]
+          },
+          {
+            "name": "detail",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"detail\", length = 1000)"
+            ]
+          },
+          {
+            "name": "detectedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"detected_at\", nullable = false)"
+            ]
+          },
+          {
+            "name": "importLogId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"import_log_id\")"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "SeanceCalendarEvent",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\SeanceCalendarEvent.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "seanceId",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"seance_id\", nullable = false)"
+            ]
+          },
+          {
+            "name": "email",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"email\", nullable = false, length = 255)"
+            ]
+          },
+          {
+            "name": "eventId",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"event_id\", nullable = false, length = 512)"
+            ]
+          },
+          {
+            "name": "createdAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"created_at\", nullable = false)"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "SeanceFormation",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\SeanceFormation.java",
+        "fields": [
+          {
+            "name": "idSeance",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+            ]
+          },
+          {
+            "name": "dateSeance",
+            "type": "LocalDate",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "heureDebut",
+            "type": "LocalTime",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "heureFin",
+            "type": "LocalTime",
+            "visibility": "private",
+            "annotations": []
+          },
+          {
+            "name": "typeSeance",
+            "type": "TypeSeanceEnum",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(nullable = true)"
+            ]
+          },
+          {
+            "name": "numeroSeance",
+            "type": "Integer",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"session_number\", nullable = true)"
+            ]
+          },
+          {
+            "name": "totalSeances",
+            "type": "Integer",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"total_sessions\", nullable = true)"
+            ]
+          },
+          {
+            "name": "sessionStatus",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"session_status\", length = 30, nullable = true)"
+            ]
+          },
+          {
+            "name": "contenus",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 2000, nullable = true)"
+            ]
+          },
+          {
+            "name": "methodes",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 2000, nullable = true)"
+            ]
+          },
+          {
+            "name": "dureeTheorique",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = true)"
+            ]
+          },
+          {
+            "name": "dureePratique",
+            "type": "Float",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = true)"
+            ]
+          },
+          {
+            "name": "salle",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 255, nullable = true)"
+            ]
+          },
+          {
+            "name": "calendarEventId",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"calendar_event_id\")"
+            ]
+          },
+          {
+            "name": "onlineMeetingUrl",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(name = \"online_meeting_url\", length = 500, nullable = true)"
+            ]
+          },
+          {
+            "name": "formation",
+            "type": "Formation",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToOne(fetch = FetchType.LAZY)",
+              "@JoinColumn(name = \"formation_id\")"
+            ]
+          },
+          {
+            "name": "animateurs",
+            "type": "List<Enseignant>",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToMany",
+              "@JoinTable(name = \"seance_animateur\", joinColumns = @JoinColumn(name = \"seance_id\"), inverseJoinColumns = @JoinColumn(name = \"enseignant_id\"))"
+            ]
+          },
+          {
+            "name": "participants",
+            "type": "List<Enseignant>",
+            "visibility": "private",
+            "annotations": [
+              "@ManyToMany",
+              "@JoinTable(name = \"seance_participant\", joinColumns = @JoinColumn(name = \"seance_id\"), inverseJoinColumns = @JoinColumn(name = \"enseignant_id\"))"
+            ]
+          },
+          {
+            "name": "presences",
+            "type": "List<Presence>",
+            "visibility": "private",
+            "annotations": [
+              "@OneToMany(mappedBy = \"seanceFormation\", cascade = CascadeType.ALL, fetch = FetchType.LAZY)"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "Up",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-formation\\src\\main\\java\\esprit\\pfe\\serviceformation\\entities\\Up.java",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Id"
+            ]
+          },
+          {
+            "name": "libelle",
+            "type": "String",
+            "visibility": "private",
+            "annotations": []
+          }
+        ]
+      }
+    ],
+    "enums": {
+      "AdditionMode": [
+        "MANUAL",
+        "AUTO_BY_DEPT",
+        "AUTO_BY_UP"
+      ],
+      "AnimatorRole": [
+        "LEAD_TRAINER",
+        "CO_TRAINER",
+        "FACILITATOR"
+      ],
+      "AssignmentStatus": [
+        "ACTIVE",
+        "REPLACED",
+        "CANCELLED"
+      ],
+      "DriveSubPath": [
+        "DOCUMENT",
+        "PAYEMENT",
+        "CNFCPP"
+      ],
+      "EtatFormation": [
+        "NOUVEAU",
+        "ENREGISTRE",
+        "PLANIFIE",
+        "EN_COURS",
+        "ACHEVE",
+        "ANNULE",
+        "VISIBLE"
+      ],
+      "EtatInscription": [
+        "PENDING",
+        "APPROVED",
+        "REJECTED"
+      ],
+      "PeriodCode": [
+        "P1",
+        "P2",
+        "WINTER",
+        "SUMMER",
+        "SPRINT",
+        "WORKSHOP",
+        "OTHER"
+      ],
+      "PresenceStatus": [
+        "PRESENT",
+        "LATE",
+        "ABSENT",
+        "EXCUSED"
+      ],
+      "ProposalStatus": [
+        "PROPOSED",
+        "PENDING_VALIDATION",
+        "ACCEPTED_BY_TRAINER",
+        "REJECTED_BY_TRAINER",
+        "APPROVED",
+        "REJECTED",
+        "CANCELLED",
+        "EXPIRED"
+      ],
+      "ProposalType": [
+        "MANAGER_PROPOSAL",
+        "SELF_PROPOSAL"
+      ],
+      "ProposerType": [
+        "TEACHER",
+        "ANIMATEUR",
+        "EXTERNAL_TRAINER"
+      ],
+      "TypeFormation": [
+        "INTERNE",
+        "EXTERNE",
+        "EN_LIGNE"
+      ],
+      "TypeSeanceEnum": [
+        "THEORIQUE",
+        "PRATIQUE",
+        "MIXTE"
+      ]
+    }
+  },
+  "esprit_D2F-notification": {
+    "entities": [
+      {
+        "class": "BaseAuditEntity",
+        "extends": null,
+        "implements": null,
+        "is_mapped_superclass": true,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-notification\\src\\main\\java\\tn\\esprit\\d2f\\entity\\BaseAuditEntity.java",
+        "fields": [
+          {
+            "name": "createdAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@CreatedDate",
+              "@Column(name = \"created_at\", updatable = false)"
+            ]
+          },
+          {
+            "name": "updatedAt",
+            "type": "LocalDateTime",
+            "visibility": "private",
+            "annotations": [
+              "@LastModifiedDate",
+              "@Column(name = \"updated_at\")"
+            ]
+          },
+          {
+            "name": "createdBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@CreatedBy",
+              "@Column(name = \"created_by\", updatable = false, length = 150)"
+            ]
+          },
+          {
+            "name": "updatedBy",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@LastModifiedBy",
+              "@Column(name = \"updated_by\", length = 150)"
+            ]
+          },
+          {
+            "name": "version",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Version"
+            ]
+          }
+        ]
+      },
+      {
+        "class": "Notification",
+        "extends": "BaseAuditEntity",
+        "implements": null,
+        "is_mapped_superclass": false,
+        "file": "C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-notification\\src\\main\\java\\tn\\esprit\\d2f\\entity\\Notification.java",
+        "fields": [
+          {
+            "name": "idNotification",
+            "type": "Long",
+            "visibility": "private",
+            "annotations": [
+              "@Id",
+              "@GeneratedValue(strategy = GenerationType.IDENTITY)",
+              "@JsonProperty(\"idNotification\")"
+            ]
+          },
+          {
+            "name": "recipient",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false, length = 150)"
+            ]
+          },
+          {
+            "name": "type",
+            "type": "NotificationType",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(nullable = false, length = 30)"
+            ]
+          },
+          {
+            "name": "severity",
+            "type": "NotificationSeverity",
+            "visibility": "private",
+            "annotations": [
+              "@Enumerated(EnumType.STRING)",
+              "@Column(nullable = false, length = 15)"
+            ]
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false, length = 200)"
+            ]
+          },
+          {
+            "name": "message",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false, columnDefinition = \"TEXT\")"
+            ]
+          },
+          {
+            "name": "read",
+            "type": "boolean",
+            "visibility": "private",
+            "annotations": [
+              "@Column(nullable = false)"
+            ]
+          },
+          {
+            "name": "link",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 255)"
+            ]
+          },
+          {
+            "name": "actor",
+            "type": "String",
+            "visibility": "private",
+            "annotations": [
+              "@Column(length = 150)"
+            ]
+          }
+        ]
+      }
+    ],
+    "enums": {
+      "NotificationSeverity": [
+        "INFO",
+        "SUCCESS",
+        "WARNING",
+        "ERROR"
+      ],
+      "NotificationType": [
+        "FORMATION",
+        "EVALUATION",
+        "CERTIFICAT",
+        "BESOIN",
+        "COMPETENCE",
+        "SYSTEM",
+        "MESSAGE"
+      ]
+    }
+  },
+  "esprit_D2F-predictive-analytics": {
+    "entities": [],
+    "enums": {}
+  },
+  "esprit_D2F-rice": {
+    "entities": [],
+    "enums": {}
+  }
+}

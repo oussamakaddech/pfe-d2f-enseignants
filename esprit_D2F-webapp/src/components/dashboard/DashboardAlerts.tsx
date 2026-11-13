@@ -34,7 +34,7 @@ const DashboardAlerts = memo(function DashboardAlerts({
 }) {
   const navigate = useNavigate();
   const global = useGlobalDashboard(scope.isAdmin);
-  const inactifs = useInactifs();
+  const inactifs = useInactifs(scope.isPilotage);
   const besoins = useBesoins(scope.isAdmin);
 
   const loading = inactifs.isLoading || (scope.isAdmin && (global.isLoading || besoins.isLoading));

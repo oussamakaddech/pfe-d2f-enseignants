@@ -12,7 +12,13 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -23,21 +29,90 @@ public class KPIService {
     private final UpRepository upRepository;
     private final DeptRepository deptRepository;
     private final EnseignantRepository enseignantRepository;
+    private final FormationCompetenceRepository formationCompetenceRepository;
+    private final KpiScopeService kpiScopeService;
+
+    /**
+     * Applique le périmètre serveur (CUP → UP, chef → département) : les ids
+     * demandés par le client sont ignorés pour un appelant scopé. Déjà
+     * résolu via KpiScopeService — le frontend ne pilote jamais le périmètre.
+     */
+    private KpiScopeService.KpiScope scopeOrThrow() {
+        return kpiScopeService.resolveScope();
+    }
+
+    /** Force le périmètre dans le filtre (CUP → upId, chef → deptId). */
+    private void applyScopeToFilter(FormationFilter filter) {
+        KpiScopeService.KpiScope scope = scopeOrThrow();
+        if (!scope.global()) {
+            filter.setUpId(scope.upId());
+            filter.setDeptId(scope.deptId());
+        }
+    }
+
+    /** Retourne les filtres effectifs (périmètre forcé, sinon filtres client). */
+    private String[] effectiveUpDept(String upId, String deptId) {
+        KpiScopeService.KpiScope scope = scopeOrThrow();
+        if (scope.global()) {
+            return new String[] { upId, deptId };
+        }
+        return new String[] { scope.upId(), scope.deptId() };
+    }
 
     public int countTotalFormations(LocalDate start, LocalDate end) {
-        return formationRepository.countTotalFormations(start, end);
+        KpiScopeService.KpiScope scope = scopeOrThrow();
+        return formationRepository.countTotalFormationsScoped(start, end, scope.upId(), scope.deptId());
     }
 
     public int calculateTotalHeures(LocalDate start, LocalDate end) {
-        return formationRepository.sumTotalHeures(start, end);
+        KpiScopeService.KpiScope scope = scopeOrThrow();
+        return formationRepository.sumTotalHeuresScoped(start, end, scope.upId(), scope.deptId());
     }
 
     public int countUniqueParticipants(LocalDate start, LocalDate end) {
-        return formationRepository.countUniqueParticipants(start, end);
+        KpiScopeService.KpiScope scope = scopeOrThrow();
+        return formationRepository.countUniqueParticipantsScoped(start, end, scope.upId(), scope.deptId());
+    }
+
+    /**
+     * Formateurs distincts de la période : animateurs internes (au niveau
+     * formation OU au niveau séance — les deux listes sont fusionnées, jamais
+     * additionnées) et animateurs externes.
+     */
+    public FormateursKpiDTO countFormateurs(LocalDate start, LocalDate end) {
+        validateDates(start, end);
+        KpiScopeService.KpiScope scope = scopeOrThrow();
+
+        Set<String> internes = new HashSet<>();
+        addAllNonNull(internes, formationRepository.findDistinctAnimateurIdsScoped(
+                start, end, scope.upId(), scope.deptId()));
+        addAllNonNull(internes, formationRepository.findDistinctSeanceAnimateurIdsScoped(
+                start, end, scope.upId(), scope.deptId()));
+
+        Set<Long> externes = new HashSet<>();
+        addAllNonNull(externes, formationRepository.findDistinctAnimateurExterneIdsScoped(
+                start, end, scope.upId(), scope.deptId()));
+
+        return new FormateursKpiDTO(
+                (long) internes.size() + externes.size(),
+                internes.size(),
+                externes.size());
+    }
+
+    private static <T> void addAllNonNull(Set<T> target, Collection<T> values) {
+        if (values == null) {
+            return;
+        }
+        for (T value : values) {
+            if (value != null) {
+                target.add(value);
+            }
+        }
     }
 
     public FormationsByEtatDTO getFormationsByEtat(LocalDate start, LocalDate end) {
-        List<Object[]> results = formationRepository.countFormationsByEtat(start, end);
+        KpiScopeService.KpiScope scope = scopeOrThrow();
+        List<Object[]> results = formationRepository.countFormationsByEtatScoped(start, end, scope.upId(), scope.deptId());
         FormationsByEtatDTO dto = new FormationsByEtatDTO();
         int total = 0;
         for (Object[] row : results) {
@@ -60,14 +135,20 @@ public class KPIService {
 
     public List<EnseignantStatsDTO> getTopParticipants(String upId, String deptId, LocalDate start, LocalDate end) {
         validateDates(start, end);
-        validateFilters(upId, deptId);
-        return presenceRepository.findTopParticipants(upId, deptId, start, end, EtatFormation.ACHEVE);
+        String[] eff = effectiveUpDept(upId, deptId);
+        if (kpiScopeService.resolveScope().global()) {
+            validateFilters(eff[0], eff[1]);
+        }
+        return presenceRepository.findTopParticipants(eff[0], eff[1], start, end, EtatFormation.ACHEVE);
     }
 
     public List<EnseignantStatsDTO> getTopAbsentees(String upId, String deptId, LocalDate start, LocalDate end) {
         validateDates(start, end);
-        validateFilters(upId, deptId);
-        return presenceRepository.findTopAbsentees(upId, deptId, start, end, EtatFormation.ACHEVE);
+        String[] eff = effectiveUpDept(upId, deptId);
+        if (kpiScopeService.resolveScope().global()) {
+            validateFilters(eff[0], eff[1]);
+        }
+        return presenceRepository.findTopAbsentees(eff[0], eff[1], start, end, EtatFormation.ACHEVE);
     }
 
     public Page<EnseignantDTO> getEnseignantsNonAffectes(LocalDate start, LocalDate end, Pageable pageable) {
@@ -78,7 +159,12 @@ public class KPIService {
     }
 
     public List<EnseignantDTO> getEnseignantsNonAffectes(LocalDate start, LocalDate end) {
-        return enseignantRepository.findEnseignantsNonAffectesSurPeriode(start, end)
+        KpiScopeService.KpiScope scope = kpiScopeService.resolveScope();
+        List<Enseignant> enseignants = scope.global()
+                ? enseignantRepository.findEnseignantsNonAffectesSurPeriode(start, end)
+                : enseignantRepository.findEnseignantsNonAffectesSurPeriodeScoped(
+                        start, end, scope.upId(), scope.deptId());
+        return enseignants
                 .stream()
                 .map(this::mapEnseignantToDTO)
                 .toList();
@@ -86,11 +172,13 @@ public class KPIService {
 
     public CountHeuresDTO getCountAndSumHeures(FormationFilter filter, String etatParam) {
         filter.setEtats(buildEtatList(etatParam));
+        applyScopeToFilter(filter);
         return formationRepository.countAndSumHeuresWithFilters(filter);
     }
 
     public FormationsByTypeDTO getFormationsByTypeWithFilters(FormationFilter filter, String etatParam) {
         filter.setEtats(buildEtatList(etatParam));
+        applyScopeToFilter(filter);
         List<Object[]> results = formationRepository.countFormationsByTypeWithFilters(filter);
         FormationsByTypeDTO dto = new FormationsByTypeDTO(0L, 0L, 0L);
 
@@ -110,7 +198,8 @@ public class KPIService {
 
     public List<CountByLabelDTO> getCountFormationsByDomaine(LocalDate start, LocalDate end) {
         validateDates(start, end);
-        return formationRepository.countFormationsByDomaine(start, end)
+        KpiScopeService.KpiScope scope = kpiScopeService.resolveScope();
+        return formationRepository.countFormationsByDomaineScoped(start, end, scope.upId(), scope.deptId())
                 .stream()
                 .map(row -> new CountByLabelDTO((String) row[0], ((Long) row[1]).intValue()))
                 .toList();
@@ -118,16 +207,66 @@ public class KPIService {
 
     public List<CountByLabelDTO> getCountFormationsByCompetence(LocalDate start, LocalDate end) {
         validateDates(start, end);
-        return formationRepository.countFormationsByCompetence(start, end)
+        KpiScopeService.KpiScope scope = kpiScopeService.resolveScope();
+        // Source de vérité : les compétences RATTACHÉES (formation_competences),
+        // là où le formulaire de formation enregistre réellement la compétence
+        // visée. La colonne historique `formations.competence` (texte libre)
+        // n'est qu'un repli pour les formations jamais rattachées.
+        List<Object[]> referentiel = formationCompetenceRepository
+                .countFormationsByCompetenceReferentielScoped(start, end, scope.upId(), scope.deptId());
+        if (referentiel != null && !referentiel.isEmpty()) {
+            return mergeByCompetenceId(referentiel);
+        }
+        return formationRepository.countFormationsByCompetenceScoped(start, end, scope.upId(), scope.deptId())
                 .stream()
                 .map(row -> new CountByLabelDTO((String) row[0], ((Long) row[1]).intValue()))
                 .toList();
     }
 
+    /**
+     * Fusionne les lignes [competenceNom, competenceId, count] par identifiant de
+     * compétence : `competence_nom` est dénormalisé au moment du rattachement, donc
+     * une compétence renommée apparaît sous deux libellés. Sans fusion, elle
+     * compterait deux fois dans « compétences couvertes ». Le premier libellé non
+     * vide est conservé (les effectifs s'additionnent).
+     */
+    private static List<CountByLabelDTO> mergeByCompetenceId(List<Object[]> rows) {
+        Map<Long, CountByLabelDTO> merged = new LinkedHashMap<>();
+        for (Object[] row : rows) {
+            Long id = (Long) row[1];
+            if (id == null) {
+                continue;
+            }
+            String nom = (String) row[0];
+            long count = ((Number) row[2]).longValue();
+            CountByLabelDTO existing = merged.get(id);
+            if (existing == null) {
+                String label = (nom == null || nom.isBlank()) ? "Compétence " + id : nom;
+                merged.put(id, new CountByLabelDTO(label, count));
+            } else {
+                existing.setCount(existing.getCount() + count);
+                if (isBlankLabel(existing.getLabel()) && nom != null && !nom.isBlank()) {
+                    existing.setLabel(nom);
+                }
+            }
+        }
+        return merged.values().stream()
+                .sorted(Comparator.comparingLong(CountByLabelDTO::getCount).reversed())
+                .toList();
+    }
+
+    private static boolean isBlankLabel(String label) {
+        return label == null || label.startsWith("Compétence ");
+    }
+
     public CountByTrainerTypeWithIdsDTO getCountByTrainerTypeWithIds(FormationFilter filter, String etatParam) {
         validateDates(filter.getStart(), filter.getEnd());
-        validateFilters(filter.getUpId() != null ? filter.getUpId().toString() : null,
-                filter.getDeptId() != null ? filter.getDeptId().toString() : null);
+        // Validation des filtres CLIENT avant application du périmètre (les ids
+        // forcés CUP/chef sont de source serveur — pas besoin d'existence).
+        if (kpiScopeService.resolveScope().global()) {
+            validateFilters(filter.getUpId(), filter.getDeptId());
+        }
+        applyScopeToFilter(filter);
 
         filter.setEtats(buildEtatList(etatParam));
 

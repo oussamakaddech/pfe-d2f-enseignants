@@ -5,6 +5,7 @@
 import logging
 import os
 import sys
+import time
 
 # ── DSI §11.7 — Configuration logging avec masquage PII (FIRST import) ───────
 # Charge dictConfig avec PIIRedactingFilter sur tous les handlers (incl. uvicorn).
@@ -94,27 +95,57 @@ app.include_router(rice_router)
 
 
 # ── Health endpoint ───────────────────────────────────────────────────────────
+def _ia_status() -> dict:
+    """État RÉEL du moteur IA (aucune valeur codée en dur).
+
+    RICE n'appelle aucun LLM ni aucune API externe : l'extraction est à base de
+    règles (regex + NER sur tableaux + taxonomie de Bloom) et le rapprochement
+    au référentiel utilise un modèle d'embeddings exécuté localement.
+    """
+    import rice.referential as _ref
+
+    model_ref = _ref._SEMANTIC_MODEL_REF or os.getenv("RICE_SEMANTIC_MODEL", "")
+    return {
+        "llm": "aucun",
+        "semantic_enabled": _ref._SEMANTIC_OK,
+        "semantic_model_loaded": _ref._SEMANTIC_MODEL is not None,
+        "semantic_model": model_ref,
+        "semantic_model_local_path": os.path.isdir(os.getenv("RICE_SEMANTIC_MODEL", "")),
+        "hf_offline": os.getenv("HF_HUB_OFFLINE") == "1",
+        "semantic_threshold": _ref._SEMANTIC_THRESHOLD,
+        "referentiels_en_cache": {
+            dept: (_ref._REF_DB_CACHE.get(dept) or {}).get("source", "public.ref_*")
+            for dept in _ref._REF_DB_CACHE.keys()
+        },
+        "corpus_semantiques": {d: len(e["codes"]) for d, e in _ref._SEMANTIC_CORPORA.items()},
+    }
+
+
 @app.get("/health")
 def health():
-    """Healthcheck endpoint — retourne le statut du service RICE."""
+    """Healthcheck public : statut + indicateur « IA locale » (sans détail interne)."""
+    status = _ia_status()
     return {
         "status": "ok",
         "service": "rice",
-        "llm": "disabled",
-        "extraction_mode": "regex + table NER",
+        "llm": "aucun",
+        "ia_locale": status["semantic_model_loaded"] and status["hf_offline"],
+        "semantic_model_loaded": status["semantic_model_loaded"],
     }
+
 
 @app.get("/metrics")
 def metrics():
-    """Metriques techniques pour monitoring DSI."""
-    import os, time
+    """Métriques techniques pour monitoring DSI (route protégée par JWT)."""
+    import resource
+
     return {
         "service": "rice",
-        "uptime_seconds": time.time() - _start_time,
-        "memory_mb": 0,
-        "llm_available": False,
-        "semantic_available": True,
-        "cache_entries": 0,
+        "uptime_seconds": round(time.time() - _start_time, 1),
+        # ru_maxrss est en Ko sous Linux (image Docker).
+        "max_rss_mb": round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1),
+        "ia": _ia_status(),
     }
 
-_start_time = __import__('time').time()
+
+_start_time = time.time()

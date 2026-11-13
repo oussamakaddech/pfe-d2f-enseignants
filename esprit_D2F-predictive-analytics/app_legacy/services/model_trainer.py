@@ -43,22 +43,109 @@ _SIDECAR_SUFFIXES = (".sha256", ".hmac")
 
 
 def _metadata_path() -> str:
-    return os.path.join(settings.models_dir, "training_metadata.json")
+    """Métadonnées APPARIÉES à l'artefact réellement servi.
+
+    Ce chemin était figé sur ``training_metadata.json``, qui décrit l'ancien
+    ``gap_predictor.joblib`` (gradient_boosting, 21 features, 80 échantillons,
+    ``test_r2 = 1.0`` après suppression de 14 features constantes), alors que
+    ``GAP_MODEL_FILE`` sert ``gap_predictor_temporal.joblib``. Le KPI de
+    performance du modèle affichait donc « précision 100 % » pour un modèle
+    dont le R² réel est 0,2458. Même correctif que ``gap_predictor`` : le nom
+    du fichier se déduit de l'artefact servi.
+    """
+    return os.path.join(settings.models_dir, gp_module.TRAINING_METADATA_FILE)
+
+
+def _read_json(path: str) -> dict[str, Any]:
+    """Lecture JSON best-effort (dict vide si absent ou illisible)."""
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception as exc:  # pragma: no cover - lecture best-effort
+        logger.warning("Lecture JSON impossible (%s) : %s", path, exc)
+        return {}
 
 
 def read_current_accuracy() -> Optional[float]:
-    """Lit le R² test du modèle courant (None si absent / jamais entraîné)."""
-    path = _metadata_path()
-    if not os.path.exists(path):
+    """R² test du modèle servi (None si absent / jamais entraîné).
+
+    Sert la détection de RÉGRESSION au ré-entraînement : ``accuracy_after``
+    est lui aussi un ``test_r2``, la comparaison reste donc homogène. Ce n'est
+    PAS une précision affichable — pour l'affichage, voir
+    ``read_served_model_metrics()``.
+    """
+    val = (_read_json(_metadata_path()).get("metrics") or {}).get("test_r2")
+    try:
+        return float(val) if val is not None else None
+    except (TypeError, ValueError):
         return None
+
+
+def _active_registry_entry() -> dict[str, Any]:
+    """Entrée ACTIVE du registre d'artefacts (dict vide si aucune)."""
+    path = os.path.join(settings.models_dir, getattr(settings, "ml_registry_path", None)
+                        or "model_registry.json")
+    if not os.path.exists(path):
+        return {}
     try:
         with open(path, "r", encoding="utf-8") as f:
-            meta = json.load(f)
-        val = (meta.get("metrics") or {}).get("test_r2")
-        return float(val) if val is not None else None
+            entries = json.load(f)
+        if not isinstance(entries, list):
+            return {}
+        actives = [e for e in entries if isinstance(e, dict) and e.get("status") == "ACTIVE"]
+        return actives[-1] if actives else {}
     except Exception as exc:  # pragma: no cover - lecture best-effort
-        logger.warning("Impossible de lire l'accuracy courante : %s", exc)
+        logger.warning("Lecture du registre impossible : %s", exc)
+        return {}
+
+
+def _ratio(value: Any) -> Optional[float]:
+    """Convertit un pourcentage de registre (0..100) en ratio 0..1."""
+    try:
+        return round(float(value) / 100.0, 4)
+    except (TypeError, ValueError):
         return None
+
+
+def read_served_model_metrics() -> dict[str, Any]:
+    """Métriques AFFICHABLES du modèle réellement servi.
+
+    Le R² n'est pas une précision : l'exposer sous le libellé « accuracy »
+    laissait croire à une performance de 100 % là où le modèle servi place
+    34,9 % de ses prédictions à moins d'un niveau de la cible. Les deux
+    familles de métriques sont donc distinctes et nommées explicitement :
+    - ``r2``/``rmse``/``mae`` viennent de la metadata appariée à l'artefact ;
+    - ``accuracy_pm05``/``accuracy_pm10`` (part des prédictions à +/- 0,5 et
+      +/- 1,0 niveau) viennent de l'entrée ACTIVE du registre, seule source
+      qui les porte.
+    """
+    meta = _read_json(_metadata_path())
+    metrics = meta.get("metrics") or {}
+    entry = _active_registry_entry()
+    entry_metrics = entry.get("metrics") or {}
+
+    def _num(value: Any) -> Optional[float]:
+        try:
+            return float(value) if value is not None else None
+        except (TypeError, ValueError):
+            return None
+
+    return {
+        "model_name": entry.get("model_name") or meta.get("model_name"),
+        "model_version": entry.get("model_version") or meta.get("model_version"),
+        "algorithm": meta.get("algorithm"),
+        "n_features": meta.get("n_features") or len(entry.get("feature_names") or []) or None,
+        "metadata_file": gp_module.TRAINING_METADATA_FILE,
+        "r2": _num(metrics.get("test_r2")),
+        "rmse": _num(metrics.get("test_rmse")),
+        "mae": _num(metrics.get("test_mae")),
+        "accuracy_pm05": _ratio(entry_metrics.get("accuracy_pm05")),
+        "accuracy_pm10": _ratio(entry_metrics.get("accuracy_pm10")),
+        "target_validity": entry.get("target_validity"),
+    }
 
 
 def _backup_artifact() -> list[tuple[str, str]]:

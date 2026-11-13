@@ -2,12 +2,22 @@
  * BesoinList — Page shell (thin orchestrator, ≤ 200 lines)
  * State & logic: useBesoinList | Table: BesoinTable | Mail: BesoinMailCupModal
  * ─────────────────────────────────────────────────────────────────────── */
-import { Row, Col, Skeleton, Button, Pagination } from 'antd';
-import { InboxOutlined, PlusOutlined, ClearOutlined } from '@ant-design/icons';
+import { useState } from 'react';
+import { Row, Col, Skeleton, Button, Pagination, Space, Tabs } from 'antd';
+import {
+  InboxOutlined,
+  PlusOutlined,
+  ClearOutlined,
+  ApartmentOutlined,
+  CheckCircleOutlined,
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
-import { useHasPermission } from '@/routes/guards';
+import { useHasPermission, useUserRole } from '@/routes/guards';
+import { useAuth } from '@/hooks/auth/useAuth';
+import { hasAnyRole, ROLES } from '@/utils/constants/roles';
 import { useBesoinList, INITIAL_FILTERS } from './hooks/useBesoinList';
+import { useApprovedBesoins } from '@/hooks/besoin/useBesoins';
 import BesoinHeader from './components/BesoinHeader';
 import BesoinStatsRow from './components/BesoinStatsRow';
 import BesoinFiltersPanel from './components/BesoinFiltersPanel';
@@ -15,6 +25,8 @@ import ViewModeToggle from './components/ViewModeToggle';
 import BesoinCard from './components/BesoinCard';
 import BesoinTable from './components/BesoinTable';
 import BesoinMailCupModal from './components/BesoinMailCupModal';
+import BesoinRejectModal from './components/BesoinRejectModal';
+import BesoinScopesModal from './components/BesoinScopesModal';
 import BesoinEditModal from '@/components/besoin/BesoinEditModal';
 
 import '@/styles/pages/besoin-tokens.css';
@@ -22,10 +34,44 @@ import '@/styles/pages/besoin-list.css';
 
 type BfRefItem = { id: string | number; name?: string; libelle?: string };
 
+/** Libellé du bouton d'ajout selon le rôle (individuel vs collectif). */
+function resolveAddLabel(userRole: string): string {
+  if (hasAnyRole(userRole, [ROLES.ENSEIGNANT, ROLES.ANIMATEUR])) {
+    return 'Déposer un besoin individuel';
+  }
+  if (hasAnyRole(userRole, [ROLES.CUP])) {
+    return 'Créer un besoin collectif pour mon UP';
+  }
+  if (hasAnyRole(userRole, [ROLES.CHEF_DEPARTEMENT])) {
+    return 'Créer un besoin collectif pour mon département';
+  }
+  return 'Ajouter un besoin';
+}
+
 export default function BesoinList() {
   const navigate = useNavigate();
   const canAdd = useHasPermission('BESOIN_FORMATION', 'CREATE');
+  const canApprove = useHasPermission('BESOIN_FORMATION', 'APPROVE');
+  const canReject = useHasPermission('BESOIN_FORMATION', 'REJECT');
+  const canEdit = useHasPermission('BESOIN_FORMATION', 'UPDATE');
+  const canDelete = useHasPermission('BESOIN_FORMATION', 'DELETE');
+  const canManageScopes = useHasPermission('BESOIN_FORMATION', 'MANAGE_SCOPES');
+  // Parité FORMATION_CREATE (ADMIN, CUP, CHEF_DEPARTEMENT) : depuis un besoin
+  // approuvé, les valideurs créent la formation correspondante.
+  const canCreateFormation = useHasPermission('FORMATION', 'CREATE');
+  // Parité backend BESOIN_FORMATION_READ_ALL : l'ENSEIGNANT en est exclu —
+  // ne pas appeler /approved pour ce rôle (403 sinon).
+  const canReadAll = useHasPermission('BESOIN_FORMATION', 'READ_ALL');
+  const userRole = useUserRole() ?? '';
+  const { user } = useAuth();
+  const addLabel = resolveAddLabel(userRole);
+  const currentUsername = user?.username ?? user?.userName ?? null;
+  const currentUserId = user?.userId ?? user?.id ?? null;
+  const [rejectRecord, setRejectRecord] = useState<Record<string, unknown> | null>(null);
+  const [scopesOpen, setScopesOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('active');
   const ctx = useBesoinList();
+  const { data: approvedBesoins = [], isLoading: loadingApproved } = useApprovedBesoins(canReadAll);
 
   const {
     besoins,
@@ -36,7 +82,6 @@ export default function BesoinList() {
     departements,
     ups,
     cupAccounts,
-    types,
     acteurOptions,
     searchText,
     setSearchText,
@@ -64,6 +109,7 @@ export default function BesoinList() {
     periodLabelOf,
     handleDelete,
     handleApprove,
+    handleReject,
     openEdit,
     handleEditSave,
     openMailModal,
@@ -75,13 +121,17 @@ export default function BesoinList() {
   const typedUps = ups as unknown as BfRefItem[];
   const typedDepts = departements as unknown as BfRefItem[];
 
+  // Onglet « Approuvés » : l'export Excel porte sur cette liste, pas sur celle
+  // des besoins en cours (qui peut être vide).
+  const exportRows = activeTab === 'approved' ? approvedBesoins : filtered;
+
   const hasActiveFilters =
     !!searchText ||
     !!filters.deptId ||
     !!filters.upId ||
-    !!filters.type ||
     !!filters.statut ||
     !!filters.priorite ||
+    !!filters.periodCode ||
     !!(filters.dateRange?.[0] && filters.dateRange?.[1]);
 
   if (loading && besoins.length === 0) {
@@ -123,131 +173,268 @@ export default function BesoinList() {
           total={stats.total}
           filteredCount={filtered.length}
           loading={loading}
-          exportDisabled={filtered.length === 0}
+          exportDisabled={exportRows.length === 0}
           canAdd={canAdd}
+          addLabel={addLabel}
           onRefresh={() => refetchBesoins()}
-          onExport={exportToExcel}
+          onExport={() => exportToExcel(activeTab === 'approved' ? approvedBesoins : undefined)}
           onAdd={() => navigate('/home/besoins/ajouter')}
         />
       </div>
 
       <BesoinStatsRow total={stats.total} approved={stats.approved} pending={stats.pending} />
 
-      <BesoinFiltersPanel
-        searchText={searchText}
-        filters={filters}
-        types={types.filter(Boolean) as string[]}
-        ups={typedUps}
-        departements={typedDepts}
-        onSearchChange={setSearchText}
-        onFiltersChange={(f) => setFilters(f as typeof INITIAL_FILTERS)}
-        onReset={() => {
-          setFilters(INITIAL_FILTERS);
-          setSearchText('');
-        }}
+      <Tabs
+        className="bf-tabs"
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        style={{ marginBottom: 16 }}
+        items={[
+          {
+            key: 'active',
+            label: (
+              <span className="bf-tab-label">
+                Besoins en cours <span className="bf-tab-count">{filtered.length}</span>
+              </span>
+            ),
+            children: null,
+          },
+          // Onglet réservé aux rôles READ_ALL (parité backend) : masqué pour
+          // l'ENSEIGNANT qui n'a pas accès à /approved.
+          ...(canReadAll
+            ? [
+                {
+                  key: 'approved',
+                  label: (
+                    <span className="bf-tab-label">
+                      Approuvés <span className="bf-tab-count">{approvedBesoins.length}</span>
+                    </span>
+                  ),
+                  children: null,
+                },
+              ]
+            : []),
+        ]}
       />
 
-      <ViewModeToggle
-        value={viewMode}
-        onChange={setViewMode}
-        count={filtered.length}
-        total={stats.total}
-      />
-
-      {filtered.length === 0 && !loading && (
-        <output className="bf-empty">
-          <div className="bf-empty__illustration" aria-hidden="true">
-            <InboxOutlined />
-          </div>
-          <h3 className="bf-empty__title">
-            {hasActiveFilters
-              ? 'Aucun besoin ne correspond à vos critères'
-              : 'Aucun besoin enregistré'}
-          </h3>
-          <p className="bf-empty__subtitle">
-            {hasActiveFilters
-              ? "Essayez d'élargir vos filtres ou de réinitialiser la recherche pour voir l'ensemble des demandes."
-              : 'Commencez par enregistrer une première demande de formation pour la rendre visible aux unités pédagogiques.'}
-          </p>
-          <div className="bf-empty__actions">
-            {hasActiveFilters && (
-              <Button
-                icon={<ClearOutlined />}
-                onClick={() => {
-                  setFilters(INITIAL_FILTERS);
-                  setSearchText('');
-                }}
-                className="bf-btn bf-btn--ghost"
-              >
-                Réinitialiser les filtres
-              </Button>
-            )}
-            {canAdd && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => navigate('/home/besoins/ajouter')}
-                className="bf-btn bf-btn--primary"
-              >
-                Ajouter un besoin
-              </Button>
-            )}
-          </div>
-        </output>
-      )}
-
-      {viewMode === 'cards' && filtered.length > 0 && (
+      {activeTab === 'active' && (
         <>
-          <Row gutter={[16, 16]} className="bf-grid">
-            {pagedCards.map((b) => {
-              const br = b as unknown as Record<string, unknown>;
-              const id = getBesoinId(br);
-              return (
-                <Col xs={24} sm={12} lg={8} xxl={6} key={String(id)}>
-                  <BesoinCard
-                    besoin={b}
-                    upLabel={getLabel(findById(typedUps, b.up))}
-                    deptLabel={getLabel(findById(typedDepts, b.departement))}
-                    periodLabel={periodLabelOf(br)}
-                    approvingId={approvingId}
-                    onApprove={handleApprove}
-                    onOpenMail={openMailModal}
-                    onEdit={openEdit}
-                    onDelete={handleDelete}
-                    onOpen={() => openEdit(br)}
-                  />
-                </Col>
-              );
-            })}
-          </Row>
-          <div className="bf-pagination">
-            <Pagination
-              current={page}
-              pageSize={pageSize}
-              total={filtered.length}
-              onChange={(p, s) => {
-                setPage(p);
-                setPageSize(s);
+          <BesoinFiltersPanel
+            searchText={searchText}
+            filters={filters}
+            ups={typedUps}
+            departements={typedDepts}
+            onSearchChange={setSearchText}
+            onFiltersChange={(f) => setFilters(f as typeof INITIAL_FILTERS)}
+            onReset={() => {
+              setFilters(INITIAL_FILTERS);
+              setSearchText('');
+            }}
+          />
+
+          <ViewModeToggle
+            value={viewMode}
+            onChange={setViewMode}
+            count={filtered.length}
+            total={stats.total}
+          />
+
+          {canManageScopes && (
+            <Space style={{ marginBottom: 12 }}>
+              <Button icon={<ApartmentOutlined />} onClick={() => setScopesOpen(true)}>
+                Périmètres utilisateurs (UP / départements)
+              </Button>
+            </Space>
+          )}
+
+          {filtered.length === 0 && !loading && (
+            <output className="bf-empty">
+              <div className="bf-empty__illustration" aria-hidden="true">
+                <InboxOutlined />
+              </div>
+              <h3 className="bf-empty__title">
+                {hasActiveFilters
+                  ? 'Aucun besoin ne correspond à vos critères'
+                  : 'Aucun besoin enregistré'}
+              </h3>
+              <p className="bf-empty__subtitle">
+                {hasActiveFilters
+                  ? "Essayez d'élargir vos filtres ou de réinitialiser la recherche pour voir l'ensemble des demandes."
+                  : 'Commencez par enregistrer une première demande de formation pour la rendre visible aux unités pédagogiques.'}
+              </p>
+              <div className="bf-empty__actions">
+                {hasActiveFilters && (
+                  <Button
+                    icon={<ClearOutlined />}
+                    onClick={() => {
+                      setFilters(INITIAL_FILTERS);
+                      setSearchText('');
+                    }}
+                    className="bf-btn bf-btn--ghost"
+                  >
+                    Réinitialiser les filtres
+                  </Button>
+                )}
+                {canAdd && (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => navigate('/home/besoins/ajouter')}
+                    className="bf-btn bf-btn--primary"
+                  >
+                    {addLabel}
+                  </Button>
+                )}
+              </div>
+            </output>
+          )}
+
+          {viewMode === 'cards' && filtered.length > 0 && (
+            <>
+              <Row gutter={[16, 16]} className="bf-grid">
+                {pagedCards.map((b) => {
+                  const br = b as unknown as Record<string, unknown>;
+                  const id = getBesoinId(br);
+                  return (
+                    <Col xs={24} sm={12} lg={8} xxl={6} key={String(id)}>
+                      <BesoinCard
+                        besoin={b}
+                        upLabel={getLabel(findById(typedUps, b.up))}
+                        deptLabel={getLabel(findById(typedDepts, b.departement))}
+                        periodLabel={periodLabelOf(br)}
+                        approvingId={approvingId}
+                        canApprove={canApprove}
+                        canReject={canReject}
+                        canEdit={canEdit}
+                        canDelete={canDelete}
+                        userRole={userRole}
+                        currentUsername={currentUsername}
+                        currentUserId={currentUserId}
+                        onApprove={handleApprove}
+                        onReject={setRejectRecord}
+                        onOpenMail={openMailModal}
+                        onEdit={openEdit}
+                        onDelete={handleDelete}
+                        onOpen={() => openEdit(br)}
+                      />
+                    </Col>
+                  );
+                })}
+              </Row>
+              <div className="bf-pagination">
+                <Pagination
+                  current={page}
+                  pageSize={pageSize}
+                  total={filtered.length}
+                  onChange={(p, s) => {
+                    setPage(p);
+                    setPageSize(s);
+                  }}
+                  showSizeChanger
+                  pageSizeOptions={[8, 12, 16, 24, 48]}
+                  showTotal={(t, [a, b]) => `${a}-${b} sur ${t} besoins`}
+                />
+              </div>
+            </>
+          )}
+
+          {viewMode === 'table' && filtered.length > 0 && (
+            <BesoinTable
+              data={filtered as unknown as Record<string, unknown>[]}
+              loading={loading}
+              approvingId={approvingId}
+              canApprove={canApprove}
+              canReject={canReject}
+              canEdit={canEdit}
+              canDelete={canDelete}
+              userRole={userRole}
+              currentUsername={currentUsername}
+              currentUserId={currentUserId}
+              getBesoinId={getBesoinId}
+              onApprove={handleApprove}
+              onReject={setRejectRecord}
+              onOpenMail={openMailModal}
+              onEdit={openEdit}
+              onDelete={handleDelete}
+              onOpen={openEdit}
+              resolveUp={(r) => getLabel(findById(typedUps, r.up))}
+              resolveDept={(r) => getLabel(findById(typedDepts, r.departement))}
+              resolvePeriod={(r) => periodLabelOf(r)}
+              pagination={{
+                current: page,
+                pageSize,
+                total: filtered.length,
+                showSizeChanger: true,
+                pageSizeOptions: [8, 12, 16, 24, 48],
+                showTotal: (t: number, range: number[]) => `${range[0]}-${range[1]} sur ${t} besoins`,
+                onChange: (p: number, ps: number) => {
+                  setPage(p);
+                  setPageSize(ps);
+                },
               }}
-              showSizeChanger
-              pageSizeOptions={[8, 12, 16, 24, 48]}
-              showTotal={(t, [a, b]) => `${a}-${b} sur ${t} besoins`}
             />
-          </div>
+          )}
         </>
       )}
 
-      {viewMode === 'table' && filtered.length > 0 && (
-        <BesoinTable
-          data={filtered as unknown as Record<string, unknown>[]}
-          loading={loading}
-          approvingId={approvingId}
-          getBesoinId={getBesoinId}
-          onApprove={handleApprove}
-          onOpenMail={openMailModal}
-          onEdit={openEdit}
-          onDelete={handleDelete}
-        />
+      {canReadAll && activeTab === 'approved' && (
+        <>
+          {loadingApproved && <Skeleton active paragraph={{ rows: 2 }} />}
+          {!loadingApproved && approvedBesoins.length === 0 && (
+            <output className="bf-empty">
+              <div className="bf-empty__illustration" aria-hidden="true">
+                <CheckCircleOutlined />
+              </div>
+              <h3 className="bf-empty__title">Aucun besoin approuvé</h3>
+              <p className="bf-empty__subtitle">
+                Les besoins approuvés par le D2F apparaîtront ici en lecture seule.
+              </p>
+            </output>
+          )}
+          {!loadingApproved && approvedBesoins.length > 0 && (
+            <>
+              <div className="bf-viewmode">
+                <div className="bf-viewmode__count">
+                  <span className="bf-viewmode__count-value">{approvedBesoins.length}</span>
+                  <span className="bf-viewmode__count-label">besoin(s) approuvé(s)</span>
+                </div>
+              </div>
+              <BesoinTable
+              data={approvedBesoins as unknown as Record<string, unknown>[]}
+              loading={false}
+              approvingId={null}
+              canApprove={false}
+              canReject={false}
+              canEdit={false}
+              canDelete={canDelete}
+              userRole={userRole}
+              currentUsername={currentUsername}
+              currentUserId={currentUserId}
+              getBesoinId={getBesoinId}
+              onApprove={() => {}}
+              onReject={() => {}}
+              onOpenMail={openMailModal}
+              onEdit={openEdit}
+              onDelete={handleDelete}
+              onOpen={openEdit}
+              resolveUp={(r) => getLabel(findById(typedUps, r.up))}
+              resolveDept={(r) => getLabel(findById(typedDepts, r.departement))}
+              resolvePeriod={(r) => periodLabelOf(r)}
+              onCreateFormation={
+                canCreateFormation
+                  ? (r) => navigate('/home/Formation/Creer', { state: { besoinInfo: r } })
+                  : undefined
+              }
+              pagination={{
+                pageSize: 10,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 20, 50],
+                showTotal: (t: number) => `${t} besoin(s) approuvé(s)`,
+              }}
+            />
+            </>
+          )}
+        </>
       )}
 
       {/* Edit Modal (delegated to existing shared component) */}
@@ -272,6 +459,31 @@ export default function BesoinList() {
         onConfirm={handleSendMail}
         onCancel={() => setMailModalOpen(false)}
       />
+
+      {/* Reject Modal (motif obligatoire) */}
+      <BesoinRejectModal
+        open={rejectRecord !== null}
+        title={
+          rejectRecord
+            ? String(rejectRecord.titre ?? rejectRecord.objectifFormation ?? 'Besoin de formation')
+            : undefined
+        }
+        onConfirm={(reason) => {
+          if (rejectRecord) handleReject(rejectRecord, reason);
+          setRejectRecord(null);
+        }}
+        onCancel={() => setRejectRecord(null)}
+      />
+
+      {/* Périmètres validateurs (ADMIN) */}
+      {canManageScopes && (
+        <BesoinScopesModal
+          open={scopesOpen}
+          ups={typedUps}
+          departements={typedDepts}
+          onClose={() => setScopesOpen(false)}
+        />
+      )}
     </div>
   );
 }

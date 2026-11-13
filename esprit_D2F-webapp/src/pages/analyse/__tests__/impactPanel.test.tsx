@@ -20,9 +20,8 @@ const gap: SkillGap = {
   competence_code: 'C1',
   competence_nom: 'Python',
   domaine_nom: null,
-  niveau_actuel: 2,
-  niveau_requis: 4,
-  niveau_vise: 4,
+  observed_result: 2,
+  knowledge_difficulty_level: 4,
   gap_score: 0.5,
   priorite_score: 1,
   niveau_urgence: 'HAUTE',
@@ -31,6 +30,7 @@ const gap: SkillGap = {
   nb_besoins_exprimes: 0,
   justification: null,
   computed_at: '2024-01-01',
+  trend: null,
 };
 
 const reco: Recommendation = {

@@ -9,6 +9,7 @@ from app.api.v1 import (
     gaps,
     health,
     integrations,
+    ml_observability_api,
     needs,
     recommendations,
     risk,
@@ -28,3 +29,4 @@ router.include_router(needs.router)
 router.include_router(dashboards.router)
 router.include_router(dashboard_real.router)
 router.include_router(integrations.router)
+router.include_router(ml_observability_api.router)

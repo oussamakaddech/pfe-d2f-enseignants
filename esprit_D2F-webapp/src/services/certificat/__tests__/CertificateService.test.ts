@@ -64,4 +64,40 @@ describe('CertificateService', () => {
     const res2 = await CertificateService.generateCertificates(10);
     expect(res2).toEqual(['pdf1', 'pdf2']);
   });
+
+  it('revokes a certificate with a mandatory reason', async () => {
+    httpMocks.mockPut.mockResolvedValueOnce({
+      data: { id: 7, certificateStatus: 'REVOKED', revocationReason: 'Fraude' },
+    });
+    const res = await CertificateService.revokeCertificate(7, 'Fraude');
+    expect(httpMocks.mockPut).toHaveBeenCalledWith(expect.stringContaining('/7/revoke'), {
+      reason: 'Fraude',
+    });
+    expect(res.certificateStatus).toBe('REVOKED');
+  });
+
+  it('fetches global and per-formation indicators', async () => {
+    const indicators = { eligibleCount: 10, deliveredCount: 6, pendingCount: 3, revokedCount: 1 };
+    httpMocks.mockGet.mockResolvedValueOnce({ data: indicators });
+    const res = await CertificateService.getIndicators();
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/indicators'));
+    expect(res).toEqual(indicators);
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { ...indicators, eligibleCount: 5 } });
+    const res2 = await CertificateService.getIndicatorsByFormation(42);
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('/indicators/formation/42'),
+    );
+    expect(res2.eligibleCount).toBe(5);
+  });
+
+  it('verifies a certificate by number (public endpoint)', async () => {
+    const verification = { certificateNumber: 'CERT-2026-000123', certificateStatus: 'ISSUED' };
+    httpMocks.mockGet.mockResolvedValueOnce({ data: verification });
+    const res = await CertificateService.verifyCertificate('CERT-2026-000123');
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('/verify/CERT-2026-000123'),
+    );
+    expect(res.certificateStatus).toBe('ISSUED');
+  });
 });

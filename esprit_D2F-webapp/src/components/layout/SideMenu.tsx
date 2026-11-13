@@ -4,16 +4,11 @@ import type { MenuProps } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/auth';
+import { resolvePrimaryRole } from '@/utils/constants/roles';
 import { roleMenus, accountGroup, type MenuItem } from './sideMenuData';
 import '@/styles/components/sidemenu.css';
 
 const { Text } = Typography;
-
-const normalizeRole = (value: unknown) =>
-  String(value ?? '')
-    .toLowerCase()
-    .replace(/^role_?/, '')
-    .replaceAll(/[\s_-]+/g, '');
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Administrateur',
@@ -44,10 +39,10 @@ function processItems(items: MenuItem[]): AntdMenuItem[] {
 
 function getDefaultOpenKeys(pathname: string): string[] {
   if (pathname.startsWith('/home/besoins')) return ['besoin_formation_menu'];
-  if (pathname.startsWith('/home/rice')) return ['rice_ia_group'];
+  // Vue RICE est une entrée autonome ; seuls Affectations et Matchmaking IA
+  // vivent dans le sous-menu « Gestion Affectation ».
   if (pathname.startsWith('/home/affectations') || pathname.startsWith('/home/rice/matchmaking'))
     return ['gestion_affectation'];
-  if (pathname.startsWith('/home/bureaux')) return [];
   return [];
 }
 
@@ -55,7 +50,9 @@ const SideMenu = memo(function SideMenu({ collapsed }: { collapsed?: boolean }) 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const roleKey = normalizeRole(user?.role);
+  // Le scope JWT peut être composé (ex. "ROLE_D2F ROLE_RESPONSABLE_DOSSIER") :
+  // on résout le premier rôle connu pour choisir le bon menu (sinon sidebar vide).
+  const roleKey = resolvePrimaryRole(user?.role, Object.keys(roleMenus));
 
   const items = useMemo(() => {
     if (!user) return [];

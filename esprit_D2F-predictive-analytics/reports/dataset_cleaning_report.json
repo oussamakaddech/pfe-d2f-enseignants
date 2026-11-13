@@ -1,0 +1,33 @@
+{
+  "dataset_path": "data\\clean\\training_corpus_provenanced.csv",
+  "dataset_version": "v1.3.0",
+  "dataset_hash_after": "4c9b9ab56e7fcacc18b65740c09808be7a01daae957204de7e5914928e5b8d5e",
+  "initial_rows": 200,
+  "final_rows": 200,
+  "rows_removed": 0,
+  "rows_corrected": 0,
+  "rows_quarantined": 0,
+  "type_corrections": [],
+  "duplicate_actions": [],
+  "duplicate_conflicts": 0,
+  "missing_values": {
+    "target_observation_date": 200
+  },
+  "imputation_actions": [],
+  "out_of_range": {},
+  "range_actions": [],
+  "date_issues": {},
+  "date_actions": [],
+  "id_issues": {},
+  "id_actions": [],
+  "granularity": {
+    "granularity": "one_row_per_teacher_competence_month",
+    "valid": true,
+    "violations": []
+  },
+  "provenance": {
+    "total_rows": 200,
+    "real_rows": 200,
+    "synthetic_rows": 0
+  }
+}

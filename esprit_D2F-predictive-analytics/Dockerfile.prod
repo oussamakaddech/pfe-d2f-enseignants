@@ -41,6 +41,8 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 # Application code (no tests, no init_db, no ML experimental deps)
 COPY app/ ./app/
+# Legacy routes /api/v1/d2f/* requises par app/legacy_compat_runtime.py
+COPY app_legacy/ ./app_legacy/
 
 # Master dataset (CSV) for /api/v1/d2f/* endpoints
 COPY data/clean/ ./data/clean/

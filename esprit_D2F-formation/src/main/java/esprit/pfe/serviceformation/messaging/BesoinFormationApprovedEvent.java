@@ -5,6 +5,9 @@ import lombok.*;
 
 @Data @NoArgsConstructor @AllArgsConstructor @Builder
 public class BesoinFormationApprovedEvent {
+    /** Identifiant unique de l'événement (traçabilité / déduplication). */
+    private String eventId;
+    private String eventType;
     private Long idBesoinFormation;
     private String username;
     private String typeBesoin;
@@ -32,5 +35,13 @@ public class BesoinFormationApprovedEvent {
     private String notificationMessage;
     private String periodCode;
     private String customPeriodLabel;
+    // ── Workflow sécurisé (§7) : métadonnées d'audit (optionnelles côté consumer).
+    private String createdByRole;
+    private String upId;
+    private String departmentId;
+    private java.util.List<Long> competenceIds;
+    private String approvedBy;
+    private String occurredAt;
+    private String approvedAt;
 }
 

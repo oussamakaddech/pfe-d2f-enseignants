@@ -200,15 +200,17 @@ class PilotageDashboardEngine:
         puis le coefficient de corrélation de Pearson entre les deux séries.
         Renvoie aussi le top des paires les plus corrélées.
         """
-        # Besoins exprimés par compétence (via besoin_formation ↔ compétence).
+        # Besoins exprimés par compétence : le lien vit dans la table de
+        # jointure besoin_competences (besoin_formation n'a pas de competence_id).
         besoins = self.db.execute(
             __import__("sqlalchemy").text(
                 """
-                SELECT bf.competence_id AS cid, COUNT(*) AS nb
-                FROM besoin_formation bf
-                WHERE bf.competence_id IS NOT NULL
+                SELECT bc.competence_id AS cid, COUNT(DISTINCT bf.id_besoin_formation) AS nb
+                FROM besoin.besoin_competences bc
+                JOIN besoin.besoin_formation bf ON bf.id_besoin_formation = bc.besoin_id
+                WHERE bc.competence_id IS NOT NULL
                   AND bf.deleted_at IS NULL
-                GROUP BY bf.competence_id
+                GROUP BY bc.competence_id
                 """
             )
         ).fetchall()

@@ -6,6 +6,7 @@ import { Form } from 'antd';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import type { Id } from '@/models/common';
+import type { BesoinFormation } from '@/models/besoin';
 
 import { writeExcel, exportDateLabel, isoDate } from '@/utils/helpers/excelExport';
 import { useSendEmail } from '@/hooks/formation';
@@ -15,31 +16,35 @@ import { ROLES, normalizeRole } from '@/utils/constants/roles';
 import {
   useBesoins,
   useMyBesoins,
+  useScopeBesoins,
   useModifyBesoin,
   useRemoveBesoin,
   useApproveBesoin,
+  useRejectBesoin,
+  useCancelBesoin,
 } from '@/hooks/besoin/useBesoins';
+import { getDecisionState, statusLabel } from '@/utils/besoin/workflow';
 import { useDepartements, useUps, useAllAccounts } from '@/hooks/formation/useFormations';
 import { useEnseignants } from '@/hooks/enseignant/useEnseignants';
 import { buildFormationNeedHtmlEmail } from '@/pages/besoin/components/BesoinMailCupModal';
 import { buildActeurOptions, serializeActeurs, parseActeurs } from '@/utils/besoin/acteurs';
 
+// Codes de période alignés sur l'énumération backend `PeriodCode`
+// (WINTER, SUMMER, SPRINT, WORKSHOP, OTHER).
 const PERIOD_OPTIONS = [
-  { value: 'P1', label: 'Période 1' },
-  { value: 'P2', label: 'Période 2' },
-  { value: 'P3', label: 'Période 3' },
-  { value: 'P4', label: 'Période 4' },
-  { value: 'SUMMER', label: "Session d'Été" },
+  { value: 'SPRINT', label: 'Sprint' },
   { value: 'WINTER', label: "Session d'Hiver" },
+  { value: 'SUMMER', label: "Session d'Été" },
+  { value: 'WORKSHOP', label: 'Atelier' },
   { value: 'OTHER', label: 'Autre' },
 ];
 
 export const INITIAL_FILTERS = {
   deptId: null as string | null,
   upId: null as string | null,
-  type: null as string | null,
   statut: null as string | null,
   priorite: null as string | null,
+  periodCode: null as string | null,
   dateRange: null as [dayjs.Dayjs, dayjs.Dayjs] | null,
 };
 
@@ -53,24 +58,63 @@ type LookupItem = {
   nom?: string;
 };
 
+/** Sélection de la requête besoins selon le périmètre (self / scopé / tout). */
+function selectBesoinsQuery<T>(
+  isSelfService: boolean,
+  isScoped: boolean,
+  myQuery: T,
+  scopeQuery: T,
+  allQuery: T,
+): T {
+  if (isSelfService) {
+    return myQuery;
+  }
+  if (isScoped) {
+    return scopeQuery;
+  }
+  return allQuery;
+}
+
+/** Message d'erreur métier renvoyé par le backend (403 périmètre, 409 transition...). */
+function getBackendMessage(err: unknown): string | null {
+  const e = err as {
+    response?: { data?: { message?: string; error?: string } };
+    message?: string;
+  };
+  return e?.response?.data?.message ?? e?.response?.data?.error ?? e?.message ?? null;
+}
+
+
 const SELF_SERVICE_ROLES = new Set([
   normalizeRole(ROLES.ENSEIGNANT),
   normalizeRole(ROLES.ANIMATEUR),
 ]);
 
+const SCOPED_ROLES = new Set([normalizeRole(ROLES.CUP), normalizeRole(ROLES.CHEF_DEPARTEMENT)]);
+
 export function useBesoinList() {
   const navigate = useNavigate();
   const { message: msgApi } = useAppNotification();
   const { user } = useAuth();
-  const isSelfService = SELF_SERVICE_ROLES.has(normalizeRole(user?.role));
+  const normalizedRole = normalizeRole(user?.role);
+  const isSelfService = SELF_SERVICE_ROLES.has(normalizedRole);
+  // CUP / chef : périmètre serveur via /scope (leurs UP / département uniquement).
+  const isScoped = SCOPED_ROLES.has(normalizedRole);
 
   const myBesoinsQuery = useMyBesoins(isSelfService);
-  const allBesoinsQuery = useBesoins(!isSelfService);
+  const scopeBesoinsQuery = useScopeBesoins(isScoped);
+  const allBesoinsQuery = useBesoins(!isSelfService && !isScoped);
   const {
     data: besoinsData = [],
     isLoading: loading,
     refetch: refetchBesoins,
-  } = isSelfService ? myBesoinsQuery : allBesoinsQuery;
+  } = selectBesoinsQuery(
+    isSelfService,
+    isScoped,
+    myBesoinsQuery,
+    scopeBesoinsQuery,
+    allBesoinsQuery,
+  );
   const { data: departements = [] } = useDepartements();
   const { data: ups = [] } = useUps();
   const { data: accountsData = [] } = useAllAccounts(false, !isSelfService);
@@ -80,14 +124,11 @@ export function useBesoinList() {
   const modifyMut = useModifyBesoin();
   const removeMut = useRemoveBesoin();
   const approveMut = useApproveBesoin();
+  const rejectMut = useRejectBesoin();
+  const cancelMut = useCancelBesoin();
   const sendEmailMut = useSendEmail();
 
   const besoins = besoinsData;
-
-  const types = useMemo(
-    () => [...new Set(besoins.map((b) => b.typeBesoin).filter(Boolean))],
-    [besoins],
-  );
 
   const cupAccounts = useMemo(
     () =>
@@ -102,7 +143,10 @@ export function useBesoinList() {
   // ── ui state ──
   const [searchText, setSearchText] = useState('');
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  // Vue tableau par défaut : les deux onglets de la page « Besoins de
+  // formation » s'affichent sous forme de tableau (la vue cartes reste
+  // accessible via le sélecteur d'affichage).
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
 
@@ -136,15 +180,36 @@ export function useBesoinList() {
     return opt ? opt.label : String(r.periodeFormation || '') || null;
   };
 
+  const isTerminalStatus = (b: { status?: string; approuveAdmin?: boolean }) =>
+    b.status === 'REJECTED' ||
+    b.status === 'CANCELLED' ||
+    b.status === 'FORMATION_CREATED' ||
+    (!b.status && !!b.approuveAdmin);
+
   // ── filtering ──
   const filtered = useMemo(() => {
     let res = Array.isArray(besoins) ? [...besoins] : [];
     if (filters.deptId) res = res.filter((b) => String(b.departement) === String(filters.deptId));
     if (filters.upId) res = res.filter((b) => String(b.up) === String(filters.upId));
-    if (filters.type) res = res.filter((b) => b.typeBesoin === filters.type);
     if (filters.priorite) res = res.filter((b) => b.priorite === filters.priorite);
-    if (filters.statut === 'approuve') res = res.filter((b) => b.approuveAdmin);
-    if (filters.statut === 'en_attente') res = res.filter((b) => !b.approuveAdmin);
+    if (filters.periodCode)
+      res = res.filter(
+        (b) =>
+          String(b.periodCode ?? '').toUpperCase() === String(filters.periodCode).toUpperCase(),
+      );
+    if (filters.statut === 'approuve')
+      res = res.filter((b) => b.approuveAdmin || b.status === 'FORMATION_CREATED');
+    if (filters.statut === 'en_attente') res = res.filter((b) => !isTerminalStatus(b));
+    if (filters.statut === 'rejete') res = res.filter((b) => b.status === 'REJECTED');
+    if (filters.statut === 'a_valider')
+      res = res.filter(
+        (b) =>
+          getDecisionState(b as unknown as Parameters<typeof getDecisionState>[0], {
+            username: user?.username ?? user?.userName,
+            userId: user?.userId ?? user?.id,
+            role: user?.role,
+          }).canApprove,
+      );
     if (searchText) {
       const s = searchText.toLowerCase();
       res = res.filter(
@@ -163,7 +228,7 @@ export function useBesoinList() {
       });
     }
     return res;
-  }, [besoins, filters, searchText]);
+  }, [besoins, filters, searchText, user]);
 
   useEffect(() => {
     setPage(1);
@@ -177,8 +242,11 @@ export function useBesoinList() {
 
   const stats = useMemo(() => {
     const total = besoins.length;
-    const approved = besoins.filter((b) => b.approuveAdmin).length;
-    return { total, approved, pending: total - approved };
+    const approved = besoins.filter(
+      (b) => b.approuveAdmin || b.status === 'FORMATION_CREATED',
+    ).length;
+    const rejected = besoins.filter((b) => b.status === 'REJECTED').length;
+    return { total, approved, pending: total - approved - rejected, rejected };
   }, [besoins]);
 
   // ── actions ──
@@ -203,13 +271,62 @@ export function useBesoinList() {
     }
     setApprovingId(id as string | number);
     try {
-      await approveMut.mutateAsync(id as Id);
-      msgApi.success('Besoin approuvé — redirection vers la création de formation...');
-      setTimeout(() => navigate('/home/Formation/Creer', { state: { besoinInfo: record } }), 800);
-    } catch {
-      msgApi.error("Erreur lors de l'approbation");
+      const updated = await approveMut.mutateAsync(id as Id);
+      // Validation par étapes (CUP → chef de département → administrateur) : une
+      // approbation intermédiaire laisse le besoin en attente de l'étape
+      // suivante. On ne propose donc la création de la formation que lorsque le
+      // besoin est réellement traité (statut FORMATION_CREATED).
+      const finalise =
+        updated?.status === 'FORMATION_CREATED' || updated?.approuveAdmin === true;
+      if (finalise) {
+        msgApi.success('Besoin approuvé — la formation peut être créée');
+        // Parité FORMATION_CREATE (ADMIN, CUP, CHEF_DEPARTEMENT) : les valideurs
+        // ont accès à la création de formation depuis le besoin approuvé.
+        setTimeout(() => navigate('/home/Formation/Creer', { state: { besoinInfo: record } }), 800);
+      } else if (updated?.status) {
+        msgApi.success(`Étape validée — ${statusLabel(updated.status)}`);
+      } else {
+        msgApi.success('Besoin approuvé');
+      }
+    } catch (err: unknown) {
+      msgApi.error(
+        `Erreur lors de l'approbation — ${getBackendMessage(err) ?? 'vérifiez vos droits et le statut du besoin'}`,
+      );
     } finally {
       setApprovingId(null);
+    }
+  };
+
+  const handleReject = async (record: Record<string, unknown>, reason: string) => {
+    const id = getBesoinId(record);
+    if (id == null) {
+      msgApi.error('Identifiant du besoin introuvable');
+      return;
+    }
+    setApprovingId(id as string | number);
+    try {
+      await rejectMut.mutateAsync({ id: id as Id, reason });
+      msgApi.success('Besoin refusé — le demandeur a été notifié');
+    } catch (err: unknown) {
+      msgApi.error(
+        `Erreur lors du refus — ${getBackendMessage(err) ?? 'vérifiez vos droits et le statut du besoin'}`,
+      );
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const handleCancel = async (record: Record<string, unknown>) => {
+    const id = getBesoinId(record);
+    if (id == null) {
+      msgApi.error('Identifiant du besoin introuvable');
+      return;
+    }
+    try {
+      await cancelMut.mutateAsync(id as Id);
+      msgApi.success('Besoin annulé');
+    } catch (err: unknown) {
+      msgApi.error(`Erreur lors de l'annulation — ${getBackendMessage(err) ?? ''}`);
     }
   };
 
@@ -314,9 +431,11 @@ export function useBesoinList() {
     }
   };
 
-  const exportToExcel = () => {
+  /** Exporte la liste courante, ou une liste fournie (onglet « Approuvés »). */
+  const exportToExcel = (source?: BesoinFormation[]) => {
     try {
-      const rows = filtered.map((b) => ({
+      const data = source ?? filtered;
+      const rows = data.map((b) => ({
         'Titre / Objectif': b.titre || b.objectifFormation || '—',
         Demandeur: b.username || '—',
         Type: b.typeBesoin || '—',
@@ -342,7 +461,7 @@ export function useBesoinList() {
         ],
         `Liste_Besoins_Formation_${isoDate()}.xlsx`,
       );
-      msgApi.success('Export Excel réussi');
+      msgApi.success(`Export Excel réussi (${data.length} besoin(s))`);
     } catch {
       msgApi.error("Erreur lors de l'exportation Excel");
     }
@@ -357,7 +476,6 @@ export function useBesoinList() {
     departements,
     ups,
     cupAccounts,
-    types,
     acteurOptions,
     searchText,
     setSearchText,
@@ -386,6 +504,10 @@ export function useBesoinList() {
     periodLabelOf,
     handleDelete,
     handleApprove,
+    handleReject,
+    handleCancel,
+    isScoped,
+    isValidator: isScoped,
     openEdit,
     handleEditSave,
     openMailModal,

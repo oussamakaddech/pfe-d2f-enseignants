@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Table, Input, Select, Button, Tooltip, Tag, Modal, Space } from 'antd';
+import { Table, Input, Select, Button, Tag, Modal, Space } from 'antd';
 import type { TableColumnsType } from 'antd';
 import {
   TeamOutlined,
@@ -14,7 +14,6 @@ import {
   SearchOutlined,
   LockOutlined,
   UnlockOutlined,
-  ExclamationCircleOutlined,
   UserOutlined,
 } from '@ant-design/icons';
 import { writeExcel, exportDateLabel, isoDate } from 'utils/helpers/excelExport';
@@ -28,7 +27,6 @@ import {
 import {
   useAllFormations,
   useFormationsVisibles,
-  useUpdateInscriptionsOuvertes,
   useFormationById,
 } from '@/hooks/formation/useFormations';
 import { InscriptionStatGrid } from '@/components/common';
@@ -89,7 +87,6 @@ export default function SuiviTab() {
   const { data: raw = [], isLoading, refetch, isFetching } = useAllInscriptions();
   const { data: allFormations = [] } = useAllFormations();
   const { data: visiblesFormations = [] } = useFormationsVisibles();
-  const { mutateAsync: updateOuvertes } = useUpdateInscriptionsOuvertes();
   const { mutateAsync: traiterMut } = useTraiterDemande();
   const { mutateAsync: traiterBulkMut } = useTraiterDemandeBulk();
   useSendEmail();
@@ -156,37 +153,6 @@ export default function SuiviTab() {
       rejected: rows.filter((r) => r.etat === 'REJECTED').length,
     };
   }, [rows]);
-
-  const formationStats = useMemo(() => {
-    const open = formationsList.filter((f) => f.inscriptionsOuvertes).length;
-    return { open, closed: formationsList.length - open, total: formationsList.length };
-  }, [formationsList]);
-
-  // ── Toggle inscription ──
-  const handleToggle = (f: FormationRow) => {
-    const id = f.idFormation;
-    if (!id) return;
-    const isOpen = f.inscriptionsOuvertes;
-    modal.confirm({
-      title: isOpen ? 'Fermer les inscriptions ?' : 'Ouvrir les inscriptions ?',
-      icon: <ExclamationCircleOutlined style={{ color: isOpen ? '#f59e0b' : '#059669' }} />,
-      content: isOpen
-        ? `Les inscriptions pour "${f.titreFormation}" seront fermées.`
-        : `Les inscriptions pour "${f.titreFormation}" seront ouvertes.`,
-      okText: isOpen ? 'Fermer' : 'Ouvrir',
-      cancelText: 'Annuler',
-      okButtonProps: isOpen ? { danger: true } : { type: 'primary' },
-      centered: true,
-      onOk: async () => {
-        try {
-          await updateOuvertes({ id, ouvert: !isOpen });
-          msgApi.success(isOpen ? 'Fermées' : 'Ouvertes');
-        } catch {
-          msgApi.error('Erreur lors de la mise à jour');
-        }
-      },
-    });
-  };
 
   // ── Per-formation demandes ──
   const { data: demandesRaw = [], isLoading: demandesLoading } = useInscriptionsByFormation(
@@ -533,45 +499,7 @@ export default function SuiviTab() {
         ]}
       />
 
-      {/* ── A. Formation toggle grid ── */}
-      <div className="suv-section">
-        <div className="suv-section-header">
-          <LockOutlined style={{ color: '#64748b' }} />
-          <span>État des inscriptions par formation</span>
-          <Tag>{formationStats.total}</Tag>
-          <Tag color="success">
-            {formationStats.open} ouverte{formationStats.open === 1 ? '' : 's'}
-          </Tag>
-          <Tag color="error">
-            {formationStats.closed} fermée{formationStats.closed === 1 ? '' : 's'}
-          </Tag>
-        </div>
-        <div className="suv-formations-grid">
-          {formationsList.length === 0 && (
-            <span style={{ color: '#9ca3af', fontSize: 13 }}>Aucune formation trouvée.</span>
-          )}
-          {formationsList.map((f) => {
-            const o = f.inscriptionsOuvertes;
-            return (
-              <Tooltip
-                key={String(f.idFormation)}
-                title={`${o ? 'Fermer' : 'Ouvrir'} les inscriptions`}
-              >
-                <Button
-                  size="small"
-                  className={`suv-toggle ${o ? 'suv-toggle--open' : 'suv-toggle--closed'}`}
-                  icon={o ? <UnlockOutlined /> : <LockOutlined />}
-                  onClick={() => handleToggle(f)}
-                >
-                  {f.titreFormation || '—'}
-                </Button>
-              </Tooltip>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── B. Per-formation demandes ── */}
+      {/* ── A. Per-formation demandes ── */}
       <div className="suv-section">
         <div className="suv-section-header">
           <UserOutlined style={{ color: '#64748b' }} />

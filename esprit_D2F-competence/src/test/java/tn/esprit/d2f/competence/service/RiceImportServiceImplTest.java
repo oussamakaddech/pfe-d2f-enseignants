@@ -89,6 +89,45 @@ class RiceImportServiceImplTest {
     }
 
     @Test
+    void importRice_updatesOptionalCompetenceAffiliationsWithoutClearingOmittedValues() {
+        RiceCompetenceRequest compReq = RiceCompetenceRequest.builder()
+                .code("COMP-UPS")
+                .nom("Compétence UP")
+                .upIds(List.of(" UP_GC ", "UP_INFO", "UP_GC", " "))
+                .departementIds(List.of("DEPT_GC"))
+                .build();
+        RiceDomaineRequest domReq = RiceDomaineRequest.builder()
+                .code("DOM-UPS")
+                .nom("Domaine")
+                .competences(List.of(compReq))
+                .build();
+        Competence existing = Competence.builder()
+                .id(7L)
+                .code("COMP-UPS")
+                .upIds(new java.util.LinkedHashSet<>(List.of("UP_OLD")))
+                .departementIds(new java.util.LinkedHashSet<>(List.of("DEPT_OLD")))
+                .build();
+        when(domaineRepository.findByCodeIgnoreCase("DOM-UPS"))
+                .thenReturn(Optional.of(Domaine.builder().id(1L).code("DOM-UPS").build()));
+        when(competenceRepository.findByCodeIgnoreCase("COMP-UPS")).thenReturn(Optional.of(existing));
+        when(riceImportLogRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        RiceImportRequest request = new RiceImportRequest();
+        request.setDomaines(List.of(domReq));
+        service.importRice(request);
+
+        assertThat(existing.getUpIds()).containsExactly("UP_GC", "UP_INFO");
+        assertThat(existing.getDepartementIds()).containsExactly("DEPT_GC");
+
+        compReq.setUpIds(null);
+        compReq.setDepartementIds(null);
+        service.importRice(request);
+
+        assertThat(existing.getUpIds()).containsExactly("UP_GC", "UP_INFO");
+        assertThat(existing.getDepartementIds()).containsExactly("DEPT_GC");
+    }
+
+    @Test
     void importRice_comprehensiveTest() {
         // GIVEN
         RiceSavoirRequest savReq = new RiceSavoirRequest();
@@ -280,5 +319,157 @@ class RiceImportServiceImplTest {
         assertThat(result.getSousCompetencesCreated()).isEqualTo(1);
         assertThat(result.getAffectationsCreated()).isEqualTo(1); // ext_999 ignored
         assertThat(result.getEnseignantsCovered()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("importRice: domaine RICE rattaché -> compétence du domaine existant, compétences -> sous-compétences")
+    void importRice_withDomaineCible_mapsDomaineToCompetence() {
+        RiceSavoirRequest directSavoir = RiceSavoirRequest.builder()
+                .code("MT34-S1").nom("Ontologie OWL")
+                .type("THEORIQUE").niveau("N3_INTERMEDIAIRE").build();
+        RiceSavoirRequest nestedSavoir = RiceSavoirRequest.builder()
+                .code("MT34-S2").nom("RDF")
+                .type("THEORIQUE").niveau("N2_ELEMENTAIRE").build();
+        RiceSousCompetenceRequest enfant = RiceSousCompetenceRequest.builder()
+                .code("MT34-C1-A").nom("Triplets")
+                .savoirs(List.of(nestedSavoir)).build();
+        RiceCompetenceRequest compReq = RiceCompetenceRequest.builder()
+                .code("MT34-C1").nom("Modéliser une ontologie")
+                .upIds(List.of("UP_GC"))
+                .departementIds(List.of("DEPT_GC"))
+                .savoirs(List.of(directSavoir))
+                .sousCompetences(List.of(enfant))
+                .build();
+        RiceDomaineRequest domReq = RiceDomaineRequest.builder()
+                .code("MT-34").nom("Web Sémantique").description("Module MT-34")
+                .competences(List.of(compReq)).build();
+
+        RiceImportRequest request = new RiceImportRequest();
+        request.setDomaines(List.of(domReq));
+        request.setDomaineCibleId("5");
+
+        Domaine cible = Domaine.builder().id(5L).code("INFO").nom("Informatique").build();
+        when(domaineRepository.findById(5L)).thenReturn(Optional.of(cible));
+        when(competenceRepository.findByCodeIgnoreCase("MT-34")).thenReturn(Optional.empty());
+        when(competenceRepository.save(any(Competence.class))).thenAnswer(inv -> {
+            Competence saved = inv.getArgument(0);
+            saved.setId(50L);
+            return saved;
+        });
+        when(sousCompetenceRepository.findByCodeIgnoreCase(anyString())).thenReturn(Optional.empty());
+        when(sousCompetenceRepository.save(any(SousCompetence.class))).thenAnswer(inv -> {
+            SousCompetence saved = inv.getArgument(0);
+            saved.setId(60L);
+            return saved;
+        });
+        when(savoirRepository.findByCodeIgnoreCase(anyString())).thenReturn(Optional.empty());
+        when(savoirRepository.save(any(Savoir.class))).thenAnswer(inv -> {
+            Savoir saved = inv.getArgument(0);
+            saved.setId(70L);
+            return saved;
+        });
+        when(riceImportLogRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        RiceImportResult result = service.importRice(request);
+
+        assertThat(result.getDomainesCreated()).isZero();
+        assertThat(result.getCompetencesCreated()).isEqualTo(1);
+        assertThat(result.getSousCompetencesCreated()).isEqualTo(2);
+        assertThat(result.getSavoirsCreated()).isEqualTo(2);
+        verify(domaineRepository, never()).save(any());
+
+        org.mockito.ArgumentCaptor<Competence> competenceCaptor =
+                org.mockito.ArgumentCaptor.forClass(Competence.class);
+        verify(competenceRepository).save(competenceCaptor.capture());
+        Competence created = competenceCaptor.getValue();
+        // Le nom du domaine RICE devient le nom de la compétence, dans le domaine choisi.
+        assertThat(created.getNom()).isEqualTo("Web Sémantique");
+        assertThat(created.getCode()).isEqualTo("MT-34");
+        assertThat(created.getDomaine()).isSameAs(cible);
+        assertThat(created.getUpIds()).containsExactly("UP_GC");
+        assertThat(created.getDepartementIds()).containsExactly("DEPT_GC");
+
+        org.mockito.ArgumentCaptor<SousCompetence> scCaptor =
+                org.mockito.ArgumentCaptor.forClass(SousCompetence.class);
+        verify(sousCompetenceRepository, times(2)).save(scCaptor.capture());
+        List<SousCompetence> savedScs = scCaptor.getAllValues();
+        SousCompetence racine = savedScs.get(0);
+        SousCompetence enfantSauve = savedScs.get(1);
+        assertThat(racine.getNom()).isEqualTo("Modéliser une ontologie");
+        assertThat(racine.getParent()).isNull();
+        assertThat(racine.getNiveau()).isEqualTo(1);
+        assertThat(enfantSauve.getNom()).isEqualTo("Triplets");
+        assertThat(enfantSauve.getParent()).isSameAs(racine);
+        assertThat(enfantSauve.getNiveau()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("importRice: le domaine de rattachement porté par le domaine RICE prime sur celui de la requête")
+    void importRice_domaineCibleParDomaine_prendLeDessus() {
+        RiceDomaineRequest lie = RiceDomaineRequest.builder()
+                .code("MT-34").nom("Web Sémantique").domaineCibleId("6").build();
+        RiceDomaineRequest libre = RiceDomaineRequest.builder()
+                .code("MT-35").nom("Bases de données").build();
+
+        RiceImportRequest request = new RiceImportRequest();
+        request.setDomaines(List.of(lie, libre));
+        request.setDomaineCibleId("5");
+
+        Domaine defaut = Domaine.builder().id(5L).code("INFO").nom("Informatique").build();
+        Domaine choisi = Domaine.builder().id(6L).code("GC").nom("Génie civil").build();
+        when(domaineRepository.findById(5L)).thenReturn(Optional.of(defaut));
+        when(domaineRepository.findById(6L)).thenReturn(Optional.of(choisi));
+        when(competenceRepository.findByCodeIgnoreCase(anyString())).thenReturn(Optional.empty());
+        when(competenceRepository.save(any(Competence.class))).thenAnswer(inv -> {
+            Competence saved = inv.getArgument(0);
+            saved.setId(80L);
+            return saved;
+        });
+        when(riceImportLogRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        RiceImportResult result = service.importRice(request);
+
+        assertThat(result.getDomainesCreated()).isZero();
+        assertThat(result.getCompetencesCreated()).isEqualTo(2);
+
+        org.mockito.ArgumentCaptor<Competence> captor =
+                org.mockito.ArgumentCaptor.forClass(Competence.class);
+        verify(competenceRepository, times(2)).save(captor.capture());
+        List<Competence> creees = captor.getAllValues();
+        assertThat(creees.get(0).getDomaine()).isSameAs(choisi);
+        assertThat(creees.get(0).getNom()).isEqualTo("Web Sémantique");
+        assertThat(creees.get(1).getDomaine()).isSameAs(defaut);
+        assertThat(creees.get(1).getNom()).isEqualTo("Bases de données");
+    }
+
+    @Test
+    @DisplayName("importRice: domaine de rattachement inconnu -> 400")
+    void importRice_unknownDomaineCible_shouldThrow() {
+        RiceDomaineRequest domReq = RiceDomaineRequest.builder()
+                .code("MT-34").nom("Web Sémantique").build();
+        RiceImportRequest request = new RiceImportRequest();
+        request.setDomaines(List.of(domReq));
+        request.setDomaineCibleId("999");
+
+        when(domaineRepository.findById(999L)).thenReturn(Optional.empty());
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> service.importRice(request));
+        assertThat(ex.getMessage()).contains("Domaine de rattachement introuvable");
+        verify(domaineRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("importRice: identifiant de domaine de rattachement non numérique -> 400")
+    void importRice_invalidDomaineCibleId_shouldThrow() {
+        RiceDomaineRequest domReq = RiceDomaineRequest.builder()
+                .code("MT-34").nom("Web Sémantique").build();
+        RiceImportRequest request = new RiceImportRequest();
+        request.setDomaines(List.of(domReq));
+        request.setDomaineCibleId("abc");
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> service.importRice(request));
+        assertThat(ex.getMessage()).contains("Domaine de rattachement invalide");
     }
 }

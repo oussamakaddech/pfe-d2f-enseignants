@@ -12,8 +12,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import tn.esprit.d2f.competence.dto.AffectationGroupeeRequest;
+import tn.esprit.d2f.competence.dto.AffectationGroupeeResultDTO;
 import tn.esprit.d2f.competence.dto.EnseignantCompetenceDTO;
 import tn.esprit.d2f.competence.dto.EnseignantCompetenceRequest;
+import tn.esprit.d2f.competence.dto.PerimetreAffectationDTO;
 import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
 import tn.esprit.d2f.competence.service.IEnseignantCompetenceService;
 
@@ -79,6 +82,16 @@ public class EnseignantCompetenceController {
         return ResponseEntity.ok(Map.of("enseignantId", enseignantId, "count", count));
     }
 
+    @Operation(
+            summary = "Périmètre d'affectation de l'utilisateur connecté",
+            description = "ADMIN : global. CUP : les enseignants de son UP. "
+                    + "CHEF_DEPARTEMENT : ceux de son département. Sert au filtrage de l'affichage.")
+    @GetMapping("/perimetre")
+    @PreAuthorize(AuthorizationMatrix.AFFECTATION_READ)
+    public ResponseEntity<PerimetreAffectationDTO> getPerimetre() {
+        return ResponseEntity.ok(enseignantCompetenceService.getPerimetre());
+    }
+
     @Operation(summary = "Affecter un savoir à un enseignant")
     @PostMapping
     @PreAuthorize(AuthorizationMatrix.AFFECTATION_CREATE)
@@ -86,12 +99,24 @@ public class EnseignantCompetenceController {
         return new ResponseEntity<>(enseignantCompetenceService.assignCompetence(request), HttpStatus.CREATED);
     }
 
+    @Operation(
+            summary = "Affecter en une fois tous les savoirs d'une compétence, d'une sous-compétence ou d'une liste",
+            description = "Affecter une compétence revient à affecter tous ses savoirs (directs et via "
+                    + "sous-compétences) : la couverture n'est jamais partielle. Les savoirs déjà affectés "
+                    + "sont conservés (opération idempotente).")
+    @PostMapping("/groupee")
+    @PreAuthorize(AuthorizationMatrix.AFFECTATION_CREATE)
+    public ResponseEntity<AffectationGroupeeResultDTO> assignGroupee(
+            @Valid @RequestBody AffectationGroupeeRequest request) {
+        return new ResponseEntity<>(enseignantCompetenceService.assignGroupee(request), HttpStatus.CREATED);
+    }
+
     // SÉCURITÉ (audit DSI – BLOCKER #2) : l'ancien AFFECTATION_UPDATE_SELF
     // autorisait ROLE_ENSEIGNANT sans vérifier l'appartenance de l'affectation
     // (IDOR : un enseignant pouvait modifier le niveau d'un autre par son id).
-    // La gestion des affectations est réservée à l'admin — cohérent avec
-    // AFFECTATION_CREATE / AFFECTATION_DELETE et avec le gateway (PATCH = admin).
-    @Operation(summary = "Mettre à jour le niveau de maîtrise d'une affectation (admin)")
+    // La gestion des affectations est réservée aux rôles de pilotage, bornés à
+    // leur périmètre par AffectationScopeService (admin = global).
+    @Operation(summary = "Mettre à jour le niveau de maîtrise d'une affectation")
     @PatchMapping("/{id}/niveau")
     @PreAuthorize(AuthorizationMatrix.AFFECTATION_UPDATE_ALL)
     public ResponseEntity<EnseignantCompetenceDTO> updateNiveau(

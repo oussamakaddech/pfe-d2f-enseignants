@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@TestPropertySource(properties = "jwt.secret=test-secret-key-for-testing-purposes-only-must-beat-512-bits")
+@TestPropertySource(properties = "jwt.secret=test-secret-key-for-testing-purposes-only-must-be-at-least-64-chars-long-for-hs512-signature")
 class ConfigCoverageTest {
 
     @Autowired

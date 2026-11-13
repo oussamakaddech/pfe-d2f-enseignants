@@ -35,7 +35,8 @@ function ChargeHoraireField({ chargeH, setChargeH, seances, toMinutes }: Readonl
   return (
     <div className="creation-field">
       <label className="creation-field-label">
-        <ClockCircleOutlined /> Charge Horaire (h)
+        <ClockCircleOutlined /> Charge Horaire (h){' '}
+        <span style={{ color: 'var(--color-error)' }}>*</span>
       </label>
       <InputNumber
         size="large"
@@ -306,7 +307,7 @@ export default function GeneralStep({
                 prefix={<EnvironmentOutlined style={{ color: '#a0aec0' }} />}
               />
               <span className="creation-field-help">
-                Utilisé comme titre de l'événement Outlook : D2f‑{salle || 'Salle'}‑
+                Utilisé comme titre de l'événement Outlook : D2F‑{salle || 'Salle'}‑
                 {titre || 'Formation'}‑Animateur
               </span>
             </div>

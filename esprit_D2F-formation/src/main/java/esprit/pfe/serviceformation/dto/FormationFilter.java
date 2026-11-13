@@ -16,8 +16,10 @@ import java.util.List;
 public class FormationFilter {
     private String competence;
     private String domaine;
-    private Long upId;
-    private Long deptId;
+    // Ids de référentiel (Up.id / Dept.id sont des String) — le périmètre
+    // CUP/chef est forcé côté service (KpiScopeService).
+    private String upId;
+    private String deptId;
     private Boolean ouverte;
     private LocalDate start;
     private LocalDate end;

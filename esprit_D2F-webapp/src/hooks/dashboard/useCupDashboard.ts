@@ -11,6 +11,34 @@ const START = dayjs().subtract(12, 'month').startOf('month').format('YYYY-MM-DD'
 const END = dayjs().format('YYYY-MM-DD');
 const STALE = 5 * 60 * 1000;
 
+/** Période d'observation des indicateurs (fenêtre glissante jusqu'à aujourd'hui). */
+export type DashboardPeriod = '30j' | 'trimestre' | 'semestre' | 'annee';
+
+/** Plage de dates explicite (`YYYY-MM-DD`), prioritaire sur le préréglage. */
+export interface KpiDateRange {
+  start: string;
+  end: string;
+}
+
+const PERIOD_MONTHS: Record<Exclude<DashboardPeriod, '30j'>, number> = {
+  trimestre: 3,
+  semestre: 6,
+  annee: 12,
+};
+
+/** Bornes `YYYY-MM-DD` de la fenêtre glissante correspondant à la période. */
+export function periodRange(period: DashboardPeriod): { start: string; end: string } {
+  const now = dayjs();
+  const start =
+    period === '30j' ? now.subtract(30, 'day') : now.subtract(PERIOD_MONTHS[period], 'month');
+  return { start: start.format('YYYY-MM-DD'), end: now.format('YYYY-MM-DD') };
+}
+
+/** Libellé lisible d'une plage personnalisée : « du 01/02/2026 au 28/02/2026 ». */
+export function customRangeLabel(range: KpiDateRange): string {
+  return `du ${dayjs(range.start).format('DD/MM/YYYY')} au ${dayjs(range.end).format('DD/MM/YYYY')}`;
+}
+
 export interface CompetenceDemandee {
   name: string;
   count: number;
@@ -79,23 +107,75 @@ const PRIORITE_RANK: Record<Priorite | 'NON_DEFINIE', number> = {
   NON_DEFINIE: 1,
 };
 
-export function useCupDashboard() {
+export interface CupDashboardAccess {
+  /** KPI formations (DASHBOARD_ADMIN_LIMITED : ADMIN/CUP/CHEF_DEP/ANIMATEUR/ResponsableDossier). */
+  readKpis?: boolean;
+  /** Liste globale des besoins (BESOIN_FORMATION_READ_ALL : ADMIN/CUP/CHEF_DEP/ANIMATEUR/ResponsableDossier). */
+  readBesoins?: boolean;
+  /** Pilotage prédictif (overview — DASHBOARD_ADMIN_FULL : ADMIN/CUP). */
+  readOverview?: boolean;
+  /** Compétences en demande (endpoint legacy, ouvert ADMIN/CUP/CHEF_DEP). */
+  readInDemand?: boolean;
+}
+
+// Rôles autorisés à lire les KPI / besoins globaux (parité DASHBOARD_ADMIN_LIMITED
+// et BESOIN_FORMATION_READ_ALL). L'ENSEIGNANT en est exclu (403 backend).
+const CAN_READ_KPIS = [
+  'admin',
+  'CUP',
+  'CHEF_DEPARTEMENT',
+  'Animateur',
+  'ResponsableDossier',
+] as const;
+
+export function useCupDashboard(
+  pilotage: boolean = true,
+  access: CupDashboardAccess = {},
+  period: DashboardPeriod = 'annee',
+  customRange?: KpiDateRange | null,
+) {
+  // Sans garde, ces requêtes partaient en 403 pour l'enseignant (KPI + besoins)
+  // et en 403 pour le chef (overview — ADMIN/CUP uniquement).
+  const readKpis = access.readKpis ?? pilotage;
+  const readBesoins = access.readBesoins ?? pilotage;
+  const readOverview = access.readOverview ?? pilotage;
+  const readInDemand = access.readInDemand ?? pilotage;
+
+  // Fenêtre des indicateurs « de période » (heures, formateurs, participants).
+  // Une plage personnalisée (choisie à la main) prime sur la fenêtre glissante
+  // du préréglage ; l'effacer ramène au préréglage. Les répartitions (domaines /
+  // compétences) et l'évolution mensuelle gardent leur fenêtre de 12 mois pour
+  // rester comparables au reste de la page.
+  const rangeStart = customRange?.start;
+  const rangeEnd = customRange?.end;
+  const window = useMemo(() => {
+    if (rangeStart && rangeEnd) {
+      return { start: rangeStart, end: rangeEnd };
+    }
+    return periodRange(period);
+  }, [period, rangeStart, rangeEnd]);
+  const wStart = window.start;
+  const wEnd = window.end;
+
   const { data: formationsByEtat, isLoading: etatLoading } = useQuery({
     queryKey: ['kpi', 'formations-by-etat', START, END],
     queryFn: () => KPIService.getFormationsByEtat(START, END),
     staleTime: STALE,
+    enabled: readKpis,
   });
 
   const { data: formationsByType, isLoading: typeLoading } = useQuery({
     queryKey: ['kpi', 'formations-by-type', START, END],
     queryFn: () => KPIService.getFormationsByTypeFiltered({ start: START, end: END }),
     staleTime: STALE,
+    enabled: readKpis,
   });
 
   const { data: formationsByDomaineRaw = [], isLoading: domaineLoading } = useQuery({
     queryKey: ['kpi', 'formations-by-domaine', START, END],
     queryFn: () => KPIService.getFormationsByDomaine(START, END),
     staleTime: STALE,
+    enabled: readKpis,
   });
   const formationsByDomaine = formationsByDomaineRaw.filter(
     (d) =>
@@ -108,6 +188,7 @@ export function useCupDashboard() {
     queryKey: ['kpi', 'formations-by-competence', START, END],
     queryFn: () => KPIService.getFormationsByCompetence(START, END),
     staleTime: STALE,
+    enabled: readKpis,
   });
   const formationsByCompetence = formationsByCompetenceRaw.filter(
     (c) =>
@@ -117,15 +198,26 @@ export function useCupDashboard() {
   );
 
   const { data: heures } = useQuery({
-    queryKey: ['kpi', 'heures', START, END],
-    queryFn: () => KPIService.getTotalHeures(START, END),
+    queryKey: ['kpi', 'heures', wStart, wEnd],
+    queryFn: () => KPIService.getTotalHeures(wStart, wEnd),
     staleTime: STALE,
+    enabled: readKpis,
   });
 
   const { data: participants } = useQuery({
-    queryKey: ['kpi', 'participants', START, END],
-    queryFn: () => KPIService.getUniqueParticipants(START, END),
+    queryKey: ['kpi', 'participants', wStart, wEnd],
+    queryFn: () => KPIService.getUniqueParticipants(wStart, wEnd),
     staleTime: STALE,
+    enabled: readKpis,
+  });
+
+  // Formateurs distincts (internes dédoublonnés + externes) : le serveur réunit
+  // les animateurs de formation et de séance, on n'additionne jamais les deux.
+  const { data: formateurs } = useQuery({
+    queryKey: ['kpi', 'formateurs', wStart, wEnd],
+    queryFn: () => KPIService.getFormateurs(wStart, wEnd),
+    staleTime: STALE,
+    enabled: readKpis,
   });
 
   const { data: deptAnalytics, isLoading: deptLoading } = useQuery({
@@ -146,6 +238,8 @@ export function useCupDashboard() {
     queryKey: ['besoins'],
     queryFn: () => BesoinFormationService.getAllBesoinFormations(),
     staleTime: STALE,
+    // READ_ALL : l'enseignant n'y a pas accès (il consulte /mine).
+    enabled: readBesoins,
   });
 
   const { data: overview } = useQuery({
@@ -153,6 +247,9 @@ export function useCupDashboard() {
     queryFn: () =>
       import('@/services/analyse/AnalysePredictiveService').then((m) => m.default.getOverview()),
     staleTime: STALE,
+    // Réserve le pilotage prédictif (overview) au périmètre ADMIN/CUP :
+    // le chef de département et RESPONSABLE_DOSSIER reçoivent 403 côté backend.
+    enabled: readOverview,
   });
 
   const { data: inDemandCompetencies = [] } = useQuery({
@@ -162,6 +259,7 @@ export function useCupDashboard() {
         m.default.getInDemandCompetencies(),
       ),
     staleTime: STALE,
+    enabled: readInDemand,
   });
 
   const timelineScope: DashboardScope = {
@@ -170,6 +268,7 @@ export function useCupDashboard() {
     isCup: true,
     isEnseignant: false,
     isAnimateur: false,
+    isPilotage: true,
     start: dayjs().subtract(11, 'month').startOf('month').format('YYYY-MM-DD'),
     end: dayjs().endOf('month').format('YYYY-MM-DD'),
     rangeKey: '12m',
@@ -300,8 +399,14 @@ export function useCupDashboard() {
       enCours,
       tauxReussiteGlobal,
       tauxParticipation,
+      // Fenêtre = période sélectionnée (30 j / 3 / 6 / 12 derniers mois).
       totalHeures: heures ?? 0,
       participants: participants ?? 0,
+      formateurs: formateurs ?? { total: 0, internes: 0, externes: 0 },
+      // Compétences du référentiel couvertes par au moins une formation.
+      competencesCouvertes: formationsByCompetence.length,
+      // Rattachements formation ↔ compétence (une formation peut en couvrir plusieurs).
+      liensCompetences: formationsByCompetence.reduce((s, c) => s + (c.count ?? 0), 0),
       pendingBesoins,
       critiques,
       totalBesoins: besoins.length,
@@ -318,7 +423,16 @@ export function useCupDashboard() {
           ? Math.round((overview.deltas.taux_couverture_global as number) * 10) / 10
           : null,
     };
-  }, [formationsByEtat, deptAnalytics, besoins, heures, participants, overview]);
+  }, [
+    formationsByEtat,
+    deptAnalytics,
+    besoins,
+    heures,
+    participants,
+    formateurs,
+    formationsByCompetence,
+    overview,
+  ]);
 
   return {
     kpis,

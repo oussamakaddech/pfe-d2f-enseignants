@@ -16,12 +16,17 @@ WORKDIR /opt/build
 
 RUN apk add --no-cache dos2unix
 
-# Install shared d2f-common-security library (non publiée sur Maven Central)
+# Install shared d2f-common-security library (non publiée sur Maven Central).
+# NB : le contenu d'un cache BuildKit peut être purgé alors que la couche RUN
+# reste "CACHED" — l'artefact est donc aussi copié hors du mount (couche image
+# persistante) pour éviter un échec de résolution au build suivant.
 COPY esprit_D2F-common-security/ /tmp/d2f-common-security/
 RUN --mount=type=cache,target=/root/.m2 \
     cd /tmp/d2f-common-security && \
     dos2unix mvnw && chmod +x mvnw && \
-    ./mvnw install -DskipTests -q
+    ./mvnw install -DskipTests -q && \
+    mkdir -p /opt/app/local-m2/repository && \
+    cp -r /root/.m2/repository/esprit /opt/app/local-m2/repository/
 
 # Copy the service sources
 WORKDIR /opt/build/esprit_D2F-besoin-formation
@@ -35,8 +40,15 @@ RUN dos2unix mvnw && chmod +x mvnw
 # Resolve dependencies (cached layer)
 RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline -q
 
-# Build & package
-RUN --mount=type=cache,target=/root/.m2 ./mvnw clean package -Dmaven.test.skip=true -q
+# Build & package.
+# Restaure d2f-common-security depuis la couche image (persistante, /opt/app/local-m2)
+# et force la re-résolution (-U) pour contourner l'échec négatif mis en cache par Maven.
+RUN --mount=type=cache,target=/root/.m2 \
+    if [ -d /opt/app/local-m2/repository/esprit ]; then \
+        mkdir -p /root/.m2/repository && \
+        cp -r /opt/app/local-m2/repository/esprit /root/.m2/repository/ ; \
+    fi && \
+    ./mvnw clean package -Dmaven.test.skip=true -q -U
 
 # Unpack layered jar for optimal Docker layer caching
 RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)

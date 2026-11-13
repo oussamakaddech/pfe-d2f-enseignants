@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Input, Select } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import {
@@ -10,9 +10,12 @@ import {
   getNiveauStyle,
   getTypeBadge,
   getTypeLabel,
+  groupSavoirsBySousCompetence,
   hasAnyActiveFilters,
+  indexSousCompetences,
   toNiveauRank,
   type FlatSavoir,
+  type SousCompInfo,
 } from '@/utils/helpers/consultationViewUtils';
 import ActiveFiltersBar from './ActiveFiltersBar';
 import EmptyState from './EmptyState';
@@ -24,12 +27,18 @@ const PAGE = 20;
 interface BadgeProps {
   text: string;
   type?: string;
+  title?: string;
 }
-function Badge({ text, type = 'muted' }: Readonly<BadgeProps>) {
+function Badge({ text, type = 'muted', title }: Readonly<BadgeProps>) {
   let cls = 'ctp-badge--muted';
   if (type === 'theorique') cls = 'ctp-badge--theorique';
   else if (type === 'pratique') cls = 'ctp-badge--pratique';
-  return <span className={`ctp-badge ${cls}`}>{text}</span>;
+  else if (type === 'sousc') cls = 'ctp-badge--sousc';
+  return (
+    <span className={`ctp-badge ${cls}`} title={title}>
+      {text}
+    </span>
+  );
 }
 
 function useDebouncedValue<T>(value: T, delay = 300): T {
@@ -48,9 +57,19 @@ interface CompetenceRef {
   domaineId?: number | string;
 }
 
+interface SousCompRef {
+  id?: number | string;
+  code?: string;
+  nom?: string;
+  competenceId?: number | string;
+  parentId?: number | string | null;
+}
+
 interface CardsViewProps {
-  crud: { competences?: CompetenceRef[] };
+  crud: { competences?: CompetenceRef[]; sousComps?: SousCompRef[] };
   selectedDomaine: number | string | null;
+  /** Compétences autorisées par les filtres UP / département (null = pas de restriction). */
+  allowedCompetenceIds?: Set<string> | null;
   flatSavoirs: FlatSavoir[];
   onOpenSavoir: (savoir: FlatSavoir) => void;
   openAll: boolean;
@@ -60,18 +79,38 @@ interface CardsViewProps {
 export default function CardsView({
   crud,
   selectedDomaine,
+  allowedCompetenceIds = null,
   flatSavoirs,
   onOpenSavoir,
   openAll,
   onOpenAllConsumed,
 }: Readonly<CardsViewProps>) {
+  const scIndex = useMemo(() => indexSousCompetences(crud.sousComps || []), [crud.sousComps]);
+
+  const scByComp = useMemo(() => {
+    const map = new Map<string, SousCompInfo[]>();
+    scIndex.forEach((info) => {
+      if (!info.competenceId) return;
+      const list = map.get(info.competenceId) ?? [];
+      list.push(info);
+      map.set(info.competenceId, list);
+    });
+    map.forEach((list) =>
+      list.sort((a, b) => a.path.localeCompare(b.path, 'fr', { sensitivity: 'base' })),
+    );
+    return map;
+  }, [scIndex]);
+
   const scopedCompetences = useMemo(
     () =>
-      (crud.competences || []).filter((c: CompetenceRef) =>
-        selectedDomaine ? String(c.domaineId) === String(selectedDomaine) : true,
-      ),
-    [crud.competences, selectedDomaine],
+      (crud.competences || []).filter((c: CompetenceRef) => {
+        if (selectedDomaine && String(c.domaineId) !== String(selectedDomaine)) return false;
+        if (allowedCompetenceIds && !allowedCompetenceIds.has(String(c.id))) return false;
+        return true;
+      }),
+    [allowedCompetenceIds, crud.competences, selectedDomaine],
   );
+
   const [activeComp, setActiveComp] = useState(() => localStorage.getItem(ACTIVE_COMP_KEY) || null);
   const [visibleCount, setVisibleCount] = useState(() => new Map());
   const [openComps, setOpenComps] = useState(() => {
@@ -109,20 +148,23 @@ export default function CardsView({
   useEffect(() => {
     setOpenComps(new Set());
     setActiveComp(null);
-  }, [selectedDomaine]);
+  }, [allowedCompetenceIds, selectedDomaine]);
 
   useEffect(() => {
     setVisibleCount(new Map());
-  }, [filters, selectedDomaine, activeComp]);
+  }, [activeComp, allowedCompetenceIds, filters, selectedDomaine]);
 
   const niveaux = useMemo(() => {
     const all = new Set(
       flatSavoirs
         .filter((s) => (selectedDomaine ? String(s.domaineId) === String(selectedDomaine) : true))
+        .filter((s) =>
+          allowedCompetenceIds ? allowedCompetenceIds.has(String(s.competenceId)) : true,
+        )
         .map((s) => String(s.niveau || '-')),
     );
     return Array.from(all).sort((a, b) => toNiveauRank(a) - toNiveauRank(b));
-  }, [flatSavoirs, selectedDomaine]);
+  }, [allowedCompetenceIds, flatSavoirs, selectedDomaine]);
 
   const q = debouncedQ.trim().toLowerCase();
   const hasActiveFilters = hasAnyActiveFilters(filters, debouncedQ);
@@ -139,7 +181,14 @@ export default function CardsView({
             if (filters.niveau !== 'ALL' && String(s.niveau || '-') !== filters.niveau)
               return false;
             if (!q) return true;
-            return [s.nom, s.code, s.competenceNom, s.sousCompetenceNom, s.domaineNom]
+            return [
+              s.nom,
+              s.code,
+              s.competenceNom,
+              s.sousCompetenceNom,
+              s.sousCompetencePath,
+              s.domaineNom,
+            ]
               .join(' ')
               .toLowerCase()
               .includes(q);
@@ -149,6 +198,7 @@ export default function CardsView({
             comp,
             allLinked,
             filteredLinked,
+            groups: groupSavoirsBySousCompetence(filteredLinked),
             theo: filteredLinked.filter((s) => s.type === 'THEORIQUE').length,
             prat: filteredLinked.filter((s) => s.type === 'PRATIQUE').length,
           };
@@ -195,7 +245,7 @@ export default function CardsView({
   if (scopedCompetences.length === 0) {
     return (
       <div className="ctp-empty-box ctp-section">
-        <EmptyState type={selectedDomaine ? 'noComp' : 'noData'} />
+        <EmptyState type={selectedDomaine || allowedCompetenceIds ? 'noComp' : 'noData'} />
       </div>
     );
   }
@@ -232,7 +282,7 @@ export default function CardsView({
           <Input
             allowClear
             prefix={<SearchOutlined style={{ color: '#64748b' }} />}
-            placeholder="Rechercher un savoir, code, competence..."
+            placeholder="Rechercher un savoir, code, competence, sous-competence..."
             value={filters.q}
             onChange={(e) => setFilters((prev) => ({ ...prev, q: e.target.value }))}
           />
@@ -283,9 +333,24 @@ export default function CardsView({
             const accent = COMP_PALETTE[Math.max(paletteIdx, 0) % COMP_PALETTE.length];
             const isOpen = openComps.has(compId);
             const limit = visibleCount.get(compId) || PAGE;
-            const visible = row.filteredLinked.slice(0, limit);
             const hasMore = row.filteredLinked.length > limit;
             const moreCount = Math.min(PAGE, row.filteredLinked.length - limit);
+            const sousComps = scByComp.get(compId) ?? [];
+            const linkedScIds = new Set(
+              row.allLinked
+                .filter((s) => s.sousCompetenceId != null)
+                .map((s) => String(s.sousCompetenceId)),
+            );
+            const emptySousComps = sousComps.filter((sc) => !linkedScIds.has(sc.id));
+
+            let budget = limit;
+            const groupBlocks = row.groups
+              .map((group) => {
+                const shown = group.savoirs.slice(0, Math.max(budget, 0));
+                budget -= shown.length;
+                return { ...group, shown };
+              })
+              .filter((group) => group.shown.length > 0);
 
             return (
               <section key={compId} className="ctp-acc-section">
@@ -305,6 +370,13 @@ export default function CardsView({
                     <div className="ctp-acc-title">{row.comp.nom}</div>
                     <div className="ctp-acc-sub">{row.comp.code}</div>
                   </div>
+                  {sousComps.length > 0 && (
+                    <Badge
+                      text={`${sousComps.length} sous-comp.`}
+                      type="sousc"
+                      title={sousComps.map((sc) => sc.path).join(' · ')}
+                    />
+                  )}
                   <span className="ctp-badge ctp-badge--muted">
                     {row.filteredLinked.length}
                     {row.filteredLinked.length !== row.allLinked.length && (
@@ -321,72 +393,126 @@ export default function CardsView({
                   </span>
                 </button>
 
-                {isOpen &&
-                  (row.filteredLinked.length === 0 ? (
-                    <div className="ctp-empty-box">
-                      <EmptyState type="noResults" onClear={clearFilters} />
-                    </div>
-                  ) : (
-                    <>
-                      <div className="ctp-savoir-grid">
-                        {visible.map((savoir) => {
-                          const niveauStyle = getNiveauStyle(savoir.niveau);
-                          return (
-                            <button
-                              key={savoir.id}
-                              className="ctp-savoir-mini"
-                              style={{ borderLeftColor: accent }}
-                              onClick={() => onOpenSavoir(savoir)}
-                            >
-                              <div className="ctp-savoir-mini__code" style={{ color: accent }}>
-                                {savoir.code}
-                              </div>
-                              <div className="ctp-savoir-mini__nom">{savoir.nom}</div>
-                              <div className="ctp-savoir-mini__footer">
-                                <Badge
-                                  text={getTypeLabel(savoir.type ?? '')}
-                                  type={getTypeBadge(savoir.type ?? '')}
-                                />
-                                <span
-                                  className="ctp-badge"
-                                  style={{
-                                    color: niveauStyle.color,
-                                    background: niveauStyle.bg,
-                                    borderColor: niveauStyle.border,
-                                  }}
-                                >
-                                  {formatNiveau(savoir.niveau)}
-                                </span>
-                                {savoir.isDirect && (
-                                  <span className="ctp-badge-direct">direct</span>
-                                )}
-                              </div>
-                            </button>
-                          );
-                        })}
+                {isOpen && (
+                  <>
+                    {row.filteredLinked.length === 0 ? (
+                      <div className="ctp-empty-box">
+                        <EmptyState type="noResults" onClear={clearFilters} />
                       </div>
+                    ) : (
+                      <>
+                        <div className="ctp-savoir-grid">
+                          {groupBlocks.map((group) => (
+                            <Fragment key={group.key}>
+                              <div
+                                className={`ctp-sc-group${group.isDirect ? ' ctp-sc-group--direct' : ''}`}
+                              >
+                                <span className="ctp-sc-group__tag">
+                                  {group.isDirect ? 'Direct' : 'Sous-competence'}
+                                </span>
+                                {group.code && (
+                                  <span className="ctp-sc-group__code">{group.code}</span>
+                                )}
+                                <span className="ctp-sc-group__name" title={group.label}>
+                                  {group.label}
+                                </span>
+                                <span className="ctp-sc-group__count">
+                                  {group.shown.length}
+                                  {group.shown.length !== group.savoirs.length && (
+                                    <span className="ctp-count-total">/{group.savoirs.length}</span>
+                                  )}{' '}
+                                  savoir{group.savoirs.length > 1 ? 's' : ''}
+                                </span>
+                              </div>
 
-                      {hasMore && (
-                        <div className="ctp-show-more">
-                          <button
-                            className="ctp-show-more-btn"
-                            onClick={() =>
-                              setVisibleCount((prev) => {
-                                const next = new Map(prev);
-                                next.set(compId, limit + PAGE);
-                                return next;
-                              })
-                            }
-                          >
-                            Voir {moreCount} savoir{moreCount > 1 ? 's' : ''} de plus
-                            <span className="ctp-show-more-total">
-                              ({limit} / {row.filteredLinked.length})
-                            </span>
-                          </button>
+                              {group.shown.map((savoir) => {
+                                const niveauStyle = getNiveauStyle(savoir.niveau);
+                                return (
+                                  <button
+                                    key={savoir.id}
+                                    className={`ctp-savoir-mini${group.isDirect ? '' : ' ctp-savoir-mini--sc'}`}
+                                    style={{ borderLeftColor: accent }}
+                                    title={
+                                      savoir.sousCompetencePath
+                                        ? `${savoir.sousCompetencePath} — ${savoir.nom}`
+                                        : savoir.nom
+                                    }
+                                    onClick={() => onOpenSavoir(savoir)}
+                                  >
+                                    <div
+                                      className="ctp-savoir-mini__code"
+                                      style={{ color: accent }}
+                                    >
+                                      {savoir.code}
+                                    </div>
+                                    <div className="ctp-savoir-mini__nom">{savoir.nom}</div>
+                                    <div className="ctp-savoir-mini__footer">
+                                      <Badge
+                                        text={getTypeLabel(savoir.type ?? '')}
+                                        type={getTypeBadge(savoir.type ?? '')}
+                                      />
+                                      <span
+                                        className="ctp-badge"
+                                        style={{
+                                          color: niveauStyle.color,
+                                          background: niveauStyle.bg,
+                                          borderColor: niveauStyle.border,
+                                        }}
+                                      >
+                                        {formatNiveau(savoir.niveau)}
+                                      </span>
+                                      {savoir.isDirect && (
+                                        <span className="ctp-badge-direct">direct</span>
+                                      )}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </Fragment>
+                          ))}
                         </div>
-                      )}
-                    </>
-                  ))}
+
+                        {hasMore && (
+                          <div className="ctp-show-more">
+                            <button
+                              className="ctp-show-more-btn"
+                              onClick={() =>
+                                setVisibleCount((prev) => {
+                                  const next = new Map(prev);
+                                  next.set(compId, limit + PAGE);
+                                  return next;
+                                })
+                              }
+                            >
+                              Voir {moreCount} savoir{moreCount > 1 ? 's' : ''} de plus
+                              <span className="ctp-show-more-total">
+                                ({limit} / {row.filteredLinked.length})
+                              </span>
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {emptySousComps.length > 0 && (
+                      <div
+                        className="ctp-sc-missing"
+                        title={emptySousComps.map((sc) => sc.path).join(' · ')}
+                      >
+                        <span className="ctp-sc-missing__label">
+                          Sous-competences sans savoir ({emptySousComps.length})
+                        </span>
+                        <span className="ctp-sc-missing__list">
+                          {emptySousComps.map((sc) => (
+                            <span key={sc.id} className="ctp-sc-missing__item">
+                              {sc.path}
+                            </span>
+                          ))}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
               </section>
             );
           })

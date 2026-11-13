@@ -100,7 +100,7 @@ class CalendarExportServiceTest {
     @Test
     @DisplayName("generateIcsForAll - Devrait générer un ics pour toutes les séances")
     void shouldGenerateIcsForAll() {
-        when(seanceFormationRepository.findAllByOrderByDateSeanceAscHeureDebutAsc())
+        when(seanceFormationRepository.findByFormation_SourceCalendrierTrueOrderByDateSeanceAscHeureDebutAsc())
                 .thenReturn(List.of(seance));
 
         String ics = calendarExportService.generateIcsForAll();

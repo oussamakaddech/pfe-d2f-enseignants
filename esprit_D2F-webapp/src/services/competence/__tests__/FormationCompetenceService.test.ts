@@ -74,4 +74,15 @@ describe('FormationCompetenceService', () => {
     const result = await FormationCompetenceService.getByDomaine(5);
     expect(result).toEqual([{ id: 4 }]);
   });
+
+  it('gets all links (filtre par compétence du catalogue)', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({
+      data: [{ formationId: 1, competenceId: 5, competenceNom: 'Web Sémantique' }],
+    });
+    const result = await FormationCompetenceService.getAllLinks();
+    expect(result).toEqual([{ formationId: 1, competenceId: 5, competenceNom: 'Web Sémantique' }]);
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      'http://api-test.local/formation/formation-competences/all',
+    );
+  });
 });

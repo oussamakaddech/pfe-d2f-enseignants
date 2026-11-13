@@ -40,6 +40,8 @@ class _ThreadSafeCache:
     thread-pool workers never see a partially-updated dict.
     """
 
+    # Initialise le cache : verrou thread-safe + dictionnaire de données
+    # + dictionnaire d'horodatages (pour le TTL par clé).
     def __init__(self) -> None:
         self._lock = _threading.Lock()
         self._data: Dict[str, Any] = {}
@@ -56,12 +58,13 @@ class _ThreadSafeCache:
             return self._data[key]
 
     # --- write ----------------------------------------------------------------
+    # Stocke une valeur dans le cache avec horodatage (heure courante).
     def set(self, key: str, value: Any) -> None:
         with self._lock:
             self._data[key] = value
             self._ts[key] = _time.time()
 
-    # --- invalidate -----------------------------------------------------------
+    # Supprime une clé et renvoie sa valeur (ou `default` si absente).
     def pop(self, key: str, default: Any = None) -> Any:
         with self._lock:
             val = self._data.pop(key, _MISSING)
@@ -70,37 +73,44 @@ class _ThreadSafeCache:
                 return default
             return val
 
+    # Vide entièrement le cache (données + horodatages).
     def clear(self) -> None:
         with self._lock:
             self._data.clear()
             self._ts.clear()
 
-    # --- helpers --------------------------------------------------------------
+    # Liste les clés présentes dans le cache.
     def keys(self) -> list:
         with self._lock:
             return list(self._data.keys())
 
+    # Le cache est "vrai" s'il contient au moins une entrée.
     def __bool__(self) -> bool:
         with self._lock:
             return bool(self._data)
 
     # --- dictionary compatibility magic methods ------------------------------
+    # Lecture directe cache[key] (sans TTL — usage interne).
     def __getitem__(self, key: str) -> Any:
         with self._lock:
             return self._data[key]
 
+    # Écriture directe cache[key] = valeur (passe par set()).
     def __setitem__(self, key: str, value: Any) -> None:
         self.set(key, value)
 
+    # Suppression directe del cache[key] (ignore si la clé est absente).
     def __delitem__(self, key: str) -> None:
         with self._lock:
             self._data.pop(key, None)
             self._ts.pop(key, None)
 
+    # Support de l'opérateur `in` (key in cache).
     def __contains__(self, key: str) -> bool:
         with self._lock:
             return key in self._data
 
+    # Nombre d'entrées dans le cache (len(cache)).
     def __len__(self) -> int:
         with self._lock:
             return len(self._data)

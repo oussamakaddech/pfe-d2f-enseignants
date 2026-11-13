@@ -2,7 +2,7 @@ import jwt
 import pytest
 
 from app.core.config import Settings
-from app.core.exceptions import UnauthorizedError
+from app.core.exceptions import ForbiddenError, UnauthorizedError
 from app.core.security import decode_token, has_role, normalize_role, require_roles
 
 SECRET = "test-secret-at-least-32-chars-long-for-hs512"
@@ -67,5 +67,5 @@ def test_require_roles_rejects_missing_role():
             return any(r in self.roles for r in roles)
 
     dependency = require_roles("ADMIN")
-    with pytest.raises(UnauthorizedError):
+    with pytest.raises(ForbiddenError):
         dependency(FakeUser())

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Table,
@@ -20,6 +20,7 @@ import {
   EditOutlined,
   DeleteOutlined,
   DownloadOutlined,
+  FileExcelOutlined,
   MailOutlined,
   PlusCircleOutlined,
   FilterOutlined,
@@ -39,20 +40,26 @@ import dayjs from 'dayjs';
 import { useAuth } from '@/hooks/auth/useAuth';
 import {
   useAllFormations,
-  useFormationsParDepartement,
+  useMesFormationsPilote,
   useFormationsWithDocuments,
   useDeleteFormation,
-  useExportFormations,
   useUps,
   useDepartements,
-  useProfile,
 } from '@/hooks/formation';
-import type { Formation } from '@/models/formation';
+import { useAllFormationCompetenceLinks } from '@/hooks/competence/useFormationCompetence';
+import type { Formation, Personne } from '@/models/formation';
 import type { FormationDocument } from '@/models/document';
 import type { Id } from '@/models/common';
-import FormationWorkflowEditForm from './FormationWorkflowEditForm';
 import MailForm from '@/pages/besoin/MailForm';
 import useAppNotification from '@/hooks/ui/useAppNotification';
+import { writeExcel, exportDateLabel, isoDate } from '@/utils/helpers/excelExport';
+import {
+  buildCompetenceByFormation,
+  buildCompetenceOptions,
+  buildFormateurOptions,
+  filterFormations,
+  personLabel,
+} from './catalogueFilters';
 
 const normalizeRole = (value: unknown) =>
   String(value || '')
@@ -111,27 +118,42 @@ function renderExpandRow(record: Formation) {
 export default function FormationConsultationPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const canManageFormations = normalizeRole(user?.role) === 'admin';
+  // Parité FORMATION_CREATE/UPDATE/DELETE (AuthorizationMatrix) : ADMIN, CUP et
+  // CHEF_DEPARTEMENT gèrent les formations (contrôle fin du périmètre côté serveur).
+  const canManageFormations = ['admin', 'cup', 'chefdepartement'].includes(
+    normalizeRole(user?.role),
+  );
   const isChefDept = normalizeRole(user?.role) === 'chefdepartement';
+  const isCup = normalizeRole(user?.role) === 'cup';
+  // Scoping serveur (§8) : CUP → son UP, chef → son département (ADMIN = global).
+  const isScopedPilote = isCup || isChefDept;
   const { message: msgApi } = useAppNotification();
-
-  const { data: profile } = useProfile();
-  const deptId = (user?.deptId ?? profile?.deptId ?? profile?.departementId) as Id | undefined;
 
   const {
     data: formationsAll = [],
     isLoading: loadingAll,
     refetch: refetchAll,
-  } = useAllFormations();
+  } = useAllFormations(!isScopedPilote);
   const {
-    data: formationsDept = [],
-    isLoading: loadingDept,
-    refetch: refetchDept,
-  } = useFormationsParDepartement(isChefDept ? deptId : undefined);
-  const loading = loadingAll || loadingDept;
+    data: formationsScoped = [],
+    isLoading: loadingScoped,
+    refetch: refetchScoped,
+    error: scopedError,
+  } = useMesFormationsPilote(isScopedPilote);
+  useEffect(() => {
+    if (scopedError) {
+      const e = scopedError as { response?: { data?: { message?: string } }; message?: string };
+      msgApi.error(
+        e.response?.data?.message || e.message || 'Impossible de charger vos formations.',
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopedError]);
+  const loading = loadingAll || loadingScoped;
+  const refetchFormations = isScopedPilote ? refetchScoped : refetchAll;
   const formations = useMemo(
-    () => (isChefDept && deptId ? formationsDept : formationsAll),
-    [isChefDept, deptId, formationsDept, formationsAll],
+    () => (isScopedPilote ? formationsScoped : formationsAll),
+    [isScopedPilote, formationsScoped, formationsAll],
   );
 
   const { data: formationsWithDocs = [] } = useFormationsWithDocuments();
@@ -144,7 +166,6 @@ export default function FormationConsultationPage() {
   }, [formationsWithDocs]);
 
   const deleteMut = useDeleteFormation();
-  const exportMut = useExportFormations();
 
   const { data: upsData = [] } = useUps();
   const { data: deptsData = [] } = useDepartements();
@@ -165,6 +186,27 @@ export default function FormationConsultationPage() {
     [deptsData],
   );
 
+  // Les liaisons formation ↔ compétence ne sont lisibles que par les rôles de
+  // FORMATION_COMPETENCE_READ (ni RESPONSABLE_DOSSIER ni les autres) : inutile
+  // d'appeler une route qui répondrait 403.
+  const canReadCompetenceLinks = ['admin', 'cup', 'chefdepartement'].includes(
+    normalizeRole(user?.role),
+  );
+  const { data: competenceLinks = [] } = useAllFormationCompetenceLinks(canReadCompetenceLinks);
+  const formationIdSet = useMemo(
+    () => new Set(formations.map((f) => String(f.idFormation))),
+    [formations],
+  );
+  const competenceByFormation = useMemo(
+    () => buildCompetenceByFormation(competenceLinks, formationIdSet),
+    [competenceLinks, formationIdSet],
+  );
+  const competenceOptions = useMemo(
+    () => buildCompetenceOptions(competenceLinks, formationIdSet),
+    [competenceLinks, formationIdSet],
+  );
+  const formateurOptions = useMemo(() => buildFormateurOptions(formations), [formations]);
+
   const [filterText, setFilterText] = useState('');
   const [typeFilter, setTypeFilter] = useState<string | undefined>();
   const [etatFilter, setEtatFilter] = useState<string | undefined>();
@@ -172,44 +214,69 @@ export default function FormationConsultationPage() {
   const [deptFilter, setDeptFilter] = useState<Id | undefined>();
   const [periodFilter, setPeriodFilter] = useState<string | undefined>();
   const [periodRange, setPeriodRange] = useState<[Dayjs, Dayjs] | null>(null);
+  const [formateurFilter, setFormateurFilter] = useState<string | undefined>();
+  const [competenceFilter, setCompetenceFilter] = useState<string | undefined>();
+  const [exportingFormationId, setExportingFormationId] = useState<Id | null>(null);
 
-  const [openEdit, setOpenEdit] = useState(false);
   const [openExport, setOpenExport] = useState(false);
+  // Filtres propres à l'export (préremplis avec ceux du catalogue à l'ouverture).
+  const [exportText, setExportText] = useState('');
+  const [exportUpId, setExportUpId] = useState<Id | undefined>();
+  const [exportDeptId, setExportDeptId] = useState<Id | undefined>();
+  const [exportRange, setExportRange] = useState<[Dayjs, Dayjs] | null>(null);
   const [openMail, setOpenMail] = useState(false);
 
   const [selectedFormation, setSelectedFormation] = useState<Formation | null>(null);
 
-  const filtered = useMemo(() => {
-    let res = [...formations];
-    if (filterText) {
-      res = res.filter((f) =>
-        (f.titreFormation || '').toLowerCase().includes(filterText.toLowerCase()),
-      );
-    }
-    if (typeFilter) res = res.filter((f) => f.typeFormation === typeFilter);
-    if (etatFilter) res = res.filter((f) => f.etatFormation === etatFilter);
-    if (upFilter) res = res.filter((f) => f.up1?.id === upFilter);
-    if (deptFilter) res = res.filter((f) => f.departement1?.id === deptFilter);
-    if (periodFilter) res = res.filter((f) => f.periodCode === periodFilter);
-    if (periodRange) {
-      const [start, end] = periodRange;
-      res = res.filter((f) => {
-        const debut = dayjs(f.dateDebut);
-        const fin = dayjs(f.dateFin);
-        return !debut.isBefore(start, 'day') && !fin.isAfter(end, 'day');
-      });
-    }
-    return res;
-  }, [
-    formations,
-    filterText,
-    typeFilter,
-    etatFilter,
-    upFilter,
-    deptFilter,
-    periodFilter,
-    periodRange,
-  ]);
+  const filtered = useMemo(
+    () =>
+      filterFormations(
+        formations,
+        {
+          text: filterText,
+          type: typeFilter,
+          etat: etatFilter,
+          upId: upFilter,
+          deptId: deptFilter,
+          period: periodFilter,
+          start: periodRange?.[0],
+          end: periodRange?.[1],
+          formateurKey: formateurFilter,
+          competenceId: competenceFilter,
+        },
+        competenceByFormation,
+      ),
+    [
+      formations,
+      filterText,
+      typeFilter,
+      etatFilter,
+      upFilter,
+      deptFilter,
+      periodFilter,
+      periodRange,
+      formateurFilter,
+      competenceFilter,
+      competenceByFormation,
+    ],
+  );
+
+  /** Formations retenues par les filtres de la fenêtre d'export Excel. */
+  const exportRows = useMemo(
+    () =>
+      filterFormations(
+        formations,
+        {
+          text: exportText,
+          upId: exportUpId,
+          deptId: exportDeptId,
+          start: exportRange?.[0],
+          end: exportRange?.[1],
+        },
+        competenceByFormation,
+      ),
+    [formations, exportText, exportUpId, exportDeptId, exportRange, competenceByFormation],
+  );
 
   const stats = useMemo(() => {
     const list = filtered;
@@ -245,7 +312,7 @@ export default function FormationConsultationPage() {
         onClear: () => setEtatFilter(undefined),
       });
     if (upFilter) {
-      const up = upsOptions.find((u) => u.id === upFilter);
+      const up = upsOptions.find((u) => String(u.id) === String(upFilter));
       chips.push({
         key: 'up',
         label: `UP : ${up?.libelle || upFilter}`,
@@ -253,7 +320,7 @@ export default function FormationConsultationPage() {
       });
     }
     if (deptFilter) {
-      const dept = deptsOptions.find((d) => d.id === deptFilter);
+      const dept = deptsOptions.find((d) => String(d.id) === String(deptFilter));
       chips.push({
         key: 'dept',
         label: `Département : ${dept?.libelle || deptFilter}`,
@@ -276,6 +343,22 @@ export default function FormationConsultationPage() {
         onClear: () => setPeriodRange(null),
       });
     }
+    if (formateurFilter) {
+      const opt = formateurOptions.find((o) => o.key === formateurFilter);
+      chips.push({
+        key: 'formateur',
+        label: `Formateur : ${opt?.label ?? formateurFilter}`,
+        onClear: () => setFormateurFilter(undefined),
+      });
+    }
+    if (competenceFilter) {
+      const opt = competenceOptions.find((o) => o.key === competenceFilter);
+      chips.push({
+        key: 'competence',
+        label: `Compétence : ${opt?.label ?? competenceFilter}`,
+        onClear: () => setCompetenceFilter(undefined),
+      });
+    }
     return chips;
   }, [
     filterText,
@@ -285,6 +368,10 @@ export default function FormationConsultationPage() {
     deptFilter,
     periodFilter,
     periodRange,
+    formateurFilter,
+    competenceFilter,
+    formateurOptions,
+    competenceOptions,
     upsOptions,
     deptsOptions,
   ]);
@@ -299,34 +386,275 @@ export default function FormationConsultationPage() {
     }
   }
 
-  async function handleExport() {
-    if (!periodRange) {
-      msgApi.error('Veuillez spécifier début et fin.');
+  function handleExportFormation(formation: Formation) {
+    if (formation.idFormation == null) return;
+    setExportingFormationId(formation.idFormation);
+    try {
+      const refLabel = (item?: RefItem) => item?.libelle || item?.nom || '';
+      const dateLabel = (value?: string) => (value ? dayjs(value).format('DD/MM/YYYY') : '');
+      const sessionRows = (formation.seances ?? []).map((seance, index) => ({
+        Formation: formation.titreFormation || '',
+        Type: formation.typeFormation || '',
+        État: formation.etatFormation || '',
+        Période:
+          formation.periodCode === 'OTHER'
+            ? formation.customPeriodLabel || 'Autre'
+            : (PERIOD_OPTIONS.find((option) => option.value === formation.periodCode)?.label ??
+              formation.periodeFormation ??
+              ''),
+        UP: refLabel(formation.up ?? formation.up1),
+        Département: refLabel(formation.departement ?? formation.departement1),
+        Début: dateLabel(formation.dateDebut),
+        Fin: dateLabel(formation.dateFin),
+        Séance: index + 1,
+        'Date séance': dateLabel(seance.dateSeance),
+        'Heure début': seance.heureDebut ?? '',
+        'Heure fin': seance.heureFin ?? '',
+        Salle: seance.salle ?? formation.salle ?? '',
+        Animateurs: (seance.animateurs ?? formation.animateurs ?? [])
+          .map((personne) => `${personne.prenom ?? ''} ${personne.nom ?? ''}`.trim())
+          .filter(Boolean)
+          .join(', '),
+        Participants: (seance.participants ?? [])
+          .map((personne) => `${personne.prenom ?? ''} ${personne.nom ?? ''}`.trim())
+          .filter(Boolean)
+          .join(', '),
+      }));
+      const formationRow = {
+        Formation: formation.titreFormation || '',
+        Type: formation.typeFormation || '',
+        État: formation.etatFormation || '',
+        Période:
+          formation.periodCode === 'OTHER'
+            ? formation.customPeriodLabel || 'Autre'
+            : (PERIOD_OPTIONS.find((option) => option.value === formation.periodCode)?.label ??
+              formation.periodeFormation ??
+              ''),
+        UP: refLabel(formation.up ?? formation.up1),
+        Département: refLabel(formation.departement ?? formation.departement1),
+        Début: dateLabel(formation.dateDebut),
+        Fin: dateLabel(formation.dateFin),
+        'Charge horaire (h)': formation.chargeHoraireGlobal ?? '',
+        Salle: formation.salle ?? '',
+        Objectifs: formation.objectifs ?? formation.objectif ?? '',
+        'Objectifs pédagogiques': formation.objectifsPedago ?? '',
+        Animateurs: (formation.animateurs ?? [])
+          .map((personne) => `${personne.prenom ?? ''} ${personne.nom ?? ''}`.trim())
+          .filter(Boolean)
+          .join(', '),
+        Participants: (formation.participants ?? [])
+          .map((personne) => `${personne.prenom ?? ''} ${personne.nom ?? ''}`.trim())
+          .filter(Boolean)
+          .join(', '),
+      };
+      const safeTitle = (formation.titreFormation || `formation_${formation.idFormation}`)
+        .replaceAll(/[\\/:*?"<>|]/g, '_')
+        .trim();
+      writeExcel(
+        [
+          {
+            name: 'Formation',
+            title: formation.titreFormation || 'Détail de la formation',
+            subtitle: `Exporté le ${dayjs().format('DD/MM/YYYY HH:mm')}`,
+            rows: [formationRow],
+          },
+          ...(sessionRows.length > 0
+            ? [{ name: 'Séances', title: 'Séances de la formation', rows: sessionRows }]
+            : []),
+        ],
+        `formation_${safeTitle}_${formation.idFormation}.xlsx`,
+      );
+      msgApi.success('Export Excel de la formation téléchargé.');
+    } catch (error: unknown) {
+      const e = error as { message?: string };
+      msgApi.error(`Échec de l’export Excel : ${e.message || 'erreur inattendue'}`);
+    } finally {
+      setExportingFormationId(null);
+    }
+  }
+
+  function openExportModal() {
+    // Les filtres du catalogue servent de valeur de départ à l'export.
+    setExportText(filterText);
+    setExportUpId(upFilter);
+    setExportDeptId(deptFilter);
+    setExportRange(periodRange);
+    setOpenExport(true);
+  }
+
+  /**
+   * Export Excel du catalogue filtré : recherche + UP + département (+ dates),
+   * avec une feuille de synthèse par UP / département et une par compétence.
+   */
+  function handleExport() {
+    if (exportRows.length === 0) {
+      msgApi.error('Aucune formation à exporter avec ces critères.');
       return;
     }
-    const [start, end] = periodRange.map((d) => d.format('YYYY-MM-DD'));
     try {
-      const response = await exportMut.mutateAsync({ start, end });
-      const blob = new Blob([response.data as BlobPart], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      const refLabel = (item?: RefItem) => item?.libelle || item?.nom || '';
+      const dateLabel = (value?: string) => (value ? dayjs(value).format('DD/MM/YYYY') : '');
+      const periodLabel = (formation: Formation) =>
+        formation.periodCode === 'OTHER'
+          ? formation.customPeriodLabel || 'Autre'
+          : (PERIOD_OPTIONS.find((option) => option.value === formation.periodCode)?.label ??
+            formation.periodeFormation ??
+            '');
+      const personsLabel = (list?: Personne[]) =>
+        (list ?? [])
+          .map((personne) => personLabel(personne))
+          .filter(Boolean)
+          .join(', ');
+      const competencesOf = (formation: Formation) =>
+        (competenceByFormation.get(String(formation.idFormation)) ?? [])
+          .map((competence) => competence.nom)
+          .join(', ');
+
+      const formationRows = exportRows.map((formation) => ({
+        Formation: formation.titreFormation || '',
+        Type: formation.typeFormation || '',
+        État: formation.etatFormation || '',
+        Période: periodLabel(formation),
+        UP: refLabel(formation.up ?? formation.up1),
+        Département: refLabel(formation.departement ?? formation.departement1),
+        Début: dateLabel(formation.dateDebut),
+        Fin: dateLabel(formation.dateFin),
+        'Charge horaire (h)': formation.chargeHoraireGlobal ?? '',
+        Formateurs: personsLabel(formation.animateurs),
+        'Nb séances': (formation.seances ?? []).length,
+        'Nb participants': (formation.participants ?? []).length,
+        Compétences: competencesOf(formation),
+      }));
+
+      const seanceRows = exportRows.flatMap((formation) =>
+        (formation.seances ?? []).map((seance, index) => ({
+          Formation: formation.titreFormation || '',
+          UP: refLabel(formation.up ?? formation.up1),
+          Département: refLabel(formation.departement ?? formation.departement1),
+          Séance: `${index + 1}/${formation.seances?.length ?? 0}`,
+          Date: dateLabel(seance.dateSeance),
+          'Heure début': seance.heureDebut ?? '',
+          'Heure fin': seance.heureFin ?? '',
+          Salle: seance.salle ?? formation.salle ?? '',
+          Formateurs: personsLabel(seance.animateurs ?? formation.animateurs),
+          'Nb participants': (seance.participants ?? []).length,
+        })),
+      );
+
+      type GroupeSynthese = {
+        UP: string;
+        Département: string;
+        Formations: number;
+        Internes: number;
+        Externes: number;
+        'Nb participants': number;
+        'Charge horaire (h)': number;
+      };
+      const groupes = new Map<string, GroupeSynthese>();
+      exportRows.forEach((formation) => {
+        const up = refLabel(formation.up ?? formation.up1) || '—';
+        const dept = refLabel(formation.departement ?? formation.departement1) || '—';
+        const key = `${up}||${dept}`;
+        const groupe = groupes.get(key) ?? {
+          UP: up,
+          Département: dept,
+          Formations: 0,
+          Internes: 0,
+          Externes: 0,
+          'Nb participants': 0,
+          'Charge horaire (h)': 0,
+        };
+        groupe.Formations += 1;
+        if (formation.typeFormation === 'INTERNE') groupe.Internes += 1;
+        if (formation.typeFormation === 'EXTERNE') groupe.Externes += 1;
+        groupe['Nb participants'] += (formation.participants ?? []).length;
+        groupe['Charge horaire (h)'] += formation.chargeHoraireGlobal ?? 0;
+        groupes.set(key, groupe);
       });
-      const url = globalThis.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `formations_${start}_${end}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      globalThis.URL.revokeObjectURL(url);
-      msgApi.success('✔️ Export réussi !');
+      const syntheseRows = Array.from(groupes.values()).sort(
+        (a, b) =>
+          a.UP.localeCompare(b.UP, 'fr') || a.Département.localeCompare(b.Département, 'fr'),
+      );
+
+      const parCompetence = new Map<string, string[]>();
+      exportRows.forEach((formation) => {
+        (competenceByFormation.get(String(formation.idFormation)) ?? []).forEach((competence) => {
+          const titres = parCompetence.get(competence.nom) ?? [];
+          if (formation.titreFormation) titres.push(formation.titreFormation);
+          parCompetence.set(competence.nom, titres);
+        });
+      });
+      const competenceRows = Array.from(parCompetence, ([nom, titres]) => ({
+        Compétence: nom,
+        Formations: titres.length,
+        'Titres des formations': titres.join(' · '),
+      })).sort(
+        (a, b) => b.Formations - a.Formations || a.Compétence.localeCompare(b.Compétence, 'fr'),
+      );
+
+      const criteres: string[] = [];
+      if (exportText) criteres.push(`recherche « ${exportText} »`);
+      if (exportUpId) {
+        const up = upsOptions.find((u) => String(u.id) === String(exportUpId));
+        criteres.push(`UP ${up?.libelle ?? exportUpId}`);
+      }
+      if (exportDeptId) {
+        const dept = deptsOptions.find((d) => String(d.id) === String(exportDeptId));
+        criteres.push(`département ${dept?.libelle ?? exportDeptId}`);
+      }
+      if (exportRange) {
+        criteres.push(
+          `du ${exportRange[0].format('DD/MM/YYYY')} au ${exportRange[1].format('DD/MM/YYYY')}`,
+        );
+      }
+      const subtitle = `${exportRows.length} formation${exportRows.length === 1 ? '' : 's'} · ${
+        criteres.length ? criteres.join(' · ') : 'catalogue complet'
+      } · ${exportDateLabel()}`;
+
+      writeExcel(
+        [
+          {
+            name: 'Formations',
+            title: 'Catalogue des formations',
+            subtitle,
+            rows: formationRows,
+          },
+          ...(seanceRows.length
+            ? [
+                {
+                  name: 'Séances',
+                  title: 'Séances des formations exportées',
+                  subtitle: `${seanceRows.length} séance(s) · ${exportDateLabel()}`,
+                  rows: seanceRows,
+                },
+              ]
+            : []),
+          {
+            name: 'Synthèse UP-Département',
+            title: 'Synthèse par UP et département',
+            subtitle: `${syntheseRows.length} regroupement(s) · ${exportDateLabel()}`,
+            rows: syntheseRows,
+          },
+          ...(competenceRows.length
+            ? [
+                {
+                  name: 'Par compétence',
+                  title: 'Formations par compétence',
+                  subtitle: `${competenceRows.length} compétence(s) · ${exportDateLabel()}`,
+                  rows: competenceRows,
+                },
+              ]
+            : []),
+        ],
+        `catalogue_formations_${isoDate()}.xlsx`,
+      );
+      msgApi.success(
+        `Export Excel : ${exportRows.length} formation${exportRows.length === 1 ? '' : 's'} téléchargée${exportRows.length === 1 ? '' : 's'}.`,
+      );
       setOpenExport(false);
     } catch (error: unknown) {
-      const e = error as {
-        response?: { data?: { message?: string; error?: string } };
-        message?: string;
-      };
-      const apiMsg = e?.response?.data?.message || e?.response?.data?.error || e?.message;
-      msgApi.error(`❌ Erreur export : ${apiMsg}`);
+      const e = error as { message?: string };
+      msgApi.error(`Échec de l’export Excel : ${e.message || 'erreur inattendue'}`);
     }
   }
 
@@ -384,7 +712,7 @@ export default function FormationConsultationPage() {
       render: (_, r) => {
         if (r.periodCode === 'OTHER') return <Tag>{r.customPeriodLabel || 'Autre'}</Tag>;
         const opt = PERIOD_OPTIONS.find((o) => o.value === r.periodCode);
-        return opt ? <Tag>{opt.label}</Tag> : '—';
+        return opt ? <Tag>{opt.label}</Tag> : r.periodeFormation || '—';
       },
       sorter: (a, b) => (a.periodCode || '').localeCompare(b.periodCode || ''),
     },
@@ -456,45 +784,65 @@ export default function FormationConsultationPage() {
     {
       title: 'Actions',
       key: 'actions',
-      width: 100,
+      width: 140,
       align: 'center' as const,
       render: (_, r) => {
         const role = normalizeRole(user?.role);
         const isResponsableDossier = role === 'responsabledossier';
-        return canManageFormations || isResponsableDossier ? (
+        return (
           <Space size={4}>
-            {(canManageFormations || isResponsableDossier) && (
+            <Tooltip title="Exporter cette formation en Excel">
               <Button
                 type="text"
                 shape="circle"
-                icon={<EditOutlined />}
-                onClick={() => {
-                  setSelectedFormation(r);
-                  setOpenEdit(true);
-                }}
-                title={isResponsableDossier ? 'Gérer Dossier' : 'Modifier'}
-                className="formation-btn-edit"
+                icon={<FileExcelOutlined />}
+                loading={exportingFormationId === r.idFormation}
+                disabled={r.idFormation == null || exportingFormationId !== null}
+                onClick={() => void handleExportFormation(r)}
+                aria-label={`Exporter ${r.titreFormation || 'la formation'} en Excel`}
+                className="formation-btn-export-row"
               />
-            )}
-            {canManageFormations && (
-              <Popconfirm
-                title="Supprimer cette formation ?"
-                onConfirm={() => void handleDelete(r.idFormation!)}
-              >
+            </Tooltip>
+            {canManageFormations || isResponsableDossier ? (
+              <>
                 <Button
                   type="text"
                   shape="circle"
-                  icon={<DeleteOutlined />}
-                  danger
-                  className="formation-btn-delete"
+                  icon={<EditOutlined />}
+                  onClick={() => {
+                    if (r.idFormation == null) return;
+                    // Page dédiée (GET détail frais) pour les gestionnaires ;
+                    // le responsable dossier gère les documents de la formation.
+                    navigate(
+                      canManageFormations
+                        ? `/home/Formation/Modifier/${r.idFormation}`
+                        : `/home/Formation/Consulter/${r.idFormation}/documents`,
+                    );
+                  }}
+                  title={isResponsableDossier ? 'Gérer Dossier' : 'Modifier'}
+                  className="formation-btn-edit"
                 />
-              </Popconfirm>
+                {canManageFormations && (
+                  <Popconfirm
+                    title="Supprimer cette formation ?"
+                    onConfirm={() => void handleDelete(r.idFormation!)}
+                  >
+                    <Button
+                      type="text"
+                      shape="circle"
+                      icon={<DeleteOutlined />}
+                      danger
+                      className="formation-btn-delete"
+                    />
+                  </Popconfirm>
+                )}
+              </>
+            ) : (
+              <Tag color="blue" className="formation-tag-consultation">
+                Consultation
+              </Tag>
             )}
           </Space>
-        ) : (
-          <Tag color="blue" className="formation-tag-consultation">
-            Consultation
-          </Tag>
         );
       },
     },
@@ -508,10 +856,20 @@ export default function FormationConsultationPage() {
     setDeptFilter(undefined);
     setPeriodFilter(undefined);
     setPeriodRange(null);
+    setFormateurFilter(undefined);
+    setCompetenceFilter(undefined);
   };
 
   const hasActiveFilters =
-    filterText || typeFilter || etatFilter || upFilter || deptFilter || periodFilter || periodRange;
+    filterText ||
+    typeFilter ||
+    etatFilter ||
+    upFilter ||
+    deptFilter ||
+    periodFilter ||
+    periodRange ||
+    formateurFilter ||
+    competenceFilter;
 
   return (
     <div className="formation-consultation-page">
@@ -534,7 +892,7 @@ export default function FormationConsultationPage() {
             )}
             <Button
               icon={<DownloadOutlined />}
-              onClick={() => setOpenExport(true)}
+              onClick={openExportModal}
               className="formation-btn-export"
             >
               Exporter
@@ -690,6 +1048,34 @@ export default function FormationConsultationPage() {
             placeholder={['Début', 'Fin']}
             style={{ width: 220 }}
           />
+          <Select
+            placeholder="Formateur (nb formations)"
+            allowClear
+            value={formateurFilter}
+            onChange={setFormateurFilter}
+            style={{ width: 240 }}
+            showSearch
+            optionFilterProp="label"
+            options={formateurOptions.map((option) => ({
+              value: option.key,
+              label: `${option.label} (${option.count})`,
+            }))}
+          />
+          {competenceOptions.length > 0 && (
+            <Select
+              placeholder="Compétence"
+              allowClear
+              value={competenceFilter}
+              onChange={setCompetenceFilter}
+              style={{ width: 240 }}
+              showSearch
+              optionFilterProp="label"
+              options={competenceOptions.map((option) => ({
+                value: option.key,
+                label: `${option.label} (${option.count})`,
+              }))}
+            />
+          )}
         </div>
 
         {/* ── Active filter chips ─────────────────────────────────────── */}
@@ -750,8 +1136,7 @@ export default function FormationConsultationPage() {
                 type="text"
                 icon={<ReloadOutlined />}
                 onClick={() => {
-                  void refetchAll();
-                  if (isChefDept && deptId) void refetchDept();
+                  void refetchFormations();
                 }}
                 loading={loading}
               />
@@ -820,45 +1205,79 @@ export default function FormationConsultationPage() {
         </Drawer>
       )}
 
-      {canManageFormations && (
-        <Drawer
-          title="Modifier Formation"
-          placement="right"
-          width={960}
-          onClose={() => setOpenEdit(false)}
-          open={openEdit}
-          className="formation-drawer formation-drawer--edit"
-        >
-          {selectedFormation && (
-            <FormationWorkflowEditForm
-              formation={
-                selectedFormation as unknown as Parameters<
-                  typeof FormationWorkflowEditForm
-                >[0]['formation']
-              }
-              onFormationUpdated={() => {
-                setOpenEdit(false);
-                void refetchAll();
-                if (isChefDept && deptId) void refetchDept();
-              }}
-            />
-          )}
-        </Drawer>
-      )}
-
       {/* Modal Export */}
       <Modal
-        title="Exporter en Excel"
+        title="Exporter le catalogue en Excel"
         open={openExport}
-        onOk={() => void handleExport()}
+        onOk={handleExport}
         onCancel={() => setOpenExport(false)}
-        okText="Exporter"
+        okText={`Exporter (${exportRows.length})`}
+        okButtonProps={{ disabled: exportRows.length === 0 }}
         cancelText="Annuler"
+        width={560}
       >
-        <RangePicker
-          style={{ width: '100%', marginTop: 8 }}
-          onChange={(dates) => setPeriodRange(dates as [Dayjs, Dayjs] | null)}
-        />
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            L’export porte sur les formations qui correspondent à la recherche, à l’UP et au
+            département choisis. La plage de dates est facultative : sans elle, toutes les périodes
+            sont incluses.
+          </Text>
+          <Input
+            placeholder="Rechercher par titre…"
+            allowClear
+            value={exportText}
+            onChange={(e) => setExportText(e.target.value)}
+            prefix={
+              <span style={{ color: '#b51200' }}>
+                <FilterOutlined />
+              </span>
+            }
+          />
+          <Space size={8} wrap>
+            <Select
+              placeholder="UP"
+              allowClear
+              value={exportUpId as string}
+              onChange={(v) => setExportUpId(v as Id)}
+              style={{ width: 240 }}
+              showSearch
+              optionFilterProp="children"
+            >
+              {upsOptions.map((u) => (
+                <Option key={String(u.id)} value={u.id as string}>
+                  {u.libelle}
+                </Option>
+              ))}
+            </Select>
+            <Select
+              placeholder="Département"
+              allowClear
+              value={exportDeptId as string}
+              onChange={(v) => setExportDeptId(v as Id)}
+              style={{ width: 240 }}
+              showSearch
+              optionFilterProp="children"
+            >
+              {deptsOptions.map((d) => (
+                <Option key={String(d.id)} value={d.id as string}>
+                  {d.libelle}
+                </Option>
+              ))}
+            </Select>
+          </Space>
+          <RangePicker
+            style={{ width: '100%' }}
+            value={exportRange}
+            onChange={(dates) => setExportRange(dates as [Dayjs, Dayjs] | null)}
+            placeholder={['Début (facultatif)', 'Fin (facultatif)']}
+          />
+          <Text>
+            <b>{exportRows.length}</b> formation{exportRows.length === 1 ? '' : 's'} sera
+            {exportRows.length === 1 ? '' : 'ont'} exportée{exportRows.length === 1 ? '' : 's'} —
+            feuilles « Formations », « Séances », « Synthèse UP-Département »
+            {competenceOptions.length > 0 ? ', « Par compétence »' : ''}.
+          </Text>
+        </Space>
       </Modal>
     </div>
   );

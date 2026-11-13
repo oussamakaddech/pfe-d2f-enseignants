@@ -59,19 +59,19 @@ public class DeptController {
     }
 
     @PostMapping
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.STRUCTURE_WRITE)
     public ResponseEntity<DeptDTO> createDept(@RequestBody DeptDTO deptDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ReferentialMapper.toDeptDTO(deptService.create(ReferentialMapper.toDeptEntity(deptDTO))));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.STRUCTURE_WRITE)
     public ResponseEntity<DeptDTO> updateDept(@PathVariable String id, @RequestBody DeptDTO deptDTO) {
         return ResponseEntity.ok(ReferentialMapper.toDeptDTO(deptService.update(id, ReferentialMapper.toDeptEntity(deptDTO))));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    @PreAuthorize(AuthorizationMatrix.STRUCTURE_WRITE)
     public ResponseEntity<Void> deleteDept(@PathVariable String id) {
         deptService.delete(id);
         return ResponseEntity.noContent().build();

@@ -35,6 +35,7 @@ export interface Formation {
   typeFormation?: string;
   dateDebut?: string;
   dateFin?: string;
+  salle?: string;
   objectif?: string;
   responsableEmail?: string;
   responsableName?: string;
@@ -43,6 +44,9 @@ export interface Formation {
   customPeriodLabel?: string;
   up1?: RefItem;
   departement1?: RefItem;
+  /** Variante renvoyée par le détail (FormationMapper) : même forme id/libelle. */
+  up?: RefItem;
+  departement?: RefItem;
   chargeHoraireGlobal?: number;
   inscriptionsOuvertes?: boolean;
   objectifs?: string;

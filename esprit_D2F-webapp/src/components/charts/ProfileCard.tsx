@@ -60,7 +60,7 @@ const ProfileCard = memo(function ProfileCard({ data }: Readonly<Props>) {
           showIcon
           description={
             hasCritical
-              ? 'Gaps critiques détectés. Une mise à niveau urgente est recommandée.'
+              ? 'Écarts de couverture critiques détectés. Une formation ciblée est recommandée.'
               : 'Profil équilibré. Poursuivez les formations en cours.'
           }
         />

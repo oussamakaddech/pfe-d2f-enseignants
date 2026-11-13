@@ -443,19 +443,6 @@
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 13px;
 }
-.bf-import-box__hint {
-  font-size: var(--bf-text-xs);
-  color: var(--bf-text-faint);
-  margin-top: 8px;
-}
-.bf-import-box__hint code {
-  background: var(--bf-surface);
-  padding: 1px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--bf-border);
-  font-size: 11px;
-  color: var(--bf-text-body);
-}
 
 /* ╔═══════════════════════════════════════════════════════════════════╗
    ║                          SUMMARY (grouped cards)                   ║

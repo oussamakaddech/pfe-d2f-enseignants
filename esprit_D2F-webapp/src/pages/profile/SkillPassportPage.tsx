@@ -113,9 +113,9 @@ const initiales = (prenom?: string, nom?: string): string =>
 const fmtDate = (iso?: string): string => (iso ? iso.replace('T', ' ').slice(0, 16) : '—');
 
 /**
- * Page Passeport de Compétences — design credential moderne.
+ * Page Fiche compétence enseignant — design credential moderne.
  * Usage enseignant  : <SkillPassportPage />
- * Usage admin/CUP   : <SkillPassportPage targetUsername="jdoe" downloadLabel="Télécharger le passeport" />
+ * Usage admin/CUP   : <SkillPassportPage targetUsername="jdoe" downloadLabel="Télécharger la fiche" />
  */
 export default function SkillPassportPage({ targetUsername, downloadLabel }: Props) {
   const myQuery = useMyPassportData();
@@ -132,7 +132,7 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
     ? ((query.error as { response?: { data?: { message?: string } }; message?: string })?.response
         ?.data?.message ??
       (query.error as { message?: string })?.message ??
-      'Impossible de charger les données du passeport.')
+      'Impossible de charger la fiche enseignant.')
     : null;
   const error = downloadError ?? queryError;
   const fetchPassport = query.refetch;
@@ -157,7 +157,7 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
   if (loading) {
     return (
       <div className={s.loadingWrapper}>
-        <Spin size="large" tip="Chargement du passeport de compétences…">
+        <Spin size="large" tip="Chargement de la fiche enseignant…">
           <div style={{ minHeight: 120 }} />
         </Spin>
       </div>
@@ -231,7 +231,7 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
     <div className={s.pageWrapper}>
       <AppPageHeader
         icon={<SafetyCertificateOutlined />}
-        title="Passeport de Compétences"
+        title="Fiche compétence enseignant"
         subtitle="Synthèse certifiée des compétences, formations et certifications"
         actions={
           <Button
@@ -255,7 +255,7 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
           </Avatar>
           <div className={s.heroIdentity}>
             <div className={s.heroVerified}>
-              <SafetyCertificateOutlined /> Passeport vérifié
+              <SafetyCertificateOutlined /> Fiche vérifiée
             </div>
             <h2 className={s.heroName}>
               {identity.prenom} {identity.nom}

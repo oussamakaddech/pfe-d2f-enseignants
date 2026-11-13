@@ -44,6 +44,7 @@ class ComprehensiveControllersTest {
 
     @Mock private FormationCompetenceService fcService;
     @Mock private FormationClosureService fCustomService;
+    @Mock private CertificateEligibilityService certificateEligibilityService;
     @Mock private OutlookMailService mailService;
     @Mock private ParticipantKpiService pkpiService;
     @Mock private EnseignantService ensService;
@@ -88,6 +89,12 @@ class ComprehensiveControllersTest {
                 .setMessageConverters(new ByteArrayHttpMessageConverter(), new StringHttpMessageConverter(), converter)
                 .setControllerAdvice(exceptionHandler)
                 .build();
+        // Politique d'envoi réelle (domaine de l'établissement), dépôts simulés.
+        org.springframework.test.util.ReflectionTestUtils.setField(mailController, "sendPolicy",
+                new esprit.pfe.serviceformation.microsoft.MailSendPolicy(
+                        org.mockito.Mockito.mock(esprit.pfe.serviceformation.repositories.EnseignantRepository.class),
+                        org.mockito.Mockito.mock(esprit.pfe.serviceformation.repositories.AnimateurExterneRepository.class),
+                        "esprit.tn", 30));
         mockMvcMail = MockMvcBuilders.standaloneSetup(mailController)
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
                 .setMessageConverters(new ByteArrayHttpMessageConverter(), new StringHttpMessageConverter(), converter)
@@ -129,7 +136,8 @@ class ComprehensiveControllersTest {
                 .setControllerAdvice(exceptionHandler)
                 .build();
         mockMvcInsc = MockMvcBuilders.standaloneSetup(inscController)
-                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver(),
+                        new org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver())
                 .setMessageConverters(new ByteArrayHttpMessageConverter(), new StringHttpMessageConverter(), converter)
                 .setControllerAdvice(exceptionHandler)
                 .build();
@@ -145,7 +153,10 @@ class ComprehensiveControllersTest {
         when(fcService.getByFormationId(anyLong(), any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
         when(fcService.getByCompetenceId(anyLong(), any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
         when(fcService.getByDomaineId(anyLong(), any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
+        when(fcService.getAllLinks()).thenReturn(Collections.emptyList());
         mockMvcFC.perform(get("/api/v1/formation-competences/formation/1")).andExpect(status().is2xxSuccessful());
+        // Toutes les liaisons (filtre « par compétence » du catalogue, une seule requête).
+        mockMvcFC.perform(get("/api/v1/formation-competences/all")).andExpect(status().is2xxSuccessful());
 
         mockMvcFC.perform(post("/api/v1/formation-competences/formation/1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -172,7 +183,7 @@ class ComprehensiveControllersTest {
 
     @Test
     void testMail() throws Exception {
-        String json = "{\"to\":\"test@test.com\",\"subject\":\"Subj\",\"content\":\"Body\"}";
+        String json = "{\"to\":\"test@esprit.tn\",\"subject\":\"Subj\",\"content\":\"Body\"}";
         mockMvcMail.perform(post("/api/v1/mail/send")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json)).andExpect(status().is2xxSuccessful());

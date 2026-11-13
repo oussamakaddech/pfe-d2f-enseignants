@@ -8,6 +8,7 @@ import { message } from 'antd';
 import { analyticsApi } from '@/services/analyse/analyticsApi';
 import type {
   AlertUpdatePayload,
+  DailyTrendPoint,
   DashboardFilters,
   GapsResponse,
   PilotageResponse,
@@ -96,10 +97,17 @@ export function useTeacherScopeAnalysis(enseignantId: string) {
   });
 }
 
-export function useRealDashboardImpact() {
+export interface RealImpactFilters {
+  dept_id?: string;
+  up_id?: string;
+  niveau_risque?: string;
+  days?: number;
+}
+
+export function useRealDashboardImpact(filters?: RealImpactFilters) {
   return useQuery({
-    queryKey: ['analytics', 'dashboard', 'real-impact'],
-    queryFn: () => analyticsApi.getRealDashboardImpact(),
+    queryKey: ['analytics', 'dashboard', 'real-impact', filters ?? null],
+    queryFn: () => analyticsApi.getRealDashboardImpact(filters),
     staleTime: 60_000,
   });
 }
@@ -108,6 +116,14 @@ export function useRiskTrends(months = 6) {
   return useQuery<TrendPoint[]>({
     queryKey: ['analytics', 'risk-evolution', months],
     queryFn: () => analyticsApi.getRiskEvolution(months),
+    staleTime: 60_000,
+  });
+}
+
+export function useDailyRiskTrends(days = 30) {
+  return useQuery<DailyTrendPoint[]>({
+    queryKey: ['analytics', 'risk-evolution-daily', days],
+    queryFn: () => analyticsApi.getDailyRiskEvolution(days),
     staleTime: 60_000,
   });
 }
@@ -186,11 +202,13 @@ export function useDecliningSkills(filters?: DashboardFilters) {
 export function useAlerts(filters?: {
   type_alerte?: string;
   severite?: string;
+  severity_bucket?: string;
   statut?: string;
   enseignant_id?: string;
   departement_id?: string;
   page?: number;
   size?: number;
+  since_days?: number;
 }) {
   return useQuery({
     queryKey: ['analytics', 'alerts', filters],

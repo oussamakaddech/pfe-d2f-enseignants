@@ -30,9 +30,9 @@ class EvaluationFormateurControllerTest {
     void ajouterEvalParticipant_shouldReturnCreated() {
         EvaluationFormateurDTO dto = new EvaluationFormateurDTO();
         dto.setEnseignantId("ens-1");
-        when(service.ajouterEvalParticipant(any())).thenReturn(dto);
+        when(service.ajouterEvalParticipant(any(), any(), any())).thenReturn(dto);
 
-        var response = controller.ajouterEvalParticipant(dto);
+        var response = controller.ajouterEvalParticipant(null, dto);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -41,9 +41,9 @@ class EvaluationFormateurControllerTest {
     @Test
     void modifierEvalParticipant_shouldReturnOk() {
         EvaluationFormateurDTO dto = new EvaluationFormateurDTO();
-        when(service.modifierEvalParticipant(eq(1L), any())).thenReturn(dto);
+        when(service.modifierEvalParticipant(eq(1L), any(), any(), any())).thenReturn(dto);
 
-        var response = controller.modifierEvalParticipant(1L, dto);
+        var response = controller.modifierEvalParticipant(null, 1L, dto);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
@@ -82,7 +82,7 @@ class EvaluationFormateurControllerTest {
 
     @Test
     void createEvaluationsBulk_shouldReturnCreated() {
-        var response = controller.createEvaluationsBulk(List.of());
+        var response = controller.createEvaluationsBulk(null, List.of());
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
     }
 }

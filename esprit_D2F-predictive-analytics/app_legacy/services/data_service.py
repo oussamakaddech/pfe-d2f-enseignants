@@ -3,7 +3,7 @@
 Notes sur les conventions de nommage :
 - Formation.etatFormation → valeurs : NOUVEAU, ENREGISTRE, PLANIFIE, EN_COURS, ACHEVE, ANNULE, VISIBLE
 - Inscription.etat        → valeurs : PENDING, APPROVED, REJECTED
-- EnseignantCompetence.niveau → NiveauMaitrise : N1_DEBUTANT...N5_EXPERT
+- EnseignantCompetence.niveau → N1_DEBUTANT...N5_EXPERT ou DEBUTANT/INITIE/CONFIRME/AVANCE/EXPERT
 - Enseignant.mail         → colonne mail (pas email)
 - Enseignant.dept         → FK dept_id
 """
@@ -14,31 +14,16 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.core.db import execute_query
+from app.domain.value_objects.enums import sql_level_case
 
 logger = logging.getLogger(__name__)
 
 # ── NiveauMaitrise → entier (utilisé dans CASE WHEN SQL) ──
-NIVEAU_CASE = """
-    CASE ec.niveau
-        WHEN 'N1_DEBUTANT'     THEN 1
-        WHEN 'N2_ELEMENTAIRE'  THEN 2
-        WHEN 'N3_INTERMEDIAIRE' THEN 3
-        WHEN 'N4_AVANCE'       THEN 4
-        WHEN 'N5_EXPERT'       THEN 5
-        ELSE 0
-    END
-"""
+# Généré depuis la table unique du domaine : les deux vocabulaires présents en
+# base (N1_DEBUTANT… et DEBUTANT/INITIE/CONFIRME/AVANCE/EXPERT) sont reconnus.
+NIVEAU_CASE = sql_level_case("ec.niveau")
 
-NIVEAU_REQUIS_CASE = """
-    CASE nsr.niveau
-        WHEN 'N1_DEBUTANT'     THEN 1
-        WHEN 'N2_ELEMENTAIRE'  THEN 2
-        WHEN 'N3_INTERMEDIAIRE' THEN 3
-        WHEN 'N4_AVANCE'       THEN 4
-        WHEN 'N5_EXPERT'       THEN 5
-        ELSE 0
-    END
-"""
+NIVEAU_REQUIS_CASE = sql_level_case("nsr.niveau")
 
 # ── Queries ────────────────────────────────────────────────
 
@@ -163,6 +148,9 @@ SELECT ec.enseignant_id,
        sc.id  AS sous_competence_id,
        sc.nom AS sous_competence_nom
 FROM enseignant_competences ec
+-- enseignants supprimés exclus (deleted_at) : leurs niveaux ne doivent pas
+-- peser dans les écarts, cartes et agrégats
+JOIN enseignants ens ON ens.id = ec.enseignant_id AND ens.deleted_at IS NULL
 JOIN savoirs s ON s.id = ec.savoir_id
 -- savoir lié à une sous-compétence (cas principal)
 LEFT JOIN sous_competences sc       ON sc.id = s.sous_competence_id
@@ -171,7 +159,10 @@ LEFT JOIN domaines d_via_sc         ON d_via_sc.id = c_via_sc.domaine_id
 -- savoir lié directement à une compétence (cas alternatif)
 LEFT JOIN competences c_direct      ON c_direct.id = s.competence_id
 LEFT JOIN domaines d_direct         ON d_direct.id = c_direct.domaine_id
-WHERE ec.enseignant_id = :teacher_id OR :teacher_id IS NULL
+WHERE (ec.enseignant_id = :teacher_id OR :teacher_id IS NULL)
+  -- libellé de niveau illisible : ligne écartée (un niveau absent n'est pas
+  -- un niveau 1 ; le ramener à 1 inventait un « débutant »)
+  AND {NIVEAU_CASE} > 0
 """
 
 REQUIRED_LEVELS_QUERY = f"""

@@ -19,6 +19,8 @@ import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import tn.esprit.d2f.competence.dto.AffectationGroupeeRequest;
+import tn.esprit.d2f.competence.dto.AffectationGroupeeResultDTO;
 import tn.esprit.d2f.competence.dto.EnseignantCompetenceDTO;
 import tn.esprit.d2f.competence.dto.EnseignantCompetenceRequest;
 import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
@@ -144,6 +146,56 @@ class EnseignantCompetenceControllerTest {
         }
     }
 
+    // ─── GET /perimetre ──────────────────────────────────────────────────────
+    @Nested
+    @DisplayName("GET /api/v1/enseignant-competences/perimetre")
+    class GetPerimetre {
+
+        @Test
+        @WithMockUser(roles = "CUP")
+        @DisplayName("200 – périmètre UP du CUP (filtrage d'affichage)")
+        void shouldReturnPerimetre() throws Exception {
+            when(service.getPerimetre()).thenReturn(
+                    tn.esprit.d2f.competence.dto.PerimetreAffectationDTO.builder()
+                            .global(false)
+                            .upId("UP_GC")
+                            .deptId(null)
+                            .enseignantIds(List.of("E00011", "E00012"))
+                            .build());
+
+            mockMvc.perform(get(BASE_URL + "/perimetre"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.global").value(false))
+                    .andExpect(jsonPath("$.upId").value("UP_GC"))
+                    .andExpect(jsonPath("$.deptId").doesNotExist())
+                    .andExpect(jsonPath("$.enseignantIds.length()").value(2))
+                    .andExpect(jsonPath("$.enseignantIds[0]").value("E00011"));
+        }
+
+        @Test
+        @WithMockUser(roles = "admin")
+        @DisplayName("200 – périmètre global de l'administrateur")
+        void shouldReturnGlobalPerimetre() throws Exception {
+            when(service.getPerimetre()).thenReturn(
+                    tn.esprit.d2f.competence.dto.PerimetreAffectationDTO.builder()
+                            .global(true)
+                            .enseignantIds(List.of())
+                            .build());
+
+            mockMvc.perform(get(BASE_URL + "/perimetre"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.global").value(true))
+                    .andExpect(jsonPath("$.enseignantIds.length()").value(0));
+        }
+
+        @Test
+        @DisplayName("401 – sans authentification")
+        void shouldReturn401WithoutAuth() throws Exception {
+            mockMvc.perform(get(BASE_URL + "/perimetre"))
+                    .andExpect(status().isUnauthorized());
+        }
+    }
+
     // ─── GET /enseignant/{id}/count ───────────────────────────────────────────
     @Nested
     @DisplayName("GET /enseignant/{id}/count")
@@ -202,11 +254,74 @@ class EnseignantCompetenceControllerTest {
         }
     }
 
+    // ─── POST /groupee ────────────────────────────────────────────────────────
+    @Nested
+    @DisplayName("POST /api/v1/enseignant-competences/groupee")
+    class AssignGroupee {
+
+        @Test
+        @WithMockUser(roles = "admin")
+        @DisplayName("201 – affecte toute une compétence (tous ses savoirs)")
+        void shouldReturn201WithSummary() throws Exception {
+            var request = AffectationGroupeeRequest.builder()
+                    .enseignantId("ens-001")
+                    .competenceId(10L)
+                    .niveau(NiveauMaitrise.N2_ELEMENTAIRE)
+                    .build();
+            var resultat = AffectationGroupeeResultDTO.builder()
+                    .enseignantId("ens-001")
+                    .competenceId(10L)
+                    .total(4)
+                    .crees(3)
+                    .dejaAffectes(1)
+                    .savoirIds(List.of(1L, 2L, 3L, 4L))
+                    .build();
+            when(service.assignGroupee(any())).thenReturn(resultat);
+
+            mockMvc.perform(post(BASE_URL + "/groupee")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.total").value(4))
+                    .andExpect(jsonPath("$.crees").value(3))
+                    .andExpect(jsonPath("$.dejaAffectes").value(1))
+                    .andExpect(jsonPath("$.competenceId").value(10));
+        }
+
+        @Test
+        @WithMockUser(roles = "admin")
+        @DisplayName("400 – ni compétence ni sous-compétence ni savoir")
+        void shouldReturn400WhenNoPerimetre() throws Exception {
+            var request = AffectationGroupeeRequest.builder().enseignantId("ens-001").build();
+            when(service.assignGroupee(any()))
+                    .thenThrow(new IllegalArgumentException("Précisez le périmètre à affecter"));
+
+            mockMvc.perform(post(BASE_URL + "/groupee")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @WithMockUser(roles = "admin")
+        @DisplayName("400 – identifiant enseignant manquant")
+        void shouldReturn400WhenEnseignantMissing() throws Exception {
+            var request = AffectationGroupeeRequest.builder().competenceId(10L).build();
+
+            mockMvc.perform(post(BASE_URL + "/groupee")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
     // ─── DELETE /{id} ─────────────────────────────────────────────────────────
     @Nested
     @DisplayName("DELETE /api/v1/enseignant-competences/{id}")
     class RemoveCompetence {
-
         @Test
         @WithMockUser(roles = "admin")
         @DisplayName("204 – suppression réussie")

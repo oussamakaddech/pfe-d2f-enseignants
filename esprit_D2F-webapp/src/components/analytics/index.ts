@@ -1,7 +1,7 @@
 export { default as KpiCard } from './KpiCard';
 export { default as RiskScoreCard } from './RiskScoreCard';
 export { default as FactorsExplanationPanel } from './FactorsExplanationPanel';
-export { default as GapsTable } from './GapsTable';
+export { default as GapTrendTag } from './GapTrendTag';
 export { default as RecommendationsList } from './RecommendationsList';
 export { default as TrainingPathStepper } from './TrainingPathStepper';
 export { default as Heatmap } from './Heatmap';
